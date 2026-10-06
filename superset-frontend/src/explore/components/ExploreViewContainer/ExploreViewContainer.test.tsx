@@ -901,6 +901,12 @@ test('clearing a singleton metric refreshes semantic compatibility after metadat
     }),
   );
   // Model the completed sync answer: metric B cannot combine with metric A.
+  expect(fetchCompatibilitySpy).toHaveBeenCalledWith(
+    'semantic_view',
+    7,
+    ['metric_a'],
+    [],
+  );
   act(() => {
     store.dispatch(
       exploreActions.setCompatibility({

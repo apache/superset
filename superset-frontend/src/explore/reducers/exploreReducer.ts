@@ -26,12 +26,14 @@ import {
 import {
   ControlState,
   ControlStateMapping,
+  ControlType,
   Dataset,
 } from '@superset-ui/chart-controls';
 import { omit, pick } from 'lodash-es';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { getControlsState } from 'src/explore/store';
 import {
+  applyMapStateToPropsToControl,
   getControlConfig,
   getControlStateFromControlConfig,
   getControlValuesCompatibleWithDatasource,
@@ -312,10 +314,21 @@ export default function exploreReducer(
       const refreshedState = { ...state, datasource: typedAction.datasource };
       return {
         ...refreshedState,
-        controls: getControlsState(
-          refreshedState as Parameters<typeof getControlsState>[0],
-          typedAction.formData,
-        ) as ControlStateMapping,
+        // Existing controls have already consumed their initial values. Refresh
+        // their choices and validation without reapplying chart defaults.
+        controls: Object.fromEntries(
+          Object.entries(state.controls).map(([name, control]) => [
+            name,
+            applyMapStateToPropsToControl<ControlType>(
+              { ...control, initialValue: undefined },
+              {
+                ...refreshedState,
+                form_data: typedAction.formData,
+                slice: state.slice ?? undefined,
+              },
+            ),
+          ]),
+        ),
       };
     },
     [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {

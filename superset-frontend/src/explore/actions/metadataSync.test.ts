@@ -17,7 +17,13 @@
  * under the License.
  */
 import { AnyAction, applyMiddleware, createStore } from 'redux';
-import { ControlPanelState, Dataset } from '@superset-ui/chart-controls';
+import {
+  ControlPanelState,
+  ControlStateMapping,
+  Dataset,
+  dndAdhocFilterControl,
+  datePickerInAdhocFilterMixin,
+} from '@superset-ui/chart-controls';
 import {
   DatasourceType,
   FeatureFlag,
@@ -29,6 +35,7 @@ import exploreReducer, {
   ExploreState,
 } from 'src/explore/reducers/exploreReducer';
 import { ExplorePageState } from 'src/explore/types';
+import { getControlsState } from 'src/explore/store';
 import versionHistoryReducer, {
   CLEAR_VERSION_SESSION_LOG,
 } from 'src/features/versionHistory/reducer';
@@ -44,6 +51,15 @@ beforeEach(() => {
       {
         controlSetRows: [
           ['metrics'],
+          [
+            {
+              name: 'adhoc_filters',
+              config: {
+                ...dndAdhocFilterControl,
+                ...datePickerInAdhocFilterMixin,
+              },
+            },
+          ],
           [
             {
               name: 'groupby',
@@ -71,7 +87,7 @@ afterEach(() => {
 });
 
 test.each([false, true])(
-  'metadata sync logs only changed control values (removed choice: %s)',
+  'metadata sync preserves a cleared time filter and logs only removed choices (removed choice: %s)',
   async removed => {
     const previousFlags = window.featureFlags;
     window.featureFlags = {
@@ -81,13 +97,16 @@ test.each([false, true])(
     const datasource: Dataset = {
       id: 7,
       type: DatasourceType.SemanticView,
-      columns: [{ column_name: 'country', type: 'STRING', groupby: true }],
+      columns: [
+        { column_name: 'country', type: 'STRING', groupby: true },
+        { column_name: 'created_at', type: 'TIMESTAMP', is_dttm: true },
+      ],
       metrics: [
         { uuid: 'orders-metric', metric_name: 'orders', expression: 'orders' },
       ],
       column_formats: {},
       verbose_map: {},
-      main_dttm_col: '',
+      main_dttm_col: 'created_at',
       datasource_name: 'orders',
       description: null,
     };
@@ -96,9 +115,14 @@ test.each([false, true])(
       viz_type: vizType,
       metrics: ['orders'],
       groupby: ['country'],
+      adhoc_filters: [],
+    };
+    const common = {
+      conf: { DEFAULT_VIZ_TYPE: vizType, DEFAULT_TIME_FILTER: 'Last year' },
     };
     const initialExplore: ExploreState = {
       datasource,
+      common,
       form_data: formData,
       controls: {
         datasource: { type: 'SelectControl', value: formData.datasource },
@@ -106,6 +130,21 @@ test.each([false, true])(
         metrics: { type: 'SelectControl', value: ['orders'] },
         groupby: { type: 'SelectControl', value: ['country'] },
       },
+    };
+    initialExplore.controls = getControlsState(
+      initialExplore as Parameters<typeof getControlsState>[0],
+      formData,
+    ) as ControlStateMapping;
+    expect(initialExplore.controls.adhoc_filters.value).toEqual([
+      expect.objectContaining({
+        operator: 'TEMPORAL_RANGE',
+        comparator: 'Last year',
+      }),
+    ]);
+    // The user removed the initialized time filter before syncing metadata.
+    initialExplore.controls.adhoc_filters = {
+      ...initialExplore.controls.adhoc_filters,
+      value: [],
     };
     Object.freeze(initialExplore.controls.metrics);
     Object.freeze(initialExplore.controls.groupby);
@@ -174,6 +213,7 @@ test.each([false, true])(
         removed ? [] : ['country'],
       );
       expect(store.getState().explore.form_data).toBe(formData);
+      expect(store.getState().explore.controls.adhoc_filters.value).toEqual([]);
       if (removed) {
         expect(store.getState().versionHistory.sessionLog).toEqual([
           expect.objectContaining({ controlName: 'groupby' }),

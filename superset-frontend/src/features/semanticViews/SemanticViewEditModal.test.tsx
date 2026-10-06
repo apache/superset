@@ -676,6 +676,35 @@ test('published metadata with failed reload retries only GET and keeps the modal
   expect(props.onHide).not.toHaveBeenCalled();
 });
 
+test('published metadata with a rejected sync callback retries reload without publishing again', async () => {
+  mockedGet
+    .mockResolvedValueOnce({ json: SYNC_STRUCTURE })
+    .mockResolvedValue({ json: SYNCED_STRUCTURE });
+  mockedPost.mockResolvedValue({ json: { result: { status: 'changed' } } });
+  const onMetadataSync = jest
+    .fn()
+    .mockRejectedValueOnce(new Error('compatibility unavailable'))
+    .mockResolvedValueOnce(undefined);
+  const props = { ...createProps(), onMetadataSync, addDangerToast: undefined };
+  render(<SemanticViewEditModal {...props} />);
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Sync metadata' }),
+  );
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Metadata synced; unable to reload fields',
+  );
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(onMetadataSync).toHaveBeenCalledTimes(1);
+  await userEvent.click(screen.getByRole('button', { name: 'Reload fields' }));
+  expect(await screen.findByRole('status')).toHaveTextContent(
+    'Metadata synced',
+  );
+  expect(onMetadataSync).toHaveBeenCalledTimes(2);
+  expect(mockedGet).toHaveBeenCalledTimes(3);
+  expect(mockedPost).toHaveBeenCalledTimes(1);
+  expect(props.onHide).not.toHaveBeenCalled();
+});
+
 test('pending sync disables duplicate actions and Save', async () => {
   mockedGet.mockResolvedValue({ json: SYNC_STRUCTURE });
   const pending = deferred<object>();

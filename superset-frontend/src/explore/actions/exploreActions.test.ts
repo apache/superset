@@ -567,6 +567,121 @@ test('metadata sync ignores a late response after its modal session ends', async
   }
 });
 
+test.each(['failed', 'closed'] as const)(
+  'metadata GET %s settles a retired compatibility POST without accepting its late answer',
+  async outcome => {
+    const dispatch = jest.fn();
+    const state = {
+      explore: {
+        ...defaultState,
+        datasource: { id: 7, type: 'semantic_view' },
+        compatibility: { status: 'loading' },
+      },
+    } as Pick<ExplorePageState, 'explore'>;
+    let current = true;
+    let resolvePost!: (response: JsonResponse) => void;
+    let resolveGet!: (response: JsonResponse) => void;
+    let rejectGet!: (error: Error) => void;
+    const postSpy = jest.spyOn(SupersetClient, 'post').mockReturnValueOnce(
+      new Promise(resolve => {
+        resolvePost = resolve;
+      }),
+    );
+    const getSpy = jest.spyOn(SupersetClient, 'get').mockReturnValueOnce(
+      new Promise((resolve, reject) => {
+        resolveGet = resolve;
+        rejectGet = reject;
+      }),
+    );
+    try {
+      const old = actions.fetchCompatibility(
+        'semantic_view',
+        7,
+        ['m1'],
+        [],
+      )(dispatch);
+      const sync = actions.refreshSemanticMetadata(7, () => current)(
+        dispatch,
+        () => state,
+      );
+      if (outcome === 'failed') {
+        rejectGet(new Error('metadata unavailable'));
+        await expect(sync).rejects.toThrow('metadata unavailable');
+      } else {
+        current = false;
+        resolveGet({
+          json: state.explore.datasource,
+          response: new Response(),
+        });
+        await sync;
+      }
+      expect(dispatch).toHaveBeenLastCalledWith(
+        actions.setCompatibility({ status: 'failed' }),
+      );
+      resolvePost({
+        json: {
+          result: { compatible_metrics: ['stale'], compatible_dimensions: [] },
+        },
+        response: new Response(),
+      });
+      await old;
+      expect(dispatch).toHaveBeenCalledTimes(2);
+      expect(postSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      getSpy.mockRestore();
+      postSpy.mockRestore();
+    }
+  },
+);
+
+test('failed metadata GET cannot settle a newer compatibility request', async () => {
+  const dispatch = jest.fn();
+  const state = {
+    explore: {
+      ...defaultState,
+      datasource: { id: 7, type: 'semantic_view' },
+      compatibility: { status: 'loading' },
+    },
+  } as Pick<ExplorePageState, 'explore'>;
+  let rejectGet!: (error: Error) => void;
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockReturnValueOnce(
+    new Promise((resolve, reject) => {
+      rejectGet = reject;
+    }),
+  );
+  const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValueOnce({
+    json: {
+      result: { compatible_metrics: ['newer'], compatible_dimensions: [] },
+    },
+    response: new Response(),
+  });
+  try {
+    const sync = actions.refreshSemanticMetadata(7, () => true)(
+      dispatch,
+      () => state,
+    );
+    await actions.fetchCompatibility(
+      'semantic_view',
+      7,
+      ['newer'],
+      [],
+    )(dispatch);
+    rejectGet(new Error('metadata unavailable'));
+    await expect(sync).rejects.toThrow('metadata unavailable');
+    expect(dispatch).toHaveBeenLastCalledWith(
+      actions.setCompatibility({
+        status: 'verified',
+        metrics: ['newer'],
+        dimensions: [],
+      }),
+    );
+    expect(dispatch).toHaveBeenCalledTimes(2);
+  } finally {
+    getSpy.mockRestore();
+    postSpy.mockRestore();
+  }
+});
+
 test('metadata sync does not refetch when the active datasource is another view', async () => {
   const dispatch = jest.fn();
   const getSpy = jest.spyOn(SupersetClient, 'get');

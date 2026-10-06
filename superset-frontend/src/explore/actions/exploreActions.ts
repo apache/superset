@@ -21,7 +21,7 @@ import rison from 'rison';
 import { clearDataMask } from 'src/dataMask/actions';
 import { Dataset } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient, QueryFormData } from '@superset-ui/core';
+import { SupersetClient, QueryFormData, JsonResponse } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   addDangerToast,
@@ -323,14 +323,33 @@ export function refreshSemanticMetadata(
     if (!isCurrent()) return;
     // A pre-sync compatibility response cannot replace a post-sync answer.
     compatibilityRequestSeq += 1;
-    const { json } = await SupersetClient.get({
-      endpoint: `/fetch_datasource_metadata?datasourceKey=${viewId}__semantic_view`,
-    });
-    if (!isCurrent()) return;
+    const requestSeq = compatibilityRequestSeq;
+    const settleRetiredRequest = () => {
+      if (
+        requestSeq === compatibilityRequestSeq &&
+        isActiveDatasource() &&
+        getState().explore.compatibility?.status === 'loading'
+      ) {
+        dispatch(setCompatibility({ status: 'failed' }));
+      }
+    };
+    let response: JsonResponse;
+    try {
+      response = await SupersetClient.get({
+        endpoint: `/fetch_datasource_metadata?datasourceKey=${viewId}__semantic_view`,
+      });
+    } catch (error) {
+      settleRetiredRequest();
+      throw error;
+    }
+    if (!isCurrent()) {
+      settleRetiredRequest();
+      return;
+    }
     const formData = getFormDataFromControls(getState().explore.controls);
     // Rebuild the controls against fresh fields using their existing values and
     // normal removed-member validation, without rewriting form_data or querying.
-    dispatch(syncSemanticMetadata(json as Dataset, formData));
+    dispatch(syncSemanticMetadata(response.json as Dataset, formData));
     const { selectedMetrics, selectedDimensions } =
       getCompatibilitySelection(formData);
     // Once controls are rebuilt, Explore owns this request even if the editor

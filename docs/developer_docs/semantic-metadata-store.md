@@ -25,8 +25,8 @@ under the License.
 
 This host implementation supports the optional [SDK metadata contract](./semantic-metadata-contract.md).
 It provides storage and cache identity. The [metadata operations API](./semantic-metadata-operations.md)
-adds authorized refresh, invalidation, and cache-inspection endpoints; this backend
-layer does not add UI controls.
+adds authorized refresh, invalidation, and cache-inspection endpoints. The semantic-view
+editor exposes Sync metadata and Cache metadata controls, including from Explore.
 Both `SEMANTIC_LAYERS` and `SEMANTIC_LAYER_METADATA_REFRESH_ENABLED` remain off
 by default. A provider must explicitly declare support and supply the adapter
 and captured view token. Legacy providers retain their existing behavior.
