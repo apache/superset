@@ -150,8 +150,12 @@ class StatementInfo(BaseModel):
     """Information about a single SQL statement execution."""
 
     original_sql: str = Field(..., description="Original SQL as submitted")
-    executed_sql: str = Field(
-        ..., description="SQL after transformations (RLS, mutations, limits)"
+    executed_sql: str | None = Field(
+        None,
+        description=(
+            "SQL after transformations (RLS, mutations, limits). "
+            "Null when identical to original_sql; use original_sql in that case."
+        ),
     )
     row_count: RowCount = Field(..., description="Number of rows returned/affected")
     truncated: bool = Field(False, description="Rows omitted by the fetch cap")
@@ -162,8 +166,10 @@ class StatementInfo(BaseModel):
         None,
         description=(
             "Row data and column metadata for this statement. "
-            "Present for data-bearing statements (e.g., SELECT), "
-            "absent for DML/DDL statements (e.g., SET, UPDATE)."
+            "Present for earlier data-bearing statements (e.g., SELECT). "
+            "Null for the last data-bearing statement, whose rows/columns "
+            "are returned only at the top level, and for statements "
+            "without data (e.g., SET, UPDATE)."
         ),
     )
 
@@ -173,10 +179,18 @@ class ExecuteSqlResponse(BaseModel):
 
     success: bool = Field(..., description="Whether query executed successfully")
     rows: JsonSafeRows | None = Field(
-        None, description="Query result rows as list of dictionaries"
+        None,
+        description=(
+            "Last data-bearing statement's result rows as list of dictionaries. "
+            "Earlier results are in statements[].data.rows."
+        ),
     )
     columns: list[ColumnInfo] | None = Field(
-        None, description="Column metadata information"
+        None,
+        description=(
+            "Last data-bearing statement's column metadata. "
+            "Earlier metadata is in statements[].data.columns."
+        ),
     )
     row_count: OptionalRowCount = Field(None, description="Number of rows returned")
     affected_rows: OptionalRowCount = Field(
@@ -188,7 +202,12 @@ class ExecuteSqlResponse(BaseModel):
     error: str | None = Field(None, description="Error message if query failed")
     error_type: str | None = Field(None, description="Type of error if failed")
     statements: list[StatementInfo] | None = Field(
-        None, description="Per-statement execution info (for multi-statement queries)"
+        None,
+        description=(
+            "Execution metadata for every statement, including single-statement "
+            "queries. Data is included only for earlier data-bearing statements; "
+            "the last data-bearing result is at the top level."
+        ),
     )
     multi_statement_warning: str | None = Field(
         None,
@@ -196,7 +215,8 @@ class ExecuteSqlResponse(BaseModel):
             "Warning when multiple data-bearing statements were executed. "
             "The top-level rows/columns contain only the last "
             "data-bearing statement's results. "
-            "Check each entry in the statements array for per-statement data."
+            "Earlier results are in statements[].data; the last data-bearing "
+            "statement's data is null to avoid duplicating the top-level result."
         ),
     )
     template_warning: str | None = Field(
