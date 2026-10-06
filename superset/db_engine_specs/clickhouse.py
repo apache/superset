@@ -534,7 +534,10 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     "host": "HTTPS hostname from the service Connect dialog",
                     "database": "Database name (default)",
                 },
-                "docs_url": "https://clickhouse.com/docs/cloud",
+                "docs_url": (
+                    "https://clickhouse.com/docs/products/cloud/"
+                    "getting-started/cloud-get-started"
+                ),
                 "notes": (
                     "Open your service in the ClickHouse Cloud console and select "
                     "Connect to find the HTTPS endpoint and database credentials. "

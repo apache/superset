@@ -29,6 +29,7 @@ import databaseData from '../data/databases.json';
 import BlurredSection from '../components/BlurredSection';
 import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
 import type { DatabaseData } from '../components/databases/types';
+import DatabaseLogo from '../components/databases/DatabaseLogo';
 import GetStartedSplitButton from '../components/GetStartedSplitButton';
 import '../styles/main.css';
 
@@ -42,6 +43,7 @@ const Databases = Object.entries(typedDatabaseData.databases)
     title: name,
     href: db.documentation?.homepage_url,
     imgName: db.documentation?.logo,
+    imgNameDark: db.documentation?.logo_dark,
     docPath: `/docs/databases/supported/${name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -905,10 +907,15 @@ export default function Home(): JSX.Element {
               link="/docs/databases"
             />
             <div className="database-grid">
-              {Databases.map(({ title, imgName, docPath }) => (
+              {Databases.map(({ title, imgName, imgNameDark, docPath }) => (
                 <div className="item" key={title}>
                   <a href={docPath} aria-label={`${title} documentation`}>
-                    <img src={`/img/databases/${imgName}`} title={title} />
+                    <DatabaseLogo
+                      logo={imgName!}
+                      logoDark={imgNameDark}
+                      alt={title}
+                      title={title}
+                    />
                   </a>
                 </div>
               ))}
