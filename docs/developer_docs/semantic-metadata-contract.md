@@ -96,8 +96,11 @@ See [host lifetime configuration](semantic-metadata-store.md#snapshot-lifetime-a
 for validation, rollout and existing-entry behavior.
 
 `SemanticView.metadata_cache_token` defaults to `None` for legacy views. A bound
-opted-in view returns the token captured with its parsed members. Hosts reject
-missing tokens in that mode and include the captured token in metadata-dependent
+opted-in view must return exactly the `CatalogSnapshot.cache_token` captured with
+its parsed members, not a derived per-view token. The host rejects missing or
+unknown tokens using the bound store's observation lookup and adds the stored
+view identity itself when constructing derived keys. Hosts include that captured
+token in metadata-dependent
 compatibility and result-cache keys, preserving view/query/access identities.
 An old result must never be labelled with a token fetched later. Host/provider
 implementations must enforce and test these obligations.

@@ -257,7 +257,11 @@ def test_column_suggestions_version_gate_precedes_cache(
     app.config["FILTER_SELECT_ROW_LIMIT"] = 100
     app.config["SQL_MAX_ROW"] = 1000
     datasource: MagicMock = MagicMock(
-        type=datasource_type, uid="1", normalize_columns=False, changed_on="fixed"
+        type=datasource_type,
+        uid="1",
+        normalize_columns=False,
+        changed_on="fixed",
+        metadata_cache_token=None,
     )
     datasource.implementation.selection_identity_version = version
     api: MagicMock = MagicMock()
