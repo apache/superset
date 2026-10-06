@@ -410,6 +410,12 @@ Changing **Summary aggregation** refreshes the summary row automatically; you do
 
 In both modes, the summary is computed across the full result set, independent of the chart's row limit and pagination, and it reflects dashboard and chart-level filters. It does not reflect AG Grid's own server-side column filters (the per-column filter UI in the grid header), which are excluded from the summary query.
 
+#### JSON values
+
+A text cell that holds a JSON object or array keeps an icon on the right. A column format that changes the displayed text keeps that text. In a column that wraps text, the JSON wraps onto extra lines. In a column that truncates long cells, it is shown as one line and expands while the pointer is over the cell. A click on the text selects the row and can apply a cross-filter. A click on the icon, or Enter while the cell is focused, opens the value in a dialog, with a control to copy the original text.
+
+**Customize** → **Options** → **JSON in cell** adds an arrow on the left and keeps the value on one line. A click on the arrow expands and collapses the JSON in the row. The icon on the right still opens the dialog.
+
 ### Dynamic Currency Formatting
 
 Chart metric values can display currencies dynamically rather than using a fixed currency code. To enable:

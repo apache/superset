@@ -420,6 +420,12 @@ msgid "%s items could not be tagged because you don’t have edit permissions to
 msgstr ""
 
 #, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
 msgstr[0] ""
@@ -1166,6 +1172,9 @@ msgid "Add alert"
 msgstr ""
 
 msgid "Add an annotation layer"
+msgstr ""
+
+msgid "Add an arrow on the left of collapsed JSON. A click on the arrow expands the value in the row. The icon on the right opens it in a dialog."
 msgstr ""
 
 msgid "Add an item"
@@ -3462,10 +3471,17 @@ msgstr ""
 msgid "Collapse"
 msgstr ""
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr ""
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -3940,6 +3956,9 @@ msgstr ""
 
 #, python-format
 msgid "Converted %s @import rule(s) to inline CSS. Review the result before saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -6204,7 +6223,14 @@ msgstr ""
 msgid "Expand"
 msgstr ""
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
+msgstr ""
+
+msgid "Expand JSON"
 msgstr ""
 
 msgid "Expand all"
@@ -7724,6 +7750,9 @@ msgid "JSON Configuration"
 msgstr ""
 
 msgid "JSON Metadata"
+msgstr ""
+
+msgid "JSON in cell"
 msgstr ""
 
 msgid "JSON metadata"
@@ -9564,6 +9593,9 @@ msgid "Open"
 msgstr ""
 
 msgid "Open Datasource tab"
+msgstr ""
+
+msgid "Open JSON"
 msgstr ""
 
 msgid "Open SQL Lab in a new tab"

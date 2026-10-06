@@ -65,6 +65,7 @@ import type { FilterState } from './utils/filterStateManager';
 import { formatColumnValue } from './utils/formatValue';
 import getTimeRangeFromGranularity from './utils/getTimeRangeFromGranularity';
 import getScrollBarSize from './utils/getScrollBarSize';
+import { isJsonCellActionTarget } from './utils/isJsonCellActionTarget';
 import { isMainComparisonLabel } from './utils/mainComparison';
 
 export default function TableChart<D extends DataRecord = DataRecord>(
@@ -77,6 +78,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     includeSearch,
     allowRearrangeColumns,
     allowRenderHtml,
+    jsonInCell = false,
     pageSize,
     serverPagination,
     rowCount,
@@ -390,6 +392,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     columnColorFormatters,
     allowRearrangeColumns,
     allowRenderHtml,
+    jsonInCell,
     basicColorFormatters,
     isUsingTimeComparison,
     emitCrossFilters,
@@ -430,6 +433,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleCellClicked = useCallback(
     (event: CellClickedEvent) => {
+      const clickTarget = event.event?.target ?? null;
+      if (isJsonCellActionTarget(clickTarget)) return;
       if (!emitCrossFilters || !event.column) return;
       const colDef = event.column.getColDef();
       if (colDef.context?.isMetric || colDef.context?.isPercentMetric) return;
