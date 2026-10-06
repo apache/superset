@@ -53,7 +53,7 @@ def render_context(
         get_widget_types() if widget_types is None else widget_types,
         resolver or get_widget_resolver(),
     )
-    widget_types = {node_id: w.widget_type for node_id, w in node_types.items()}
+    type_ids = {node_id: w.widget_type for node_id, w in node_types.items()}
 
     grids: list[tuple[list[str], int]] = [
         (definition["root"]["children"], definition["root"]["layout"]["columns"])
@@ -77,7 +77,7 @@ def render_context(
                 "rowSpan": rect.row_span,
             }
     return {
-        "widgetTypes": widget_types,
+        "widgetTypes": type_ids,
         "placements": placements,
         "gridColumns": grid_columns,
     }
