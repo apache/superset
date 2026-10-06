@@ -28,7 +28,10 @@ import math
 import os
 import time
 from _thread import LockType
+from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack
+from functools import partial
+from types import TracebackType
 from typing import Any, TYPE_CHECKING
 
 from redis.asyncio import Redis
@@ -168,6 +171,13 @@ class DeadlineRedisBackend:
             return min(configured, remaining)
         return remaining
 
+    async def _cleanup(self, close: Callable[[], Awaitable[None]]) -> None:
+        """Keep exit callbacks inside the budget even after outer cancellation."""
+        # An expired budget skips graceful shutdown. The private loop owns the
+        # final transport abort, including redis-py's shielded cleanup tasks.
+        async with asyncio.timeout(self._remaining()):
+            await close()
+
     async def _command(self, *args: str | int) -> Any:
         remaining: float = self._remaining()
         options: dict[str, Any] = {
@@ -215,22 +225,38 @@ class DeadlineRedisBackend:
                 sentinel_client: Redis
                 for sentinel_client in sentinel.sentinels:
                     stack.push_async_callback(
+                        self._cleanup,
                         getattr(sentinel_client, "aclose", None)
-                        or sentinel_client.close
+                        or sentinel_client.close,
                     )
                 client = sentinel.master_for(
                     self._config.get("CACHE_REDIS_SENTINEL_MASTER", "mymaster")
                 )
                 # redis-py 5.0 clients do not own the pool supplied by Sentinel.
                 # This command does: release it even on errors and cancellation.
-                stack.push_async_callback(client.connection_pool.disconnect)
+                stack.push_async_callback(
+                    self._cleanup, client.connection_pool.disconnect
+                )
+
+                async def exit_client(
+                    exc_type: type[BaseException] | None,
+                    exc: BaseException | None,
+                    traceback: TracebackType | None,
+                ) -> None:
+                    """Bound client exit if cancellation happened in the command."""
+                    await self._cleanup(
+                        partial(client.__aexit__, exc_type, exc, traceback)
+                    )
+
+                await client.__aenter__()
+                stack.push_async_exit(exit_client)
             else:
                 client = Redis(
                     host=self._config.get("CACHE_REDIS_HOST", "localhost"),
                     port=self._config.get("CACHE_REDIS_PORT", 6379),
                     **options,
                 )
-            await stack.enter_async_context(client)
+                await stack.enter_async_context(client)
             return await client.execute_command(*args)
 
     def execute(self, *args: str | int) -> Any:
