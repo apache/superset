@@ -423,3 +423,83 @@ test("the mapped column's row is muted in the columns table", async () => {
     'num',
   );
 });
+
+const DATABASES = [
+  {
+    id: 1,
+    database_name: 'warehouse_hive',
+    backend: 'hive',
+    engine_information: {
+      supports_partition_filter_mapping: true,
+      partition_value_transform_default: 'unix_timestamp(:value)',
+    },
+  },
+  {
+    id: 2,
+    database_name: 'app_postgres',
+    backend: 'postgresql',
+    engine_information: {
+      supports_partition_filter_mapping: false,
+      partition_value_transform_default: null,
+    },
+  },
+];
+
+/** Render in edit mode with a database list the selector can switch between. */
+const renderWithDatabases = async (supportsPartitionMapping: boolean) => {
+  // Ahead of the catch-all `/api/v1/database/` mock, so the selector lists
+  // real options.
+  fetchMock.removeRoutes();
+  fetchMock.get(DATASOURCE_ENDPOINT, [], { name: DATASOURCE_ENDPOINT });
+  fetchMock.get('glob:*/api/v1/database/?q=*', {
+    result: DATABASES,
+    count: DATABASES.length,
+  });
+  setupDatasourceEditorMocks();
+
+  const props = createProps();
+  const current = DATABASES[supportsPartitionMapping ? 0 : 1];
+  props.datasource.database = {
+    id: current.id,
+    database_name: current.database_name,
+    backend: current.backend,
+  } as DatasourceEditorProps['datasource']['database'];
+  props.datasource.supports_partition_filter_mapping = supportsPartitionMapping;
+  props.datasource.partition_value_transform_default =
+    current.engine_information.partition_value_transform_default;
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByRole('img', { name: /lock/i }));
+  return props;
+};
+
+const showsPartitionSection = async () => {
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await screen.findByPlaceholderText('Search columns by name');
+  return screen.queryByTestId('partition-column-fields') !== null;
+};
+
+test('switching to a database whose engine lacks support hides partition mapping', async () => {
+  // The capability arrives on the dataset payload for the database it was
+  // loaded with; switching databases in the editor has to re-derive it.
+  await renderWithDatabases(true);
+
+  await selectOption(
+    'app_postgres',
+    'Select database or type to search databases',
+  );
+
+  expect(await showsPartitionSection()).toBe(false);
+});
+
+test('switching to a database whose engine supports it offers partition mapping', async () => {
+  await renderWithDatabases(false);
+
+  await selectOption(
+    'warehouse_hive',
+    'Select database or type to search databases',
+  );
+
+  expect(await showsPartitionSection()).toBe(true);
+});

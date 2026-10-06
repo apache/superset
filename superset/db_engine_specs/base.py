@@ -3171,6 +3171,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "supports_oauth2": cls.supports_oauth2,
             "supports_schemas": cls.supports_schemas,
             "supports_offset": cls.supports_offset,
+            # Read by the dataset editor to re-derive whether partition filter
+            # mapping applies when the owner points a dataset at another
+            # database, without a round trip through the dataset endpoint.
+            "supports_partition_filter_mapping": (
+                cls.supports_partition_filter_mapping
+            ),
+            "partition_value_transform_default": (
+                cls.partition_value_transform_default
+            ),
             "identifier_quote": {
                 "start": cls.identifier_quote_start,
                 "end": cls.identifier_quote_end,

@@ -1252,6 +1252,23 @@ class EngineInformationSchema(Schema):
             "description": "Characters used to quote identifiers for this dialect"
         },
     )
+    supports_partition_filter_mapping = fields.Boolean(
+        metadata={
+            "description": (
+                "The dataset editor offers partition filter mapping on this "
+                "database's datasets"
+            )
+        }
+    )
+    partition_value_transform_default = fields.String(
+        allow_none=True,
+        metadata={
+            "description": (
+                "Default partition value transform the dataset editor offers, "
+                "or null for none"
+            )
+        },
+    )
 
 
 class DatabaseConnectionSchema(Schema):

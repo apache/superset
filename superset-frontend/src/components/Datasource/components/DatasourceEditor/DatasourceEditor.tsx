@@ -90,6 +90,7 @@ import SubjectPicker, {
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 import { DatabaseSelector } from '../../../DatabaseSelector';
+import type { DatabaseObject } from '../../../DatabaseSelector/types';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -1320,6 +1321,24 @@ function DatasourceEditor({
     });
   }, []);
 
+  // The partition mapping capability and its transform pre-fill belong to the
+  // engine, and arrive on the dataset payload for the database it was loaded
+  // with. Pointing the dataset at another database has to re-derive both from
+  // the selected database's engine, or the editor keeps offering (or keeps
+  // hiding) partition mapping according to the engine it just left.
+  const onDatabaseChange = useCallback((db: DatabaseObject | undefined) => {
+    if (db === undefined) return;
+    setDatasource(prev => ({
+      ...prev,
+      database: db,
+      supports_partition_filter_mapping: Boolean(
+        db.supports_partition_filter_mapping,
+      ),
+      partition_value_transform_default:
+        db.partition_value_transform_default ?? null,
+    }));
+  }, []);
+
   // Effect to trigger validation after datasource changes (skip initial mount)
   useEffect(() => {
     if (isInitialMount.current) {
@@ -2380,8 +2399,7 @@ function DatasourceEditor({
                               onDatasourcePropChange('schema', schema)
                             }
                             onDbChange={db =>
-                              isEditMode &&
-                              onDatasourcePropChange('database', db)
+                              isEditMode && onDatabaseChange(db)
                             }
                             formMode={false}
                             handleError={addDangerToast}
@@ -2579,11 +2597,7 @@ function DatasourceEditor({
                             ? schema => onDatasourcePropChange('schema', schema)
                             : undefined
                         }
-                        onDbChange={
-                          isEditMode
-                            ? db => onDatasourcePropChange('database', db)
-                            : undefined
-                        }
+                        onDbChange={isEditMode ? onDatabaseChange : undefined}
                         onTableSelectChange={
                           isEditMode
                             ? table =>

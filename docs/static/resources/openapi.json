@@ -7307,6 +7307,11 @@
             ],
             "description": "Characters used to quote identifiers for this dialect"
           },
+          "partition_value_transform_default": {
+            "description": "Default partition value transform the dataset editor offers, or null for none",
+            "nullable": true,
+            "type": "string"
+          },
           "supports_dynamic_catalog": {
             "description": "The database supports multiple catalogs in a single connection",
             "type": "boolean"
@@ -7321,6 +7326,10 @@
           },
           "supports_offset": {
             "description": "The database supports OFFSET in SQL queries. Engines like Elasticsearch SQL return False.",
+            "type": "boolean"
+          },
+          "supports_partition_filter_mapping": {
+            "description": "The dataset editor offers partition filter mapping on this database's datasets",
             "type": "boolean"
           },
           "supports_schemas": {
