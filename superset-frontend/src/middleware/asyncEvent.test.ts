@@ -553,6 +553,107 @@ test.each(['failure', 'aborted', 'timed_out'])(
   },
 );
 
+test('duplicate terminal events share one in-flight detail lookup', async () => {
+  queueStatuses();
+  let releaseStatus: () => void = () => {};
+  const statusInFlight = new Promise<void>(resolve => {
+    releaseStatus = resolve;
+  });
+  fetchMock.get(TASK_STATUS_ENDPOINT, () =>
+    statusInFlight.then(() => ({
+      status: 200,
+      body: { status: 'failure', error_message: 'Task failed.' },
+    })),
+  );
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  const onReject = jest.fn();
+  promise.then(undefined, onReject);
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fetchMock.callHistory.calls(TASK_STATUS_ENDPOINT)).toHaveLength(1);
+  releaseStatus();
+  await expect(promise).rejects.toMatchObject({ error: 'Task failed.' });
+  expect(onReject).toHaveBeenCalledTimes(1);
+  expect(refetch).not.toHaveBeenCalled();
+});
+
+test('a stale detail lookup cannot settle a waiter created after init', async () => {
+  queueStatuses();
+  let releaseStatus: () => void = () => {};
+  const statusInFlight = new Promise<void>(resolve => {
+    releaseStatus = resolve;
+  });
+  fetchMock.get(TASK_STATUS_ENDPOINT, () =>
+    statusInFlight.then(() => ({
+      status: 200,
+      body: { status: 'failure', error_message: 'Old failure.' },
+    })),
+  );
+  asyncEvent.init(wsConfig);
+
+  const oldController = new AbortController();
+  const oldPromise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn(),
+    oldController.signal,
+  );
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fetchMock.callHistory.calls(TASK_STATUS_ENDPOINT)).toHaveLength(1);
+
+  asyncEvent.init(wsConfig);
+  const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+  const freshPromise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  const onFreshSettle = jest.fn();
+  freshPromise.then(onFreshSettle, onFreshSettle);
+
+  releaseStatus();
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+  expect(onFreshSettle).not.toHaveBeenCalled();
+  expect(refetch).not.toHaveBeenCalled();
+
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success'));
+  await expect(freshPromise).resolves.toEqual([{ rows: 1 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+  oldController.abort();
+  await expect(oldPromise).rejects.toThrow('Aborted');
+});
+
+test.each([null, 42, { detail: 'private' }])(
+  'non-string failure detail %j falls back to the generic chart error',
+  async errorMessage => {
+    queueStatuses();
+    fetchMock.get(TASK_STATUS_ENDPOINT, {
+      status: 200,
+      body: { status: 'failure', error_message: errorMessage },
+    });
+    asyncEvent.init(wsConfig);
+
+    const promise = asyncEvent.waitForAsyncData(
+      { task_ids: ['task-1'] },
+      jest.fn(),
+    );
+    asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+
+    await expect(promise).rejects.toMatchObject({
+      error: 'One or more chart-data queries failed',
+    });
+  },
+);
+
 test('falls back to a generic chart error when task detail is unavailable', async () => {
   queueStatuses();
   fetchMock.get(TASK_STATUS_ENDPOINT, { status: 404 });
