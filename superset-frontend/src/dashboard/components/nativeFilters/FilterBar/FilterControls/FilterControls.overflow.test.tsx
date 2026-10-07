@@ -629,3 +629,18 @@ test('provides correct filter count when filters include requiredFirst', async (
   await waitFor(() => expect(latestProps()).toBeTruthy());
   expect(latestProps().items).toHaveLength(3);
 });
+
+test('does not pass forceRender to DropdownContainer even when a filter has requiredFirst (regression test for #45050)', async () => {
+  const filters = [
+    {
+      ...createSelectNativeFilter('NATIVE_FILTER-1', 'account'),
+      requiredFirst: true,
+    },
+    createSelectNativeFilter('NATIVE_FILTER-2', 'flow'),
+  ];
+
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().forceRender).toBeFalsy();
+});
