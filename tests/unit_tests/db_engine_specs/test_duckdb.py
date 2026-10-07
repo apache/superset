@@ -28,6 +28,48 @@ from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
+@pytest.mark.parametrize("timezone", ["UTC", "America/New_York"])
+@pytest.mark.parametrize(
+    "date_format,epoch_value,time_grain,expected",
+    [
+        ("epoch_s", 0, None, datetime(1970, 1, 1)),
+        ("epoch_s", -1, None, datetime(1969, 12, 31, 23, 59, 59)),
+        ("epoch_ms", 1234, None, datetime(1970, 1, 1, 0, 0, 1, 234000)),
+        ("epoch_us", 1234567, None, datetime(1970, 1, 1, 0, 0, 1, 234567)),
+        ("epoch_ms", None, None, None),
+        ("epoch_ms", 86401234, "P1D", datetime(1970, 1, 2)),
+    ],
+)
+def test_epoch_timestamp_expression(
+    timezone: str,
+    date_format: str,
+    epoch_value: int | None,
+    time_grain: str | None,
+    expected: datetime | None,
+) -> None:
+    """Execute epoch conversions and time grains without session timezone shifts."""
+    import duckdb
+    from duckdb_engine import Dialect
+    from sqlalchemy import BigInteger, column, select, values
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    epoch_column = column("epoch", BigInteger())
+    expression = DuckDBEngineSpec.get_timestamp_expr(
+        epoch_column, date_format, time_grain
+    )
+    statement = select(expression).select_from(
+        values(epoch_column, name="epochs").data([(epoch_value,)])
+    )
+    sql = str(
+        statement.compile(dialect=Dialect(), compile_kwargs={"literal_binds": True})
+    )
+    with duckdb.connect(config={"TimeZone": timezone}) as connection:
+        result = connection.execute(sql).fetchone()
+
+    assert result == (expected,)
+
+
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
