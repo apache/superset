@@ -165,8 +165,10 @@ never split to fit the cap. Set `0` or `None` in `superset_config.py` to remove
 the cap. It bounds committed deletions, not candidate evaluations: blocked roots
 are re-evaluated every run, so a blocked-heavy backlog can still require
 substantial work. A negative, boolean, string, or fractional value stops the
-scheduled task without purging. A live run reports `cap_reached` and `remaining_eligible`
-for aged roots remaining across all supported models. This remainder includes
+scheduled task without purging. With a positive cap configured, a live run
+reports `cap_reached` and `remaining_eligible` for aged roots remaining across
+all supported models. In unlimited mode, the cap and remainder fields and
+their gauges are not emitted. The capped remainder includes
 roots that a reference blocker may prevent from purging. A count failure after
 committed purges sets `remaining_eligible` to `None` and
 `remaining_count_complete` to `False` without hiding the purge totals. Dry-run scans the full
