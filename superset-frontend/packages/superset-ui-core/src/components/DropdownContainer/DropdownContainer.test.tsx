@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { CSSProperties } from 'react';
+import { screen, render } from '@superset-ui/core/spec';
+import { Button, DropdownContainer, Icons } from '..';
+
 jest.mock('remark-gfm', () => () => jest.fn());
 jest.mock('react-ace', () => () => <div data-test="mock-ace-editor" />, {
   virtual: true,
 });
-import type { CSSProperties } from 'react';
-import { screen, render } from '@superset-ui/core/spec';
-import { Button, DropdownContainer, Icons } from '..';
 
 const generateItems = (n: number) =>
   Array.from({ length: n }).map((_, i) => ({

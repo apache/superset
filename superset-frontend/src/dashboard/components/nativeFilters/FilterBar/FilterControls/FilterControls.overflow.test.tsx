@@ -16,10 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-jest.mock('remark-gfm', () => () => jest.fn());
-jest.mock('react-ace', () => () => <div data-test="mock-ace-editor" />, {
-  virtual: true,
-});
 import { Preset } from '@superset-ui/core';
 import type { DataMaskStateWithId } from '@superset-ui/core';
 import type {
@@ -39,6 +35,11 @@ import {
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import FilterControls from './FilterControls';
+
+jest.mock('remark-gfm', () => () => jest.fn());
+jest.mock('react-ace', () => () => <div data-test="mock-ace-editor" />, {
+  virtual: true,
+});
 
 // Capture every props snapshot DropdownContainer receives, plus the latest
 // onOverflowingStateChange callback. Tests drive overflow by invoking the
@@ -630,6 +631,9 @@ test('provides correct filter count when filters include requiredFirst', async (
   expect(latestProps().items).toHaveLength(3);
 });
 
+// Regression test group for issue #45050:
+// Prevents DropdownContainer closed popover from stealing OutPortal nodes
+// into hidden DOM when requiredFirst native filters and table cross-filters coexist.
 test('does not pass forceRender to DropdownContainer even when a filter has requiredFirst (regression test for #45050)', async () => {
   const filters = [
     {
