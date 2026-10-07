@@ -425,7 +425,9 @@ the next time it is requested. This includes the follow-up request a chart sends
 after a background (async) query finishes: that request recomputes the result
 instead of reading it from the cache, so an oversized async chart runs its query
 twice. That recompute happens inside the web request itself, so a very slow, very
-large query is subject to the web server's request timeout.
+large query is subject to the web server's request timeout. For an async chart
+that shows contributions (percent of total), if the totals result is too large to
+cache, the follow-up request computes the totals and the chart in the same way.
 
 The limit applies to every writer to the data cache: chart results, SQL query
 results from the SQL executor, filter dropdown column values, and compatible

@@ -146,6 +146,8 @@ returns its data, and the value is recomputed from the datasource the next time 
 With `GLOBAL_ASYNC_QUERIES`, that includes the follow-up request a chart sends after its background
 query finishes, so an oversized async chart runs its query twice. That recompute happens inside the
 web request itself, so a very slow, very large query is subject to the web server's request timeout.
+For an async chart that shows contributions (percent of total), if the totals result is too large to
+cache, the follow-up request computes the totals and the chart in the same way.
 Each skip emits a
 WARNING log naming the key and byte size, and increments the `skip_cache_value_too_large` statsd
 metric. Set to `None` to disable the check entirely (no serialization overhead is then incurred).

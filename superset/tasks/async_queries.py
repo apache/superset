@@ -170,7 +170,7 @@ def _resolve_user(user_id: int | None, guest_token: "GuestToken | None") -> User
 
 def _inject_contribution_totals(
     query_obj: "QueryObject", totals_cache_key: str
-) -> None:
+) -> bool:
     """Inject ``contribution_totals`` from the cached totals query into ``query_obj``.
 
     A contribution query normalizes its metrics against column sums from a separate
@@ -181,26 +181,24 @@ def _inject_contribution_totals(
     ``ensure_totals_available`` produces, but reading the cache the prerequisite
     populated instead of re-running the totals query. ``contribution_totals`` is
     stripped from the cache key, so this affects only the result, not the key.
+
+    :returns: ``False`` when the totals are not in the cache, in which case nothing
+        is injected. The totals task can succeed without caching its result: a value
+        larger than ``DATA_CACHE_MAX_VALUE_SIZE`` is not stored, and an entry can be
+        evicted before this task reads it.
     """
     from superset.common.query_context_processor import is_summable
     from superset.common.utils.query_cache_manager import QueryCacheManager
 
     cache = QueryCacheManager.get(key=totals_cache_key, region=CacheRegion.DATA)
     if not cache.is_loaded or cache.df is None:
-        # The depends_on prerequisite guarantees the totals task succeeded and wrote
-        # this cache entry, so a miss is unexpected (e.g. it was evicted between the
-        # totals task finishing and this task reading). Fail loudly rather than
-        # caching a silently un-normalized result the client would then re-request:
-        # this task's single query cannot reproduce the synchronous path's
-        # ensure_totals_available (it has no totals query to run).
-        raise SupersetException(
-            f"Contribution totals not found in cache under {totals_cache_key}"
-        )
+        return False
     df = cache.df
     totals = {col: df[col].sum() for col in df.columns if is_summable(df[col])}
     for post_processing in query_obj.post_processing or []:
         if post_processing.get("operation") == "contribution":
             post_processing.setdefault("options", {})["contribution_totals"] = totals
+    return True
 
 
 def _get_dependency_cache_key() -> str:
@@ -314,7 +312,19 @@ def execute_chart_query(
         # task reads back under the same id. Only consulted when force is true.
         query_obj.force_nonce = str(get_context().task_uuid)
         if requires_totals:
-            _inject_contribution_totals(query_obj, _get_dependency_cache_key())
+            totals_cache_key = _get_dependency_cache_key()
+            if not _inject_contribution_totals(query_obj, totals_cache_key):
+                # Without the totals this task cannot produce a correct result,
+                # and this query alone cannot recompute them. Finish without
+                # running or caching the query and without publishing a cache key:
+                # the client's synchronous follow-up request then computes the
+                # totals itself (``ensure_totals_available``) and runs this query.
+                logger.warning(
+                    "Contribution totals not found in cache under %s; "
+                    "leaving the query to the synchronous follow-up request",
+                    totals_cache_key,
+                )
+                return
         # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.
         try:
             with _capture_query_cancellation(query_context):
