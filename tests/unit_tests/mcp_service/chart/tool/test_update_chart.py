@@ -2177,8 +2177,8 @@ class TestUpdateChartSqlMetric:
 class TestBuildUpdatePayloadDatasetId:
     """Tests for dataset_id support in _build_update_payload."""
 
-    def test_dataset_only_update_returns_datasource_fields(self) -> None:
-        """dataset_id alone produces a payload with datasource_id + datasource_type."""
+    def test_dataset_only_update_requires_config(self) -> None:
+        """Changing the dataset without config returns an explicit error."""
         request = UpdateChartRequest(identifier=1, dataset_id=42)
         chart = Mock()
         chart.id = 1
@@ -2186,17 +2186,13 @@ class TestBuildUpdatePayloadDatasetId:
 
         result = _build_update_payload(request, chart)
 
-        assert isinstance(result, dict)
-        assert result == {
-            "datasource_id": 42,
-            "datasource_type": "table",
-            "params": '{"datasource": "42__table", "slice_id": 1}',
-            "query_context": None,
-        }
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert "complete" in result.error.message
 
     def test_dataset_and_name_update(self) -> None:
-        """dataset_id + chart_name: payload includes datasource fields
-        and slice_name."""
+        """A rename cannot bypass the complete-config rebind requirement."""
         request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
         chart = Mock()
         chart.id = 1
@@ -2204,14 +2200,10 @@ class TestBuildUpdatePayloadDatasetId:
 
         result = _build_update_payload(request, chart)
 
-        assert isinstance(result, dict)
-        assert result == {
-            "datasource_id": 42,
-            "datasource_type": "table",
-            "params": '{"datasource": "42__table", "slice_id": 1}',
-            "query_context": None,
-            "slice_name": "Renamed",
-        }
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert "complete" in result.error.message
 
     def test_dataset_and_config_update_includes_datasource(self):
         """dataset_id + config: payload includes datasource_id and datasource_type."""
@@ -2253,8 +2245,8 @@ class TestBuildUpdatePayloadDatasetId:
 class TestBuildPreviewFormDataDatasetId:
     """Tests for dataset_id support in _build_preview_form_data."""
 
-    def test_dataset_only_update_sets_datasource_field(self):
-        """dataset_id alone updates the datasource field in merged form_data."""
+    def test_dataset_only_preview_requires_config(self):
+        """Dataset-only previews reject an incomplete rebind."""
         request = UpdateChartRequest(identifier=1, dataset_id=55)
         chart = Mock()
         chart.datasource_id = 10
@@ -2264,8 +2256,10 @@ class TestBuildPreviewFormDataDatasetId:
 
         result = _build_preview_form_data(request, chart)
 
-        assert isinstance(result, dict)
-        assert result["datasource"] == "55__table"
+        assert isinstance(result, GenerateChartResponse)
+        assert result.success is False
+        assert result.error is not None
+        assert "complete" in result.error.message
 
     def test_config_and_dataset_uses_new_dataset(self):
         """config + dataset_id: datasource field reflects the new dataset."""
@@ -2459,12 +2453,12 @@ class TestBuildPreviewFormDataDatasetId:
             ),
         ],
     )
-    def test_dataset_only_rebind_scrubs_populated_roles_in_preview_and_save(
+    def test_dataset_only_rebind_rejects_populated_roles_in_preview_and_save(
         self,
         saved_form_data: dict[str, Any],
         stale_roles: set[str],
     ) -> None:
-        """Dataset-only preview and persistence share the same role scrub."""
+        """Populated roles cannot turn an incomplete rebind into an empty query."""
         request = UpdateChartRequest(identifier=11, dataset_id=99)
         chart = Mock(
             id=11,
@@ -2477,15 +2471,12 @@ class TestBuildPreviewFormDataDatasetId:
         payload = _build_update_payload(request, chart)
         preview = _build_preview_form_data(request, chart)
 
-        assert isinstance(payload, dict)
-        assert isinstance(preview, dict)
-        persisted = json.loads(payload["params"])
-        for form_data in (persisted, preview):
-            assert form_data["datasource"] == "99__table"
-            assert form_data["slice_id"] == 11
-            assert stale_roles.isdisjoint(form_data)
-        assert persisted["viz_type"] == saved_form_data["viz_type"]
-        assert preview["viz_type"] == saved_form_data["viz_type"]
+        for result in (payload, preview):
+            assert isinstance(result, GenerateChartResponse)
+            assert result.success is False
+            assert result.error is not None
+            assert "complete" in result.error.message
+        assert json.loads(chart.params) == saved_form_data
 
     def test_complete_config_rebind_replaces_roles_in_preview_and_save(self) -> None:
         """Only roles explicitly mapped for the target dataset survive."""
@@ -2576,6 +2567,7 @@ class TestUpdateChartDatasetIdIntegration:
         request = {
             "identifier": 55,
             "dataset_id": 1041,
+            "config": {"chart_type": "table", "columns": [{"name": "region"}]},
             "generate_preview": False,
         }
 
@@ -2675,7 +2667,7 @@ class TestUpdateChartDatasetIdIntegration:
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
     @pytest.mark.asyncio
-    async def test_dataset_only_rebind_invalid_dataset_returns_error(
+    async def test_complete_rebind_invalid_dataset_returns_error(
         self,
         mock_db_session: Any,
         mock_chart_find: Mock,
@@ -2706,6 +2698,7 @@ class TestUpdateChartDatasetIdIntegration:
         request = {
             "identifier": 55,
             "dataset_id": 9999,
+            "config": {"chart_type": "table", "columns": [{"name": "region"}]},
             "generate_preview": False,
         }
 
@@ -2725,7 +2718,7 @@ class TestUpdateChartDatasetIdIntegration:
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
     @pytest.mark.asyncio
-    async def test_dataset_only_rebind_invalid_dataset_preview_returns_error(
+    async def test_complete_rebind_invalid_dataset_preview_returns_error(
         self,
         mock_db_session: Any,
         mock_chart_find: Mock,
@@ -2757,6 +2750,7 @@ class TestUpdateChartDatasetIdIntegration:
         request = {
             "identifier": 55,
             "dataset_id": 9999,
+            "config": {"chart_type": "table", "columns": [{"name": "region"}]},
             "generate_preview": True,
         }
 
@@ -2933,3 +2927,27 @@ def test_rebind_target_dataset_requires_data_level_access(
         assert response.error is not None
         assert response.error.error_type == "DatasetNotAccessible"
         assert "rebind_target" not in response.model_dump_json()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("preview", [True, False])
+@pytest.mark.parametrize("viz_type", ["table", "pie", "deck_path", "unknown_viz"])
+async def test_dataset_only_rebind_requires_complete_config(
+    preview: bool, viz_type: str
+) -> None:
+    """Reject incomplete rebinds before generating a preview or saving a chart."""
+    chart = Mock(id=11, datasource_id=10, viz_type=viz_type)
+    request = UpdateChartRequest(identifier=11, dataset_id=99, generate_preview=preview)
+    with (
+        patch.object(
+            update_chart_module, "find_chart_by_identifier", return_value=chart
+        ),
+        patch("superset.mcp_service.auth.check_chart_data_access") as access,
+    ):
+        result = await update_chart_module.update_chart(request=request, ctx=Mock())
+    assert isinstance(result, GenerateChartResponse)
+    assert result.success is False
+    assert result.error is not None
+    assert "complete" in result.error.message
+    assert "config" in result.error.message
+    access.assert_not_called()

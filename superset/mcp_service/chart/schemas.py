@@ -5431,7 +5431,8 @@ class UpdateChartRequest(
             "Target dataset ID to rebind the chart to a different dataset. "
             "When omitted, the chart retains its existing dataset. "
             "Can be combined with config to simultaneously change the dataset "
-            "and visualization, or used alone to rebind without altering the config."
+            "and visualization. Changing datasets requires a complete config with "
+            "roles valid on the target dataset; dataset-only rebinds are rejected."
         ),
     )
     generate_preview: bool = Field(

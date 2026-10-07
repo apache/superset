@@ -57,6 +57,10 @@ FORM_DATA_QUERY_FIELD_ALIASES: dict[str, str] = {
     "secondary_metric": "metrics",
     "left_metric": "metrics",
     "right_metric": "metrics",
+    "open": "metrics",
+    "close": "metrics",
+    "high": "metrics",
+    "low": "metrics",
     "x": "metrics",
     "y": "metrics",
     "size": "metrics",
@@ -391,44 +395,6 @@ def orderby_from_form_data(
         return [[sort_metric, not order_desc]]
     # No explicit sort metric: default to the first metric, descending.
     return [[metrics[0], False]]
-
-
-def _columns_and_metrics(
-    form_data: dict[str, Any], viz_type: str | None
-) -> tuple[list[Any], list[Any]]:
-    """
-    Resolve the query's ``(columns, metrics)`` from form data, honoring raw vs.
-    aggregate mode and the Big Number trendline promotion.
-    """
-    if is_raw_query_mode(form_data):
-        # Raw mode returns individual rows: use only the selected columns and
-        # ignore ``metrics``/``groupby``, which stay in form data as stale values
-        # (the controls aren't reset when hidden) but are ignored by the chart.
-        columns = list(form_data.get("all_columns") or form_data.get("columns") or [])
-        return columns, []
-
-    columns, metrics, _ = query_fields_from_form_data(form_data)
-    # Sunburst's frontend standardized controls promote both singular metric
-    # controls into the query. The secondary metric is not presentation-only:
-    # transformProps reads it to color nodes by secondary/primary ratio.
-    if viz_type == "sunburst_v2" and form_data.get("secondary_metric"):
-        secondary_metric = form_data["secondary_metric"]
-        if secondary_metric not in metrics:
-            metrics.append(secondary_metric)
-    # Plugin builders add x_axis outside the shared extractor.
-    x_axis = form_data.get("x_axis")
-    if isinstance(x_axis, str) and x_axis and x_axis not in columns:
-        columns.insert(0, x_axis)
-    elif isinstance(x_axis, dict):
-        col_name = x_axis.get("column_name")
-        if col_name and col_name not in columns:
-            columns.insert(0, col_name)
-    # Only a Big Number *with a trendline* (viz_type ``big_number``) groups by its
-    # time column; ``big_number_total`` is a single aggregate and must not be
-    # grouped, or it would return one row per timestamp instead of a total.
-    if not columns and viz_type == "big_number" and form_data.get("granularity_sqla"):
-        return [form_data["granularity_sqla"]], metrics
-    return columns, metrics
 
 
 def _pie_contribution_post_processing(metrics: list[Any]) -> list[dict[str, Any]]:
@@ -1318,7 +1284,11 @@ def _big_number_queries(
     frontend_x_axis = _frontend_x_axis_column(form_data)
     explicit_x_axis = frontend_x_axis or _x_axis_column(form_data)
     time_column = _as_list(explicit_x_axis)
-    x_axis_label = _x_axis_label(form_data, frontend_strict=True)
+    x_axis_label = (
+        _label(explicit_x_axis)
+        if explicit_x_axis
+        else _x_axis_label(form_data, frontend_strict=True)
+    )
     query["columns"] = time_column
     if time_column and frontend_x_axis is None:
         # A native ``{"column_name": ...}`` axis groups by its temporal column
@@ -1720,7 +1690,7 @@ def build_query_objects_from_form_data(  # noqa: C901
     query_b = _base_query_object(
         secondary,
         row_limit=row_limit,
-        order_desc=order_desc,
+        order_desc=None,
         filters_prepared=filters_prepared,
     )
     # The shared x-axis is deliberately sourced from the complete form data;

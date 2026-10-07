@@ -690,3 +690,79 @@ def test_non_pie_carries_no_post_processing() -> None:
         "queries"
     ][0]
     assert "post_processing" not in query
+
+
+def test_mixed_secondary_sort_direction_ignores_primary_override() -> None:
+    """Query B owns its top-N direction even when the caller overrides A."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+
+    queries = build_query_objects_from_form_data(
+        {
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["revenue"],
+            "metrics_b": ["cost"],
+            "groupby_b": ["region"],
+            "order_desc": True,
+            "order_desc_b": False,
+            "series_limit_b": 1,
+        },
+        order_desc=True,
+    )
+    assert queries[0]["order_desc"] is True
+    assert queries[1]["order_desc"] is False
+    assert queries[1]["series_limit"] == 1
+
+
+def test_big_number_native_axis_pivot_references_selected_column() -> None:
+    """Native axes must use the same label in SELECT and post-processing."""
+    context = build_query_context_from_form_data(
+        {
+            "viz_type": "big_number",
+            "x_axis": {"column_name": "ds"},
+            "granularity_sqla": "ds",
+            "metric": "revenue",
+        },
+        DATASOURCE,
+    )
+    query = context["queries"][0]
+    assert query["columns"] == ["ds"]
+    assert "granularity" not in query
+    pivot = next(p for p in query["post_processing"] if p["operation"] == "pivot")
+    assert pivot["options"]["index"] == ["ds"]
+
+
+def test_candlestick_fallback_selects_all_ohlc_metrics() -> None:
+    """Saved Candlestick controls participate in the shared metric extractor."""
+    context = build_query_context_from_form_data(
+        {
+            "viz_type": "candlestick",
+            "open": "opening",
+            "close": "closing",
+            "high": "highest",
+            "low": "lowest",
+        },
+        DATASOURCE,
+    )
+    assert context["queries"][0]["metrics"] == [
+        "opening",
+        "closing",
+        "highest",
+        "lowest",
+    ]
+
+
+def test_unused_query_builders_are_removed() -> None:
+    """Only the shared query adapter remains available for future fixes."""
+    import superset.common.form_data_query_context as common
+    import superset.mcp_service.chart.chart_helpers as helpers
+
+    assert not hasattr(common, "_columns_and_metrics")
+    for name in (
+        "with_x_axis_column",
+        "build_mixed_timeseries_secondary",
+        "_DECK_TIMESERIES_VIZ_TYPES",
+    ):
+        assert not hasattr(helpers, name)

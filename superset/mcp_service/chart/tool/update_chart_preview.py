@@ -538,6 +538,8 @@ def update_chart_preview(  # noqa: C901
                     "optimization_suggestions": [],
                 },
                 "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
             }
         )
     except (

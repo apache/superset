@@ -24,6 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+- MCP `update_chart` requires a complete `config` when changing `dataset_id`
+  to a different dataset, for both preview and immediate-save requests. Re-sending
+  the existing dataset ID remains an idempotent update.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.

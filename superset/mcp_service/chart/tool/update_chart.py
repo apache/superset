@@ -46,7 +46,6 @@ from superset.mcp_service.chart.chart_utils import (
     merge_gantt_ui_config,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
-    scrub_dataset_bound_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.registry import get_registry, plugin_for_viz_type
@@ -255,27 +254,20 @@ def _add_columns_rebind_error() -> GenerateChartResponse:
     )
 
 
-def _build_dataset_rebind_payload(
-    request: UpdateChartRequest, chart: Any
-) -> dict[str, Any]:
-    """Rebind a chart and keep operation-owned params aligned with the target."""
-    assert request.dataset_id is not None
-    payload: dict[str, Any] = {
-        "datasource_id": request.dataset_id,
-        "datasource_type": "table",
-    }
-    existing_form_data = _get_existing_form_data(chart)
-    canonical_form_data = canonicalize_operation_form_data(
-        scrub_dataset_bound_form_data(existing_form_data),
-        datasource_id=request.dataset_id,
-        chart_id=chart.id,
+def _dataset_rebind_config_error(chart: Any) -> GenerateChartResponse:
+    """Require complete target roles rather than returning an empty query."""
+    plugin = plugin_for_viz_type(getattr(chart, "viz_type", None))
+    display_name = plugin.display_name if plugin is not None else "Chart"
+    return _validation_error_response(
+        message=(
+            f"{display_name} dataset rebind requires a complete {display_name} config."
+        ),
+        details=(
+            "Provide the chart type and complete roles valid on the target "
+            "dataset. This prevents stale metric, groupby, and filter roles "
+            "from the previous dataset from being retained."
+        ),
     )
-    if canonical_form_data != existing_form_data:
-        payload["params"] = json.dumps(canonical_form_data)
-        payload["query_context"] = None
-    if request.chart_name:
-        payload["slice_name"] = request.chart_name
-    return payload
 
 
 def _build_update_payload(  # noqa: C901
@@ -376,12 +368,12 @@ def _build_update_payload(  # noqa: C901
             additive_payload["datasource_type"] = "table"
         return additive_payload
 
-    # Dataset-only update: scrub roles only when the datasource actually changes.
+    # Dataset-only updates require a complete config when the datasource changes.
     # Re-sending the existing dataset ID is an idempotent update and must not erase
     # any saved dataset-bound configuration.
     if request.dataset_id is not None:
         if _is_dataset_rebind(request, chart):
-            return _build_dataset_rebind_payload(request, chart)
+            return _dataset_rebind_config_error(chart)
         payload = {
             "datasource_id": request.dataset_id,
             "datasource_type": getattr(chart, "datasource_type", "table"),
@@ -396,7 +388,7 @@ def _build_update_payload(  # noqa: C901
     return {"slice_name": request.chart_name}
 
 
-def _build_preview_form_data(
+def _build_preview_form_data(  # noqa: C901
     request: UpdateChartRequest,
     chart: Any,
     parsed_config: Any = None,
@@ -444,11 +436,9 @@ def _build_preview_form_data(
     else:
         if not request.chart_name and request.dataset_id is None:
             return _missing_config_or_name_error()
-        merged = (
-            scrub_dataset_bound_form_data(existing_form_data)
-            if _is_dataset_rebind(request, chart)
-            else dict(existing_form_data)
-        )
+        if _is_dataset_rebind(request, chart):
+            return _dataset_rebind_config_error(chart)
+        merged = dict(existing_form_data)
 
     if request.chart_name:
         merged["slice_name"] = request.chart_name
@@ -814,25 +804,10 @@ async def update_chart(  # noqa: C901
                 }
             )
 
-        saved_plugin = plugin_for_viz_type(getattr(chart, "viz_type", None))
-        if (
-            request.dataset_id is not None
-            and request.dataset_id != getattr(chart, "datasource_id", None)
-            and request.config is None
-            and saved_plugin is not None
-            and saved_plugin.requires_config_for_dataset_rebind
-        ):
-            return _validation_error_response(
-                message=(
-                    f"{saved_plugin.display_name} dataset rebind requires a "
-                    f"complete {saved_plugin.display_name} config."
-                ),
-                details=(
-                    "Provide the chart type and complete roles valid on the target "
-                    "dataset. This prevents stale metric, groupby, and filter roles "
-                    "from the previous dataset from being retained."
-                ),
-            )
+        if _is_dataset_rebind(request, chart) and request.config is None:
+            if request.add_columns is not None:
+                return _add_columns_rebind_error()
+            return _dataset_rebind_config_error(chart)
 
         # Validate dataset access before allowing update.
         # check_chart_data_access is the centralized data-level

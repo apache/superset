@@ -1685,3 +1685,29 @@ def test_previous_form_data_uses_existing_explore_access_gate(allowed: bool) -> 
     assert result == (
         {"viz_type": "gantt_chart", "category": "task"} if allowed else None
     )
+
+
+def test_gantt_validation_error_includes_response_versions(mock_auth: Mock) -> None:
+    """Gantt role errors retain the same envelope as sibling error branches."""
+    from superset.mcp_service.chart.validation.dataset_validator import (
+        GanttSemanticNormalizationError,
+    )
+
+    request = UpdateChartPreviewRequest(
+        dataset_id=1,
+        config=TableChartConfig(columns=[ColumnRef(name="country")]),
+    )
+    with patch.object(
+        update_chart_preview_module,
+        "_find_dataset",
+        side_effect=GanttSemanticNormalizationError("Invalid roles"),
+    ):
+        result = asyncio.run(
+            update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
+        )
+    assert result["success"] is False
+    assert result["error"]["error_type"] == "gantt_semantic_validation_error"
+    assert result["schema_version"] == "2.0"
+    assert result["api_version"] == "v1"
