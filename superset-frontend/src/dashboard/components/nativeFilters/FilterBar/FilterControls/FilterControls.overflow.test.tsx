@@ -579,3 +579,22 @@ test('initializes horizontal bar with items when native filters are configured',
   await waitFor(() => expect(latestProps()).toBeTruthy());
   expect(latestProps().items).toHaveLength(2);
 });
+
+test('renders native filters with requiredFirst and default values in the horizontal row', async () => {
+  const filters = [
+    {
+      ...createSelectNativeFilter('NATIVE_FILTER-1', 'account'),
+      requiredFirst: true,
+    },
+    createSelectNativeFilter('NATIVE_FILTER-2', 'region'),
+  ];
+  const dataMask = buildDataMaskSelected(filters, ['NATIVE_FILTER-1']);
+  renderHorizontal(filters, dataMask);
+
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().items).toHaveLength(2);
+  expect(latestProps().items.map(i => i.id)).toEqual([
+    'NATIVE_FILTER-1',
+    'NATIVE_FILTER-2',
+  ]);
+});
