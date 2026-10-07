@@ -27,7 +27,12 @@ assists people when migrating to a new version.
 - Semantic-layer APIs are registered regardless of the `SEMANTIC_LAYERS` flag.
   The flag is evaluated at runtime for API requests and background queries.
   Disabling it refuses semantic-view data, chart saves and cached chart/dashboard
-  images containing semantic charts, while retaining stored assets. Existing
+  images containing semantic charts, while retaining stored assets. Both fresh
+  and cached dashboard screenshots/thumbnails return 404 when any chart uses a
+  semantic view. Interactive dashboards retain unavailable semantic charts and
+  continue rendering ordinary datasets. Dual-source MCP tools retain dataset
+  access; unscoped metric listings omit semantic views. Legacy batch warm-up
+  reports a per-chart error for a disabled semantic chart and continues. Existing
   permissions remain required when enabled. Run `superset init` during upgrade
   to register the existing semantic permissions even when the feature is off.
   Runtime flag hooks can enable the feature without another restart or permission

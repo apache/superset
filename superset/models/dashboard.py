@@ -385,11 +385,9 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         # datasource_id would merge unrelated datasources with colliding ids.
         slices_by_datasource: dict[tuple[str, int], set[Slice]] = defaultdict(set)
 
+        semantic_layers_enabled: bool = is_semantic_layers_enabled()
         for slc in self.slices:
-            if (
-                slc.datasource_type == "semantic_view"
-                and not is_semantic_layers_enabled()
-            ):
+            if slc.datasource_type == "semantic_view" and not semantic_layers_enabled:
                 continue
             slices_by_datasource[(slc.datasource_type, slc.datasource_id)].add(slc)
 

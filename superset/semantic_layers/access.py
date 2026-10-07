@@ -17,7 +17,13 @@
 
 """Runtime availability of semantic layers, independent of user permissions."""
 
+from typing import TYPE_CHECKING
+
 from superset.exceptions import SupersetException
+
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
 
 
 class SemanticLayersDisabledError(SupersetException):
@@ -32,3 +38,13 @@ def is_semantic_layers_enabled() -> bool:
     from superset import feature_flag_manager
 
     return feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS")
+
+
+def is_semantic_image_unavailable(resource: "Slice | Dashboard") -> bool:
+    """Refuse an image containing semantic data under the active feature decision."""
+    if is_semantic_layers_enabled():
+        return False
+    from superset.models.slice import Slice
+
+    charts: list[Slice] = [resource] if isinstance(resource, Slice) else resource.slices
+    return any(chart.datasource_type == "semantic_view" for chart in charts)

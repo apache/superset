@@ -99,7 +99,7 @@ async def get_compatible_dimensions(
         )
     )
 
-    if not is_semantic_layers_enabled():
+    if request.view_id is not None and not is_semantic_layers_enabled():
         return SemanticLayerError.create(
             error=SemanticLayersDisabledError.message,
             error_type="SemanticLayersDisabledError",

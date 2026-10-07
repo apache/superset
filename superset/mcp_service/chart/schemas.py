@@ -126,11 +126,6 @@ class ChartLike(Protocol):
 class ChartInfo(BaseModel):
     """Full chart model with all possible attributes."""
 
-    unavailable_reason: str | None = Field(
-        None,
-        description="Reason chart data is unavailable, when its feature is disabled",
-    )
-
     id: int | None = Field(None, description="Chart ID")
     slice_name: str | None = Field(None, description="Chart name")
     viz_type: str | None = Field(None, description="Visualization type (internal ID)")
@@ -235,6 +230,11 @@ class ChartInfo(BaseModel):
         ),
     )
 
+    unavailable_reason: str | None = Field(
+        None,
+        description="Reason chart data is unavailable, when its feature is disabled",
+    )
+
     model_config = ConfigDict(
         from_attributes=True,
         ser_json_timedelta="iso8601",
@@ -249,7 +249,9 @@ class ChartInfo(BaseModel):
         Otherwise, include all fields (default behavior).
         """
         # Get full serialization
-        data = filter_user_directory_fields(serializer(self))
+        data: dict[str, Any] = filter_user_directory_fields(serializer(self))
+        if data.get("unavailable_reason") is None:
+            data.pop("unavailable_reason", None)
 
         # Check if we have a context with select_columns
         if info.context and isinstance(info.context, dict):

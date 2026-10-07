@@ -65,7 +65,10 @@ grant permissions or require another permission sync.
 When disabled, semantic API routes return 404. Semantic-view queries and metadata
 return “Semantic layers are not enabled.” Saved charts remain listed, but their
 data and cached images are unavailable; dashboards omit semantic-view dataset
-metadata. Chart saves using semantic views are refused. The semantic MCP tools
+metadata. Chart saves using semantic views are refused. Both fresh and cached dashboard screenshots/thumbnails return 404 if any chart
+uses a semantic view. Legacy batch warm-up records a per-chart unavailable error
+and continues processing. Dual-source MCP tools still serve ordinary datasets,
+and unscoped metric listings omit semantic views. The semantic-only MCP tools
 are unavailable, while chart listings mark affected charts with an
 `unavailable_reason`. Ordinary dataset queries remain available, and semantic
 import/export retains its existing feature-off rejection.

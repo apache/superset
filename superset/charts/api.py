@@ -117,7 +117,7 @@ from superset.security.manager import (
     attach_extra_editors_to_rows,
 )
 from superset.semantic_layers.access import (
-    is_semantic_layers_enabled,
+    is_semantic_image_unavailable,
     SemanticLayersDisabledError,
 )
 from superset.semantic_layers.import_export import SemanticReferenceError
@@ -1186,10 +1186,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
-        if (
-            chart.datasource_type == "semantic_view"
-            and not is_semantic_layers_enabled()
-        ):
+        if is_semantic_image_unavailable(chart):
             return self.response(404, message=SemanticLayersDisabledError.message)
 
         chart_url = get_url_path("Superset.slice", slice_id=chart.id)
@@ -1272,10 +1269,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
         if not chart:
             return self.response_404()
-        if (
-            chart.datasource_type == "semantic_view"
-            and not is_semantic_layers_enabled()
-        ):
+        if is_semantic_image_unavailable(chart):
             return self.response(404, message=SemanticLayersDisabledError.message)
 
         if cache_payload := ChartScreenshot.get_from_cache_key(digest):
@@ -1348,10 +1342,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
-        if (
-            chart.datasource_type == "semantic_view"
-            and not is_semantic_layers_enabled()
-        ):
+        if is_semantic_image_unavailable(chart):
             return self.response(404, message=SemanticLayersDisabledError.message)
 
         current_user = get_current_user()

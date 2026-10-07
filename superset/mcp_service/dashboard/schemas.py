@@ -3346,13 +3346,11 @@ def dashboard_datasets_serializer(
             slc
         )
 
+    semantic_layers_enabled: bool = is_semantic_layers_enabled()
     datasets: List[DashboardDatasetSummary] = []
     inaccessible_count: int = 0
     for (_, source_type), slices in slices_by_datasource.items():
-        if (
-            source_type == DatasourceType.SEMANTIC_VIEW
-            and not is_semantic_layers_enabled()
-        ):
+        if source_type == DatasourceType.SEMANTIC_VIEW and not semantic_layers_enabled:
             continue
         kind: Literal["table", "semantic_view"] = (
             "semantic_view" if source_type == DatasourceType.SEMANTIC_VIEW else "table"

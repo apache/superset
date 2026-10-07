@@ -31,40 +31,43 @@ from superset import security_manager
 from superset.extensions import appbuilder, feature_flag_manager
 from tests.integration_tests.test_app import app
 
-SEMANTIC_ROUTES: list[tuple[str, str]] = [
-    ("GET", "/api/v1/semantic_view/1/structure"),
-    ("POST", "/api/v1/semantic_view/"),
-    ("PUT", "/api/v1/semantic_view/1"),
-    ("DELETE", "/api/v1/semantic_view/1"),
-    ("DELETE", "/api/v1/semantic_view/"),
-    ("GET", "/api/v1/semantic_layer/types"),
-    ("POST", "/api/v1/semantic_layer/schema/configuration"),
+SEMANTIC_ROUTES: list[tuple[str, str, int]] = [
+    ("GET", "/api/v1/semantic_view/2147483647/structure", 404),
+    ("POST", "/api/v1/semantic_view/", 400),
+    ("PUT", "/api/v1/semantic_view/2147483647", 400),
+    ("DELETE", "/api/v1/semantic_view/2147483647", 404),
+    ("DELETE", "/api/v1/semantic_view/", 400),
+    ("GET", "/api/v1/semantic_layer/types", 200),
+    ("POST", "/api/v1/semantic_layer/schema/configuration", 400),
     (
         "POST",
         "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001/schema/runtime",
+        404,
     ),
-    ("POST", "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001/views"),
-    ("POST", "/api/v1/semantic_layer/"),
-    ("PUT", "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001"),
-    ("DELETE", "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001"),
-    ("GET", "/api/v1/semantic_layer/connections/"),
-    ("GET", "/api/v1/semantic_layer/"),
-    ("GET", "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001"),
+    ("POST", "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001/views", 404),
+    ("POST", "/api/v1/semantic_layer/", 400),
+    ("PUT", "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001", 400),
+    ("DELETE", "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001", 404),
+    ("GET", "/api/v1/semantic_layer/connections/", 200),
+    ("GET", "/api/v1/semantic_layer/", 200),
+    ("GET", "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001", 404),
 ]
 
 
-@pytest.mark.parametrize("method,path", SEMANTIC_ROUTES)
+@pytest.mark.parametrize("method,path,expected_status", SEMANTIC_ROUTES)
 def test_every_semantic_route_is_guarded_at_runtime(
     test_client: FlaskClient[Any],
+    login_as_admin: None,
     monkeypatch: pytest.MonkeyPatch,
     method: str,
     path: str,
+    expected_status: int,
 ) -> None:
     """Boot-off registration plus a hook flip protects dispatch before any work."""
     assert "SemanticLayerRestApi" in app.blueprints
     assert "SemanticViewRestApi" in app.blueprints
     endpoint: str = app.url_map.bind("localhost").match(path, method=method)[0]
-    handler: MagicMock = MagicMock(return_value=({"result": "enabled"}, 200))
+    handler: MagicMock = MagicMock(wraps=app.view_functions[endpoint])
     monkeypatch.setitem(app.view_functions, endpoint, handler)
     decision: dict[str, bool] = {"enabled": False}
 
@@ -77,7 +80,10 @@ def test_every_semantic_route_is_guarded_at_runtime(
         assert test_client.open(path, method=method).json == {"message": "Not found"}
         handler.assert_not_called()
         decision["enabled"] = True
-        assert test_client.open(path, method=method).status_code == 200
+        enabled_response: TestResponse = test_client.open(path, method=method)
+        assert enabled_response.status_code == expected_status, (
+            enabled_response.get_data(as_text=True)
+        )
         assert handler.call_count == 1
         decision["enabled"] = False
         assert test_client.open(path, method=method).status_code == 404
@@ -366,9 +372,52 @@ def test_warm_up_http_refuses_disabled_semantic_chart(
                     "/api/v1/chart/warm_up_cache", json={"chart_id": chart.id}
                 )
             )
-        assert response.status_code == 404, response.get_data(as_text=True)
+        assert response.status_code == (200 if legacy else 404), response.get_data(
+            as_text=True
+        )
         assert "Semantic layers are not enabled." in response.get_data(as_text=True)
         context.assert_not_called()
     finally:
         db.session.delete(chart)
         db.session.commit()
+
+
+def test_legacy_batch_continues_after_disabled_semantic_chart(
+    test_client: FlaskClient[Any],
+    login_as_admin: None,
+) -> None:
+    """The legacy batch envelope records one refusal and warms the next chart."""
+    from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+    from superset.models.slice import Slice
+    from superset.semantic_layers.access import SemanticLayersDisabledError
+
+    semantic: Slice = Slice(id=17, datasource_id=17, datasource_type="semantic_view")
+    table: Slice = Slice(id=18, datasource_id=18, datasource_type="table")
+    selection: MagicMock = MagicMock()
+    selection.filter_by.return_value.all.return_value = [semantic, table]
+    execute: MagicMock
+    with (
+        patch("superset.feature_flag_manager.is_feature_enabled", return_value=False),
+        patch("superset.views.core.db.session.query", return_value=selection),
+        patch(
+            "superset.commands.chart.warm_up_cache.security_manager.raise_for_access"
+        ),
+        patch.object(
+            ChartWarmUpCacheCommand,
+            "_warm_up_non_legacy_cache",
+            return_value=(None, "success"),
+        ) as execute,
+    ):
+        response: TestResponse = test_client.get(
+            "/superset/warm_up_cache/?slice_id=17", follow_redirects=True
+        )
+    assert response.status_code == 200
+    assert response.get_json() == [
+        {
+            "slice_id": 17,
+            "viz_error": SemanticLayersDisabledError.message,
+            "viz_status": None,
+        },
+        {"slice_id": 18, "viz_error": None, "viz_status": "success"},
+    ]
+    execute.assert_called_once_with(table)

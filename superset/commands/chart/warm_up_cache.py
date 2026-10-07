@@ -91,9 +91,20 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
         return None, QueryStatus.SUCCESS
 
-    def run(self) -> dict[str, Any]:
-        self.validate()
-        chart = cast(Slice, self._chart_or_id)
+    def run(self, *, skip_disabled: bool = False) -> dict[str, Any]:
+        """Warm one chart, optionally returning a disabled result for batch callers."""
+        try:
+            self.validate()
+        except SemanticLayersDisabledError:
+            if not skip_disabled:
+                raise
+            disabled_chart: Slice = cast(Slice, self._chart_or_id)
+            return {
+                "chart_id": disabled_chart.id,
+                "viz_error": SemanticLayersDisabledError.message,
+                "viz_status": None,
+            }
+        chart: Slice = cast(Slice, self._chart_or_id)
 
         try:
             error, status = self._warm_up_non_legacy_cache(chart)

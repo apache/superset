@@ -148,3 +148,64 @@ def test_registered_semantic_api_refuses_before_dispatch(
         response: TestResponse = client.get(path)
     assert response.status_code == 404
     assert response.json == {"message": "Not found"}
+
+
+@pytest.mark.parametrize("serializer", ["model", "mcp"])
+def test_dashboard_serialization_reads_feature_once(serializer: str) -> None:
+    """All semantic slices in one dashboard serialization share a decision."""
+    from superset.mcp_service.dashboard.schemas import dashboard_datasets_serializer
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    dashboard: Dashboard = Dashboard(
+        id=3,
+        dashboard_title="mixed",
+        slices=[
+            Slice(id=i, datasource_id=i, datasource_type="semantic_view")
+            for i in (17, 18)
+        ],
+    )
+    decision: MagicMock
+    with patch(
+        "superset.feature_flag_manager.is_feature_enabled", return_value=False
+    ) as decision:
+        if serializer == "model":
+            assert dashboard.datasets_trimmed_for_slices() == []
+        else:
+            assert dashboard_datasets_serializer(dashboard).datasets == []
+    decision.assert_called_once_with("SEMANTIC_LAYERS")
+
+
+def test_available_chart_payload_omits_unavailability_marker() -> None:
+    """An optional availability marker must not change every chart's JSON shape."""
+    from superset.mcp_service.chart.schemas import ChartInfo
+
+    chart: ChartInfo = ChartInfo(id=17)
+    payload: dict[str, Any] = chart.model_dump(mode="json")
+    assert "unavailable_reason" not in payload
+    assert "slice_name" in payload
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("kind", ["semantic_view", "table"])
+@pytest.mark.parametrize("dashboard_image", [False, True])
+def test_image_availability_matches_chart_sources(
+    enabled: bool,
+    kind: str,
+    dashboard_image: bool,
+) -> None:
+    """Image policy covers individual charts and entire dashboard images."""
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.semantic_layers.access import is_semantic_image_unavailable
+
+    chart: Slice = Slice(id=17, datasource_type=kind, datasource_id=17)
+    resource: Slice | Dashboard = (
+        Dashboard(id=17, slices=[chart]) if dashboard_image else chart
+    )
+    with patch(
+        "superset.feature_flag_manager.is_feature_enabled", return_value=enabled
+    ):
+        assert is_semantic_image_unavailable(resource) is (
+            not enabled and kind == "semantic_view"
+        )
