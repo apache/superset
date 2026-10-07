@@ -108,6 +108,7 @@ import { ColumnSelect } from './ColumnSelect';
 import DatasetSelect from './DatasetSelect';
 import DefaultValue from './DefaultValue';
 import FilterScope from './FilterScope/FilterScope';
+import { displayControlBindingKey } from '../../useDisplayControlDatasource';
 import getControlItemsMap from './getControlItemsMap';
 import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
@@ -116,6 +117,7 @@ import {
   getTimeGrainOptions,
   isValidFilterValue,
   mostUsedDataset,
+  DatasourceBinding,
   setNativeFilterFieldValues,
   shouldShowTimeRangePicker,
   useForceUpdate,
@@ -381,11 +383,19 @@ const FiltersConfigForm = (
   );
 
   const showTimeRangePicker = useMemo(() => {
-    const currentDataset = Object.values(loadedDatasets).find(
-      dataset => dataset.id === formFilter?.dataset?.value,
-    );
+    const selectedId = formFilter?.dataset?.value;
+    // Dashboard datasources are keyed by uid (`<id>__<type>`); an id-only
+    // lookup could find a same-numbered datasource of the other type.
+    const currentDataset = selectedId
+      ? loadedDatasets[
+          displayControlBindingKey(
+            selectedId,
+            formFilter?.datasourceType || DatasourceType.Table,
+          )
+        ]
+      : undefined;
     return shouldShowTimeRangePicker(currentDataset);
-  }, [formFilter?.dataset?.value, loadedDatasets]);
+  }, [formFilter?.dataset?.value, formFilter?.datasourceType, loadedDatasets]);
 
   const itemTypeField =
     formFilter?.filterType ||
@@ -397,39 +407,51 @@ const FiltersConfigForm = (
     // @ts-expect-error
     !!nativeFilterAndCustomizationItems[itemTypeField]?.value?.datasourceCount;
 
-  const getDatasetId = () => {
-    if (isChartCustomization) {
-      if (formFilter?.dataset?.value) {
-        return formFilter.dataset.value;
-      }
-      if (customizationToEdit?.targets?.[0]?.datasetId) {
-        return customizationToEdit.targets[0].datasetId;
-      }
-      return mostUsedDataset(loadedDatasets, charts);
+  // A datasource whose details failed to load, by binding key. The form then
+  // treats that binding as unbound so the datasource select stays usable.
+  const [failedBindingKey, setFailedBindingKey] = useState<string>();
+
+  // Id and type always come from the same source: datasets and semantic views
+  // have independent id sequences, so a type taken from elsewhere would bind a
+  // different object.
+  const resolveBinding = (): DatasourceBinding | undefined => {
+    if (formFilter?.dataset?.value) {
+      return {
+        id: formFilter.dataset.value,
+        type: formFilter.datasourceType || DatasourceType.Table,
+      };
     }
-    return (
-      formFilter?.dataset?.value ??
-      filterToEdit?.targets?.[0]?.datasetId ??
-      mostUsedDataset(loadedDatasets, charts)
-    );
+    const savedTarget = isChartCustomization
+      ? customizationToEdit?.targets?.[0]
+      : filterToEdit?.targets?.[0];
+    // Customizations treat a legacy `0` id as unresolved; filters accept any id.
+    const savedId = isChartCustomization
+      ? savedTarget?.datasetId || undefined
+      : savedTarget?.datasetId;
+    if (savedId != null) {
+      // Targets saved before semantic views existed carry no type: they are
+      // SQL datasets.
+      return {
+        id: savedId,
+        type: savedTarget?.datasourceType || DatasourceType.Table,
+      };
+    }
+    return mostUsedDataset(loadedDatasets, charts);
   };
 
-  const datasetId = getDatasetId();
-
-  const getDatasourceType = (): DatasourceType => {
-    if (formFilter?.datasourceType) {
-      return formFilter.datasourceType;
-    }
-    if (isChartCustomization) {
-      return (
-        customizationToEdit?.targets?.[0]?.datasourceType ||
-        DatasourceType.Table
-      );
-    }
-    return filterToEdit?.targets?.[0]?.datasourceType || DatasourceType.Table;
-  };
-
-  const datasourceType = getDatasourceType();
+  const resolvedBinding = resolveBinding();
+  const binding =
+    resolvedBinding &&
+    displayControlBindingKey(resolvedBinding.id, resolvedBinding.type) !==
+      failedBindingKey
+      ? resolvedBinding
+      : undefined;
+  const datasetId = binding?.id;
+  const datasourceType = binding?.type ?? DatasourceType.Table;
+  // The datasource select is memoized with its first-render props, so its
+  // change handler reads the live binding here rather than a stale closure.
+  const bindingRef = useRef({ datasetId, datasourceType });
+  bindingRef.current = { datasetId, datasourceType };
 
   const formChanged = useCallback(() => {
     form.setFields([
@@ -773,6 +795,7 @@ const FiltersConfigForm = (
 
   useEffect(() => {
     if (datasetId) {
+      const bindingKey = displayControlBindingKey(datasetId, datasourceType);
       if (datasourceType === DatasourceType.SemanticView) {
         fetchSemanticViewStructure(datasetId)
           .then(
@@ -811,6 +834,7 @@ const FiltersConfigForm = (
           )
           .catch((response: SupersetApiError) => {
             addDangerToast(response.message);
+            setFailedBindingKey(bindingKey);
           });
       } else {
         cachedSupersetGet({
@@ -849,6 +873,7 @@ const FiltersConfigForm = (
           })
           .catch((response: SupersetApiError) => {
             addDangerToast(response.message);
+            setFailedBindingKey(bindingKey);
           });
       }
     }
@@ -1233,9 +1258,13 @@ const FiltersConfigForm = (
                                 ? DatasourceType.SemanticView
                                 : DatasourceType.Table;
                             if (
-                              value.value !== datasetId ||
-                              newDatasourceType !== datasourceType
+                              value.value !== bindingRef.current.datasetId ||
+                              newDatasourceType !==
+                                bindingRef.current.datasourceType
                             ) {
+                              // An explicit choice retries a datasource
+                              // whose earlier load failed.
+                              setFailedBindingKey(undefined);
                               setNativeFilterFieldValues(form, filterId, {
                                 dataset: value,
                                 datasetInfo: value,

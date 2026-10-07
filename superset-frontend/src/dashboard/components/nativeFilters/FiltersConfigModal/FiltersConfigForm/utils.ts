@@ -130,10 +130,20 @@ export const isValidFilterValue = (
   return !!value;
 };
 
+/**
+ * A datasource identified by both id and type. Datasets and semantic views have
+ * independent id sequences, so an id alone cannot name a datasource.
+ */
+export type DatasourceBinding = { id: number; type: DatasourceType };
+
+/**
+ * The datasource used by the most charts on the dashboard, typed from its
+ * dashboard datasource entry; undefined when that entry is not loaded.
+ */
 export const mostUsedDataset = (
   datasets: DatasourcesState,
   charts: ChartsState,
-) => {
+): DatasourceBinding | undefined => {
   const map = new Map<string, number>();
   let mostUsedDataset = '';
   let maxCount = 0;
@@ -152,7 +162,14 @@ export const mostUsedDataset = (
     }
   });
 
-  return datasets[mostUsedDataset]?.id;
+  const datasource = datasets[mostUsedDataset];
+  if (!datasource) {
+    return undefined;
+  }
+  return {
+    id: datasource.id,
+    type: datasource.datasource_type || datasource.type || DatasourceType.Table,
+  };
 };
 
 const normalizeDatasourceType = (datasourceType?: string): string =>
