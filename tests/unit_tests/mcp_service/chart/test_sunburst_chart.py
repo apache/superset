@@ -5523,3 +5523,18 @@ def test_native_time_binding_marker_must_name_a_column() -> None:
                 "_mcp_dashboard_time_filter_subject": "",
             }
         )
+
+
+def test_sunburst_docs_warn_about_nonfinite_metric_normalization() -> None:
+    """The analyst-facing contract must not promise rejection of overflowing floats."""
+    doc = (
+        Path(__file__).parents[4]
+        / "docs/docs/using-superset/using-ai-with-superset.mdx"
+    ).read_text(encoding="utf-8")
+    section = " ".join(
+        doc.split("### Sunburst chart data", 1)[1].split("## Gantt", 1)[0].split()
+    )
+    assert "Non-finite floating-point metric values" in section
+    assert "normalized to null and then to zero" in section
+    assert "overflowing aggregate can therefore appear as zero" in section
+    assert "infinite metric values remain invalid" not in section

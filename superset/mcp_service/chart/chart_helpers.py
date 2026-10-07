@@ -658,15 +658,11 @@ def _deck_query_adapter(  # noqa: C901
             raise ValueError("Line column is required for Path charts")
         columns = list(base_columns)
         metrics = [metric for metric in base_metrics if _is_deck_metric_value(metric)]
-        groupby = list(query.get("groupby") or [])
+        columns = _add_deck_columns(columns, list(query.pop("groupby", None) or []))
         metric = form_data.get("metric")
-        if metrics or metric:
-            if metric and metric not in metrics:
-                metrics.append(metric)
-            if line_column and line_column not in groupby:
-                groupby.append(line_column)
-        elif line_column:
-            columns = _add_deck_columns(columns, [line_column])
+        if metric and metric not in metrics:
+            metrics.append(metric)
+        columns = _add_deck_columns(columns, [line_column])
         if dimension := form_data.get("dimension"):
             columns = _add_deck_columns(columns, [dimension])
 
@@ -691,10 +687,7 @@ def _deck_query_adapter(  # noqa: C901
             labels = {_deck_metric_label(item) for item in metrics}
             if _deck_metric_label(extra_metric) not in labels:
                 metrics.append(extra_metric)
-            if line_column and line_column not in groupby:
-                groupby.append(line_column)
         columns = _add_deck_columns(columns, tooltips)
-        groupby = _add_deck_columns(groupby, tooltips)
         if not any(
             filter_.get("col") == line_column and filter_.get("op") == "IS NOT NULL"
             for filter_ in filters
@@ -704,7 +697,6 @@ def _deck_query_adapter(  # noqa: C901
         query.update(
             columns=columns,
             metrics=metrics,
-            groupby=groupby,
             filters=filters,
             is_timeseries=bool(form_data.get("time_grain_sqla")),
         )

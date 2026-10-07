@@ -1788,3 +1788,49 @@ def test_waterfall_query_preserves_temporal_binding(
     else:
         assert "granularity" not in query
     assert query.get("extras", {}).get("time_grain_sqla") == time_grain
+
+
+@pytest.mark.parametrize(
+    "extra_metric", [{}, {"line_width": "count"}, {"breakpoint_metric": "count"}]
+)
+def test_deck_path_metric_keeps_canonical_path_grouping(
+    monkeypatch: pytest.MonkeyPatch, session: Session, extra_metric: dict[str, str]
+) -> None:
+    """Fallback Path SQL groups by paths even when aggregate metrics are present."""
+    from flask import current_app
+
+    from superset.common.chart_data import ChartDataResultType
+    from superset.common.query_object_factory import QueryObjectFactory
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_: "sqlite",
+    )
+    SqlaTable.metadata.create_all(session.get_bind())
+    table = SqlaTable(
+        table_name="paths",
+        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+        columns=[TableColumn(column_name="path", type="TEXT")],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+    query = build_query_dicts_from_form_data(
+        {
+            "viz_type": "deck_path",
+            "line_column": "path",
+            "metric": "count",
+            **extra_metric,
+        },
+        1,
+        "table",
+    )[0]
+    query_object = QueryObjectFactory(current_app.config, MagicMock()).create(
+        parent_result_type=ChartDataResultType.FULL,
+        datasource_model_instance=table,
+        **query,
+    )
+    assert query_object.columns == ["path"]
+    sql = table.get_query_str(query_object.to_dict())
+    assert "GROUP BY path" in sql, sql
+    assert "COUNT(*)" in sql, sql

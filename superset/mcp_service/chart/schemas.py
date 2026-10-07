@@ -3823,7 +3823,9 @@ class XYChartConfig(BaseChartConfig):
     @classmethod
     def coerce_series_ranking_metric(cls, value: Any) -> Any:
         """Accept the same native metric references as the Y-axis."""
-        if isinstance(value, dict) and "expressionType" in value:
+        if isinstance(value, str) or (
+            isinstance(value, dict) and "expressionType" in value
+        ):
             return SunburstChartConfig._coerce_native_metric(
                 value, allow_extensible_column_meta=False
             )

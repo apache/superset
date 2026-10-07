@@ -346,7 +346,11 @@ class DatasetValidator:
         config: ChartConfig, dataset_context: DatasetContext
     ) -> ChartGenerationError | None:
         """Validate typed WHERE subjects through the shared resolver."""
-        for filter_ in getattr(config, "filters", None) or []:
+        filters = [
+            *(getattr(config, "filters", None) or []),
+            *(getattr(config, "filters_secondary", None) or []),
+        ]
+        for filter_ in filters:
             candidates = list(dataset_context.available_columns)
             match, ambiguous = resolve_exact_first_casefold(
                 filter_.column,
@@ -744,8 +748,8 @@ class DatasetValidator:
         config_dict: Dict[str, Any], dataset_context: DatasetContext
     ) -> None:
         """Normalize filter column names in a config dict in place."""
-        if "filters" in config_dict and config_dict["filters"]:
-            for filter_config in config_dict["filters"]:
+        for key in ("filters", "filters_secondary"):
+            for filter_config in config_dict.get(key) or []:
                 if filter_config and "column" in filter_config:
                     filter_config["column"] = (
                         DatasetValidator.get_canonical_column_name(

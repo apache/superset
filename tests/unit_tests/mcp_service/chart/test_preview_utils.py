@@ -172,34 +172,79 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     ) == ["country"]
 
 
-def test_generate_preview_seeds_form_data_before_query_execution():
-    """Preview execution seeds the form data consumed by virtual-dataset Jinja."""
-    with (
-        patch(
-            "superset.charts.data.form_data.set_query_context_form_data"
-        ) as mock_set_form_data,
-        patch(
-            "superset.commands.chart.data.get_data_command.ChartDataCommand"
-        ) as mock_cmd_cls,
-        patch(
-            "superset.common.query_context_factory.QueryContextFactory"
-        ) as mock_factory,
-        patch("superset.extensions.db") as mock_db,
-    ):
-        mock_db.session.get.return_value = MagicMock(id=12)
-        query_context = MagicMock()
-        mock_factory.return_value.create.return_value = query_context
-        mock_cmd_cls.return_value.run.return_value = chart_data_command_result(
-            rows=[], columns=["value"]
+def test_generate_preview_seeds_form_data_before_query_execution() -> None:
+    """Unsaved previews expose fresh Jinja inputs before constructing the command."""
+    from types import SimpleNamespace
+
+    from flask import current_app, g
+
+    from superset.jinja_context import ExtraCache
+
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["count"],
+        "url_params": {"tenant": "acme"},
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+    }
+
+    def build_context(
+        query_form_data: dict[str, object], **kwargs: object
+    ) -> SimpleNamespace:
+        """Keep the builder boundary isolated but serialize real macro inputs."""
+        return SimpleNamespace(
+            form_data=query_form_data,
+            queries=[
+                SimpleNamespace(
+                    to_dict=lambda: {"columns": [], "metrics": ["count"]},
+                    filter=[{"col": "region", "op": "==", "val": "EMEA"}],
+                    time_range=None,
+                )
+            ],
         )
 
-        preview_utils.generate_preview_from_form_data(
-            form_data={"metrics": [{"label": "count"}]},
+    def build_command(query_context: object) -> MagicMock:
+        """Inspect actual seeded macro values at command construction, before run."""
+        cache = ExtraCache()
+        assert cache.filter_values("region") == ["EMEA"]
+        assert cache.url_param("tenant", escape_result=False) == "acme"
+        assert g.form_data["datasource"] == {"id": 12, "type": "table"}
+        command = MagicMock()
+        command.run.return_value = chart_data_command_result(
+            rows=[{"count": 2}], columns=["count"]
+        )
+        return command
+
+    with (
+        current_app.test_request_context(),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            side_effect=build_command,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+            side_effect=build_context,
+        ),
+        patch("superset.extensions.db") as mock_db,
+    ):
+        g.form_data = {"url_params": {"tenant": "stale"}, "adhoc_filters": []}
+        mock_db.session.get.return_value = MagicMock(id=12)
+        preview = preview_utils.generate_preview_from_form_data(
+            form_data=form_data,
             dataset_id=12,
             preview_format="table",
         )
-
-    mock_set_form_data.assert_called_once_with(query_context, 12, "table")
+        assert isinstance(preview, TablePreview)
+        assert preview.row_count == 1
+        assert "count" in preview.table_data
+        assert "2" in preview.table_data
 
 
 @pytest.mark.parametrize("time_grain", [None, "P1D", "P1M"])

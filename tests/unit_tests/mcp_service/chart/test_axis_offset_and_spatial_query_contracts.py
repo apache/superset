@@ -297,8 +297,8 @@ def test_deck_path_distinguishes_metric_roles_and_grouping() -> None:
             "time_grain_sqla": "P1D",
         }
     )
-    assert query["columns"] == ["region", "name"]
-    assert query["groupby"] == ["path", "name"]
+    assert query["columns"] == ["path", "region", "name"]
+    assert "groupby" not in query
     assert query["metrics"] == ["revenue", "width", "breakpoints"]
     assert query["filters"] == [{"col": "path", "op": "IS NOT NULL"}]
     assert query["is_timeseries"] is True

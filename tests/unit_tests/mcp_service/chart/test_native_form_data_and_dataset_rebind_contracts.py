@@ -1204,3 +1204,83 @@ def test_xy_ranking_metric_rejects_dimension_reference(key: str) -> None:
                 key: {"name": "profit"},
             }
         )
+
+
+@pytest.mark.parametrize("key", ["series_limit_metric", "timeseries_limit_metric"])
+def test_xy_native_saved_ranking_metric_round_trips(key: str) -> None:
+    """Saved ranking strings normalize like native Y metrics and map back to strings."""
+    config = GenerateChartRequest.model_validate(
+        {
+            "dataset_id": 7,
+            "config": {
+                "viz_type": "echarts_timeseries_line",
+                "x_axis": "ds",
+                "metrics": ["count"],
+                "series_limit": 1,
+                key: "count",
+            },
+        }
+    ).config
+    assert getattr(config, key).saved_metric
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    assert mapped[key] == "count"
+
+
+@pytest.mark.parametrize(
+    "column,valid", [("regoin", False), ("count", False), ("REGION", True)]
+)
+def test_mixed_secondary_filters_validate_and_normalize(
+    column: str, valid: bool
+) -> None:
+    """Query B filter subjects are checked as columns and normalized before mapping."""
+    from superset.mcp_service.chart.plugins.mixed_timeseries import (
+        MixedTimeseriesChartPlugin,
+    )
+    from superset.mcp_service.chart.schemas import MixedTimeseriesChartConfig
+    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+    from superset.mcp_service.common.error_schemas import DatasetContext
+
+    config = MixedTimeseriesChartConfig.model_validate(
+        {
+            "x": {"name": "ds"},
+            "y": [{"name": "count", "saved_metric": True}],
+            "y_secondary": [{"name": "count", "saved_metric": True}],
+            "filters_secondary": [{"column": column, "op": "=", "value": "EMEA"}],
+        }
+    )
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema="public",
+        database_name="examples",
+        available_columns=[
+            {"name": "ds", "type": "TIMESTAMP", "is_temporal": True},
+            {"name": "region", "type": "VARCHAR", "is_temporal": False},
+        ],
+        available_metrics=[{"name": "count", "expression": "COUNT(*)"}],
+    )
+    is_valid, error = DatasetValidator.validate_against_dataset(
+        config, dataset_id=7, dataset_context=context
+    )
+    assert is_valid is valid
+    if not valid:
+        assert error is not None
+        return
+    normalized = MixedTimeseriesChartPlugin().normalize_column_refs(config, context)
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(normalized, dataset_id=7)
+    assert mapped["adhoc_filters_b"][0]["subject"] == "region"
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        queries = build_query_dicts_from_form_data(mapped, 7, "table")
+    assert {"col": "region", "op": "==", "val": "EMEA"} in queries[1]["filters"]
+    assert not any(f.get("col") == "region" for f in queries[0]["filters"])

@@ -119,9 +119,9 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
             refs.extend(config.group_by)
         if config.group_by_secondary:
             refs.extend(config.group_by_secondary)
-        if config.filters:
-            for f in config.filters:
-                refs.append(ColumnRef(name=f.column))
+        for filters in (config.filters, config.filters_secondary):
+            for filter_config in filters or []:
+                refs.append(ColumnRef(name=filter_config.column))
         return refs
 
     def to_form_data(
