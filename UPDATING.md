@@ -70,6 +70,10 @@ assists people when migrating to a new version.
   (`ALERT_REPORTS_EXECUTORS`). An unset content executor remains on the application
   default when edited, and admins can clear an explicit choice back to it. A blank
   alert-query executor inherits the content executor dynamically.
+- Saving a schedule while `ALERT_REPORT_DYNAMIC_EXECUTOR` is off clears any stored
+  per-schedule content and alert-query executor selections. The schedule continues
+  using `ALERT_REPORTS_EXECUTORS` if the flag is enabled again. Untouched schedules
+  retain their selections.
 - Non-admins must select **Execute using my permissions** before changing content or
   recipients on a schedule using another user, a typed executor, or a legacy content
   executor. For alerts, this action switches both executors to the current user on Save.

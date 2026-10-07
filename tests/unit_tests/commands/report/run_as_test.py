@@ -363,15 +363,24 @@ def _stub_update_deps(
     _stub_security(mocker, is_admin=is_admin)
 
 
-def test_update_feature_disabled_drops_run_as_fields(mocker: MockerFixture) -> None:
-    model = _make_model()
-    _stub_update_deps(mocker, model, is_admin=True, feature_enabled=False)
+@pytest.mark.parametrize("is_admin", [False, True])
+def test_update_feature_disabled_clears_saved_executors(
+    mocker: MockerFixture, is_admin: bool
+) -> None:
+    model = _make_model(
+        model_type=ReportScheduleType.ALERT,
+        run_as=OTHER_USER,
+        run_alert_query_as=OTHER_USER,
+    )
+    _stub_update_deps(mocker, model, is_admin=is_admin, feature_enabled=False)
 
-    command = UpdateReportScheduleCommand(1, {"run_as": 2, "run_alert_query_as": 2})
+    command = UpdateReportScheduleCommand(1, {"name": "renamed"})
     command.validate()
 
-    assert "run_as" not in command._properties
-    assert "run_alert_query_as" not in command._properties
+    assert command._properties["run_as"] is None
+    assert command._properties["run_as_type"] is None
+    assert command._properties["run_alert_query_as"] is None
+    assert command._properties["run_alert_query_as_type"] is None
 
 
 def test_update_admin_sets_and_clears_run_as(mocker: MockerFixture) -> None:
@@ -803,6 +812,64 @@ def test_clear_query_executor_inherits_content(mocker: MockerFixture) -> None:
     command.validate()
     assert command._properties["run_alert_query_as"] is None
     assert command._properties["run_alert_query_as_type"] is None
+
+
+@pytest.mark.parametrize("run_as", [OTHER_USER, None])
+@pytest.mark.parametrize(
+    "payload",
+    [{"run_alert_query_as": None}, {"run_alert_query_as_type": None}],
+)
+def test_non_admin_cannot_clear_query_executor_to_another_identity(
+    mocker: MockerFixture, run_as: Mock | None, payload: dict[str, None]
+) -> None:
+    model = _make_model(
+        model_type=ReportScheduleType.ALERT,
+        run_as=run_as,
+        run_alert_query_as=CURRENT_USER,
+    )
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    command = UpdateReportScheduleCommand(1, payload)
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
+
+    assert ReportScheduleRunAsConditionForbiddenError in _errors(exc)
+
+
+def test_non_admin_can_clear_query_executor_when_content_runs_as_self(
+    mocker: MockerFixture,
+) -> None:
+    model = _make_model(
+        model_type=ReportScheduleType.ALERT,
+        run_as=CURRENT_USER,
+        run_alert_query_as=CURRENT_USER,
+    )
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    command = UpdateReportScheduleCommand(1, {"run_alert_query_as": None})
+    command.validate()
+
+    assert command._properties["run_alert_query_as"] is None
+    assert command._properties["run_alert_query_as_type"] is None
+
+
+def test_non_admin_can_clear_query_executor_while_switching_content_to_self(
+    mocker: MockerFixture,
+) -> None:
+    model = _make_model(
+        model_type=ReportScheduleType.ALERT,
+        run_as=OTHER_USER,
+        run_alert_query_as=CURRENT_USER,
+    )
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    command = UpdateReportScheduleCommand(
+        1, {"run_as": CURRENT_USER.id, "run_alert_query_as": None}
+    )
+    command.validate()
+
+    assert command._properties["run_as"] is CURRENT_USER
+    assert command._properties["run_alert_query_as"] is None
 
 
 @pytest.mark.parametrize("active", [False, True])

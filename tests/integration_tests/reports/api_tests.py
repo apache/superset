@@ -233,9 +233,10 @@ class TestReportSchedulesApi(SupersetTestCase):
         "load_birth_names_dashboard_with_slices", "sip_schedule_cleanup"
     )
     def test_run_as_fields_ignored_when_feature_disabled(self) -> None:
-        """Disabled rollout preserves legacy executor fields on create and edit."""
+        """A non-admin edit with the flag off clears a saved executor choice."""
         self.login(ADMIN_USERNAME)
         admin = self.get_user(ADMIN_USERNAME)
+        alpha = self.get_user("alpha")
         payload = self._sip_report_payload("sip209_api_disabled")
         payload.update({"run_as": admin.id, "run_as_type": "fixed_user"})
         created = self.client.post("/api/v1/report/", json=payload)
@@ -243,7 +244,13 @@ class TestReportSchedulesApi(SupersetTestCase):
         schedule = db.session.get(ReportSchedule, created.json["id"])
         assert schedule.run_as_fk is None
         assert schedule.run_as_type is None
+        schedule.run_as = admin
+        schedule.run_as_type = ExecutorType.FIXED_USER
+        schedule.editors = _subjects_for_users([admin, alpha])
+        db.session.commit()
 
+        self.logout()
+        self.login("alpha")
         updated = self.client.put(
             f"/api/v1/report/{schedule.id}",
             json={

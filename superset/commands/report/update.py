@@ -211,8 +211,12 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         run_as_id = self._properties.pop("run_as", None)
         query_as_id = self._properties.pop("run_alert_query_as", None)
         if not is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR"):
-            self._properties.pop("run_as_type", None)
-            self._properties.pop("run_alert_query_as_type", None)
+            self._properties.update(
+                run_as=None,
+                run_as_type=None,
+                run_alert_query_as=None,
+                run_alert_query_as_type=None,
+            )
             return
 
         run_as = (
@@ -273,7 +277,15 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         ) and changed_content_fields:
             exceptions.append(ReportScheduleRunAsContentForbiddenError())
 
-        if report_type == ReportScheduleType.ALERT and changed_condition_fields:
+        query_executor_cleared = (
+            report_type == ReportScheduleType.ALERT
+            and has_query_as
+            and self._model.run_alert_query_as_type is not None
+            and self._properties.get("run_alert_query_as_type") is None
+        )
+        if report_type == ReportScheduleType.ALERT and (
+            changed_condition_fields or query_executor_cleared
+        ):
             query_type = self._properties.get(
                 "run_alert_query_as_type", self._model.run_alert_query_as_type
             )

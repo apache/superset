@@ -452,11 +452,17 @@ When the flag is enabled:
   condition query to execute as that editor. To change protected fields, they can select
   their own account via **Execute using my permissions** (or ask an admin). For alerts,
   this action selects the current user for both content and SQL condition execution.
+  A non-admin cannot clear a separate alert-query executor if the query would then
+  inherit another user's content executor.
   Legacy schedules using the application-default executor need the same switch before
   a non-admin changes fields executed with that identity.
 - Untouched legacy schedules continue using `ALERT_REPORTS_EXECUTORS`. **Application
   default** preserves this behavior in the Run as selector, including when an admin
   clears an explicit executor.
+- With the flag off, schedules execute using `ALERT_REPORTS_EXECUTORS`. Saving a
+  schedule while the flag is off clears its stored content and alert-query executor
+  selections, so that schedule remains on **Application default** if the flag is
+  enabled again. Schedules not saved while the flag is off retain their selections.
 - A selected user that is deleted remains recorded as a **Specific user** selection.
   Resolving a deleted or inactive user fails rather than switching to a legacy executor.
   Alert SQL templates, SQL mutation hooks, authorization and database access all use
