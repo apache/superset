@@ -258,3 +258,29 @@ test('inherit is combined with regular shifts in one comparison request', async 
     ['30 days ago', '1 year ago'],
   );
 });
+
+test('renders every entry, with no duplicate-key warning, when distinct shifts resolve to the same label', async () => {
+  // A 30-day range makes `inherit` resolve to the same offset as the
+  // literal "30 days ago" shift, so the comparison request can legitimately
+  // come back with two identical entries for one filter.
+  const consoleError = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => {});
+  mockedFetchTimeRange
+    .mockImplementationOnce(async () => ({ value: CURRENT_RANGE_LABEL }))
+    .mockImplementationOnce(async () => ({
+      value: [COMPARISON_LABEL, COMPARISON_LABEL],
+    }));
+
+  renderLabel({ time_compare: ['inherit', '30 days ago'] });
+
+  await waitFor(() =>
+    expect(screen.getAllByText(COMPARISON_LABEL)).toHaveLength(2),
+  );
+  const duplicateKeyWarning = consoleError.mock.calls.some(call =>
+    String(call[0]).includes('same key'),
+  );
+  expect(duplicateKeyWarning).toBe(false);
+
+  consoleError.mockRestore();
+});

@@ -181,13 +181,13 @@ export const ComparisonRangeLabel = ({
   return labels.length ? (
     <>
       <ControlHeader label={t('Actual range for comparison')} />
-      {labels.flat().map(label => (
+      {labels.flat().map((label, index) => (
         <div
           css={theme => css`
             font-size: ${theme.fontSize}px;
             color: ${theme.colorText};
           `}
-          key={label}
+          key={`${index}-${label}`}
         >
           {label}
         </div>
