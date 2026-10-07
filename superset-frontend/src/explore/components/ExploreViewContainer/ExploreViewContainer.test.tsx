@@ -884,7 +884,7 @@ test('Cmd+Enter runs the query when controls are valid', async () => {
   expect(triggerQuerySpy).toHaveBeenCalledWith(true, 1);
 });
 
-test('Ctrl+Enter does not run the query when controls have validation errors', async () => {
+test('Ctrl/Cmd+Enter does not run the query when controls have validation errors', async () => {
   const { triggerQuerySpy } = await renderAfterInitialQuery({
     ...reduxState,
     explore: {
@@ -906,7 +906,7 @@ test('Ctrl+Enter does not run the query when controls have validation errors', a
   expect(triggerQuerySpy).not.toHaveBeenCalled();
 });
 
-test('Ctrl+Enter does not run the query while the chart is loading', async () => {
+test('Ctrl/Cmd+Enter does not run the query while the chart is loading', async () => {
   const { store, triggerQuerySpy } = await renderAfterInitialQuery(reduxState);
   act(() => {
     store.dispatch(
@@ -919,6 +919,7 @@ test('Ctrl+Enter does not run the query while the chart is loading', async () =>
   });
 
   await userEvent.keyboard('{Control>}{Enter}{/Control}');
+  await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
 
   expect(triggerQuerySpy).not.toHaveBeenCalled();
 });
