@@ -388,11 +388,6 @@ export function TableRenderer(props: TableRendererProps) {
   const [collapsedRows, setCollapsedRows] = useState<Record<string, boolean>>(
     {},
   );
-  // Filled once row keys are known. The toggle reads it at click time so the
-  // default matches the prefixes that have a renderable subtotal row.
-  const collapsibleRowPrefixesRef = useRef<ReadonlySet<string>>(
-    NO_COLLAPSIBLE_PREFIXES,
-  );
   const [collapsedCols, setCollapsedCols] = useState<Record<string, boolean>>(
     {},
   );
@@ -405,6 +400,13 @@ export function TableRenderer(props: TableRendererProps) {
   const collapseRowsByDefault = Boolean(
     tableOptions.collapseRows && tableOptions.rowSubTotals,
   );
+
+  // Manual expands live in this state and would otherwise outlive the
+  // checkbox. Resetting on each flip makes the Explore preview match a chart
+  // that opens with the new setting.
+  useEffect(() => {
+    setCollapsedRows({});
+  }, [collapseRowsByDefault]);
 
   const sortCacheRef = useRef(new Map<string, string[][]>());
 
@@ -518,20 +520,17 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleRowKey = useCallback(
-    (flatRowKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
-      e.stopPropagation();
-      setCollapsedRows(state => {
-        const currentlyCollapsed = Object.hasOwn(state, flatRowKey)
-          ? state[flatRowKey]
-          : collapseRowsByDefault &&
-            collapsibleRowPrefixesRef.current.has(flatRowKey);
-        return {
+    (flatRowKey: string, collapsedByDefault: boolean) =>
+      (e: MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        setCollapsedRows(state => ({
           ...state,
-          [flatRowKey]: !currentlyCollapsed,
-        };
-      });
-    },
-    [collapseRowsByDefault],
+          [flatRowKey]: !(Object.hasOwn(state, flatRowKey)
+            ? state[flatRowKey]
+            : collapsedByDefault),
+        }));
+      },
+    [],
   );
 
   const toggleColKey = useCallback(
@@ -856,7 +855,6 @@ export function TableRenderer(props: TableRendererProps) {
     });
     return prefixes;
   }, [basePivotSettings]);
-  collapsibleRowPrefixesRef.current = collapsibleRowPrefixes;
 
   // Need to account for exclusions to compute the effective row
   // and column keys.
@@ -1344,7 +1342,11 @@ export function TableRenderer(props: TableRendererProps) {
             settingsRowSubtotalDisplay.enabled === true &&
             i !== settingsRowAttrs.length - 1;
           const onArrowClick = needRowToggle
-            ? toggleRowKey(flatRowKeySlice)
+            ? toggleRowKey(
+                flatRowKeySlice,
+                collapseRowsByDefault &&
+                  collapsibleRowPrefixes.has(flatRowKeySlice),
+              )
             : null;
 
           const headerFormatterValue = toDateFormatterInput(r);

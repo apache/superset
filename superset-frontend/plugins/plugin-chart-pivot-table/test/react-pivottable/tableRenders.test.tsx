@@ -1384,6 +1384,41 @@ test('TableRenderer keeps the next row level collapsed after expanding a parent'
   expect(screen.queryByText('NYC')).not.toBeInTheDocument();
 });
 
+test('TableRenderer resets manual expansions when collapseRows flips', () => {
+  const collapsed = buildDefaultProps({
+    data: NESTED_ROW_DATA,
+    rows: ['country', 'city'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowSubTotals: true, collapseRows: true },
+  });
+  const expanded = buildDefaultProps({
+    data: NESTED_ROW_DATA,
+    rows: ['country', 'city'],
+    cols: ['shape'],
+    vals: ['value'],
+    tableOptions: { rowSubTotals: true, collapseRows: false },
+  });
+  const { rerender } = renderWithTheme(<TableRenderer {...collapsed} />);
+
+  clickRowGroupToggle('US');
+  expect(screen.getByText('NYC')).toBeInTheDocument();
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <TableRenderer {...expanded} />
+    </ThemeProvider>,
+  );
+  expect(screen.getByText('NYC')).toBeInTheDocument();
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <TableRenderer {...collapsed} />
+    </ThemeProvider>,
+  );
+  expect(screen.queryByText('NYC')).not.toBeInTheDocument();
+});
+
 test('TableRenderer ignores collapseRows when row subtotals are off', () => {
   const props = buildDefaultProps({
     data: NESTED_ROW_DATA,
