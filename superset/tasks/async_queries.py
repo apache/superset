@@ -35,6 +35,7 @@ from superset.exceptions import SupersetException
 from superset.extensions import (
     security_manager,
 )
+from superset.semantic_layers.metadata_binding import chart_metadata_operation
 from superset.tasks.ambient_context import get_context
 from superset.tasks.decorators import task
 from superset.tasks.query_cancel import (
@@ -326,7 +327,10 @@ def execute_chart_query(
     """
     from superset.charts.data.form_data import set_query_context_form_data
 
-    with override_user(_resolve_user(user_id, guest_token), force=False):
+    with (
+        override_user(_resolve_user(user_id, guest_token), force=False),
+        chart_metadata_operation(),
+    ):
         query_context = load_serialized_query(serialized_query)
         # Re-establish ``g.form_data`` from the serialized payload. There is no
         # request context in the worker, and Jinja helpers (``filter_values``,

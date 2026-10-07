@@ -21,11 +21,12 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from logging import LogRecord
-from unittest.mock import Mock, patch
+from typing import Any
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
 import pytest
-from flask import Flask
+from flask import Flask, g
 from superset_core.semantic_layers.metadata import (
     CatalogSnapshot,
     MetadataRefreshAdapter,
@@ -35,6 +36,7 @@ from superset_core.semantic_layers.view import SemanticView as ViewABC
 
 from superset.semantic_layers.metadata import ScopedMetadataStore
 from superset.semantic_layers.metadata_binding import (
+    chart_metadata_operation,
     connection_metadata_scope,
     connection_store,
     layer_implementation,
@@ -728,3 +730,201 @@ def test_invalid_host_snapshot_lifetime_fails_before_backend_work(
     ):
         connection_store(layer)
     assert backend.mock_calls == []
+
+
+@pytest.mark.parametrize("task_delay", [0, 45])
+def test_export_charts_get_independent_budgets_before_query_construction(
+    app: Flask, task_delay: int
+) -> None:
+    """Earlier task/warehouse work cannot exhaust a later chart's acquisition."""
+    from superset.dashboards.excel_export.workbook import build_workbook
+    from superset.extensions import celery_app
+
+    clock: Mock = Mock(return_value=100.0)
+    observed: list[float] = []
+    charts: list[Mock] = [
+        Mock(id=1, slice_name="First", viz_type="table"),
+        Mock(id=2, slice_name="Second", viz_type="table"),
+    ]
+    query_context: Mock = Mock()
+    command: Mock = Mock()
+
+    def construct(_body: dict[str, Any]) -> Mock:
+        """Observe the budget before schema loading can discover fields."""
+        observed.append(operation_deadline())
+        clock.return_value += 5
+        with metadata_operation():
+            assert operation_deadline() == observed[-1]
+        return query_context
+
+    def execute() -> dict[str, Any]:
+        """Model warehouse work after the chart captures its metadata."""
+        clock.return_value += 40
+        return {"queries": [{"colnames": ["value"], "data": [{"value": 1}]}]}
+
+    command.run.side_effect = execute
+
+    class Export(celery_app.Task):
+        def run(self) -> dict[str, list[str]]:
+            """Exercise the real worker wrapper and workbook chart loop."""
+            clock.return_value += task_delay
+            return build_workbook("unused.xlsx", Mock(id=1), {}, "job", "data", Mock())
+
+    Export.bind(celery_app)
+    schema: MagicMock
+    with (
+        app.app_context(),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True}),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch("superset.semantic_layers.metadata_binding.time.monotonic", clock),
+        patch(
+            "superset.dashboards.excel_export.workbook.get_charts_in_layout_order",
+            return_value=charts,
+        ),
+        patch(
+            "superset.dashboards.excel_export.workbook.resolve_query_context",
+            return_value={"queries": [{}]},
+        ),
+        patch(
+            "superset.dashboards.excel_export.workbook.get_dashboard_filter_context",
+            return_value=Mock(extra_form_data={}),
+        ),
+        patch(
+            "superset.dashboards.excel_export.workbook.ChartDataQueryContextSchema"
+        ) as schema,
+        patch(
+            "superset.dashboards.excel_export.workbook.ChartDataCommand",
+            return_value=command,
+        ),
+        patch(
+            "superset.dashboards.excel_export.workbook.StreamingXlsxWriter",
+            return_value=MagicMock(sheet_count=2),
+        ),
+    ):
+        schema.return_value.load.side_effect = construct
+        assert Export()() == {}
+        assert observed == [130 + task_delay, 175 + task_delay]
+        assert command.run.call_count == 2
+        with pytest.raises(MetadataRefreshError, match="configuration"):
+            operation_deadline()
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_worker_chart_scope_shares_nested_budget_and_restores_task(
+    fail: bool, app: Flask
+) -> None:
+    """Chart completion/failure releases observations without renewing nested work."""
+    clock: Clock = Clock()
+    with (
+        app.app_context(),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True}),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch("superset.semantic_layers.metadata_binding.time.monotonic", clock),
+        metadata_operation(),
+    ):
+        clock.advance(10)
+        with (
+            pytest.raises(RuntimeError, match="chart failed") if fail else nullcontext()
+        ):
+            with chart_metadata_operation():
+                assert operation_deadline() == 140
+                clock.advance(5)
+                with chart_metadata_operation(), metadata_operation():
+                    assert operation_deadline() == 140
+                if fail:
+                    raise RuntimeError("chart failed")
+        assert operation_deadline() == 130
+        clock.advance(40)
+        with chart_metadata_operation():
+            assert operation_deadline() == 185
+            clock.advance(31)
+            with chart_metadata_operation(), metadata_operation():
+                with pytest.raises(MetadataRefreshError, match="deadline"):
+                    operation_deadline()
+        with pytest.raises(MetadataRefreshError, match="deadline"):
+            operation_deadline()
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_chart_scope_preserves_http_request_budget(app: Flask, enabled: bool) -> None:
+    """Eager chart work must not renew an HTTP request's acquisition budget."""
+    clock: Clock = Clock()
+    with (
+        app.test_request_context(),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": enabled}),
+        patch("superset.semantic_layers.metadata_binding.time.monotonic", clock),
+    ):
+        request_metadata_budget()
+        clock.advance(45)
+        with chart_metadata_operation():
+            with pytest.raises(
+                MetadataRefreshError, match="deadline" if enabled else "configuration"
+            ):
+                operation_deadline()
+
+
+def test_disabled_worker_chart_does_not_establish_an_operation(app: Flask) -> None:
+    """The rollout flag leaves nonparticipating worker behavior unchanged."""
+    with (
+        app.app_context(),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": False}),
+    ):
+        with chart_metadata_operation():
+            with pytest.raises(MetadataRefreshError, match="configuration"):
+                operation_deadline()
+
+
+@pytest.mark.parametrize("user_scoped", [False, True])
+def test_async_chart_starts_budget_before_deserialization(
+    app: Flask, user_scoped: bool
+) -> None:
+    """A delayed task must enter its chart scope before metadata construction."""
+    from superset.common.query_serialization import SerializedQuery
+    from superset.tasks.async_queries import execute_chart_query
+
+    principal: Mock = Mock()
+    clock: Clock = Clock()
+    serialized: SerializedQuery = SerializedQuery(
+        datasource={"id": 1, "type": "table"},
+        query={},
+        form_data=None,
+        result_type="full",
+        result_format="json",
+        force=False,
+        custom_cache_timeout=None,
+    )
+
+    def deserialize(_query: SerializedQuery) -> None:
+        """Stop after verifying the production deserialization boundary."""
+        assert operation_deadline() == 175
+        with chart_metadata_operation(), metadata_operation():
+            assert operation_deadline() == 175
+        raise RuntimeError("construction reached")
+
+    with (
+        app.app_context(),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True}),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            side_effect=lambda _flag: not user_scoped
+            or getattr(g, "user", None) is principal,
+        ),
+        patch("superset.semantic_layers.metadata_binding.time.monotonic", clock),
+        metadata_operation(),
+        patch("superset.tasks.async_queries._resolve_user", return_value=principal),
+        patch(
+            "superset.tasks.async_queries.load_serialized_query",
+            side_effect=deserialize,
+        ),
+    ):
+        clock.advance(45)
+        with pytest.raises(RuntimeError, match="construction reached"):
+            execute_chart_query.func(serialized, user_id=7)
+        with pytest.raises(MetadataRefreshError, match="deadline"):
+            operation_deadline()
