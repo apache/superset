@@ -22,8 +22,12 @@ from flask.ctx import AppContext
 from pytest_mock import MockerFixture
 
 import superset.utils.database
+from superset import db, security_manager
+from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import get_template_processor
+from superset.utils.core import override_user
 
 
 def test_process_template(app_context: AppContext) -> None:
@@ -226,3 +230,47 @@ def test_custom_template_processors_ignored(app_context: AppContext) -> None:
     template = "SELECT '$DATE()'"
     tp = get_template_processor(database=maindb)
     assert tp.process_template(template) == template
+
+
+def test_dataset_macro_access_filters(app_context: AppContext) -> None:
+    """Test that the dataset macro properly enforces datasource access security
+    by successfully resolving for a granted user and throwing an access
+    exception for a denied user."""
+    database = superset.utils.database.get_example_database()
+    table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+
+    granted_user = security_manager.find_user(username="gamma")
+    denied_user = security_manager.find_user(username="gamma2")
+
+    role = security_manager.add_role("GrantedRole")
+    perm = security_manager.find_permission_view_menu("datasource_access", table.perm)
+
+    # Grant granted_user on birth_names dataset
+    security_manager.add_permission_role(role, perm)
+    granted_user.roles.append(role)
+    db.session.commit()
+
+    try:
+        with mock.patch.object(
+            SqlaTable,
+            "get_query_str_extended",
+            return_value=mock.Mock(sql="SELECT * FROM mocked_birth_names"),
+        ) as get_query:
+            query = "SELECT * FROM {{ dataset('birth_names') }}"
+
+            with override_user(granted_user):  # Granted user
+                processor = get_template_processor(database=database)
+                processor.process_template(query)
+                assert get_query.called is True
+
+            get_query.reset_mock()
+
+            with override_user(denied_user):  # Non-granted user
+                processor = get_template_processor(database=database)
+                with pytest.raises(DatasetNotFoundError):
+                    processor.process_template(query)
+                assert get_query.called is False
+    finally:
+        granted_user.roles.remove(role)
+        db.session.delete(role)
+        db.session.commit()
