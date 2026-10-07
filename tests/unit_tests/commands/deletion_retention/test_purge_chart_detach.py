@@ -291,12 +291,13 @@ def test_dry_run_purge_changes_no_chart(session: Session, app_context: None) -> 
     would_purge: int
     failures: int
     blocked: int
-    purged, would_purge, failures, blocked = _purge_model(
+    scan_failures: int
+    purged, would_purge, failures, blocked, scan_failures = _purge_model(
         SqlaTable, datetime(2021, 1, 1), True
     )
     session.expire_all()
 
-    assert (purged, would_purge, failures, blocked) == (0, 1, 0, 0)
+    assert (purged, would_purge, failures, blocked, scan_failures) == (0, 1, 0, 0, 0)
     chart: Slice = session.get(Slice, orphan.id)
     assert (chart.datasource_id, chart.perm, chart.schema_perm) == before
     assert session.get(SqlaTable, dataset.id) is not None
