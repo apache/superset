@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
+import uuid
 from datetime import datetime, timezone
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
@@ -31,6 +32,7 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import ColumnElement
 from urllib3.exceptions import NewConnectionError
 
+from superset.constants import QUERY_CANCEL_KEY
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
@@ -47,6 +49,7 @@ from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
 
@@ -681,3 +684,78 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         # bare outer SELECT to satisfy it without altering or dropping any of
         # the mutator's comments.
         return f"SELECT * FROM (\n{sql}\n) AS __superset_type_probe LIMIT 0"  # noqa: S608
+
+    # ClickHouse never hands back a server-assigned identifier Superset could
+    # read and reuse later -- but its HTTP interface accepts a client-chosen
+    # `query_id`, and `KILL QUERY WHERE query_id = ...` accepts that same id
+    # from a second, independent connection. Minting it here needs no round
+    # trip: `has_query_id_before_execute` (the base default) runs this before
+    # the statement is sent, so the id is threaded into `execute_with_cursor`
+    # below in time to be passed to the driver.
+    @classmethod
+    def get_cancel_query_id(  # pylint: disable=unused-argument
+        cls,
+        cursor: Any,
+        query: Query,
+    ) -> str | None:
+        return str(uuid.uuid4())
+
+    @classmethod
+    def execute_with_cursor(
+        cls,
+        cursor: Any,
+        sql: str,
+        query: Query,
+    ) -> None:
+        """
+        Forward the id `get_cancel_query_id` recorded into `query.extra` on
+        to `execute` as a `settings` kwarg -- the base `execute_with_cursor`/
+        `execute` pair never threads per-query kwargs through to
+        `cursor.execute()`, so cancellation needs this override to reach the
+        driver at all.
+        """
+        logger.debug("Query %d: Running query: %s", query.id, sql)
+        cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
+        settings = {"query_id": cancel_query_id} if cancel_query_id else None
+        cls.execute(cursor, sql, query.database, settings=settings)
+        logger.debug("Query %d: Handling cursor", query.id)
+        cls.handle_cursor(cursor, query)
+
+    @classmethod
+    def execute(  # pylint: disable=unused-argument
+        cls,
+        cursor: Any,
+        query: str,
+        database: Database,
+        **kwargs: Any,
+    ) -> None:
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
+        try:
+            cursor.execute(query, settings=kwargs.get("settings"))
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        :param cancel_query_id: client-chosen `query_id` minted by
+            `get_cancel_query_id` and passed to the driver at execute time
+        :return: True if query cancelled successfully, False otherwise
+        """
+        # UUID4-shaped: defense-in-depth against SQL injection, mirroring
+        # every other engine's own id-shaped pattern for this check (e.g.
+        # Postgres/MySQL's `^\\d+$` for their integer ids).
+        if not cls.validate_cancel_query_id(
+            cancel_query_id,
+            r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+            r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+        ):
+            return False
+
+        try:
+            cursor.execute(f"KILL QUERY WHERE query_id = '{cancel_query_id}'")  # noqa: S608
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return True
