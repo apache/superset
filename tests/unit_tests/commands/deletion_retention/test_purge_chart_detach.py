@@ -122,6 +122,15 @@ def test_purge_detaches_dataset_charts(session: Session, app_context: None) -> N
         other.datasource_id,
         other.perm,
     )
+    bystander_id: int = dataset.id + 1
+    bystander: Slice = Slice(
+        slice_name="bystander",
+        datasource_type="table",
+        datasource_id=bystander_id,
+        viz_type="table",
+    )
+    session.add(bystander)
+    session.commit()
 
     assert _purge(session, dataset).purged
 
@@ -138,6 +147,7 @@ def test_purge_detaches_dataset_charts(session: Session, app_context: None) -> N
         untouched.datasource_id,
         untouched.perm,
     ) == other_before
+    assert session.get(Slice, bystander.id).datasource_id == bystander_id
 
 
 def test_purged_dataset_id_reuse_cannot_rebind_chart(
@@ -202,10 +212,16 @@ def test_dry_run_purge_changes_no_chart(session: Session, app_context: None) -> 
     dataset, orphan, _, _ = _trashed_dataset_with_charts(session)
     before: tuple[Any, ...] = (orphan.datasource_id, orphan.perm, orphan.schema_perm)
 
-    _, would_purge, _, _ = _purge_model(SqlaTable, datetime(2021, 1, 1), True)
+    purged: int
+    would_purge: int
+    failures: int
+    blocked: int
+    purged, would_purge, failures, blocked = _purge_model(
+        SqlaTable, datetime(2021, 1, 1), True
+    )
     session.expire_all()
 
-    assert would_purge == 1
+    assert (purged, would_purge, failures, blocked) == (0, 1, 0, 0)
     chart: Slice = session.get(Slice, orphan.id)
     assert (chart.datasource_id, chart.perm, chart.schema_perm) == before
     assert session.get(SqlaTable, dataset.id) is not None
