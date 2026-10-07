@@ -840,3 +840,26 @@ def test_metadata_routes_read_gate_precedes_connection_write_authority(
             view.semantic_layer
         )
         cast(Mock, module.guarded_store).assert_called_once()
+
+
+@pytest.mark.parametrize("error_type", [ValueError, TypeError])
+def test_provider_constructor_errors_are_sanitized_before_store_work(
+    refresh_context: tuple[Mock, Mock, Mock],
+    error_type: type[Exception],
+) -> None:
+    """Authorized construction errors expose only the public configuration category."""
+    from superset.commands.semantic_layer import refresh_metadata as module
+
+    view: Mock = refresh_context[0]
+    provider: Mock = refresh_context[1]
+    provider.from_configuration.side_effect = error_type("private provider token")
+    error: pytest.ExceptionInfo[MetadataRefreshError]
+    with pytest.raises(MetadataRefreshError, match="^configuration$") as error:
+        module.RefreshMetadataCommand(VIEW_UUID).run()
+    assert error.value.category == "configuration"
+    assert error.value.__suppress_context__
+    assert "private" not in str(error.value)
+    view.raise_for_access.assert_called_once()
+    view.semantic_layer.raise_for_access.assert_called_once()
+    provider.from_configuration.assert_called_once_with({"token": "test"})
+    cast(Mock, module.guarded_store).assert_not_called()

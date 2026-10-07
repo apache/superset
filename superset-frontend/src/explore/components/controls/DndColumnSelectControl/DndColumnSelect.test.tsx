@@ -649,7 +649,7 @@ test('saved-only semantic view disables Simple and Custom SQL modes in the picke
     { useDndKit: true, store: semanticViewStore() },
   );
 
-  userEvent.click(screen.getByText(/Drop columns here or click/i));
+  await userEvent.click(screen.getByText(/Drop columns here or click/i));
 
   await waitFor(() => {
     expect(screen.getByRole('tab', { name: 'Saved' })).toBeInTheDocument();
@@ -678,7 +678,7 @@ test('semantic view declaring adhoc expressions keeps existing modes in the pick
     },
   );
 
-  userEvent.click(screen.getByText(/Drop columns here or click/i));
+  await userEvent.click(screen.getByText(/Drop columns here or click/i));
 
   await waitFor(() => {
     expect(screen.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();
@@ -710,21 +710,21 @@ test('commits a visible Cube dimension in two interactions after opening the pic
     { useDndKit: true, store: semanticViewStore() },
   );
 
-  userEvent.click(screen.getByText(/Drop columns here or click/i));
+  await userEvent.click(screen.getByText(/Drop columns here or click/i));
 
   const combobox = await screen.findByRole('combobox', {
     name: 'Dimensions',
   });
 
   // Interaction 1: select the visible dimension.
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
   const option = await screen.findByRole('option', { name: /Order Date/i });
-  userEvent.click(option);
+  await userEvent.click(option);
 
   // Interaction 2: save.
   const saveButton = await screen.findByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   await waitFor(() => {
     expect(mockOnChange).toHaveBeenCalledWith(['order_date']);
@@ -743,7 +743,7 @@ test('commits a searched Cube dimension in no more than three interactions', asy
     { useDndKit: true, store: semanticViewStore() },
   );
 
-  userEvent.click(screen.getByText(/Drop columns here or click/i));
+  await userEvent.click(screen.getByText(/Drop columns here or click/i));
 
   const combobox = await screen.findByRole('combobox', {
     name: 'Dimensions',
@@ -756,12 +756,12 @@ test('commits a searched Cube dimension in no more than three interactions', asy
   const option = await screen.findByRole('option', {
     name: /Product Category/i,
   });
-  userEvent.click(option);
+  await userEvent.click(option);
 
   // Interaction 3: save.
   const saveButton = await screen.findByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   await waitFor(() => {
     expect(mockOnChange).toHaveBeenCalledWith(['category']);
@@ -794,7 +794,7 @@ test('anchors the "add column" popover to a block-level trigger box (sc-120502)'
     { useDndKit: true, store },
   );
 
-  userEvent.click(screen.getByText(/Drop columns here or click/i));
+  await userEvent.click(screen.getByText(/Drop columns here or click/i));
 
   await waitFor(() => {
     expect(screen.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();

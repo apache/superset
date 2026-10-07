@@ -135,10 +135,11 @@ by this setting.
 ## Operation lifetime and transport
 
 HTTP requests establish the absolute monotonic deadline before authentication
-hooks. Each chart in a Celery worker gets its own 30-second metadata acquisition
-budget before query construction. Dashboard workbook charts and async chart
-queries enter this scope explicitly; annotations, contribution totals and other
-nested work within that chart share its deadline and captured observations.
+hooks. Each chart executed directly in a Celery worker gets its own 30-second
+metadata acquisition budget. Background dashboard export and async chart queries
+enter this scope before query construction; cache warm-up enters before each
+chart data command. Annotations, contribution totals and other nested work within
+that chart share its deadline and captured observations.
 Earlier task work or a slow preceding chart does not consume the next chart's
 budget. Exiting a chart restores the enclosing task state, including on failure.
 Eager execution inside an HTTP request retains the request deadline. Celery tasks
