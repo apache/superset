@@ -1004,6 +1004,9 @@ msgstr ""
 msgid "A partition value transform cannot call %(functions)s."
 msgstr ""
 
+msgid "A partition value transform cannot contain a MySQL executable comment, which the database executes and every validator reads as a comment."
+msgstr ""
+
 msgid "A partition value transform cannot contain a sub-query."
 msgstr ""
 
@@ -1062,6 +1065,9 @@ msgid "A timeout occurred while taking a screenshot."
 msgstr ""
 
 msgid "A valid color scheme is required"
+msgstr ""
+
+msgid "A value transform cannot contain a MySQL executable comment (/*! ... */ or /*M! ... */). Those are comments to every validator and statement text to the database, so what would run is not what was checked."
 msgstr ""
 
 #, python-format

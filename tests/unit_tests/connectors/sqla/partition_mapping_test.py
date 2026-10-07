@@ -32,10 +32,12 @@ from sqlalchemy.dialects import mysql, postgresql
 
 from superset.config import DISALLOWED_SQL_FUNCTIONS
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.sql.parse import SQLStatement
 from superset.connectors.sqla.partition_mapping import (
     _probe_cache_key,
     _render_literal,
     build_probe_sql,
+    contains_executable_comment,
     contains_jinja,
     contains_value_placeholder,
     equality_mirrors_safely,
@@ -639,6 +641,23 @@ def test_contains_jinja(transform: str, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
+    ("transform", "expected"),
+    [
+        ("lower(:value)", False),
+        ("lower(:value) /* an ordinary comment */", False),
+        ("lower(:value) -- a line comment", False),
+        (":value /*!50000 + 1 */", True),
+        (":value /*M!50000 + 1 */", True),
+        (":value /*! + 1 */", True),
+        ("", False),
+        (None, False),
+    ],
+)
+def test_contains_executable_comment(transform: str | None, expected: bool) -> None:
+    assert contains_executable_comment(transform) is expected
+
+
+@pytest.mark.parametrize(
     "transform",
     [
         "unix_timestamp(:value)",
@@ -1083,6 +1102,77 @@ def test_a_subquery_transform_is_refused_even_with_adhoc_subquery_enabled(
 
     assert reason is not None
     assert "sub-query" in reason
+
+
+@pytest.mark.parametrize(
+    "comment",
+    ["/*!50000 + (SELECT secret FROM vault LIMIT 1) */", "/*M!50000 + 1 */"],
+)
+def test_an_executable_comment_is_refused_by_every_gate(
+    app: Flask, comment: str
+) -> None:
+    """
+    The one construct that made the shape gates describe a statement the engine
+    would not run.
+
+    sqlglot reads a MySQL executable comment as comment data: the pinned parse
+    below reports no sub-query and no clause, so `stored_expression_error` and
+    `probe_sql_is_evaluable` both passed it, while MySQL and MariaDB execute
+    what is inside. An owner with dataset write and no SQL Lab could put one in
+    a transform, call the preview and read a table back out of
+    `emitted_predicate`, with no RLS on the hidden query.
+
+    Refused on every engine, not only the two that honour it -- hence SQLite
+    here. There is no legitimate transform carrying one, and a per-engine gate
+    would store on Postgres what detonates after the dataset is re-pointed.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    transform = f"(:value {comment})"
+
+    # The premise: no parse-tree gate can see it.
+    statement = SQLStatement(f"SELECT (1 {comment}) AS v0", "mysql")
+    assert statement.has_subquery() is False
+    assert statement.get_clause_names() == set()
+
+    with app.app_context():
+        assert stored_expression_error(database, None, None, transform) is not None
+
+    blocking = [issue for issue in validate_transform(transform, "mysql") if issue.blocking]
+    assert len(blocking) == 1
+    assert "executable comment" in str(blocking[0].message)
+
+
+def test_an_executable_comment_stops_the_probe_before_the_engine(app: Flask) -> None:
+    """
+    The gate above is the save path. This is the row an earlier release stored:
+    `_probe` consults `stored_expression_error` on every call, so a transform
+    already in the metadata database never reaches `get_df`.
+    """
+    database = _database_returning(["x"])
+    transform = "(:value /*!50000 + (SELECT secret FROM vault LIMIT 1) */)"
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, transform, ["US"]) is None
+
+    assert _probe(database).call_count == 0
+
+
+def test_a_plain_comment_is_still_allowed_through_the_shape_gates(
+    app: Flask,
+) -> None:
+    """
+    Only the executable form is refused. An ordinary comment is inert on every
+    engine, so rejecting it would cost an owner a transform that works -- and
+    the placeholder gate already covers the case that matters, a `:value` the
+    comment swallows.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    with app.app_context():
+        assert (
+            stored_expression_error(database, None, None, "lower(:value) /* ok */")
+            is None
+        )
 
 
 def test_a_transform_calling_a_disallowed_function_is_refused(app: Flask) -> None:

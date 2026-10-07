@@ -208,6 +208,25 @@ VALUE_PLACEHOLDER_RE = re.compile(r":value\b")
 #: at a different time from the chart query, so they are rejected at save time.
 JINJA_BLOCK_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
 
+#: MySQL and MariaDB "executable comments": ``/*!50000 ... */`` and
+#: ``/*M!50000 ... */`` are comments to every other reader and *statement text*
+#: to those two engines.
+#:
+#: This is the one construct that breaks the premise the probe's shape gates
+#: rest on -- that the parse this module inspects and the statement the engine
+#: runs are the same statement. ``1 /*!50000 + (SELECT secret FROM vault) */``
+#: parses with no sub-query and no FROM, clears `stored_expression_error` and
+#: `probe_sql_is_evaluable` alike, and then reads a table on MySQL. The result
+#: comes back to a dataset owner through the preview's ``emitted_predicate``,
+#: with no RLS applied and no SQL Lab access needed.
+#:
+#: Refused on every engine rather than only the two that honour it. A transform
+#: is a scalar function of ``:value``; there is no legitimate reason for one to
+#: carry a comment of any kind, let alone this one, and a per-engine gate would
+#: store a transform on Postgres that detonates when the dataset is re-pointed
+#: at MySQL.
+EXECUTABLE_COMMENT_RE = re.compile(r"/\*M?!")
+
 #: Substituted for ``:value`` before parsing -- sqlglot rejects a bare ``:value``
 #: on most dialects. Mirrors the ``_JINJA_BLOCK_RE`` -> ``NULL`` trick used by
 #: ``validate_stored_expression``.
@@ -463,6 +482,19 @@ class PartitionMapping:
 def contains_value_placeholder(transform: str | None) -> bool:
     """Whether the transform contains the ``:value`` placeholder."""
     return bool(transform) and VALUE_PLACEHOLDER_RE.search(transform or "") is not None
+
+
+def contains_executable_comment(transform: str | None) -> bool:
+    """Whether the transform carries a MySQL/MariaDB executable comment.
+
+    See `EXECUTABLE_COMMENT_RE`. Answered on raw text, like
+    `contains_jinja` and for the same reason: the whole point is that no
+    parser this module can reach reports the construct at all.
+    """
+    return (
+        bool(transform)
+        and EXECUTABLE_COMMENT_RE.search(transform or "") is not None
+    )
 
 
 def contains_jinja(transform: str | None) -> bool:
@@ -866,6 +898,20 @@ def stored_expression_error(
             )
         )
 
+    # Also ahead of the parse, and for a stronger reason than cost: every gate
+    # below reasons about the parse tree, and this is the one construct that
+    # makes the parse tree describe a different statement from the one the
+    # engine runs. Checked here as well as in `validate_transform` because this
+    # is the door a row written by an earlier release still comes through.
+    if contains_executable_comment(transform):
+        return str(
+            _(
+                "A partition value transform cannot contain a MySQL "
+                "executable comment, which the database executes and every "
+                "validator reads as a comment."
+            )
+        )
+
     statement = _parse_skeleton(transform, database.backend)
     if statement is None:
         return str(
@@ -1087,6 +1133,15 @@ def probe_sql_is_evaluable(
     which costs nothing: `_probe` hands the same engine constant to
     `build_probe_sql` and to this gate.
     """
+    # Before the parse, because this gate's whole contract is that what the
+    # parse describes is what the engine will run, and an executable comment is
+    # precisely the text where that stops being true. The transform is already
+    # refused for carrying one; this covers the compiled statement, so no later
+    # change to how values are rendered can reintroduce it behind the gates
+    # below.
+    if contains_executable_comment(sql):
+        return False
+
     try:
         script = SQLScript(sql, engine)
     except SupersetParseError:
@@ -1654,6 +1709,25 @@ def validate_transform(
                     "transform. The transform is evaluated in a different "
                     "context and at a different time from the chart query, so "
                     "a template would not render the same way."
+                ),
+                blocking=True,
+            )
+        ]
+
+    if contains_executable_comment(transform):
+        # Blocking, and checked on raw text next to the Jinja gate because no
+        # parse reports it: sqlglot reads `/*!50000 ... */` as comment data
+        # while MySQL and MariaDB execute it, so every shape gate downstream
+        # inspects a statement the engine will not run. See
+        # `EXECUTABLE_COMMENT_RE`.
+        return [
+            MappingValidationIssue(
+                field=field,
+                message=_(
+                    "A value transform cannot contain a MySQL executable "
+                    "comment (/*! ... */ or /*M! ... */). Those are comments "
+                    "to every validator and statement text to the database, "
+                    "so what would run is not what was checked."
                 ),
                 blocking=True,
             )
