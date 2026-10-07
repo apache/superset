@@ -41,10 +41,12 @@ rather than a copy of its logic:
    publish catalogs built from an unnormalized template.
 """
 
+import os
 import re
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -52,6 +54,52 @@ import pytest
 _SCRIPT_PATH = (
     Path(__file__).resolve().parents[4] / "scripts" / "translations" / "babel_update.sh"
 )
+
+# The Python-Unit workflow installs gettext, so on CI a missing msgcat is a
+# broken runner and the tests below must fail rather than skip.
+_needs_msgcat = pytest.mark.skipif(
+    shutil.which("msgcat") is None and not os.environ.get("CI"),
+    reason="gettext's msgcat is not installed on this machine",
+)
+
+
+def _add_interpreter_shims(stub_dir: Path) -> None:
+    """Resolve the script's ``python`` and ``python3`` calls to this interpreter.
+
+    The script runs under a restricted PATH, and ``/usr/bin:/bin`` has no
+    ``python`` on macOS or on Debian and Ubuntu without ``python-is-python3``.
+    Without a shim, the script exits at its first ``python`` call, which also
+    stops it before ``pybabel update`` for a reason unrelated to the test.
+    """
+    for name in ("python", "python3"):
+        shim = stub_dir / name
+        shim.write_text(f'#!/bin/sh\nexec "{sys.executable}" "$@"\n', encoding="utf-8")
+        shim.chmod(shim.stat().st_mode | stat.S_IEXEC)
+
+
+def _stage_script(root: Path) -> Path:
+    """Copy the script and everything it needs to reach ``pybabel update``.
+
+    ROOT_DIR is derived from BASH_SOURCE/../.., so the copy's location makes
+    ``root`` the script's idea of the repo root. Nothing real is touched. Each
+    step before the update pass must succeed here, so that a test which expects
+    the script to stop early fails when the step under test no longer stops it.
+    """
+    (root / "scripts" / "translations").mkdir(parents=True)
+    (root / "superset" / "translations").mkdir(parents=True, exist_ok=True)
+    script = root / "scripts" / "translations" / "babel_update.sh"
+    shutil.copy(_SCRIPT_PATH, script)
+    shutil.copy(
+        _SCRIPT_PATH.parent / "apply_do_not_translate.py",
+        root / "scripts" / "translations" / "apply_do_not_translate.py",
+    )
+    # The stamping step refuses to run without its registry; an empty one
+    # stamps nothing, keeping the fixture's shape untouched.
+    (root / "superset" / "translations" / "do-not-translate.txt").write_text(
+        "", encoding="utf-8"
+    )
+    return script
+
 
 # Long enough that gettext folds it on width alone, which is what --no-wrap
 # governs. Declared once so the fixture and the assertion cannot drift apart.
@@ -148,10 +196,7 @@ def test_normalization_precedes_pybabel_update() -> None:
     )
 
 
-@pytest.mark.skipif(
-    shutil.which("msgcat") is None,
-    reason="gettext's msgcat is not installed on this runner",
-)
+@_needs_msgcat
 def test_normalization_sorts_unwraps_and_drops_locations(tmp_path: Path) -> None:
     """Run the script's own msgcat command against an ugly fixture."""
     src = tmp_path / "messages.pot"
@@ -159,7 +204,7 @@ def test_normalization_sorts_unwraps_and_drops_locations(tmp_path: Path) -> None
     src.write_text(_UGLY_POT, encoding="utf-8")
 
     msgcat = shutil.which("msgcat")
-    assert msgcat, "guaranteed present by the skipif above"
+    assert msgcat, "install gettext: CI must run this test, not skip it"
 
     # Reuse the script's flags verbatim; only the paths are ours.
     flags = [token for token in _msgcat_line().split() if token.startswith("--")]
@@ -205,22 +250,12 @@ def test_a_failing_msgcat_stops_the_script_before_pybabel_update(
     textually: inject a failing msgcat and confirm the script exits non-zero
     having never reached the update pass. Needs neither babel nor gettext.
     """
-    root = tmp_path / "repo"
-    (root / "scripts" / "translations").mkdir(parents=True)
-    (root / "superset" / "translations").mkdir(parents=True)
-
-    # ROOT_DIR is derived from BASH_SOURCE/../.., so the copy's location makes
-    # tmp_path/repo the script's idea of the repo root. Nothing real is touched.
-    script = root / "scripts" / "translations" / "babel_update.sh"
-    shutil.copy(_SCRIPT_PATH, script)
-    shutil.copy(
-        _SCRIPT_PATH.parent / "apply_do_not_translate.py",
-        root / "scripts" / "translations" / "apply_do_not_translate.py",
-    )
+    script = _stage_script(tmp_path / "repo")
 
     log = tmp_path / "calls.log"
     stub_dir = tmp_path / "bin"
     stub_dir.mkdir()
+    _add_interpreter_shims(stub_dir)
 
     # pybabel: records its subcommand; `extract` also produces a template so the
     # script has something to normalize.
@@ -278,10 +313,7 @@ def test_a_failing_msgcat_stops_the_script_before_pybabel_update(
 _PYBABEL_SHAPED_CATALOG = 'msgid ""\nmsgstr ""\n\nmsgid "zebra"\nmsgstr ""\n\n'
 
 
-@pytest.mark.skipif(
-    shutil.which("msgcat") is None,
-    reason="gettext's msgcat is not installed on this runner",
-)
+@_needs_msgcat
 def test_the_trailing_line_strip_keeps_the_last_entry_intact(
     tmp_path: Path,
 ) -> None:
@@ -293,20 +325,9 @@ def test_the_trailing_line_strip_keeps_the_last_entry_intact(
     ``missing 'msgstr' section``. Only a trailing *blank* line may be removed.
     """
     root = tmp_path / "repo"
-    (root / "scripts" / "translations").mkdir(parents=True)
+    script = _stage_script(root)
     catalog_dir = root / "superset" / "translations" / "xx" / "LC_MESSAGES"
     catalog_dir.mkdir(parents=True)
-    script = root / "scripts" / "translations" / "babel_update.sh"
-    shutil.copy(_SCRIPT_PATH, script)
-    shutil.copy(
-        _SCRIPT_PATH.parent / "apply_do_not_translate.py",
-        root / "scripts" / "translations" / "apply_do_not_translate.py",
-    )
-    # The stamping step refuses to run without its registry; an empty one
-    # stamps nothing, keeping the fixture's shape untouched.
-    (root / "superset" / "translations" / "do-not-translate.txt").write_text(
-        "", encoding="utf-8"
-    )
     po = catalog_dir / "messages.po"
     po.write_text(_PYBABEL_SHAPED_CATALOG, encoding="utf-8")
 
@@ -314,6 +335,7 @@ def test_the_trailing_line_strip_keeps_the_last_entry_intact(
     # leaving the catalog above as babel would have written it.
     stub_dir = tmp_path / "bin"
     stub_dir.mkdir()
+    _add_interpreter_shims(stub_dir)
     pybabel = stub_dir / "pybabel"
     pybabel.write_text(
         "#!/bin/bash\n"
@@ -332,7 +354,7 @@ def test_the_trailing_line_strip_keeps_the_last_entry_intact(
     bash = shutil.which("bash")
     msgcat = shutil.which("msgcat")
     assert bash, "bash is required to run the script under test"
-    assert msgcat, "guaranteed present by the skipif above"
+    assert msgcat, "install gettext: CI must run this test, not skip it"
 
     proc = subprocess.run(  # noqa: S603
         [bash, str(script)],
