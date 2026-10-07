@@ -199,6 +199,20 @@ jobs:
             exit 1
           fi
 
+      # Sole-input mypy regression guards (tests/mypy_fixtures/). Each fixture
+      # pins a type that mypy resolves differently when the file is its only
+      # input than when the whole tree is loaded, so neither the scoped run
+      # above nor the nightly all-files sweep can stand in for this: a revert
+      # of the guarded declaration only surfaces when the fixture is checked
+      # alone. Hence one prek invocation per fixture.
+      - name: mypy sole-input fixtures
+        run: |
+          set -euo pipefail
+          for fixture in tests/mypy_fixtures/[!_]*.py; do
+            echo "ℹ️ Checking ${fixture} as mypy's sole input."
+            prek run mypy-sole-input-fixtures --stage manual --files "${fixture}"
+          done
+
   actions-timeline:
     needs: pre-commit
     if: always()
