@@ -9152,6 +9152,14 @@
           "retry_on_failure": {
             "type": "boolean"
           },
+          "run_as": {
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
+          },
+          "run_as_type": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
           "send_failed_reports": {
             "type": "boolean"
           },
@@ -9238,6 +9246,14 @@
           "first_name",
           "last_name"
         ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get_list.User2": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "ReportScheduleRestApi.post": {
