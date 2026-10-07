@@ -271,7 +271,7 @@ def build_workbook(  # pylint: disable=too-many-arguments
                 errored.setdefault(reason, []).append(label)
                 continue
             try:
-                with chart_metadata_operation():
+                with chart_metadata_operation(allow_request=True):
                     if renders_as_image(chart, mode):
                         # Image charts do not need a query context.
                         _write_chart_image_sheet(

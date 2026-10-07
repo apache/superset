@@ -179,16 +179,14 @@ def test_result_inspection_keeps_query_rls_and_never_constructs_provider(
             InspectQueryResultCommand(context, 0).run()
         inspect_entry.assert_not_called()
 
-    # A new request cannot reuse identities kept by an earlier request, even
-    # when an internal caller retains the same Python context object.
-    with (
-        app.test_request_context(),
-        patch(
-            "superset.commands.semantic_layer.inspect_query_result.security_manager",
-            Mock(),
-        ),
-    ):
-        assert InspectQueryResultCommand(context, 0).run().state == "unsupported"
+        # Keep the feature and the same subject/RLS enabled in the next request.
+        # Only request-local capture expiry should prevent reading the old key.
+        manager.raise_for_access.side_effect = None
+        manager.get_rls_cache_key.return_value = ["rule-b"]
+        inspect_entry.reset_mock()
+        with app.test_request_context():
+            assert InspectQueryResultCommand(context, 0).run().state == "unsupported"
+            inspect_entry.assert_not_called()
 
 
 def test_result_inspection_does_not_refill_after_concurrent_invalidation(

@@ -24,6 +24,7 @@ metric and dimension names, returning tabular results.
 import logging
 import time
 from collections.abc import Iterable
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import Any, TYPE_CHECKING
 
@@ -55,6 +56,10 @@ from superset.mcp_service.semantic_layer.schemas import (
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.semantic_layers.metadata_binding import (
+    metadata_operation,
+    metadata_refresh_enabled,
+)
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -653,9 +658,14 @@ async def get_table(
         datasource_id = request.view_id
 
     try:
-        return await _run_get_table_query(
-            request, ctx, is_builtin, datasource_id, datasource_type
-        )
+        with (
+            metadata_operation()
+            if not is_builtin and metadata_refresh_enabled()
+            else nullcontext()
+        ):
+            return await _run_get_table_query(
+                request, ctx, is_builtin, datasource_id, datasource_type
+            )
 
     except OAuth2RedirectError as exc:
         redirect_msg = build_oauth2_redirect_message(exc)
