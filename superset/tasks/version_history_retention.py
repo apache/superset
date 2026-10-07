@@ -389,6 +389,10 @@ def _probe_prunable(
     return len(window.prunable), window.candidate_count < _MAX_PRUNE_BATCH
 
 
+class _PruneCommitUncertainError(RuntimeError):
+    """The database did not acknowledge whether a prune pass committed."""
+
+
 def _run_prune_pass(
     cutoff: datetime,
     tables: ShadowTables,
@@ -410,37 +414,52 @@ def _run_prune_pass(
     # The Celery task runs outside the request-bound DB session, so we
     # use a fresh connection rather than ``db.session`` to avoid stepping
     # on web-request state.
-    with (
-        db.engine.connect().execution_options(isolation_level="SERIALIZABLE") as conn,
-        conn.begin(),
-    ):
-        window = _resolve_prune_window(
-            conn, cutoff, live_bearing_tables, after_id, _MAX_PRUNE_BATCH
-        )
-        tx_ids: list[int] = window.prunable[:max_prune]
-
-        parent_rows = _delete_for_transactions(conn, tables.parent, tx_ids)
-        child_rows = _delete_for_transactions(conn, tables.child, tx_ids)
-        m2m_rows = (
-            _delete_for_transactions(conn, [tables.m2m], tx_ids)
-            if tables.m2m is not None
-            else 0
-        )
-
-        # Drop the version_transaction rows themselves. ON DELETE
-        # CASCADE on version_changes.transaction_id removes the
-        # associated change records automatically. Same SQLite bind-
-        # parameter chunking applies as the shadow deletes above.
-        tx_rows = 0
-        for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
-            tx_rows += (
-                conn.execute(
-                    sa.delete(tables.transaction).where(
-                        tables.transaction.c.id.in_(chunk)
-                    )
-                ).rowcount
-                or 0
+    with db.engine.connect().execution_options(isolation_level="SERIALIZABLE") as conn:
+        transaction: sa.engine.Transaction = conn.begin()
+        try:
+            window: _PruneWindow = _resolve_prune_window(
+                conn, cutoff, live_bearing_tables, after_id, _MAX_PRUNE_BATCH
             )
+            tx_ids: list[int] = window.prunable[:max_prune]
+
+            parent_rows: int = _delete_for_transactions(conn, tables.parent, tx_ids)
+            child_rows: int = _delete_for_transactions(conn, tables.child, tx_ids)
+            m2m_rows: int = (
+                _delete_for_transactions(conn, [tables.m2m], tx_ids)
+                if tables.m2m is not None
+                else 0
+            )
+
+            # Drop the version_transaction rows themselves. ON DELETE
+            # CASCADE on version_changes.transaction_id removes the
+            # associated change records automatically. Same SQLite bind-
+            # parameter chunking applies as the shadow deletes above.
+            tx_rows: int = 0
+            for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
+                tx_rows += (
+                    conn.execute(
+                        sa.delete(tables.transaction).where(
+                            tables.transaction.c.id.in_(chunk)
+                        )
+                    ).rowcount
+                    or 0
+                )
+        except Exception:
+            try:
+                transaction.rollback()  # pylint: disable=consider-using-transaction
+            except Exception as exc:
+                raise _PruneCommitUncertainError(
+                    "version prune rollback outcome unknown"
+                ) from exc
+            raise
+        try:
+            transaction.commit()  # pylint: disable=consider-using-transaction
+        except Exception as exc:
+            # The database may have committed despite a lost acknowledgement.
+            # Retrying the same cursor could prune beyond the per-run cap.
+            raise _PruneCommitUncertainError(
+                "version prune commit outcome unknown"
+            ) from exc
 
     return {
         "cutoff": cutoff.isoformat(),
@@ -464,13 +483,10 @@ def _run_pass_with_retry(
     ``_MAX_RETRY_ATTEMPTS`` attempts conflict.
 
     Postgres surfaces conflicts as ``SerializationFailure`` (a subclass
-    of ``sqlalchemy.exc.OperationalError``). The catch is deliberately the
-    broader ``OperationalError`` — it also covers transient faults such as
-    SQLite's "database is locked" and dropped connections, all of which are
-    safe to retry because each pass is idempotent and runs in its own fresh
-    transaction. Without the inline retry a single conflict pushes the next
-    attempt 24h out (daily Celery beat), so under sustained write pressure
-    the prune could silently fail for days in a row.
+    of ``sqlalchemy.exc.OperationalError``). Errors before commit can retry
+    from a fresh transaction. A commit acknowledgement failure instead raises
+    ``_PruneCommitUncertainError`` and defers the rest of this invocation, because
+    replaying the same cursor could exceed the per-run cap.
     """
     for attempt in range(1, _MAX_RETRY_ATTEMPTS + 1):
         try:

@@ -107,10 +107,12 @@ covers the backlog; otherwise it is a lower bound from its first 1,000 aged
 transaction candidates after the live scan's stopping point. If that probe
 fails after a successful prune, the remainder is `None` without hiding the
 committed deletion totals. Large backlogs drain over successive scheduled runs.
-If a database commit succeeds
-but its acknowledgement is lost, retries may prune additional windows beyond
-the cap (up to two extra windows per retried pass with the three-attempt policy);
-every pruned transaction still satisfies the retention policy. Monitor the
+If a database commit's outcome is uncertain, the task stops rather than
+retrying that window, so it cannot spend another cap allowance in the same
+run. The task reports an error because it cannot assert how many transactions
+were committed. An `OperationalError` before commit may retry up to three
+attempts.
+Monitor the
 `superset.versioning.retention.remaining_count_complete` gauge alongside the
 `remaining_eligible_at_least` gauge so a lower-bound zero is not read as an
 empty backlog.

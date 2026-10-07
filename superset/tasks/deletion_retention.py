@@ -168,6 +168,22 @@ class _PurgeScan(NamedTuple):
     supported_models: list[type[SoftDeleteMixin]]
     scan_failures: int = 0
     attempted: int = 0
+    commit_uncertain: bool = False
+
+
+class _PurgeModelResult(NamedTuple):
+    """Named per-root counts, including an indeterminate commit attempt."""
+
+    purged: int
+    would_purge: int
+    failures: int
+    blocked: int
+    scan_failures: int
+    commit_uncertain: bool = False
+
+
+class _PurgeCommitUncertainError(RuntimeError):
+    """The database did not acknowledge whether a root purge committed."""
 
 
 def _scan_purge_models(
@@ -181,6 +197,7 @@ def _scan_purge_models(
     blocked: int = 0
     scan_failures: int = 0
     attempted: int = 0
+    commit_uncertain: bool = False
     remaining_budget: int | None = max_per_run
     supported_models: list[type[SoftDeleteMixin]] = []
 
@@ -203,7 +220,7 @@ def _scan_purge_models(
             if remaining_budget == 0 and not dry_run:
                 attempted -= 1
                 continue
-            purged_n, would_n, failed_n, blocked_n, scan_failed_n = _purge_model(
+            counts: _PurgeModelResult = _purge_model(
                 model,
                 cutoff,
                 dry_run,
@@ -220,18 +237,22 @@ def _scan_purge_models(
             )
             continue
         if remaining_budget is not None and not dry_run:
-            remaining_budget -= purged_n
-        if would_n:
-            would_purge[entity_type] = would_n
-        if purged_n:
-            purged[entity_type] = purged_n
-        failures += failed_n
-        blocked += blocked_n
-        scan_failures += scan_failed_n
-        if scan_failed_n:
+            # Reserve the possible commit even though it is not confirmed.
+            remaining_budget -= counts.purged + int(counts.commit_uncertain)
+        if counts.would_purge:
+            would_purge[entity_type] = counts.would_purge
+        if counts.purged:
+            purged[entity_type] = counts.purged
+        failures += counts.failures
+        blocked += counts.blocked
+        scan_failures += counts.scan_failures
+        if counts.scan_failures:
             stats_logger_manager.instance.incr(
                 f"{_METRIC_PREFIX}.scan_failures.{entity_type}"
             )
+        if counts.commit_uncertain:
+            commit_uncertain = True
+            break
 
     return _PurgeScan(
         purged=purged,
@@ -243,6 +264,7 @@ def _scan_purge_models(
         supported_models=supported_models,
         scan_failures=scan_failures,
         attempted=attempted,
+        commit_uncertain=commit_uncertain,
     )
 
 
@@ -256,7 +278,7 @@ def _add_purge_cap_stats(
     if max_per_run is None:
         return
     remaining_eligible: int | None
-    count_complete: bool = scan.scan_failures == 0
+    count_complete: bool = scan.scan_failures == 0 and not scan.commit_uncertain
     if count_complete:
         try:
             remaining_eligible = sum(
@@ -341,19 +363,25 @@ def _purge_impl(
     if dry_run:
         _report_model_counts("would_purge", scan.would_purge)
         logger.info("deletion_retention: DRY RUN would_purge=%s", scan.would_purge)
-        backlog: int = sum(scan.would_purge.values())
+        backlog: int | None = (
+            sum(scan.would_purge.values()) if scan.scan_failures == 0 else None
+        )
+        estimated_runs: int | None = None
+        if backlog is not None:
+            estimated_runs = (
+                (backlog + max_per_run - 1) // max_per_run
+                if max_per_run is not None
+                else int(backlog > 0)
+            )
         dry_stats: dict[str, Any] = {
             "dry_run": 1,
             "would_purge": scan.would_purge,
             "unsupported_models": scan.unsupported_models,
             "scan_failures": scan.scan_failures,
             "eligible_backlog": backlog,
+            "backlog_count_complete": backlog is not None,
             "max_per_run": max_per_run,
-            "estimated_capped_runs": (
-                (backlog + max_per_run - 1) // max_per_run
-                if max_per_run is not None
-                else int(backlog > 0)
-            ),
+            "estimated_capped_runs": estimated_runs,
         }
         if scan.scan_failures:
             stats_logger_manager.instance.gauge(
@@ -373,6 +401,9 @@ def _purge_impl(
         stats_logger_manager.instance.gauge(
             f"{_METRIC_PREFIX}.scan_failures", scan.scan_failures
         )
+    if scan.commit_uncertain:
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.commit_uncertain")
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.failed")
     _report_total_outage(every_root_failed)
     stats: dict[str, Any] = {
         "purged": scan.purged,
@@ -380,20 +411,20 @@ def _purge_impl(
         "blocked_by_reference": scan.blocked,
         "unsupported_models": scan.unsupported_models,
         "scan_failures": scan.scan_failures,
+        "commit_uncertain": scan.commit_uncertain,
     }
     _add_purge_cap_stats(stats, cutoff, scan, max_per_run)
     logger.info("deletion_retention: %s", stats)
     return stats
 
 
-def _purge_model(
+def _purge_model(  # noqa: C901
     model: type[SoftDeleteMixin],
     cutoff: datetime,
     dry_run: bool,
     max_per_run: int | None = None,
-) -> tuple[int, int, int, int, int]:
-    """Process one model's eligible rows. Returns ``(purged, would_purge,
-    failures, blocked, scan_failures)``. A single entity's blocked/failed
+) -> _PurgeModelResult:
+    """Process one model's eligible rows. A single entity's blocked/failed
     cascade never aborts the batch.
 
     A failure in the eligible-id scan itself -- a column it cannot read, a
@@ -404,6 +435,7 @@ def _purge_model(
     """
     entity_type = _model_table_name(model)
     purged = would = failures = blocked = scan_failures = 0
+    commit_uncertain: bool = False
     try:
         for id_batch in _iter_eligible_ids(model, cutoff, _BATCH):
             if dry_run:
@@ -418,6 +450,15 @@ def _purge_model(
                         purged += 1
                     elif result is not None and result.blocked_reason is not None:
                         blocked += 1
+                except _PurgeCommitUncertainError:
+                    commit_uncertain = True
+                    logger.exception(
+                        "deletion_retention: commit outcome unknown for %s id=%s; "
+                        "deferring remaining roots",
+                        entity_type,
+                        entity_id,
+                    )
+                    break
                 except Exception:  # pylint: disable=broad-except
                     db.session.rollback()  # pylint: disable=consider-using-transaction
                     failures += 1
@@ -426,13 +467,15 @@ def _purge_model(
                         entity_type,
                         entity_id,
                     )
-            if max_per_run is not None and purged >= max_per_run:
+            if commit_uncertain or (max_per_run is not None and purged >= max_per_run):
                 break
     except Exception:  # pylint: disable=broad-except
         db.session.rollback()  # pylint: disable=consider-using-transaction
         scan_failures = 1
         logger.exception("deletion_retention: scan failed for %s", entity_type)
-    return purged, would, failures, blocked, scan_failures
+    return _PurgeModelResult(
+        purged, would, failures, blocked, scan_failures, commit_uncertain
+    )
 
 
 def _finalize_blocked(record_id: UUID | None, blocker: BlockerReason) -> None:
@@ -445,6 +488,21 @@ def _finalize_blocked(record_id: UUID | None, blocker: BlockerReason) -> None:
     elif disposition == "fallback":
         stats_logger_manager.instance.incr(
             f"{_METRIC_PREFIX}.blocked_audit_dedupe_fallback"
+        )
+
+
+def _confirm_committed_purge(record_id: UUID | None, result: CascadeResult) -> None:
+    """Keep a committed root counted even if audit finalization fails."""
+    try:
+        audit.confirm(
+            record_id,
+            affected_referrers=result.dangling_chart_uuids,
+            removed_dashboard_slices=result.removed_dashboard_slices,
+        )
+    except Exception:  # pylint: disable=broad-except
+        # The audit remains pending for its normal reconciliation path.
+        logger.exception(
+            "deletion_retention: audit finalization failed after committed purge"
         )
 
 
@@ -509,19 +567,27 @@ def _purge_one(
         # pending association statements during flush/commit, so the
         # block's exit-time trim must run first or a session carrying
         # versioned state would write the purge-queued shadows anyway.
-        # Commit/rollback are managed manually so audit.fail() can
-        # record the outcome after the purge transaction resolves.
-        db.session.commit()  # pylint: disable=consider-using-transaction
+        # Commit/rollback are managed manually so audit.fail() can record a
+        # definitive pre-commit failure after the purge transaction resolves.
     except Exception:
         db.session.rollback()  # pylint: disable=consider-using-transaction
         audit.fail(record_id)
         raise
+    try:
+        db.session.commit()  # pylint: disable=consider-using-transaction
+    except Exception as exc:
+        # A lost acknowledgement can follow a successful commit. Keep the
+        # audit pending for reconciliation and stop this invocation rather
+        # than treating the root as failed and spending its cap slot again.
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except Exception:  # pylint: disable=broad-except
+            logger.exception(
+                "deletion_retention: rollback after uncertain commit failed"
+            )
+        raise _PurgeCommitUncertainError("root purge commit outcome unknown") from exc
     if result.purged:
-        audit.confirm(
-            record_id,
-            affected_referrers=result.dangling_chart_uuids,
-            removed_dashboard_slices=result.removed_dashboard_slices,
-        )
+        _confirm_committed_purge(record_id, result)
     elif result.blocker is not None:
         _finalize_blocked(record_id, result.blocker)
     else:

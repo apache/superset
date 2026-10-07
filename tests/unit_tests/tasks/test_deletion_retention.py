@@ -231,7 +231,9 @@ def test_clock_uses_now_not_utcnow() -> None:
     with (
         patch.object(mod, "datetime") as clock,
         patch.object(mod, "_soft_delete_models", return_value=[Slice]),
-        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0, 0)) as purge,
+        patch.object(
+            mod, "_purge_model", return_value=mod._PurgeModelResult(0, 0, 0, 0, 0)
+        ) as purge,
         patch.object(mod.audit, "reconcile_pending"),
     ):
         clock.now.return_value = now
@@ -357,12 +359,17 @@ def test_scan_failure_keeps_the_counts_earned_before_it(app_context: None) -> No
         patch.object(mod, "_iter_eligible_ids", side_effect=pages),
         patch.object(mod, "_purge_one", return_value=purged_result),
     ):
-        purged, would, failures, blocked, scan_failures = mod._purge_model(
+        counts: mod._PurgeModelResult = mod._purge_model(
             Slice, datetime.now(), dry_run=False
         )
 
-    assert (purged, would, failures, blocked) == (2, 0, 0, 0)
-    assert scan_failures == 1
+    assert (counts.purged, counts.would_purge, counts.failures, counts.blocked) == (
+        2,
+        0,
+        0,
+        0,
+    )
+    assert counts.scan_failures == 1
 
 
 def test_every_root_failing_reports_the_pass_as_failed(
@@ -379,8 +386,8 @@ def test_every_root_failing_reports_the_pass_as_failed(
 
     monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", False)
 
-    def every_scan_fails(*args: Any, **kwargs: Any) -> tuple[int, int, int, int, int]:
-        return (0, 0, 0, 0, 1)
+    def every_scan_fails(*args: Any, **kwargs: Any) -> task._PurgeModelResult:
+        return task._PurgeModelResult(0, 0, 0, 0, 1)
 
     counter: MagicMock
     with (
@@ -432,7 +439,9 @@ def test_root_without_a_table_name_does_not_abort_the_run(
 
     counter: MagicMock
     with (
-        patch.object(task, "_purge_model", return_value=(1, 0, 0, 0, 0)),
+        patch.object(
+            task, "_purge_model", return_value=task._PurgeModelResult(1, 0, 0, 0, 0)
+        ),
         patch.object(task.audit, "reconcile_pending"),
         patch.object(task, "resolve_retention_window", return_value=30),
         patch.object(
@@ -486,7 +495,11 @@ def test_unsupported_model_does_not_prevent_supported_models_from_purging(
         patch.object(
             task,
             "_purge_model",
-            return_value=(0, 1, 0, 0, 0) if dry_run else (1, 0, 0, 0, 0),
+            return_value=(
+                task._PurgeModelResult(0, 1, 0, 0, 0)
+                if dry_run
+                else task._PurgeModelResult(1, 0, 0, 0, 0)
+            ),
         ) as purge,
         patch.object(task.audit, "reconcile_pending"),
         patch.object(task, "resolve_retention_window", return_value=30),
@@ -604,11 +617,160 @@ def test_purge_model_counts_only_committed_deletions(app_context: None) -> None:
         patch.object(mod, "_iter_eligible_ids", return_value=[[1]]),
         patch.object(mod, "_purge_one", return_value=lost_race),
     ):
-        result: tuple[int, int, int, int, int] = mod._purge_model(
+        result: mod._PurgeModelResult = mod._purge_model(
             Slice, datetime.now(), dry_run=False
         )
 
-    assert result == (0, 0, 0, 0, 0)
+    assert result == mod._PurgeModelResult(0, 0, 0, 0, 0)
+
+
+def test_purge_model_returns_named_counts(app_context: None) -> None:
+    """Callers can read each purge count without depending on tuple order."""
+    import superset.tasks.deletion_retention as task
+    from superset.models.slice import Slice
+
+    with patch.object(task, "_iter_eligible_ids", return_value=[]):
+        counts: task._PurgeModelResult = task._purge_model(
+            Slice, datetime.now(), dry_run=False
+        )
+
+    assert counts.purged == 0
+    assert counts.would_purge == 0
+    assert counts.failures == 0
+    assert counts.blocked == 0
+    assert counts.scan_failures == 0
+
+
+def test_uncertain_purge_commit_preserves_pending_audit(app_context: None) -> None:
+    """A lost commit acknowledgement cannot be recorded as a failed purge."""
+    import superset.tasks.deletion_retention as task
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.slice import Slice
+
+    entity: MagicMock = MagicMock(id=1)
+    result: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="uncertain"
+    )
+    audit_fail: MagicMock
+    audit_confirm: MagicMock
+    with (
+        patch.object(task, "skip_visibility_filter"),
+        patch.object(task, "entity_uuid", return_value="uuid-1"),
+        patch.object(task, "dashboard_slice_count", return_value=0),
+        patch.object(task, "suppress_purge_association_versions"),
+        patch.object(task, "cascade_hard_delete", return_value=result),
+        patch.object(task.db, "session") as session,
+        patch.object(task.audit, "write_ahead", return_value=uuid4()),
+        patch.object(task.audit, "fail") as audit_fail,
+        patch.object(task.audit, "confirm") as audit_confirm,
+    ):
+        session.get.return_value = entity
+        session.commit.side_effect = RuntimeError("acknowledgement lost")
+        with pytest.raises(RuntimeError, match="commit outcome"):
+            task._purge_one(Slice, 1, datetime.now())
+
+    audit_fail.assert_not_called()
+    audit_confirm.assert_not_called()
+
+
+def test_uncertain_purge_commit_stops_other_roots_and_reserves_cap(
+    app_context: None,
+) -> None:
+    """A possible committed root spends budget and defers the invocation."""
+    import superset.tasks.deletion_retention as task
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    confirmed: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="confirmed"
+    )
+    purge_one: MagicMock
+    count_eligible: MagicMock
+    with (
+        patch.object(task, "_ordered_purge_models", return_value=[Slice, Dashboard]),
+        patch.object(task, "_iter_eligible_ids", return_value=[[1, 2]]),
+        patch.object(
+            task,
+            "_purge_one",
+            side_effect=[
+                confirmed,
+                task._PurgeCommitUncertainError("commit outcome unknown"),
+            ],
+        ) as purge_one,
+        patch.object(task, "_count_eligible") as count_eligible,
+        patch.object(task.audit, "reconcile_pending"),
+    ):
+        stats: dict[str, Any] = task._purge_impl(30, False, max_per_run=2)
+
+    assert stats["purged"] == {"slices": 1}
+    assert stats["commit_uncertain"] is True
+    assert stats["cap_reached"] is True
+    assert stats["remaining_eligible"] is None
+    assert stats["remaining_count_complete"] is False
+    assert [entry.args[1] for entry in purge_one.call_args_list] == [1, 2]
+    count_eligible.assert_not_called()
+
+
+def test_post_commit_audit_exception_still_spends_cap(app_context: None) -> None:
+    """A committed deletion retains its cap slot if audit finalization raises."""
+    import superset.tasks.deletion_retention as task
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.slice import Slice
+
+    entity: MagicMock = MagicMock(id=1)
+    result: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="committed"
+    )
+    cascade: MagicMock
+    audit_fail: MagicMock
+    with (
+        patch.object(task, "_iter_eligible_ids", return_value=[[1, 2]]),
+        patch.object(task, "skip_visibility_filter"),
+        patch.object(task, "entity_uuid", return_value="uuid-1"),
+        patch.object(task, "dashboard_slice_count", return_value=0),
+        patch.object(task, "suppress_purge_association_versions"),
+        patch.object(task, "cascade_hard_delete", return_value=result) as cascade,
+        patch.object(task.db, "session") as session,
+        patch.object(task.audit, "write_ahead", return_value=uuid4()),
+        patch.object(task.audit, "confirm", side_effect=RuntimeError("audit offline")),
+        patch.object(task.audit, "fail") as audit_fail,
+    ):
+        session.get.return_value = entity
+        counts: task._PurgeModelResult = task._purge_model(
+            Slice, datetime.now(), dry_run=False, max_per_run=1
+        )
+
+    assert counts.purged == 1
+    assert counts.failures == 0
+    assert cascade.call_count == 1
+    session.commit.assert_called_once()
+    audit_fail.assert_not_called()
+
+
+def test_dry_run_backlog_is_incomplete_after_scan_failure(app_context: None) -> None:
+    """A partial model scan cannot yield a definitive dry-run estimate."""
+    import superset.tasks.deletion_retention as task
+    from superset.models.slice import Slice
+
+    scan: task._PurgeScan = task._PurgeScan(
+        purged={},
+        would_purge={"slices": 2},
+        unsupported_models={},
+        failures=0,
+        blocked=0,
+        remaining_budget=3,
+        supported_models=[Slice],
+        scan_failures=1,
+        attempted=1,
+    )
+    with patch.object(task, "_scan_purge_models", return_value=scan):
+        stats: dict[str, Any] = task._purge_impl(30, True, max_per_run=3)
+
+    assert stats["would_purge"] == {"slices": 2}
+    assert stats["eligible_backlog"] is None
+    assert stats["estimated_capped_runs"] is None
+    assert stats["backlog_count_complete"] is False
 
 
 def test_scheduled_purge_fails_closed_when_write_ahead_fails(
@@ -630,14 +792,13 @@ def test_scheduled_purge_fails_closed_when_write_ahead_fails(
         patch.object(mod.audit, "write_ahead", return_value=None),
     ):
         session.get.return_value = entity
-        result: tuple[int, int, int, int, int] = mod._purge_model(
+        result: mod._PurgeModelResult = mod._purge_model(
             Slice, datetime.now(), dry_run=False
         )
 
     cascade.assert_not_called()
-    purged, would, failures, blocked, _ = result
-    assert (purged, would, blocked) == (0, 0, 0)
-    assert failures == 1
+    assert (result.purged, result.would_purge, result.blocked) == (0, 0, 0)
+    assert result.failures == 1
 
 
 @pytest.mark.parametrize("days", [-1, -2])
@@ -654,7 +815,9 @@ def test_immediate_cutoff_and_invalid_skip(days: int) -> None:
     with (
         patch.object(mod, "datetime") as clock,
         patch.object(mod, "_soft_delete_models", return_value=[Slice]) as models,
-        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0, 0)) as purge,
+        patch.object(
+            mod, "_purge_model", return_value=mod._PurgeModelResult(0, 0, 0, 0, 0)
+        ) as purge,
         patch.object(mod.audit, "reconcile_pending") as reconcile,
     ):
         clock.now.return_value = now
@@ -688,7 +851,9 @@ def test_standalone_window_bounds_reach_safe_purge_cutoff(
         ),
         patch.object(mod, "datetime") as clock,
         patch.object(mod, "_soft_delete_models", return_value=[Slice]),
-        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0, 0)) as purge,
+        patch.object(
+            mod, "_purge_model", return_value=mod._PurgeModelResult(0, 0, 0, 0, 0)
+        ) as purge,
         patch.object(mod.audit, "reconcile_pending"),
     ):
         clock.now.return_value = now
@@ -721,11 +886,11 @@ def test_purge_cap_counts_committed_roots_across_batches(app_context: None) -> N
             task, "_purge_one", side_effect=[not_purged, purged, purged]
         ) as purge_one,
     ):
-        result: tuple[int, int, int, int, int] = task._purge_model(
+        result: task._PurgeModelResult = task._purge_model(
             Slice, datetime.now(), dry_run=False, max_per_run=2
         )
 
-    assert result == (2, 0, 0, 0, 0)
+    assert result == task._PurgeModelResult(2, 0, 0, 0, 0)
     assert [call.args[1] for call in purge_one.call_args_list] == [1, 2, 3]
     scan.assert_called_once()
 
@@ -761,9 +926,9 @@ def test_purge_budget_spans_models_and_runs(app_context: None) -> None:
             task,
             "_purge_model",
             side_effect=[
-                (2, 0, 0, 0, 0),
-                (0, 0, 0, 0, 0),
-                (1, 0, 0, 0, 0),
+                task._PurgeModelResult(2, 0, 0, 0, 0),
+                task._PurgeModelResult(0, 0, 0, 0, 0),
+                task._PurgeModelResult(1, 0, 0, 0, 0),
             ],
         ) as purge,
         patch.object(task, "_count_eligible", side_effect=[0, 3, 0, 2]),
@@ -836,7 +1001,10 @@ def test_partial_scan_failure_preserves_counts_and_shared_budget(
         patch.object(
             task,
             "_purge_model",
-            side_effect=[(1, 0, 0, 0, 1), (1, 0, 0, 0, 0)],
+            side_effect=[
+                task._PurgeModelResult(1, 0, 0, 0, 1),
+                task._PurgeModelResult(1, 0, 0, 0, 0),
+            ],
         ) as purge,
         patch.object(task.stats_logger_manager.instance, "incr"),
     ):

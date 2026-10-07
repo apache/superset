@@ -679,6 +679,54 @@ def test_prune_retry_reuses_the_same_transaction_budget(stats: MagicMock) -> Non
     stats.incr.assert_called_once_with("superset.versioning.retention.retried")
 
 
+def test_prune_does_not_retry_an_uncertain_commit(stats: MagicMock) -> None:
+    """A lost commit acknowledgement must not spend another prune window."""
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[],
+            child=[],
+            m2m=None,
+            transaction=sa.table("version_transaction", sa.column("id")),
+        )
+    )
+    window: version_history_retention._PruneWindow = (
+        version_history_retention._PruneWindow(
+            prunable=[1], candidate_count=1, max_candidate_id=1
+        )
+    )
+    engine: MagicMock = MagicMock()
+    engine_connection: MagicMock = engine.connect.return_value
+    connection: MagicMock = (
+        engine_connection.execution_options.return_value.__enter__.return_value
+    )
+    transaction: MagicMock = connection.begin.return_value
+    commit_error: OperationalError = OperationalError(
+        "COMMIT", {}, Exception("acknowledgement lost")
+    )
+    transaction.commit.side_effect = commit_error
+    mock_db: MagicMock
+    sleep: MagicMock
+    with (
+        patch.object(version_history_retention, "db") as mock_db,
+        patch.object(
+            version_history_retention, "_resolve_prune_window", return_value=window
+        ),
+        patch.object(
+            version_history_retention, "_delete_for_transactions", return_value=0
+        ),
+        patch.object(version_history_retention.time, "sleep") as sleep,
+    ):
+        mock_db.engine = engine
+        with pytest.raises(RuntimeError, match="commit outcome"):
+            version_history_retention._run_pass_with_retry(
+                datetime(2026, 1, 1), tables, after_id=0, max_prune=1
+            )
+
+    assert engine.connect.call_count == 1
+    sleep.assert_not_called()
+    stats.incr.assert_not_called()
+
+
 def test_scheduled_prune_rejects_invalid_cap_before_work(stats: MagicMock) -> None:
     """A malformed scheduled budget cannot enter the prune implementation."""
     app: Flask = Flask(__name__)
