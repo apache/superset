@@ -43,6 +43,9 @@ from superset.semantic_layers.metadata_binding import (
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.utils import json
+from tests.unit_tests.semantic_layers.metadata_binding_test import (
+    mock_metadata_revalidation,
+)
 from tests.unit_tests.semantic_layers.metadata_contract_test import (
     OptedInLayer,
     SnapshotView,
@@ -124,9 +127,8 @@ def test_column_values_refresh_rotates_cache_with_stable_view_identity(
         "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
         return_value=backend,
     )
-    session: Mock = mocker.patch("superset.semantic_layers.metadata_binding.Session")
-    mocker.patch("superset.semantic_layers.metadata_binding.db")
-    session.return_value.__enter__.return_value.get.return_value = layer
+    database: Mock = mocker.patch("superset.semantic_layers.metadata_binding.db")
+    mock_metadata_revalidation(database, layer)
     mocker.patch(
         "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
     )

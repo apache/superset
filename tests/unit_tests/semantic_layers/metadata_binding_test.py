@@ -21,12 +21,15 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from logging import LogRecord
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
 import pytest
 from flask import Flask, g
+from sqlalchemy.engine import Connection, NestedTransaction
+from sqlalchemy.orm import Session
 from superset_core.semantic_layers.metadata import (
     CatalogSnapshot,
     MetadataRefreshAdapter,
@@ -53,6 +56,25 @@ from tests.unit_tests.semantic_layers.metadata_contract_test import (
     OptedInLayer,
 )
 from tests.unit_tests.semantic_layers.metadata_store_test import Clock, MemoryBackend
+
+
+def mock_metadata_revalidation(database: Mock, layer: SemanticLayer | None) -> Mock:
+    """Model a known read-only READ COMMITTED caller for scope-only tests."""
+    database.session.new = database.session.dirty = database.session.deleted = ()
+    connection: Mock = database.session.connection.return_value
+    connection.info = {"superset.semantic_metadata.transaction_writes": False}
+    connection.get_isolation_level.return_value = "READ COMMITTED"
+    read: Mock = connection.execute.return_value.mappings.return_value.one_or_none
+    read.return_value = (
+        None
+        if layer is None
+        else {
+            "uuid": layer.uuid,
+            "type": layer.type,
+            "configuration": layer.configuration,
+        }
+    )
+    return read
 
 
 def test_multiple_store_calls_share_the_request_deadline(app: Flask) -> None:
@@ -133,7 +155,7 @@ def test_bound_provider_observation_is_stable_only_within_the_operation(
     provider: Mock = Mock(wraps=OptedInLayer)
     provider.from_configuration.side_effect = lambda configuration: OptedInLayer()
     provider.supports_metadata_refresh.return_value = True
-    session: Mock
+    database: Mock
     with (
         patch.dict(
             app.config,
@@ -152,10 +174,9 @@ def test_bound_provider_observation_is_stable_only_within_the_operation(
             "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
             return_value=memory,
         ),
-        patch("superset.semantic_layers.metadata_binding.Session") as session,
-        patch("superset.semantic_layers.metadata_binding.db"),
+        patch("superset.semantic_layers.metadata_binding.db") as database,
     ):
-        session.return_value.__enter__.return_value.get.return_value = layer
+        mock_metadata_revalidation(database, layer)
         with metadata_operation():
             bound_adapter: MetadataRefreshAdapter | None = layer_implementation(
                 layer
@@ -201,7 +222,7 @@ def test_publication_rechecks_connection_scope(
         configuration='{"changed":true}' if change == "config" else "{}",
     )
     memory: MemoryBackend = MemoryBackend()
-    session: Mock
+    database: Mock
     with (
         patch.dict(
             app.config,
@@ -220,18 +241,17 @@ def test_publication_rechecks_connection_scope(
             "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
             return_value=memory,
         ),
-        patch("superset.semantic_layers.metadata_binding.Session") as session,
-        patch("superset.semantic_layers.metadata_binding.db"),
+        patch("superset.semantic_layers.metadata_binding.db") as database,
         metadata_operation(),
     ):
-        session.return_value.__enter__.return_value.get.return_value = (
-            None if change == "removed" else fresh
+        read: Mock = mock_metadata_revalidation(
+            database, None if change == "removed" else fresh
         )
         if change == "database":
             from sqlalchemy.exc import OperationalError
 
-            session.return_value.__enter__.return_value.get.side_effect = (
-                OperationalError("private SQL", {}, Exception("private driver"))
+            read.side_effect = OperationalError(
+                "private SQL", {}, Exception("private driver")
             )
         store_deadline: float = operation_deadline()
         store: ScopedMetadataStore = connection_store(layer)
@@ -357,11 +377,12 @@ def test_opted_in_providers_must_supply_adapter_and_view_token(app: Flask) -> No
                 _rejected_token: str | None = view.metadata_cache_token
 
 
-def test_revalidation_uses_a_fresh_database_read(app: Flask) -> None:
+def test_revalidation_uses_a_fresh_database_read(app: Flask, tmp_path: Path) -> None:
     from sqlalchemy import create_engine
-    from sqlalchemy.engine import Connection, Engine
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.orm import Session
 
-    engine: Engine = create_engine("sqlite://")
+    engine: Engine = create_engine(f"sqlite:///{tmp_path / 'fresh.db'}")
     layer: SemanticLayer = SemanticLayer(
         uuid=uuid4(), name="fixture", type="fixture", configuration="{}"
     )
@@ -380,6 +401,7 @@ def test_revalidation_uses_a_fresh_database_read(app: Flask) -> None:
     memory: MemoryBackend = MemoryBackend()
     try:
         database: Mock
+        caller: Session
         with (
             patch.dict(
                 app.config,
@@ -399,9 +421,13 @@ def test_revalidation_uses_a_fresh_database_read(app: Flask) -> None:
                 return_value=memory,
             ),
             patch("superset.semantic_layers.metadata_binding.db") as database,
+            Session(bind=engine) as caller,
             metadata_operation(),
         ):
-            database.session.get_bind.return_value = engine
+            database.session = caller
+            live: Connection = caller.connection()
+            # SQLite exercises ownership/read behavior; READ COMMITTED is modeled.
+            live.get_isolation_level = lambda: "READ COMMITTED"
             store_deadline: float = operation_deadline()
             store: ScopedMetadataStore = connection_store(layer)
             old: CatalogSnapshot = store.read(
@@ -650,7 +676,7 @@ def test_host_snapshot_lifetime_controls_catalog_and_compatibility_expiry(
         if lifetime is None
         else {"SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS": lifetime}
     )
-    session: Mock
+    database: Mock
     with (
         patch.dict(
             app.config,
@@ -670,15 +696,14 @@ def test_host_snapshot_lifetime_controls_catalog_and_compatibility_expiry(
             "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
             return_value=memory,
         ),
-        patch("superset.semantic_layers.metadata_binding.Session") as session,
-        patch("superset.semantic_layers.metadata_binding.db"),
+        patch("superset.semantic_layers.metadata_binding.db") as database,
         metadata_operation(),
     ):
         assert (
             app.config["SEMANTIC_LAYER_METADATA_SNAPSHOT_TTL_SECONDS"]
             == expected_lifetime
         )
-        session.return_value.__enter__.return_value.get.return_value = layer
+        mock_metadata_revalidation(database, layer)
         store: ScopedMetadataStore = connection_store(layer)
         deadline: float = operation_deadline()
         first: CatalogSnapshot = store.read(lambda budget: "[]", deadline=deadline)
@@ -1052,3 +1077,209 @@ def test_bound_provider_constructor_failure_is_sanitized(
     assert "private" not in str(error.value)
     assert error.value.__suppress_context__
     store.assert_not_called()
+
+
+def _prepare_caller_transaction(
+    caller: Session, layer: SemanticLayer, state: str
+) -> Connection:
+    """Exercise SQLAlchemy writes that survive loss of ORM dirty history."""
+    from sqlalchemy import func, literal_column, select
+
+    connection: Connection = caller.connection()
+    savepoint: NestedTransaction
+    if state in {"flushed", "savepoint"}:
+        with connection.begin_nested() as savepoint:
+            connection.execute(
+                SemanticLayer.__table__.update().values(configuration='{"local":true}')
+            )
+            if state == "savepoint":
+                savepoint.rollback()
+        layer.configuration = '{"local":true}' if state == "flushed" else "{}"
+    if state == "orm_flushed":
+        loaded: SemanticLayer | None = caller.get(SemanticLayer, layer.uuid)
+        assert loaded is not None
+        loaded.configuration = layer.configuration = '{"local":true}'
+        with patch("superset.security_manager.semantic_layer_before_update"):
+            caller.flush()
+        assert not caller.dirty
+    if state == "untracked":
+        connection.info.clear()
+        return connection
+    if state == "new_transaction":
+        connection.execute(SemanticLayer.__table__.update().values(name="changed"))
+        caller.rollback()
+        connection = caller.connection()
+    if state == "custom_operator":
+        connection.execute(select(SemanticLayer.name.op("||")("suffix")))
+    if state in {"function", "literal"}:
+        connection.execute(
+            select(
+                func.count() if state == "function" else literal_column("1")
+            ).select_from(SemanticLayer)
+        )
+    if state == "raw":
+        connection.exec_driver_sql(
+            "UPDATE semantic_layers SET configuration = configuration"
+        )
+    if state == "pending":
+        caller.add(
+            SemanticLayer(
+                uuid=uuid4(),
+                name="uncommitted",
+                type="fixture",
+                configuration="{}",
+            )
+        )
+    return connection
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        "clean",
+        "repeatable",
+        "sqlite",
+        "unknown",
+        "unsupported",
+        "flushed",
+        "orm_flushed",
+        "raw",
+        "pending",
+        "savepoint",
+        "untracked",
+        "new_transaction",
+        "function",
+        "literal",
+        "custom_operator",
+    ],
+)
+def test_publication_reuses_clean_caller_transaction(
+    app: Flask, state: str, tmp_path: Path
+) -> None:
+    """A one-slot pool needs no spare checkout; uncertain writes never publish."""
+    from sqlalchemy import create_engine, select
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.orm import Session
+    from sqlalchemy.pool import QueuePool
+
+    engine: Engine = create_engine(
+        f"sqlite:///{tmp_path / 'metadata.db'}",
+        poolclass=QueuePool,
+        pool_size=1 if state == "clean" else 2,
+        max_overflow=0,
+        pool_timeout=0.05,
+    )
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), name="fixture", type="fixture", configuration="{}"
+    )
+    SemanticLayer.__table__.create(engine)
+    seed: Connection
+    with engine.begin() as seed:
+        seed.execute(
+            SemanticLayer.__table__.insert().values(
+                uuid=layer.uuid,
+                name=layer.name,
+                type=layer.type,
+                configuration=layer.configuration,
+                configuration_version=1,
+            )
+        )
+    memory: MemoryBackend = MemoryBackend()
+    database: Mock
+    caller: Session
+    try:
+        with (
+            patch.dict(
+                app.config,
+                {
+                    "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+                    "SEMANTIC_LAYER_METADATA_NAMESPACE": "tenant",
+                    "DISTRIBUTED_COORDINATION_CONFIG": {"CACHE_TYPE": "RedisCache"},
+                },
+            ),
+            patch.dict(registry, {"fixture": OptedInLayer}),
+            patch(
+                "superset.semantic_layers.metadata_binding.is_feature_enabled",
+                return_value=True,
+            ),
+            patch(
+                "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
+                return_value=memory,
+            ),
+            patch("superset.semantic_layers.metadata_binding.db") as database,
+            Session(bind=engine, autoflush=False) as caller,
+            metadata_operation(),
+        ):
+            database.session = caller
+            connection: Connection = _prepare_caller_transaction(caller, layer, state)
+            # SQLite does not implement READ COMMITTED. This models the live
+            # isolation contract while exercising real pool/transaction ownership.
+            isolation: str | None = (
+                "REPEATABLE READ"
+                if state == "repeatable"
+                else None
+                if state == "unknown"
+                else "READ COMMITTED"
+            )
+            if state == "sqlite":
+                isolation = connection.get_isolation_level()
+                assert isolation == "SERIALIZABLE"
+            isolation_error: Exception | None = (
+                NotImplementedError() if state == "unsupported" else None
+            )
+            with patch.object(
+                connection,
+                "get_isolation_level",
+                return_value=isolation,
+                side_effect=isolation_error,
+            ):
+                store: ScopedMetadataStore = connection_store(layer)
+                deadline: float = operation_deadline()
+                if state in {"clean", "new_transaction"}:
+                    assert (
+                        store.read(lambda budget: "[]", deadline=deadline).payload
+                        == "[]"
+                    )
+                else:
+                    with pytest.raises(MetadataRefreshError, match="unavailable"):
+                        store.read(lambda budget: "[]", deadline=deadline)
+                    assert store.peek() is None
+            assert connection.in_transaction()
+            assert not connection.closed
+            assert caller.connection() is connection
+            assert engine.pool.checkedout() == 1
+            assert connection.execute(
+                select(SemanticLayer.configuration)
+            ).scalar_one() == (
+                '{"local":true}' if state in {"flushed", "orm_flushed"} else "{}"
+            )
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_transaction_tracking_does_not_call_dynamic_feature_flags(
+    app: Flask, enabled: bool
+) -> None:
+    """DB event handlers must not recurse through DB-backed flag callbacks."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.engine import Engine
+
+    engine: Engine = create_engine("sqlite://")
+    connection: Connection
+    try:
+        with (
+            patch.dict(
+                app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": enabled}
+            ),
+            patch(
+                "superset.semantic_layers.metadata_binding.is_feature_enabled",
+                side_effect=AssertionError("recursive flag lookup"),
+            ),
+            engine.begin() as connection,
+        ):
+            assert connection.info.get(
+                "superset.semantic_metadata.transaction_writes"
+            ) is (False if enabled else None)
+    finally:
+        engine.dispose()
