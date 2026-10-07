@@ -44,12 +44,19 @@ def rename(
     if not columns:
         return df
 
+    # Apply the mapping to an empty slice to learn the resulting labels without
+    # touching the data. What makes a mapping invalid is introducing a duplicate
+    # label, which is not the same as a target label merely being present: in
+    # {"a": "b", "b": "d"} the label "b" is vacated by the same mapping, so the
+    # result is unique. Comparing counts rather than asking whether the result
+    # holds any duplicate leaves a frame that arrives with duplicate labels
+    # renameable, as long as the rename does not add to them.
     try:
-        _rename_level = df.columns.get_level_values(level=level)
+        renamed_columns = df.iloc[:0].rename(columns=columns, level=level).columns
     except (IndexError, KeyError) as err:
         raise InvalidPostProcessingError from err
 
-    if any(new_name in _rename_level for new_name in columns.values()):
+    if renamed_columns.duplicated().sum() > df.columns.duplicated().sum():
         raise InvalidPostProcessingError(_("Label already exists"))
 
     if inplace:
