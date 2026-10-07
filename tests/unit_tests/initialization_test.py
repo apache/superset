@@ -271,6 +271,52 @@ class TestSupersetAppInitializer:
             if saved is not None:
                 sys.modules["superset.mcp_service.app"] = saved
 
+    @patch("superset.core.mcp.core_mcp_injection.logger")
+    def test_skipped_decoration_warns_once(self, mock_logger):
+        """A skipped @tool/@prompt registration is logged at WARNING, once per
+        registration, so a process that should serve MCP but has host tools
+        disabled does not silently lose extension tools/prompts."""
+        from superset.core.mcp import core_mcp_injection
+
+        saved = sys.modules.pop("superset.mcp_service.app", None)
+        try:
+            with patch.object(core_mcp_injection, "_skipped_registrations", set()):
+
+                def dummy() -> int:
+                    return 1
+
+                core_mcp_injection.create_tool_decorator(dummy)
+                core_mcp_injection.create_tool_decorator(dummy)
+                core_mcp_injection.create_prompt_decorator(name="my_prompt")(dummy)
+
+            assert "superset.mcp_service.app" not in sys.modules
+            # One warning for the tool (deduplicated) and one for the prompt.
+            assert mock_logger.warning.call_count == 2
+            logged = [c.args[1:3] for c in mock_logger.warning.call_args_list]
+            assert logged == [("tool", "dummy"), ("prompt", "my_prompt")]
+        finally:
+            if saved is not None:
+                sys.modules["superset.mcp_service.app"] = saved
+
+    @patch("superset.core.mcp.core_mcp_injection.logger")
+    def test_host_tools_quietly_skipped_without_fastmcp(self, mock_logger):
+        """Without the optional fastmcp dependency, host-tool registration is a
+        quiet skip (no ERROR log, no service app import), like the decorators."""
+        from superset.core.mcp import core_mcp_injection
+
+        saved = sys.modules.pop("superset.mcp_service.app", None)
+        try:
+            with patch.object(
+                core_mcp_injection, "_fastmcp_available", return_value=False
+            ):
+                core_mcp_injection.initialize_core_mcp_dependencies()
+
+            assert "superset.mcp_service.app" not in sys.modules
+            mock_logger.error.assert_not_called()
+        finally:
+            if saved is not None:
+                sys.modules["superset.mcp_service.app"] = saved
+
     def test_database_uri_lazy_property(self):
         """Test database_uri property uses lazy initialization with smart caching."""
         # Setup

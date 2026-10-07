@@ -57,6 +57,44 @@ def _mcp_host_tools_loaded() -> bool:
     return _MCP_SERVICE_APP_MODULE in sys.modules
 
 
+# Registrations already reported as skipped, so each one is logged only once.
+_skipped_registrations: set[str] = set()
+
+
+def _warn_skipped_registration(kind: str, base_id: str) -> None:
+    """
+    Log (once per registration) that an ``@tool``/``@prompt`` decoration was
+    skipped because the MCP service app is not loaded in this process.
+
+    This is the intended behavior in processes that never serve MCP, but if
+    ``CORE_MCP_HOST_TOOLS_ENABLED = False`` reaches a process that does serve
+    MCP, the registration would otherwise vanish without any trace.
+    """
+    registration_id, _ = _get_prefixed_id_with_context(base_id)
+    key = f"{kind}:{registration_id}"
+    if key in _skipped_registrations:
+        return
+    _skipped_registrations.add(key)
+    logger.warning(
+        "Skipping MCP %s registration for %s: the MCP service app is not loaded "
+        "in this process (CORE_MCP_HOST_TOOLS_ENABLED is False). This is expected "
+        "in processes that do not serve MCP; if this process serves MCP, enable "
+        "CORE_MCP_HOST_TOOLS_ENABLED so the %s is registered.",
+        kind,
+        registration_id,
+        kind,
+    )
+
+
+def _fastmcp_available() -> bool:
+    """Whether the optional ``fastmcp`` dependency is installed."""
+    try:
+        from fastmcp.tools import Tool  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
 def _strip_schema_titles(value: Any) -> Any:
     """Remove generated JSON Schema titles while preserving useful metadata."""
     if isinstance(value, list):
@@ -201,6 +239,7 @@ def create_tool_decorator(  # noqa: C901
         # process, so applying @tool never imports the heavy host-tool stack
         # (see the module-level note on _MCP_SERVICE_APP_MODULE).
         if not _mcp_host_tools_loaded():
+            _warn_skipped_registration("tool", name or func.__name__)
             return func
 
         try:
@@ -330,6 +369,7 @@ def create_prompt_decorator(
         # process, so applying @prompt never imports the heavy host-tool stack
         # (see the module-level note on _MCP_SERVICE_APP_MODULE).
         if not _mcp_host_tools_loaded():
+            _warn_skipped_registration("prompt", name or func.__name__)
             return func
 
         try:
@@ -418,9 +458,7 @@ def initialize_core_mcp_decorators() -> None:
     """
     import superset_core.mcp.decorators
 
-    try:
-        from fastmcp.tools import Tool  # noqa: F401
-    except ImportError:
+    if not _fastmcp_available():
         logger.info(
             "fastmcp is not installed, skipping MCP initialization. "
             "Install it with: pip install 'apache-superset[fastmcp]'"
@@ -444,7 +482,15 @@ def initialize_core_mcp_host_tools() -> None:
     serve MCP (the web app and the standalone MCP service). Deployments gate it
     off (``CORE_MCP_HOST_TOOLS_ENABLED = False``) for processes that never serve
     MCP, e.g. Celery workers.
+
+    Like ``initialize_core_mcp_decorators``, this is a quiet no-op when the
+    optional ``fastmcp`` dependency is not installed, since the service app
+    cannot be imported without it.
     """
+    if not _fastmcp_available():
+        logger.debug("fastmcp is not installed, skipping MCP host tool registration")
+        return
+
     try:
         # Import MCP service app to register host tools BEFORE extension loading
         # This prevents host tools from being registered during extension context
