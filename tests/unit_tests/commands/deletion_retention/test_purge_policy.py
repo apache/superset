@@ -1717,3 +1717,30 @@ def test_host_policy_without_a_usable_entity_type_is_dropped(
     )
 
     _assert_rejected(model, policy, "declares entity_type", caplog)
+
+
+def test_a_root_with_its_own_delete_listener_can_be_admitted() -> None:
+    """A registered listener must not make a host root unpolicyable.
+
+    Coverage reports the listener responsibility as missing, and the only
+    declaration that answers it is one this package refuses for a host root.
+    Saying the cleanup accounts for it is the way out.
+    """
+    model: type[Any] = _host_root("ownlistener")
+    declaration: DeleteListenerDeclaration = DeleteListenerDeclaration(
+        target=model,
+        responsibility="probe_audit_row",
+        effect=DeleteListenerEffect.PERSISTENT_RECORD,
+        listener=lambda *args, **kwargs: None,
+    )
+    register_delete_listener(declaration)
+    try:
+        refused: PurgeEntityPolicy = _host_policy(model, (_host_edge("ownlistener"),))
+        with _installed(lambda: [refused]):
+            assert model not in purge_policy_registry()
+
+        accounted: PurgeEntityPolicy = replace(refused, accounts_for_own_listeners=True)
+        with _installed(lambda: [accounted]):
+            assert get_purge_policy(model) is accounted
+    finally:
+        remove_delete_listener(declaration)

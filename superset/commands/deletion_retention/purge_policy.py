@@ -197,6 +197,14 @@ class PurgeEntityPolicy:
     delete_owned_children: PolicyAction
     capture_permission_name: PermissionSnapshot
     cleanup_permission: PermissionCleanup
+    #: Set by a policy that accounts for its own delete-listener
+    #: responsibilities in its own cleanup. The listener effects declared here
+    #: are carried out by actions keyed to this package's entity types, so a
+    #: root outside them cannot declare one -- and without this field a root
+    #: that registers any non-observational delete listener could never have a
+    #: policy admitted at all, since coverage would report the responsibility
+    #: as missing and the only declaration that answers it is refused.
+    accounts_for_own_listeners: bool = False
     #: Set by a policy whose ``delete_owned_children`` walks the whole owned
     #: sub-tree itself. The shared cleanup issues one statement per declared
     #: edge, so it reaches one level and builds each predicate by traversing
@@ -1275,16 +1283,15 @@ def _resolved_registry() -> _ResolvedRegistry:
         # built-in one, so hand it the roots this package declares rather than
         # re-entering a resolution that has not finished.
         return _builtin_registry()
-    was_resolving: bool = getattr(_RESOLVING, "active", False)
+    # Not nested: the branch above returns when the marker is already set,
+    # so reaching here means this thread was not resolving.
     _RESOLVING.active = True
     try:
         host_policies: tuple[PurgeEntityPolicy, ...] | None = _host_purge_policies(
             provider
         )
     finally:
-        # Restored rather than cleared, so the invariant holds locally instead
-        # of resting on the early return above being the only nesting path.
-        _RESOLVING.active = was_resolving
+        _RESOLVING.active = False
     if host_policies is None:
         current: _ResolvedRegistry | None = current_app.extensions.get(
             _REGISTRY_EXTENSION_KEY
@@ -1370,13 +1377,22 @@ def _validated_policy(policy: PurgeEntityPolicy) -> PurgeEntityPolicy:
             DependencyClassification.ASSOCIATION,
         }
     )
+    discovered_listeners: frozenset[str] = listener_responsibilities(policy.model)
     coverage: PolicyCoverage = compare_policy(
         discover_dependencies(
             sa.inspect(policy.model), recursive_tables=recursive_tables
         ),
         policy.dependencies,
-        discovered_listeners=listener_responsibilities(policy.model),
-        declared_listeners=policy.listener_responsibilities,
+        discovered_listeners=discovered_listeners,
+        # A policy that accounts for its own listeners answers every
+        # responsibility discovered for its root. Fed as declared rather than
+        # optional because only declared is subtracted from what is missing;
+        # nothing becomes stale, since each added name was discovered.
+        declared_listeners=(
+            policy.listener_responsibilities | discovered_listeners
+            if policy.accounts_for_own_listeners
+            else policy.listener_responsibilities
+        ),
         optional_declared_listeners=policy.optional_listener_responsibilities,
     )
     _validate_executable_declarations(policy)

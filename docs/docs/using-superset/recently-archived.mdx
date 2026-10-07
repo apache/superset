@@ -125,8 +125,8 @@ run. Unsupported models are excluded from `would_purge` and do not count as
 An empty `unsupported_models` map means no registered models were skipped for
 this reason. A root whose eligible-row scan raises — an unreadable column, a
 transient database error — is counted in `scan_failures`, increments
-`deletion_retention.scan_failures.<root>` for that root -- its table name, or
-its class name where reading the table name is what failed and gauges
+`deletion_retention.scan_failures.<root>` for that root (its table name, or
+its class name where reading the table name is what failed), and gauges
 `deletion_retention.scan_failures` for the run, leaving the remaining roots to
 purge normally. Rows that root had already purged before the failure stay in
 its reported counts, since those deletions are committed.
@@ -170,12 +170,17 @@ rows or silently skip cleanup, since neither announces itself:
 - a version target is not root-relative, so cleanup would delete another
   root's history and leave this root's behind -- or the root has no version
   class at all, in which case the cascade returns before reaching the target
-  and the history it names simply survives;
+  and the history it names simply survives -- a root with a versioned child
+  but no version class of its own removes the declaration and clears that
+  history in its own cleanup;
 - it declares a listener effect, whose action decides what to delete from an
-  entity type a host cannot claim and so never runs, or a block, which would
-  run but records a reason code in the purge audit log, whose vocabulary is a
-  closed set. A host refuses a purge by raising `PurgeBlockedError` from its
-  own validator instead, where the code it records is plainly its own;
+  entity type a host cannot claim and so never runs. A root whose own
+  registered listener does that work sets `accounts_for_own_listeners`
+  instead, which is what keeps such a root from being unpolicyable;
+- it declares a block, which would run but records a reason code in the purge
+  audit log, whose vocabulary is a closed set. A host refuses a purge by
+  raising `PurgeBlockedError` from its own validator instead, where the code
+  it records is plainly its own;
 - it declares a table that owns itself, or one reachable only through an
   association, without setting `walks_own_subtree`. Cleanup that issues one
   statement per declared edge reaches one level and resolves each predicate
