@@ -249,10 +249,6 @@ msgid "%(object)s does not exist in this database."
 msgstr ""
 
 #, python-format
-msgid "%(partition)s is hidden from Explore, but no filter is mirrored onto it — queries will scan every partition until a column is mapped."
-msgstr ""
-
-#, python-format
 msgid "%(prefix)s %(title)s"
 msgstr ""
 
@@ -9255,6 +9251,10 @@ msgstr ""
 msgid "No filter"
 msgstr ""
 
+#, python-format
+msgid "No filter is mirrored onto %(partition)s — queries will scan every partition until a column is mapped."
+msgstr ""
+
 msgid "No filter is selected."
 msgstr ""
 
@@ -14260,6 +14260,10 @@ msgstr ""
 
 #, python-format
 msgid "The value transform on %(column)s cannot be saved: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid "The value transform on %(mapped)s is not mirroring filters, so queries will scan every partition."
 msgstr ""
 
 msgid "The values overlap other breakpoint values"

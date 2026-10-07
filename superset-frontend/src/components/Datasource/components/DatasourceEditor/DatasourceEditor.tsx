@@ -1246,7 +1246,13 @@ function DatasourceEditor({
           partitionMappingErrors(datasource, [
             ...databaseColumns,
             ...calculatedColumns,
-          ]).map(issue => issue.message),
+          ])
+            // Only the blocking tier disables Save. The implicit self-mapping
+            // is reported as a warning at the field instead -- blocking it left
+            // a dataset already in that state unsaveable even for a
+            // description-only edit.
+            .filter(issue => issue.blocking !== false)
+            .map(issue => issue.message),
         );
       }
 
@@ -1450,8 +1456,10 @@ function DatasourceEditor({
     setDatabaseColumns(prev => clearMappingTransforms(prev));
     setCalculatedColumns(prev => clearMappingTransforms(prev));
     // The partition column stays designated; only the mapping goes away, which
-    // is the 1g state -- hidden from Explore, nothing mirrored onto it, and the
-    // panel's warning saying so.
+    // is the 1g state -- nothing mirrored onto it, and the panel's warning
+    // saying so. The column's own `filterable`/`groupby` flags are untouched:
+    // designating a partition column has never hidden it from Explore (see
+    // `handlePartitionColumnChange`).
     setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
   }, []);
 
@@ -3115,7 +3123,14 @@ function DatasourceEditor({
         id="table-tabs"
         data-test="edit-dataset-tabs"
         onChange={handleTabSelect}
-        defaultActiveKey={activeTabKey}
+        // Controlled, not `defaultActiveKey`: antd ignores that after mount, so
+        // `handleNavigateToColumn` setting `activeTabKey` moved nothing.
+        // Clicking *Customize the value transform* from the Calculated columns
+        // tab left the owner on that tab while the hidden Columns table's
+        // search and reveal state changed underneath them. `handleTabSelect`
+        // above already writes the state back on a click, so this only adds the
+        // missing direction: state -> tab.
+        activeKey={activeTabKey}
         items={tabItems}
       />
     </DatasourceContainer>

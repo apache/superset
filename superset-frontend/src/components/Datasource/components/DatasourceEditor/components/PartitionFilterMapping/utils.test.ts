@@ -79,7 +79,7 @@ test('there is no mapped column without a partition column', () => {
 });
 
 test('a partition column with no datetime column maps to nothing', () => {
-  // Wireframe 1g: the column is hidden from Explore but nothing mirrors onto it.
+  // Wireframe 1g: a partition column is designated but nothing mirrors onto it.
   const datasource = { main_dttm_col: null, partition_column: 'dt_epoch' };
 
   expect(resolveMappedColumn(datasource)).toBeNull();
@@ -560,7 +560,31 @@ test('a mapped column override that is not on the dataset stops the save', () =>
   expect(issues[0].message).toContain('dropped_col');
 });
 
-test('a column mapped onto itself stops the save', () => {
+test('an explicit self-mapping stops the save', () => {
+  // An override naming the partition column is something the owner asked for
+  // and can take back, so it is blocking -- Tier 1 in
+  // `validate_partition_mapping` too.
+  const issues = partitionMappingErrors(
+    {
+      main_dttm_col: 'event_time',
+      partition_column: 'dt_epoch',
+      partition_mapped_column: 'dt_epoch',
+    },
+    COLUMNS,
+  );
+
+  expect(issues).toHaveLength(1);
+  expect(issues[0].field).toBe('partition_column');
+  expect(issues[0].message).toContain('mapped onto itself');
+  expect(issues[0].blocking).toBe(true);
+});
+
+test('an implicit self-mapping warns but does not stop the save', () => {
+  // No override, and `main_dttm_col` happens to equal the partition column.
+  // Tier 2 in `validate_partition_mapping` on purpose: metadata sync used to
+  // be able to produce this state, and blocking it disabled Save on such a
+  // dataset even for a description-only edit -- exactly the unsaveable dataset
+  // the backend comment says it avoids.
   const issues = partitionMappingErrors(
     {
       main_dttm_col: 'dt_epoch',
@@ -573,6 +597,7 @@ test('a column mapped onto itself stops the save', () => {
   expect(issues).toHaveLength(1);
   expect(issues[0].field).toBe('partition_column');
   expect(issues[0].message).toContain('mapped onto itself');
+  expect(issues[0].blocking).toBe(false);
 });
 
 test('Jinja in the transform stops the save', () => {

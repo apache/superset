@@ -115,6 +115,9 @@ def test_the_mapping_summary_survives_dashboard_payload_pruning(app: Flask) -> N
         # Nothing has probed this transform, which is not the same as its
         # having failed -- see `known_mirror_verdict`.
         "evaluable": None,
+        # Which transform `evaluable` is a verdict about. The dataset editor
+        # applies a stored refusal only while the box still holds this text.
+        "evaluated_transform": "unix_timestamp(:value)",
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",
@@ -314,6 +317,9 @@ def test_the_mapping_summary_still_names_the_columns_when_inactive(
         # Nothing has probed this transform, which is not the same as its
         # having failed -- see `known_mirror_verdict`.
         "evaluable": None,
+        # An inactive mapping has no verdict, so there is no transform for one
+        # to be about -- `None` rather than the stored text.
+        "evaluated_transform": None,
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",

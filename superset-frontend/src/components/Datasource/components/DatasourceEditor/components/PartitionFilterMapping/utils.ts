@@ -230,10 +230,22 @@ export function partitionMappingErrors(
 
   const mappedColumnName = resolveMappedColumn(datasource);
   if (mappedColumnName === partitionColumn) {
-    // No transform check can follow: the transform is a property of the mapped
-    // column, and there is no coherent mapped column to read it from.
+    // Only the *explicit* self-mapping blocks the save, matching
+    // `validate_partition_mapping`: an override naming the partition column is
+    // something the owner asked for and can take back, so it is Tier 1 there.
+    //
+    // The implicit one -- no override, and `main_dttm_col` happens to equal the
+    // partition column -- is Tier 2 on purpose. Blocking it here disabled Save
+    // on a dataset already in that state (metadata sync used to be able to
+    // produce one) even for a description-only edit, which is exactly the
+    // unsaveable dataset the backend comment says it avoids. The owner gets the
+    // same message, as a warning they can save through.
+    //
+    // No transform check can follow either way: the transform is a property of
+    // the mapped column, and there is no coherent mapped column to read it from.
     issues.push({
       field: 'partition_column',
+      blocking: Boolean(datasource.partition_mapped_column),
       message: t(
         'The partition column cannot be mapped onto itself. %(name)s is both the partition column and the mapped column.',
         { name: partitionColumn },

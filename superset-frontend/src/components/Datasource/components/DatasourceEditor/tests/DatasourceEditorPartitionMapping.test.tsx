@@ -392,6 +392,38 @@ test('"Customize the value transform" opens the mapped column\'s editor', async 
   ).toBeInTheDocument();
 });
 
+test('"Customize the value transform" works from the Calculated columns tab', async () => {
+  // Its sibling above clicks from the Columns tab, where the destination is the
+  // tab already showing -- so it could not see that the move never happened.
+  // `handleNavigateToColumn` sets `activeTabKey`, but the tabs only received
+  // `defaultActiveKey`, which antd ignores after mount: clicking the link from
+  // another tab left the owner where they were while the hidden Columns table's
+  // search and reveal state changed underneath them.
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = 'num';
+  props.datasource.partition_mapped_column = 'state';
+  const seeded = props.datasource.columns as EditorColumn[];
+  columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(
+    await screen.findByTestId('collection-tab-Calculated columns'),
+  );
+
+  await userEvent.click(
+    await screen.findByRole('button', {
+      name: 'Customize the value transform →',
+    }),
+  );
+
+  // The tab actually moved, and the transform field came with it.
+  expect(
+    await screen.findByTestId('partition-value-transform'),
+  ).toBeInTheDocument();
+});
+
 test("the mapped column's row is muted in the columns table", async () => {
   // `StyledColumnsTableWrapper` styles `.partition-column-row`, which the
   // editor asks for through `rowClassName`. Without the table applying it the
