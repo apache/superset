@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+jest.mock('remark-gfm', () => () => jest.fn());
+jest.mock('react-ace', () => () => <div data-test="mock-ace-editor" />, {
+  virtual: true,
+});
 import type { CSSProperties } from 'react';
 import { screen, render } from '@superset-ui/core/spec';
 import { Button, DropdownContainer, Icons } from '..';
@@ -155,7 +159,7 @@ test('accepts custom style props', () => {
   render(<DropdownContainer items={generateItems(2)} style={customStyle} />);
 
   const container = screen.getByTestId('container');
-  expect(container).toHaveStyle('background-color: rgb(255, 0, 0)');
+  expect(container).toHaveStyle('background-color: red');
   expect(container).toHaveStyle('padding: 10px');
 });
 
