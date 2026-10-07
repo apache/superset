@@ -222,9 +222,9 @@ def _sync_chart_perms(chart: Any, datasource: Any | None) -> None:
     """
     if datasource is None:
         return
-    chart.perm = datasource.perm
-    chart.catalog_perm = datasource.catalog_perm
-    chart.schema_perm = datasource.schema_perm
+    chart.perm = getattr(datasource, "perm", None)
+    chart.catalog_perm = getattr(datasource, "catalog_perm", None)
+    chart.schema_perm = getattr(datasource, "schema_perm", None)
 
 
 def _verify_child_history_complete(entity: Any, target_tx: int) -> None:

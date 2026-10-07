@@ -35,6 +35,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
 from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.models.sql_lab import Query, SavedQuery
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.versioning.queries import derive_version_uuid
 from superset.versioning.restore import MissingDatasourceError
@@ -126,6 +127,78 @@ def test_restore_refuses_snapshot_of_deleted_semantic_view(
     restored: Slice = capture_session.query(Slice).filter_by(uuid=chart_uuid).one()
     assert (restored.datasource_type, restored.datasource_id) == ("table", working_id)
     assert restored.slice_name == "working table chart"
+
+
+def test_restore_refuses_snapshot_with_unknown_datasource_type(
+    capture_session: Session,
+) -> None:
+    """An unsupported chart source must not restore as a success."""
+    chart: Slice = Slice(
+        slice_name="unknown chart",
+        datasource_type="nonexistent",
+        datasource_id=123,
+        viz_type="table",
+    )
+    capture_session.add(chart)
+    capture_session.commit()
+    unknown_version: UUID = latest_version(capture_session, chart)
+    _rebind(capture_session, chart, _table(capture_session, "working"))
+    working_id: int = chart.datasource_id
+    chart_uuid: UUID = chart.uuid
+
+    with (
+        patch.object(security_manager, "raise_for_editorship"),
+        pytest.raises(MissingDatasourceError),
+    ):
+        RestoreChartVersionCommand(chart_uuid, unknown_version).run()
+
+    capture_session.expire_all()
+    restored: Slice = capture_session.query(Slice).filter_by(uuid=chart_uuid).one()
+    assert (restored.datasource_type, restored.datasource_id) == ("table", working_id)
+
+
+@pytest.mark.parametrize("source_type", ["query", "saved_query"])
+def test_restore_chart_with_query_source_optional_permission_fields(
+    capture_session: Session, source_type: str
+) -> None:
+    """Query-backed sources need not define every denormalized chart perm."""
+    database: Database = Database(database_name="query_db", sqlalchemy_uri="sqlite://")
+    capture_session.add(database)
+    capture_session.flush()
+    source: Query | SavedQuery
+    if source_type == "query":
+        source = Query(client_id="abc1234567", database=database, sql="select 1")
+    else:
+        source = SavedQuery(label="saved", sql="select 1", db_id=database.id)
+    capture_session.add(source)
+    capture_session.flush()
+
+    chart: Slice = Slice(
+        slice_name="query-backed chart",
+        datasource_type=source_type,
+        datasource_id=source.id,
+        viz_type="table",
+    )
+    capture_session.add(chart)
+    capture_session.commit()
+    source_version: UUID = latest_version(capture_session, chart)
+    _rebind(capture_session, chart, _table(capture_session, "working"))
+    chart_uuid: UUID = chart.uuid
+
+    with patch.object(security_manager, "raise_for_editorship"):
+        RestoreChartVersionCommand(chart_uuid, source_version).run()
+
+    capture_session.expire_all()
+    restored: Slice = capture_session.query(Slice).filter_by(uuid=chart_uuid).one()
+    assert (restored.datasource_type, restored.datasource_id) == (
+        source_type,
+        source.id,
+    )
+    assert (restored.perm, restored.catalog_perm, restored.schema_perm) == (
+        getattr(source, "perm", None),
+        getattr(source, "catalog_perm", None),
+        getattr(source, "schema_perm", None),
+    )
 
 
 def test_restore_allows_snapshot_of_soft_deleted_dataset(
