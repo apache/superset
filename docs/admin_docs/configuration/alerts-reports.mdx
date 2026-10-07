@@ -446,13 +446,14 @@ When the flag is enabled:
   Non-admins can only select themselves. They see no user search and the API rejects
   selecting another user. Reports scheduled from a dashboard or chart always execute
   as the subscribing user.
-- When a non-admin edits an alert/report configured to run as someone else, they can
-  change its metadata, type, and condition (database, SQL, and validator), but not its
-  selected chart/dashboard, filters, attachment format, or recipients. To change those,
-  they must first set **Run as** to their own account via the **Execute using my permissions**
-  button (or ask an admin). For alerts, this action selects the current user for both content
-  and SQL condition execution. Legacy schedules without an explicit ``run_as`` user also
-  require this switch before a non-admin changes the delivered asset or recipients.
+- When a non-admin edits an alert/report configured to render as someone else, they can
+  change its name and schedule, but not its selected chart/dashboard, filters, attachment
+  format, or recipients. Changing an alert's database, SQL, or validator also requires its
+  condition query to execute as that editor. To change protected fields, they can select
+  their own account via **Execute using my permissions** (or ask an admin). For alerts,
+  this action selects the current user for both content and SQL condition execution.
+  Legacy schedules using the application-default executor need the same switch before
+  a non-admin changes fields executed with that identity.
 - Untouched legacy schedules continue using `ALERT_REPORTS_EXECUTORS`. **Application
   default** preserves this behavior in the Run as selector, including when an admin
   clears an explicit executor.
@@ -477,7 +478,7 @@ feature flag.
 
 | Setting | Fallback | Description |
 | --- | --- | --- |
-| Enable attachments for alerts | `ALERTS_ATTACH_REPORTS` FF | Whether alerts deliver their attachment. Applies to subsequent attempts; saving a change cancels pending attempts. |
+| Enable attachments for alerts | `ALERTS_ATTACH_REPORTS` FF | Whether alerts deliver their attachment. |
 | Format dates in email subjects | `DATE_FORMAT_IN_EMAIL_SUBJECT` FF | Render date code placeholders in alert and report email subjects using the UTC date at delivery. |
 | Alert minimum interval | `ALERT_MINIMUM_INTERVAL` config | Minimum interval between two executions of an alert. |
 | Report minimum interval | `REPORT_MINIMUM_INTERVAL` config | Minimum interval between two executions of a report. |
@@ -501,6 +502,8 @@ is not supported. A prohibited address in To, Cc, or Bcc blocks the entire norma
 
 An attachment-free alert needs only its condition-query executor. Its unused content
 executor may be missing or inactive when a separate valid query executor is selected.
+Set **No attachment** for an alert without a chart or dashboard, even when global alert
+attachments are disabled. An attachment format requires an asset when the alert is saved.
 Enabling **Include attachment** validates the selected chart/dashboard and content
 executor before saving. Reports always require content. Supplied attachment settings
 remain stored while off and are ignored for attachment generation; supplied asset

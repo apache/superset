@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Iterator
 from unittest.mock import patch
 
 from kombu.exceptions import OperationalError as KombuOperationalError
@@ -35,6 +35,7 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.models.dashboard import Dashboard
 from superset.reports.models import (
+    ReportDataFormat,
     ReportSchedule,
     ReportCreationMethod,
     ReportRecipients,
@@ -43,6 +44,7 @@ from superset.reports.models import (
     ReportRecipientType,
     ReportState,
 )
+from superset.tasks.types import ExecutorType
 from superset.utils.database import get_example_database
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -66,6 +68,220 @@ REPORTS_GAMMA_USER = "reports_gamma"
 
 
 class TestReportSchedulesApi(SupersetTestCase):
+    @pytest.fixture
+    def sip_schedule_cleanup(self) -> Iterator[None]:
+        """Remove schedules created by dynamic-executor API scenarios."""
+        yield
+        for schedule in db.session.query(ReportSchedule).filter(
+            ReportSchedule.name.like("sip209_api_%")
+        ):
+            db.session.delete(schedule)
+        db.session.commit()
+
+    def _sip_report_payload(self, name: str) -> dict[str, Any]:
+        """Build a chart report with the ordinary API-required fields."""
+        chart = db.session.query(Slice).first()
+        assert chart is not None
+        return {
+            "type": ReportScheduleType.REPORT,
+            "name": name,
+            "description": "Dynamic executor integration test",
+            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
+            "crontab": "0 9 * * *",
+            "chart": chart.id,
+        }
+
+    @parameterized.expand([(False,), (True,)])
+    @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=True)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "sip_schedule_cleanup"
+    )
+    def test_admin_create_report_executor(self, application_default: bool) -> None:
+        """An admin may choose their own account or the application default."""
+        self.login(ADMIN_USERNAME)
+        admin = self.get_user(ADMIN_USERNAME)
+        payload = self._sip_report_payload(f"sip209_api_admin_{application_default}")
+        payload.update(
+            {
+                "run_as": None if application_default else admin.id,
+                "run_as_type": None if application_default else ExecutorType.FIXED_USER,
+            }
+        )
+
+        response = self.client.post("/api/v1/report/", json=payload)
+        assert response.status_code == 201, response.json
+        schedule = db.session.get(ReportSchedule, response.json["id"])
+        assert schedule.run_as_fk == (None if application_default else admin.id)
+        assert schedule.run_as_type == (
+            None if application_default else ExecutorType.FIXED_USER
+        )
+
+    @parameterized.expand([("self",), ("default",), ("other",)])
+    @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=True)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "sip_schedule_cleanup"
+    )
+    def test_non_admin_create_report_executor(self, executor: str) -> None:
+        """A non-admin can select only their own account."""
+        alpha = self.get_user("alpha")
+        admin = self.get_user(ADMIN_USERNAME)
+        self.login("alpha")
+        payload = self._sip_report_payload(f"sip209_api_alpha_{executor}")
+        if executor == "self":
+            payload.update({"run_as": alpha.id, "run_as_type": "fixed_user"})
+        elif executor == "default":
+            payload.update({"run_as": None, "run_as_type": None})
+        else:
+            payload.update({"run_as": admin.id, "run_as_type": "fixed_user"})
+
+        response = self.client.post("/api/v1/report/", json=payload)
+        if executor == "self":
+            assert response.status_code == 201, response.json
+            schedule = db.session.get(ReportSchedule, response.json["id"])
+            assert schedule.run_as_fk == alpha.id
+        else:
+            assert response.status_code == 422, response.json
+            assert "run_as" in response.json["message"]
+
+    @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=True)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "sip_schedule_cleanup"
+    )
+    def test_non_admin_edits_own_executor_report(self) -> None:
+        """An owner may change content when the schedule runs as that owner."""
+        alpha = self.get_user("alpha")
+        self.login("alpha")
+        payload = self._sip_report_payload("sip209_api_owned")
+        payload.update({"run_as": alpha.id, "run_as_type": "fixed_user"})
+        created = self.client.post("/api/v1/report/", json=payload)
+        assert created.status_code == 201, created.json
+
+        response = self.client.put(
+            f"/api/v1/report/{created.json['id']}",
+            json={
+                "recipients": [
+                    {
+                        "type": ReportRecipientType.EMAIL,
+                        "recipient_config_json": {"target": alpha.email},
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 200, response.json
+        schedule = db.session.get(ReportSchedule, created.json["id"])
+        assert schedule.run_as_fk == alpha.id
+        assert len(schedule.recipients) == 1
+
+    @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=True)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "sip_schedule_cleanup"
+    )
+    def test_non_admin_edits_other_executor_report(self) -> None:
+        """An editor may change metadata, but content requires switching to self."""
+        admin = self.get_user(ADMIN_USERNAME)
+        alpha = self.get_user("alpha")
+        self.login(ADMIN_USERNAME)
+        payload = self._sip_report_payload("sip209_api_shared")
+        payload.update({"run_as": admin.id, "run_as_type": "fixed_user"})
+        created = self.client.post("/api/v1/report/", json=payload)
+        assert created.status_code == 201, created.json
+        schedule = db.session.get(ReportSchedule, created.json["id"])
+        schedule.editors = _subjects_for_users([admin, alpha])
+        db.session.commit()
+        uri = f"/api/v1/report/{schedule.id}"
+        recipients = [
+            {
+                "type": ReportRecipientType.EMAIL,
+                "recipient_config_json": {"target": alpha.email},
+            }
+        ]
+
+        self.logout()
+        self.login("alpha")
+        metadata = self.client.put(uri, json={"name": "sip209_api_shared_renamed"})
+        assert metadata.status_code == 200, metadata.json
+        db.session.refresh(schedule)
+        changed_format = (
+            ReportDataFormat.PDF
+            if schedule.report_format != ReportDataFormat.PDF
+            else ReportDataFormat.PNG
+        )
+        content_only = self.client.put(uri, json={"report_format": changed_format})
+        assert content_only.status_code == 422, content_only.json
+        assert "run_as" in content_only.json["message"]
+        recipients_only = self.client.put(uri, json={"recipients": recipients})
+        assert recipients_only.status_code == 422, recipients_only.json
+        assert "run_as" in recipients_only.json["message"]
+        assert schedule.run_as_fk == admin.id
+        assert not schedule.recipients
+
+        allowed = self.client.put(
+            uri,
+            json={
+                "run_as": alpha.id,
+                "run_as_type": "fixed_user",
+                "recipients": recipients,
+            },
+        )
+        assert allowed.status_code == 200, allowed.json
+        db.session.refresh(schedule)
+        assert schedule.run_as_fk == alpha.id
+        assert len(schedule.recipients) == 1
+
+    @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=False)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "sip_schedule_cleanup"
+    )
+    def test_run_as_fields_ignored_when_feature_disabled(self) -> None:
+        """Disabled rollout preserves legacy executor fields on create and edit."""
+        self.login(ADMIN_USERNAME)
+        admin = self.get_user(ADMIN_USERNAME)
+        payload = self._sip_report_payload("sip209_api_disabled")
+        payload.update({"run_as": admin.id, "run_as_type": "fixed_user"})
+        created = self.client.post("/api/v1/report/", json=payload)
+        assert created.status_code == 201, created.json
+        schedule = db.session.get(ReportSchedule, created.json["id"])
+        assert schedule.run_as_fk is None
+        assert schedule.run_as_type is None
+
+        updated = self.client.put(
+            f"/api/v1/report/{schedule.id}",
+            json={
+                "run_as": admin.id,
+                "run_as_type": "fixed_user",
+                "description": "Edited with flag disabled",
+            },
+        )
+        assert updated.status_code == 200, updated.json
+        db.session.refresh(schedule)
+        assert schedule.run_as_fk is None
+        assert schedule.run_as_type is None
+        assert schedule.description == "Edited with flag disabled"
+
+    @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=False)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "sip_schedule_cleanup"
+    )
+    def test_non_admin_uses_legacy_rules_when_feature_disabled(self) -> None:
+        """The disabled flag neither stores Run As nor limits content edits."""
+        admin = self.get_user(ADMIN_USERNAME)
+        self.login("alpha")
+        payload = self._sip_report_payload("sip209_api_disabled_alpha")
+        payload.update({"run_as": admin.id, "run_as_type": "fixed_user"})
+        created = self.client.post("/api/v1/report/", json=payload)
+        assert created.status_code == 201, created.json
+        schedule = db.session.get(ReportSchedule, created.json["id"])
+        assert schedule.run_as_fk is None
+        assert schedule.run_as_type is None
+
+        updated = self.client.put(
+            f"/api/v1/report/{schedule.id}",
+            json={"report_format": ReportDataFormat.PDF},
+        )
+        assert updated.status_code == 200, updated.json
+        db.session.refresh(schedule)
+        assert schedule.report_format == ReportDataFormat.PDF
+
     @pytest.fixture
     def gamma_user_with_alerts_role(self):
         with self.create_app().app_context():
@@ -2535,11 +2751,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         "load_birth_names_dashboard_with_slices", "create_report_schedules"
     )
     def test_create_report_schedule_with_invalid_anchors(self):
-        """
-        ReportSchedule Api: Test get report schedule 404s when feature is disabled
-        """
-        report_schedule = db.session.query(Dashboard).first()
-        get_example_database()  # noqa: F841
+        """Reject tab anchors absent from the selected dashboard."""
+        dashboard = db.session.query(Dashboard).filter_by(slug="births").one()
         anchors = ["TAB-AsMaxdYL_t", "TAB-YT6eNksV-", "TAB-l_9I0aNYZ"]
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
@@ -2548,7 +2761,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "creation_method": ReportCreationMethod.ALERTS_REPORTS,
             "crontab": "0 9 * * *",
             "working_timeout": 3600,
-            "dashboard": report_schedule.id,
+            "dashboard": dashboard.id,
             "extra": {"dashboard": {"anchor": json.dumps(anchors)}},
         }
 

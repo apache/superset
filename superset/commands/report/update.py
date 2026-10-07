@@ -36,6 +36,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleNotFoundError,
     ReportScheduleRunAlertQueryAsNotAllowedError,
+    ReportScheduleRunAsConditionForbiddenError,
     ReportScheduleRunAsContentForbiddenError,
     ReportScheduleRunAsNotFoundError,
     ReportScheduleUpdateFailedError,
@@ -74,6 +75,10 @@ CONTENT_FIELDS: frozenset[str] = frozenset(
     }
 )
 
+ALERT_CONDITION_FIELDS: frozenset[str] = frozenset(
+    {"database", "sql", "validator_type", "validator_config_json"}
+)
+
 
 def _normalize_json(value: Any) -> str:
     """Canonical JSON string for a dict/JSON-string value (for comparisons)."""
@@ -99,6 +104,18 @@ def _normalize_recipients(recipients: Any) -> list[tuple[str, str]]:
         else:
             recipient_type = recipient.type
             config = recipient.recipient_config_json
+        if recipient_type == ReportRecipientType.EMAIL:
+            if isinstance(config, str):
+                try:
+                    config = json.loads(config)
+                except json.JSONDecodeError:
+                    pass
+            if isinstance(config, dict):
+                config = {
+                    key: value
+                    for key, value in config.items()
+                    if key not in ("ccTarget", "bccTarget") or value != ""
+                }
         normalized.append((str(recipient_type), _normalize_json(config)))
     return sorted(normalized)
 
@@ -113,6 +130,25 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
     def run(self) -> Model:
         self.validate()
         return ReportScheduleDAO.update(self._model, self._properties)
+
+    def _compare_fields(
+        self,
+        keys: frozenset[str],
+        current: dict[str, Any],
+        normalizers: dict[str, Callable[[Any], Any]],
+    ) -> set[str]:
+        """
+        Return submitted fields whose normalized values differ from the stored values
+        """
+        changed: set[str] = set()
+        for field in keys & set(self._properties):
+            value = self._properties[field]
+            normalizer = normalizers.get(field)
+            if normalizer:
+                value = normalizer(value)
+            if value != current[field]:
+                changed.add(field)
+        return changed
 
     def _changed_content_fields(self) -> set[str]:
         """
@@ -132,20 +168,27 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             "extra": _normalize_json,
             "recipients": _normalize_recipients,
         }
-        changed: set[str] = set()
-        for field in CONTENT_FIELDS & set(self._properties):
-            value = self._properties[field]
-            normalizer = normalizers.get(field)
-            if normalizer:
-                value = normalizer(value)
-            if value != current[field]:
-                changed.add(field)
-        return changed
+        return self._compare_fields(CONTENT_FIELDS, current, normalizers)
+
+    def _changed_condition_fields(self) -> set[str]:
+        """Return alert-condition fields that differ from the stored values."""
+        assert self._model is not None
+        current = {
+            "database": self._model.database_id,
+            "sql": self._model.sql,
+            "validator_type": self._model.validator_type,
+            "validator_config_json": _normalize_json(self._model.validator_config_json),
+        }
+        normalizers: dict[str, Callable[[Any], Any]] = {
+            "validator_config_json": _normalize_json,
+        }
+        return self._compare_fields(ALERT_CONDITION_FIELDS, current, normalizers)
 
     def _validate_executors(
         self,
         report_type: str,
         changed_content_fields: set[str],
+        changed_condition_fields: set[str],
         exceptions: list[ValidationError],
     ) -> None:
         """
@@ -230,6 +273,21 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         ) and changed_content_fields:
             exceptions.append(ReportScheduleRunAsContentForbiddenError())
 
+        if report_type == ReportScheduleType.ALERT and changed_condition_fields:
+            query_type = self._properties.get(
+                "run_alert_query_as_type", self._model.run_alert_query_as_type
+            )
+            effective_query_type = (
+                query_type if query_type is not None else content_type
+            )
+            effective_query_user = query_as if query_type is not None else run_as
+            if (
+                effective_query_type != ExecutorType.FIXED_USER
+                or effective_query_user is None
+                or effective_query_user.id != current_user_id
+            ):
+                exceptions.append(ReportScheduleRunAsConditionForbiddenError())
+
     def _validate_attachment_executor(self, exceptions: list[ValidationError]) -> None:
         """Require a usable content identity when enabling content on an alert."""
         assert self._model is not None
@@ -284,14 +342,6 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
 
         exceptions: list[ValidationError] = []
 
-        # Snapshot content changes before validators replace ids with objects.
-        # Only needed for the "Run As" authorization rules (SIP-209).
-        changed_content_fields = (
-            self._changed_content_fields()
-            if is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR")
-            else set()
-        )
-
         # Change the state to not triggered when the user deactivates
         # A report that is currently in a working state. This prevents
         # an alert/report from being kept in a working state if activated back
@@ -321,6 +371,20 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
                 ]
             else:
                 exceptions.append(ReportScheduleUserEmailNotFoundError())
+
+        # Compare the recipients that will actually be saved. Other validators
+        # below may replace asset IDs with model objects, so snapshot here.
+        changed_content_fields = (
+            self._changed_content_fields()
+            if is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR")
+            else set()
+        )
+        changed_condition_fields = (
+            self._changed_condition_fields()
+            if is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR")
+            and report_type == ReportScheduleType.ALERT
+            else set()
+        )
 
         # Validate name/type uniqueness if either is changing
         if name != self._model.name or report_type != self._model.type:
@@ -404,7 +468,9 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         )
         if "recipients" in self._properties:
             self.validate_recipients_policy(exceptions)
-        self._validate_executors(report_type, changed_content_fields, exceptions)
+        self._validate_executors(
+            report_type, changed_content_fields, changed_condition_fields, exceptions
+        )
         self._validate_attachment_executor(exceptions)
 
         # Validate retry config when the feature is enabled.

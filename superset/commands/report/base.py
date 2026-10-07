@@ -148,33 +148,30 @@ class BaseReportScheduleCommand(BaseCommand):
                 raise ReportScheduleForbiddenError() from ex
         self._properties[kind] = obj
 
-    def requires_attachment(self) -> bool:
-        """Whether the effective schedule configuration requires attachment content."""
-        model = getattr(self, "_model", None)
-        report_type = self._properties.get(
-            "type", getattr(model, "type", ReportScheduleType.REPORT)
-        )
-        report_format = self._properties.get(
-            "report_format", getattr(model, "report_format", ReportDataFormat.PNG)
-        )
-        return report_type == ReportScheduleType.REPORT or (
-            report_format != ReportDataFormat.NONE
-            and bool(
-                ReportConfigDAO.get_effective_value(
-                    ReportConfigKey.ALERTS_ATTACH_REPORTS
-                )
-            )
+    def requires_asset(self) -> bool:
+        """Whether the schedule's format requires an asset to be present."""
+        # PUT may omit either field; fallback to the stored schedule values
+        if model := getattr(self, "_model", None):
+            report_type = self._properties.get("type", model.type)
+            report_format = self._properties.get("report_format", model.report_format)
+        # POST requires type. An omitted format uses the model's PNG default
+        else:
+            report_type = self._properties["type"]
+            report_format = self._properties.get("report_format")
+        return (
+            report_type == ReportScheduleType.REPORT
+            or report_format != ReportDataFormat.NONE
         )
 
     def validate_chart_dashboard(
         self, exceptions: list[ValidationError], update: bool = False
     ) -> None:
-        """Validate supplied assets and require one when producing an attachment."""
-        requires_attachment = self.requires_attachment()
+        """Validate supplied assets and require one for an attachment format."""
+        requires_asset = self.requires_asset()
         chart_id = self._properties.get("chart")
         dashboard_id = self._properties.get("dashboard")
         creation_method = self._properties.get("creation_method")
-        if not requires_attachment and not (chart_id or dashboard_id):
+        if not requires_asset and not (chart_id or dashboard_id):
             return
 
         if creation_method == ReportCreationMethod.CHARTS and not chart_id:
@@ -471,18 +468,6 @@ class BaseReportScheduleCommand(BaseCommand):
         current_user = get_user()
         type_field = f"{field_name}_type"
         executor_type = self._properties.pop(type_field, None)
-        if executor_type is not None and executor_type != ExecutorType.FIXED_USER:
-            if not is_admin:
-                exceptions.append(ReportScheduleRunAsForbiddenError(field_name))
-                return None
-            exceptions.append(
-                ValidationError(
-                    _("Choose Application default or a specific user"),
-                    field_name=field_name,
-                )
-            )
-            return None
-
         if user_id is None and executor_type != ExecutorType.FIXED_USER:
             if field_name == "run_alert_query_as":
                 self._properties[type_field] = None
@@ -491,6 +476,9 @@ class BaseReportScheduleCommand(BaseCommand):
             if is_admin and not default_to_current_user:
                 self._properties[type_field] = None
                 self._properties[field_name] = None
+                return None
+            if not is_admin and not default_to_current_user:
+                exceptions.append(ReportScheduleRunAsForbiddenError(field_name))
                 return None
             user = current_user
         else:

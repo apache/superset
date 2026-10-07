@@ -44,8 +44,7 @@ class UpdateReportConfigCommand(BaseCommand):
     Recipient restrictions and minimum intervals are validated against every
     existing schedule: when any of them would become invalid under the new
     configuration the command fails and lists the impacted schedules, so admins
-    can fix them before tightening the policy. Enabling/disabling attachments
-    for alerts applies immediately to all alerts and is never a conflict.
+    can fix them before tightening the policy.
     """
 
     def __init__(self, data: dict[str, Any]):

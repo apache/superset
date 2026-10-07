@@ -56,7 +56,9 @@ assists people when migrating to a new version.
   execution time.
 - Alerts have an **Include attachment** toggle, represented by `report_format: "NONE"`
   when off. Attachment-free alerts need no chart/dashboard; asset-less notifications omit
-  the asset link. Saved attachment settings are retained. Reports still require content.
+  the asset link. An alert with an attachment format must have a chart/dashboard even
+  when global alert attachments are disabled. Saved attachment settings are retained.
+  Reports always require content.
 - Behind the new `ALERT_REPORT_DYNAMIC_EXECUTOR` feature flag (off by default), alerts and
   reports record the user they execute as (`run_as`, plus `run_alert_query_as` for the
   alert condition query). Non-admins can only set themselves. `ALERT_REPORTS_EXECUTORS` is

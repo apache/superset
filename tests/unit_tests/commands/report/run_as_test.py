@@ -32,12 +32,17 @@ from superset.commands.report.exceptions import (
     ReportScheduleInvalidError,
     ReportScheduleRecipientNotAllowedError,
     ReportScheduleRunAlertQueryAsNotAllowedError,
+    ReportScheduleRunAsConditionForbiddenError,
     ReportScheduleRunAsContentForbiddenError,
     ReportScheduleRunAsForbiddenError,
     ReportScheduleRunAsNotFoundError,
 )
 from superset.commands.report.update import UpdateReportScheduleCommand
-from superset.reports.models import ReportDataFormat, ReportScheduleType
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportDataFormat,
+    ReportScheduleType,
+)
 
 
 def _user(user_id: int, active: bool = True) -> Mock:
@@ -142,6 +147,19 @@ def test_admin_can_create_with_application_default_executor(
 
     assert command._properties["run_as"] is None
     assert command._properties["run_as_type"] is None
+
+
+def test_non_admin_cannot_create_with_application_default_executor(
+    mocker: MockerFixture,
+) -> None:
+    _stub_create_deps(mocker, feature_enabled=True)
+    _stub_security(mocker, is_admin=False)
+
+    command = _create_command(run_as=None, run_as_type=None)
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
+
+    assert ReportScheduleRunAsForbiddenError in _errors(exc)
 
 
 def test_create_alert_defaults_query_executor_to_run_as(
@@ -371,14 +389,17 @@ def test_update_admin_sets_and_clears_run_as(mocker: MockerFixture) -> None:
     assert command._properties["run_as_type"] is None
 
 
-def test_update_non_admin_null_resolves_to_themselves(mocker: MockerFixture) -> None:
+def test_update_non_admin_cannot_select_application_default(
+    mocker: MockerFixture,
+) -> None:
     model = _make_model(run_as=OTHER_USER)
     _stub_update_deps(mocker, model, is_admin=False)
 
     command = UpdateReportScheduleCommand(1, {"run_as": None})
-    command.validate()
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
 
-    assert command._properties["run_as"] is CURRENT_USER
+    assert ReportScheduleRunAsForbiddenError in _errors(exc)
 
 
 def test_update_non_admin_cannot_point_at_another_user(
@@ -414,6 +435,145 @@ def test_update_non_admin_can_change_metadata_of_schedule_run_by_other(
         },
     )
     command.validate()
+
+
+@pytest.mark.parametrize("application_default", [False, True])
+def test_empty_email_cc_and_bcc_do_not_count_as_recipient_changes(
+    mocker: MockerFixture, application_default: bool
+) -> None:
+    """A modal resubmission of optional empty fields permits metadata edits."""
+    model = _make_model(run_as=None if application_default else OTHER_USER)
+    model.recipients = [
+        Mock(
+            type="Email",
+            recipient_config_json='{"target": "a@x.com"}',
+        )
+    ]
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    command = UpdateReportScheduleCommand(
+        1,
+        {
+            "name": "renamed",
+            "recipients": [
+                {
+                    "type": "Email",
+                    "recipient_config_json": {
+                        "target": "a@x.com",
+                        "ccTarget": "",
+                        "bccTarget": "",
+                    },
+                }
+            ],
+        },
+    )
+    command.validate()
+    assert command._changed_content_fields() == set()
+
+
+@pytest.mark.parametrize(
+    "creation_method",
+    [ReportCreationMethod.CHARTS, ReportCreationMethod.DASHBOARDS],
+)
+@pytest.mark.parametrize("application_default", [False, True])
+def test_subscription_recipient_rewrite_is_protected_content_change(
+    mocker: MockerFixture,
+    creation_method: ReportCreationMethod,
+    application_default: bool,
+) -> None:
+    """
+    A resubmitted recipient cannot be silently redirected to the editor.
+
+    Schedules created from charts/dashboars always set the ``recipients``
+    config to the user email (even if the payload sends something different).
+    """
+    model = _make_model(run_as=None if application_default else OTHER_USER)
+    model.creation_method = creation_method
+    model.recipients = [
+        Mock(type="Email", recipient_config_json='{"target": "owner@x.com"}')
+    ]
+    _stub_update_deps(mocker, model, is_admin=False)
+    mocker.patch(
+        "superset.commands.report.update.get_user_email",
+        return_value="editor@x.com",
+    )
+
+    command = UpdateReportScheduleCommand(
+        1,
+        {
+            "name": "renamed",
+            "recipients": [
+                {
+                    "type": "Email",
+                    "recipient_config_json": {"target": "owner@x.com"},
+                }
+            ],
+        },
+    )
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
+
+    assert ReportScheduleRunAsContentForbiddenError in _errors(exc)
+
+
+def test_subscription_recipient_rewrite_to_same_address_is_not_a_change(
+    mocker: MockerFixture,
+) -> None:
+    """A metadata edit succeeds when the enforced recipient is unchanged."""
+    model = _make_model(run_as=OTHER_USER)
+    model.creation_method = ReportCreationMethod.CHARTS
+    model.recipients = [
+        Mock(type="Email", recipient_config_json='{"target": "editor@x.com"}')
+    ]
+    _stub_update_deps(mocker, model, is_admin=False)
+    mocker.patch(
+        "superset.commands.report.update.get_user_email",
+        return_value="editor@x.com",
+    )
+
+    UpdateReportScheduleCommand(
+        1,
+        {
+            "name": "renamed",
+            "recipients": [
+                {
+                    "type": "Email",
+                    "recipient_config_json": {"target": "editor@x.com"},
+                }
+            ],
+        },
+    ).validate()
+
+
+@pytest.mark.parametrize("optional_field", ["ccTarget", "bccTarget"])
+def test_nonempty_email_cc_or_bcc_counts_as_recipient_change(
+    mocker: MockerFixture, optional_field: str
+) -> None:
+    """Adding an actual Cc or Bcc remains a protected content change."""
+    model = _make_model(run_as=OTHER_USER)
+    model.recipients = [
+        Mock(type="Email", recipient_config_json='{"target": "a@x.com"}')
+    ]
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    command = UpdateReportScheduleCommand(
+        1,
+        {
+            "recipients": [
+                {
+                    "type": "Email",
+                    "recipient_config_json": {
+                        "target": "a@x.com",
+                        optional_field: "other@x.com",
+                    },
+                }
+            ]
+        },
+    )
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
+
+    assert ReportScheduleRunAsContentForbiddenError in _errors(exc)
 
 
 def test_update_non_admin_cannot_change_content_of_schedule_run_by_other(
@@ -461,7 +621,60 @@ def test_condition_fields_do_not_count_as_delivered_content(
     assert command._changed_content_fields() == set()
 
 
-def test_non_admin_can_change_alert_sql_run_by_other(
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("database", 7),
+        ("sql", "SELECT 2"),
+        ("validator_type", "not null"),
+        ("validator_config_json", {"op": ">", "threshold": 1}),
+    ],
+)
+def test_non_admin_cannot_change_alert_condition_run_by_other(
+    mocker: MockerFixture,
+    field: str,
+    value: Any,
+) -> None:
+    model = _make_model(
+        model_type=ReportScheduleType.ALERT,
+        run_as=OTHER_USER,
+        run_alert_query_as=OTHER_USER,
+    )
+    _stub_update_deps(mocker, model, is_admin=False)
+    command = UpdateReportScheduleCommand(1, {field: value})
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
+
+    assert ReportScheduleRunAsConditionForbiddenError in _errors(exc)
+
+
+@pytest.mark.parametrize("field,value", [("sql", "SELECT 2"), ("database", 7)])
+def test_non_admin_can_change_alert_condition_when_query_runs_as_self(
+    mocker: MockerFixture, field: str, value: Any
+) -> None:
+    model = _make_model(
+        model_type=ReportScheduleType.ALERT,
+        run_as=OTHER_USER,
+        run_alert_query_as=CURRENT_USER,
+    )
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    UpdateReportScheduleCommand(1, {field: value}).validate()
+
+
+def test_non_admin_cannot_change_alert_condition_using_application_default(
+    mocker: MockerFixture,
+) -> None:
+    model = _make_model(model_type=ReportScheduleType.ALERT)
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        UpdateReportScheduleCommand(1, {"sql": "SELECT 2"}).validate()
+
+    assert ReportScheduleRunAsConditionForbiddenError in _errors(exc)
+
+
+def test_non_admin_can_change_alert_condition_after_selecting_self(
     mocker: MockerFixture,
 ) -> None:
     model = _make_model(
@@ -470,13 +683,33 @@ def test_non_admin_can_change_alert_sql_run_by_other(
         run_alert_query_as=OTHER_USER,
     )
     _stub_update_deps(mocker, model, is_admin=False)
-    validate_query = mocker.patch.object(
-        UpdateReportScheduleCommand, "validate_alert_query"
+
+    command = UpdateReportScheduleCommand(
+        1, {"run_alert_query_as": CURRENT_USER.id, "sql": "SELECT 2"}
     )
+    command.validate()
+    assert command._properties["run_alert_query_as"] is CURRENT_USER
 
-    UpdateReportScheduleCommand(1, {"sql": "SELECT 2"}).validate()
 
-    validate_query.assert_called_once()
+def test_unchanged_alert_condition_payload_is_allowed(
+    mocker: MockerFixture,
+) -> None:
+    model = _make_model(
+        model_type=ReportScheduleType.ALERT,
+        run_as=OTHER_USER,
+        run_alert_query_as=OTHER_USER,
+    )
+    model.sql = "SELECT 1"
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    UpdateReportScheduleCommand(
+        1,
+        {
+            "name": "renamed",
+            "sql": "SELECT 1",
+            "validator_config_json": {},
+        },
+    ).validate()
 
 
 def test_update_non_admin_can_change_content_after_taking_over(
@@ -546,36 +779,6 @@ def test_update_report_rejects_no_attachment_format(mocker: MockerFixture) -> No
         command.validate()
 
     assert ReportScheduleFormatRequiredError in _errors(exc)
-
-
-@pytest.mark.parametrize(
-    "executor_type",
-    ["creator", "creator_editor", "modifier", "modifier_editor", "editor"],
-)
-def test_admin_cannot_create_typed_executor(
-    mocker: MockerFixture, executor_type: str
-) -> None:
-    _stub_create_deps(mocker, feature_enabled=True)
-    _stub_security(mocker, is_admin=True)
-    command = _create_command(run_as_type=executor_type)
-    with pytest.raises(ReportScheduleInvalidError) as exc:
-        command.validate()
-    assert ValidationError in _errors(exc)
-
-
-@pytest.mark.parametrize(
-    "executor_type",
-    ["creator", "creator_editor", "modifier", "modifier_editor", "editor"],
-)
-def test_non_admin_cannot_select_typed_executor(
-    mocker: MockerFixture, executor_type: str
-) -> None:
-    _stub_create_deps(mocker, feature_enabled=True)
-    _stub_security(mocker, is_admin=False)
-    command = _create_command(run_as_type=executor_type)
-    with pytest.raises(ReportScheduleInvalidError) as exc:
-        command.validate()
-    assert ReportScheduleRunAsForbiddenError in _errors(exc)
 
 
 def test_clear_content_executor_restores_application_default(
@@ -670,20 +873,8 @@ def test_enabling_attachment_uses_default_when_type_is_unset(
 
 
 @pytest.mark.parametrize("field", ["run_as", "run_alert_query_as"])
-@pytest.mark.parametrize(
-    "selection",
-    [
-        "creator",
-        "creator_editor",
-        "modifier",
-        "modifier_editor",
-        "editor",
-        "other_user",
-    ],
-)
-def test_non_admin_update_cannot_choose_other_execution_identity(
+def test_non_admin_update_cannot_choose_other_user(
     field: str,
-    selection: str,
     mocker: MockerFixture,
 ) -> None:
     model = _make_model(model_type=ReportScheduleType.ALERT, run_as=CURRENT_USER)
@@ -691,8 +882,8 @@ def test_non_admin_update_cannot_choose_other_execution_identity(
     command = UpdateReportScheduleCommand(
         1,
         {
-            field: OTHER_USER.id if selection == "other_user" else None,
-            f"{field}_type": "fixed_user" if selection == "other_user" else selection,
+            field: OTHER_USER.id,
+            f"{field}_type": "fixed_user",
         },
     )
     with pytest.raises(ReportScheduleInvalidError) as exc:
@@ -759,7 +950,7 @@ def test_non_admin_stale_user_with_unset_type_cannot_edit_content(
     ("report_type", "report_format", "global_enabled", "requires_asset"),
     [
         (ReportScheduleType.ALERT, ReportDataFormat.NONE, True, False),
-        (ReportScheduleType.ALERT, ReportDataFormat.PNG, False, False),
+        (ReportScheduleType.ALERT, ReportDataFormat.PNG, False, True),
         (ReportScheduleType.ALERT, ReportDataFormat.PNG, True, True),
         (ReportScheduleType.REPORT, ReportDataFormat.PNG, False, True),
     ],
@@ -800,9 +991,38 @@ def test_create_attachment_asset_requirement(
         command.validate()
 
 
+def test_create_alert_default_format_requires_asset_when_global_disabled(
+    mocker: MockerFixture,
+) -> None:
+    """Omitting report_format cannot store an asset-less default PNG alert."""
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import (
+        ReportScheduleEitherChartOrDashboardError,
+    )
+
+    _stub_create_deps(mocker, feature_enabled=False)
+    _stub_security(mocker, is_admin=True)
+    mocker.patch.object(
+        CreateReportScheduleCommand,
+        "validate_chart_dashboard",
+        BaseReportScheduleCommand.validate_chart_dashboard,
+    )
+    mocker.patch(
+        "superset.commands.report.create.DatabaseDAO.find_by_id", return_value=Mock()
+    )
+    mocker.patch.object(CreateReportScheduleCommand, "validate_alert_query")
+
+    command = _create_command(type=ReportScheduleType.ALERT, database=1)
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
+
+    assert ReportScheduleEitherChartOrDashboardError in _errors(exc)
+
+
 @pytest.mark.parametrize("include_asset", [False, True])
+@pytest.mark.parametrize("global_enabled", [False, True])
 def test_enabling_attachment_requires_asset_on_update(
-    include_asset: bool, mocker: MockerFixture
+    include_asset: bool, global_enabled: bool, mocker: MockerFixture
 ) -> None:
     from superset.commands.report.base import BaseReportScheduleCommand
     from superset.commands.report.exceptions import (
@@ -820,7 +1040,7 @@ def test_enabling_attachment_requires_asset_on_update(
     )
     mocker.patch(
         "superset.commands.report.base.ReportConfigDAO.get_effective_value",
-        return_value=True,
+        return_value=global_enabled,
     )
     command = UpdateReportScheduleCommand(1, {"report_format": ReportDataFormat.PNG})
     if include_asset:

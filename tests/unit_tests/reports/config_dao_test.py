@@ -66,6 +66,25 @@ def test_stored_values_empty_and_fallbacks(
     )
 
 
+def test_frequency_validation_uses_saved_report_minimum(
+    session_with_tables: Session, mocker: MockerFixture
+) -> None:
+    """A saved interval takes precedence over the application minimum."""
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import ReportScheduleFrequencyNotAllowed
+    from superset.daos.report import ReportConfigDAO
+    from superset.reports.models import ReportConfigKey, ReportScheduleType
+
+    mocker.patch.dict(current_app.config, {"REPORT_MINIMUM_INTERVAL": 0})
+    ReportConfigDAO.upsert({ReportConfigKey.REPORT_MINIMUM_INTERVAL: 600})
+    session_with_tables.flush()
+
+    with pytest.raises(ReportScheduleFrequencyNotAllowed):
+        BaseReportScheduleCommand().validate_report_frequency(
+            "* * * * *", ReportScheduleType.REPORT
+        )
+
+
 @with_feature_flags(ALERTS_ATTACH_REPORTS=False)
 def test_alerts_attach_reports_falls_back_to_feature_flag(
     session_with_tables: Session,

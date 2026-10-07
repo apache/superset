@@ -3306,13 +3306,18 @@ test('non-admins are warned and can take over both alert executors', async () =>
   });
   expect(
     screen.queryByText(
-      /changing the attachment content or recipients requires/,
+      /Changing the attachment content or recipients requires/,
     ),
   ).not.toBeInTheDocument();
   await userEvent.click(screen.getByTestId('contents-panel'));
   expect(
     await screen.findByText(
-      /changing the attachment content or recipients requires updating it to execute with your permissions/,
+      /Changing the attachment content or recipients requires updating it to execute with your permissions/,
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      /Changing the alert condition requires its query to execute with your permissions/,
     ),
   ).toBeInTheDocument();
   await userEvent.click(
@@ -3320,7 +3325,7 @@ test('non-admins are warned and can take over both alert executors', async () =>
   );
   expect(
     screen.queryByText(
-      /changing the attachment content or recipients requires/,
+      /Changing the attachment content or recipients requires/,
     ),
   ).not.toBeInTheDocument();
   expect(

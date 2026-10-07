@@ -483,6 +483,20 @@ class ReportScheduleRunAsContentForbiddenError(ValidationError):
         )
 
 
+class ReportScheduleRunAsConditionForbiddenError(ValidationError):
+    """A non-admin cannot change a condition executed with another identity."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            _(
+                "This alert query is not set to execute as your account. Only admins "
+                'can change its condition; set "Run alert query as" to your own account'
+                " first."
+            ),
+            field_name="run_alert_query_as",
+        )
+
+
 class ReportScheduleRunAlertQueryAsNotAllowedError(ValidationError):
     """
     Validation error when ``run_alert_query_as`` is set on a Report schedule
