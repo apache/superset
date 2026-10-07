@@ -28,6 +28,7 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from redis.exceptions import ConnectionError as RedisConnectionError
 from superset_core.semantic_layers.metadata import (
     CatalogSnapshot,
@@ -672,3 +673,24 @@ def test_snapshot_lifetime_includes_publication_transport(
         else:
             store.refresh(catalog, deadline=130)
             assert backend.get_with_ttl("semantic-metadata:{scope}:snapshot")[1] == 3000
+
+
+@pytest.mark.parametrize("operation", ["read", "refresh"])
+def test_provider_soft_time_limit_stops_metadata_acquisition(operation: str) -> None:
+    """A task cancellation escapes unchanged and releases its unpublished lease."""
+    backend: MemoryBackend = MemoryBackend()
+    deadline: float = time.monotonic() + 5
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=deadline
+    )
+    cancellation: SoftTimeLimitExceeded = SoftTimeLimitExceeded()
+    fetch: Mock = Mock(side_effect=cancellation)
+    acquire: Callable[..., CatalogSnapshot | MetadataRefreshResult] = (
+        store.read if operation == "read" else store.refresh
+    )
+    error: pytest.ExceptionInfo[SoftTimeLimitExceeded]
+    with pytest.raises(SoftTimeLimitExceeded) as error:
+        acquire(fetch, deadline=deadline)
+    assert error.value is cancellation
+    fetch.assert_called_once_with(deadline)
+    assert backend.entries == {}
