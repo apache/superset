@@ -46,6 +46,7 @@ from superset.mcp_service.dashboard.schemas import (
 from superset.mcp_service.dashboard.tool.governance_utils import (
     dashboard_url,
     find_and_authorize_dashboard,
+    managed_dashboard_refusal,
 )
 from superset.mcp_service.system.schemas import serialize_subject_object
 from superset.subjects.types import SubjectType
@@ -170,6 +171,9 @@ def manage_dashboard_roles(
     """
     Add or remove dashboard access roles with explicit operations.
 
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
+
     Dashboard access roles restrict who can view a dashboard to members of
     the listed roles, on top of normal Superset permissions. An empty roles
     list means "no role restriction" — the dashboard is visible per standard
@@ -216,6 +220,10 @@ def manage_dashboard_roles(
     if auth_error is not None:
         return auth_error
     assert dashboard is not None  # narrows for mypy
+
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is not None:
+        return ManageDashboardRolesResponse(managed_externally=True, error=refusal)
 
     viewers_enabled = is_feature_enabled("ENABLE_VIEWERS")
     warnings: list[str] = []

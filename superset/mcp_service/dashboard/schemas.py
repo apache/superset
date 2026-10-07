@@ -695,6 +695,10 @@ class AddChartToDashboardResponse(BaseModel):
         None, description="Position information for the added chart"
     )
     error: str | None = Field(None, description="Error message, if operation failed")
+    managed_externally: bool = Field(
+        False,
+        description="True when an externally managed dashboard refused the mutation.",
+    )
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -735,6 +739,10 @@ class RemoveChartFromDashboardResponse(BaseModel):
         ),
     )
     error: str | None = Field(None, description="Error message, if operation failed")
+    managed_externally: bool = Field(
+        False,
+        description="True when an externally managed dashboard refused the mutation.",
+    )
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -1079,6 +1087,10 @@ class UpdateDashboardResponse(BaseModel):
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
     error: str | None = Field(None, description="Error message, if update failed")
+    managed_externally: bool = Field(
+        False,
+        description="True when an externally managed dashboard refused the mutation.",
+    )
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -2289,6 +2301,10 @@ class DeleteDashboardResponse(BaseModel):
     )
     message: str | None = Field(None, description="Human-readable outcome message")
     error: str | None = Field(None, description="Error message if the delete failed")
+    managed_externally: bool = Field(
+        False,
+        description="True when an externally managed dashboard refused the mutation.",
+    )
     error_type: str | None = Field(None, description="Type of error if failed")
     permission_denied: bool = Field(
         False,
@@ -2629,6 +2645,10 @@ class ManageNativeFiltersResponse(BaseModel):
         description="Final native filter configuration after the operation, in order",
     )
     error: str | None = Field(None, description="Error message, if operation failed")
+    managed_externally: bool = Field(
+        False,
+        description="True when an externally managed dashboard refused the mutation.",
+    )
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -3466,6 +3486,10 @@ class RestoreDashboardResponse(BaseModel):
     )
     message: str | None = Field(None, description="Human-readable outcome message")
     error: str | None = Field(None, description="Error message if the restore failed")
+    managed_externally: bool = Field(
+        False,
+        description="True when an externally managed dashboard refused the mutation.",
+    )
     error_type: str | None = Field(None, description="Type of error if failed")
     permission_denied: bool = Field(
         False,
