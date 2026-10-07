@@ -27,6 +27,7 @@ from superset.common.query_object_factory import QueryObjectFactory
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
+from superset.extensions import security_manager
 from superset.models.slice import Slice
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
@@ -79,10 +80,6 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             and datasource_model_instance is not None
             and DatasourceType(datasource["type"]) == DatasourceType.SEMANTIC_VIEW
         ):
-            from superset import (
-                security_manager,  # pylint: disable=import-outside-toplevel
-            )
-
             # Guest dashboard and payload checks need the completed query context;
             # keep their authorization path and timing unchanged.
             if not security_manager.is_guest_user():

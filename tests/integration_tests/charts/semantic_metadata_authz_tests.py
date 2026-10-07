@@ -130,7 +130,12 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 "native_filter_configuration": [
                     {
                         "id": "filter-1",
-                        "targets": [{"datasetId": view.id + 1}],
+                        "targets": [
+                            {
+                                "datasetId": view.id + 1,
+                                "datasourceType": "semantic_view",
+                            }
+                        ],
                     }
                 ]
             }
@@ -200,7 +205,11 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                     {
                         "id": "filter-1",
                         "targets": [
-                            {"datasetId": view.id, "column": {"name": "category"}}
+                            {
+                                "datasetId": view.id,
+                                "datasourceType": "semantic_view",
+                                "column": {"name": "category"},
+                            }
                         ],
                     }
                 ]
