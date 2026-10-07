@@ -522,6 +522,11 @@ def _commit_purge_root(record_id: UUID | None) -> None:
         if isinstance(exc, DBAPIError) and not exc.connection_invalidated:
             # The valid connection rejected the commit; the root can be
             # recorded as failed without consuming the confirmed purge cap.
+            logger.warning(
+                "deletion_retention: definitive root purge commit failure (%s): %s",
+                type(exc).__name__,
+                exc.orig,
+            )
             audit.fail(record_id)
             raise
         # A lost acknowledgement can follow a successful commit. Keep the

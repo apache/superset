@@ -833,6 +833,39 @@ def test_uncertain_purge_commit_stops_remaining_ids_in_batch(
     assert [entry.args[1] for entry in purge_one.call_args_list] == [1, 2]
 
 
+def test_uncertain_purge_commit_stops_next_batch_with_budget_remaining(
+    app_context: None,
+) -> None:
+    """An uncertain commit must not spend the unused cap on a later page."""
+    import superset.tasks.deletion_retention as task
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.slice import Slice
+
+    confirmed: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="confirmed"
+    )
+    purge_one: MagicMock
+    with (
+        patch.object(task, "_iter_eligible_ids", return_value=[[1, 2], [3]]),
+        patch.object(
+            task,
+            "_purge_one",
+            side_effect=[
+                confirmed,
+                task._PurgeCommitUncertainError("commit outcome unknown"),
+                confirmed,
+            ],
+        ) as purge_one,
+    ):
+        counts: task._PurgeModelResult = task._purge_model(
+            Slice, datetime.now(), dry_run=False, max_per_run=3
+        )
+
+    assert counts.purged == 1
+    assert counts.commit_uncertain is True
+    assert [entry.args[1] for entry in purge_one.call_args_list] == [1, 2]
+
+
 def test_uncertain_purge_commit_stops_next_model_with_budget_remaining(
     app_context: None,
 ) -> None:

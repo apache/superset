@@ -313,6 +313,9 @@ and both backlog estimates are `None`. If the database does not acknowledge a
 root purge commit, the task stops without processing another root and reports
 `commit_uncertain`. The possible deletion reserves a cap slot, its audit row
 remains pending for reconciliation, and the remainder count is incomplete.
+A commit the database rejects on a live connection is instead recorded as a
+failed attempt for that root, counted in `cascade_failures`, and the task
+continues with other eligible roots under the same cap.
 The operator's `force-purge` CLI remains uncapped.
 
 ### Running retention tasks
