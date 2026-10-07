@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useState, useMemo, useEffect } from 'react';
+import { useCallback, useState, useMemo, useEffect, useRef } from 'react';
 import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -102,7 +102,13 @@ export function ColumnSelect({
   // ID sequences, so switching between them with the same numeric ID must still
   // trigger a column re-fetch.
   const datasourceKey = `${datasetId}__${datasourceType || DatasourceType.Table}`;
+  // Only the request for the current datasource may update the columns: a
+  // late response for a previous (possibly same-id) datasource is ignored.
+  const requestIdRef = useRef(0);
   useChangeEffect(datasourceKey, previous => {
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+    const isCurrent = () => requestId === requestIdRef.current;
     if (previous != null) {
       setColumns([]);
       resetColumnField();
@@ -112,6 +118,7 @@ export function ColumnSelect({
       const handleError = async (
         badResponse: Parameters<typeof getClientErrorObject>[0],
       ) => {
+        if (!isCurrent()) return;
         const errorText = selectClientErrorMessage(
           await getClientErrorObject(badResponse),
           t('An error has occurred'),
@@ -123,6 +130,7 @@ export function ColumnSelect({
       if (datasourceType === DatasourceType.SemanticView) {
         fetchSemanticViewStructure(datasetId)
           .then(({ dimensions }) => {
+            if (!isCurrent()) return;
             const cols: Column[] = semanticViewDimensionsToColumns(dimensions);
             const lookupValue = Array.isArray(value) ? value : [value];
             const valueExists = cols.some((column: Column) =>
@@ -133,7 +141,9 @@ export function ColumnSelect({
             }
             setColumns(cols);
           }, handleError)
-          .finally(() => setLoading(false));
+          .finally(() => {
+            if (isCurrent()) setLoading(false);
+          });
       } else {
         const endpoint = `/api/v1/dataset/${datasetId}?q=${rison.encode({
           columns: [
@@ -146,6 +156,7 @@ export function ColumnSelect({
         cachedSupersetGet({ endpoint })
           .then(
             ({ json: { result } }) => {
+              if (!isCurrent()) return;
               const lookupValue = Array.isArray(value) ? value : [value];
               const valueExists = result.columns.some((column: Column) =>
                 lookupValue?.includes(column.column_name),
@@ -162,8 +173,13 @@ export function ColumnSelect({
               return handleError(badResponse);
             },
           )
-          .finally(() => setLoading(false));
+          .finally(() => {
+            if (isCurrent()) setLoading(false);
+          });
       }
+    } else {
+      // A superseded request no longer clears the spinner itself.
+      setLoading(false);
     }
   });
 

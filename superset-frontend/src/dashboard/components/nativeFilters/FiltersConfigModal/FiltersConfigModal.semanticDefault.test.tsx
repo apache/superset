@@ -43,6 +43,7 @@ import {
 } from 'spec/fixtures/mockSemanticDashboardDatasources';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import {
+  act,
   createStore,
   render,
   screen,
@@ -1070,3 +1071,54 @@ test('a failed load reports its error for a filter type without a column select'
   expect(toast.text).toEqual(expect.any(String));
   expect(toast.text).not.toBe('');
 });
+
+test.each(['before', 'after'])(
+  'resolving semantic columns %s returning to the same-id SQL dataset keeps the SQL columns',
+  async timing => {
+    let releaseStructure: () => void = () => {};
+    const held = new Promise<void>(resolve => {
+      releaseStructure = resolve;
+    });
+    fetchMock.get(structureRoute(VIEW_ID), () =>
+      held.then(() => ({
+        result: {
+          name: VIEW_NAME,
+          semantic_selection_version: null,
+          dimensions: semanticViewDimensions,
+          metrics: [],
+        },
+      })),
+    );
+    allowDatasetRequests(VIEW_ID);
+    fetchMock.removeRoute('datasource-list');
+    mockCombinedDatasourceList([
+      sqlListItem(VIEW_ID),
+      { id: VIEW_ID, table_name: VIEW_NAME, kind: 'semantic_view' },
+    ]);
+    renderModal(sharedIdState(2, 1));
+    expect(
+      await within(await findDatasourceField()).findByText('sql_orders'),
+    ).toBeInTheDocument();
+    await chooseDatasource(VIEW_NAME);
+    await waitForDatasourceRequest(VIEW_ID);
+    if (timing === 'before') {
+      await act(async () => {
+        releaseStructure();
+        await fetchMock.callHistory.flush(true);
+      });
+    }
+    await chooseDatasource('sql_orders');
+    await openColumnOptions();
+    await waitFor(() =>
+      expect(within(openDropdown()).getByText('sql_only_column')).toBeVisible(),
+    );
+    await act(async () => {
+      releaseStructure();
+      await fetchMock.callHistory.flush(true);
+    });
+    expect(
+      within(openDropdown()).queryByText('Orders.status'),
+    ).not.toBeInTheDocument();
+    expect(within(openDropdown()).getByText('sql_only_column')).toBeVisible();
+  },
+);
