@@ -30,7 +30,8 @@ import {
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash-es';
 import { Slice } from 'src/dashboard/types';
-import { Operators } from '../constants';
+import { deleteTaggedObjects } from 'src/features/tags/tags';
+import { Operators, LEGACY_AGGREGATION_TAG } from '../constants';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 import { nanoid } from 'nanoid';
 import {
@@ -318,6 +319,26 @@ export const updateSlice =
             {},
           ),
         );
+      }
+      if (formData?.viz_type === 'pivot_table_v2') {
+        // Saving is one of the two ways (alongside the LegacyAggregationAlert's
+        // own "Accept" button) a user acknowledges a restored legacy result
+        // aggregation. Best-effort and silent: the vast majority of pivot
+        // table saves were never tagged, so a 404 here is the expected,
+        // common case, not a failure worth surfacing. Awaited (both on
+        // success and failure) before saveSliceSuccess dispatches below --
+        // that dispatch is what LegacyAggregationAlert re-fetches tags off
+        // of, so firing it before the DELETE has even been issued would
+        // race the refetch against the deletion and could leave the alert
+        // showing a tag this save already cleared.
+        await new Promise<void>(resolve => {
+          deleteTaggedObjects(
+            { objectType: 'chart', objectId: sliceId },
+            { name: LEGACY_AGGREGATION_TAG },
+            () => resolve(),
+            () => resolve(),
+          );
+        });
       }
       dispatch(saveSliceSuccess(response.json));
       addToasts(false, sliceName, addedToDashboard).map(dispatch);
