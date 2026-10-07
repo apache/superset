@@ -56,6 +56,22 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class ClickHouseQueryStoppedBeforeDispatchError(Exception):
+    """
+    Raised internally, right before a statement would be sent to
+    ClickHouse, when ``query.status`` is already STOPPED. Any exception
+    type works for this purpose: ``execute_query()``
+    (``superset/sql_lab.py``) wraps ``execute_with_cursor`` in its own
+    generic ``except Exception`` handler that refreshes ``query`` and
+    converts whatever lands here into the standard
+    ``SqlLabQueryStoppedException`` flow if the status is STOPPED. A
+    dedicated type exists only so the intent reads clearly at the raise
+    site and in stack traces -- importing ``SqlLabQueryStoppedException``
+    itself would be circular, since ``sql_lab.py`` already imports from
+    ``superset.db_engine_specs``.
+    """
+
+
 class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
@@ -717,6 +733,33 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         driver at all.
         """
         logger.debug("Query %d: Running query: %s", query.id, sql)
+
+        # Narrows (see the exception class's own docstring for how this is
+        # converted, and RCA.md for why this is closable for ClickHouse but
+        # not a given for every engine) the window between the per-block
+        # loop's own STOPPED check (sql_lab.py, which already ran once
+        # before this call) and actually sending the statement below.
+        # Postgres/MySQL are accidentally safe in this exact window because
+        # their cancel_query() kills the whole underlying connection, so a
+        # cursor.execute() landing after that fails outright and gets
+        # caught by execute_query()'s generic exception handler. ClickHouse
+        # KILL QUERY has no such side effect when nothing has matched yet
+        # -- the connection stays healthy and an unguarded cursor.execute()
+        # here would run the statement to completion even though Superset
+        # already told the user it stopped.
+        try:
+            db.session.refresh(query)
+            already_stopped = query.status == QueryStatus.STOPPED
+        except Exception:  # pylint: disable=broad-except
+            # Best-effort, same as cancel_query()'s own refresh below: if
+            # this fails for any reason, fall back to dispatching the
+            # statement rather than letting a diagnostic check become a
+            # new failure mode of query execution itself.
+            already_stopped = False
+
+        if already_stopped:
+            raise ClickHouseQueryStoppedBeforeDispatchError()
+
         cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
         settings = {"query_id": cancel_query_id} if cancel_query_id else None
         cls.execute(cursor, sql, query.database, settings=settings)

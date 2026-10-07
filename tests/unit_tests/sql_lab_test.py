@@ -126,6 +126,44 @@ def test_execute_query(mocker: MockerFixture, app: None) -> None:
     SupersetResultSet.assert_called_with([(42,)], cursor.description, db_engine_spec)
 
 
+def test_execute_query_converts_stopped_exception_to_sqllab_query_stopped(
+    mocker: MockerFixture, app: None
+) -> None:
+    """
+    This is the generic mechanism `ClickHouseConnectEngineSpec.
+    execute_with_cursor` relies on to refuse dispatching an already-STOPPED
+    query without needing to import or construct `SqlLabQueryStoppedException`
+    itself (which would be circular -- `sql_lab.py` already imports from
+    `superset.db_engine_specs`): any exception a `db_engine_spec`'s
+    `execute_with_cursor` raises is caught here, `query` is refreshed, and if
+    its status is STOPPED it's converted into `SqlLabQueryStoppedException`
+    -- regardless of the exception's type or message. Verified directly
+    against `execute_query` (not assumed) so a future change to this
+    mechanism would be caught here first.
+    """
+    from superset.sql_lab import SqlLabQueryStoppedException
+
+    query = mocker.MagicMock()
+    query.executed_sql = "SELECT 42 AS answer"
+    query.status = QueryStatus.STOPPED
+    query.limit = 1
+    database = query.database
+    database.allow_dml = False
+    db_engine_spec = database.db_engine_spec
+    db_engine_spec.execute_with_cursor.side_effect = Exception(
+        "refused to dispatch an already-stopped query"
+    )
+
+    cursor = mocker.MagicMock()
+    # Refreshing a MagicMock is a no-op; `query.status` is already set above
+    # to simulate QueryDAO.stop_query() having committed STOPPED during the
+    # window between the per-block loop's own earlier check and this call.
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
+    with pytest.raises(SqlLabQueryStoppedException):
+        execute_query(query, cursor=cursor, log_params={})
+
+
 def test_get_query_rolls_back_session_before_retrying(
     mocker: MockerFixture, app: SupersetApp
 ) -> None:

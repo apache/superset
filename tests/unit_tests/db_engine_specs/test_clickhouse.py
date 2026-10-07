@@ -830,6 +830,56 @@ def test_execute_with_cursor_omits_settings_when_no_cancel_id_recorded() -> None
     cursor_mock.execute.assert_called_once_with("SELECT 1", settings=None)
 
 
+def test_execute_with_cursor_refuses_to_dispatch_an_already_stopped_query() -> None:
+    """
+    The window this closes: the per-block loop's own STOPPED check
+    (sql_lab.py, which already ran once before this call) can pass, and
+    then Stop can be clicked and committed before the statement below is
+    actually sent. Unlike Postgres/MySQL (whose cancel_query() kills the
+    whole connection, so a cursor.execute() landing in this window fails
+    outright and gets caught upstream), ClickHouse's KILL QUERY has no such
+    side effect when nothing has matched yet -- without this check, the
+    statement would be sent and run to completion even though Superset
+    already told the user it stopped.
+    """
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+        ClickHouseQueryStoppedBeforeDispatchError,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 1
+    query.status = QueryStatus.STOPPED
+    cursor_mock = Mock()
+
+    with patch("superset.db_engine_specs.clickhouse.db.session.refresh"):
+        with pytest.raises(ClickHouseQueryStoppedBeforeDispatchError):
+            spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
+
+    # The real assertion: the statement must never reach the driver.
+    cursor_mock.execute.assert_not_called()
+
+
+def test_execute_with_cursor_dispatches_normally_when_not_stopped() -> None:
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 1
+    query.status = QueryStatus.RUNNING
+    cursor_mock = Mock()
+
+    with patch("superset.db_engine_specs.clickhouse.db.session.refresh"):
+        spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
+
+    cursor_mock.execute.assert_called_once_with("SELECT 1", settings=None)
+
+
 def test_cancel_query_issues_kill_query_sync_for_the_recorded_id() -> None:
     """
     SYNC is required: the default ASYNC mode returns immediately with
