@@ -1463,9 +1463,11 @@ def _table_queries(  # noqa: C901
         query["row_offset"] = 0
     elif form_data.get("server_pagination"):
         page_size = int(form_data.get("server_page_length") or 0)
-        configured_limit = int(form_data.get("row_limit") or 0)
+        configured_limit = int(query.get("row_limit") or 0)
         query["row_limit"] = (
-            min(page_size, configured_limit) if configured_limit else page_size
+            min(page_size, configured_limit)
+            if page_size > 0 and configured_limit
+            else configured_limit or page_size
         )
         query["row_offset"] = 0
 

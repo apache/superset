@@ -904,3 +904,129 @@ def test_mixed_update_retains_omitted_secondary_query_controls(
         assert after == before
         assert after["time_range"] == secondary_controls["time_range_b"]
         assert after["row_limit"] == 27
+
+
+@pytest.mark.parametrize(
+    "request_model",
+    [GenerateChartRequest, UpdateChartRequest, UpdateChartPreviewRequest],
+)
+@pytest.mark.parametrize(
+    "panel_grain,expected_grain",
+    [
+        ({}, "P1M"),
+        ({"time_grain": "P1D"}, "P1D"),
+        ({"time_grain_sqla": "P1W"}, "P1W"),
+        ({"time_grain": None}, None),
+    ],
+    ids=["native-monthly", "typed-override", "native-panel-override", "explicit-clear"],
+)
+def test_native_xy_base_axis_grain_reaches_generated_and_updated_queries(
+    request_model: type[
+        GenerateChartRequest | UpdateChartRequest | UpdateChartPreviewRequest
+    ],
+    panel_grain: dict[str, str | None],
+    expected_grain: str | None,
+) -> None:
+    """Native axis bucketing survives normalization without overriding panel state."""
+    request = request_model.model_validate(
+        {
+            "dataset_id": 7,
+            "identifier": 19,
+            "config": {
+                "viz_type": "echarts_timeseries_line",
+                "x_axis": {
+                    "expressionType": "SQL",
+                    "columnType": "BASE_AXIS",
+                    "sqlExpression": "ds",
+                    "label": "ds",
+                    "timeGrain": "P1M",
+                },
+                "metrics": ["revenue"],
+                **panel_grain,
+            },
+        }
+    )
+    config = request.config
+    assert config is not None
+    assert config.time_grain == expected_grain
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    if request_model is not GenerateChartRequest:
+        mapped = merge_form_data_for_update(
+            {
+                "viz_type": "echarts_timeseries_line",
+                "x_axis": "ds",
+                "metrics": ["revenue"],
+                **({"time_grain_sqla": "P1Y"} if expected_grain else {}),
+            },
+            mapped,
+            config,
+        )
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        query = build_query_dicts_from_form_data(mapped, 7, "table")[0]
+    assert query["columns"][0]["sqlExpression"] == "ds"
+    assert query["columns"][0].get("timeGrain") == expected_grain
+
+
+@pytest.mark.parametrize("kind", ["line", "bar", "area", "scatter"])
+@pytest.mark.parametrize(
+    "grouping,expected",
+    [
+        ({}, ["region"]),
+        ({"group_by": []}, []),
+        ({"group_by": [{"name": "product"}]}, ["product"]),
+        ({"groupby": []}, []),
+    ],
+    ids=["omitted", "clear", "replace", "native-clear"],
+)
+def test_xy_update_preserves_grouping_only_when_omitted(
+    kind: str,
+    grouping: dict[str, object],
+    expected: list[str],
+) -> None:
+    """Stacking updates retain saved series; explicit grouping owns replacement."""
+    from superset.mcp_service.chart.schemas import XYChartConfig
+
+    config = XYChartConfig.model_validate(
+        {
+            "x": {"name": "ds"},
+            "y": [{"name": "revenue", "saved_metric": True}],
+            "kind": kind,
+            "stacked": True,
+            **grouping,
+        }
+    )
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    saved = {
+        "viz_type": mapped["viz_type"],
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+    }
+    merged = merge_form_data_for_update(saved, deepcopy(mapped), config)
+    assert merged.get("groupby", []) == expected
+    assert merged["stack"] == "Stack"
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        query = build_query_dicts_from_form_data(merged, 7, "table")[0]
+    assert query["series_columns"] == expected
+    assert query["columns"][1:] == expected
+
+    cross_viz = merge_form_data_for_update(
+        {**saved, "viz_type": "pie"}, deepcopy(mapped), config
+    )
+    assert cross_viz.get("groupby", []) == (
+        ["product"] if expected == ["product"] else []
+    )

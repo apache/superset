@@ -766,3 +766,71 @@ def test_unused_query_builders_are_removed() -> None:
         "_DECK_TIMESERIES_VIZ_TYPES",
     ):
         assert not hasattr(helpers, name)
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize(
+    "page_size,row_limit,expected",
+    [
+        (0, 2, 2),
+        (None, 2, 2),
+        (1, 2, 1),
+        (10, 2, 2),
+        (10, 0, 10),
+        (0, 0, 0),
+    ],
+    ids=[
+        "zero-page",
+        "missing-page",
+        "smaller-page",
+        "larger-page",
+        "page-only",
+        "defaults",
+    ],
+)
+def test_table_pagination_respects_explicit_limit_without_positive_page_size(
+    viz_type: str,
+    page_size: int | None,
+    row_limit: int,
+    expected: int,
+) -> None:
+    """An unset pagination size cannot erase a caller's compile or preview cap."""
+    query = build_query_context_from_form_data(
+        {
+            "viz_type": viz_type,
+            "query_mode": "aggregate",
+            "groupby": ["region"],
+            "metrics": ["revenue"],
+            "server_pagination": True,
+            "server_page_length": page_size,
+            "row_limit": row_limit,
+        },
+        DATASOURCE,
+    )["queries"][0]
+    assert query["row_limit"] == expected
+    assert query["row_offset"] == 0
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize("page_size,expected", [(0, 2), (10, 2), (1, 1)])
+def test_table_pagination_keeps_query_builder_caller_cap(
+    viz_type: str, page_size: int, expected: int
+) -> None:
+    """The explicit compile cap takes precedence over the saved chart row limit."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+
+    query = build_query_objects_from_form_data(
+        {
+            "viz_type": viz_type,
+            "query_mode": "aggregate",
+            "groupby": ["region"],
+            "metrics": ["revenue"],
+            "server_pagination": True,
+            "server_page_length": page_size,
+            "row_limit": 1000,
+        },
+        row_limit=2,
+    )[0]
+    assert query["row_limit"] == expected

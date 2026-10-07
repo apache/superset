@@ -1598,8 +1598,14 @@ Same-visualization Mixed Timeseries updates preserve omitted secondary-query
 controls, including time range, row limits, time grain, and rolling/resample
 settings. Explicit secondary controls and clears replace the saved values.
 Same-visualization Table updates preserve saved ordering when `sort_by` is
-omitted; `sort_by: []` clears it. Sort-only Timeseries metrics retain their raw
-values when displayed metrics undergo rolling or cumulative processing.
+omitted; `sort_by: []` clears it. Same-visualization XY updates preserve saved
+series grouping when `group_by` is omitted; `group_by: []` clears it. Native XY
+`BASE_AXIS` SQL x-axis objects carry their `timeGrain` into the chart's
+`time_grain` unless a panel-level `time_grain` or `time_grain_sqla` is supplied.
+Table compile and preview row caps take precedence over saved row limits;
+server pagination can reduce a cap only when its page size is positive.
+Sort-only Timeseries metrics retain their raw values when displayed metrics
+undergo rolling or cumulative processing.
 
 If a successful `generate_chart` or `update_chart` write produces response
 content beyond serialization limits, the response retains `success: true` and

@@ -5130,6 +5130,9 @@ def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
                             expression_type == "SQL"
                             and native_x_axis.get("columnType") == "BASE_AXIS"
                         ):
+                            if not {"time_grain", "time_grain_sqla"} & config.keys():
+                                if "timeGrain" in native_x_axis:
+                                    config["time_grain"] = native_x_axis["timeGrain"]
                             native_x_axis = {
                                 "name": native_x_axis.get("sqlExpression"),
                                 "label": native_x_axis.get("label"),

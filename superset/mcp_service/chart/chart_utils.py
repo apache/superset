@@ -1844,8 +1844,9 @@ _SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
 # Presentation controls emitted sparsely by chart mappers need three-way update
 # semantics: omitted preserves saved native state, an explicit value replaces
 # it, and explicit ``None``/``False`` clears a truthy saved value when the mapper
-# has no canonical false/null representation.  Query roles are intentionally
-# absent: a replacement config always owns those through the plugin contract.
+# has no canonical false/null representation. Required query roles are absent:
+# a replacement config owns those through the plugin contract. Optional grouping
+# and ordering retain saved state unless their modeled fields are supplied.
 # Paths below also cover nested axis/legend models so an omitted nested property
 # is not mistaken for an explicit clear of the whole control.
 _MODELED_UPDATE_CONTROL_PATHS: dict[str, dict[str, tuple[tuple[str, ...], ...]]] = {
@@ -1901,6 +1902,7 @@ _MODELED_UPDATE_CONTROL_PATHS: dict[str, dict[str, tuple[tuple[str, ...], ...]]]
         "column_config": (("column_config",),),
     },
     "XYChartConfig": {
+        "groupby": (("group_by",),),
         "row_limit": (("row_limit",),),
         "series_limit": (("series_limit",),),
         "stack": (("stacked",),),
