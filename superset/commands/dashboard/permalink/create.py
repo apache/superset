@@ -115,10 +115,12 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 db.session.flush()
         except IntegrityError:
             # The SAVEPOINT is rolled back and the session is still usable. The
-            # winner's row is committed by now (READ COMMITTED, the default for
-            # MySQL and PostgreSQL metadata databases), so re-read it. If nothing
-            # is found, this was not the expected duplicate, so re-raise.
-            entry = KeyValueDAO.get_entry(self.resource, uuid_key)
+            # winner's row is committed by now, so re-read it. Use a locking read:
+            # under REPEATABLE READ (e.g. MySQL's default) a plain SELECT keeps
+            # using the snapshot taken by the lookup above and would not see the
+            # row the winner just committed. If nothing is found, this was not the
+            # expected duplicate, so re-raise.
+            entry = KeyValueDAO.get_entry(self.resource, uuid_key, for_update=True)
             if entry is None:
                 raise
         assert entry.id  # for type checks
