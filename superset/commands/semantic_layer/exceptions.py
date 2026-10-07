@@ -74,3 +74,22 @@ class SemanticViewCreateFailedError(CreateFailedError):
 
 class SemanticViewDeleteFailedError(DeleteFailedError):
     message = _("Semantic view could not be deleted.")
+
+
+class SemanticDeleteDependentsError(CommandException):
+    """A semantic view or layer still has live dependent assets."""
+
+    status = 409
+
+    def __init__(
+        self,
+        total: int,
+        dependents: list[dict[str, str | int]],
+        inaccessible_count: int = 0,
+    ) -> None:
+        self.total: int = total
+        self.dependents: list[dict[str, str | int]] = dependents
+        self.inaccessible_count: int = inaccessible_count
+        super().__init__(
+            _("Semantic source has dependent assets and cannot be deleted.")
+        )

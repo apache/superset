@@ -12044,6 +12044,9 @@ msgstr ""
 msgid "Semantic layer updated"
 msgstr ""
 
+msgid "Semantic source has dependent assets and cannot be deleted."
+msgstr ""
+
 msgid "Semantic view could not be created."
 msgstr ""
 

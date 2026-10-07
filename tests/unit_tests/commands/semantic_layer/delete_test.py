@@ -18,10 +18,14 @@
 from unittest.mock import MagicMock
 
 import pytest
+import sqlalchemy as sa
 from pytest_mock import MockerFixture
+from sqlalchemy.engine import Connection
+from sqlalchemy.orm import Session
 
 from superset.commands.semantic_layer.delete import DeleteSemanticLayerCommand
 from superset.commands.semantic_layer.exceptions import (
+    SemanticDeleteDependentsError,
     SemanticLayerForbiddenError,
     SemanticLayerNotFoundError,
 )
@@ -31,6 +35,11 @@ from superset.exceptions import SupersetSecurityException
 def test_delete_semantic_layer_success(mocker: MockerFixture) -> None:
     """Test successful deletion of a semantic layer."""
     mock_model = MagicMock()
+    mock_model.uuid = "00000000-0000-0000-0000-000000000001"
+    mocker.patch(
+        "superset.commands.semantic_layer.delete._dependent_assets",
+        return_value=(0, [], 0),
+    )
 
     dao = mocker.patch(
         "superset.commands.semantic_layer.delete.SemanticLayerDAO",
@@ -46,6 +55,32 @@ def test_delete_semantic_layer_success(mocker: MockerFixture) -> None:
 
     dao.find_by_uuid.assert_called_once_with("some-uuid")
     dao.delete.assert_called_once_with([mock_model])
+
+
+def test_delete_semantic_layer_refuses_dependents(mocker: MockerFixture) -> None:
+    """A layer delete must not cascade away a view still used by a chart."""
+    model: MagicMock = MagicMock()
+    model.uuid = "00000000-0000-0000-0000-000000000001"
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticLayerDAO"
+    )
+    dao.find_by_uuid.return_value = model
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.current_user_can_modify_object",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.delete._dependent_assets",
+        return_value=(1, [{"type": "chart", "id": 7, "name": "Revenue"}], 0),
+    )
+
+    exc_info: pytest.ExceptionInfo[SemanticDeleteDependentsError]
+    with pytest.raises(SemanticDeleteDependentsError) as exc_info:
+        DeleteSemanticLayerCommand("layer-uuid").run()
+
+    dao.delete.assert_not_called()
+    assert exc_info.value.total == 1
+    assert exc_info.value.dependents == [{"type": "chart", "id": 7, "name": "Revenue"}]
 
 
 def test_delete_semantic_layer_not_found(mocker: MockerFixture) -> None:
@@ -97,6 +132,11 @@ def test_delete_semantic_layer_creator_allowed(mocker: MockerFixture) -> None:
     """A non-admin who created the layer, but holds no explicit editorship
     on it, can still delete it."""
     mock_model = MagicMock()
+    mock_model.uuid = "00000000-0000-0000-0000-000000000001"
+    mocker.patch(
+        "superset.commands.semantic_layer.delete._dependent_assets",
+        return_value=(0, [], 0),
+    )
 
     dao = mocker.patch(
         "superset.commands.semantic_layer.delete.SemanticLayerDAO",
@@ -141,6 +181,11 @@ def test_delete_semantic_layer_non_creator_non_editor_forbidden(
 def test_delete_semantic_view_success(mocker: MockerFixture) -> None:
     """Test successful deletion of a semantic view."""
     mock_model = MagicMock()
+    mock_model.id = 42
+    mocker.patch(
+        "superset.commands.semantic_layer.delete._dependent_assets",
+        return_value=(0, [], 0),
+    )
 
     dao = mocker.patch(
         "superset.commands.semantic_layer.delete.SemanticViewDAO",
@@ -159,6 +204,271 @@ def test_delete_semantic_view_success(mocker: MockerFixture) -> None:
 
     dao.find_by_id.assert_called_once_with(42, id_column="id")
     dao.delete.assert_called_once_with([mock_model])
+
+
+def test_delete_semantic_view_refuses_dependents(mocker: MockerFixture) -> None:
+    """A view still used by a chart must not be hard-deleted."""
+    from superset.commands.semantic_layer.delete import DeleteSemanticViewCommand
+
+    model: MagicMock = MagicMock()
+    model.id = 42
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticViewDAO"
+    )
+    dao.find_by_id.return_value = model
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.current_user_can_modify_object",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.delete._dependent_assets",
+        return_value=(1, [{"type": "chart", "id": 7, "name": "Revenue"}], 0),
+    )
+
+    exc_info: pytest.ExceptionInfo[SemanticDeleteDependentsError]
+    with pytest.raises(SemanticDeleteDependentsError) as exc_info:
+        DeleteSemanticViewCommand(42).run()
+
+    dao.delete.assert_not_called()
+    assert exc_info.value.total == 1
+    assert exc_info.value.dependents == [{"type": "chart", "id": 7, "name": "Revenue"}]
+
+
+def test_bulk_delete_semantic_views_refuses_all_on_one_dependency(
+    mocker: MockerFixture,
+) -> None:
+    """A blocked view prevents every member of the bulk hard delete."""
+    from superset.commands.semantic_layer.delete import BulkDeleteSemanticViewCommand
+
+    models: list[MagicMock] = [MagicMock(id=42), MagicMock(id=43)]
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticViewDAO"
+    )
+    dao.find_by_ids.return_value = models
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.current_user_can_modify_object",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.delete._dependent_assets",
+        return_value=(1, [{"type": "chart", "id": 7, "name": "Revenue"}], 0),
+    )
+
+    with pytest.raises(SemanticDeleteDependentsError):
+        BulkDeleteSemanticViewCommand([42, 43]).run()
+
+    dao.delete.assert_not_called()
+
+
+def test_semantic_delete_lists_live_dependents_only(
+    session: Session, mocker: MockerFixture
+) -> None:
+    """Charts, dashboard membership and active schedules form the dependency set."""
+    from datetime import datetime
+
+    from superset.commands.semantic_layer.delete import _dependent_assets
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.reports.models import ReportSchedule
+
+    Slice.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    connection: Connection = session.get_bind().connect()
+    connection.execute(
+        Slice.__table__.insert().values(  # pylint: disable=no-member
+            id=711,
+            slice_name="Live chart",
+            datasource_type="semantic_view",
+            datasource_id=42,
+        )
+    )
+    connection.execute(
+        Slice.__table__.insert().values(  # pylint: disable=no-member
+            id=712,
+            slice_name="Deleted chart",
+            datasource_type="semantic_view",
+            datasource_id=42,
+            deleted_at=datetime(2026, 1, 1),
+        )
+    )
+    connection.execute(
+        Slice.__table__.insert().values(  # pylint: disable=no-member
+            id=717,
+            slice_name=None,
+            datasource_type="semantic_view",
+            datasource_id=42,
+        )
+    )
+    connection.execute(
+        Dashboard.__table__.insert().values(  # pylint: disable=no-member
+            id=713, dashboard_title="Live dashboard"
+        )
+    )
+    connection.exec_driver_sql(
+        "INSERT INTO dashboard_slices (dashboard_id, slice_id) VALUES (713, 711)"
+    )
+    connection.execute(
+        ReportSchedule.__table__.insert(),  # pylint: disable=no-member
+        [
+            {
+                "id": 714,
+                "type": "Alert",
+                "name": "Live alert",
+                "crontab": "* * * * *",
+                "chart_id": 711,
+                "dashboard_id": None,
+                "active": True,
+            },
+            {
+                "id": 715,
+                "type": "Report",
+                "name": "Live report",
+                "crontab": "* * * * *",
+                "dashboard_id": 713,
+                "chart_id": None,
+                "active": True,
+            },
+            {
+                "id": 716,
+                "type": "Report",
+                "name": "Inactive report",
+                "crontab": "* * * * *",
+                "chart_id": 711,
+                "dashboard_id": None,
+                "active": False,
+            },
+        ],
+    )
+    mocker.patch("superset.db.session.scalar", side_effect=connection.scalar)
+    mocker.patch("superset.db.session.execute", side_effect=connection.execute)
+    mocker.patch("superset.security_manager.can_access", return_value=True)
+    mocker.patch(
+        "superset.security_manager.can_access_all_datasources", return_value=True
+    )
+    mocker.patch("superset.security_manager.is_admin", return_value=True)
+
+    total: int
+    dependents: list[dict[str, str | int]]
+    inaccessible_count: int
+    total, dependents, inaccessible_count = _dependent_assets(sa.select(sa.literal(42)))
+
+    assert total == 5
+    assert inaccessible_count == 0
+    assert {item["name"] for item in dependents} == {
+        "Live chart",
+        "Live dashboard",
+        "Live alert",
+        "Live report",
+        "Untitled",
+    }
+    mocker.patch("superset.commands.semantic_layer.delete._DEPENDENT_LIMIT", 2)
+    capped_total: int
+    capped_dependents: list[dict[str, str | int]]
+    capped_inaccessible_count: int
+    capped_total, capped_dependents, capped_inaccessible_count = _dependent_assets(
+        sa.select(sa.literal(42))
+    )
+    assert capped_total == 5
+    assert len(capped_dependents) == 2
+    assert capped_inaccessible_count == 0
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.ChartFilter.apply",
+        return_value=session.query(Slice.id).filter(sa.false()),
+    )
+    hidden_total: int
+    hidden_dependents: list[dict[str, str | int]]
+    hidden_count: int
+    hidden_total, hidden_dependents, hidden_count = _dependent_assets(
+        sa.select(sa.literal(42))
+    )
+    assert hidden_total == 5
+    assert hidden_count == 2
+    assert all(dependent["type"] != "chart" for dependent in hidden_dependents)
+    connection.close()
+
+
+def test_semantic_delete_hides_unreadable_dependent(
+    session: Session, mocker: MockerFixture
+) -> None:
+    """A source editor gets a 409 without an unreadable chart's identity."""
+    import uuid
+
+    from superset.commands.semantic_layer.delete import DeleteSemanticViewCommand
+    from superset.models.slice import Slice
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+
+    Slice.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    connection: Connection = session.get_bind().connect()
+    try:
+        layer_uuid: uuid.UUID = uuid.uuid4()
+        connection.execute(
+            SemanticLayer.__table__.insert().values(  # pylint: disable=no-member
+                uuid=layer_uuid, name="Source", type="test"
+            )
+        )
+        connection.execute(
+            SemanticView.__table__.insert().values(  # pylint: disable=no-member
+                id=42, name="View", semantic_layer_uuid=layer_uuid
+            )
+        )
+        connection.execute(
+            Slice.__table__.insert().values(  # pylint: disable=no-member
+                id=721,
+                slice_name="Private chart",
+                datasource_type="semantic_view",
+                datasource_id=42,
+            )
+        )
+        mocker.patch("superset.db.session.scalar", side_effect=connection.scalar)
+        mocker.patch("superset.db.session.execute", side_effect=connection.execute)
+        mocker.patch(
+            "superset.security_manager.can_access",
+            return_value=False,
+        )
+        dao: MagicMock = mocker.patch(
+            "superset.commands.semantic_layer.delete.SemanticViewDAO"
+        )
+        model: MagicMock = MagicMock()
+        model.id = 42
+        dao.find_by_id.return_value = model
+        mocker.patch(
+            "superset.commands.semantic_layer.delete.current_user_can_modify_object",
+            return_value=True,
+        )
+
+        exc_info: pytest.ExceptionInfo[SemanticDeleteDependentsError]
+        with pytest.raises(SemanticDeleteDependentsError) as exc_info:
+            DeleteSemanticViewCommand(42).run()
+
+        dao.delete.assert_not_called()
+        assert exc_info.value.status == 409
+        assert exc_info.value.total == 1
+        assert exc_info.value.dependents == []
+        assert exc_info.value.inaccessible_count == 1
+    finally:
+        connection.close()
+
+
+def test_semantic_delete_counts_use_one_snapshot(
+    session: Session, mocker: MockerFixture
+) -> None:
+    """A concurrent insertion cannot make the hidden count negative."""
+    from superset.commands.semantic_layer.delete import _dependent_assets
+
+    stale_scalar: MagicMock = mocker.patch(
+        "superset.db.session.scalar", side_effect=[1, 2]
+    )
+    rows: MagicMock = mocker.patch("superset.db.session.execute")
+    rows.return_value.one.return_value = (1, 0)
+    rows.return_value.all.return_value = []
+    mocker.patch("superset.security_manager.can_access", return_value=False)
+
+    total: int
+    dependents: list[dict[str, str | int]]
+    inaccessible_count: int
+    total, dependents, inaccessible_count = _dependent_assets(sa.select(sa.literal(42)))
+
+    assert (total, dependents, inaccessible_count) == (1, [], 1)
+    stale_scalar.assert_not_called()
 
 
 def test_delete_semantic_view_forbidden(mocker: MockerFixture) -> None:
@@ -188,6 +498,11 @@ def test_delete_semantic_view_creator_allowed(mocker: MockerFixture) -> None:
     from superset.commands.semantic_layer.delete import DeleteSemanticViewCommand
 
     mock_model = MagicMock()
+    mock_model.id = 42
+    mocker.patch(
+        "superset.commands.semantic_layer.delete._dependent_assets",
+        return_value=(0, [], 0),
+    )
 
     dao = mocker.patch(
         "superset.commands.semantic_layer.delete.SemanticViewDAO",
@@ -251,6 +566,10 @@ def test_delete_semantic_view_not_found(mocker: MockerFixture) -> None:
 def test_bulk_delete_semantic_view_success(mocker: MockerFixture) -> None:
     """Test successful bulk deletion of semantic views."""
     mock_models = [MagicMock(), MagicMock()]
+    mocker.patch(
+        "superset.commands.semantic_layer.delete._dependent_assets",
+        return_value=(0, [], 0),
+    )
 
     dao = mocker.patch(
         "superset.commands.semantic_layer.delete.SemanticViewDAO",
@@ -295,6 +614,10 @@ def test_bulk_delete_semantic_view_creator_allowed(mocker: MockerFixture) -> Non
     from superset.commands.semantic_layer.delete import BulkDeleteSemanticViewCommand
 
     mock_models = [MagicMock(), MagicMock()]
+    mocker.patch(
+        "superset.commands.semantic_layer.delete._dependent_assets",
+        return_value=(0, [], 0),
+    )
 
     dao = mocker.patch(
         "superset.commands.semantic_layer.delete.SemanticViewDAO",
