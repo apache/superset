@@ -91,6 +91,45 @@ def test_cum_with_gap():
     assert series_to_list(post_df["y2"]) == [1.0, 3.0, 3.0, 7.0]
 
 
+def test_cum_with_mixed_column_mapping():
+    """
+    One mapping may cumulate a metric in place and add another alongside it.
+
+    Appending the in-place metric as well leaves two columns under the same
+    label, so `flatten` and serialization see a DataFrame where they expect a
+    Series.
+    """
+    pivot_df = pp.pivot(
+        df=multiple_metrics_df,
+        index=["dttm"],
+        columns=["country"],
+        aggregates={
+            "sum_metric": {"operator": "sum"},
+            "count_metric": {"operator": "sum"},
+        },
+    )
+    post_df = pp.cum(
+        df=pivot_df,
+        operator="sum",
+        columns={"sum_metric": "sum_metric", "count_metric": "count_cum"},
+    )
+
+    assert not post_df.columns.duplicated().any()
+    assert post_df.columns.tolist() == [
+        ("count_metric", "UK"),
+        ("count_metric", "US"),
+        ("sum_metric", "UK"),
+        ("sum_metric", "US"),
+        ("count_cum", "UK"),
+        ("count_cum", "US"),
+    ]
+    # sum_metric is cumulated in place, count_metric is left alone and its
+    # cumulative values land in count_cum.
+    assert series_to_list(post_df[("sum_metric", "UK")]) == [5, 12]
+    assert series_to_list(post_df[("count_metric", "UK")]) == [1, 3]
+    assert series_to_list(post_df[("count_cum", "UK")]) == [1, 4]
+
+
 def test_cum_after_pivot_with_single_metric():
     pivot_df = pp.pivot(
         df=single_metric_df,
