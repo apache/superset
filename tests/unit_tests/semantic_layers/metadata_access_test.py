@@ -62,6 +62,7 @@ def test_enabled_chart_read_keeps_canonical_policy_with_resolved_chart_fixture(
     chart: MagicMock = MagicMock()
     chart.datasource = view
     chart.datasource_id = view.id
+    chart.datasource_type = view.type
     dashboard: MagicMock = MagicMock()
     dashboard.slices = [chart]
     sm: MagicMock = MagicMock(spec=SupersetSecurityManager)
