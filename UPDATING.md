@@ -27,9 +27,13 @@ assists people when migrating to a new version.
 - Semantic-layer providers may opt into `SemanticLayer.result_cache_version` to
   isolate chart, filter-value and chart-backed annotation results from older
   producer guarantees. The default `None` preserves existing cache keys. Providers
-  enforcing completeness should raise `SemanticResultCompletenessError` when
-  results are incomplete or cannot be verified; these failures do not publish a
-  successful async result cache key. Deploy compatible host/provider versions to
+  enforcing completeness should raise the public
+  `superset_core.semantic_layers.errors.SemanticResultIncompleteError` when
+  results are incomplete or cannot be verified (an additive `apache-superset-core`
+  API, so a minor release); the host converts it to its client error, and these
+  failures do not publish a successful async result cache key. A provider raising
+  `superset.exceptions.SemanticResultCompletenessError` directly is still accepted
+  for one release. Deploy compatible host/provider versions to
   all web and worker processes and drain old deliveries before activating a new
   guarantee. Mixed fleets and an old host with an opted-in provider are unsupported.
 

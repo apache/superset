@@ -19,11 +19,18 @@ under the License.
 
 # Semantic result completeness
 
-Providers can reject incomplete or unverifiable query results with
-`SemanticResultCompletenessError("incomplete")` or
-`SemanticResultCompletenessError("unverified")`. Its fixed translated messages
-provide retry guidance without accepting upstream diagnostic text. The exception
-is a `QueryObjectValidationError`; chart and value APIs return a client error, and
+Providers reject incomplete or unverifiable results from `get_table`,
+`get_values` and `get_row_count` by raising the public
+`superset_core.semantic_layers.errors.SemanticResultIncompleteError("incomplete")`
+or `SemanticResultIncompleteError("unverified")`. It is a plain exception that
+carries only the closed reason code, so providers need no `superset` import.
+The host converts it at the provider-call boundary into its own
+`SemanticResultCompletenessError`, whose fixed translated messages provide retry
+guidance without accepting upstream diagnostic text. For one release the host
+also accepts `superset.exceptions.SemanticResultCompletenessError` raised
+directly by a provider; new providers should raise the `superset_core` error.
+The host error is a `QueryObjectValidationError`; chart and value APIs return a
+client error, and
 async execution fails before publishing a successful result cache key. Required
 annotation queries propagate the same failure. Do not substitute an empty result
 or retry a failed filtered query without its filter.

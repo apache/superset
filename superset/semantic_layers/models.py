@@ -60,6 +60,7 @@ from superset.explorables.base import TimeGrainDict
 from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
+from superset.semantic_layers.completeness import provider_completeness
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -456,7 +457,8 @@ class SemanticView(AuditMixinNullable, Model):
                 value=f"%{search}%",
             )
             try:
-                result = self.implementation.get_values(dimension, {narrowing})
+                with provider_completeness():
+                    result = self.implementation.get_values(dimension, {narrowing})
             except SemanticResultCompletenessError:
                 raise
             except Exception:  # pylint: disable=broad-exception-caught
@@ -471,9 +473,11 @@ class SemanticView(AuditMixinNullable, Model):
                     dimension.name,
                     exc_info=True,
                 )
-                result = self.implementation.get_values(dimension, None)
+                with provider_completeness():
+                    result = self.implementation.get_values(dimension, None)
         else:
-            result = self.implementation.get_values(dimension, None)
+            with provider_completeness():
+                result = self.implementation.get_values(dimension, None)
 
         # Some drivers report zero rows as ``results is None``.
         if result.results is None or result.results.num_rows == 0:

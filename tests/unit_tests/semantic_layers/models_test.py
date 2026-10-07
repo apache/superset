@@ -2749,3 +2749,27 @@ def test_dataset_delete_keeps_permission_a_semantic_view_owns(session: Any) -> N
     assert session.get(SemanticView, view.id) is not None
     assert security_manager.find_permission_view_menu("datasource_access", key)
     assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
+
+
+@pytest.mark.parametrize("search", ["oo", None], ids=["search", "page"])
+def test_public_completeness_error_in_values_is_host_error_without_retry(
+    mock_implementation: MagicMock,
+    search: str | None,
+) -> None:
+    """A docs-following provider's error must not trigger the unfiltered retry."""
+    from superset_core.semantic_layers.errors import SemanticResultIncompleteError
+
+    from superset.exceptions import SemanticResultCompletenessError
+
+    view: SemanticView = SemanticView()
+    failure: SemanticResultIncompleteError = SemanticResultIncompleteError("unverified")
+    mock_implementation.get_values.side_effect = [failure, _values_result(["Books"])]
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        with pytest.raises(SemanticResultCompletenessError) as excinfo:
+            view.values_for_column("category", search=search)
+    assert excinfo.value.reason == "unverified"
+    assert mock_implementation.get_values.call_count == 1
