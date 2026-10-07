@@ -566,6 +566,131 @@ def _save_with_transform(
     return mock_orm
 
 
+def _save_with_mapping(
+    app: Flask,
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    *,
+    partition_column: str,
+    partition_mapped_column: str | None = None,
+    main_dttm_col: str | None = "event_time",
+) -> MagicMock:
+    """
+    `_save_with_transform` for the mapping's column *references* rather than
+    the transform. The feature flag is turned on because the gate under test is
+    gated on it, the same way `UpdateDatasetCommand`'s call is.
+    """
+    from superset.models.core import Database
+
+    stored_column = MagicMock()
+    stored_column.column_name = "event_time"
+    stored_column.partition_value_transform = None
+
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    mock_orm.table_name = "my_table"
+    mock_orm.schema = "public"
+    mock_orm.catalog = None
+    mock_orm.columns = [stored_column]
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+
+    raw_save = _get_view_func("save")
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+    try:
+        with app.test_request_context(
+            "/datasource/save/",
+            method="POST",
+            data={
+                "data": superset_json.dumps(
+                    {
+                        "id": 1,
+                        "type": "table",
+                        "database": {"id": 1},
+                        "main_dttm_col": main_dttm_col,
+                        "partition_column": partition_column,
+                        "partition_mapped_column": partition_mapped_column,
+                        "columns": [{"column_name": "event_time"}],
+                    }
+                )
+            },
+        ):
+            raw_save(_view_self())
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    return mock_orm
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_refuses_a_partition_column_the_dataset_does_not_have(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    Its transform sibling was only half the payload. `partition_column` and
+    `partition_mapped_column` ride in on `update_from_object` as well, and
+    nothing checked them -- so a payload naming a column the dataset does not
+    have was stored and answered 200.
+
+    Every later `PUT /api/v1/dataset/<pk>` then failed
+    `_validate_partition_mapping` with a column-not-found error, including a
+    description-only one, which carries no columns payload and so cannot reach
+    the branch that forgives a stored-only dangle. The dataset could not be
+    saved from again until someone repaired the reference by hand.
+    """
+    mock_orm = _save_with_mapping(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        partition_column="no_such_column",
+    )
+
+    mock_json_error_response.assert_called_once()
+    assert mock_json_error_response.call_args.kwargs["status"] == 422
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_allows_an_implicit_self_mapping(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    Only the blocking issues refuse the write. A null override whose
+    `main_dttm_col` happens to equal the partition column is Tier 2 in
+    `validate_partition_mapping` by design -- blocking it would recreate the
+    unsaveable dataset the gate exists to prevent, just from the other side.
+    """
+    mock_orm = _save_with_mapping(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        partition_column="event_time",
+        main_dttm_col="event_time",
+    )
+
+    mock_json_error_response.assert_not_called()
+    mock_orm.update_from_object.assert_called_once()
+
+
 @patch("superset.views.datasource.views._", _identity_gettext)
 @patch("superset.views.datasource.views.json_error_response")
 @patch("superset.views.datasource.views.db")

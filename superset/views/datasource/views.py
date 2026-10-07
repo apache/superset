@@ -25,13 +25,16 @@ from flask_babel import _
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoResultFound, NoSuchTableError
 
-from superset import db, event_logger, security_manager
+from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
 from superset.connectors.sqla.models import SqlaTable
-from superset.connectors.sqla.partition_mapping import stored_expression_error
+from superset.connectors.sqla.partition_mapping import (
+    stored_expression_error,
+    validate_partition_mapping,
+)
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
@@ -133,6 +136,64 @@ def _partition_transform_error(
     return None
 
 
+def _partition_mapping_reference_error(
+    orm_datasource: Any,
+    datasource_dict: dict[str, Any],
+) -> str | None:
+    """
+    Why this request's partition mapping references cannot be stored, if any.
+
+    Its sibling above covers the transform. `partition_column` and
+    `partition_mapped_column` ride in on `update_from_object` too, and nothing
+    checked them: a payload naming a column the dataset does not have was
+    stored and answered 200, and then *every* later
+    ``PUT /api/v1/dataset/<pk>`` failed `_validate_partition_mapping` with a
+    column-not-found error -- including a description-only one, which carries no
+    columns payload and so cannot reach the branch that forgives a stored-only
+    dangle. The dataset was left in a state it could not be saved from until
+    someone repaired the reference by hand.
+
+    Only the blocking issues. The implicit self-mapping -- a null override where
+    ``main_dttm_col`` happens to equal the partition column -- is Tier 2 by
+    design in `validate_partition_mapping`, and refusing it here would recreate
+    exactly the unsaveable dataset this function exists to prevent.
+
+    Gated on the feature flag, like `UpdateDatasetCommand`'s own call: with the
+    flag off nothing mirrors, and a deployment that never turned the feature on
+    should not start failing saves over a reference nothing reads.
+    """
+    if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
+        return None
+
+    partition_column = datasource_dict.get("partition_column")
+    if not partition_column:
+        return None
+
+    database = getattr(orm_datasource, "database", None)
+    if database is None:
+        return None
+
+    # The columns the request is about to write, not the ones in storage:
+    # `update_from_object` replaces the collection, so a reference has to be
+    # checked against what will be there afterwards.
+    column_names = {
+        column.get("column_name")
+        for column in datasource_dict.get("columns") or []
+        if column.get("column_name")
+    }
+    for issue in validate_partition_mapping(
+        column_names=column_names,
+        partition_column=partition_column,
+        partition_mapped_column=datasource_dict.get("partition_mapped_column"),
+        main_dttm_col=datasource_dict.get("main_dttm_col"),
+        transform=None,
+        engine=database.backend,
+    ):
+        if issue.blocking:
+            return str(issue.message)
+    return None
+
+
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
 
@@ -213,6 +274,11 @@ class Datasource(BaseSupersetView):
         # correct it, not a bundle where failing the whole dataset over one
         # expression is the worse trade.
         if error := _partition_transform_error(orm_datasource, datasource_dict):
+            return json_error_response(error, status=422)
+        # And the mapping's own column references, for the same reason: they
+        # ride in on `update_from_object` with no validation, and a dangling one
+        # fails every later PUT rather than this request.
+        if error := _partition_mapping_reference_error(orm_datasource, datasource_dict):
             return json_error_response(error, status=422)
 
         orm_datasource.update_from_object(datasource_dict)
