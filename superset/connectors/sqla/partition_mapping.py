@@ -1773,6 +1773,81 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
     return issues
 
 
+def drop_unmapped_value_transforms(
+    columns: list[dict[str, Any]] | None,
+    *,
+    partition_column: str | None,
+    partition_mapped_column: str | None,
+    main_dttm_col: str | None,
+    names_by_id: dict[int, str] | None = None,
+) -> list[str]:
+    """
+    Null the value transform on every *incoming* column the mapping cannot mirror.
+
+    The write-side twin of `DatasetDAO.clear_unmapped_partition_transforms`,
+    which answers for the model. A mapping has exactly one mirrored column, so
+    at most one column may carry a transform. One parked on any other column is
+    invisible -- no row but the mapped one renders a transform -- and yet it is
+    stored, and it goes live the moment the mapped column resolves back to it.
+    Clearing an override is enough to do that: a null
+    ``partition_mapped_column`` means "follow ``main_dttm_col``".
+
+    Ungated on the feature flag, unlike its model-level twin, and the difference
+    is what each one discards. That one drops stored configuration, so with the
+    flag off it would be pure loss. This one drops only a value the request in
+    hand is asking to write where the invariant says none may live -- and the
+    flag-off window is precisely when such a value gets parked for later, since
+    the editor hides these fields and the model-level pass declines to run.
+
+    Three writers reach the columns with no effective model-level pass between
+    them, which is why this exists at all: the deprecated
+    ``POST /datasource/save/``, which writes straight through
+    `update_from_object` and so never had one; and a
+    ``PUT /api/v1/dataset/<pk>`` or a dataset import made while the flag is
+    off, where the pass runs on both sides of the write and declines on both.
+
+    Mutates the payload in place, because every caller hands its own request
+    dict straight on to the code that writes it. Returns the names it cleared,
+    so the caller can say so in a log: this is a silent correction to a payload
+    whose author may have meant it.
+
+    A column whose payload mentions neither field is left alone. "Incoming" is
+    the whole scope -- a transform already in storage on a column this request
+    says nothing about is the model-level pass's business, under its own flag.
+
+    The mapped column resolves the way every other reader resolves it,
+    ``partition_mapped_column or main_dttm_col``, and resolves to nothing
+    without a partition column -- in which case no column may hold a transform
+    either.
+
+    :param names_by_id: how to read the name off a payload entry that gives
+        only an ``id``. `DatasetDAO._upsert_columns` identifies an existing
+        column by its primary key and lets ``column_name`` be omitted -- the
+        column keeps the name it has -- so without this an ordinary PUT looked
+        like a payload of nameless columns, none of which matched the mapped
+        one, and every transform in it was dropped. Callers whose writer keys
+        on the name instead (`update_from_object`, the importer) pass nothing.
+        An entry this cannot name is left alone rather than guessed at.
+    """
+    mapped_column = (
+        (partition_mapped_column or main_dttm_col) if partition_column else None
+    )
+    cleared: list[str] = []
+    for column in columns or []:
+        name = column.get("column_name")
+        if name is None and names_by_id is not None:
+            name = names_by_id.get(column.get("id"))
+        if name is None or name == mapped_column:
+            continue
+        if column.get("partition_value_transform") or column.get(
+            "partition_transform_is_monotonic"
+        ):
+            column["partition_value_transform"] = None
+            column["partition_transform_is_monotonic"] = False
+            cleared.append(name)
+    return cleared
+
+
 def validate_transform(
     transform: str | None,
     engine: str,

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from collections import Counter
 from typing import Any
 
@@ -32,6 +33,7 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.partition_mapping import (
+    drop_unmapped_value_transforms,
     stored_expression_error,
     validate_partition_mapping,
 )
@@ -57,6 +59,8 @@ from superset.views.datasource.schemas import (
 from superset.views.datasource.utils import get_samples
 from superset.views.error_handling import handle_api_exception
 from superset.views.utils import sanitize_datasource_data
+
+logger = logging.getLogger(__name__)
 
 # Datasource types whose ``datasource_id`` refers to a dataset row.
 _DATASET_TYPES = frozenset({DatasourceType.TABLE.value, DatasourceType.DATASET.value})
@@ -263,6 +267,45 @@ class Datasource(BaseSupersetView):
                     columns=",".join(duplicates),
                 ),
                 status=409,
+            )
+        # The mapping's one-transform invariant, against the columns this
+        # request is about to write. `update_from_object` sets every field in
+        # `update_from_object_fields` straight onto the column, so nothing
+        # between here and storage would notice a transform parked on a column
+        # the mapping does not mirror -- invisible in the editor, since no row
+        # but the mapped one renders a transform, and live the moment the mapped
+        # column resolves back to it. `DatasetDAO.update` runs a model-level
+        # pass for this; this endpoint bypasses that along with the rest of
+        # `UpdateDatasetCommand`.
+        #
+        # Corrected rather than refused, unlike the gates below. Those are about
+        # a value that may not be stored anywhere; this is about a value in the
+        # wrong place, and the payload a GET-then-POST client sends back carries
+        # whatever a previous writer left there -- so a 422 would punish the
+        # client that is merely echoing the state it was given.
+        #
+        # Which is also why it runs *first*. A parked transform that is not a
+        # storable expression would otherwise fail the gate below and 422 every
+        # save, leaving the dataset uneditable over a value nobody asked to
+        # keep; dropped here, there is nothing left for that gate to refuse.
+        # What it still guards is the transform this request actually stores,
+        # the one on the mapped column.
+        #
+        # Read from the payload alone, with no fallback to the model: every
+        # field here rides in on `update_from_object`, which writes
+        # `obj.get(attr)` for each one, so what this request says *is* what the
+        # mapping will be.
+        if cleared := drop_unmapped_value_transforms(
+            datasource_dict.get("columns"),
+            partition_column=datasource_dict.get("partition_column"),
+            partition_mapped_column=datasource_dict.get("partition_mapped_column"),
+            main_dttm_col=datasource_dict.get("main_dttm_col"),
+        ):
+            logger.info(
+                "Dataset %s: dropped an incoming partition value transform "
+                "from %s, which the mapping does not mirror",
+                datasource_id,
+                ", ".join(cleared),
             )
         # `partition_value_transform` rides in on `update_from_object`, which
         # writes every field in `update_from_object_fields` straight onto the

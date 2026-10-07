@@ -518,7 +518,14 @@ def _save_with_transform(
     stored_transform: str | None = None,
 ) -> MagicMock:
     """
-    Drive ``save`` with one column carrying ``transform``.
+    Drive ``save`` with the mapped column carrying ``transform``.
+
+    The payload names a partition column and leaves ``event_time`` as the
+    default datetime column, so ``event_time`` is the column the mapping
+    mirrors. That matters because `drop_unmapped_value_transforms` runs ahead
+    of the gate under test: a transform on any *other* column is dropped rather
+    than refused, which is its own test below. This asks about the transform the
+    request would actually store.
 
     Takes the configured app rather than a bare ``Flask``, unlike its
     neighbours: a rejection renders a ``SupersetError``, whose issue codes are
@@ -551,11 +558,14 @@ def _save_with_transform(
                     "id": 1,
                     "type": "table",
                     "database": {"id": 1},
+                    "main_dttm_col": "event_time",
+                    "partition_column": "dt_epoch",
                     "columns": [
                         {
                             "column_name": "event_time",
                             "partition_value_transform": transform,
-                        }
+                        },
+                        {"column_name": "dt_epoch"},
                     ],
                 }
             )
@@ -782,6 +792,172 @@ def test_save_allows_an_ordinary_value_transform(
 
     mock_json_error_response.assert_not_called()
     mock_orm.update_from_object.assert_called_once()
+
+
+def _save_with_parked_transform(
+    app: Flask,
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    transform: str,
+    *,
+    feature_enabled: bool,
+) -> MagicMock:
+    """
+    Drive ``save`` with a transform on a column the mapping does not mirror.
+
+    ``event_time`` is the mapped column -- the default datetime column, with no
+    override -- so the transform on ``other_time`` is parked: invisible in the
+    editor, and live the moment the mapped column resolves back to it.
+
+    Returns the ORM mock. The assertions read `update_from_object`'s argument
+    rather than the payload built here: the view parses its own dict out of
+    ``request.form``, so the one this function holds is never the one corrected.
+    """
+    from superset.models.core import Database
+
+    stored_column = MagicMock()
+    stored_column.column_name = "event_time"
+    stored_column.partition_value_transform = None
+
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    mock_orm.table_name = "my_table"
+    mock_orm.schema = "public"
+    mock_orm.catalog = None
+    mock_orm.columns = [stored_column]
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+
+    payload: dict[str, Any] = {
+        "id": 1,
+        "type": "table",
+        "database": {"id": 1},
+        "main_dttm_col": "event_time",
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": None,
+        "columns": [
+            {"column_name": "event_time"},
+            {"column_name": "dt_epoch"},
+            {
+                "column_name": "other_time",
+                "partition_value_transform": transform,
+                "partition_transform_is_monotonic": True,
+            },
+        ],
+    }
+
+    raw_save = _get_view_func("save")
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = feature_enabled
+    try:
+        with app.test_request_context(
+            "/datasource/save/",
+            method="POST",
+            data={"data": superset_json.dumps(payload)},
+        ):
+            raw_save(_view_self())
+    finally:
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    return mock_orm
+
+
+def _written_column(mock_orm: MagicMock, column_name: str) -> dict[str, Any]:
+    """The column ``update_from_object`` was handed, by name."""
+    mock_orm.update_from_object.assert_called_once()
+    written = mock_orm.update_from_object.call_args[0][0]
+    return next(
+        column for column in written["columns"] if column["column_name"] == column_name
+    )
+
+
+@pytest.mark.parametrize("feature_enabled", [True, False])
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_drops_a_transform_the_mapping_does_not_mirror(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    feature_enabled: bool,
+    app: Flask,
+) -> None:
+    """
+    NEW-R11-01, this endpoint's half.
+
+    A mapping mirrors one column, so only that column may carry a transform.
+    This endpoint writes straight through ``update_from_object``, around the
+    model-level pass `DatasetDAO.update` runs, so a transform parked on any
+    other column was stored -- invisible, because no row but the mapped one
+    renders a transform, and live the moment the mapped column resolved back to
+    it. QA reached that from the editor with two clicks and no typing: a range
+    filter then returned 181 rows instead of 183 and ``=`` returned 0 instead of
+    1, with the pruning indicator still green.
+
+    Both flag states, because the leftover is not the flag's business: unlike
+    the model-level pass, which declines with the flag off because it discards
+    *stored* configuration, this drops a value the request is asking to write
+    -- and the flag-off window is exactly when one gets parked for later.
+    """
+    mock_orm = _save_with_parked_transform(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        "to_unixtime(:value)",
+        feature_enabled=feature_enabled,
+    )
+
+    # Corrected, not refused: the save goes through.
+    mock_json_error_response.assert_not_called()
+    parked = _written_column(mock_orm, "other_time")
+    assert parked["partition_value_transform"] is None
+    assert parked["partition_transform_is_monotonic"] is False
+    # And only the parked one goes; the mapped column is untouched.
+    assert "partition_value_transform" not in _written_column(mock_orm, "event_time")
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_drops_a_parked_transform_rather_than_refusing_it(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    Why the drop runs ahead of the refusal gate rather than after it.
+
+    A parked transform can be any text at all -- one stored before the gate
+    existed, or by a client that never read it. Refused, it would 422 every
+    later save of the dataset, including a description-only one, over a value
+    nobody asked to keep. There is no field whose edit clears it either: the
+    editor renders a transform on the mapped column's row and nowhere else, so
+    the owner cannot see it, let alone delete it.
+
+    The sub-query here is the shape the refusal gate exists for, which is what
+    makes the point: it is still refused on the mapped column, per
+    `test_save_refuses_a_value_transform_that_is_not_a_storable_expression`, and
+    dropped on any other.
+    """
+    mock_orm = _save_with_parked_transform(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        "(SELECT password FROM ab_user LIMIT 1) || :value",
+        feature_enabled=True,
+    )
+
+    mock_json_error_response.assert_not_called()
+    assert _written_column(mock_orm, "other_time")["partition_value_transform"] is None
 
 
 # ---------------------------------------------------------------------------

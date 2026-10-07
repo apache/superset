@@ -43,6 +43,7 @@ from superset.connectors.sqla.partition_mapping import (
     contains_executable_comment,
     contains_jinja,
     contains_value_placeholder,
+    drop_unmapped_value_transforms,
     equality_mirrors_safely,
     evaluate_transform,
     find_non_deterministic_functions,
@@ -2307,3 +2308,123 @@ def test_the_probe_backstop_accepts_only_a_plain_projection_per_value(
     and `_probe` hands the same constant to the builder and to this gate.
     """
     assert probe_sql_is_evaluable(sql, "sqlite", expected, suffix) is evaluable
+
+
+def test_an_incoming_transform_on_a_non_mapped_column_is_dropped() -> None:
+    """
+    NEW-R11-01. The mapping mirrors one column, so only that column may carry a
+    transform; one parked anywhere else is invisible -- no row but the mapped
+    one renders a transform -- and goes live the moment the mapped column
+    resolves back to it.
+
+    `DatasetDAO.clear_unmapped_partition_transforms` answers for the model, but
+    it is gated on the feature flag because it discards stored configuration.
+    This answers for the payload, which is how the leftover arrives.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": True,
+        },
+        {
+            "column_name": "other_time",
+            "partition_value_transform": "to_unixtime(:value)",
+            "partition_transform_is_monotonic": True,
+        },
+    ]
+
+    cleared = drop_unmapped_value_transforms(
+        columns,
+        partition_column="dt_epoch",
+        partition_mapped_column=None,
+        main_dttm_col="event_time",
+    )
+
+    assert cleared == ["other_time"]
+    # The mapped column keeps what the owner wrote for it.
+    assert columns[0]["partition_value_transform"] == "unix_timestamp(:value)"
+    assert columns[0]["partition_transform_is_monotonic"] is True
+    assert columns[1]["partition_value_transform"] is None
+    assert columns[1]["partition_transform_is_monotonic"] is False
+
+
+def test_an_override_decides_which_incoming_transform_survives() -> None:
+    """
+    The mapped column is `partition_mapped_column or main_dttm_col`, so the
+    override moves which column may hold one -- and both can be part of the same
+    request, which is why the caller passes all three rather than a resolved
+    name.
+    """
+    columns = [
+        {"column_name": "event_time", "partition_value_transform": "a(:value)"},
+        {"column_name": "country", "partition_value_transform": "lower(:value)"},
+    ]
+
+    assert drop_unmapped_value_transforms(
+        columns,
+        partition_column="region_key",
+        partition_mapped_column="country",
+        main_dttm_col="event_time",
+    ) == ["event_time"]
+    assert columns[1]["partition_value_transform"] == "lower(:value)"
+
+
+def test_without_a_partition_column_no_incoming_transform_survives() -> None:
+    """
+    No partition column means nothing is mirrored, so no column is the mapped
+    one -- which is how the model-level pass resolves it too. A transform stored
+    here would be waiting for a partition column nobody has chosen yet.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+        }
+    ]
+
+    assert drop_unmapped_value_transforms(
+        columns,
+        partition_column=None,
+        partition_mapped_column=None,
+        main_dttm_col="event_time",
+    ) == ["event_time"]
+    assert columns[0]["partition_value_transform"] is None
+
+
+def test_a_column_the_payload_says_nothing_about_is_left_alone() -> None:
+    """
+    "Incoming" is the whole scope. A transform already in storage on a column
+    this request does not mention belongs to the model-level pass, under its own
+    feature flag -- adding a null here would discard stored configuration from a
+    request that never asked to.
+    """
+    columns = [
+        {"column_name": "event_time"},
+        {"column_name": "other_time", "partition_transform_is_monotonic": False},
+    ]
+
+    assert (
+        drop_unmapped_value_transforms(
+            columns,
+            partition_column="dt_epoch",
+            partition_mapped_column=None,
+            main_dttm_col="event_time",
+        )
+        == []
+    )
+    assert "partition_value_transform" not in columns[0]
+    assert "partition_value_transform" not in columns[1]
+
+
+def test_dropping_incoming_transforms_tolerates_no_columns() -> None:
+    """A request can carry no columns payload at all; both callers pass `.get`."""
+    assert (
+        drop_unmapped_value_transforms(
+            None,
+            partition_column="dt_epoch",
+            partition_mapped_column=None,
+            main_dttm_col="event_time",
+        )
+        == []
+    )

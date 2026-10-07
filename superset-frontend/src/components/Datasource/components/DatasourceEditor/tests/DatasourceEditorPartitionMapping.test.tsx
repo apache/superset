@@ -139,6 +139,57 @@ test('removing the mapping does not leave the default datetime column mirroring'
   });
 });
 
+test('moving the mapping onto a column does not arm a transform parked there', async () => {
+  // NEW-R11-01. `state` holds a transform while the mapping sits on `ds`, a
+  // state the editor cannot produce but the deprecated `POST /datasource/save/`
+  // and a PUT made with the feature flag off both can. Moving the mapping onto
+  // `state` used to pick that leftover up -- one click, no typing, and the
+  // mapping went live emitting `num = lower(...)` for every filter, with the
+  // pruning indicator still green and the row counts quietly short.
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = 'num';
+  props.datasource.partition_mapped_column = null;
+  const seeded = props.datasource.columns as EditorColumn[];
+  columnNamed(seeded, 'ds')!.partition_value_transform =
+    'unix_timestamp(:value)';
+  columnNamed(seeded, 'ds')!.partition_transform_is_monotonic = true;
+  columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+  columnNamed(seeded, 'state')!.partition_transform_is_monotonic = true;
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+
+  await userEvent.type(
+    await screen.findByPlaceholderText('Search columns by name'),
+    'state',
+  );
+  await userEvent.click((await screen.findAllByLabelText(/expand row/i))[0]);
+  await userEvent.click(await screen.findByTestId('move-mapping-here'));
+
+  // `state` is a VARCHAR, so there is no engine default to pre-fill either: the
+  // mapping arrives inert, and the field's own required marker says why rather
+  // than a mirror switching itself on.
+  await waitFor(() => {
+    expect(columnNamed(lastSavedColumns(props), 'state')).toMatchObject({
+      partition_value_transform: null,
+      partition_transform_is_monotonic: false,
+    });
+  });
+  // And the column it came from does not keep its own either -- one mapping,
+  // one transform.
+  expect(columnNamed(lastSavedColumns(props), 'ds')).toMatchObject({
+    partition_value_transform: null,
+    partition_transform_is_monotonic: false,
+  });
+  expect(lastValidationErrors(props)).toEqual(
+    expect.arrayContaining([
+      expect.stringContaining('A value transform is required on state'),
+    ]),
+  );
+});
+
 test('re-pointing the default datetime column leaves the value transform behind', async () => {
   // With no override the mapped column *is* `main_dttm_col`, so the mapping
   // moves either way. The transform does not travel with it: it was written
@@ -361,6 +412,45 @@ test('DatasourceEditor source pins syncMetadata to the live column state', () =>
   // And the live state is both column collections, memoized on both.
   expect(src).toMatch(
     /const currentColumns = useMemo\(\s*[\s\S]{0,900}?\(\) => \[\.\.\.databaseColumns, \.\.\.calculatedColumns\],\s*\[databaseColumns, calculatedColumns\],/,
+  );
+});
+
+test('DatasourceEditor source pins the sync to the mapping it leaves behind', () => {
+  // Source-pin, for the reason the pin above gives: the sync button cannot be
+  // driven from jest, because `fetchSyncedColumns` goes through
+  // `SupersetClient` and the request never settles under the harness. The
+  // behaviour of the helper it pins is covered directly in
+  // `components/PartitionFilterMapping/utils.test.ts`.
+  //
+  // What this locks is the *order*. A sync that drops the mapped column makes
+  // `clearDanglingPartitionMapping` null the override, which moves the
+  // effective mapped column onto the default datetime column -- and a
+  // transform some other writer parked there arrives live, from a sync nobody
+  // typed into (NEW-R11-01). So the repair has to be resolved into
+  // `syncedDatasource` *before* the columns are set, and the invariant enforced
+  // against that, not against the mapping as it stood before the sync.
+  // eslint-disable-next-line global-require
+  const { readFileSync } = require('fs');
+  // eslint-disable-next-line global-require
+  const { join } = require('path');
+  const src = readFileSync(
+    join(__dirname, '..', 'DatasourceEditor.tsx'),
+    'utf8',
+  );
+
+  // The repair is resolved onto the datasource the invariant is read from.
+  expect(src).toMatch(
+    /const syncedDatasource = \{ \.\.\.datasource, \.\.\.\(clearedMapping \?\? \{\}\) \};/,
+  );
+  // And it is that datasource the columns are cleared against, before they are
+  // set -- `clearUnmappedTransforms` appears ahead of the `setColumns` call.
+  expect(src).toMatch(
+    /clearUnmappedTransforms\(\s*syncedDatasource,\s*columnChanges\.finalColumns,?\s*\)[\s\S]{0,400}?setColumns\(\{/,
+  );
+  // Calculated columns too: the default datetime column can be one, and the
+  // sync does not carry them.
+  expect(src).toMatch(
+    /setCalculatedColumns\(prev =>\s*clearUnmappedTransforms\(syncedDatasource, prev\),\s*\);/,
   );
 });
 

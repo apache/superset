@@ -414,24 +414,75 @@ function withMappingOn<T extends PartitionMappingColumn>(
 }
 
 /**
+ * Every column with the mapping held by the column it is actually mapped to.
+ *
+ * The client half of `DatasetDAO.clear_unmapped_partition_transforms`. The
+ * editor is not the only writer -- a PUT, an `override_columns=true` metadata
+ * sync and an import all reach the columns directly -- so a dataset can arrive
+ * holding a transform on a column the mapping does not mirror, and the editor
+ * must not be the thing that arms it. See `clearMappingTransforms` for why one
+ * parked anywhere else is not dormant.
+ *
+ * Takes the datasource rather than a column name so the resolution is
+ * `resolveMappedColumn`'s and cannot drift from the one the rest of the panel
+ * reads. Hands back the array it was given when nothing had to change, like
+ * `clearMappingTransforms`.
+ */
+export function clearUnmappedTransforms<T extends PartitionMappingColumn>(
+  datasource: PartitionMappingDatasource,
+  columns: T[],
+): T[] {
+  const mappedColumn = resolveMappedColumn(datasource);
+  const stray = (column: T) =>
+    column.column_name !== mappedColumn && holdsMapping(column);
+  if (!columns.some(stray)) {
+    return columns;
+  }
+  return columns.map(column =>
+    stray(column)
+      ? {
+          ...column,
+          partition_value_transform: null,
+          partition_transform_is_monotonic: false,
+        }
+      : column,
+  );
+}
+
+/**
  * Columns updated for a mapping moving to `nextColumnName`.
  *
- * A transform the column already had wins over the engine's default: the owner
- * wrote it for this column, and offering to overwrite it is not what picking it
- * up again means. Every other column is cleared, for the reason
- * `clearMappingTransforms` gives.
+ * A transform already on the column is picked back up only when that column is
+ * the one already mapped -- re-selecting where the mapping sits is not a move,
+ * and overwriting what the owner wrote there is not what it should mean.
+ *
+ * Moving the mapping *elsewhere* installs `nextTransform` and nothing else,
+ * even when the target column appears to be holding something. Under the
+ * invariant it cannot be: the mapping has one mirrored column, so a transform
+ * on any other one is a leftover some writer stranded there, not an expression
+ * written about this column. Picking it up turned a click with no typing into a
+ * live mapping emitting predicates nobody authored -- the move arrives inert
+ * instead, which is a state the panel's own warning describes and the owner can
+ * fix deliberately. `partition_transform_is_monotonic` does not carry over for
+ * the same reason; it is a claim about a transform that is no longer there.
+ *
+ * Every other column is cleared, for the reason `clearMappingTransforms` gives.
  */
 export function applyMappingMove<T extends PartitionMappingColumn>(
+  datasource: PartitionMappingDatasource,
   columns: T[],
   nextColumnName: string,
   nextTransform: string,
 ): T[] {
   const next = columns.find(column => column.column_name === nextColumnName);
+  const isAlreadyMapped = resolveMappedColumn(datasource) === nextColumnName;
   return withMappingOn(
     columns,
     nextColumnName,
-    next?.partition_value_transform || nextTransform || null,
-    Boolean(next?.partition_transform_is_monotonic),
+    (isAlreadyMapped && next?.partition_value_transform) ||
+      nextTransform ||
+      null,
+    Boolean(isAlreadyMapped && next?.partition_transform_is_monotonic),
   );
 }
 

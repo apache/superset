@@ -266,6 +266,11 @@ refused when you save:
 - More than 1,024 characters. A transform is one hand-written expression, and the stored
   value is parsed on every Explore load.
 
+Only the mapped column may carry a transform. Setting one on any other column through the
+API, or in an import bundle, has no effect: Superset drops it on write, because a value parked on a column the
+mapping does not mirror is invisible in the editor and would go live the moment the mapped
+column resolved back to it.
+
 ## Related configuration
 
 | Setting | Default | Purpose |

@@ -108,6 +108,7 @@ import {
   applyImplicitMappingMove,
   applyMappingMove,
   clearMappingTransforms,
+  clearUnmappedTransforms,
   defaultTransformFor,
   nextMappedColumnOverride,
   partitionMappingErrors,
@@ -1432,6 +1433,7 @@ function DatasourceEditor({
     (columnName: string) => {
       setDatabaseColumns(prev =>
         applyMappingMove(
+          datasource,
           prev,
           columnName,
           defaultTransformFor(
@@ -1440,6 +1442,10 @@ function DatasourceEditor({
           ),
         ),
       );
+      // A calculated column can be the default datetime column, and so can be
+      // holding the transform the mapping is being moved off. `applyMappingMove`
+      // only sees the physical list.
+      setCalculatedColumns(prev => clearMappingTransforms(prev));
       // Always explicit from here: the owner picked this column, so the mapping
       // must not drift back the next time the default datetime column moves.
       setDatasource(prev => ({ ...prev, partition_mapped_column: columnName }));
@@ -1643,12 +1649,6 @@ function DatasourceEditor({
         newCols,
         addSuccessToast,
       );
-      setColumns({
-        databaseColumns: columnChanges.finalColumns.filter(
-          col => !col.expression,
-        ) as Column[],
-      });
-
       // A sync can remove the partition column at the source. Leave the editor
       // showing a mapping that points at a column the table no longer has and
       // the owner has no way to tell why pruning stopped.
@@ -1656,6 +1656,34 @@ function DatasourceEditor({
         datasource,
         columnChanges.finalColumns,
       );
+      // The mapping *after* that repair is what decides which column may hold a
+      // transform, so the repair has to be resolved before the columns are set
+      // rather than after. Dropping the override moves the effective mapped
+      // column onto the default datetime column, and a transform some other
+      // writer parked there would arrive live: a sync nobody typed into,
+      // emitting predicates nobody authored, with the row counts quietly short.
+      // `updateColumns` passes an unchanged column through verbatim, so without
+      // this the leftover survives the sync and `buildPayload` then sends it as
+      // if the owner had written it.
+      const syncedDatasource = { ...datasource, ...(clearedMapping ?? {}) };
+      const enforceMapping = isFeatureEnabled(
+        FeatureFlag.PartitionFilterMapping,
+      );
+      const finalColumns = enforceMapping
+        ? clearUnmappedTransforms(syncedDatasource, columnChanges.finalColumns)
+        : columnChanges.finalColumns;
+      setColumns({
+        databaseColumns: finalColumns.filter(
+          col => !col.expression,
+        ) as Column[],
+      });
+      if (enforceMapping) {
+        // The default datetime column can be a calculated one, which the sync
+        // does not touch and `finalColumns` does not carry.
+        setCalculatedColumns(prev =>
+          clearUnmappedTransforms(syncedDatasource, prev),
+        );
+      }
       if (clearedMapping) {
         onDatasourcePropChange(
           'partition_column',
