@@ -169,13 +169,13 @@ def manage_dashboard_roles(
     request: ManageDashboardRolesRequest, ctx: Context
 ) -> ManageDashboardRolesResponse:
     """
-    Add or remove dashboard access roles with explicit operations.
+    Dashboard access roles restrict who can view a dashboard; add or remove
+    them with explicit operations.
 
     Externally managed dashboards refuse mutations with
     ``managed_externally=True``; do not retry or request more permissions.
 
-    Dashboard access roles restrict who can view a dashboard to members of
-    the listed roles, on top of normal Superset permissions. An empty roles
+    The listed roles apply on top of normal Superset permissions. An empty roles
     list means "no role restriction" — the dashboard is visible per standard
     permissions instead. This only takes effect when the ``ENABLE_VIEWERS``
     feature flag is enabled; the response's ``viewers_enabled`` field

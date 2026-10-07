@@ -738,6 +738,14 @@ def _pre_filter_update_refusal(
         logger.exception(
             "Database error checking editorship for dashboard %s", dashboard_id
         )
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during native filter error handling"
+            )
         return ManageNativeFiltersResponse(
             dashboard_id=dashboard_id,
             error=(
@@ -767,10 +775,10 @@ def manage_native_filters(
     request: ManageNativeFiltersRequest, ctx: Context
 ) -> ManageNativeFiltersResponse:
     """
-    Add, update, remove, and reorder native filters on a dashboard.
+    Add, update, remove, or reorder dashboard native filters.
 
-    Externally managed dashboards refuse mutations with
-    ``managed_externally=True``; do not retry or request more permissions.
+    Externally managed dashboards refuse edits
+    (``managed_externally=True``); do not retry.
 
     Supported filter types for new filters: filter_select (dropdown backed
     by a dataset column), filter_time (time range), filter_range (numerical

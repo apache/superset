@@ -120,7 +120,7 @@ def dashboard_url(dashboard: "Dashboard") -> str:
 
 def managed_dashboard_refusal(dashboard: "Dashboard") -> str | None:
     """Return the shared refusal for an externally managed dashboard."""
-    if getattr(dashboard, "is_managed_externally", False) is True:
+    if dashboard.is_managed_externally:
         return (
             f"Dashboard '{dashboard.dashboard_title}' (ID: {dashboard.id}) "
             "is managed externally; its source of truth is the external system "

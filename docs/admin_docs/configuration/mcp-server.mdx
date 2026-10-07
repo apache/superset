@@ -110,7 +110,7 @@ retains its call's slot rather than exhausting cancellation capacity for new
 calls. One warning with the call ID records abandonment. A timeout does not guarantee that warehouse writes were
 rolled back, so do not blindly retry mutating SQL.
 
-## Native filter defaults
+## Externally managed dashboards
 
 MCP dashboard mutation tools refuse changes to externally managed dashboards,
 including ownership and access-role changes, layout and filter edits, chart
@@ -118,6 +118,8 @@ membership, certification, deletion, and restoration. Their responses set
 `managed_externally: true` and explain that the external system is the source
 of truth; changing Superset permissions or retrying does not override it.
 Read-only dashboard tools and certification's inspect-only call remain available.
+
+## Native filter defaults
 
 `manage_native_filters` accepts `default_value` for select filters. An empty
 list clears the selection. With `enable_empty_filter: true`, that explicit
