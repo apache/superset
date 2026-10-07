@@ -89,20 +89,20 @@ def resolve_dimensions(
     }
     defaults: dict[str, Dimension] = {}
     default_preferences: dict[str, tuple[int, int, str]] = {}
-    identities: dict[tuple[str, Grain | None], str] = {}
+    identities: dict[tuple[str, Grain | None], Dimension] = {}
     for dimension in dimensions:
         key: tuple[str, Grain | None] = (dimension.name, dimension.grain)
-        previous_id: str | None = identities.get(key)
-        if previous_id is not None and previous_id != dimension.id:
+        previous: Dimension | None = identities.get(key)
+        if previous is not None and previous != dimension:
             raise AmbiguousDimensionError(
                 _(
                     "Semantic dimension '%(name)s' has ambiguous variants for "
-                    "grain '%(grain)s'. Use one ID per name and grain.",
+                    "grain '%(grain)s'. Use one dimension per name and grain.",
                     name=dimension.name,
                     grain=dimension.grain.representation if dimension.grain else "raw",
                 )
             )
-        identities[key] = dimension.id
+        identities[key] = dimension
         if (
             use_grouping
             and grouping_grains is not None

@@ -31,8 +31,9 @@ assists people when migrating to a new version.
   and time bounds use the default independently of grouping. Sorting and series
   limits use the selected grouping grain. This can change
   results that depended on arbitrary catalog ordering. Providers exposing
-  different IDs for the same name and grain must disambiguate their catalog;
-  such catalogs are rejected instead of silently selecting an ID. On dashboards,
+  different IDs or conflicting types, definitions or descriptions for the same
+  name and grain must disambiguate their catalog; such catalogs are rejected
+  instead of silently selecting a variant. On dashboards,
   only the affected dataset reports the ambiguity; other datasets still load.
   Independent temporal filters are preserved alongside the chart's time bounds,
   which can narrow results where those filters were previously discarded.

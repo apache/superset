@@ -397,9 +397,6 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
             view_dimensions, usage=DimensionUsage.ORDER, grouping_grains=grouping_grains
         ),
     )
-    time_dimensions: dict[str, Dimension] = resolve_dimensions(
-        view_dimensions, usage=DimensionUsage.TIME_BOUND
-    )
     limit = query_object.row_limit
     offset = query_object.row_offset
 
@@ -412,7 +409,6 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
             usage=DimensionUsage.SERIES_LIMIT,
             grouping_grains=grouping_grains,
         ),
-        time_dimensions=time_dimensions,
     )
 
     offset_axis_column: str | None = _get_time_axis_column(query_object, all_dimensions)
@@ -422,7 +418,6 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
             query_object,
             time_offset,
             all_dimensions,
-            time_dimensions=time_dimensions,
             is_time_series=offset_axis_column in normalized_columns,
         )
         queries.append(
@@ -448,7 +443,6 @@ def _get_filters_from_query_object(
     time_offset: str | None,
     all_dimensions: dict[str, Dimension],
     *,
-    time_dimensions: dict[str, Dimension] | None = None,
     is_time_series: bool = False,
 ) -> set[Filter]:
     """
@@ -478,7 +472,7 @@ def _get_filters_from_query_object(
     time_filters: set[Filter] = _get_time_filter(
         query_object,
         time_offset,
-        all_dimensions if time_dimensions is None else time_dimensions,
+        all_dimensions,
     )
     filters.update(time_filters)
 
@@ -487,11 +481,7 @@ def _get_filters_from_query_object(
     filters.update(extras_filters)
 
     replaced_time_axis: str | None = (
-        _get_time_axis_column(
-            query_object, all_dimensions if time_dimensions is None else time_dimensions
-        )
-        if time_filters
-        else None
+        _get_time_axis_column(query_object, all_dimensions) if time_filters else None
     )
     filters.update(
         _get_adhoc_filters(
@@ -977,7 +967,6 @@ def _get_group_limit_from_query_object(
     *,
     all_dimensions: dict[str, Dimension],
     ranking_dimensions: dict[str, Dimension],
-    time_dimensions: dict[str, Dimension] | None = None,
 ) -> GroupLimit | None:
     # no limit
     if query_object.series_limit == 0 or not query_object.columns:
@@ -998,7 +987,7 @@ def _get_group_limit_from_query_object(
     # Check if we need separate filters for the group limit subquery
     # This happens when inner_from_dttm/inner_to_dttm differ from from_dttm/to_dttm
     group_limit_filters: set[Filter] | None = _get_group_limit_filters(
-        query_object, all_dimensions, time_dimensions=time_dimensions
+        query_object, all_dimensions
     )
 
     return GroupLimit(
@@ -1014,8 +1003,6 @@ def _get_group_limit_from_query_object(
 def _get_group_limit_filters(
     query_object: ValidatedQueryObject,
     all_dimensions: dict[str, Dimension],
-    *,
-    time_dimensions: dict[str, Dimension] | None = None,
 ) -> set[Filter] | None:
     """
     Get separate filters for the group limit subquery if needed.
@@ -1047,12 +1034,9 @@ def _get_group_limit_filters(
     # time column only in a ``TEMPORAL_RANGE`` adhoc filter still get the
     # group-limit subquery scoped to the inner bounds instead of falling
     # through to the outer bounds.
-    bound_dimensions: dict[str, Dimension] = (
-        all_dimensions if time_dimensions is None else time_dimensions
-    )
-    time_axis_column: str | None = _get_time_axis_column(query_object, bound_dimensions)
+    time_axis_column: str | None = _get_time_axis_column(query_object, all_dimensions)
     time_dimension: Dimension | None
-    if time_axis_column and (time_dimension := bound_dimensions.get(time_axis_column)):
+    if time_axis_column and (time_dimension := all_dimensions.get(time_axis_column)):
         filters.update(
             {
                 Filter(

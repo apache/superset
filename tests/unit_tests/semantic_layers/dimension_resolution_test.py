@@ -17,6 +17,7 @@
 
 """Default selection and ambiguity contracts for semantic dimensions."""
 
+from dataclasses import replace
 from itertools import permutations
 from unittest.mock import MagicMock
 
@@ -113,6 +114,26 @@ def test_grain_identity_uses_representation_not_display_name() -> None:
     )
     with pytest.raises(QueryObjectValidationError, match="ambiguous"):
         resolve_dimensions((first, second), usage=DimensionUsage.METADATA)
+
+
+@pytest.mark.parametrize("usage", list(DimensionUsage))
+@pytest.mark.parametrize("changed_field", ["type", "definition", "description"])
+def test_same_identity_with_conflicting_semantics_is_rejected(
+    usage: DimensionUsage, changed_field: str
+) -> None:
+    """Equal IDs cannot hide conflicting variants from ambiguity validation."""
+    first: Dimension = Dimension(
+        "day", "event_time", pa.timestamp("us"), grain=Grains.DAY
+    )
+    second: Dimension = replace(
+        first,
+        **{changed_field: pa.date32() if changed_field == "type" else "different"},
+    )
+    for ordering in permutations((first, second)):
+        with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+            resolve_dimensions(
+                ordering, usage=usage, grouping_grains={"event_time": Grains.DAY}
+            )
 
 
 @pytest.mark.parametrize("usage", list(DimensionUsage))

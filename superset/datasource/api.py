@@ -288,6 +288,8 @@ class DatasourceRestApi(BaseSupersetApi):
                     f"datasource type: {datasource_type}"
                 ),
             )
+        except AmbiguousDimensionError as ex:
+            return self.response(400, message=str(ex))
 
         # Warn before caching very large payloads (high-cardinality columns)
         # so operators can spot cache-memory pressure before Redis OOMs.

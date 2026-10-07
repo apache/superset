@@ -12017,7 +12017,7 @@ msgstr ""
 #, python-format
 msgid ""
 "Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. "
-"Use one ID per name and grain."
+"Use one dimension per name and grain."
 msgstr ""
 
 msgid "Semantic layer"

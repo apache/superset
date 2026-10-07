@@ -412,7 +412,7 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     if can_access_ambiguous:
         assert datasets["2__semantic_view"]["metadata_error"] == (
             "Semantic dimension 'event_time' has ambiguous variants for grain 'P1M'. "
-            "Use one ID per name and grain."
+            "Use one dimension per name and grain."
         )
     else:
         assert "metadata_error" not in datasets["2__semantic_view"]
