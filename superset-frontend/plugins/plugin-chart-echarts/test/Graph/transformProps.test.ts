@@ -16,18 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartProps,
-  getLabelsColorMap,
-  LabelsColorMapSource,
-  SqlaFormData,
-} from '@superset-ui/core';
+import { ChartProps, SqlaFormData } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { GraphSeriesOption } from 'echarts/charts';
 import transformProps from '../../src/Graph/transformProps';
-import { NULL_STRING } from '../../src/constants';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
-import { EChartGraphNode, EchartsGraphChartProps } from '../../src/Graph/types';
+import { EchartsGraphChartProps } from '../../src/Graph/types';
 
 const formData: SqlaFormData = {
   colorScheme: 'bnbColors',
@@ -63,65 +57,6 @@ const chartPropsConfig = {
   queriesData,
   theme: supersetTheme,
 };
-
-test.each([null, undefined])(
-  'keeps %s categories separate from literal N/A for source and target nodes',
-  category => {
-    const chartProps = new ChartProps({
-      ...chartPropsConfig,
-      formData: {
-        ...formData,
-        sourceCategory: 'source_category_column',
-        targetCategory: 'target_category_column',
-      },
-      queriesData: [
-        {
-          data: queriesData[0].data.map((row, index) => ({
-            ...row,
-            source_category_column: index === 0 ? category : 'N/A',
-            target_category_column: index === 0 ? category : 'N/A',
-          })),
-        },
-      ],
-    });
-    const labelsColorMap = getLabelsColorMap();
-    const previousSource = labelsColorMap.source;
-    labelsColorMap.source = LabelsColorMapSource.Explore;
-    try {
-      const { echartOptions } = transformProps(
-        chartProps as EchartsGraphChartProps,
-      );
-      const [series] = echartOptions.series as GraphSeriesOption[];
-      const nodes = series.data as EChartGraphNode[];
-      const nullKey = nodes[0].category;
-      const legend = echartOptions.legend as {
-        data: string[];
-      };
-
-      expect(legend.data).toEqual([NULL_STRING, 'N/A']);
-      expect(nullKey).toBe(NULL_STRING);
-      expect(series.categories).toEqual([
-        expect.objectContaining({ name: nullKey }),
-        expect.objectContaining({ name: 'N/A' }),
-      ]);
-      expect(series.data).toEqual([
-        expect.objectContaining({
-          name: 'source_value_1',
-          category: nullKey,
-        }),
-        expect.objectContaining({
-          name: 'target_value_1',
-          category: nullKey,
-        }),
-        expect.objectContaining({ name: 'source_value_2', category: 'N/A' }),
-        expect.objectContaining({ name: 'target_value_2', category: 'N/A' }),
-      ]);
-      expect(nodes[0].itemStyle?.color).not.toEqual(nodes[2].itemStyle?.color);
-    } finally {
-      labelsColorMap.source = previousSource;
-    }
-  },
-);
 
 test.each([false, true, 0])('preserves the label for category %s', category => {
   const chartProps = new ChartProps({

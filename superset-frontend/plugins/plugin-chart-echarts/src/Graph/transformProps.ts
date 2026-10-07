@@ -150,10 +150,17 @@ function getCategoryName(columnName: string, name?: DataRecordValue) {
   }
   const label =
     typeof name === 'boolean' ? `${columnName}: ${name}` : String(name);
-  // The color scale trims keys, so escape whitespace-wrapped literals as well.
-  return label.trim() === NULL_STRING || label.trimStart().startsWith('"')
-    ? JSON.stringify(label)
-    : label;
+  // Decode quoted forms only to detect collisions with the shared null label.
+  // Trim at each level because the color scale trims its keys.
+  let unquoted = label.trim();
+  while (unquoted.startsWith('"')) {
+    try {
+      unquoted = (JSON.parse(unquoted) as string).trim();
+    } catch {
+      break;
+    }
+  }
+  return unquoted === NULL_STRING ? JSON.stringify(label) : label;
 }
 
 export default function transformProps(
@@ -324,8 +331,7 @@ export default function transformProps(
   const categoryList = [...categories];
   const legendData = categoryList.sort((a: string, b: string) => {
     if (!legendSort) return 0;
-    const comparison = a.localeCompare(b);
-    return legendSort === 'asc' ? comparison : -comparison;
+    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
   });
   const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,

@@ -51,8 +51,9 @@ other charts using that label. Move any `label_colors["N/A"]` setting intended f
 SQL NULL to `label_colors["<NULL>"]`; `N/A` continues to identify the literal value.
 
 The literal string `<NULL>` is quoted as `"<NULL>"` to keep it separate from SQL
-NULL. Literal labels beginning with a double quote are also quoted and escaped.
-Use the displayed label as the custom color key, for example:
+NULL. Quoted forms of that literal are also escaped to avoid collisions; other
+quoted labels keep their existing display and color keys. Use the displayed
+label as the custom color key, for example:
 
 ```json
 {"<NULL>": "#e53935", "\"<NULL>\"": "#123456"}

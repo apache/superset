@@ -63,8 +63,8 @@ function transform(
     viz_type: 'graph_chart',
     source: 'source',
     target: 'target',
-    sourceCategory: 'category',
-    targetCategory: 'category',
+    sourceCategory: 'source_category',
+    targetCategory: 'target_category',
     metric: 'weight',
     showLegend: true,
     legendType: 'plain',
@@ -83,7 +83,8 @@ function transform(
           data: values.map((category, index) => ({
             source: `source-${index}`,
             target: `target-${index}`,
-            category,
+            source_category: category,
+            target_category: category,
             weight: 1,
           })),
         },
@@ -154,6 +155,38 @@ test.each([LabelsColorMapSource.Explore, LabelsColorMapSource.Dashboard])(
         .filter((_, index) => index % 2 === 0)
         .map(node => node.itemStyle?.color),
     ).toEqual(Object.values(colors));
+    expectConsistentColors(series);
+  },
+);
+
+test.each([LabelsColorMapSource.Explore, LabelsColorMapSource.Dashboard])(
+  'preserves ordinary quoted labels and their existing colors in context %s',
+  source => {
+    colorMap.source = source;
+    const labels = [
+      '"ACME"',
+      '"unterminated',
+      ' "BETA" ',
+      '"<NULL> suffix"',
+      '""',
+    ];
+    const colors = ['#123456', '#234567', '#345678', '#456789', '#56789a'];
+    labels.forEach((label, index) => {
+      if (source === LabelsColorMapSource.Dashboard) {
+        colorMap.addSlice(label.trim(), colors[index], 41);
+      } else {
+        CategoricalColorNamespace.getNamespace().setColor(
+          label.trim(),
+          colors[index],
+        );
+      }
+    });
+    const { echartOptions } = transform(labels, { sliceId: 42 });
+    const [series] = echartOptions.series as GraphSeriesOption[];
+    expect((echartOptions.legend as { data: string[] }).data).toEqual(labels);
+    expect(
+      series.categories!.map(category => category.itemStyle?.color),
+    ).toEqual(colors);
     expectConsistentColors(series);
   },
 );
@@ -273,7 +306,7 @@ test.each([undefined, 42])(
   },
 );
 
-test('escapes literal null labels and leading quotes without color-key collisions', () => {
+test('escapes only the literal null family without color-key collisions', () => {
   const values = [
     null,
     NULL_STRING,
@@ -281,6 +314,8 @@ test('escapes literal null labels and leading quotes without color-key collision
     '"\\"<NULL>\\""',
     ' <NULL> ',
     ' "<NULL>" ',
+    '" <NULL> "',
+    '"\\u003cNULL>"',
     '__superset_null__',
   ];
   const { echartOptions } = transform(values);
@@ -298,89 +333,50 @@ test('escapes literal null labels and leading quotes without color-key collision
   expectConsistentColors(series);
 });
 
-test.each(['N/A', '"<NULL>"', '"\\"<NULL>\\""'])(
-  'ECharts legend selection keeps null and <NULL> independent of %s',
-  literal => {
-    use([GraphChart, LegendComponent, TooltipComponent, SVGRenderer]);
-    const values = [null, literal, '<NULL>'];
-    const { echartOptions } = transform(values);
-    const [series] = echartOptions.series as GraphSeriesOption[];
-    const names = series.categories!.map(category => category.name as string);
-    const chart = init(null, null, {
-      renderer: 'svg',
-      ssr: true,
-      width: 800,
-      height: 600,
+test('selects each category independently and restores saved legend state', () => {
+  use([GraphChart, LegendComponent, TooltipComponent, SVGRenderer]);
+  const values = [null, 'N/A', '<NULL>', '"<NULL>"', '"ACME"'];
+  const { echartOptions } = transform(values);
+  const names = (echartOptions.legend as { data: string[] }).data;
+  const allNodes = values
+    .flatMap((_, index) => [`source-${index}`, `target-${index}`])
+    .sort();
+  const chart = init(null, null, {
+    renderer: 'svg',
+    ssr: true,
+    width: 800,
+    height: 600,
+  });
+  const visibleNodes = () => {
+    const svg = new DOMParser().parseFromString(
+      chart.renderToSVGString(),
+      'image/svg+xml',
+    );
+    return Array.from(svg.querySelectorAll('text'))
+      .map(element => element.textContent ?? '')
+      .filter(text => /^(source|target)-\d+$/.test(text))
+      .sort();
+  };
+  try {
+    names.forEach((name, index) => {
+      const hidden = transform(values, {}, { [name]: false });
+      const expected = allNodes.filter(
+        node => node !== `source-${index}` && node !== `target-${index}`,
+      );
+      chart.setOption(
+        { ...hidden.echartOptions, animation: false },
+        { notMerge: true },
+      );
+      expect(visibleNodes()).toEqual(expected);
+      chart.dispatchAction({ type: 'legendSelect', name });
+      expect(visibleNodes()).toEqual(allNodes);
+      chart.dispatchAction({ type: 'legendUnSelect', name });
+      expect(visibleNodes()).toEqual(expected);
     });
-    const model = chart as unknown as {
-      getModel: () => {
-        getSeriesByIndex: (index: number) => {
-          getData: () => {
-            count: () => number;
-            getName: (index: number) => string;
-          };
-        };
-      };
-    };
-    const visibleNodes = () => {
-      const data = model.getModel().getSeriesByIndex(0).getData();
-      return Array.from({ length: data.count() }, (_, index) =>
-        data.getName(index),
-      );
-    };
-    try {
-      chart.setOption({ ...echartOptions, animation: false });
-      expect(visibleNodes()).toHaveLength(6);
-      chart.dispatchAction({ type: 'legendUnSelect', name: names[0] });
-      expect(visibleNodes()).toEqual([
-        'source-1',
-        'target-1',
-        'source-2',
-        'target-2',
-      ]);
-      chart.dispatchAction({ type: 'legendSelect', name: names[0] });
-      chart.dispatchAction({ type: 'legendUnSelect', name: names[2] });
-      expect(visibleNodes()).toEqual([
-        'source-0',
-        'target-0',
-        'source-1',
-        'target-1',
-      ]);
-      const next = transform(values, {}, { [names[2]]: false });
-      chart.setOption(
-        { ...next.echartOptions, animation: false },
-        { notMerge: true },
-      );
-      expect(visibleNodes()).toEqual([
-        'source-0',
-        'target-0',
-        'source-1',
-        'target-1',
-      ]);
-      const nullHidden = transform(values, {}, { [names[0]]: false });
-      chart.setOption(
-        { ...nullHidden.echartOptions, animation: false },
-        { notMerge: true },
-      );
-      expect(visibleNodes()).toEqual([
-        'source-1',
-        'target-1',
-        'source-2',
-        'target-2',
-      ]);
-      chart.dispatchAction({ type: 'legendSelect', name: names[0] });
-      chart.dispatchAction({ type: 'legendUnSelect', name: names[1] });
-      expect(visibleNodes()).toEqual([
-        'source-0',
-        'target-0',
-        'source-2',
-        'target-2',
-      ]);
-    } finally {
-      chart.dispose();
-    }
-  },
-);
+  } finally {
+    chart.dispose();
+  }
+});
 
 test.each(['asc', 'desc'])(
   'sorts the legend by displayed labels (%s)',
