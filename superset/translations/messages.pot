@@ -11256,6 +11256,9 @@ msgstr ""
 msgid "SQL Query"
 msgstr ""
 
+msgid "SQL WHERE/HAVING expressions are not supported for semantic views. Remove the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 msgid "SQL expression"
 msgstr ""
 
@@ -12449,6 +12452,9 @@ msgid "Show summary"
 msgstr ""
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 msgid "Show total"
@@ -15656,6 +15662,9 @@ msgid "Value Format"
 msgstr ""
 
 msgid "Value and Percentage"
+msgstr ""
+
+msgid "Value axis labels"
 msgstr ""
 
 msgid "Value bounds"

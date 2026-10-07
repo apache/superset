@@ -246,7 +246,13 @@ def test_native_filter_authority_does_not_discover(
             "native_filter_configuration": [
                 {
                     "id": "filter",
-                    "targets": [{"datasetId": view.id, "column": {"name": "country"}}],
+                    "targets": [
+                        {
+                            "datasetId": view.id,
+                            "datasourceType": "semantic_view",
+                            "column": {"name": "country"},
+                        }
+                    ],
                 }
             ]
         }
@@ -315,6 +321,7 @@ def test_completed_guest_query_rechecks_tooltip_columns_before_execution(
     chart.query_context = None
     chart.datasource = view
     chart.datasource_id = view.id
+    chart.datasource_type = view.type
     dashboard: MagicMock = MagicMock()
     dashboard.slices = [chart]
     manager: MagicMock = MagicMock(spec=SupersetSecurityManager)
