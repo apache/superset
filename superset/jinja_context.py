@@ -1294,8 +1294,6 @@ def dataset_macro(
     dataset_id: int | str,
     include_metrics: bool = False,
     columns: list[str] | None = None,
-    from_dttm: datetime | None = None,
-    to_dttm: datetime | None = None,
     schema: str | _Unset | None = _UNSET,
     catalog: str | _Unset | None = _UNSET,
     database_id: int | str | _Unset | None = _UNSET,
@@ -1315,10 +1313,6 @@ def dataset_macro(
 
     The generated SQL includes all columns (including computed) by default. Optionally
     the user can also request metrics to be included, and columns to group by.
-
-    The ``from_dttm`` and ``to_dttm`` parameters are filled in from filter values in
-    explore views, and we take them to make those properties available to jinja
-    templates in the underlying dataset.
 
     The ``alias`` parameter allows the user to specify an explicit alias for the
     returned subquery.

@@ -697,8 +697,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             if isinstance(database_id, int):
                 query = query.filter(SqlaTable.database_id == database_id)
             else:
-                query = query.join(Database).filter(
-                    Database.database_name == database_id
+                query = query.filter(
+                    SqlaTable.database.has(Database.database_name == database_id)
                 )
 
         if catalog is not _UNSET:
