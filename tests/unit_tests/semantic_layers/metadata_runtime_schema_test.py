@@ -40,6 +40,9 @@ from superset.semantic_layers.metadata_binding import (
 )
 from superset.semantic_layers.models import SemanticLayer
 from superset.semantic_layers.registry import registry
+from tests.unit_tests.semantic_layers.metadata_binding_test import (
+    mock_metadata_revalidation,
+)
 from tests.unit_tests.semantic_layers.metadata_contract_test import OptedInLayer
 from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
 
@@ -107,8 +110,8 @@ def test_runtime_endpoint_returns_refreshed_bound_choices(
         "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
         return_value=backend,
     )
-    session: Mock = mocker.patch("superset.semantic_layers.metadata_binding.Session")
-    session.return_value.__enter__.return_value.get.return_value = layer
+    database: Mock = mocker.patch("superset.semantic_layers.metadata_binding.db")
+    mock_metadata_revalidation(database, layer)
     construct: Mock = mocker.spy(RuntimeLayer, "from_configuration")
     if outcome == "refreshed":
         with app.app_context(), metadata_operation():
