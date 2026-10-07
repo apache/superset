@@ -83,7 +83,9 @@ export interface DropdownContainerProps {
    */
   style?: CSSProperties;
   /**
-   * Force render popover content before it's first opened
+   * Force render popover content before it's first opened.
+   * Note: Do not use when dropdown items contain reverse portals (e.g. FilterControls),
+   * as forced rendering in hidden DOM steals portal DOM nodes from the main container.
    */
   forceRender?: boolean;
 }
