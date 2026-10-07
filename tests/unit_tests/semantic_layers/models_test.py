@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -37,6 +38,8 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticViewFeature
 
+from superset.common.query_context_factory import QueryContextFactory
+from superset.common.query_object import QueryObject
 from superset.common.tabular_query import _resolve_time_column
 from superset.semantic_layers.models import (
     ColumnMetadata,
@@ -765,6 +768,38 @@ def test_semantic_view_data_honors_exposed_temporal_preference(
     assert any(
         "preferred_time_dimension" in record.message for record in caplog.records
     ) is (preferred is not None and expected is None)
+
+
+def test_semantic_view_preference_supplies_filter_granularity(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """A bounded ad-hoc axis uses the view's preferred time dimension for filters."""
+    mock_implementation.get_dimensions.return_value = [
+        Dimension(id="entity.time", name="entity_time", type=pa.date32()),
+        Dimension(id="metric.time", name="metric_time", type=pa.timestamp("us")),
+    ]
+    mock_implementation.preferred_time_dimension = "metric_time"
+    axis: dict[str, str] = {
+        "expressionType": "SQL",
+        "sqlExpression": "amount / 10",
+        "label": "amount_bucket",
+    }
+    query_object: MagicMock = MagicMock(spec=QueryObject)
+    query_object.granularity = None
+    query_object.from_dttm = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    query_object.to_dttm = datetime(2024, 1, 31, tzinfo=timezone.utc)
+    query_object.time_range = "2024-01-01 : 2024-01-31"
+    query_object.columns = [axis]
+    query_object.post_processing = []
+    query_object.filter = []
+
+    QueryContextFactory()._apply_granularity(
+        query_object, {"x_axis": axis}, semantic_view
+    )
+
+    assert query_object.granularity == "metric_time"
+    assert query_object.columns == [axis]
 
 
 def test_semantic_view_data_features_empty(
