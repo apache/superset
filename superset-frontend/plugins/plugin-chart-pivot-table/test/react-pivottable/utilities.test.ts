@@ -230,22 +230,16 @@ test('each aggregation cell uses the formatter of its own metric', () => {
 });
 
 /**
- * Which metric a multi-metric grand total belongs to is #44725's question, and
- * this PR does not settle it. What must never happen is the slot being built
- * once from the first metric and then going on to render the *last* metric's
- * value in the *first* metric's format -- a regression that reads as correct
- * formatting of a plainly wrong number.
- *
- * Whichever metric's value the slot ends up showing, it has to be formatted as
- * that same metric. Asserted for both orders, since `push` overwrites the stored
- * value and the last record wins.
+ * A grand total spanning several metrics has no single meaningful value, so
+ * the slot renders blank instead of showing whichever metric was pushed last
+ * in the first metric's format. Asserted for both record orders.
  */
 test.each([
-  ['sales first', ['sales', 'rate'], '5.000 r'],
-  ['rate first', ['rate', 'sales'], '$300.00'],
+  ['sales first', ['sales', 'rate']],
+  ['rate first', ['rate', 'sales']],
 ])(
-  'multi-metric grand total formats the value it shows as that metric (%s)',
-  (_label, order, expected) => {
+  'multi-metric grand total renders blank rather than picking a metric (%s)',
+  (_label, order) => {
     const grandTotals: Record<string, number> = { sales: 300, rate: 5 };
     const pivotData = buildPivot(
       order.map(metric => ({
@@ -257,10 +251,9 @@ test.each([
       })),
     );
 
-    // The value is the last record's; the formatter has to be that metric's too.
     const agg = pivotData.getAggregator([], []);
-    expect(agg.value()).toBe(grandTotals[order[order.length - 1]]);
-    expect(agg.format(agg.value(), agg)).toBe(expected);
+    expect(agg.value()).toBeNull();
+    expect(agg.format(agg.value(), agg)).toBe('');
   },
 );
 
