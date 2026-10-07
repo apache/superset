@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
+import { useState } from 'react';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 
 const defaultProps = {
@@ -49,6 +55,35 @@ describe('CheckboxControl', () => {
 
     await userEvent.click(label);
     expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  test('keeps the checkbox checked after its label is clicked', () => {
+    function StatefulCheckbox() {
+      const [checked, setChecked] = useState(false);
+      return setup({ value: checked, onChange: setChecked });
+    }
+
+    render(<StatefulCheckbox />);
+    fireEvent.click(screen.getByText('checkbox label'));
+
+    expect(screen.getByRole('checkbox')).toBeChecked();
+  });
+
+  test('prevents duplicate native label activation from the label text', () => {
+    render(setup());
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+
+    screen.getByText('checkbox label').dispatchEvent(click);
+
+    expect(click.defaultPrevented).toBe(true);
+  });
+
+  test('focuses the checkbox when its label text is clicked', () => {
+    render(setup());
+
+    fireEvent.click(screen.getByText('checkbox label'));
+
+    expect(screen.getByRole('checkbox')).toHaveFocus();
   });
 
   test('explains a disabled checkbox without a label', () => {

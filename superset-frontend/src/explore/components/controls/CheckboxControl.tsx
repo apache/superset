@@ -89,7 +89,18 @@ export default function CheckboxControl({
           name={checkboxId}
           label={label}
           leftNode={checkbox}
-          onClick={disabled ? undefined : handleChange}
+          onClick={
+            disabled
+              ? undefined
+              : (event?: { preventDefault: () => void }) => {
+                  if (event) {
+                    event.preventDefault();
+                    // Preserve the label's focus behavior without a second toggle.
+                    document.getElementById(checkboxId)?.focus();
+                  }
+                  handleChange();
+                }
+          }
         />
         {explanation}
         {disabled && value && resetLabel && (
