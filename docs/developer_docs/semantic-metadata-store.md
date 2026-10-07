@@ -227,8 +227,20 @@ bridge with an explicit metadata operation before they can participate. An
 async caller or missing operation fails before Redis I/O. This change does not
 adapt those entry points.
 
-The fresh metadata-database revalidation read uses the operator's existing
-connection/statement timeouts. It is synchronous and is not cancelled by the
+Before publication, revalidation reads through the caller's live metadata-DB
+connection without another pool checkout, autoflush, or transaction completion.
+Only a live `READ COMMITTED` isolation level is accepted. Other or unknown levels
+(including SQLite's `SERIALIZABLE`) fail closed with `unavailable`: a cold scope
+stays cold and an existing unexpired snapshot is not replaced or extended.
+READ COMMITTED also sees the caller's own writes, so publication requires a
+transaction observed from its beginning with only ordinary compiled SELECTs and
+no pending ORM changes. Flushed writes, raw SQL (including literal expressions), SQL functions, custom
+SQL constructs, write CTEs, or unknown transaction history make publication uncertain; SAVEPOINT rollback does
+not clear that state. A new outer transaction can qualify again. Application
+metadata-DB access must use SQLAlchemy's connection APIs; bypassing their events
+with a raw DBAPI cursor is unsupported for this optional path.
+
+The revalidation read uses the operator's existing connection/statement timeouts. It is synchronous and is not cancelled by the
 metadata budget; a slow metadata DB can extend elapsed request time, although
 publication is rejected once the budget has expired. Configure bounded DB
 transport/statement limits before fleet enablement. The Redis/provider deadline
