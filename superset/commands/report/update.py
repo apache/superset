@@ -71,6 +71,7 @@ CONTENT_FIELDS: frozenset[str] = frozenset(
         "dashboard",
         "extra",
         "recipients",
+        "report_format",
     }
 )
 
@@ -181,6 +182,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             "dashboard": model.dashboard_id,
             "extra": _normalize_extra(model.extra_json),
             "recipients": _normalize_recipients(model.recipients),
+            "report_format": model.report_format,
         }
         normalizers: dict[str, Callable[[Any], Any]] = {
             "extra": _normalize_extra,

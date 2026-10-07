@@ -116,6 +116,27 @@ class TestReportSchedulesApi(SupersetTestCase):
             None if application_default else ExecutorType.FIXED_USER
         )
 
+    @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=True)
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "sip_schedule_cleanup"
+    )
+    def test_report_list_includes_executor_identity(self) -> None:
+        """The subscription editor can distinguish self from application default."""
+        self.login(ADMIN_USERNAME)
+        admin = self.get_user(ADMIN_USERNAME)
+        payload = self._sip_report_payload("sip209_api_subscription_executor")
+        payload.update({"run_as": admin.id, "run_as_type": "fixed_user"})
+        created = self.client.post("/api/v1/report/", json=payload)
+        assert created.status_code == 201, created.json
+
+        query = rison.dumps(
+            {"filters": [{"col": "id", "opr": "eq", "value": created.json["id"]}]}
+        )
+        response = self.client.get(f"/api/v1/report/?q={query}")
+        assert response.status_code == 200, response.json
+        assert response.json["result"][0]["run_as_type"] == "fixed_user"
+        assert response.json["result"][0]["run_as"]["id"] == admin.id
+
     @parameterized.expand([("self",), ("default",), ("other",)])
     @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=True)
     @pytest.mark.usefixtures(

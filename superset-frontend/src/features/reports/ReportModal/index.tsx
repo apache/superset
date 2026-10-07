@@ -40,6 +40,7 @@ import {
   subscribeReport,
 } from 'src/features/reports/ReportModal/actions';
 import {
+  Button,
   Checkbox,
   Input,
   LabeledErrorBoundInput,
@@ -60,6 +61,7 @@ import {
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
 import { CreationMethod } from './HeaderReportDropdown';
 import {
@@ -137,6 +139,11 @@ function ReportModal({
     ? NotificationFormats.Text
     : NotificationFormats.PNG;
   const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
+  const bootstrapUser = getBootstrapData().user;
+  const currentUserId =
+    bootstrapUser && 'userId' in bootstrapUser
+      ? bootstrapUser.userId
+      : undefined;
   const entityName = dashboardName || chartName;
   const initialState: ReportObjectState = useMemo(
     () => ({
@@ -166,6 +173,7 @@ function ReportModal({
     initialState,
   );
   const [cronError, setCronError] = useState<CronError>();
+  const [executeAsSelf, setExecuteAsSelf] = useState(false);
 
   const dispatch = useDispatch();
   // Report fetch logic
@@ -182,12 +190,25 @@ function ReportModal({
   const isEditMode = report && Object.keys(report).length;
 
   useEffect(() => {
+    setExecuteAsSelf(false);
     if (isEditMode) {
       setCurrentReport(report);
     } else {
       setCurrentReport('reset');
     }
   }, [isEditMode, report]);
+
+  const formatChanged =
+    isChart &&
+    Boolean(isEditMode) &&
+    (currentReport.report_format || defaultNotificationFormat) !==
+      report.report_format;
+  const formatRequiresTakeover =
+    isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) &&
+    formatChanged &&
+    !isUserAdmin(bootstrapUser) &&
+    (report.run_as_type !== 'fixed_user' ||
+      report.run_as?.id !== currentUserId);
 
   const onSave = async () => {
     const commonFields: Partial<ReportObject> = {
@@ -227,6 +248,9 @@ function ReportModal({
             ...(currentUserSubjectId === undefined
               ? {}
               : { editors: [currentUserSubjectId] }),
+            ...(formatRequiresTakeover && executeAsSelf
+              ? { run_as: currentUserId, run_as_type: 'fixed_user' as const }
+              : {}),
             recipients: [
               {
                 recipient_config_json: {
@@ -269,7 +293,10 @@ function ReportModal({
         key="submit"
         buttonStyle="primary"
         onClick={onSave}
-        disabled={!currentReport.name}
+        disabled={
+          !currentReport.name ||
+          (formatRequiresTakeover && (!executeAsSelf || currentUserId == null))
+        }
         loading={currentReport.isSubmitting}
       >
         {isEditMode ? t('Save') : t('Add')}
@@ -314,6 +341,36 @@ function ReportModal({
           ]}
         />
       </div>
+      {formatRequiresTakeover && (
+        <Alert
+          type={executeAsSelf ? 'info' : 'warning'}
+          showIcon
+          message={
+            executeAsSelf
+              ? t('Content and permissions')
+              : t('Content and recipient edits are restricted')
+          }
+          description={
+            executeAsSelf
+              ? t(
+                  'This schedule will use your permissions. You need access to its content and, for alerts, its condition query. Changes take effect when you save.',
+                )
+              : t(
+                  'You can edit the name and schedule, but changing the delivered content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
+                )
+          }
+          action={
+            !executeAsSelf && (
+              <Button
+                onClick={() => setExecuteAsSelf(true)}
+                disabled={currentUserId == null}
+              >
+                {t('Execute using my permissions')}
+              </Button>
+            )
+          }
+        />
+      )}
     </>
   );
   const renderCustomWidthSection = (

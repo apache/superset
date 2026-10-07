@@ -600,29 +600,57 @@ def test_subscription_recipient_rewrite_is_protected_content_change(
     assert ReportScheduleRunAsContentForbiddenError in _errors(exc)
 
 
-@pytest.mark.parametrize(
-    "creation_method",
-    [ReportCreationMethod.CHARTS, ReportCreationMethod.DASHBOARDS],
-)
 @pytest.mark.parametrize("application_default", [False, True])
-def test_subscription_format_change_preserves_executor_and_delivery(
-    mocker: MockerFixture,
-    creation_method: ReportCreationMethod,
-    application_default: bool,
+def test_subscription_format_change_requires_takeover(
+    mocker: MockerFixture, application_default: bool
 ) -> None:
-    """A format edit does not change the executor or delivery target."""
+    """A format edit cannot use another user's or the default executor."""
     model = _make_model(run_as=None if application_default else OTHER_USER)
-    model.creation_method = creation_method
+    model.creation_method = ReportCreationMethod.CHARTS
     model.recipients = [
         Mock(type="Email", recipient_config_json='{"target": "owner@x.com"}')
     ]
     _stub_update_deps(mocker, model, is_admin=False)
     command = UpdateReportScheduleCommand(1, {"report_format": "PDF"})
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
+
+    assert ReportScheduleRunAsContentForbiddenError in _errors(exc)
+    assert command._changed_content_fields() == {"report_format"}
+
+
+def test_subscription_format_change_after_takeover(mocker: MockerFixture) -> None:
+    """Switching to the requester permits the format change."""
+    model = _make_model(run_as=OTHER_USER)
+    model.creation_method = ReportCreationMethod.CHARTS
+    _stub_update_deps(mocker, model, is_admin=False)
+    command = UpdateReportScheduleCommand(
+        1,
+        {
+            "report_format": "PDF",
+            "run_as": CURRENT_USER.id,
+            "run_as_type": "fixed_user",
+        },
+    )
+    command.validate()
+
+    assert command._properties["run_as"] is CURRENT_USER
+
+
+def test_subscription_unchanged_format_preserves_executor(
+    mocker: MockerFixture,
+) -> None:
+    """Resending the stored format during a metadata edit is allowed."""
+    model = _make_model(run_as=OTHER_USER)
+    model.creation_method = ReportCreationMethod.CHARTS
+    _stub_update_deps(mocker, model, is_admin=False)
+    command = UpdateReportScheduleCommand(
+        1, {"report_format": "PNG", "name": "renamed"}
+    )
     command.validate()
 
     assert "run_as" not in command._properties
     assert "run_as_type" not in command._properties
-    assert "recipients" not in command._properties
     assert command._changed_content_fields() == set()
 
 
