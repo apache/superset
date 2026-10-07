@@ -58,6 +58,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
+    addWarningToast: jest.fn(),
     exploreChart: jest.fn(),
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
@@ -954,6 +955,8 @@ test('Clicking "Export screenshot (jpeg)" calls downloadAsImage and logEvent', a
     props.slice.slice_name,
     true,
     expect.anything(),
+    undefined,
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),
@@ -984,6 +987,7 @@ test('Clicking "Transparent background" calls downloadAsImage with transparent o
     true,
     expect.anything(),
     { format: 'png', backgroundType: 'transparent' },
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),
@@ -1007,6 +1011,7 @@ test('Clicking "Solid background" calls downloadAsImage with solid option and lo
     true,
     expect.anything(),
     { format: 'png', backgroundType: 'solid' },
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),
@@ -1027,6 +1032,7 @@ test('Clicking "Export as PDF" calls downloadAsPdf and logEvent', async () => {
     `.dashboard-chart-id-${SLICE_ID}`,
     props.slice.slice_name,
     true,
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),

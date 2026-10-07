@@ -420,6 +420,12 @@ msgid "%s items could not be tagged because you don’t have edit permissions to
 msgstr ""
 
 #, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
 msgstr[0] ""
@@ -1168,6 +1174,9 @@ msgstr ""
 msgid "Add an annotation layer"
 msgstr ""
 
+msgid "Add an arrow on the left of collapsed JSON. A click on the arrow expands the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr ""
 
@@ -1532,6 +1541,9 @@ msgid "Alerts & Reports"
 msgstr ""
 
 msgid "Alerts & reports"
+msgstr ""
+
+msgid "Alignment"
 msgstr ""
 
 msgid "Align +/-"
@@ -3462,10 +3474,17 @@ msgstr ""
 msgid "Collapse"
 msgstr ""
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr ""
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -3940,6 +3959,9 @@ msgstr ""
 
 #, python-format
 msgid "Converted %s @import rule(s) to inline CSS. Review the result before saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -6204,7 +6226,14 @@ msgstr ""
 msgid "Expand"
 msgstr ""
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
+msgstr ""
+
+msgid "Expand JSON"
 msgstr ""
 
 msgid "Expand all"
@@ -7211,6 +7240,9 @@ msgstr ""
 msgid "Horizontal alignment"
 msgstr ""
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr ""
 
@@ -7724,6 +7756,9 @@ msgid "JSON Configuration"
 msgstr ""
 
 msgid "JSON Metadata"
+msgstr ""
+
+msgid "JSON in cell"
 msgstr ""
 
 msgid "JSON metadata"
@@ -9566,6 +9601,9 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr ""
 
+msgid "Open JSON"
+msgstr ""
+
 msgid "Open SQL Lab in a new tab"
 msgstr ""
 
@@ -10227,7 +10265,7 @@ msgid "Prefix or suffix"
 msgstr ""
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -12022,6 +12060,9 @@ msgid "Semantic view updated"
 msgstr ""
 
 msgid "Semantic views"
+msgstr ""
+
+msgid "Semantic views cannot enforce guest row-level security rules."
 msgstr ""
 
 msgid "Send Failed Reports"
