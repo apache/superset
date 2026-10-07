@@ -644,3 +644,18 @@ test('does not pass forceRender to DropdownContainer even when a filter has requ
   await waitFor(() => expect(latestProps()).toBeTruthy());
   expect(latestProps().forceRender).toBeFalsy();
 });
+
+test('preserves item element stability across overflow state transitions', async () => {
+  const filters = [
+    createSelectNativeFilter('NATIVE_FILTER-1', 'country'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'city'),
+  ];
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+
+  await waitFor(() => expect(callbackRef.current).toBeTruthy());
+
+  fireOverflow(['NATIVE_FILTER-2'], ['NATIVE_FILTER-1']);
+
+  await waitFor(() => expect(latestProps().dropdownContent).toBeDefined());
+  expect(latestProps().items).toHaveLength(2);
+});
