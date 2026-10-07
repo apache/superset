@@ -125,6 +125,44 @@ When enabled, the **Logout** menu item is removed from the user avatar dropdown 
 
 Must be `True` to enable the embedded SDK and the guest token endpoint. Without this flag, `embedDashboard` will fail to load.
 
+### `EMBEDDED_CREDENTIAL_FALLBACK`
+
+Allows a database connection that authenticates logged-in users per-user via OAuth2 to
+also carry a single username and password used **only** for embedded guest requests.
+
+This exists because the two authentication models do not meet. An embedded viewer signs
+in with a guest token rather than a Superset account, so there is no per-user OAuth2
+token to resolve for them — and an external viewer may have no identity on the
+analytical database at all. Without a fallback, embedded dashboards on a per-user OAuth2
+connection cannot run queries.
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {
+    "EMBEDDED_SUPERSET": True,
+    "EMBEDDED_CREDENTIAL_FALLBACK": True,
+}
+```
+
+With both flags on, engines that support it (currently Snowflake) show an **Embedded
+guest credentials** section in the connection dialog. The credential is stored
+encrypted; the password is masked on read, and the username stays visible so an
+administrator can see which database user embedded queries run as.
+
+Understand what this grants before enabling it:
+
+- **Every embedded viewer of that connection queries as that one database user.** Guest
+  tokens carry no database identity, so per-user attribution and any database-side
+  row-level security keyed to the user do not apply. Use a dedicated account with the
+  narrowest access the embedded dashboards need, and enforce per-viewer restrictions
+  with Superset's own [row-level security](#security-notes) rules in the guest token.
+- **Logged-in users are unaffected.** They continue to authenticate individually via
+  OAuth2 and have no route to the stored credential.
+- **The guest token's `username` claim is never used to connect.** Whoever mints the
+  token controls that claim, so it is deliberately kept out of the connection identity.
+- Turning the flag back off is a kill switch, not a deletion: the stored credential stops
+  being offered and stops being used, but is preserved.
+
 ---
 
 ## URL Parameters
@@ -167,6 +205,7 @@ One caveat when the host page lives on a different site than Superset: the defau
 - **Row-level security** — pass `rls` rules in the guest token request to restrict which rows are visible to the embedded user. Semantic views cannot enforce guest-token SQL clauses, so queries and cached-result reads are rejected when a global rule or a rule scoped to the semantic view applies. For hosts, a global guest rule deliberately refuses every semantic view, and a dataset-scoped rule can also refuse a semantic view even when the rule was intended for a SQL dataset. Read permissions do not override these restrictions. Semantic views remain accessible when no guest rule applies; SQL datasets continue to enforce their applicable rules.
 - **Allowed domains** — restrict which host origins can embed a dashboard by setting **Allowed Domains** per-dashboard in the _Embed_ settings modal. Superset checks the request's `Referer` header against this list before serving the embedded view; an empty list allows any origin, so configure this explicitly for production.
 - **Redacted errors** — API responses to a guest token report a generic `An error occurred while fetching the data.` instead of the underlying error, since engine errors quote catalog, schema, table and column names. Errors Superset raises itself — access denials, timeouts, payload validation — keep their message, and the full error is always available in the server logs.
+- **OAuth2 connections and guests** — a guest cannot complete an OAuth2 authorization, so Superset does not start one for them. An embedded viewer on an OAuth2 connection with no applicable credential gets the database driver's own authentication error rather than being sent into a login flow they cannot finish. To serve embedded dashboards from such a connection, see [`EMBEDDED_CREDENTIAL_FALLBACK`](#embedded_credential_fallback).
 
 
 ## Guest-token request-header size diagnostics

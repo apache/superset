@@ -738,6 +738,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
+
+    # Can a connection on this engine carry a username/password used only for embedded
+    # guest requests? Opting in requires the engine's impersonation to be a no-op for
+    # the fallback path, so that the stored credential -- rather than a per-user OAuth2
+    # token the guest does not have -- authenticates the connection.
+    supports_embedded_credential_fallback = False
     oauth2_scope = ""
     oauth2_authorization_request_uri: str | None = None  # pylint: disable=invalid-name
     oauth2_token_request_uri: str | None = None
@@ -2852,6 +2858,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return
         try:
             encrypted_extra = json.loads(database.encrypted_extra)
+            # `embedded_credentials` is read by `Database._get_sqla_engine`, not by any
+            # driver. Splatting it in here would make it a `create_engine` kwarg and
+            # raise `TypeError` on every engine that inherits this method, so it is
+            # dropped regardless of whether the engine opted into the feature.
+            encrypted_extra.pop("embedded_credentials", None)
             params.update(encrypted_extra)
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)

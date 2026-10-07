@@ -171,6 +171,13 @@
         "description": "Enable dynamic plugin loading"
       },
       {
+        "name": "EMBEDDED_CREDENTIAL_FALLBACK",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Allow a database connection to carry a username and password used only for embedded guest requests, while logged-in users continue to authenticate per-user via OAuth2. Requires EMBEDDED_SUPERSET.",
+        "category": "security"
+      },
+      {
         "name": "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT",
         "default": false,
         "lifecycle": "testing",

@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-07 21:38+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1543,13 +1543,13 @@ msgstr ""
 msgid "Alerts & reports"
 msgstr ""
 
-msgid "Alignment"
-msgstr ""
-
 msgid "Align +/-"
 msgstr ""
 
 msgid "Align +/- for all columns"
+msgstr ""
+
+msgid "Alignment"
 msgstr ""
 
 msgid "All"
@@ -5800,6 +5800,9 @@ msgid "Embedded authentication failed. The guest token may exceed the request-he
 msgstr ""
 
 msgid "Embedded dashboard could not be deleted."
+msgstr ""
+
+msgid "Embedded guest credentials"
 msgstr ""
 
 msgid "Embedding deactivated."
@@ -15565,6 +15568,9 @@ msgid "Use this to define a static color for all circles"
 msgstr ""
 
 msgid "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json"
+msgstr ""
+
+msgid "Used only when a dashboard is viewed through an embedded guest token. Every embedded viewer of this connection queries as this one user, so it should be a dedicated account with the narrowest access those dashboards need. Logged-in users are unaffected and continue to authenticate individually via OAuth2."
 msgstr ""
 
 msgid "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile."

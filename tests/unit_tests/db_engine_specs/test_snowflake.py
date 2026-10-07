@@ -30,6 +30,7 @@ from superset.app import SupersetApp
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -990,3 +991,183 @@ def test_update_params_from_encrypted_extra_does_not_leak_the_oauth2_client(
 
     assert "oauth2_client_info" not in params
     assert "client-secret" not in json.dumps(params, default=str)
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_parameters_json_schema_offers_embedded_credentials_when_enabled() -> None:
+    """
+    Test that the guest-credential sub-form is offered when the flag is on.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    schema = SnowflakeEngineSpec.parameters_json_schema()
+
+    assert schema is not None
+    assert schema["properties"]["embedded_credentials"]["x-encrypted-extra"] is True
+    assert "embedded_credentials" not in schema.get("required", [])
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=False)
+def test_parameters_json_schema_hides_embedded_credentials_when_disabled() -> None:
+    """
+    Test that the sub-form disappears when the feature flag is off.
+
+    This payload is the only source of the fields the connection dialog renders, so
+    dropping the property is all that is needed to hide the UI -- no feature-flag
+    plumbing on the frontend.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    schema = SnowflakeEngineSpec.parameters_json_schema()
+
+    assert schema is not None
+    assert "embedded_credentials" not in schema["properties"]
+    # The OAuth2 client config is unrelated and must still be offered.
+    assert "oauth2_client_info" in schema["properties"]
+
+
+def test_mask_encrypted_extra_embedded_credentials() -> None:
+    """
+    Test that the fallback password is masked but the username is not.
+
+    An admin needs to see which Snowflake user embedded queries run as; the password
+    must never be readable back out of the API.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    config = json.dumps(
+        {
+            "embedded_credentials": {
+                "username": "embedded_svc",
+                "password": "embedded_pw",
+            },
+        }
+    )
+
+    masked = json.loads(SnowflakeEngineSpec.mask_encrypted_extra(config) or "{}")
+
+    assert masked["embedded_credentials"]["username"] == "embedded_svc"
+    assert masked["embedded_credentials"]["password"] == "XXXXXXXXXX"  # noqa: S105
+
+
+def test_unmask_encrypted_extra_embedded_credentials() -> None:
+    """
+    Test that re-saving the mask preserves the stored fallback password.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    old = json.dumps(
+        {
+            "embedded_credentials": {
+                "username": "embedded_svc",
+                "password": "embedded_pw",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "embedded_credentials": {
+                "username": "embedded_svc",
+                "password": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    unmasked = json.loads(SnowflakeEngineSpec.unmask_encrypted_extra(old, new) or "{}")
+
+    assert unmasked["embedded_credentials"]["password"] == "embedded_pw"  # noqa: S105
+
+
+def test_update_params_from_encrypted_extra_prefers_the_fallback_over_keypair(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that key-pair auth is not layered on top of the fallback credential.
+
+    The fallback path skips impersonation, so `authenticator` is unset and this method
+    still runs. Without the guard a connection carrying both would hand the driver a
+    private key *and* a username/password, making which one wins a driver detail.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps(
+        {
+            "auth_method": "keypair",
+            "auth_params": {"privatekey_body": "not-a-real-key"},
+        }
+    )
+    database.get_embedded_fallback_credentials.return_value = {
+        "username": "embedded_svc",
+        "password": "embedded_pw",
+    }
+
+    params: dict[str, Any] = {}
+    SnowflakeEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert params == {}
+
+
+def test_update_params_from_encrypted_extra_still_applies_keypair_for_a_user(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that key-pair auth is untouched when no fallback credential applies.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps(
+        {
+            "auth_method": "keypair",
+            "auth_params": {"privatekey_body": "not-a-real-key"},
+        }
+    )
+    database.get_embedded_fallback_credentials.return_value = None
+
+    params: dict[str, Any] = {}
+    # Reaching the PEM loader at all is the assertion: the method did not
+    # short-circuit. The key is deliberately invalid, so the loader rejects it.
+    with pytest.raises(ValueError, match="Unable to load PEM file"):
+        SnowflakeEngineSpec.update_params_from_encrypted_extra(database, params)
+
+
+def test_build_sqlalchemy_uri_does_not_leak_the_embedded_credential() -> None:
+    """
+    Test that the embedded guest credential never reaches the stored URI.
+
+    The connection dialog's ``x-encrypted-extra`` promotion leaves a stringified
+    copy of the field in ``parameters`` as well as moving it into
+    ``masked_encrypted_extra`` -- confirmed by driving the real modal -- so this
+    is a value ``build_sqlalchemy_uri`` genuinely receives, not a hypothetical.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    parameters: dict[str, Any] = {
+        "username": "svc_user",
+        "password": "svc_pass",
+        "account": "account",
+        "database": "database",
+        "role": "role",
+        "warehouse": "warehouse",
+        "embedded_credentials": json.dumps(
+            {"username": "embedded_svc", "password": "embedded_pw"}
+        ),
+    }
+
+    uri = SnowflakeEngineSpec.build_sqlalchemy_uri(parameters)  # type: ignore[arg-type]
+
+    assert "embedded_svc" not in uri
+    assert "embedded_pw" not in uri
+    assert "embedded_credentials" not in uri
+
+
+def test_snowflake_opts_into_embedded_credential_fallback() -> None:
+    """
+    Test that Snowflake is opted in and the base spec is not.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    assert SnowflakeEngineSpec.supports_embedded_credential_fallback is True
+    assert BaseEngineSpec.supports_embedded_credential_fallback is False
