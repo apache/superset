@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-10-02 21:57-0700\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -145,25 +145,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standard, ki zagotavlja, de se leksikografsko razvrščanje\n"
-"                      sklada s kronološkim. Če oblika\n"
-"                      časovne značke ni v skladu s standardom ISO 8601,\n"
-"                      boste morali definirati izraz in tip za "
-"transformacijo\n"
-"                      znakovnega niza v datum ali časovno značko.\n"
-"                      Trenutno časovni pasovi niso podprti.\n"
-"                      Če je čas shranjen v obliki epohe, dodajte "
-"`epoch_s` ali `epoch_ms`.\n"
-"                      Če format ni podan, se uporabijo privzete vrednosti"
-" za\n"
-"                      podatkovno bazo oz. tip stolpca s pomočjo dodatnega"
-" parametra."
 
 msgid " to add calculated columns"
 msgstr " za dodajanje izračunanih stolpcev"
@@ -1066,6 +1053,9 @@ msgstr ""
 " \"My Chart\" }, tooltip: { trigger: \"item\" } }). Podrobnosti: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1074,11 +1064,28 @@ msgid ""
 " bars that extend left and right from a central axis."
 msgstr ""
 
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Svečniški grafikon prikazuje vrednosti odprtja, zaprtja, najvišjo in "
+"najnižjo za vsako obdobje. Pogosto se uporablja za finančne in druge "
+"analize razponov časovnih vrst."
+
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Seznam stolpcev, ločenih z vejico, ki jih je treba razčleniti kot datume"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Z vejicami ločen seznam shem, kjer je dovoljeno nalaganje datotek."
+
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
 
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Pri povezavi preko SSH-tunela so potrebna vrata podatkovne baze."
@@ -1497,6 +1504,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Dodaj mapo"
 
+msgid "Add group"
+msgstr "Dodaj skupino"
+
 msgid "Add item"
 msgstr "Dodaj"
 
@@ -1505,6 +1515,9 @@ msgstr "Dodaj mero"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Dodaj mero v podatkovni set v oknu \"Uredi podatkovni vir\""
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Dodaj novo pravilo za barvo"
@@ -1535,6 +1548,9 @@ msgstr "Dodaj poverilnice storitve"
 
 msgid "Add sheet"
 msgstr "Dodaj preglednico"
+
+msgid "Add subgroup"
+msgstr "Dodaj podskupino"
 
 msgid "Add tag to entities"
 msgstr "Dodaj oznako elementom"
@@ -1679,6 +1695,9 @@ msgstr "Zadevani grafikoni"
 msgid "Affected Dashboards"
 msgstr "Zadevane nadzorne plošče"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1772,6 +1791,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -3268,6 +3291,19 @@ msgstr "Prekini poizvedbo pri dogodku zaprtja okna (window unload event)"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Preklic ni na voljo zaradi manjkajočega upravljalnika za prekinitev"
 
+msgid "Candlestick"
+msgstr "Svečniki"
+
+msgid "Candlestick Chart"
+msgstr "Svečniški grafikon"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Svečniki narišejo zapolnjeno telo med odprtjem in zaprtjem. OHLC nariše "
+"oznake odprtja in zaprtja na steblu najvišje–najnižje."
+
 msgid "Cannot access the query"
 msgstr "Dostop do poizvedbe ni mogoč"
 
@@ -3394,6 +3430,9 @@ msgstr "Omejitev števila celic"
 
 msgid "Cell title template"
 msgstr "Predloga naslova celice"
+
+msgid "Center"
+msgstr "Sredina"
 
 msgid "Center value"
 msgstr ""
@@ -3694,6 +3733,13 @@ msgstr ""
 msgid "Chart width"
 msgstr "Širina grafikona"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Grafikoni"
 
@@ -3785,6 +3831,12 @@ msgstr "Izberite stolpce, ki bodo prepoznani kot datumi"
 
 msgid "Choose columns to read"
 msgstr "Izberite stolpce za branje"
+
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -4037,6 +4089,9 @@ msgstr "Zapri zavihek"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Vrednost zaprtja za vsako obdobje."
+
 msgid "Cluster label aggregator"
 msgstr "Agregator za oznako gruče"
 
@@ -4066,6 +4121,9 @@ msgstr "Skrij podatkovni panel"
 
 msgid "Collapse row"
 msgstr "Skrij vrstico"
+
+msgid "Collapse settings"
+msgstr "Strni nastavitve"
 
 msgid "Collapse tab content"
 msgstr "Skrij vsebino zavihka"
@@ -4119,10 +4177,17 @@ msgstr "Barvne mejne točke"
 msgid "Color by"
 msgstr "Barva glede na"
 
+msgid "Color by direction"
+msgstr "Barva po smeri"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Barvno polje mora biti šestnajstiška barva (#rrggbb) ali 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -4144,6 +4209,14 @@ msgstr "Barva ciljne lokacije"
 
 msgid "Color scheme"
 msgstr "Barvna shema"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "Barva, ko je vrednost zaprtja večja ali enaka vrednosti odprtja."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Barva, ko je vrednost zaprtja manjša od vrednosti odprtja."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -4188,6 +4261,9 @@ msgstr "Stolpec s podatki zemljepisne dolžine"
 
 msgid "Column data types"
 msgstr "Podatkovni tipi stolpcev"
+
+msgid "Column groups"
+msgstr "Skupine stolpcev"
 
 msgid "Column header tooltip"
 msgstr "Opis glave stolpca"
@@ -4461,6 +4537,9 @@ msgstr "Potrdi"
 msgid "Confirm Password"
 msgstr "Potrdite geslo"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Potrdite prepis"
 
@@ -4469,6 +4548,9 @@ msgstr "Potrdite geslo"
 
 msgid "Confirm save"
 msgstr "Potrdite shranjevanje"
+
+msgid "Confirm the new password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -4702,6 +4784,12 @@ msgstr ""
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Gostitelj ni dosegljiv: \"%(host)s\"."
 
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Could not validate the user in the current session."
@@ -4862,6 +4950,9 @@ msgstr "Tekoči dan"
 
 msgid "Current month"
 msgstr "Tekoči mesec"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Tekoče četrtletje"
@@ -5117,6 +5208,9 @@ msgstr "Nadzorne plošče ni bilo mogoče obnoviti."
 msgid "Dashboard could not be updated."
 msgstr "Nadzorne plošče ni mogoče posodobiti."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Nadzorna plošča ne obstaja"
 
@@ -5125,6 +5219,9 @@ msgstr "Nadzorna plošča je uspešno izvožena kot primer"
 
 msgid "Dashboard exported successfully"
 msgstr "Nadzorna plošča je bila uspešno izvožena"
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Nadzorna plošča uvožena"
@@ -5736,6 +5833,11 @@ msgstr "Izbriši skupino"
 
 msgid "Delete item"
 msgstr "Izbriši predmet"
+
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
 
 msgid "Delete permanently"
 msgstr ""
@@ -6884,6 +6986,9 @@ msgstr "Vnesite primarne vpisne podatke"
 msgid "Enter a name for this sheet"
 msgstr "Vnesite ime te preglednice"
 
+msgid "Enter a new password"
+msgstr ""
+
 msgid "Enter a part of the object name"
 msgstr "Vnesite del imena predmeta"
 
@@ -6895,6 +7000,9 @@ msgstr "Vnesite trajanje v sekundah"
 
 msgid "Enter fullscreen"
 msgstr "Vklopi celozaslonski način"
+
+msgid "Enter group name"
+msgstr "Vnesite ime skupine"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -6943,6 +7051,12 @@ msgstr "Vnesite uporabniško ime uporabnika"
 
 msgid "Enter theme name"
 msgstr "Vnesite ime teme"
+
+msgid "Enter values"
+msgstr ""
+
+msgid "Enter your current password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7124,6 +7238,9 @@ msgstr "Natančno ujemanje (IN)"
 msgid "Example"
 msgstr "Primer"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Vzorci"
 
@@ -7132,9 +7249,6 @@ msgstr "Izvoz v Excel"
 
 msgid "Excel XML Export"
 msgstr "Izvoz v Excel XML"
-
-msgid "Excel export is not configured on this server."
-msgstr ""
 
 msgid "Excel file format cannot be determined"
 msgstr "Ni mogoče določiti formata Excel-ove datoteke"
@@ -7186,6 +7300,9 @@ msgstr "Razširi vrstico"
 
 msgid "Expand row to edit"
 msgstr "Razširite vrstico za urejanje"
+
+msgid "Expand settings"
+msgstr "Razširi nastavitve"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7301,6 +7418,11 @@ msgstr "Izvozi v izvorni .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Izvozi v vrtilni .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -7792,6 +7914,9 @@ msgstr ""
 "izraz (oddelek = 'Finance' OR oddelek = 'Marketing') AND (regija = "
 "'Evropa')."
 
+msgid "Financial"
+msgstr ""
+
 msgid "Find"
 msgstr "Najdi"
 
@@ -8182,6 +8307,10 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
+#, python-format
+msgid "Group %s"
+msgstr "Skupina %s"
+
 msgid "Group By"
 msgstr "Združevanje po (Group by)"
 
@@ -8193,6 +8322,12 @@ msgstr "Ključ za združevanje"
 
 msgid "Group by"
 msgstr "Združevanje po (Group by)"
+
+msgid "Group columns"
+msgstr "Združi stolpce"
+
+msgid "Group name"
+msgstr "Ime skupine"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8282,8 +8417,14 @@ msgstr "Skrije črto časovne serije"
 msgid "Hierarchy"
 msgstr "Hierarhija"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Najvišja vrednost za vsako obdobje."
 
 msgid "Histogram"
 msgstr "Histogram"
@@ -8438,6 +8579,9 @@ msgstr "Uvozi %s"
 
 msgid "Import Error"
 msgstr "Napaka pri uvozu"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "Uvoz grafikona ni uspel zaradi neznanega razloga"
@@ -8660,6 +8804,11 @@ msgstr "Neveljavna konfiguracija JSON"
 msgid "Invalid JSON metadata"
 msgstr "Neveljavni metapodatki JSON"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Neveljaven SQL: %(error)s"
@@ -8783,9 +8932,6 @@ msgstr "Neveljavni ID-ji zavihkov: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Neveljavno uporabniško ime ali geslo"
 
 msgid "Inverse"
 msgstr ""
@@ -8950,6 +9096,9 @@ msgstr "Kilometri"
 msgid "Label"
 msgstr "Naziv"
 
+msgid "Label Colors"
+msgstr ""
+
 msgid "Label Contents"
 msgstr "Označi vsebino"
 
@@ -9000,6 +9149,12 @@ msgstr "Enota velikosti oznake"
 
 msgid "Label threshold"
 msgstr "Prag oznak"
+
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Oznaka padajočih svečnikov v orodnem namigu."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Oznaka naraščajočih svečnikov v orodnem namigu."
 
 msgid "Labelling"
 msgstr "Oznake"
@@ -9126,6 +9281,9 @@ msgstr "Način izgleda drevesa"
 
 msgid "Least recently modified"
 msgstr "Zadnje spremenjeno"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -9478,6 +9636,9 @@ msgstr "Dolžina in širina"
 msgid "Longitude of default viewport"
 msgstr "Dolžina privzetega pogleda"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -9491,6 +9652,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Spodnji prag mora biti manjši od zgornjega"
+
+msgid "Lowest value for each period."
+msgstr "Najnižja vrednost za vsako obdobje."
 
 msgid "MAR"
 msgstr "MAR"
@@ -9565,6 +9729,9 @@ msgstr "Upodabljalnik zemljevidov"
 
 msgid "Map Style"
 msgstr "Slog zemljevida"
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10089,6 +10256,12 @@ msgstr "Več filtrov"
 msgid "MotherDuck token"
 msgstr "Žeton za MotherDuck"
 
+msgid "Move group left"
+msgstr "Premakni skupino levo"
+
+msgid "Move group right"
+msgstr "Premakni skupino desno"
+
 msgid "Move icon"
 msgstr "Premakni ikono"
 
@@ -10106,6 +10279,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Premakne dani nabor datumov za definirano obdobje."
 
+msgid "Moving averages"
+msgstr "Drsna povprečja"
+
 msgid "Multi-Dimensions"
 msgstr "Večdimenzionalni"
 
@@ -10117,6 +10293,9 @@ msgstr "Večplastni"
 
 msgid "Multi-Variables"
 msgstr "Več spremenljivk"
+
+msgid "Multi-level header"
+msgstr "Večnivojska glava"
 
 msgid "Multiple"
 msgstr "Več"
@@ -10211,6 +10390,13 @@ msgstr "Imena ciljnih vozlišč"
 msgid "Name of your tag"
 msgstr "Ime vaše oznake"
 
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Ime svečniške serije v legendi in orodnem namigu, če dimenzija serije ni "
+"nastavljena."
+
 msgid "Name your database"
 msgstr "Poimenujte podatkovno bazo"
 
@@ -10266,6 +10452,9 @@ msgstr "Ime novega podatkovnega seta"
 
 msgid "New header"
 msgstr "Nov naslov"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nov zavihek"
@@ -10340,6 +10529,9 @@ msgstr "Ni razpoložljivih filtrov."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
 msgid "No columns found"
@@ -10533,6 +10725,11 @@ msgstr "Brez -> Puščica"
 msgid "None -> None"
 msgstr "Brez -> Brez"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normalno"
 
@@ -10556,6 +10753,15 @@ msgstr "Ni enako"
 
 msgid "Not Time Series"
 msgstr "Ni časovna vrsta"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Ni veljavna ZIP-datoteka"
@@ -10724,6 +10930,9 @@ msgstr "Podatki o odjemalcu OAuth2"
 msgid "OCT"
 msgstr "OKT"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "OK"
 
@@ -10874,6 +11083,9 @@ msgstr "Vrednost 0 pomeni popolno prosojnost, 1 pa neprosojnost"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Prosojnost, vnesite vrednosti med 0 in 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Odpri zavihek s podatkovnim virom"
 
@@ -10906,6 +11118,9 @@ msgstr "Odpri v SQL Labu"
 msgid "Open query in SQL Lab"
 msgstr "Odpri poizvedbo v SQL laboratoriju"
 
+msgid "Opening value for each period."
+msgstr "Vrednost odprtja za vsako obdobje."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -10936,6 +11151,11 @@ msgstr "Opcijski niz za d3-oblikovanje datuma"
 
 msgid "Optional d3 number format string"
 msgstr "Opcijski niz za d3-oblikovanje števila"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "Izbirna dimenzija, ki grafikon razdeli na več svečniških serij."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11060,6 +11280,13 @@ msgstr ""
 "obdobje iz časovnega filtra\", da časovno obdobje za primerjavo "
 "premaknete za enako dolžino kot vaše časovno obdobje in uporabite "
 "\"Prilagojeno\" za poljubno obdobje za primerjavo."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Prekrijte preprosta drsna povprečja zaključne cene (MA5, MA10, MA15, "
+"...). Vnesite obdobje po meri, da ga dodate."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11449,6 +11676,9 @@ msgstr "Prosim potrdite svoje geslo"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Vnesite SQLAlchemy URI za test"
 
+msgid "Please enter a new password"
+msgstr ""
+
 msgid "Please enter a valid email"
 msgstr "Vnesite veljaven e-poštni naslov"
 
@@ -11607,6 +11837,9 @@ msgstr "Vrata %(port)s na gostitelju \"%(hostname)s\" niso sprejela povezave."
 msgid "Port out of range 0-65535"
 msgstr "Vrata v razponu 0-65535"
 
+msgid "Position"
+msgstr "Položaj"
+
 msgid "Position JSON"
 msgstr "JSON za postavitev"
 
@@ -11651,6 +11884,12 @@ msgstr "Predpona ali pripona"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12066,6 +12305,9 @@ msgstr "Odstranite sistemsko temno temo"
 msgid "Remove System Default Theme"
 msgstr "Odstranite sistemsko privzeto temo"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Odstrani medsebojne filtre"
 
@@ -12080,6 +12322,9 @@ msgstr "Odstranite filter"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Odstrani skupino"
 
 msgid "Remove item"
 msgstr "Odstrani element"
@@ -12326,6 +12571,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Zahtevane kontrolne vrednosti so bile odstranjene"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Prevzorči"
 
@@ -12341,6 +12589,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Ponastavi"
 
@@ -12351,6 +12602,9 @@ msgstr "Ponastavi stolpce"
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Reset all folders to default"
 msgstr "Ponastavite vse mape na privzete"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Ponastavi stolpce"
@@ -12918,6 +13172,14 @@ msgstr "Shranjena poizvedba ni najdena."
 msgid "Saved query parameters are invalid."
 msgstr "Parametri shranjene poizvedbe so neveljavni."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Shranjevanje ..."
 
@@ -12976,6 +13238,9 @@ msgstr "Shema"
 
 msgid "Schema cache timeout"
 msgstr "Trajanje prepomnilnika sheme"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Dovoljene sheme za nalaganje datotek"
@@ -13288,6 +13553,9 @@ msgstr "Izberite stolpec"
 msgid "Select column name"
 msgstr "Izberite ime stolpca"
 
+msgid "Select columns"
+msgstr "Izberite stolpce"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -13415,6 +13683,9 @@ msgstr "Izberite ali vnesite prejemnike Kp"
 
 msgid "Select or type a custom value..."
 msgstr "Izberite ali vnesite poljubno vrednost..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Izberite ali vnesite simbol valute"
@@ -13702,6 +13973,9 @@ msgstr "Slog serije"
 msgid "Series chart type (line, bar etc)"
 msgstr "Tip grafikona za posamezno podatkovno serijo (črtni, stolpčni, ...)"
 
+msgid "Series colors"
+msgstr "Barve serije"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Series decrease setting"
@@ -13715,8 +13989,14 @@ msgstr "Nastavitev povečanja serije"
 msgid "Series limit"
 msgstr "Omejitev števila serij"
 
+msgid "Series name"
+msgstr "Ime serije"
+
 msgid "Series settings"
 msgstr "Nastavitve serije"
+
+msgid "Series style"
+msgstr "Slog serije"
 
 msgid "Series total setting"
 msgstr "Skupna nastavitev serije"
@@ -14051,6 +14331,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -14568,6 +14851,21 @@ msgstr "Začetni datum"
 msgid "Start date included in time range"
 msgstr "Začetni datum je vključen v časovno obdobje"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Začni y-os z 0"
 
@@ -14699,6 +14997,10 @@ msgstr "Podkategorije"
 msgid "Subdomain"
 msgstr "Poddomena"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Podskupina %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -14741,6 +15043,12 @@ msgstr "Pripona"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Pripona za prikaz procenta"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -14944,6 +15252,9 @@ msgstr "Ime tabele ni definirano"
 #, python-format
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabela ali pogled \"%(table)s\" ne obstaja."
+
+msgid "Table side"
+msgstr "Stran tabele"
 
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
@@ -15555,6 +15866,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -15903,6 +16220,13 @@ msgstr "Poizvedba vsebuje enega ali več parametrov predlog z napačno obliko."
 msgid "The query context datasource does not match the chart datasource"
 msgstr "Vir podatkov v kontekstu poizvedbe se ne ujema z virom podatkov grafikona"
 
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Poizvedbe ni mogoče naložiti"
 
@@ -16022,6 +16346,10 @@ msgstr ""
 "veljavna shema."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16083,6 +16411,10 @@ msgid ""
 msgstr ""
 "Tabela \"%(table)s\" ne obstaja. V poizvedbi mora biti uporabljena "
 "veljavna tabela."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16542,6 +16874,12 @@ msgstr "Pri predogledu izbrane poizvedbe je prišlo do težave. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16563,6 +16901,12 @@ msgstr "To so podatkovni seti, na katere se nanaša ta filter."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -16580,6 +16924,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -16704,6 +17053,12 @@ msgstr ""
 
 msgid "This dashboard does not exist"
 msgstr "Ta nadzorna plošča ne obstaja"
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
+msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
@@ -16988,6 +17343,11 @@ msgstr "Ta stran naj bi bila vdelana kot iframe, vendar izgleda, da temu ni tako
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "This password is too common; please choose a less guessable one."
 msgstr "To geslo je prepogosto; izberite manj uganljivega."
+
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -17570,6 +17930,9 @@ msgstr "Torek"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Tip"
@@ -18298,6 +18661,11 @@ msgstr "Vrednosti"
 msgid "Values are dependent on other filters"
 msgstr "Vrednosti so odvisne od drugih filtrov"
 
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
+
 msgid "Values dependent on"
 msgstr "Vrednosti so odvisne od"
 
@@ -18587,6 +18955,10 @@ msgstr ""
 "%(location)s."
 
 #, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+#, python-format
 msgid "We have the following keys: %s"
 msgstr "Imamo naslednje ključe: %s"
 
@@ -18708,6 +19080,15 @@ msgstr "Če je podana sekundarna metrika, je uporabljena linearna barvna skala."
 
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Če želite, da se zemljevid prilagodi vašim podatkom po vsaki poizvedbi"
+
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Če je vklopljeno, naraščajoči svečniki uporabijo barvo rasti, padajoči pa"
+" barvo padca. Izklopite za eno barvo serije: zapolnjeno telo pri rasti in"
+" votlo pri padcu."
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -19556,7 +19937,18 @@ msgstr ""
 "into multiple dashboards) or raise the "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
@@ -19795,6 +20187,14 @@ msgstr "gumb (cmd + z) dokler ne shranite sprememb."
 
 msgid "by using"
 msgstr "z uporabo"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 msgid "cannot be empty"
 msgstr "ne sme biti prazno"

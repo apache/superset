@@ -58,6 +58,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
+    addWarningToast: jest.fn(),
     exploreChart: jest.fn(),
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
@@ -319,6 +320,20 @@ test('Should "export full CSV"', async () => {
   expect(props.exportFullCSV).toHaveBeenCalledWith(371);
 });
 
+test('Should "export full CSV" for ag-grid table', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const props = createProps(VizType.TableAgGrid);
+  renderWrapper(props);
+  await openMenu();
+  expect(props.exportFullCSV).toHaveBeenCalledTimes(0);
+  await userEvent.hover(screen.getByText('Download'));
+  await userEvent.click(await screen.findByText('Export to full .CSV'));
+  expect(props.exportFullCSV).toHaveBeenCalledTimes(1);
+  expect(props.exportFullCSV).toHaveBeenCalledWith(371);
+});
+
 test('Should not show export full CSV if report is not table', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
@@ -347,6 +362,20 @@ test('Should "export full Excel"', async () => {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
   const props = createProps(VizType.Table);
+  renderWrapper(props);
+  await openMenu();
+  expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
+  await userEvent.hover(screen.getByText('Download'));
+  await userEvent.click(await screen.findByText('Export to full Excel'));
+  expect(props.exportFullXLSX).toHaveBeenCalledTimes(1);
+  expect(props.exportFullXLSX).toHaveBeenCalledWith(371);
+});
+
+test('Should "export full Excel" for ag-grid table', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const props = createProps(VizType.TableAgGrid);
   renderWrapper(props);
   await openMenu();
   expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
@@ -400,6 +429,49 @@ test('Should "Force refresh"', async () => {
   expect(props.forceRefresh).toHaveBeenCalledTimes(1);
   expect(props.forceRefresh).toHaveBeenCalledWith(371, 26);
   expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
+});
+
+test('"Force refresh" is disabled while the chart is loading', async () => {
+  const props = createProps();
+  props.chartStatus = 'loading';
+  renderWrapper(props);
+  await openMenu();
+  const refreshItem = screen
+    .getByText('Force refresh')
+    .closest('[role="menuitem"]');
+  expect(refreshItem).toHaveAttribute('aria-disabled', 'true');
+  await userEvent.click(screen.getByText('Force refresh'));
+  expect(props.forceRefresh).not.toHaveBeenCalled();
+});
+
+test('"Force refresh" becomes enabled after the chart transitions from loading to done', async () => {
+  const props = createProps();
+  props.chartStatus = 'loading';
+  const { rerender } = renderWrapper(props);
+  await openMenu();
+  expect(
+    screen.getByText('Force refresh').closest('[role="menuitem"]'),
+  ).toHaveAttribute('aria-disabled', 'true');
+
+  rerender(<SliceHeaderControls {...props} chartStatus="success" />);
+
+  const refreshItemAfterLoad = screen
+    .getByText('Force refresh')
+    .closest('[role="menuitem"]');
+  expect(refreshItemAfterLoad).not.toHaveAttribute('aria-disabled', 'true');
+  await userEvent.click(screen.getByText('Force refresh'));
+  expect(props.forceRefresh).toHaveBeenCalledTimes(1);
+});
+
+test('"Force refresh" is enabled once the chart is done loading', async () => {
+  const props = createProps();
+  props.chartStatus = 'rendered';
+  renderWrapper(props);
+  await openMenu();
+  const refreshItem = screen
+    .getByText('Force refresh')
+    .closest('[role="menuitem"]');
+  expect(refreshItem).not.toHaveAttribute('aria-disabled', 'true');
 });
 
 test('Should sync local state after entering fullscreen', async () => {
@@ -883,6 +955,8 @@ test('Clicking "Export screenshot (jpeg)" calls downloadAsImage and logEvent', a
     props.slice.slice_name,
     true,
     expect.anything(),
+    undefined,
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),
@@ -913,6 +987,7 @@ test('Clicking "Transparent background" calls downloadAsImage with transparent o
     true,
     expect.anything(),
     { format: 'png', backgroundType: 'transparent' },
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),
@@ -936,6 +1011,7 @@ test('Clicking "Solid background" calls downloadAsImage with solid option and lo
     true,
     expect.anything(),
     { format: 'png', backgroundType: 'solid' },
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),
@@ -956,6 +1032,7 @@ test('Clicking "Export as PDF" calls downloadAsPdf and logEvent', async () => {
     `.dashboard-chart-id-${SLICE_ID}`,
     props.slice.slice_name,
     true,
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),

@@ -36,11 +36,11 @@ from typing import (
 )
 from urllib.parse import quote
 
-from flask import current_app, Flask, g, has_app_context, Request, Response
+from flask import abort, current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
-from flask_appbuilder.security.manager import AUTH_REMOTE_USER
+from flask_appbuilder.security.manager import AUTH_DB, AUTH_OAUTH, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
     PermissionViewMenuApi,
@@ -60,19 +60,23 @@ from flask_appbuilder.security.sqla.models import (
 from flask_appbuilder.security.views import (
     PermissionModelView,
     PermissionViewModelView,
+    ResetMyPasswordView,
+    ResetPasswordView,
     ViewMenuModelView,
 )
 from flask_babel import lazy_gettext as _
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, func as sa_func, inspect, or_
+from sqlalchemy import and_, func as sa_func, inspect, or_, select, Table as SQLATable
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
+from sqlalchemy.sql.selectable import Alias
 
 from superset.common.chart_data import ChartDataResultType
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
@@ -129,6 +133,33 @@ def get_conf() -> Any:
     return current_app.config
 
 
+# The legacy Flask-AppBuilder server-rendered password reset views. Superset's
+# SPA covers every flow they served (administrators reset passwords from the
+# Users list edit modal, users change their own from the profile page, and a
+# forced password change lands on that profile page), so these are never
+# registered and their persisted permissions are never assigned to roles.
+LEGACY_PASSWORD_VIEWS: tuple[type[Any], ...] = (
+    ResetPasswordView,
+    ResetMyPasswordView,
+)
+
+# FAB ``UserDBModelView`` actions that redirect to the views above, keyed by
+# action name. They are hidden and answer 404, see
+# ``SupersetSecurityManager._disable_legacy_password_reset_launchers``.
+LEGACY_PASSWORD_LAUNCHERS: frozenset[str] = frozenset(
+    {"resetpasswords", "resetmypassword"}
+)
+
+
+def _legacy_password_reset_disabled(*_: Any) -> None:
+    """
+    Replacement handler for a FAB user-view password reset action whose target
+    view is not registered: answers 404 instead of letting FAB's ``url_for``
+    raise ``BuildError``.
+    """
+    abort(404)
+
+
 def _get_subject_id(subject: Any) -> int | None:
     from superset.subjects.models import (
         Subject,  # pylint: disable=import-outside-toplevel
@@ -162,9 +193,21 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
     if not resolver:
         return []
 
+    try:
+        resolved_subjects = resolver(resource) or []
+    except Exception:  # pylint: disable=broad-except
+        # A misbehaving EXTRA_EDITORS_RESOLVER must not turn every read of
+        # this resource into a 500; fail closed on the extra-editors list
+        # instead of failing the whole request.
+        logger.exception(
+            "EXTRA_EDITORS_RESOLVER raised while resolving extra editors for %s",
+            resource,
+        )
+        return []
+
     subject_ids: list[int] = []
     seen: set[int] = set()
-    for subject in resolver(resource) or []:
+    for subject in resolved_subjects:
         subject_id = _get_subject_id(subject)
         if subject_id is not None and subject_id not in seen:
             subject_ids.append(subject_id)
@@ -200,6 +243,26 @@ def get_extra_editors_by_pk(
         getattr(resource, pk_col.name): get_extra_editor_subject_ids(resource)
         for resource in resources
     }
+
+
+def attach_extra_editors(result: dict[str, Any], resource: Model) -> None:
+    """
+    Attach ``extra_editors`` to a single-object API response, if configured.
+    """
+    if has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+        result["extra_editors"] = get_extra_editor_subject_ids(resource)
+
+
+def attach_extra_editors_to_rows(data: dict[str, Any], model_cls: type[Model]) -> None:
+    """
+    Attach ``extra_editors`` to each row of a list API response, matching
+    ``attach_extra_editors``'s single-object behavior.
+    """
+    ids = data.get("ids", [])
+    extra_editors_by_id = get_extra_editors_by_pk(model_cls, ids)
+    for row, row_id in zip(data.get("result", []), ids, strict=False):
+        if row_id in extra_editors_by_id:
+            row["extra_editors"] = extra_editors_by_id[row_id]
 
 
 # Retired from ``PERMISSION_INSTRUCTIONS_LINK``: see
@@ -497,10 +560,12 @@ class SupersetUserApi(UserApi):
         UserDAO._sync_subject(item)
 
         if data.get("password"):
-            # An admin-initiated password change via this endpoint must
-            # invalidate the target account's other outstanding sessions,
-            # the same as the self-service ``/me/`` path and the two
-            # password-reset views.
+            # An admin-initiated password change via this endpoint (the
+            # Users list edit modal) must invalidate the target account's
+            # other outstanding sessions, the same as the self-service
+            # ``/me/`` path. The forced-change flag is deliberately left
+            # alone: a temporary password set by an admin still has to be
+            # replaced by the user at next login.
             from superset.security.session_invalidation import (
                 invalidate_sessions_for_user,
             )
@@ -587,6 +652,13 @@ class SupersetUserApi(UserApi):
         from superset.daos.user import UserDAO
 
         item.roles = []
+        # Rows written before the self-referencing audit columns were guarded
+        # can point at themselves, which SQLAlchemy cannot order for DELETE
+        # (CircularDependencyError). Clear them so the delete can proceed.
+        for column in ("changed_by_fk", "created_by_fk"):
+            if getattr(item, column, None) == item.id:
+                setattr(item, column, None)
+        self.datamodel.session.flush()
         UserDAO._delete_subject(item.id)
 
     def post_add(self, item: Model) -> None:
@@ -2019,7 +2091,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "UsersListView",
         "List Roles",
         "List Groups",
-        "ResetPasswordView",
         "RoleModelView",
         "UserGroupModelView",
         "Row Level Security",
@@ -2100,7 +2171,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "datasource_access",
     }
 
-    ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword", "can_recent_activity"}
+    ACCESSIBLE_PERMS = {"can_userinfo", "can_recent_activity"}
 
     SQLLAB_ONLY_PERMISSIONS = {
         ("can_read", "SavedQuery"),
@@ -2218,13 +2289,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """Reset a user's password, clearing the forced-change flag only on a
         self-service reset.
 
-        Both the self-service reset (``ResetMyPasswordView``) and the admin
-        "Reset Password" action (``ResetPasswordView``) route through this
-        method. The forced-password-change flag must only be cleared when the
-        user resets *their own* password — an admin-initiated reset sets a
-        temporary password and must preserve the "must change at next login"
-        requirement, otherwise the first-use lifecycle would be silently
-        bypassed. We distinguish the two by comparing the acting user
+        The SPA flows do not go through here (they hash the password in the
+        ``/api/v1/me/`` and ``/api/v1/security/users/`` APIs), but FAB's own
+        callers still do, e.g. the ``fab reset-password`` CLI command and
+        custom security managers. The forced-password-change flag must only be
+        cleared when the user resets *their own* password — an admin-initiated
+        reset sets a temporary password and must preserve the "must change at
+        next login" requirement, otherwise the first-use lifecycle would be
+        silently bypassed. We distinguish the two by comparing the acting user
         (``g.user``) against the target ``userid``: they match for a
         self-service reset and differ for an admin reset.
 
@@ -2257,6 +2329,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
             clear_password_must_change(int(userid))
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @staticmethod
     def _same_user(left: Any, right: Any) -> bool:
@@ -3277,6 +3350,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
+    @staticmethod
+    def _is_legacy_password_pvm(pvm: PermissionView) -> bool:
+        """
+        Return whether a permission belongs to a legacy FAB password reset view
+        or to one of the user-view launcher actions that redirected to it.
+
+        Those views are never registered (see ``LEGACY_PASSWORD_VIEWS``), but an
+        upgraded installation still carries their permission rows in the
+        metadata database, and ``_get_all_pvms`` returns them. Excluding them
+        here keeps ``sync_role_definitions`` from handing Admin (or any other
+        role) a permission on a route that no longer exists. The rows
+        themselves are left alone.
+        """
+        view_menu = pvm.view_menu.name
+        permission = pvm.permission.name
+        return view_menu in {view.__name__ for view in LEGACY_PASSWORD_VIEWS} or (
+            view_menu == "UserDBModelView" and permission in LEGACY_PASSWORD_LAUNCHERS
+        )
+
     def sync_role_definitions(self) -> None:
         """
         Initialize the Superset application with security roles and such.
@@ -3286,7 +3378,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         self.create_custom_permissions()
 
-        pvms = self._get_all_pvms()
+        pvms = [
+            pvm for pvm in self._get_all_pvms() if not self._is_legacy_password_pvm(pvm)
+        ]
 
         # Creating default roles
         self.set_role("Admin", self._is_admin_pvm, pvms)
@@ -3904,8 +3998,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Handles permissions update when a dataset is deleted.
         Triggered by a SQLAlchemy after_delete event.
 
-        We need to delete:
-         - The dataset PVM
+        Retain the datasource_access PVM if a semantic view still owns the
+        same permission name.
 
         :param mapper: The SQLA mapper
         :param connection: The SQLA connection
@@ -3915,6 +4009,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         dataset_vm_name = self.get_dataset_perm(
             target.id, target.table_name, target.database.database_name
         )
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        if connection.execute(
+            select(sv_table.c.id).where(sv_table.c.perm == dataset_vm_name).limit(1)
+        ).first():
+            return
         self._delete_pvm_on_sqla_event(
             mapper, connection, "datasource_access", dataset_vm_name
         )
@@ -4274,6 +4377,107 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         .values(perm=new_view_perm)
                     )
 
+    def semantic_layer_before_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Remove child view permissions before the layer row is deleted.
+
+        Views the session has not loaded are deleted by the database
+        ``ON DELETE CASCADE`` (``passive_deletes=True``), so their ORM
+        ``after_delete`` hook never runs. Read their perms through the
+        connection while the rows still exist; views the ORM deletes itself
+        are already gone by now and clean up in ``semantic_view_after_delete``.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        view_perms: set[str] = {
+            perm
+            for perm in connection.execute(
+                select(sv_table.c.perm).where(
+                    sv_table.c.semantic_layer_uuid == target.uuid
+                )
+            ).scalars()
+            if perm
+        }
+        if not view_perms:
+            return
+
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+
+        dataset_table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
+        deleting_views: Alias = sv_table.alias("deleting_views")
+        owned_perms: set[str] = set(
+            connection.execute(
+                select(dataset_table.c.perm)
+                .join(
+                    deleting_views,
+                    dataset_table.c.perm == deleting_views.c.perm,
+                )
+                .where(deleting_views.c.semantic_layer_uuid == target.uuid)
+                .distinct()
+            ).scalars()
+        )
+        owned_perms.update(
+            connection.execute(
+                select(sv_table.c.perm)
+                .join(deleting_views, sv_table.c.perm == deleting_views.c.perm)
+                .where(
+                    deleting_views.c.semantic_layer_uuid == target.uuid,
+                    sv_table.c.semantic_layer_uuid != target.uuid,
+                )
+                .distinct()
+            ).scalars()
+        )
+        view_perm: str
+        for view_perm in view_perms - owned_perms:
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "datasource_access", view_perm
+            )
+
+    def _semantic_view_perm_owned_elsewhere(
+        self,
+        connection: Connection,
+        perm: str,
+        deleted_view_id: int,
+    ) -> bool:
+        """
+        Whether a live resource other than the deleted view owns *perm*.
+
+        A deleted view's permission is removed only when no dataset and no
+        other semantic view still uses the same permission name; removing it
+        would otherwise revoke that resource's grants.
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
+        if connection.execute(
+            table.select().where(table.c.perm == perm).limit(1)
+        ).first():
+            return True
+        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        return (
+            connection.execute(
+                sv_table.select()
+                .where(sv_table.c.perm == perm, sv_table.c.id != deleted_view_id)
+                .limit(1)
+            ).first()
+            is not None
+        )
+
     def semantic_layer_after_delete(
         self,
         mapper: Mapper,
@@ -4401,11 +4605,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Handle permission cleanup when a semantic view is deleted.
 
-        Removes the datasource_access PVM.
+        Removes the datasource_access PVM unless another live resource still
+        owns the same permission name.
         """
-        self._delete_pvm_on_sqla_event(
-            mapper, connection, "datasource_access", target.perm
-        )
+        if target.perm and not self._semantic_view_perm_owned_elsewhere(
+            connection, target.perm, target.id
+        ):
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "datasource_access", target.perm
+            )
 
     def _delete_pvm_on_sqla_event(  # pylint: disable=too-many-arguments
         self,
@@ -5121,6 +5329,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 form_data = query_context.form_data
 
             assert datasource
+            self.raise_for_unsupported_guest_rls(datasource)
 
             def has_promiscuous_chart_access() -> bool:
                 if not (
@@ -5472,6 +5681,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return [self.get_public_role()] if public_role else []
         return super().get_user_roles(user)
 
+    def raise_for_unsupported_guest_rls(
+        self, datasource: "BaseDatasource | Explorable"
+    ) -> None:
+        """Deny semantic reads whose guest row restrictions cannot be enforced."""
+        if (
+            datasource.type == DatasourceType.SEMANTIC_VIEW
+            and self.get_guest_rls_filters(datasource)
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    message=_(
+                        "Semantic views cannot enforce guest row-level security rules."
+                    ),
+                    level=ErrorLevel.WARNING,
+                )
+            )
+
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource | Explorable"
     ) -> list[GuestTokenRlsRule]:
@@ -5486,7 +5713,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 rule
                 for rule in guest_user.rls
                 if not rule.get("dataset")
-                or str(rule.get("dataset")) == str(dataset.data["id"])
+                or str(rule.get("dataset")) == str(dataset.id)
             ]
         return []
 
@@ -5685,6 +5912,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "Explorable | BaseDatasource") -> list[str]:
+        self.raise_for_unsupported_guest_rls(datasource)
         rls_clauses_with_group_key = []
         if datasource.is_rls_supported:
             rls_clauses_with_group_key = [
@@ -6106,9 +6334,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         if not user:
-            if not get_current_user():
+            # Resolving the current user forces evaluation of flask_login's
+            # ``current_user`` proxy, which on a request that carries no JWT and
+            # no guest token invokes the app's request loader and lets
+            # ``verify_jwt_in_request`` raise ``NoAuthorizationError``. That is
+            # fine for a real view (a global handler turns it into a 401), but
+            # ``is_guest_user`` is also called from paths that run before auth
+            # (e.g. error sanitization while handling an unrelated HTTPException),
+            # where the raise escapes as an unhandled exception. A request with
+            # no JWT/guest token definitionally cannot be an embedded guest
+            # viewer, so returning ``False`` is the semantically correct answer.
+            try:
+                if not get_current_user():
+                    return False
+                user = g.user
+            except NoAuthorizationError:
                 return False
-            user = g.user
 
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
@@ -6328,6 +6569,61 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             role.name for role in self.get_user_roles()
         ]
 
+    def _skip_legacy_fab_password_view_registration(self) -> Callable[..., Any]:
+        """
+        Temporarily patch ``add_view_no_menu`` so the legacy FAB password reset
+        views (``LEGACY_PASSWORD_VIEWS``) are never registered during
+        ``register_views()``.
+
+        Flask-AppBuilder registers these views unconditionally for ``AUTH_DB``
+        and offers no per-view switch (``FAB_ADD_SECURITY_VIEWS = False`` drops
+        every security view, the login view included), and a blueprint cannot
+        be unregistered once it has been added to the app, so intercepting the
+        registration call is the only way to keep the routes out of the URL
+        map.
+
+        :returns: the original, unpatched ``add_view_no_menu`` bound method, so
+            the caller can restore it once ``register_views()`` completes.
+        """
+        original_add_view_no_menu: Callable[..., Any] = self.appbuilder.add_view_no_menu
+
+        def add_view_no_menu_without_legacy_password_views(
+            baseview: Any, *args: Any, **kwargs: Any
+        ) -> Any:
+            if isinstance(baseview, LEGACY_PASSWORD_VIEWS) or (
+                isinstance(baseview, type)
+                and issubclass(baseview, LEGACY_PASSWORD_VIEWS)
+            ):
+                return baseview
+            return original_add_view_no_menu(baseview, *args, **kwargs)
+
+        self.appbuilder.add_view_no_menu = (  # type: ignore[method-assign]
+            add_view_no_menu_without_legacy_password_views
+        )
+        return original_add_view_no_menu
+
+    def _disable_legacy_password_reset_launchers(self) -> None:
+        """
+        Hide the user view's password reset actions, whose target views are
+        never registered.
+
+        FAB's ``UserDBModelView`` renders a "Reset Password" button on the user
+        show page and a "Reset my password" button on the user info page, and
+        both handlers redirect via ``url_for`` to the reset views. Since those
+        views are not registered that ``url_for`` would raise ``BuildError`` (a
+        500), so this hides each action from the show and list widgets and
+        makes a direct request to it answer 404 instead. Unrelated actions are
+        left untouched.
+        """
+        actions = getattr(getattr(self, "user_view", None), "actions", None) or {}
+        for action_name in LEGACY_PASSWORD_LAUNCHERS:
+            action = actions.get(action_name)
+            if action is None:
+                continue
+            action.single = False
+            action.multiple = False
+            action.func = _legacy_password_reset_disabled
+
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def register_views(self) -> None:
@@ -6347,7 +6643,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # FlaskAppBuilder's AuthRemoteUserView actually claims the route.
         if self.register_superset_auth_view and self.auth_type != AUTH_REMOTE_USER:
             self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
-        if self.register_superset_registeruser_view:
+        # AUTH_USER_REGISTRATION is what makes FlaskAppBuilder provision users on
+        # first login, so LDAP/SAML/AUTH_REMOTE_USER deployments have to enable
+        # it; that must not publish the "/register/" self-registration page.
+        # FlaskAppBuilder only wires the "/register/form" handler that page posts
+        # to for AUTH_DB and AUTH_OAUTH (see its own register_views), so for any
+        # other auth type the page is a registration form that submits to a 404.
+        if (
+            self.register_superset_registeruser_view
+            and self.auth_user_registration
+            and self.auth_type in (AUTH_DB, AUTH_OAUTH)
+        ):
             self.registeruser_view = self.appbuilder.add_view_no_menu(
                 SupersetRegisterUserView
             )
@@ -6371,11 +6677,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         original_auth_rate_limited = current_app.config["AUTH_RATE_LIMITED"]
         current_app.config["AUTH_RATE_LIMITED"] = False
 
+        original_add_view_no_menu: Callable[..., Any] = (
+            self._skip_legacy_fab_password_view_registration()
+        )
+
         try:
             super().register_views()
         finally:
-            # Restore original value even if an exception occurs
+            # Restore original values even if an exception occurs
             current_app.config["AUTH_RATE_LIMITED"] = original_auth_rate_limited
+            self.appbuilder.add_view_no_menu = (  # type: ignore[method-assign]
+                original_add_view_no_menu
+            )
+
+        self._disable_legacy_password_reset_launchers()
 
         for view in list(self.appbuilder.baseviews):
             if isinstance(view, self.rolemodelview.__class__) and getattr(

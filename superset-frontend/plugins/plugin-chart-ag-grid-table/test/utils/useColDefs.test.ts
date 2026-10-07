@@ -169,6 +169,46 @@ test('boolean columns use agCheckboxCellRenderer', () => {
   expect(colDef.cellDataType).toBe('boolean');
 });
 
+test('uses columnWidth as minWidth and falls back to 100 when auto', () => {
+  const wideCol = makeColumn({
+    key: 'name',
+    label: 'Name',
+    config: { columnWidth: 400 },
+  });
+  const autoCol = makeColumn({
+    key: 'city',
+    label: 'City',
+    config: {},
+  });
+
+  const { result, rerender } = renderHook(
+    ({ columns }) =>
+      useColDefs({
+        ...defaultProps,
+        columns,
+        data: [{ name: 'Alice', city: 'Paris' }],
+      }),
+    {
+      wrapper: defaultThemeWrapper,
+      initialProps: { columns: [wideCol, autoCol] },
+    },
+  );
+
+  expect(result.current.map(col => [col.field, col.minWidth])).toEqual([
+    ['name', 400],
+    ['city', 100],
+  ]);
+
+  rerender({
+    columns: [makeColumn({ key: 'name', label: 'Name', config: {} }), autoCol],
+  });
+
+  expect(result.current.map(col => [col.field, col.minWidth])).toEqual([
+    ['name', 100],
+    ['city', 100],
+  ]);
+});
+
 test('string columns use custom TextCellRenderer', () => {
   const stringCol = makeColumn({
     key: 'name',

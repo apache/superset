@@ -97,6 +97,7 @@ from superset.commands.chart.restore import RestoreChartCommand
 from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.exceptions import CommandException, TagForbiddenError
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
@@ -112,9 +113,10 @@ from superset.exceptions import (
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.security.manager import (
-    get_extra_editor_subject_ids,
-    get_extra_editors_by_pk,
+    attach_extra_editors,
+    attach_extra_editors_to_rows,
 )
+from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -145,6 +147,7 @@ from superset.views.base_api import (
     requires_form_data,
     requires_json,
     statsd_metrics,
+    validate_feature_flags,
 )
 from superset.views.filters import (
     BaseFilterRelatedUsers,
@@ -479,8 +482,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             result = self.chart_get_response_schema.dump(dash)
             if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
                 result["extra_owners"] = resolver(dash)
-            if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
-                result["extra_editors"] = get_extra_editor_subject_ids(dash)
+            attach_extra_editors(result, dash)
 
             return set_version_etag(
                 self.response(200, result=result),
@@ -492,11 +494,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     def pre_get_list(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors`` to each row, matching the single-object GET."""
         super().pre_get_list(data)
-        ids = data.get("ids", [])
-        extra_editors_by_id = get_extra_editors_by_pk(Slice, ids)
-        for row, row_id in zip(data.get("result", []), ids, strict=False):
-            if row_id in extra_editors_by_id:
-                row["extra_editors"] = extra_editors_by_id[row_id]
+        attach_extra_editors_to_rows(data, Slice)
 
     @expose("/", methods=("GET",))
     @protect()
@@ -1431,6 +1429,12 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                     )
             except ChartNotFoundError:
                 return self.response_404()
+            except DatasetNotFoundError:
+                # The dataset DAO hides datasets the caller cannot access, so
+                # mirror the dataset export's bare 404 without naming it.
+                return self.response_404()
+            except SemanticReferenceError as ex:
+                return self.response(ex.status, message=ex.message)
         buf.seek(0)
 
         return send_export_zip(buf, filename)
@@ -1773,6 +1777,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/versions/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
@@ -1821,6 +1826,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
@@ -1875,6 +1881,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
@@ -1956,6 +1963,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (
