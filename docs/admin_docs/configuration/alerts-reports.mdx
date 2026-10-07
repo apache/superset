@@ -444,11 +444,13 @@ When the flag is enabled:
   * **Application default:** resolves through `ALERT_REPORTS_EXECUTORS` value.
   * **Specific user:** User picker option.
   Non-admins can only select themselves. They see no user search and the API rejects
-  selecting another user. Reports scheduled from a dashboard or chart always execute
-  as the subscribing user.
+  selecting another user. New reports scheduled from a dashboard or chart execute
+  as the subscribing user. Existing subscriptions with no stored executor keep using
+  `ALERT_REPORTS_EXECUTORS`: recreate the subscription with the flag enabled, or
+  update it through the Alerts & Reports menu. Non-admins can select only themselves.
 - When a non-admin edits an alert/report configured to render as someone else, they can
-  change its name and schedule, but not its selected chart/dashboard, filters, attachment
-  format, or recipients. Changing an alert's database, SQL, or validator also requires its
+  change its name and schedule, but not its selected chart/dashboard, filters, or
+  recipients. Changing an alert's database, SQL, or validator also requires its
   condition query to execute as that editor. To change protected fields, they can select
   their own account via **Execute using my permissions** (or ask an admin). For alerts,
   this action selects the current user for both content and SQL condition execution.

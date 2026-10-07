@@ -2626,11 +2626,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         restrictedExecutor ? (
                           <>
                             <p>
-                              {t(
-                                isReport
-                                  ? 'You can edit the name and schedule, but changing the delivered content or recipients requires updating it to execute with your permissions. Only admins can select other users.'
-                                  : 'You can edit the name and schedule. Changing the alert condition requires its query to execute with your permissions. Changing the attachment content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
-                              )}
+                              {isReport
+                                ? t(
+                                    'You can edit the name and schedule, but changing the delivered content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
+                                  )
+                                : t(
+                                    'You can edit the name and schedule. Changing the alert condition requires its query to execute with your permissions. Changing the attachment content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
+                                  )}
                             </p>
                             <Button
                               disabled={!currentUserOption}

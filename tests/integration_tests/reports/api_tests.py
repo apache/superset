@@ -206,9 +206,10 @@ class TestReportSchedulesApi(SupersetTestCase):
             if schedule.report_format != ReportDataFormat.PDF
             else ReportDataFormat.PNG
         )
-        content_only = self.client.put(uri, json={"report_format": changed_format})
-        assert content_only.status_code == 422, content_only.json
-        assert "run_as" in content_only.json["message"]
+        format_only = self.client.put(uri, json={"report_format": changed_format})
+        assert format_only.status_code == 200, format_only.json
+        db.session.refresh(schedule)
+        assert schedule.report_format == changed_format
         recipients_only = self.client.put(uri, json={"recipients": recipients})
         assert recipients_only.status_code == 422, recipients_only.json
         assert "run_as" in recipients_only.json["message"]

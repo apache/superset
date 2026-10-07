@@ -446,6 +446,47 @@ def test_update_non_admin_can_change_metadata_of_schedule_run_by_other(
     command.validate()
 
 
+def test_empty_native_filters_do_not_count_as_content_change(
+    mocker: MockerFixture,
+) -> None:
+    model = _make_model(run_as=OTHER_USER)
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    command = UpdateReportScheduleCommand(
+        1,
+        {
+            "name": "renamed",
+            "extra": {"dashboard": {"anchor": "", "nativeFilters": []}},
+        },
+    )
+    command.validate()
+
+    assert command._changed_content_fields() == set()
+
+
+def test_nonempty_native_filters_remain_protected_content(
+    mocker: MockerFixture,
+) -> None:
+    model = _make_model(run_as=OTHER_USER)
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    command = UpdateReportScheduleCommand(
+        1,
+        {
+            "extra": {
+                "dashboard": {
+                    "anchor": "",
+                    "nativeFilters": [{"nativeFilterId": "NATIVE_FILTER-1"}],
+                }
+            }
+        },
+    )
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
+
+    assert ReportScheduleRunAsContentForbiddenError in _errors(exc)
+
+
 @pytest.mark.parametrize("application_default", [False, True])
 def test_empty_email_cc_and_bcc_do_not_count_as_recipient_changes(
     mocker: MockerFixture, application_default: bool
@@ -477,6 +518,40 @@ def test_empty_email_cc_and_bcc_do_not_count_as_recipient_changes(
         },
     )
     command.validate()
+    assert command._changed_content_fields() == set()
+
+
+@pytest.mark.parametrize("recipient_type", ["Slack", "SlackV2", "Webhook"])
+def test_empty_cc_and_bcc_do_not_change_non_email_recipients(
+    mocker: MockerFixture, recipient_type: str
+) -> None:
+    model = _make_model(run_as=OTHER_USER)
+    model.recipients = [
+        Mock(
+            type=recipient_type,
+            recipient_config_json='{"target": "C12345678"}',
+        )
+    ]
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    command = UpdateReportScheduleCommand(
+        1,
+        {
+            "name": "renamed",
+            "recipients": [
+                {
+                    "type": recipient_type,
+                    "recipient_config_json": {
+                        "target": "C12345678",
+                        "ccTarget": "",
+                        "bccTarget": "",
+                    },
+                }
+            ],
+        },
+    )
+    command.validate()
+
     assert command._changed_content_fields() == set()
 
 
@@ -525,6 +600,32 @@ def test_subscription_recipient_rewrite_is_protected_content_change(
     assert ReportScheduleRunAsContentForbiddenError in _errors(exc)
 
 
+@pytest.mark.parametrize(
+    "creation_method",
+    [ReportCreationMethod.CHARTS, ReportCreationMethod.DASHBOARDS],
+)
+@pytest.mark.parametrize("application_default", [False, True])
+def test_subscription_format_change_preserves_executor_and_delivery(
+    mocker: MockerFixture,
+    creation_method: ReportCreationMethod,
+    application_default: bool,
+) -> None:
+    """A format edit does not change the executor or delivery target."""
+    model = _make_model(run_as=None if application_default else OTHER_USER)
+    model.creation_method = creation_method
+    model.recipients = [
+        Mock(type="Email", recipient_config_json='{"target": "owner@x.com"}')
+    ]
+    _stub_update_deps(mocker, model, is_admin=False)
+    command = UpdateReportScheduleCommand(1, {"report_format": "PDF"})
+    command.validate()
+
+    assert "run_as" not in command._properties
+    assert "run_as_type" not in command._properties
+    assert "recipients" not in command._properties
+    assert command._changed_content_fields() == set()
+
+
 def test_subscription_recipient_rewrite_to_same_address_is_not_a_change(
     mocker: MockerFixture,
 ) -> None:
@@ -555,13 +656,16 @@ def test_subscription_recipient_rewrite_to_same_address_is_not_a_change(
 
 
 @pytest.mark.parametrize("optional_field", ["ccTarget", "bccTarget"])
-def test_nonempty_email_cc_or_bcc_counts_as_recipient_change(
-    mocker: MockerFixture, optional_field: str
+@pytest.mark.parametrize(
+    "recipient_type,target", [("Email", "a@x.com"), ("Slack", "C12345678")]
+)
+def test_nonempty_cc_or_bcc_counts_as_recipient_change(
+    mocker: MockerFixture, optional_field: str, recipient_type: str, target: str
 ) -> None:
     """Adding an actual Cc or Bcc remains a protected content change."""
     model = _make_model(run_as=OTHER_USER)
     model.recipients = [
-        Mock(type="Email", recipient_config_json='{"target": "a@x.com"}')
+        Mock(type=recipient_type, recipient_config_json=f'{{"target": "{target}"}}')
     ]
     _stub_update_deps(mocker, model, is_admin=False)
 
@@ -570,9 +674,9 @@ def test_nonempty_email_cc_or_bcc_counts_as_recipient_change(
         {
             "recipients": [
                 {
-                    "type": "Email",
+                    "type": recipient_type,
                     "recipient_config_json": {
-                        "target": "a@x.com",
+                        "target": target,
                         optional_field: "other@x.com",
                     },
                 }

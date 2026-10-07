@@ -25587,6 +25587,12 @@ msgid ""
 msgstr "Você pode criar um novo gráfico ou usar os existentes no painel à direita"
 
 msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
 "You can edit the name and schedule. Changing the alert condition requires"
 " its query to execute with your permissions. Changing the attachment "
 "content or recipients requires updating it to execute with your "

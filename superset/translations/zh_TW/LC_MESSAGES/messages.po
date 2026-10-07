@@ -21423,6 +21423,12 @@ msgid ""
 msgstr "您可以創建一個新圖表，或使用右側面板中的現有的對象。"
 
 msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
 "You can edit the name and schedule. Changing the alert condition requires"
 " its query to execute with your permissions. Changing the attachment "
 "content or recipients requires updating it to execute with your "

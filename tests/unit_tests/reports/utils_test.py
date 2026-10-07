@@ -27,18 +27,7 @@ from superset.reports.utils import (
     get_dynamic_executor,
     get_email_addresses,
     get_email_domain,
-    split_email_addresses,
 )
-
-
-def test_split_email_addresses_handles_separators_and_blanks() -> None:
-    assert split_email_addresses("a@foo.com, b@bar.org;c@baz.net ,, ") == [
-        "a@foo.com",
-        "b@bar.org",
-        "c@baz.net",
-    ]
-    assert split_email_addresses(None) == []
-    assert split_email_addresses("") == []
 
 
 def test_get_email_addresses_from_dict_payload_includes_cc_and_bcc() -> None:
@@ -65,6 +54,22 @@ def test_get_email_addresses_from_model_with_json_string() -> None:
     broken.recipient_config_json = "not json"
     assert get_email_addresses([recipient, broken]) == ["a@foo.com", "b@bar.org"]
     assert get_email_addresses(None) == []
+
+
+def test_whitespace_separated_recipient_cannot_bypass_domain_policy() -> None:
+    recipient = Mock(
+        type=ReportRecipientType.EMAIL,
+        recipient_config_json=(
+            '{"target": "external@outside.org internal@example.com"}'
+        ),
+    )
+
+    addresses = get_email_addresses([recipient])
+
+    assert addresses == ["external@outside.org", "internal@example.com"]
+    assert find_disallowed_addresses(
+        addresses, allowed_domains=["example.com"], known_emails=None
+    ) == ["external@outside.org"]
 
 
 def test_get_email_domain() -> None:

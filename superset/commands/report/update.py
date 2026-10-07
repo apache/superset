@@ -71,7 +71,6 @@ CONTENT_FIELDS: frozenset[str] = frozenset(
         "dashboard",
         "extra",
         "recipients",
-        "report_format",
     }
 )
 
@@ -94,6 +93,27 @@ def _normalize_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True)
 
 
+def _normalize_extra(value: Any) -> str:
+    """Ignore an empty native-filter list added by the report modal."""
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            return value
+    if isinstance(value, dict):
+        dashboard = value.get("dashboard")
+        if isinstance(dashboard, dict) and dashboard.get("nativeFilters") == []:
+            value = {
+                **value,
+                "dashboard": {
+                    key: item
+                    for key, item in dashboard.items()
+                    if key != "nativeFilters"
+                },
+            }
+    return _normalize_json(value)
+
+
 def _normalize_recipients(recipients: Any) -> list[tuple[str, str]]:
     """Canonical, order-independent representation of a recipients list."""
     normalized: list[tuple[str, str]] = []
@@ -104,18 +124,17 @@ def _normalize_recipients(recipients: Any) -> list[tuple[str, str]]:
         else:
             recipient_type = recipient.type
             config = recipient.recipient_config_json
-        if recipient_type == ReportRecipientType.EMAIL:
-            if isinstance(config, str):
-                try:
-                    config = json.loads(config)
-                except json.JSONDecodeError:
-                    pass
-            if isinstance(config, dict):
-                config = {
-                    key: value
-                    for key, value in config.items()
-                    if key not in ("ccTarget", "bccTarget") or value != ""
-                }
+        if isinstance(config, str):
+            try:
+                config = json.loads(config)
+            except json.JSONDecodeError:
+                pass
+        if isinstance(config, dict):
+            config = {
+                key: value
+                for key, value in config.items()
+                if key not in ("ccTarget", "bccTarget") or value != ""
+            }
         normalized.append((str(recipient_type), _normalize_json(config)))
     return sorted(normalized)
 
@@ -160,12 +179,11 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         current: dict[str, Any] = {
             "chart": model.chart_id,
             "dashboard": model.dashboard_id,
-            "extra": _normalize_json(model.extra_json),
+            "extra": _normalize_extra(model.extra_json),
             "recipients": _normalize_recipients(model.recipients),
-            "report_format": model.report_format,
         }
         normalizers: dict[str, Callable[[Any], Any]] = {
-            "extra": _normalize_json,
+            "extra": _normalize_extra,
             "recipients": _normalize_recipients,
         }
         return self._compare_fields(CONTENT_FIELDS, current, normalizers)
@@ -393,8 +411,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         )
         changed_condition_fields = (
             self._changed_condition_fields()
-            if is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR")
-            and report_type == ReportScheduleType.ALERT
+            if report_type == ReportScheduleType.ALERT
             else set()
         )
 
@@ -429,12 +446,9 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
                 exceptions.append(DatabaseNotFoundValidationError())
             self._properties["database"] = database
 
-        # Re-validate the alert SQL whenever the SQL or the target database
-        # changes, using the stored value for whichever half is absent from
-        # the payload.
-        if report_type == ReportScheduleType.ALERT and (
-            "sql" in self._properties or "database" in self._properties
-        ):
+        # Re-validate only when the alert SQL or its database changes. The
+        # modal resubmits unchanged values on metadata-only edits.
+        if changed_condition_fields & {"sql", "database"}:
             effective_database = (
                 self._properties.get("database") or self._model.database
             )

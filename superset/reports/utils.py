@@ -34,6 +34,7 @@ from superset.commands.report.exceptions import ReportScheduleExecutorNotFoundEr
 from superset.reports.models import ReportRecipientType
 from superset.tasks.types import ExecutorType
 from superset.utils import json
+from superset.utils.core import recipients_string_to_list
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
@@ -42,7 +43,6 @@ if TYPE_CHECKING:
 
 # Recipient fields inside ``recipient_config_json`` holding e-mail addresses.
 EMAIL_RECIPIENT_FIELDS = ("target", "ccTarget", "bccTarget")
-_EMAIL_SEPARATOR_RE = re.compile(r"[,;]")
 
 # Simple hostname validation for the allowed e-mail domains configuration.
 EMAIL_DOMAIN_REGEX = re.compile(
@@ -82,13 +82,6 @@ def get_dynamic_executor(
     return user
 
 
-def split_email_addresses(value: str | None) -> list[str]:
-    """Split a comma/semicolon separated list of e-mail addresses."""
-    if not value:
-        return []
-    return [addr.strip() for addr in _EMAIL_SEPARATOR_RE.split(value) if addr.strip()]
-
-
 def get_email_addresses(recipients: Iterable[Any] | None) -> list[str]:
     """
     Extract every e-mail address (to, cc and bcc) from a list of recipients.
@@ -114,7 +107,7 @@ def get_email_addresses(recipients: Iterable[Any] | None) -> list[str]:
         if not isinstance(config, dict):
             continue
         for field in EMAIL_RECIPIENT_FIELDS:
-            addresses.extend(split_email_addresses(config.get(field)))
+            addresses.extend(recipients_string_to_list(config.get(field)))
     return addresses
 
 
