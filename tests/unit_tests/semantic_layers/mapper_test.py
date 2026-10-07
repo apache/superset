@@ -42,6 +42,7 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
+from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -1556,7 +1557,7 @@ def test_validate_query_object_unsupported_time_grain_error(
     )
 
     with pytest.raises(
-        ValueError,
+        QueryObjectValidationError,
         match=(
             "The time grain is not supported for the time column in the Semantic View."
         ),
