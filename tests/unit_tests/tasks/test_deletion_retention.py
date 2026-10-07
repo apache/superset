@@ -928,10 +928,39 @@ def test_purge_remainder_failure_keeps_committed_totals(app_context: None) -> No
         patch.object(task, "_scan_purge_models", return_value=scan),
         patch.object(task, "_count_eligible", side_effect=RuntimeError("count failed")),
         patch.object(task.audit, "reconcile_pending"),
+        patch.object(task.db.session, "rollback") as rollback,
     ):
         result: dict[str, Any] = task._purge_impl(30, False, max_per_run=2)
 
     assert result["purged"] == {"slices": 2}
     assert result["cap_reached"] is True
+    assert result["remaining_eligible"] is None
+    assert result["remaining_count_complete"] is False
+    rollback.assert_called_once()
+
+
+def test_purge_remainder_incomplete_after_scan_failure(app_context: None) -> None:
+    """An unscanned root cannot be silently omitted from a complete count."""
+    from superset.models.slice import Slice
+    from superset.tasks import deletion_retention as task
+
+    scan: task._PurgeScan = task._PurgeScan(
+        purged={},
+        would_purge={},
+        unsupported_models={},
+        failures=0,
+        blocked=0,
+        remaining_budget=1,
+        supported_models=[Slice],
+        scan_failures=1,
+        attempted=2,
+    )
+    with (
+        patch.object(task, "_scan_purge_models", return_value=scan),
+        patch.object(task, "_count_eligible", return_value=0),
+        patch.object(task.audit, "reconcile_pending"),
+    ):
+        result: dict[str, Any] = task._purge_impl(30, False, max_per_run=1)
+
     assert result["remaining_eligible"] is None
     assert result["remaining_count_complete"] is False

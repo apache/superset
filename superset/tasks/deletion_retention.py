@@ -256,19 +256,25 @@ def _add_purge_cap_stats(
     if max_per_run is None:
         return
     remaining_eligible: int | None
-    count_complete: bool = True
-    try:
-        remaining_eligible = sum(
-            _count_eligible(model, cutoff) for model in scan.supported_models
-        )
-    except Exception:  # pylint: disable=broad-except
-        logger.warning(
-            "deletion_retention: remainder count failed after purge",
-            exc_info=True,
-        )
-        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.remainder_count_failed")
+    count_complete: bool = scan.scan_failures == 0
+    if count_complete:
+        try:
+            remaining_eligible = sum(
+                _count_eligible(model, cutoff) for model in scan.supported_models
+            )
+        except Exception:  # pylint: disable=broad-except
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.warning(
+                "deletion_retention: remainder count failed after purge",
+                exc_info=True,
+            )
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.remainder_count_failed"
+            )
+            remaining_eligible = None
+            count_complete = False
+    else:
         remaining_eligible = None
-        count_complete = False
     cap_reached: bool = scan.remaining_budget == 0
     stats.update(
         max_per_run=max_per_run,
