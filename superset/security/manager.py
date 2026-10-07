@@ -4425,6 +4425,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         }
         if not view_perms:
             return
+        if self._retain_shared_datasource_perm_for_isolation(connection):
+            return
 
         # The database can cascade unloaded views without firing their delete
         # hooks. Serialize their permission cleanup with direct owner deletes.
@@ -4471,7 +4473,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         deleted_view_id: int | None,
     ) -> bool:
         """
-        Whether a remaining dataset or semantic view owns *perm*.
+        Whether cleanup must retain *perm* for another owner or unsafe isolation.
 
         Pass the deleted view's ID when checking its delete event. Pass None
         after dataset deletion, when every remaining view is a possible owner.
@@ -4481,6 +4483,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         transactions deleting the final owners of one permission then make
         their decisions in commit order rather than both retaining the PVM
         because each still sees the other's uncommitted owner row.
+        Treat an untrusted MySQL snapshot as possibly owned rather than revoking
+        a permission that another datasource may still use.
         """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
@@ -4489,8 +4493,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             SemanticView,
         )
 
+        if self._retain_shared_datasource_perm_for_isolation(connection):
+            return True
+
         self._lock_datasource_perms(connection, {perm})
 
+        # These owner probes remain unindexed by design. Retention deployments
+        # must cap purges per run; an ordinary delete checks one asset at a time.
         table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
         if connection.execute(
             table.select().where(table.c.perm == perm).limit(1)
@@ -4504,6 +4513,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             connection.execute(sv_table.select().where(view_predicate).limit(1)).first()
             is not None
         )
+
+    def _retain_shared_datasource_perm_for_isolation(
+        self, connection: Connection
+    ) -> bool:
+        """Fail safe when a MySQL owner probe cannot use a fresh snapshot."""
+        if connection.dialect.name not in ("mysql", "mariadb"):
+            return False
+        try:
+            isolation_level: str | None = connection.get_isolation_level()
+        except Exception as ex:  # pylint: disable=broad-exception-caught
+            logger.warning(
+                "Retaining shared datasource permission: MySQL isolation "
+                "could not be verified (%s)",
+                type(ex).__name__,
+            )
+            return True
+        if isolation_level != "READ COMMITTED":
+            logger.warning(
+                "Retaining shared datasource permission: MySQL isolation is %s",
+                isolation_level,
+            )
+            return True
+        return False
 
     def _lock_datasource_perms(
         self, connection: Connection, perms: AbstractSet[str]

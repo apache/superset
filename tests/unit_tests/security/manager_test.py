@@ -5718,3 +5718,101 @@ def test_semantic_layer_delete_locks_child_permission_before_owner_probe(
     assert "ab_view_menu" in sql
     assert "ORDER BY" in sql
     assert "FOR UPDATE" in sql
+
+
+@pytest.mark.parametrize("isolation", ["REPEATABLE READ", "SERIALIZABLE", None])
+def test_shared_permission_cleanup_retains_on_unsafe_mysql_isolation(
+    isolation: str | None, mocker: MockerFixture, app_context: None
+) -> None:
+    """An untrusted MySQL snapshot must not retire a shared grant."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = "mysql"
+    connection.get_isolation_level.return_value = isolation
+    warning: MagicMock = mocker.patch("superset.security.manager.logger.warning")
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is True
+    )
+    connection.execute.assert_not_called()
+    warning.assert_called_once()
+
+
+def test_shared_permission_cleanup_retains_when_mysql_isolation_cannot_be_read(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Isolation lookup failure must leave the grant in place."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = "mysql"
+    connection.get_isolation_level.side_effect = RuntimeError("unavailable")
+    warning: MagicMock = mocker.patch("superset.security.manager.logger.warning")
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is True
+    )
+    connection.execute.assert_not_called()
+    warning.assert_called_once()
+
+
+def test_dataset_delete_retains_grant_on_mysql_repeatable_read(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """The ORM delete hook must not revoke a possibly shared grant."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = "mysql"
+    connection.get_isolation_level.return_value = "REPEATABLE READ"
+    target: MagicMock = MagicMock()
+    target.perm = "[shared](id:42)"
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.dataset_after_delete(MagicMock(), connection, target)
+
+    connection.execute.assert_not_called()
+    delete_pvm.assert_not_called()
+
+
+def test_shared_permission_cleanup_proceeds_on_mysql_read_committed(
+    app_context: None,
+) -> None:
+    """The configured safe isolation still permits final-owner cleanup."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = "mysql"
+    connection.get_isolation_level.return_value = "READ COMMITTED"
+    connection.execute.return_value.first.return_value = None
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is False
+    )
+    connection.get_isolation_level.assert_called_once_with()
+    assert connection.execute.call_count == 3
+
+
+def test_semantic_layer_delete_retains_child_grant_on_mysql_repeatable_read(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """The unloaded-child cascade uses the same fail-safe isolation gate."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = "mysql"
+    connection.get_isolation_level.return_value = "REPEATABLE READ"
+    connection.execute.return_value.scalars.return_value = ["[shared](id:42)"]
+    target: MagicMock = MagicMock()
+    target.uuid = "layer-uuid"
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.semantic_layer_before_delete(MagicMock(), connection, target)
+
+    connection.execute.assert_called_once()
+    delete_pvm.assert_not_called()
