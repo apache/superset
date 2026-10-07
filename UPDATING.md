@@ -30,7 +30,9 @@ assists people when migrating to a new version.
   enforcing completeness should raise the public
   `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
   results are incomplete or cannot be verified (an additive `apache-superset-core`
-  API, available from 0.2.0); the host converts it to its client error, and these
+  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  not the same-named host class in `superset.exceptions`); the host converts it to
+  its client error, and these
   failures do not publish a successful async result cache key. A provider raising
   `superset.exceptions.SemanticResultCompletenessError` directly is still accepted
   for one release. Deploy compatible host/provider versions to
