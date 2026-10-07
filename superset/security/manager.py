@@ -4028,7 +4028,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The changed dataset object
         :return:
         """
-        dataset_vm_name: str | None = self.get_dataset_perm(
+        dataset_vm_name: str | None = target.perm or self.get_dataset_perm(
             target.id, target.table_name, target.database.database_name
         )
         if dataset_vm_name and self._datasource_perm_owned_elsewhere(
@@ -4426,6 +4426,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not view_perms:
             return
 
+        # The database can cascade unloaded views without firing their delete
+        # hooks. Serialize their permission cleanup with direct owner deletes.
+        perm_to_lock: str
+        for perm_to_lock in sorted(view_perms):
+            self._lock_datasource_perm(connection, perm_to_lock)
+
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
@@ -4472,6 +4478,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Pass the deleted view's ID when checking its delete event. Pass None
         after dataset deletion, when every remaining view is a possible owner.
         The dataset query includes soft-deleted rows by using the Core table.
+
+        Lock the shared permission row before checking either owner table. Two
+        transactions deleting the final owners of one permission then make
+        their decisions in commit order rather than both retaining the PVM
+        because each still sees the other's uncommitted owner row.
         """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
@@ -4479,6 +4490,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
             SemanticView,
         )
+
+        self._lock_datasource_perm(connection, perm)
 
         table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
         if connection.execute(
@@ -4493,6 +4506,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             connection.execute(sv_table.select().where(view_predicate).limit(1)).first()
             is not None
         )
+
+    def _lock_datasource_perm(self, connection: Connection, perm: str) -> None:
+        """Serialize owner checks sharing a datasource permission name."""
+        view_menu_table: SQLATable = self.viewmenu_model.__table__  # pylint: disable=no-member
+        connection.execute(
+            select(view_menu_table.c.id)
+            .where(view_menu_table.c.name == perm)
+            .with_for_update()
+        ).scalar_one_or_none()
 
     def semantic_layer_after_delete(
         self,

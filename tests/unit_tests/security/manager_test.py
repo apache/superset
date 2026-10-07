@@ -5625,3 +5625,95 @@ def test_reset_password_self_service_commits_cleared_flag(
     mock_clear.assert_called_once_with(5)
     # One commit for the session-invalidation stamp, one for the cleared flag.
     assert mock_commit.call_count == 2
+
+
+def test_dataset_delete_uses_stored_permission_identity(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """The delete hook must retire the PVM actually stored on the dataset."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    target: MagicMock = MagicMock()
+    target.perm = "[stored](id:42)"
+    mapper: MagicMock = MagicMock()
+    connection: MagicMock = MagicMock()
+    mocker.patch.object(sm, "get_dataset_perm", return_value="[derived](id:42)")
+    owned_elsewhere: MagicMock = mocker.patch.object(
+        sm, "_datasource_perm_owned_elsewhere", return_value=False
+    )
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.dataset_after_delete(mapper, connection, target)
+
+    owned_elsewhere.assert_called_once_with(connection, "[stored](id:42)", None)
+    delete_pvm.assert_called_once_with(
+        mapper, connection, "datasource_access", "[stored](id:42)"
+    )
+
+
+def test_dataset_delete_derives_missing_stored_permission(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Legacy rows without a stored permission still clean up their grant."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    target: MagicMock = MagicMock()
+    target.perm = None
+    mapper: MagicMock = MagicMock()
+    connection: MagicMock = MagicMock()
+    mocker.patch.object(sm, "get_dataset_perm", return_value="[derived](id:42)")
+    mocker.patch.object(sm, "_datasource_perm_owned_elsewhere", return_value=False)
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.dataset_after_delete(mapper, connection, target)
+
+    delete_pvm.assert_called_once_with(
+        mapper, connection, "datasource_access", "[derived](id:42)"
+    )
+
+
+def test_shared_permission_owner_probe_locks_permission_first(
+    app_context: None,
+) -> None:
+    """Competing final-owner deletes must serialize before checking owners."""
+    from sqlalchemy.dialects import postgresql
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.execute.return_value.scalar_one_or_none.return_value = 1
+    connection.execute.return_value.first.return_value = None
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is False
+    )
+
+    first_statement: Any = connection.execute.call_args_list[0].args[0]
+    sql: str = str(first_statement.compile(dialect=postgresql.dialect()))
+    assert "ab_view_menu" in sql
+    assert "FOR UPDATE" in sql
+
+
+def test_semantic_layer_delete_locks_child_permission_before_owner_probe(
+    app_context: None,
+) -> None:
+    """A cascading child delete must use the shared owner-deletion lock."""
+    from sqlalchemy.dialects import postgresql
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.execute.side_effect = [
+        MagicMock(scalars=MagicMock(return_value=["[shared](id:42)"])),
+        MagicMock(scalar_one_or_none=MagicMock(return_value=1)),
+        MagicMock(scalars=MagicMock(return_value=[])),
+        MagicMock(scalars=MagicMock(return_value=[])),
+    ]
+    target: MagicMock = MagicMock()
+    target.uuid = "layer-uuid"
+
+    sm.semantic_layer_before_delete(MagicMock(), connection, target)
+
+    lock_statement: Any = connection.execute.call_args_list[1].args[0]
+    sql: str = str(lock_statement.compile(dialect=postgresql.dialect()))
+    assert "ab_view_menu" in sql
+    assert "FOR UPDATE" in sql
