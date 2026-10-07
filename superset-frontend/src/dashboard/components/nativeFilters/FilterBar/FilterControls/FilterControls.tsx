@@ -423,8 +423,6 @@ const FilterControls: FC<FilterControlsProps> = ({
       toggleSection,
       theme,
       hideHeader,
-      handleChartCustomizationChange,
-      dataMaskSelected,
     ],
   );
 
