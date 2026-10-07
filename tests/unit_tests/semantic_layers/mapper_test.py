@@ -26,6 +26,7 @@ import freezegun
 import pandas as pd
 import pyarrow as pa
 import pytest
+from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     AdhocExpression,
@@ -4659,4 +4660,120 @@ def test_replaced_relative_range_uses_factory_identity(
             Filter(
                 PredicateType.WHERE, raw, Operator.LESS_THAN, datetime(2025, 12, 25, 12)
             ),
+        }
+
+
+@pytest.mark.parametrize("ordering", list(permutations(range(4))))
+def test_temporal_range_named_range_bounds_use_raw_variant_at_selected_grain(
+    mocker: MockerFixture, ordering: tuple[int, ...]
+) -> None:
+    """A relative named TEMPORAL_RANGE lands on the raw variant, not the
+    last-iterated grain variant, while grouping still honors the selection."""
+    variants: tuple[Dimension, ...] = (
+        Dimension("raw", "metric_time", pa.timestamp("us")),
+        Dimension("day", "metric_time", pa.timestamp("us"), grain=Grains.DAY),
+        Dimension("month", "metric_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension("year", "metric_time", pa.timestamp("us"), grain=Grains.YEAR),
+    )
+    raw: Dimension = variants[0]
+    day: Dimension = variants[1]
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView(
+        OrderedDimensions(tuple(variants[index] for index in ordering)), set()
+    )
+    datasource.fetch_values_predicate = None
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["metric_time"],
+        metrics=[],
+        extras={"time_grain_sqla": "P1D"},
+        filters=[
+            {
+                "col": "metric_time",
+                "op": FilterOperator.TEMPORAL_RANGE.value,
+                "val": "Last week",
+            }
+        ],
+    )
+
+    with freeze_time("2026-09-28 15:04:05"):
+        results: list[SemanticQuery] = map_query_object(query)
+
+    assert len(results) == 1
+    assert results[0].dimensions == [day]
+    assert results[0].filters == {
+        Filter(
+            PredicateType.WHERE,
+            raw,
+            Operator.GREATER_THAN_OR_EQUAL,
+            datetime(2026, 9, 21),
+        ),
+        Filter(PredicateType.WHERE, raw, Operator.LESS_THAN, datetime(2026, 9, 28)),
+    }
+
+
+@pytest.mark.parametrize("ordering", list(permutations(range(3))))
+def test_no_raw_variant_bounds_use_finest_grain(
+    mocker: MockerFixture, ordering: tuple[int, ...]
+) -> None:
+    """Without a raw variant, every temporal bound (authored range, offset
+    bounds, group-limit inner bounds) resolves to the finest grain, while
+    grouping still honors the selected grain."""
+    variants: tuple[Dimension, ...] = (
+        Dimension("day", "event_time", pa.timestamp("us"), grain=Grains.DAY),
+        Dimension("month", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension("year", "event_time", pa.timestamp("us"), grain=Grains.YEAR),
+    )
+    day: Dimension = variants[0]
+    month: Dimension = variants[1]
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView(
+        OrderedDimensions(tuple(variants[index] for index in ordering)), set()
+    )
+    datasource.fetch_values_predicate = None
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["event_time"],
+        metrics=[],
+        extras={"time_grain_sqla": "P1M"},
+        from_dttm=datetime(2026, 1, 15),
+        to_dttm=datetime(2026, 2, 1),
+        time_offsets=["1 month ago"],
+        series_columns=["event_time"],
+        series_limit=2,
+        inner_from_dttm=datetime(2025, 12, 15),
+        inner_to_dttm=datetime(2026, 1, 1),
+        filters=[
+            {
+                "col": "event_time",
+                "op": FilterOperator.TEMPORAL_RANGE.value,
+                "val": "2026-01-15 : 2026-02-01",
+            }
+        ],
+    )
+
+    results: list[SemanticQuery] = map_query_object(query)
+
+    assert len(results) == 2
+    for result, lower, upper in zip(
+        results,
+        (datetime(2026, 1, 15), datetime(2025, 12, 15)),
+        (datetime(2026, 2, 1), datetime(2026, 1, 1)),
+        strict=True,
+    ):
+        assert result.dimensions == [month]
+        assert result.filters == {
+            Filter(PredicateType.WHERE, day, Operator.GREATER_THAN_OR_EQUAL, lower),
+            Filter(PredicateType.WHERE, day, Operator.LESS_THAN, upper),
+        }
+        assert result.group_limit is not None
+        assert result.group_limit.dimensions == [month]
+        assert result.group_limit.filters == {
+            Filter(
+                PredicateType.WHERE,
+                day,
+                Operator.GREATER_THAN_OR_EQUAL,
+                datetime(2025, 12, 15),
+            ),
+            Filter(PredicateType.WHERE, day, Operator.LESS_THAN, datetime(2026, 1, 1)),
         }
