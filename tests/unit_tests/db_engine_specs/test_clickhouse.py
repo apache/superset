@@ -765,3 +765,139 @@ def test_multivalue_contains_any_numeric_coercion_sql() -> None:
     # element type) and confirm the emitted array literal is numeric.
     expr = spec.array_contains_any(column("scores"), [5, 6])
     assert _compile(expr) == "hasAny(scores, array(5, 6))"
+
+
+def test_get_cancel_query_id_mints_a_uuid_without_a_round_trip() -> None:
+    """
+    No SQL should be issued to obtain the id: ClickHouse never hands one
+    back, the id is entirely client-chosen (verified against a real server
+    in tests/testcontainers/db_engine_specs/test_clickhouse.py).
+    """
+    import uuid
+
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+    cancel_query_id = spec.get_cancel_query_id(cursor_mock, Query())
+
+    assert cancel_query_id is not None
+    assert uuid.UUID(cancel_query_id).version == 4
+    cursor_mock.execute.assert_not_called()
+
+
+def test_execute_with_cursor_forwards_recorded_cancel_id_as_query_id_setting() -> None:
+    """
+    `execute_with_cursor` is the only place that can thread the id recorded
+    by `get_cancel_query_id` into the driver -- the base `execute`/
+    `execute_with_cursor` pair (superset/db_engine_specs/base.py) never
+    forwards per-query kwargs to `cursor.execute()`. Without this, the id
+    Superset records in `query.extra` would never reach the server, and
+    `KILL QUERY WHERE query_id = ...` would have nothing real to kill.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 1
+    query.set_extra_json_key("cancel_query", "d14b9e5b-47ec-478e-bc7c-f8b56be98576")
+    cursor_mock = Mock()
+
+    spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
+
+    cursor_mock.execute.assert_called_once_with(
+        "SELECT 1",
+        settings={"query_id": "d14b9e5b-47ec-478e-bc7c-f8b56be98576"},
+    )
+
+
+def test_execute_with_cursor_omits_settings_when_no_cancel_id_recorded() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.id = 1
+    cursor_mock = Mock()
+
+    spec.execute_with_cursor(cursor_mock, "SELECT 1", query)
+
+    cursor_mock.execute.assert_called_once_with("SELECT 1", settings=None)
+
+
+def test_cancel_query_issues_kill_query_for_the_recorded_id() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+    cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+
+    assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is True
+    cursor_mock.execute.assert_called_once_with(
+        f"KILL QUERY WHERE query_id = '{cancel_query_id}'"
+    )
+
+
+def test_cancel_query_rejects_non_uuid_ids() -> None:
+    """
+    Defense-in-depth against injection via a tampered/forged cancel id --
+    mirrors every other engine's own id-shaped validation (e.g. Postgres/
+    MySQL's `^\\d+$` for their integer ids).
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+
+    assert (
+        spec.cancel_query(cursor_mock, Query(), "1; DROP TABLE system.processes")
+        is False
+    )
+    cursor_mock.execute.assert_not_called()
+
+
+def test_cancel_query_returns_false_on_driver_error() -> None:
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+    cursor_mock.execute.side_effect = Exception("boom")
+
+    assert (
+        spec.cancel_query(cursor_mock, Query(), "d14b9e5b-47ec-478e-bc7c-f8b56be98576")
+        is False
+    )
+
+
+def test_legacy_clickhouse_engine_spec_has_no_cancel_support() -> None:
+    """
+    The legacy `clickhouse-sqlalchemy` driver's cursor (`ClickHouseEngineSpec`,
+    the non-recommended "clickhouse" engine) has a different `execute()`
+    signature with no `settings` kwarg, and only generates its own query id
+    internally inside `execute()` -- it isn't available beforehand the way
+    `has_query_id_before_execute` (the base default both engines use)
+    requires. Passing a `settings` kwarg to that driver's cursor would raise
+    a TypeError, so the cancel overrides below live on
+    `ClickHouseConnectEngineSpec` only; this locks in that the legacy engine
+    still falls through to the inert base defaults rather than inheriting
+    something that would break it.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+    assert spec.get_cancel_query_id(cursor_mock, Query()) is None
+    assert spec.cancel_query(cursor_mock, Query(), "123") is False
