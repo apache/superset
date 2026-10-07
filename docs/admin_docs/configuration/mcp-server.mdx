@@ -1287,8 +1287,9 @@ Both fields are redacted for users without data-model metadata access.
 Chart and dashboard chart summaries resolve dataset names from the live table
 or semantic view, so renames are reflected without resaving the chart. Query and
 saved-query charts retain their stored datasource names; missing tables or
-semantic views do not fall back to stale names. Dataset-access validation remains
-unchanged.
+semantic views do not fall back to stale names. Saved-chart `get_chart_data` and `get_chart_info` prechecks resolve semantic-view
+sources by type and ID, then check access before continuing. SQL-dataset charts
+retain their existing dataset validation.
 
 `list_charts` filters on `datasource_name` use these same live names before
 pagination and counting. For tables with a schema, filter using

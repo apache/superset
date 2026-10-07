@@ -52,7 +52,11 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_extra_form_data_filters_into_query,
     rejected_requested_filter_columns,
 )
-from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.chart_utils import (
+    DatasetValidationResult,
+    validate_chart_dataset,
+    validate_chart_semantic_view,
+)
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
     query_result_failure,
@@ -72,7 +76,7 @@ from superset.mcp_service.utils.oauth2_utils import (
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.serialization import is_missing_value
-from superset.utils.core import GenericDataType
+from superset.utils.core import DatasourceType, GenericDataType
 
 logger = logging.getLogger(__name__)
 
@@ -547,11 +551,15 @@ async def execute_chart_data(  # noqa: C901
         )
         logger.info("Getting data for chart %s: %s", chart_id, chart_name)
 
-        # Guests skip the RBAC check (authorize_query covers it) but keep the
+        # Table guests skip the RBAC check (authorize_query covers it) but keep the
         # existence check, so a deleted dataset still returns
         # DatasetNotAccessible.
-        validation_result = validate_chart_dataset(
-            chart_datasource_id, check_access=not guest_scope.is_guest_read()
+        validation_result: DatasetValidationResult = (
+            validate_chart_semantic_view(chart_datasource_id)
+            if chart_datasource_type == DatasourceType.SEMANTIC_VIEW.value
+            else validate_chart_dataset(
+                chart_datasource_id, check_access=not guest_scope.is_guest_read()
+            )
         )
         if not validation_result.is_valid:
             await ctx.warning(

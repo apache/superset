@@ -26,15 +26,18 @@ import hashlib
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, cast, Dict, TYPE_CHECKING
 
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
+    from superset.semantic_layers.models import SemanticView
 
 from superset.constants import NO_TIME_RANGE
+from superset.daos.exceptions import DatasourceNotFound, DatasourceValueIsIncorrect
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
@@ -65,7 +68,7 @@ from superset.mcp_service.chart.validation.dataset_validator import (
 from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
-from superset.utils.core import FilterOperator
+from superset.utils.core import DatasourceType, FilterOperator
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +84,36 @@ class DatasetValidationResult:
     dataset_name: str | None
     warnings: list[str]
     error: str | None = None
+
+
+def validate_chart_semantic_view(datasource_id: int | None) -> DatasetValidationResult:
+    """Resolve and authorize a saved semantic source before ordinary chart reads."""
+    # Avoid app-init regression: DatasourceDAO imports Database encrypted columns.
+    from superset.daos.datasource import DatasourceDAO
+
+    if datasource_id is not None:
+        try:
+            view: SemanticView = cast(
+                "SemanticView",
+                DatasourceDAO.get_datasource(
+                    DatasourceType.SEMANTIC_VIEW, datasource_id
+                ),
+            )
+            view.raise_for_access()
+            return DatasetValidationResult(True, datasource_id, view.name, [])
+        except (
+            DatasourceNotFound,
+            DatasourceValueIsIncorrect,
+            SupersetSecurityException,
+        ):
+            pass
+    return DatasetValidationResult(
+        False,
+        datasource_id,
+        None,
+        [],
+        error="Semantic view not found or not accessible.",
+    )
 
 
 def validate_chart_dataset(
