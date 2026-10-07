@@ -135,6 +135,9 @@ export default function AddSemanticViewModal({
 
   // --- Runtime config ---
   const [runtimeSchema, setRuntimeSchema] = useState<JsonSchema | null>(null);
+  // Read by the change handler without re-creating it on every schema load.
+  const runtimeSchemaRef = useRef<JsonSchema | null>(null);
+  runtimeSchemaRef.current = runtimeSchema;
   const [runtimeUiSchema, setRuntimeUiSchema] = useState<
     UISchemaElement | undefined
   >();
@@ -347,14 +350,21 @@ export default function AddSemanticViewModal({
       // Dynamic deps changed → refresh schema (e.g. database → schema)
       const dynamicDeps = dynamicDepsRef.current;
       if (Object.keys(dynamicDeps).length > 0) {
+        // Count schema defaults as DynamicFieldControl does, so a dependency
+        // satisfied only by its default still refreshes dependent options.
         const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
-          areDependenciesSatisfied(deps, data),
-        );
-        if (!hasSatisfiedDeps) {
-          lastDepSnapshotRef.current = serializeDependencyValues(
-            dynamicDeps,
+          areDependenciesSatisfied(
+            deps,
             data,
-          );
+            runtimeSchemaRef.current ?? undefined,
+          ),
+        );
+        // Wait for input only while the form is invalid: a refresh is the
+        // only way to clear stale options, so an optional dependency left
+        // empty on a valid form must still refresh for that state.
+        if (!hasSatisfiedDeps && errorsRef.current.length > 0) {
+          // Not a committed state: the next valid change must refresh.
+          lastDepSnapshotRef.current = '';
           schemaRefreshGenRef.current += 1;
           if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
           setRefreshingSchema(false);
@@ -364,78 +374,76 @@ export default function AddSemanticViewModal({
           lastViewsKeyRef.current = '';
           return;
         }
-        if (hasSatisfiedDeps) {
-          const snapshot = serializeDependencyValues(dynamicDeps, data);
-          if (snapshot !== lastDepSnapshotRef.current) {
-            lastDepSnapshotRef.current = snapshot;
-            setRefreshingSchema(true);
-            setStaleSchemaOptions(true);
-            // Config is changing — clear views
-            setAvailableViews([]);
-            setSelectedViewNames([]);
-            lastViewsKeyRef.current = '';
-            if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
-            const uuid = selectedLayerUuid;
-            schemaRefreshGenRef.current += 1;
-            const refreshGen = schemaRefreshGenRef.current;
-            schemaTimerRef.current = setTimeout(async () => {
-              try {
-                const { json } = await SupersetClient.post({
-                  endpoint: `/api/v1/semantic_layer/${uuid}/schema/runtime`,
-                  jsonPayload: { runtime_data: data },
-                });
-                if (
-                  gen !== fetchGenRef.current ||
-                  refreshGen !== schemaRefreshGenRef.current
-                )
-                  return;
-                // Reset before applying: the request itself succeeded, so a
-                // throw inside applyRuntimeSchema must not be reported (or
-                // retried) as a transient network failure.
-                refreshErrorToastShownRef.current = false;
-                retriedDepSnapshotRef.current = '';
-                if (json.result) {
-                  applyRuntimeSchema(json.result);
-                  setStaleSchemaOptions(false);
-                }
-              } catch (error) {
-                if (
-                  gen !== fetchGenRef.current ||
-                  refreshGen !== schemaRefreshGenRef.current
-                )
-                  return;
-                logging.error('Runtime schema refresh failed', error);
-                // Allow exactly one retry per dependency state: clearing the
-                // committed snapshot lets the next change event re-attempt
-                // the refresh, but only if this state hasn't been retried
-                // already, so a persistent outage doesn't re-fire on every
-                // edit. Only clear a snapshot this attempt still owns — a
-                // newer change may have committed its own since.
-                if (
-                  lastDepSnapshotRef.current === snapshot &&
-                  retriedDepSnapshotRef.current !== snapshot
-                ) {
-                  retriedDepSnapshotRef.current = snapshot;
-                  lastDepSnapshotRef.current = '';
-                }
-                // Retain selections, but keep stale choices unavailable until
-                // a matching refresh succeeds. Toast once per outage.
-                if (!refreshErrorToastShownRef.current) {
-                  refreshErrorToastShownRef.current = true;
-                  addDangerToast(
-                    t('An error occurred while refreshing the runtime schema'),
-                  );
-                }
-              } finally {
-                if (
-                  gen === fetchGenRef.current &&
-                  refreshGen === schemaRefreshGenRef.current
-                )
-                  setRefreshingSchema(false);
+        const snapshot = serializeDependencyValues(dynamicDeps, data);
+        if (snapshot !== lastDepSnapshotRef.current) {
+          lastDepSnapshotRef.current = snapshot;
+          setRefreshingSchema(true);
+          setStaleSchemaOptions(true);
+          // Config is changing — clear views
+          setAvailableViews([]);
+          setSelectedViewNames([]);
+          lastViewsKeyRef.current = '';
+          if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
+          const uuid = selectedLayerUuid;
+          schemaRefreshGenRef.current += 1;
+          const refreshGen = schemaRefreshGenRef.current;
+          schemaTimerRef.current = setTimeout(async () => {
+            try {
+              const { json } = await SupersetClient.post({
+                endpoint: `/api/v1/semantic_layer/${uuid}/schema/runtime`,
+                jsonPayload: { runtime_data: data },
+              });
+              if (
+                gen !== fetchGenRef.current ||
+                refreshGen !== schemaRefreshGenRef.current
+              )
+                return;
+              // Reset before applying: the request itself succeeded, so a
+              // throw inside applyRuntimeSchema must not be reported (or
+              // retried) as a transient network failure.
+              refreshErrorToastShownRef.current = false;
+              retriedDepSnapshotRef.current = '';
+              if (json.result) {
+                applyRuntimeSchema(json.result);
+                setStaleSchemaOptions(false);
               }
-            }, SCHEMA_REFRESH_DEBOUNCE_MS);
-            return;
-          }
+            } catch (error) {
+              if (
+                gen !== fetchGenRef.current ||
+                refreshGen !== schemaRefreshGenRef.current
+              )
+                return;
+              logging.error('Runtime schema refresh failed', error);
+              // Allow exactly one retry per dependency state: clearing the
+              // committed snapshot lets the next change event re-attempt
+              // the refresh, but only if this state hasn't been retried
+              // already, so a persistent outage doesn't re-fire on every
+              // edit. Only clear a snapshot this attempt still owns — a
+              // newer change may have committed its own since.
+              if (
+                lastDepSnapshotRef.current === snapshot &&
+                retriedDepSnapshotRef.current !== snapshot
+              ) {
+                retriedDepSnapshotRef.current = snapshot;
+                lastDepSnapshotRef.current = '';
+              }
+              // Retain selections, but keep stale choices unavailable until
+              // a matching refresh succeeds. Toast once per outage.
+              if (!refreshErrorToastShownRef.current) {
+                refreshErrorToastShownRef.current = true;
+                addDangerToast(
+                  t('An error occurred while refreshing the runtime schema'),
+                );
+              }
+            } finally {
+              if (
+                gen === fetchGenRef.current &&
+                refreshGen === schemaRefreshGenRef.current
+              )
+                setRefreshingSchema(false);
+            }
+          }, SCHEMA_REFRESH_DEBOUNCE_MS);
+          return;
         }
       }
 

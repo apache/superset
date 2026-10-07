@@ -657,7 +657,7 @@ const databaseSchema = (schemas: string[]) => ({
 });
 
 type PendingSchema = {
-  resolve: (schema: ReturnType<typeof databaseSchema>) => void;
+  resolve: (schema: Record<string, unknown>) => void;
   reject: (error: Error) => void;
 };
 
@@ -678,10 +678,12 @@ async function chooseDependentOption(name: string, value: string) {
   });
 }
 
-async function openDependentSchemaForm() {
+async function openDependentSchemaForm(
+  makeSchema: typeof databaseSchema = databaseSchema,
+) {
   jest.useFakeTimers();
   const pending: PendingSchema[] = [];
-  const initial = databaseSchema(['shared', 'old_only']);
+  const initial = makeSchema(['shared', 'old_only']);
   mockLayerWithSchema(initial, {
     '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
       if (!(payload as { runtime_data?: unknown })?.runtime_data) {
@@ -853,4 +855,94 @@ test('dependent options are unavailable when a dependency is cleared', async () 
     pending[1].resolve(databaseSchema(['third_only']));
   });
   await waitFor(() => expect(schema).toBeEnabled());
+});
+
+const optionalDatabaseSchema = (schemas: string[]) => ({
+  ...databaseSchema(schemas),
+  required: ['schema'],
+});
+
+const viewsRequests = () =>
+  mockedPost.mock.calls
+    .map(([request]) => request)
+    .filter(
+      ({ endpoint }: { endpoint: string }) =>
+        endpoint === '/api/v1/semantic_layer/layer-1/views',
+    );
+
+test('clearing an optional dependency on a valid form refreshes options and fetches views', async () => {
+  const { pending } = await openDependentSchemaForm(optionalDatabaseSchema);
+  await chooseDependentOption('Schema', 'shared');
+  const database = screen.getByRole('combobox', { name: 'Database' });
+  const clear = database
+    .closest('.ant-select')
+    ?.querySelector('.ant-select-clear');
+  expect(clear).toBeTruthy();
+  if (clear) fireEvent.click(clear);
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  const schema = screen.getByRole('combobox', { name: 'Schema' });
+  expect(schema).toBeDisabled();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  // The optional dependency is empty but the form is valid, so the options
+  // must be refreshed for that state rather than stay unavailable forever.
+  expect(pending).toHaveLength(2);
+  await act(async () => {
+    pending[1].resolve(optionalDatabaseSchema(['shared']));
+  });
+  await waitFor(() => expect(schema).toBeEnabled());
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  await waitFor(() =>
+    expect(
+      viewsRequests().some(
+        ({ jsonPayload }: { jsonPayload: { runtime_data?: unknown } }) =>
+          (jsonPayload.runtime_data as Record<string, unknown> | undefined)
+            ?.database == null,
+      ),
+    ).toBe(true),
+  );
+});
+
+test('a dependency satisfied by its schema default refreshes dependent options', async () => {
+  jest.useFakeTimers();
+  const pending: PendingSchema[] = [];
+  const base = databaseSchema(['shared']);
+  const initial = {
+    ...base,
+    properties: {
+      ...base.properties,
+      database: { ...base.properties.database, default: 'first' },
+    },
+  };
+  mockLayerWithSchema(initial, {
+    '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
+      if (!(payload as { runtime_data?: unknown })?.runtime_data) {
+        return Promise.resolve({ json: { result: initial } });
+      }
+      return new Promise((resolve, reject) => {
+        pending.push({
+          resolve: schema => resolve({ json: { result: schema } }),
+          reject,
+        });
+      });
+    },
+  });
+  render(<AddSemanticViewModal {...createProps()} />);
+  await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  await chooseDependentOption('Schema', 'shared');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(1);
+  await act(async () => {
+    pending[0].resolve(initial);
+  });
+  await waitFor(() =>
+    expect(screen.getByRole('combobox', { name: 'Schema' })).toBeEnabled(),
+  );
 });
