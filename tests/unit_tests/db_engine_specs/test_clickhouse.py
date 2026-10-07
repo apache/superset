@@ -17,7 +17,7 @@
 
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy.engine.url import make_url
@@ -889,6 +889,11 @@ def test_cancel_query_returns_true_when_nothing_matched() -> None:
     see RCA.md). Both mean "nothing to confirm", which is treated as
     success so SQL Lab doesn't get stuck believing an already-finished
     query is still running.
+
+    `Query()` here is transient (never added to a session), so the
+    best-effort `db.session.refresh(query)` follow-up check (see the next
+    two tests) raises and is caught, falling back to this same True --
+    exercising that fallback path, not bypassing it.
     """
     from superset.db_engine_specs.clickhouse import (  # noqa: N813
         ClickHouseConnectEngineSpec as spec,
@@ -908,6 +913,66 @@ def test_cancel_query_returns_true_when_nothing_matched() -> None:
     cursor_mock = Mock()
     cursor_mock.fetchall.return_value = [[1, 834, 0, 0, 0, 0, 0, 1686330, "some-id"]]
     assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is True
+
+
+def test_cancel_query_returns_false_when_query_finished_during_kill_round_trip() -> (
+    None
+):
+    """
+    The narrow race this guards: KILL QUERY SYNC finds no match because the
+    query finished -- with a real result already committed -- *during* the
+    round-trip itself, after QueryDAO.stop_query()'s own already-complete
+    guard ran (it only checks once, before calling cancel_query(), and never
+    re-checks after). Returning True here would make that caller
+    unconditionally overwrite the just-committed status with STOPPED.
+    """
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+
+    for terminal_status in (
+        QueryStatus.SUCCESS,
+        QueryStatus.FAILED,
+        QueryStatus.TIMED_OUT,
+    ):
+        query = Query()
+        query.status = terminal_status
+        cursor_mock = Mock()
+        cursor_mock.fetchall.return_value = []
+
+        with patch("superset.db_engine_specs.clickhouse.db.session.refresh"):
+            assert spec.cancel_query(cursor_mock, query, cancel_query_id) is False, (
+                f"status={terminal_status!r} must not be overwritten"
+            )
+
+
+def test_cancel_query_returns_true_when_refresh_shows_still_running() -> None:
+    """
+    The common case: the refresh succeeds and shows the query is still
+    genuinely RUNNING (or STOPPED already) -- nothing matched because it
+    hadn't registered yet, or some other benign reason, not because a
+    result was raced. This must stay True, or routine stops would start
+    spuriously failing.
+    """
+    from superset.common.db_query_status import QueryStatus
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+
+    query = Query()
+    query.status = QueryStatus.RUNNING
+    cursor_mock = Mock()
+    cursor_mock.fetchall.return_value = []
+
+    with patch("superset.db_engine_specs.clickhouse.db.session.refresh"):
+        assert spec.cancel_query(cursor_mock, query, cancel_query_id) is True
 
 
 def test_cancel_query_rejects_non_uuid_ids() -> None:

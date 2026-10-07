@@ -32,6 +32,8 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import ColumnElement
 from urllib3.exceptions import NewConnectionError
 
+from superset import db
+from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
@@ -804,4 +806,36 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         # treating this as success avoids stranding the SQL Lab UI on a
         # query that has already finished on its own. See RCA.md for the
         # full reasoning and empirical verification.
+        #
+        # Narrow, don't ignore, the one way "nothing to confirm" can still
+        # be wrong: the query may have finished -- with a real SUCCESS/
+        # FAILED/TIMED_OUT result already committed -- *during* the
+        # KILL QUERY SYNC round-trip above, after QueryDAO.stop_query()'s
+        # own already-complete guard ran (it only checks once, before
+        # calling into this method, and never re-checks after). Returning
+        # True here would make that caller unconditionally overwrite the
+        # just-committed status with STOPPED, destroying a legitimate
+        # result. `query` is the same session-bound ORM object
+        # `QueryDAO.stop_query()` already loaded, so re-reading it is a
+        # plain metadata-DB read, not a change to sql_lab.py/daos/query.py.
+        # This narrows the race to the (much smaller) gap between this
+        # refresh and that caller's own status assignment -- it cannot be
+        # closed from here without a lock that code doesn't have either.
+        # See RCA.md for the full reasoning.
+        try:
+            db.session.refresh(query)
+            already_terminal = query.status in (
+                QueryStatus.SUCCESS,
+                QueryStatus.FAILED,
+                QueryStatus.TIMED_OUT,
+            )
+        except Exception:  # pylint: disable=broad-except
+            # Best-effort: if the refresh itself fails for any reason,
+            # fall back to the pre-existing behavior rather than letting a
+            # diagnostic check become a new failure mode of its own.
+            already_terminal = False
+
+        if already_terminal:
+            return False
+
         return True
