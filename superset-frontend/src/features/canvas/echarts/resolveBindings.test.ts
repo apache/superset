@@ -92,14 +92,14 @@ test('drops URL keys from objects built from query rows', () => {
         },
       ],
     },
-    { ...ctx, rows: [{ line: 'javascript:alert(1)', revenue: 10 }] },
+    { ...ctx, rows: [{ line: 'https://attacker.example', revenue: 10 }] },
   );
 
   expect(option.series).toEqual([
     {
       type: 'treemap',
       nodeClick: 'link',
-      data: [{ name: 'javascript:alert(1)', value: 10 }],
+      data: [{ name: 'https://attacker.example', value: 10 }],
     },
   ]);
 });
