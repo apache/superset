@@ -394,6 +394,22 @@ def test_is_safe_next_path_accepts_relative_paths(path: str) -> None:
         "/\ndashboard/",
         "/%0Adashboard/",
         "/%0D%0Adashboard/",
+        # Trailing and leading forms. Validation used to run on a stripped copy,
+        # so anything `strip()` removed went unchecked and still reached
+        # `redirect()` -- a trailing CR/LF made Werkzeug raise, a 500 after the
+        # token was burned. The raw value is validated now, byte for byte.
+        "/dashboard/1/\r\n",
+        "/dashboard/1/\n",
+        "/dashboard/1/\r",
+        "/dashboard/1/\t",
+        " /dashboard/1/",
+        "/dashboard/1/ ",
+        # Other C0 controls and DEL. A browser drops leading C0 controls when
+        # parsing, so `\x00//host` would resolve protocol-relative.
+        "\x00//evil.example.com",
+        "/dashboard/\x00",
+        "/dashboard/\x0b",
+        "/dashboard/\x7f",
         # Schemes that never start with a slash.
         "javascript:alert(1)",
         "data:text/html,<script>alert(1)</script>",

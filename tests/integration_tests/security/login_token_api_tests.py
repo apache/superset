@@ -720,6 +720,11 @@ class TestLoginTokenApi(SupersetTestCase):
             "%2Fdashboard%2F1%2F%0D%0AX-Injected:+yes",
             "%2F%0Adashboard%2F",
             "%2F%09dashboard",
+            # A trailing newline: the case a check on a stripped copy missed,
+            # since every value above has characters after it.
+            "%2Fdashboard%2F1%2F%0D%0A",
+            "%2Fdashboard%2F1%2F%0A",
+            "%20%2Fdashboard%2F1%2F",
         ):
             with self.subTest(next=requested_next):
                 token = self._mint()
