@@ -41,13 +41,14 @@ describe('CheckboxControl', () => {
   });
 
   test('Checks the box when the label is clicked', async () => {
-    render(setup());
+    const onChange = jest.fn();
+    render(setup({ onChange }));
     const label = screen.getByRole('button', {
       name: /checkbox label/i,
     });
 
     await userEvent.click(label);
-    expect(defaultProps.onChange).toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledTimes(1);
   });
 
   test('explains a disabled checkbox without a label', () => {
@@ -81,5 +82,28 @@ describe('CheckboxControl', () => {
       container.querySelector('[data-test="show_legend-description-icon"]'),
     ).toBeInTheDocument();
     expect(screen.getByRole('checkbox')).toBeDisabled();
+  });
+
+  test('names the disabled checkbox from its visible label', () => {
+    render(setup({ disabled: true, disabledReason: 'Unavailable' }));
+
+    const checkbox = screen.getByRole('checkbox', { name: 'checkbox label' });
+    expect(checkbox).toHaveAttribute('id', 'show_legend');
+    expect(checkbox).toHaveAccessibleDescription('Unavailable');
+  });
+
+  test('names a checkbox with a React label and no control name', () => {
+    render(setup({ name: undefined, label: <span>Custom label</span> }));
+
+    const checkbox = screen.getByRole('checkbox', { name: 'Custom label' });
+    expect(checkbox).toHaveAttribute('id');
+  });
+
+  test('ignores label clicks while disabled', async () => {
+    const onChange = jest.fn();
+    render(setup({ disabled: true, onChange }));
+
+    await userEvent.click(screen.getByText('checkbox label'));
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

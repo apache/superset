@@ -60,6 +60,8 @@ export default function CheckboxControl({
   ...restProps
 }: CheckboxControlProps): JSX.Element {
   const explanationId = useId();
+  const generatedCheckboxId = useId();
+  const checkboxId = restProps.name || generatedCheckboxId;
   const handleChange = useCallback((): void => {
     if (!disabled) {
       onChange(!value);
@@ -68,6 +70,7 @@ export default function CheckboxControl({
 
   const checkbox = (
     <Checkbox
+      id={checkboxId}
       onChange={handleChange}
       checked={!!value}
       disabled={disabled}
@@ -83,6 +86,7 @@ export default function CheckboxControl({
       <CheckBoxControlWrapper>
         <ControlHeader
           {...restProps}
+          name={checkboxId}
           label={label}
           leftNode={checkbox}
           onClick={disabled ? undefined : handleChange}
