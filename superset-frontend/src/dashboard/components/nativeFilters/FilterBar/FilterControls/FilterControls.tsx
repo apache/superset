@@ -657,6 +657,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                         rendererCrossFilter={rendererCrossFilter}
                         customizationRenderer={customizationRenderer}
                         showCollapsePanel={showCollapsePanel}
+                        // Out-of-scope collapsible panels inside opened dropdown content
                         forceRenderOutOfScope={hasRequiredFirst}
                       />
                       {showCustomizationCollapsePanel && (
