@@ -830,7 +830,13 @@ def test_execute_with_cursor_omits_settings_when_no_cancel_id_recorded() -> None
     cursor_mock.execute.assert_called_once_with("SELECT 1", settings=None)
 
 
-def test_cancel_query_issues_kill_query_for_the_recorded_id() -> None:
+def test_cancel_query_issues_kill_query_sync_for_the_recorded_id() -> None:
+    """
+    SYNC is required: the default ASYNC mode returns immediately with
+    kill_status="waiting", before ClickHouse has confirmed the query is
+    actually gone -- verified empirically against a real server (see
+    RCA.md). Without SYNC, cancel_query's return value would be meaningless.
+    """
     from superset.db_engine_specs.clickhouse import (  # noqa: N813
         ClickHouseConnectEngineSpec as spec,
     )
@@ -838,11 +844,70 @@ def test_cancel_query_issues_kill_query_for_the_recorded_id() -> None:
 
     cursor_mock = Mock()
     cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+    cursor_mock.fetchall.return_value = [
+        ["finished", cancel_query_id, "default", "SELECT 1"]
+    ]
 
     assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is True
     cursor_mock.execute.assert_called_once_with(
-        f"KILL QUERY WHERE query_id = '{cancel_query_id}'"
+        f"KILL QUERY WHERE query_id = '{cancel_query_id}' SYNC"
     )
+
+
+def test_cancel_query_returns_false_when_kill_status_not_confirmed() -> None:
+    """
+    A real process matched our query_id, but ClickHouse itself reports it
+    couldn't confirm termination (e.g. `cant_cancel`) -- there's positive
+    evidence the query may still be running, so this must not report
+    success just because `cursor.execute()` didn't raise.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+
+    for kill_status in ("waiting", "cant_cancel", "pending", "unknown_status"):
+        cursor_mock = Mock()
+        cursor_mock.fetchall.return_value = [
+            [kill_status, cancel_query_id, "default", "SELECT 1"]
+        ]
+        assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is False, (
+            f"kill_status={kill_status!r} must not report success"
+        )
+
+
+def test_cancel_query_returns_true_when_nothing_matched() -> None:
+    """
+    No row with a recognizable kill_status -- either a genuinely empty
+    result (no process matched, e.g. the query already finished on its
+    own) or clickhouse-connect==1.9.0's own synthesized "stats" row (its
+    DB-API cursor returns a 1-row summary derived from the
+    X-ClickHouse-Summary response header instead of an empty list when the
+    real HTTP body is empty -- verified empirically against a real server,
+    see RCA.md). Both mean "nothing to confirm", which is treated as
+    success so SQL Lab doesn't get stuck believing an already-finished
+    query is still running.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cancel_query_id = "d14b9e5b-47ec-478e-bc7c-f8b56be98576"
+
+    # Case 1: a genuinely empty result.
+    cursor_mock = Mock()
+    cursor_mock.fetchall.return_value = []
+    assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is True
+
+    # Case 2: clickhouse-connect's synthesized X-ClickHouse-Summary stats
+    # row -- same 9-column shape observed against a real server, first
+    # column is an int (a row count), never a kill_status string.
+    cursor_mock = Mock()
+    cursor_mock.fetchall.return_value = [[1, 834, 0, 0, 0, 0, 0, 1686330, "some-id"]]
+    assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is True
 
 
 def test_cancel_query_rejects_non_uuid_ids() -> None:

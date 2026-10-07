@@ -736,6 +736,17 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
+    # ClickHouse's own enum for the `kill_status` column `KILL QUERY SYNC`
+    # returns per matched process (https://clickhouse.com/docs/sql-reference/
+    # statements/kill): "finished" is the only value confirming the query
+    # was actually terminated. The other four are documented failure/
+    # indeterminate states -- a real process matched, but termination wasn't
+    # confirmed -- and must not be reported as a successful cancel.
+    _KILL_STATUS_CONFIRMED = "finished"
+    _KILL_STATUS_KNOWN_NOT_CONFIRMED = frozenset(
+        {"waiting", "cant_cancel", "pending", "unknown_status"}
+    )
+
     @classmethod
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
         """
@@ -754,8 +765,43 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             return False
 
         try:
-            cursor.execute(f"KILL QUERY WHERE query_id = '{cancel_query_id}'")  # noqa: S608
+            # SYNC blocks until ClickHouse confirms the outcome. The default
+            # ASYNC mode returns immediately with kill_status="waiting" --
+            # before termination is confirmed -- which would make this
+            # method's return value meaningless.
+            cursor.execute(  # noqa: S608
+                f"KILL QUERY WHERE query_id = '{cancel_query_id}' SYNC"
+            )
+            rows = cursor.fetchall()
         except Exception:  # pylint: disable=broad-except
             return False
 
+        kill_status = rows[0][0] if rows and rows[0] else None
+        if kill_status == cls._KILL_STATUS_CONFIRMED:
+            return True
+        if kill_status in cls._KILL_STATUS_KNOWN_NOT_CONFIRMED:
+            # A real process matched our query_id, but ClickHouse itself
+            # couldn't confirm termination -- there's positive evidence the
+            # query may still be running, so don't report success.
+            return False
+
+        # No recognizable kill_status landed in the first column. Verified
+        # empirically against a real server, this covers two cases that
+        # can't be told apart from this response alone:
+        #   1. No process matched `query_id` at all -- most likely the query
+        #      had already finished on its own between the stop request and
+        #      this KILL QUERY reaching the server: ClickHouse returns a
+        #      genuinely empty HTTP body for a non-matching `KILL QUERY`
+        #      (0 result_rows per its own X-ClickHouse-Summary header). The
+        #      desired end state -- query not running -- already holds.
+        #   2. clickhouse-connect==1.9.0's DB-API cursor synthesizes a
+        #      1-row "stats" result from that same X-ClickHouse-Summary
+        #      header whenever the real HTTP body is empty, so `rows` is
+        #      never actually `[]` here even when nothing matched; its
+        #      first column is an int (a row count), never one of the
+        #      known kill_status strings above.
+        # Both report "nothing to confirm", not "confirmed failure" --
+        # treating this as success avoids stranding the SQL Lab UI on a
+        # query that has already finished on its own. See RCA.md for the
+        # full reasoning and empirical verification.
         return True
