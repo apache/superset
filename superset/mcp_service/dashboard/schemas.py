@@ -93,6 +93,7 @@ if TYPE_CHECKING:
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.dashboards.filter_scope import _is_divider
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.schemas import (
     BigNumberHeadline,
@@ -1731,6 +1732,11 @@ def _extract_native_filters(
     name, type, and optionally targets — dropping verbose fields like controlValues,
     defaultDataMask, scope, and cascadeParentIds. Restricted users keep filter
     names and types, but target columns and dataset IDs are data-model metadata.
+
+    Dividers (visual separators with no dataset/column) are stored under
+    ``title`` rather than ``name`` and have no ``filterType``; both are
+    normalized here so dividers show up with a usable name and a
+    ``"divider"`` filter_type instead of ``None``/``None``.
     """
     metadata = _parse_json_metadata(json_metadata_str)
     if metadata is None:
@@ -1744,6 +1750,7 @@ def _extract_native_filters(
     for f in native_filters:
         if not isinstance(f, dict):
             continue
+        is_divider = _is_divider(f)
         raw_targets = f.get("targets", [])
         if not isinstance(raw_targets, list):
             raw_targets = []
@@ -1755,8 +1762,8 @@ def _extract_native_filters(
         summaries.append(
             NativeFilterSummary(
                 id=f.get("id"),
-                name=f.get("name"),
-                filter_type=f.get("filterType"),
+                name=f.get("title") if is_divider else f.get("name"),
+                filter_type="divider" if is_divider else f.get("filterType"),
                 targets=targets,
             )
         )
@@ -2434,23 +2441,50 @@ class FilterTimeGrainSpec(BaseNewFilterSpec):
     )
 
 
+class DividerSpec(BaseModel):
+    """Spec for a new filter-bar divider.
+
+    A divider is a visual separator with a title and description used to
+    group related filters in the filter bar. Unlike the other filter
+    types it has no dataset, column, or chart scope.
+    """
+
+    filter_type: Literal["divider"] = Field(
+        ..., description="Discriminator - must be 'divider'"
+    )
+    name: str = Field(..., min_length=1, description="Divider title")
+    description: str = Field("", description="Optional divider description")
+
+
 NewNativeFilterSpec = Annotated[
-    FilterSelectSpec | FilterTimeSpec | FilterRangeSpec | FilterTimeGrainSpec,
+    FilterSelectSpec
+    | FilterTimeSpec
+    | FilterRangeSpec
+    | FilterTimeGrainSpec
+    | DividerSpec,
     Field(discriminator="filter_type"),
 ]
 
 
 class NativeFilterUpdateSpec(BaseModel):
-    """Partial update for an existing native filter.
+    """Partial update for an existing native filter or divider.
 
     Only ``id`` is required; any other provided field is merged into the
     existing filter configuration. Fields that only apply to one filter
     type (e.g. ``multi_select`` for filter_select, ``default_time_range``
-    for filter_time) are rejected when used on the wrong filter type.
+    for filter_time) are rejected when used on the wrong filter type; for
+    a divider, every type-specific field (dataset_id, column,
+    multi_select, etc.) is rejected since it has none of them.
     """
 
-    id: str = Field(..., min_length=1, description="ID of the filter to update")
-    name: str | None = Field(None, min_length=1, description="New display name")
+    id: str = Field(
+        ..., min_length=1, description="ID of the filter or divider to update"
+    )
+    name: str | None = Field(
+        None,
+        min_length=1,
+        description="New display name (title, for a divider)",
+    )
     description: str | None = Field(None, description="New description")
     dataset_id: int | None = Field(
         None,
@@ -2529,7 +2563,9 @@ class ManageNativeFiltersRequest(BaseModel):
         description=(
             "New filters to create. Supported types: filter_select "
             "(dropdown), filter_time (time range), filter_range (numerical "
-            "range), and filter_timegrain (time grain). filter_timecolumn "
+            "range), filter_timegrain (time grain), and divider (a "
+            "title/description-only visual separator for grouping filters "
+            "in the filter bar; no dataset or column). filter_timecolumn "
             "(time column) is not yet supported by this tool."
         ),
     )
