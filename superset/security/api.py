@@ -415,17 +415,29 @@ class SecurityRestApi(BaseSupersetApi):
         # navigate here would silently swap the victim into the attacker's
         # account (login CSRF). The token is already burned, so a refused one
         # cannot be retried, and the check runs before provisioning so a refused
-        # exchange never registers or updates the attacker's account. The
-        # identifier is selected the way ``auth_user_oauth`` selects it. A user
-        # re-establishing their own session -- a reloaded frame -- is unaffected.
+        # exchange never registers or updates the attacker's account.
+        #
+        # The comparison is between accounts, not strings: the identifier is
+        # resolved through ``find_user`` exactly as ``auth_user_oauth`` will
+        # resolve it, which is case-insensitive by default (AUTH_USERNAME_CI).
+        # Comparing the raw string would refuse a user whose resolver returns
+        # "alice" for the account "Alice" -- breaking every reload of a
+        # legitimate embed after the first, with the token already burned. An
+        # identity that matches no account yet is never the signed-in user, so
+        # it is refused as well.
         #
         # This only narrows the residual risk: a victim with no Superset session,
         # the usual case for an embed, still has nothing here to compare against.
         resolved_username = userinfo.get("username") or userinfo.get("email")
-        if (
-            getattr(current_user, "is_authenticated", False)
-            and getattr(current_user, "username", None) != resolved_username
-        ):
+        if getattr(current_user, "is_authenticated", False):
+            resolved_user = self.appbuilder.sm.find_user(username=resolved_username)
+            current_user_id = getattr(current_user, "id", None)
+            is_same_account = (
+                resolved_user is not None and resolved_user.id == current_user_id
+            )
+        else:
+            is_same_account = True
+        if not is_same_account:
             logger.warning(
                 "Refused a one-time login token for '%s': the frame already holds "
                 "a session for a different user",

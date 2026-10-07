@@ -223,12 +223,13 @@ def resolve_identity(  # pylint: disable=too-many-return-statements
     # would be an identity change, not a cleanup: usernames are unique but
     # nothing forbids surrounding whitespace, so if both " admin " and "admin"
     # exist, trimming a resolver's correctly-returned " admin " would
-    # authenticate the caller as the other account -- ``find_user`` matches the
-    # username exactly, and with role sync off the roles are whatever that other
-    # account already has. Rejecting values that change under ``strip()`` would
-    # be wrong for the same reason, in reverse: it would refuse a padded
-    # username that genuinely exists. Only the resolver knows which account it
-    # meant, so its answer is preserved and ``auth_user_oauth`` decides.
+    # authenticate the caller as the other account -- ``find_user`` folds case
+    # by default (AUTH_USERNAME_CI) but never trims, and with role sync off the
+    # roles are whatever that other account already has. Rejecting values that
+    # change under ``strip()`` would be wrong for the same reason, in reverse: it
+    # would refuse a padded username that genuinely exists. Only the resolver
+    # knows which account it meant, so its answer is preserved and
+    # ``auth_user_oauth`` decides.
     userinfo = {
         key: value
         for key, value in userinfo.items()

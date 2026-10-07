@@ -188,7 +188,7 @@ def test_resolve_identity_accepts_email_only(app_context: None) -> None:
         # Padding is PRESERVED, never trimmed. Usernames are unique but may
         # legally contain surrounding whitespace, so trimming " admin " to
         # "admin" would authenticate a different account if both exist --
-        # find_user matches exactly. Only the resolver knows which it meant.
+        # find_user folds case but never trims. Only the resolver knows which.
         ({"username": "  jdoe  "}, {"username": "  jdoe  "}),
         ({"username": " admin "}, {"username": " admin "}),
         ({"email": "  jdoe@example.com  "}, {"email": "  jdoe@example.com  "}),

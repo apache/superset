@@ -395,7 +395,7 @@ class TestLoginTokenApi(SupersetTestCase):
         ``ab_user.username`` is unique but nothing forbids surrounding
         whitespace, so " gamma " and "gamma" can both exist. Trimming the
         resolver's value would silently authenticate the caller as the other
-        account: ``find_user`` matches the username exactly, and with
+        account: ``find_user`` folds case by default but never trims, and with
         ``AUTH_ROLES_SYNC_AT_LOGIN`` off the session inherits whatever roles
         that account already has.
 
@@ -626,6 +626,27 @@ class TestLoginTokenApi(SupersetTestCase):
 
                 recorded = repr(log.call_args_list)
                 assert token not in recorded, recorded
+
+    @with_feature_flags(LOGIN_TOKEN=True)
+    @with_config({"LOGIN_TOKEN_IDENTITY_RESOLVER": _resolver})
+    def test_consume_allows_reload_when_the_identifier_differs_in_case(self):
+        """The same-user check compares accounts, not identifier strings.
+
+        ``auth_user_oauth`` resolves the account through ``find_user``, which
+        is case-insensitive by default (``AUTH_USERNAME_CI``). A resolver that
+        returns "GAMMA" for the account "gamma" signs that user in, so the
+        next token for the same user -- a reloaded embed -- must be accepted
+        too, rather than refused as a different user with the token burned.
+        """
+        first = self._mint(GAMMA_USERNAME.upper())
+        assert self.client.get(f"{ENDPOINT}?token={first}").status_code == 302
+
+        reload_ = self._mint(GAMMA_USERNAME.upper())
+        response = self.client.get(f"{ENDPOINT}?token={reload_}&next=/dashboard/list/")
+        assert response.status_code == 302, response.data
+
+        me = json.loads(self.client.get("/api/v1/me/").data)["result"]
+        assert me.get("username") == GAMMA_USERNAME, me
 
     # --------------------------------------------------------------------- csrf
 
