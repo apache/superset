@@ -29,6 +29,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset import security_manager
 from superset.exceptions import SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.dataset.dataset_utils import SQL_DATASET_SOURCE_GUIDANCE
 from superset.mcp_service.dataset.schemas import (
     UpdateDatasetRequest,
     UpdateDatasetResponse,
@@ -78,8 +79,13 @@ def _sync_error_message(ex: Exception) -> str:
 async def update_dataset(  # noqa: C901
     request: UpdateDatasetRequest, ctx: Context
 ) -> UpdateDatasetResponse:
-    """Update a dataset's name, SQL, description, default datetime column or
-    cache timeout, and optionally re-sync its columns from the data source.
+    """Update SQL datasets only; semantic views are not supported.
+
+    For existing semantic views, use list_metrics for discovery and get_table
+    for queries.
+
+    Update a dataset's name, SQL, description, default datetime column or cache
+    timeout, and optionally re-sync its columns from the data source.
 
     Only the properties you pass are changed. ``sql`` applies to virtual
     datasets only. When ``sql`` changes, columns are re-synced from the new
@@ -158,6 +164,7 @@ async def update_dataset(  # noqa: C901
                 error=(
                     f"No dataset found with identifier: {display_id}."
                     " Use list_datasets to get valid dataset IDs."
+                    f" {SQL_DATASET_SOURCE_GUIDANCE}"
                 ),
             )
 
@@ -315,7 +322,10 @@ async def update_dataset(  # noqa: C901
     except DatasetNotFoundError:
         await ctx.warning("Dataset not found: %s" % (request.dataset_id,))
         return UpdateDatasetResponse(
-            error=f"No dataset found with identifier: {request.dataset_id}.",
+            error=(
+                f"No dataset found with identifier: {request.dataset_id}. "
+                f"{SQL_DATASET_SOURCE_GUIDANCE}"
+            ),
         )
     except DatasetForbiddenError:
         await ctx.warning(
