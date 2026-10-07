@@ -36,7 +36,9 @@ from superset.connectors.sqla.partition_mapping import (
     _mirror_verdict_cache_key,
     _placeholder_is_bindable,
     _probe_cache_key,
+    _reads_as_temporal,
     _render_literal,
+    build_mirrored_predicates,
     build_probe_sql,
     contains_executable_comment,
     contains_jinja,
@@ -1835,6 +1837,80 @@ def test_a_connection_mutator_keys_the_probe_cache_per_caller(app: Flask) -> Non
 # ---------------------------------------------------------------------------
 # A probe result the partition column cannot hold
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        # ISO, which `datetime.fromisoformat` covers including the basic form.
+        ("2026-01-01", True),
+        ("2026-01-01 00:00:00", True),
+        ("2026-01-01T10:08:11", True),
+        ("20260101", True),
+        ("20260706100811", True),
+        # Ordinary text, which is the whole point.
+        ("us", False),
+        ("US", False),
+        ("", False),
+        ("x20260101", False),
+        # A month key is not a date any engine reads, so it declines -- on a
+        # *text* partition column it never reaches this gate.
+        ("202601", False),
+    ],
+)
+def test_only_text_an_engine_reads_as_an_instant_suits_a_temporal_key(
+    value: str, expected: bool
+) -> None:
+    """
+    `_PROBE_RESULT_TYPES` admits `str` for a temporal partition column so a day
+    key keeps working. It admitted every string, so `lower(:value)` answering
+    `'us'` passed and the chart failed at the database instead.
+    """
+    assert _reads_as_temporal(value) is expected
+
+
+def test_a_type_mismatch_does_not_poison_the_shared_transform_verdict(
+    app: Flask,
+) -> None:
+    """
+    The decline is about *this* dataset's partition column, and
+    `_mirror_verdict_cache_key` holds no partition column -- only database,
+    catalog, schema and transform.
+
+    Recorded there, a dataset-specific outcome answered for every other dataset
+    sharing the transform: `cast(:value as text)` mirroring happily onto a text
+    key in dataset A was reported `evaluable: false`, and its pruning indicator
+    hidden, because an owner previewed the same transform against a numeric key
+    in dataset B. A probe cache hit on A never rewrites the verdict, so A
+    stayed wrong until the entry expired.
+
+    `evaluate_transform` is patched out here, so it records no verdict of its
+    own and anything left in the cache can only have come from the branch under
+    test. `real_probe_cache` is autouse in this module, so `None` is a real
+    reading rather than what a null cache returns for everything.
+    """
+    table = _mapped_table(transform="cast(:value as text)")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["2026-01-01 00:00:00"],
+        ):
+            predicates = build_mirrored_predicates(
+                table, mapping, [(FilterOperator.EQUALS, "2026-01-01")]
+            )
+
+        # `dt_epoch` is a BIGINT and the transform answered with text, so the
+        # mirror is declined -- that part is `probed_value_type_error`'s job.
+        assert predicates == []
+        # And nothing was written to the verdict every other dataset reads.
+        # Before this, the branch above recorded `mirrors=False` here.
+        assert (
+            known_mirror_verdict(table.database, None, None, "cast(:value as text)")
+            is None
+        )
 
 
 def _partition_column(column_type: str, **kwargs: Any) -> TableColumn:

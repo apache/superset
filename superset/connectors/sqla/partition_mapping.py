@@ -2347,13 +2347,17 @@ def build_mirrored_predicates(
         )
         if type_errors is not None:
             type_errors.append(reason)
-        record_mirror_verdict(
-            datasource.database,
-            datasource.catalog,
-            datasource.schema,
-            mapping.value_transform,
-            mirrors=False,
-        )
+        # Deliberately *not* recorded as a mirror verdict. The transform
+        # evaluated perfectly; what failed is the comparison against this
+        # dataset's partition column -- and `_mirror_verdict_cache_key` is
+        # keyed on database, catalog, schema and transform, with no partition
+        # column in it. Recorded, this dataset-specific outcome answered for
+        # every other dataset sharing the transform: `CAST(:value AS text)`
+        # mirroring happily onto a text key in dataset A was reported
+        # `evaluable: false` -- and its pruning indicator hidden -- because
+        # someone previewed the same transform against a numeric key in
+        # dataset B. A probe cache hit on A never rewrites the verdict, so it
+        # stayed wrong until the entry expired.
         return []
 
     sqla_col = datasource.convert_tbl_column_to_sqla_col(partition_column)
@@ -2438,7 +2442,9 @@ UPPER_BOUND_OPERATORS = {
 _PROBE_RESULT_TYPES: dict[utils.GenericDataType, tuple[type, ...]] = {
     utils.GenericDataType.NUMERIC: (numbers.Number,),
     utils.GenericDataType.BOOLEAN: (bool,),
-    # A day key such as ``to_char(:value, 'YYYYMMDD')`` is legitimately text.
+    # A day key such as ``to_char(:value, 'YYYYMMDD')`` is legitimately text,
+    # so ``str`` is admitted -- but only for text an engine reads as an
+    # instant. `_reads_as_temporal` is the second half of this entry.
     utils.GenericDataType.TEMPORAL: (datetime, date, str),
     # Text, and not a number rendered as one. Not every engine accepts a number
     # in a text comparison: Postgres refuses ``character varying = integer``,
@@ -2450,6 +2456,44 @@ _PROBE_RESULT_TYPES: dict[utils.GenericDataType, tuple[type, ...]] = {
     # really is text writes the cast into the transform.
     utils.GenericDataType.STRING: (str,),
 }
+
+
+#: Day/second keys a temporal column accepts as text, beyond ISO 8601.
+#: ``YYYYMMDD`` is the commonest bucketing key this feature exists for, and
+#: Postgres, Trino and BigQuery all read it as a date.
+_TEMPORAL_KEY_FORMATS = ("%Y%m%d", "%Y%m%d%H%M%S", "%Y-%m-%d %H:%M:%S")
+
+
+def _reads_as_temporal(value: str) -> bool:
+    """
+    Whether an engine would read this text as a date or timestamp.
+
+    `_PROBE_RESULT_TYPES` admits ``str`` for a temporal partition column
+    because a day key such as ``to_char(:value, 'YYYYMMDD')`` is legitimately
+    text -- but it admitted *every* string, so a transform that answers with
+    ordinary text passed the gate and failed the chart instead. On PostgreSQL a
+    ``VARCHAR`` mapped column under ``lower(:value)`` probes ``'US'`` to
+    ``'us'`` and emits ``p = 'us'`` against a ``DATE`` key, which the engine
+    refuses once the predicate is already in the statement -- so a chart that
+    worked before the mapping returns an error rather than losing its pruning.
+
+    Answered by parsing, not by asking the engine: the check runs on the
+    chart-query path, where a second round trip is the cost this module spends
+    its effort avoiding. Parsing is also the conservative direction -- anything
+    unrecognised declines, and declining costs only the pruning.
+    """
+    try:
+        datetime.fromisoformat(value)
+        return True
+    except ValueError:
+        pass
+    for fmt in _TEMPORAL_KEY_FORMATS:
+        try:
+            datetime.strptime(value, fmt)
+            return True
+        except ValueError:
+            continue
+    return False
 
 
 def probed_value_type_error(
@@ -2499,6 +2543,16 @@ def probed_value_type_error(
         held = isinstance(value, allowed) and (
             bool in allowed or not isinstance(value, bool)
         )
+        # A temporal column admits text, but only text the engine will read as
+        # an instant -- `isinstance` alone let any string through. See
+        # `_reads_as_temporal`.
+        if (
+            held
+            and generic_type == utils.GenericDataType.TEMPORAL
+            and isinstance(value, str)
+            and not _reads_as_temporal(value)
+        ):
+            held = False
         if not held:
             return str(
                 _(

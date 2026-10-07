@@ -168,6 +168,81 @@ def test_equality_filter_mirrors_onto_the_partition_column(app: Flask) -> None:
     assert "country = 'US'" in sql
 
 
+def _with_date_partition_column(table: SqlaTable) -> SqlaTable:
+    """Re-point the mapping's partition column at a ``DATE`` column."""
+    table.columns.append(
+        TableColumn(column_name="part_date", is_dttm=True, type="DATE")
+    )
+    table.partition_column = "part_date"
+    return table
+
+
+def test_ordinary_text_does_not_mirror_onto_a_temporal_partition_column(
+    app: Flask,
+) -> None:
+    """
+    `lower(:value)` on a `VARCHAR` mapped column answers with text, and a
+    temporal partition column admits text -- a day key is legitimately text.
+    But it admitted *any* text: `country = 'US'` probed to `'us'` and emitted
+    `part_date = 'us'`, which PostgreSQL refuses as a date. By then the mirror
+    is in the statement, so a chart that worked before the mapping returned an
+    error rather than losing its pruning. The preview called it valid.
+    """
+    table = _with_date_partition_column(
+        _table(
+            transform="lower(:value)",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+        )
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us"]):
+            sql = _query(
+                table,
+                filter=[
+                    {"col": "country", "op": FilterOperator.EQUALS.value, "val": "US"}
+                ],
+            )
+
+    assert "part_date" not in sql
+    assert "country = 'US'" in sql
+
+
+def test_a_day_key_still_mirrors_onto_a_temporal_partition_column(
+    app: Flask,
+) -> None:
+    """
+    The narrowing above must not cost the case the text admission exists for:
+    `to_char(:value, 'YYYYMMDD')` answers with a day key, and Postgres, Trino
+    and BigQuery all read that as a date.
+
+    Its sibling `test_a_day_key_still_mirrors_onto_a_text_partition_column`
+    covers the same transform onto a *text* key, which is the other axis --
+    that one is about `GenericDataType.STRING` and never reached this gate.
+    """
+    table = _with_date_partition_column(
+        _table(
+            transform="to_char(:value, 'YYYYMMDD')",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+        )
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["20260101"]):
+            sql = _query(
+                table,
+                filter=[
+                    {"col": "country", "op": FilterOperator.EQUALS.value, "val": "US"}
+                ],
+            )
+
+    assert "part_date = '20260101'" in sql
+
+
 def test_in_filter_mirrors_element_wise(app: Flask) -> None:
     table = _table(
         transform="lower(:value)",
