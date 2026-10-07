@@ -166,6 +166,8 @@ class _PurgeScan(NamedTuple):
     blocked: int
     remaining_budget: int | None
     supported_models: list[type[SoftDeleteMixin]]
+    scan_failures: int = 0
+    attempted: int = 0
 
 
 def _scan_purge_models(
@@ -177,30 +179,46 @@ def _scan_purge_models(
     unsupported_models: dict[str, int] = {}
     failures: int = 0
     blocked: int = 0
+    scan_failures: int = 0
+    attempted: int = 0
     remaining_budget: int | None = max_per_run
     supported_models: list[type[SoftDeleteMixin]] = []
 
     for model in _ordered_purge_models(cutoff):
-        entity_type: str = _model_table_name(model)
-        if model not in purge_policy_registry():
-            unsupported_models[entity_type] = 1
-            logger.warning(
-                "deletion_retention: skipping %s: no purge policy", entity_type
+        attempted += 1
+        entity_type: str = model.__name__
+        try:
+            entity_type = _model_table_name(model)
+            if model not in purge_policy_registry():
+                attempted -= 1
+                unsupported_models[entity_type] = 1
+                logger.warning(
+                    "deletion_retention: skipping %s: no purge policy", entity_type
+                )
+                stats_logger_manager.instance.incr(
+                    f"{_METRIC_PREFIX}.unsupported_models.{entity_type}"
+                )
+                continue
+            supported_models.append(model)
+            if remaining_budget == 0 and not dry_run:
+                attempted -= 1
+                continue
+            purged_n, would_n, failed_n, blocked_n, scan_failed_n = _purge_model(
+                model,
+                cutoff,
+                dry_run,
+                max_per_run=None if dry_run else remaining_budget,
             )
+        except Exception:  # pylint: disable=broad-except
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            scan_failures += 1
             stats_logger_manager.instance.incr(
-                f"{_METRIC_PREFIX}.unsupported_models.{entity_type}"
+                f"{_METRIC_PREFIX}.scan_failures.{entity_type}"
+            )
+            logger.exception(
+                "deletion_retention: %s could not be processed", entity_type
             )
             continue
-        supported_models.append(model)
-        if remaining_budget == 0 and not dry_run:
-            continue
-        purged_n: int
-        would_n: int
-        failed_n: int
-        blocked_n: int
-        purged_n, would_n, failed_n, blocked_n = _purge_model(
-            model, cutoff, dry_run, max_per_run=None if dry_run else remaining_budget
-        )
         if remaining_budget is not None and not dry_run:
             remaining_budget -= purged_n
         if would_n:
@@ -209,6 +227,11 @@ def _scan_purge_models(
             purged[entity_type] = purged_n
         failures += failed_n
         blocked += blocked_n
+        scan_failures += scan_failed_n
+        if scan_failed_n:
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.scan_failures.{entity_type}"
+            )
 
     return _PurgeScan(
         purged=purged,
@@ -218,6 +241,8 @@ def _scan_purge_models(
         blocked=blocked,
         remaining_budget=remaining_budget,
         supported_models=supported_models,
+        scan_failures=scan_failures,
+        attempted=attempted,
     )
 
 
@@ -263,6 +288,23 @@ def _add_purge_cap_stats(
     )
 
 
+def _report_total_outage(every_root_failed: bool) -> None:
+    """Trip the task-failure signal when no root could be scanned at all.
+
+    Isolating one root's failure from the others is the point of that
+    handling, but a pass in which *every* root failed is an outage rather
+    than isolation -- and before the isolation existed it raised and
+    incremented ``failed``. Keeping that increment preserves the alert for
+    the case that still means what it used to.
+    """
+    if not every_root_failed:
+        return
+    logger.error(
+        "deletion_retention: every root failed to scan; reporting the pass as failed"
+    )
+    stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.failed")
+
+
 def _purge_impl(
     window_days: int, dry_run: bool, max_per_run: int | None = None
 ) -> dict[str, Any]:
@@ -286,6 +328,9 @@ def _purge_impl(
     )
     _reconcile_unless_dry_run(dry_run)
     scan: _PurgeScan = _scan_purge_models(cutoff, dry_run, max_per_run)
+    every_root_failed: bool = (
+        scan.attempted > 0 and scan.scan_failures == scan.attempted
+    )
 
     if dry_run:
         _report_model_counts("would_purge", scan.would_purge)
@@ -295,6 +340,7 @@ def _purge_impl(
             "dry_run": 1,
             "would_purge": scan.would_purge,
             "unsupported_models": scan.unsupported_models,
+            "scan_failures": scan.scan_failures,
             "eligible_backlog": backlog,
             "max_per_run": max_per_run,
             "estimated_capped_runs": (
@@ -303,6 +349,11 @@ def _purge_impl(
                 else int(backlog > 0)
             ),
         }
+        if scan.scan_failures:
+            stats_logger_manager.instance.gauge(
+                f"{_METRIC_PREFIX}.scan_failures", scan.scan_failures
+            )
+        _report_total_outage(every_root_failed)
         return dry_stats
 
     _report_model_counts("purged", scan.purged)
@@ -312,11 +363,17 @@ def _purge_impl(
         stats_logger_manager.instance.gauge(
             f"{_METRIC_PREFIX}.blocked_by_reference", scan.blocked
         )
+    if scan.scan_failures:
+        stats_logger_manager.instance.gauge(
+            f"{_METRIC_PREFIX}.scan_failures", scan.scan_failures
+        )
+    _report_total_outage(every_root_failed)
     stats: dict[str, Any] = {
         "purged": scan.purged,
         "cascade_failures": scan.failures,
         "blocked_by_reference": scan.blocked,
         "unsupported_models": scan.unsupported_models,
+        "scan_failures": scan.scan_failures,
     }
     _add_purge_cap_stats(stats, cutoff, scan, max_per_run)
     logger.info("deletion_retention: %s", stats)
@@ -328,36 +385,48 @@ def _purge_model(
     cutoff: datetime,
     dry_run: bool,
     max_per_run: int | None = None,
-) -> tuple[int, int, int, int]:
+) -> tuple[int, int, int, int, int]:
     """Process one model's eligible rows. Returns ``(purged, would_purge,
-    failures, blocked)``. A single entity's blocked/failed cascade never aborts
-    the batch."""
+    failures, blocked, scan_failures)``. A single entity's blocked/failed
+    cascade never aborts the batch.
+
+    A failure in the eligible-id scan itself -- a column it cannot read, a
+    transient database error between pages -- ends this model's pass and is
+    reported, but the counts earned before it are kept: by then those rows are
+    committed deletions, and a summary that omitted them would understate what
+    the run actually removed.
+    """
     entity_type = _model_table_name(model)
-    purged = would = failures = blocked = 0
-    for id_batch in _iter_eligible_ids(model, cutoff, _BATCH):
-        if dry_run:
-            would += len(id_batch)
-            continue
-        for entity_id in id_batch:
+    purged = would = failures = blocked = scan_failures = 0
+    try:
+        for id_batch in _iter_eligible_ids(model, cutoff, _BATCH):
+            if dry_run:
+                would += len(id_batch)
+                continue
+            for entity_id in id_batch:
+                if max_per_run is not None and purged >= max_per_run:
+                    break
+                try:
+                    result = _purge_one(model, entity_id, cutoff)
+                    if result is not None and result.purged:
+                        purged += 1
+                    elif result is not None and result.blocked_reason is not None:
+                        blocked += 1
+                except Exception:  # pylint: disable=broad-except
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
+                    failures += 1
+                    logger.exception(
+                        "deletion_retention: cascade failed for %s id=%s",
+                        entity_type,
+                        entity_id,
+                    )
             if max_per_run is not None and purged >= max_per_run:
                 break
-            try:
-                result = _purge_one(model, entity_id, cutoff)
-                if result is not None and result.purged:
-                    purged += 1
-                elif result is not None and result.blocked_reason is not None:
-                    blocked += 1
-            except Exception:  # pylint: disable=broad-except
-                db.session.rollback()  # pylint: disable=consider-using-transaction
-                failures += 1
-                logger.exception(
-                    "deletion_retention: cascade failed for %s id=%s",
-                    entity_type,
-                    entity_id,
-                )
-        if max_per_run is not None and purged >= max_per_run:
-            break
-    return purged, would, failures, blocked
+    except Exception:  # pylint: disable=broad-except
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        scan_failures = 1
+        logger.exception("deletion_retention: scan failed for %s", entity_type)
+    return purged, would, failures, blocked, scan_failures
 
 
 def _finalize_blocked(record_id: UUID | None, blocker: BlockerReason) -> None:
