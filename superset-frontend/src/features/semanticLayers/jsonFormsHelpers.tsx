@@ -205,7 +205,13 @@ export function DynamicFieldControl(props: ControlProps) {
       (cfgData as Record<string, unknown>) ?? {},
       props.rootSchema,
     );
-  const stale = !!staleSchemaOptions && Array.isArray(deps) && deps.length > 0;
+  // A field is never stale because of its own value: a self-dependent field
+  // (e.g. MetricFlow's mode picker) must stay selectable to satisfy itself.
+  const fieldName: string = props.path.split('.').pop() ?? props.path;
+  const stale =
+    !!staleSchemaOptions &&
+    Array.isArray(deps) &&
+    (deps as string[]).some(dep => dep !== fieldName);
 
   const enumValues = Array.isArray(schema.enum)
     ? (schema.enum as unknown[])

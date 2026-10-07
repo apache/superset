@@ -160,6 +160,9 @@ export default function AddSemanticViewModal({
   // --- Misc ---
   const [saving, setSaving] = useState(false);
   const fetchGenRef = useRef(0);
+  // Bumped whenever dependent options go stale, so views queued or in
+  // flight for a previous dependency state never land.
+  const viewsGenRef = useRef(0);
 
   // =========================================================================
   // Fetch helpers
@@ -186,6 +189,9 @@ export default function AddSemanticViewModal({
 
   const fetchViews = useCallback(
     async (uuid: string, rData: Record<string, unknown>, gen: number) => {
+      const viewsGen: number = viewsGenRef.current;
+      const isCurrent = (): boolean =>
+        gen === fetchGenRef.current && viewsGen === viewsGenRef.current;
       setLoadingViews(true);
       setAvailableViews([]);
       setSelectedViewNames([]);
@@ -194,13 +200,13 @@ export default function AddSemanticViewModal({
           endpoint: `/api/v1/semantic_layer/${uuid}/views`,
           jsonPayload: { runtime_data: rData },
         });
-        if (gen !== fetchGenRef.current) return;
+        if (!isCurrent()) return;
         setAvailableViews(json.result ?? []);
       } catch {
-        if (gen !== fetchGenRef.current) return;
+        if (!isCurrent()) return;
         addDangerToast(t('An error occurred while fetching available views'));
       } finally {
-        if (gen === fetchGenRef.current) setLoadingViews(false);
+        if (isCurrent()) setLoadingViews(false);
       }
     },
     [addDangerToast],
@@ -268,6 +274,16 @@ export default function AddSemanticViewModal({
     },
     [fetchViews],
   );
+
+  // Drop views queued or in flight for the previous dependency state.
+  const invalidateViews = useCallback(() => {
+    viewsGenRef.current += 1;
+    if (viewsTimerRef.current) clearTimeout(viewsTimerRef.current);
+    setLoadingViews(false);
+    setAvailableViews([]);
+    setSelectedViewNames([]);
+    lastViewsKeyRef.current = '';
+  }, []);
 
   // =========================================================================
   // Layer change — fetch runtime schema, clear downstream state
@@ -352,26 +368,32 @@ export default function AddSemanticViewModal({
       if (Object.keys(dynamicDeps).length > 0) {
         // Count schema defaults as DynamicFieldControl does, so a dependency
         // satisfied only by its default still refreshes dependent options.
+        const schema: JsonSchema | undefined =
+          runtimeSchemaRef.current ?? undefined;
         const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
-          areDependenciesSatisfied(
-            deps,
-            data,
-            runtimeSchemaRef.current ?? undefined,
+          areDependenciesSatisfied(deps, data, schema),
+        );
+        // Wait for input only while a missing dependency is required: a
+        // refresh is the only way to clear stale options, so an empty
+        // optional dependency must still refresh for that state.
+        const required: string[] = Array.isArray(schema?.required)
+          ? schema.required
+          : [];
+        const awaitsRequiredDependency = Object.values(dynamicDeps).some(deps =>
+          deps.some(
+            dep =>
+              required.includes(dep) &&
+              !areDependenciesSatisfied([dep], data, schema),
           ),
         );
-        // Wait for input only while the form is invalid: a refresh is the
-        // only way to clear stale options, so an optional dependency left
-        // empty on a valid form must still refresh for that state.
-        if (!hasSatisfiedDeps && errorsRef.current.length > 0) {
+        if (!hasSatisfiedDeps && awaitsRequiredDependency) {
           // Not a committed state: the next valid change must refresh.
           lastDepSnapshotRef.current = '';
           schemaRefreshGenRef.current += 1;
           if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
           setRefreshingSchema(false);
           setStaleSchemaOptions(true);
-          setAvailableViews([]);
-          setSelectedViewNames([]);
-          lastViewsKeyRef.current = '';
+          invalidateViews();
           return;
         }
         const snapshot = serializeDependencyValues(dynamicDeps, data);
@@ -380,9 +402,7 @@ export default function AddSemanticViewModal({
           setRefreshingSchema(true);
           setStaleSchemaOptions(true);
           // Config is changing — clear views
-          setAvailableViews([]);
-          setSelectedViewNames([]);
-          lastViewsKeyRef.current = '';
+          invalidateViews();
           if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
           const uuid = selectedLayerUuid;
           schemaRefreshGenRef.current += 1;
@@ -456,6 +476,7 @@ export default function AddSemanticViewModal({
       selectedLayerUuid,
       applyRuntimeSchema,
       scheduleFetchViews,
+      invalidateViews,
       addDangerToast,
       staleSchemaOptions,
     ],
@@ -654,7 +675,9 @@ export default function AddSemanticViewModal({
       title={t('Add Semantic View')}
       icon={<Icons.PlusOutlined />}
       width={MODAL_STANDARD_WIDTH}
-      saveDisabled={newViewCount === 0 || saving}
+      saveDisabled={
+        newViewCount === 0 || saving || staleSchemaOptions || refreshingSchema
+      }
       saveText={newViewCount > 0 ? t('Add %s view(s)', newViewCount) : t('Add')}
       saveLoading={saving}
     >

@@ -69,4 +69,7 @@ the debounce interval. A matching response preserves selections that remain
 valid and clears those no longer offered. If loading fails, the form retains
 your selections but keeps stale choices unavailable; a subsequent form edit
 can retry once for that dependency state, or you can choose another database.
-Clearing the dependency keeps the dependent field unavailable until it is filled.
+Clearing a required dependency keeps the dependent field unavailable until it is
+filled. Clearing an optional dependency loads the choices for that empty state
+instead. Semantic views listed for an earlier dependency are discarded, and
+views cannot be added while dependent choices are loading.

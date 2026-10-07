@@ -939,10 +939,135 @@ test('a dependency satisfied by its schema default refreshes dependent options',
     jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
   });
   expect(pending).toHaveLength(1);
+  // The default is not sent; the provider applies it for the absent key.
+  const refreshPayloads = mockedPost.mock.calls
+    .map(([request]) => request)
+    .filter(
+      ({ endpoint, jsonPayload }) =>
+        endpoint === '/api/v1/semantic_layer/layer-1/schema/runtime' &&
+        jsonPayload?.runtime_data,
+    );
+  expect(refreshPayloads.at(-1).jsonPayload.runtime_data).toEqual({
+    schema: 'shared',
+  });
   await act(async () => {
     pending[0].resolve(initial);
   });
   await waitFor(() =>
     expect(screen.getByRole('combobox', { name: 'Schema' })).toBeEnabled(),
   );
+});
+
+test('an empty optional dependency does not block a required dependent field', async () => {
+  jest.useFakeTimers();
+  const pending: PendingSchema[] = [];
+  const initial = optionalDatabaseSchema(['shared']);
+  mockLayerWithSchema(initial, {
+    '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
+      if (!(payload as { runtime_data?: unknown })?.runtime_data) {
+        return Promise.resolve({ json: { result: initial } });
+      }
+      return new Promise((resolve, reject) => {
+        pending.push({
+          resolve: schema => resolve({ json: { result: schema } }),
+          reject,
+        });
+      });
+    },
+  });
+  render(<AddSemanticViewModal {...createProps()} />);
+  await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  // The only error is the required dependent field; the optional dependency
+  // is empty, so its options must still load instead of staying disabled.
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(1);
+  await act(async () => {
+    pending[0].resolve(optionalDatabaseSchema(['no_database']));
+  });
+  const schema = screen.getByRole('combobox', { name: 'Schema' });
+  await waitFor(() => expect(schema).toBeEnabled());
+  fireEvent.mouseDown(schema);
+  expect(await screen.findByText('no_database')).toBeInTheDocument();
+});
+
+test('a refresh that drops the dependent value keeps the new options available', async () => {
+  const { pending } = await openDependentSchemaForm(optionalDatabaseSchema);
+  await chooseDependentOption('Schema', 'old_only');
+  const database = screen.getByRole('combobox', { name: 'Database' });
+  const clear = database
+    .closest('.ant-select')
+    ?.querySelector('.ant-select-clear');
+  if (clear) fireEvent.click(clear);
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(2);
+  await act(async () => {
+    pending[1].resolve(optionalDatabaseSchema(['no_database']));
+  });
+  // Reconcile drops old_only, so the required dependent field is now empty;
+  // that error must not hide the options the refresh just loaded.
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  const schema = screen.getByRole('combobox', { name: 'Schema' });
+  await waitFor(() => expect(schema).toBeEnabled());
+  expect(selectedTag('old_only')).toBeNull();
+});
+
+test('a self-dependent required field stays selectable when the form opens', async () => {
+  jest.useFakeTimers();
+  // MetricFlow's mode picker depends on its own value and is required.
+  const modeSchema = {
+    type: 'object',
+    required: ['mode'],
+    properties: {
+      mode: {
+        type: 'string',
+        title: 'Mode',
+        enum: ['full', 'cube'],
+        'x-enumNames': ['Full semantic layer', 'Cube'],
+        'x-dynamic': true,
+        'x-dependsOn': ['mode'],
+      },
+    },
+  };
+  mockLayerWithSchema(modeSchema);
+  render(<AddSemanticViewModal {...createProps()} />);
+  await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+  const mode = await screen.findByRole('combobox', { name: 'Mode' });
+  expect(mode).toBeEnabled();
+  await chooseDependentOption('Mode', 'Full semantic layer');
+  expect(mode.closest('.ant-select')).toHaveTextContent('Full semantic layer');
+});
+
+test('a dependency change cancels views queued for the previous dependency state', async () => {
+  const { pending } = await openDependentSchemaForm();
+  await chooseDependentOption('Schema', 'shared');
+  // Views for {database: first, schema: shared} are queued but not yet sent.
+  await chooseDependentOption('Database', 'second');
+  const sentBefore = viewsRequests().length;
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  const staleViewRequests = viewsRequests()
+    .slice(sentBefore)
+    .filter(
+      ({ jsonPayload }: { jsonPayload: { runtime_data?: unknown } }) =>
+        (jsonPayload.runtime_data as Record<string, unknown>)?.database ===
+        'first',
+    );
+  expect(staleViewRequests).toHaveLength(0);
+  expect(pending).toHaveLength(2);
 });
