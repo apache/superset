@@ -202,6 +202,11 @@ failure. A pass in which every root that *could* be scanned failed is
 reported as a task failure as well as in `scan_failures`, since that is an
 outage rather than the isolation the per-root handling is for.
 
+A root carrying a `uuid` column of SQLAlchemy's own `Uuid` type is one
+known shape left to fail: the identity predicate binds the value as a string,
+which that type's non-native bind processor rejects, so every eligible row
+raises and is counted. Superset's own roots use a type that accepts it.
+
 Anything else is left to fail where it fails. A predicate the cleanup cannot
 build raises per row and is counted in `cascade_failures`; an ordering a
 foreign key refuses surfaces as an integrity error, which the cascade reports

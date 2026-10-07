@@ -61,6 +61,7 @@ from superset.commands.deletion_retention.purge_policy import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
+from superset.models.helpers import SoftDeleteMixin
 from superset.models.slice import Slice
 from superset.tasks.deletion_retention import _soft_delete_models
 from superset.utils.sqlalchemy_events import (
@@ -586,6 +587,22 @@ def test_core_delete_actions_compile_for_supported_dialects(dialect: str) -> Non
 #: each test. Left in place they stay in SQLAlchemy's global mapper state,
 #: where ``configure_mappers()`` in the real-graph tests would walk them.
 _HOST_MAPPERS: list[registry] = []
+
+
+@pytest.fixture(autouse=True)
+def _restore_soft_delete_registry() -> Iterator[None]:
+    """Keep a test's throwaway mixin subclasses out of the live registry.
+
+    ``SoftDeleteMixin.__init_subclass__`` appends to a process-global list
+    when the class statement runs, so a subclass declared in a test body
+    outlives the test: a later one scanning the registry finds a model with
+    no policy and reports it unsupported. Restored in place, because other
+    modules hold a reference to the same list.
+    """
+    registered: list[type[SoftDeleteMixin]] = SoftDeleteMixin._registered_subclasses  # noqa: SLF001
+    snapshot: list[type[SoftDeleteMixin]] = list(registered)
+    yield
+    registered[:] = snapshot
 
 
 @pytest.fixture(autouse=True)
