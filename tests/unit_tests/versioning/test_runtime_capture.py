@@ -402,6 +402,8 @@ def test_capture_after_savepoint_rollback(
     query_autoflush: bool,
 ) -> None:
     """A rolled-back insert cannot poison history for a surviving insert."""
+    from sqlalchemy_continuum import versioning_manager
+
     capture_session.add(Database(database_name="unrelated", sqlalchemy_uri="sqlite://"))
     nested: SessionTransaction = capture_session.begin_nested()
     capture_session.add(Dashboard(dashboard_title="rolled back"))
@@ -425,6 +427,60 @@ def test_capture_after_savepoint_rollback(
         )
     ).all() == [("outer", 0, None)]
     assert history_counts(capture_session)["version_transaction"] == 1
+    # Shadow transaction IDs must reference surviving rows on every dialect.
+    assert capture_session.scalar(sa.select(shadow.transaction_id)) in (
+        capture_session.scalars(sa.select(versioning_manager.transaction_cls.id)).all()
+    )
+
+
+def test_savepoint_rollback_reapplying_same_value(capture_session: Session) -> None:
+    """Reapplying a rolled-back value must dirty the cached shadow again."""
+    dashboard: Dashboard = Dashboard(dashboard_title="original")
+    capture_session.add(dashboard)
+    capture_session.commit()
+    dashboard.dashboard_title = "outer edit"
+    capture_session.flush()
+    nested: SessionTransaction = capture_session.begin_nested()
+    dashboard.dashboard_title = "discarded edit"
+    capture_session.flush()
+    nested.rollback()
+    dashboard.dashboard_title = "discarded edit"
+    capture_session.commit()
+    shadow: Any = version_class(Dashboard)
+    assert dashboard.dashboard_title == "discarded edit"
+    assert capture_session.scalars(
+        sa.select(shadow.dashboard_title).order_by(shadow.transaction_id)
+    ).all() == ["original", "discarded edit"]
+
+
+@pytest.mark.parametrize("rollback_nested", [False, True])
+def test_ending_enclosing_savepoint_clears_inner_checkpoints(
+    capture_session: Session, rollback_nested: bool
+) -> None:
+    """Closing an enclosing savepoint must release its open descendants' state."""
+    from superset.versioning.savepoints import _CHECKPOINTS_KEY
+
+    dashboard: Dashboard = Dashboard(dashboard_title="outer")
+    capture_session.add(dashboard)
+    capture_session.flush()
+    enclosing: SessionTransaction = capture_session.begin_nested()
+    inner: SessionTransaction = capture_session.begin_nested()
+    dashboard.dashboard_title = "inner"
+    capture_session.flush()
+    assert len(capture_session.info[_CHECKPOINTS_KEY]) == 2
+    if rollback_nested:
+        enclosing.rollback()
+    else:
+        enclosing.commit()
+    assert not inner.is_active
+    assert not capture_session.info.get(_CHECKPOINTS_KEY)
+    capture_session.commit()
+    shadow: Any = version_class(Dashboard)
+    expected: str = "outer" if rollback_nested else "inner"
+    assert dashboard.dashboard_title == expected
+    assert capture_session.scalars(sa.select(shadow.dashboard_title)).all() == [
+        expected
+    ]
 
 
 @pytest.mark.parametrize("inner_commit", [False, True])

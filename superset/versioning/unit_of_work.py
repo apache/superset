@@ -71,6 +71,9 @@ class CaptureUnitOfWork(UnitOfWork):
             # The application session owns savepoints. Continuum's default
             # conditional_savepoint creates an extra savepoint that outlives
             # its parent when the application rolls that parent back.
+            # rollback_only prevents auxiliary commit/close from ending caller
+            # work; an auxiliary rollback still rolls back the caller boundary,
+            # consistent with the application flush failing as well.
             self.version_session = Session(
                 bind=session.connection(), join_transaction_mode="rollback_only"
             )

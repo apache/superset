@@ -26,16 +26,16 @@ from sqlalchemy.orm import Session, SessionTransaction
 from sqlalchemy_continuum import versioning_manager
 
 from superset.versioning.changes.listener import (
-    _INITIAL_STATES_KEY,
     ACTION_KIND_KEY,
     ACTION_META_KEY,
+    INITIAL_STATES_KEY,
 )
 from superset.versioning.changes.normalization import NORMALIZATION_CONTEXT_KEY
 from superset.versioning.unit_of_work import CaptureCheckpoint, CaptureUnitOfWork
 
 _CHECKPOINTS_KEY: str = "_versioning_savepoints"
 _STATE_KEYS: tuple[str, ...] = (
-    _INITIAL_STATES_KEY,
+    INITIAL_STATES_KEY,
     ACTION_KIND_KEY,
     ACTION_META_KEY,
     NORMALIZATION_CONTEXT_KEY,
@@ -51,7 +51,11 @@ class SavepointCheckpoint:
 
 
 def _existing_unit(session: Session) -> CaptureUnitOfWork | None:
-    """Look up state without opening a connection or evaluating capture policy."""
+    """Look up state without opening a connection or evaluating capture policy.
+
+    Continuum's connection map assumes one application session per connection;
+    independent application sessions sharing a connection are not supported.
+    """
     connection: Connection | None = versioning_manager.session_connection_map.get(
         session
     )
@@ -71,7 +75,7 @@ def _checkpoint_savepoint(session: Session, transaction: SessionTransaction) -> 
         unit.checkpoint() if unit else None,
         {
             key: copy(session.info[key])
-            if key == _INITIAL_STATES_KEY
+            if key == INITIAL_STATES_KEY
             else deepcopy(session.info[key])
             for key in _STATE_KEYS
             if key in session.info
@@ -97,6 +101,8 @@ def _rollback_savepoint(session: Session, transaction: SessionTransaction) -> No
 
 def _commit_savepoint(session: Session) -> None:
     """Keep successful nested history, dropping only the rollback checkpoint."""
+    # SQLAlchemy fires after_commit before SessionTransaction.close(), so the
+    # nested transaction is still the savepoint being committed here.
     transaction: SessionTransaction | None = session.get_nested_transaction()
     if transaction is None:
         return
@@ -109,10 +115,26 @@ def _commit_savepoint(session: Session) -> None:
         unit.release_version_session()
 
 
-def _end_outer_transaction(session: Session, transaction: SessionTransaction) -> None:
-    """Release checkpoints even when a caller closes an unfinished session."""
+def _end_transaction(session: Session, transaction: SessionTransaction) -> None:
+    """Release closed descendants without losing the pending rollback checkpoint."""
     if transaction.parent is None:
         session.info.pop(_CHECKPOINTS_KEY, None)
+        return
+    if not transaction.nested:
+        return
+    checkpoints: dict[SessionTransaction, SavepointCheckpoint] = session.info.get(
+        _CHECKPOINTS_KEY, {}
+    )
+    descendant: SessionTransaction
+    for descendant in list(checkpoints):
+        ancestor: SessionTransaction | None = descendant.parent
+        while ancestor is not None:
+            if ancestor is transaction:
+                checkpoints.pop(descendant)
+                break
+            ancestor = ancestor.parent
+    # after_soft_rollback runs after this event and still needs this transaction's
+    # own checkpoint. Descendants closed by it receive no such rollback event.
 
 
 def register_savepoint_listeners() -> None:
@@ -124,4 +146,4 @@ def register_savepoint_listeners() -> None:
     event.listen(db.session, "after_transaction_create", _checkpoint_savepoint)
     event.listen(db.session, "after_soft_rollback", _rollback_savepoint)
     event.listen(db.session, "after_commit", _commit_savepoint)
-    event.listen(db.session, "after_transaction_end", _end_outer_transaction)
+    event.listen(db.session, "after_transaction_end", _end_transaction)
