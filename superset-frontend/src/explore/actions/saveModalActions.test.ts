@@ -394,6 +394,84 @@ test('updateSlice handles failure', async () => {
   expect(dispatchSpy.mock.calls[0][0].type).toBe(SAVE_SLICE_FAILED);
 });
 
+test('updateSlice awaits a delayed legacy-aggregation tag DELETE before dispatching success', async () => {
+  // LegacyAggregationAlert re-fetches tags off of SAVE_SLICE_SUCCESS (see
+  // LegacyAggregationAlert.tsx). A slow DELETE that resolves *after*
+  // dispatch would let that refetch race the deletion and find the tag
+  // still there -- delay the DELETE response and assert it has actually
+  // completed by the time SAVE_SLICE_SUCCESS dispatches, rather than just
+  // asserting the DELETE was eventually called at all.
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const deleteTagEndpoint =
+    'glob:*/api/v1/tag/2/*/legacy-pivot-aggregation-restored';
+  let deleteCompleted = false;
+  fetchMock.delete(
+    deleteTagEndpoint,
+    () =>
+      new Promise(resolve => {
+        setTimeout(() => {
+          deleteCompleted = true;
+          resolve({});
+        }, 10);
+      }),
+    { name: deleteTagEndpoint },
+  );
+
+  const dispatchSpy = jest.fn((action: { type: string }) => {
+    if (action.type === SAVE_SLICE_SUCCESS) {
+      expect(deleteCompleted).toBe(true);
+    }
+  });
+  const dispatch = (action: any) => dispatchSpy(action);
+  // updateSlice reads the viz_type that decides whether to fire the tag
+  // DELETE from getState().explore.form_data, not from the `slice` argument
+  // below (that's the previously-saved payload, unrelated to what's live in
+  // the Explore store right now).
+  const getState = () => ({
+    ...mockExploreState,
+    explore: {
+      ...mockExploreState.explore,
+      form_data: { ...formData, viz_type: 'pivot_table_v2' },
+    },
+  });
+
+  await updateSlice(
+    {
+      slice_id: sliceId,
+      editors: editors as [],
+      form_data: formData,
+      slice_name: '',
+      description: '',
+      description_markdown: '',
+      slice_url: '',
+      viz_type: '',
+      thumbnail_url: '',
+      changed_on: 0,
+      changed_on_humanized: '',
+      modified: '',
+      datasource_id: 0,
+      datasource_type: datasourceType,
+      datasource_url: '',
+      datasource_name: '',
+      created_by: {
+        id: 0,
+      },
+    },
+    sliceName,
+    [],
+  )(dispatch as Dispatch<any>, getState);
+
+  expect(fetchMock.callHistory.calls(deleteTagEndpoint)).toHaveLength(1);
+  expect(deleteCompleted).toBe(true);
+  expect(
+    dispatchSpy.mock.calls.some(
+      ([action]) => action?.type === SAVE_SLICE_SUCCESS,
+    ),
+  ).toBe(true);
+});
+
 /**
  * Tests createSlice action
  */

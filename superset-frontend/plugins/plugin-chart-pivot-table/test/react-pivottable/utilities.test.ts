@@ -19,6 +19,7 @@
 
 import { aggregators, PivotData } from '../../src/react-pivottable/utilities';
 import type { PivotRecord } from '../../src/react-pivottable/utilities';
+import { ShowValuesAsEnum } from '../../src/types';
 
 // Records may legitimately carry null values for an attribute; PivotRecord only
 // models the non-null cell types, so loosen the type at the test boundary.
@@ -229,22 +230,16 @@ test('each aggregation cell uses the formatter of its own metric', () => {
 });
 
 /**
- * Which metric a multi-metric grand total belongs to is #44725's question, and
- * this PR does not settle it. What must never happen is the slot being built
- * once from the first metric and then going on to render the *last* metric's
- * value in the *first* metric's format -- a regression that reads as correct
- * formatting of a plainly wrong number.
- *
- * Whichever metric's value the slot ends up showing, it has to be formatted as
- * that same metric. Asserted for both orders, since `push` overwrites the stored
- * value and the last record wins.
+ * A grand total spanning several metrics has no single meaningful value, so
+ * the slot renders blank instead of showing whichever metric was pushed last
+ * in the first metric's format. Asserted for both record orders.
  */
 test.each([
-  ['sales first', ['sales', 'rate'], '5.000 r'],
-  ['rate first', ['rate', 'sales'], '$300.00'],
+  ['sales first', ['sales', 'rate']],
+  ['rate first', ['rate', 'sales']],
 ])(
-  'multi-metric grand total formats the value it shows as that metric (%s)',
-  (_label, order, expected) => {
+  'multi-metric grand total renders blank rather than picking a metric (%s)',
+  (_label, order) => {
     const grandTotals: Record<string, number> = { sales: 300, rate: 5 };
     const pivotData = buildPivot(
       order.map(metric => ({
@@ -256,10 +251,9 @@ test.each([
       })),
     );
 
-    // The value is the last record's; the formatter has to be that metric's too.
     const agg = pivotData.getAggregator([], []);
-    expect(agg.value()).toBe(grandTotals[order[order.length - 1]]);
-    expect(agg.format(agg.value(), agg)).toBe(expected);
+    expect(agg.value()).toBeNull();
+    expect(agg.format(agg.value(), agg)).toBe('');
   },
 );
 
@@ -273,4 +267,669 @@ test('a total with no per-metric formatter still falls back to the default', () 
   } as unknown as Record<string, unknown>);
 
   expect(rendered(pivotData, [], [])).toBe('300.00');
+});
+
+test('Average excludes a real SQL NULL group instead of counting it as zero', () => {
+  const aggregator = aggregators.Average(['x'])();
+  [{ x: 10 }, { x: null }, { x: 20 }].forEach(record =>
+    aggregator.push(record as unknown as PivotRecord),
+  );
+  // (10 + 20) / 2 = 15, not (10 + 0 + 20) / 3 = 10.
+  expect(aggregator.value()).toBe(15);
+});
+
+test('Median excludes a real SQL NULL group instead of counting it as zero', () => {
+  const aggregator = aggregators.Median(['x'])();
+  [{ x: 10 }, { x: null }, { x: 20 }, { x: 30 }].forEach(record =>
+    aggregator.push(record as unknown as PivotRecord),
+  );
+  // median of [10, 20, 30] = 20, not median of [0, 10, 20, 30] = 15.
+  expect(aggregator.value()).toBe(20);
+});
+
+test('Sum excludes a real SQL NULL group instead of poisoning the total with NaN', () => {
+  const aggregator = aggregators.Sum(['x'])();
+  [{ x: 10 }, { x: null }, { x: 20 }].forEach(record =>
+    aggregator.push(record as unknown as PivotRecord),
+  );
+  // 10 + 20 = 30, not NaN from parseFloat(String(null)).
+  expect(aggregator.value()).toBe(30);
+});
+
+test('Minimum excludes a real SQL NULL group instead of counting it as zero', () => {
+  // Number(null) coerces to 0, which would otherwise win as the minimum.
+  expect(aggregate('Minimum', [{ x: 10 }, { x: null }, { x: 20 }])).toBe(10);
+});
+
+test('Maximum excludes a real SQL NULL group instead of counting it as zero', () => {
+  // Number(null) coerces to 0, which would otherwise win as the maximum
+  // when every real value is negative.
+  expect(aggregate('Maximum', [{ x: -10 }, { x: null }, { x: -20 }])).toBe(-10);
+});
+
+// Records shaped like PivotTableChart.tsx's real output: the "Metric" pseudo
+// -dimension is the sole column, so each record's own rollup level has no
+// "real" columns -- which is exactly the condition that also mirrors its
+// value into the row-total/grand-total slots (see `processRecord`'s
+// "Metric-collapse totals").
+const metricRecord = (metric: string, value: number): PivotRecord =>
+  ({
+    Metric: metric,
+    value,
+    __metricKey: 'Metric',
+    __rows: [],
+    __columns: ['Metric'],
+  }) as unknown as PivotRecord;
+
+test('grand total renders blank when it would combine two different metrics', () => {
+  const pivotData = new PivotData({
+    data: [metricRecord('MAX(sales)', 100), metricRecord('MEDIAN(msrp)', 50)],
+    rows: [],
+    cols: ['Metric'],
+    vals: ['value'],
+  });
+
+  // Neither metric's own value -- there's no single number that means
+  // "max of sales combined with median of msrp".
+  expect(pivotData.getAggregator([], []).value()).toBeNull();
+});
+
+test('grand total still passes through the value for a single metric', () => {
+  const pivotData = new PivotData({
+    data: [metricRecord('MAX(sales)', 100)],
+    rows: [],
+    cols: ['Metric'],
+    vals: ['value'],
+  });
+
+  expect(pivotData.getAggregator([], []).value()).toBe(100);
+});
+
+// Same "Metric-collapse totals" mirroring as `metricRecord` above, but with a
+// real row dimension present so the mix lands in a row Total slot instead of
+// the grand-total corner -- `processRecord` routes both the same way.
+const metricRowRecord = (
+  color: string,
+  metric: string,
+  value: number,
+): PivotRecord =>
+  ({
+    color,
+    Metric: metric,
+    value,
+    __metricKey: 'Metric',
+    __rows: ['color'],
+    __columns: ['Metric'],
+  }) as unknown as PivotRecord;
+
+test('row total renders blank when it would combine two different metrics', () => {
+  const pivotData = new PivotData({
+    data: [
+      metricRowRecord('blue', 'MAX(sales)', 100),
+      metricRowRecord('blue', 'MEDIAN(msrp)', 50),
+    ],
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+  });
+
+  expect(pivotData.getAggregator(['blue'], []).value()).toBeNull();
+});
+
+// Leaf records shaped like a real query result: one row per full dimension
+// combination (region, store), each already carrying the metric's own
+// aggregate for that group -- never raw, ungrouped source rows.
+const RESULT_AGGREGATION_LEAVES: PivotRecord[] = [
+  { region: 'North', store: 'A', value: 10 },
+  { region: 'North', store: 'B', value: 20 },
+  { region: 'South', store: 'C', value: 100 },
+] as unknown as PivotRecord[];
+
+test('result aggregation reduces the grand summary from every original leaf record, not from subtotals', () => {
+  const pivotData = new PivotData(
+    {
+      data: RESULT_AGGREGATION_LEAVES,
+      rows: ['region', 'store'],
+      cols: [],
+      vals: ['value'],
+      aggregateFunction: 'Average',
+    },
+    { rowEnabled: true },
+  );
+
+  // North subtotal: average of North's own two leaves (10, 20).
+  expect(pivotData.getAggregator(['North'], []).value()).toBe(15);
+  // Grand summary: average of all three leaves (10, 20, 100) = 43.33 --
+  // not the average of the two region subtotals ((15 + 100) / 2 = 57.5),
+  // which is exactly the pre-SIP-216 bug this restores without repeating.
+  expect(pivotData.getAggregator([], []).value()).toBeCloseTo(43.33, 2);
+});
+
+test('result aggregation never reduces a true leaf cell, only subtotals and the grand total', () => {
+  // A leaf holding one already-aggregated SUM(sales)=100 record must keep
+  // rendering that database value -- not fold the single-item set through
+  // the chosen reducer (e.g. "Count" turning it into 1).
+  const pivotData = new PivotData(
+    {
+      data: RESULT_AGGREGATION_LEAVES,
+      rows: ['region', 'store'],
+      cols: [],
+      vals: ['value'],
+      aggregateFunction: 'Count',
+    },
+    { rowEnabled: true },
+  );
+
+  // Leaf cells: each keeps its own original value, unreduced.
+  expect(pivotData.getAggregator(['North', 'A'], []).value()).toBe(10);
+  expect(pivotData.getAggregator(['North', 'B'], []).value()).toBe(20);
+  expect(pivotData.getAggregator(['South', 'C'], []).value()).toBe(100);
+  // North subtotal and the grand total are genuine rollups, so they still
+  // reduce via the selected result aggregation (Count of the contributing
+  // leaves).
+  expect(pivotData.getAggregator(['North'], []).value()).toBe(2);
+  expect(pivotData.getAggregator([], []).value()).toBe(3);
+});
+
+test('a stale "Show values as" percent choice does not blank leaf cells once a result aggregation is selected', () => {
+  // `showValuesAs`'s control panel entry hides once `aggregateFunction` is
+  // anything but "Metric" (see controlPanel.tsx), but hiding a control
+  // doesn't clear its stored value -- a percent choice picked before
+  // switching to "Average" stays on `showValuesAs` in the chart's saved
+  // state. Leaf cells must still render their actual value, not wrap in the
+  // now-irrelevant percent transform.
+  const pivotData = new PivotData(
+    {
+      data: RESULT_AGGREGATION_LEAVES,
+      rows: ['region', 'store'],
+      cols: [],
+      vals: ['value'],
+      aggregateFunction: 'Average',
+      showValuesAs: ShowValuesAsEnum.PERCENT_OF_ROW,
+    },
+    { rowEnabled: true },
+  );
+
+  expect(pivotData.getAggregator(['North', 'A'], []).value()).toBe(10);
+  expect(pivotData.getAggregator(['North', 'B'], []).value()).toBe(20);
+  expect(pivotData.getAggregator(['North'], []).value()).toBe(15);
+});
+
+test('result aggregation blanks a shared total slot that would mix two different metrics', () => {
+  const mixedMetricLeaves: PivotRecord[] = [
+    {
+      Metric: 'MAX(sales)',
+      value: 100,
+      __metricKey: 'Metric',
+    },
+    {
+      Metric: 'MEDIAN(msrp)',
+      value: 50,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: mixedMetricLeaves,
+    rows: [],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Average',
+  });
+
+  // Not the average of a MAX(sales) value and a MEDIAN(msrp) value blended
+  // together -- there's no single number that means anything for that.
+  expect(pivotData.getAggregator([], []).value()).toBeNull();
+});
+
+test("a non-fraction result aggregation keeps the metric's own custom formatter", () => {
+  // Median re-aggregates SUM(sales)'s own per-store values; disabling every
+  // custom formatter whenever any result aggregation was active (instead of
+  // only the " as Fraction of " ones, which render their own percentage)
+  // used to fall back on a differently-reduced `cellValue` passthrough here,
+  // silently dropping both the currency formatting and the median itself.
+  const leaves: PivotRecord[] = [
+    { Metric: 'SUM(sales)', store: 'A', value: 10, __metricKey: 'Metric' },
+    { Metric: 'SUM(sales)', store: 'B', value: 30, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const currencyFormatter = jest.fn((x: unknown) => `$${x}`);
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: [],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Median',
+    customFormatters: { Metric: { 'SUM(sales)': currencyFormatter } },
+  });
+
+  const agg = pivotData.getAggregator([], ['SUM(sales)']);
+  expect(agg.value()).toBe(20);
+  expect(agg.format(agg.value())).toBe('$20');
+  expect(currencyFormatter).toHaveBeenCalledWith(20);
+});
+
+test('"... as Fraction of ..." keeps its own percentage even when a custom formatter is configured', () => {
+  // The fraction result aggregations render their own ratio, the same as
+  // the legacy `showValuesAs` percent modes -- a per-metric custom
+  // formatter must not leak in and reformat that ratio as e.g. currency.
+  const leaves: PivotRecord[] = [
+    { Metric: 'SUM(sales)', store: 'A', value: 10, __metricKey: 'Metric' },
+    { Metric: 'SUM(sales)', store: 'B', value: 30, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const currencyFormatter = jest.fn((x: unknown) => `$${x}`);
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['store'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Total',
+    customFormatters: { Metric: { 'SUM(sales)': currencyFormatter } },
+  });
+
+  const agg = pivotData.getAggregator(['A'], ['SUM(sales)']);
+  expect(agg.value()).toBeCloseTo(10 / 40, 5);
+  expect(agg.format(agg.value())).not.toMatch(/^\$/);
+  expect(currencyFormatter).not.toHaveBeenCalled();
+});
+
+test('"... as Fraction of ..." divides by the metric\'s own total even when column subtotals are off', () => {
+  // cols: [Metric, category], column subtotals off (the default here) --
+  // the per-metric denominator ("Metric" alone, collapsing "category") is
+  // not among the visible depths in that case, so it must come from a
+  // scope tracked independently of subtotal visibility, not the depth-gated
+  // tree (which would leave this blank).
+  const leaves: PivotRecord[] = [
+    { Metric: 'MAX(sales)', category: 'A', value: 10, __metricKey: 'Metric' },
+    { Metric: 'MAX(sales)', category: 'B', value: 20, __metricKey: 'Metric' },
+    { Metric: 'SUM(cost)', category: 'A', value: 5, __metricKey: 'Metric' },
+    { Metric: 'SUM(cost)', category: 'B', value: 15, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: [],
+    cols: ['Metric', 'category'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Total',
+  });
+
+  // MAX(sales) total across its own categories is 10 + 20 = 30.
+  expect(pivotData.getAggregator([], ['MAX(sales)', 'A']).value()).toBeCloseTo(
+    10 / 30,
+    5,
+  );
+  expect(pivotData.getAggregator([], ['MAX(sales)', 'B']).value()).toBeCloseTo(
+    20 / 30,
+    5,
+  );
+  // SUM(cost) total across its own categories is 5 + 15 = 20, not blended
+  // with MAX(sales)'s total.
+  expect(pivotData.getAggregator([], ['SUM(cost)', 'A']).value()).toBeCloseTo(
+    5 / 20,
+    5,
+  );
+});
+
+test('"... as Fraction of Rows" divides by the row total, not the metric\'s dataset-wide total, when Metric sits on columns', () => {
+  // A single metric on columns: each row has nothing else to share it with,
+  // so both rows should read 100%. The buggy implementation treated the
+  // 'row' fraction the same as 'total' whenever the (single) metric's own
+  // axis selector happened to be empty -- which it always is for 'row' too,
+  // since fractionOf('row', ...) collapses the column selector -- and divided
+  // by the metric's total across the whole dataset (30) instead of the row's
+  // own total, reading 33%/67%.
+  const leaves: PivotRecord[] = [
+    {
+      region: 'North',
+      Metric: 'SUM(sales)',
+      value: 10,
+      __metricKey: 'Metric',
+    },
+    {
+      region: 'South',
+      Metric: 'SUM(sales)',
+      value: 20,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['region'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Rows',
+  });
+
+  expect(
+    pivotData.getAggregator(['North'], ['SUM(sales)']).value(),
+  ).toBeCloseTo(1, 5);
+  expect(
+    pivotData.getAggregator(['South'], ['SUM(sales)']).value(),
+  ).toBeCloseTo(1, 5);
+});
+
+test('"... as Fraction of Rows" stays scoped per metric, not just per row, when a row has multiple metrics', () => {
+  // Two different metrics sharing one row. Scoping the denominator to the
+  // row alone (dropping the metric position entirely once Metric's own axis
+  // selector is empty) would sum sales and cost together and read 10%/90%;
+  // it has to stay scoped to both the row and this cell's own metric, the
+  // same way the metric-mixing guard on the grand-total corner (#44657)
+  // never lets unlike metrics share a slot either.
+  const leaves: PivotRecord[] = [
+    { region: 'US', Metric: 'sales', value: 10, __metricKey: 'Metric' },
+    { region: 'US', Metric: 'cost', value: 90, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['region'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Rows',
+  });
+
+  expect(pivotData.getAggregator(['US'], ['sales']).value()).toBeCloseTo(1, 5);
+  expect(pivotData.getAggregator(['US'], ['cost']).value()).toBeCloseTo(1, 5);
+});
+
+test('"... as Fraction of Rows" finds a row+metric denominator when column subtotals are off', () => {
+  // cols: [Metric, category], column subtotals off (the default here) -- a
+  // (row, metric) tree node only exists at that depth when column subtotals
+  // are on, so the denominator has to come from a scope tracked
+  // independently of subtotal visibility, the same way the 'total' case
+  // already relies on rowMetricTotals/colMetricTotals for the same reason.
+  const leaves: PivotRecord[] = [
+    {
+      region: 'North',
+      Metric: 'SUM(sales)',
+      category: 'A',
+      value: 10,
+      __metricKey: 'Metric',
+    },
+    {
+      region: 'North',
+      Metric: 'SUM(sales)',
+      category: 'B',
+      value: 20,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['region'],
+    cols: ['Metric', 'category'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Rows',
+  });
+
+  expect(
+    pivotData.getAggregator(['North'], ['SUM(sales)', 'A']).value(),
+  ).toBeCloseTo(10 / 30, 5);
+  expect(
+    pivotData.getAggregator(['North'], ['SUM(sales)', 'B']).value(),
+  ).toBeCloseTo(20 / 30, 5);
+});
+
+test('"... as Fraction of Columns" finds a col+metric denominator when row subtotals are off, instead of throwing', () => {
+  // Same shape as the row-fraction case above, transposed: Metric now sits
+  // on rows: [Metric, category], row subtotals off (the default). Before
+  // the row/colGroupMetricTotals fallback existed, substituting the metric
+  // into the collapsed row axis produced a rowKey that was never created in
+  // the depth-gated tree (row subtotals off), and getAggregator indexed
+  // into it unguarded -- this threw instead of just returning blank.
+  const leaves: PivotRecord[] = [
+    {
+      region: 'North',
+      Metric: 'SUM(sales)',
+      category: 'A',
+      value: 10,
+      __metricKey: 'Metric',
+    },
+    {
+      region: 'North',
+      Metric: 'SUM(sales)',
+      category: 'B',
+      value: 20,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['Metric', 'category'],
+    cols: ['region'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Columns',
+  });
+
+  expect(() =>
+    pivotData.getAggregator(['SUM(sales)', 'A'], ['North']).value(),
+  ).not.toThrow();
+  expect(
+    pivotData.getAggregator(['SUM(sales)', 'A'], ['North']).value(),
+  ).toBeCloseTo(10 / 30, 5);
+  expect(
+    pivotData.getAggregator(['SUM(sales)', 'B'], ['North']).value(),
+  ).toBeCloseTo(20 / 30, 5);
+});
+
+test('"... as Fraction of Rows" finds a row-subtotal denominator, not just a leaf row\'s', () => {
+  // rows: [region, store], row subtotals on, column subtotals off (the
+  // default). A region subtotal's own row key (['North']) is a *prefix* of
+  // the full leaf rowKey (['North', 'A'] / ['North', 'B']) --
+  // rowGroupMetricTotals used to record an entry only for the full leaf key,
+  // so a region subtotal's denominator lookup found nothing and rendered
+  // blank instead of the region's own row-fraction.
+  const leaves: PivotRecord[] = [
+    {
+      region: 'North',
+      store: 'A',
+      Metric: 'SUM(sales)',
+      category: 'X',
+      value: 10,
+      __metricKey: 'Metric',
+    },
+    {
+      region: 'North',
+      store: 'B',
+      Metric: 'SUM(sales)',
+      category: 'Y',
+      value: 20,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData(
+    {
+      data: leaves,
+      rows: ['region', 'store'],
+      cols: ['Metric', 'category'],
+      vals: ['value'],
+      aggregateFunction: 'Sum as Fraction of Rows',
+    },
+    { rowEnabled: true },
+  );
+
+  expect(
+    pivotData.getAggregator(['North'], ['SUM(sales)', 'X']).value(),
+  ).toBeCloseTo(10 / 30, 5);
+  expect(
+    pivotData.getAggregator(['North'], ['SUM(sales)', 'Y']).value(),
+  ).toBeCloseTo(20 / 30, 5);
+});
+
+test('per-metric totals survive a metric literally named "constructor"', () => {
+  // rowMetricTotals/colMetricTotals are indexed by the metric's own display
+  // name; a metric named "constructor" or "__proto__" must not collide with
+  // Object.prototype instead of getting its own aggregator slot.
+  const leaves: PivotRecord[] = [
+    {
+      Metric: 'constructor',
+      category: 'A',
+      value: 10,
+      __metricKey: 'Metric',
+    },
+    {
+      Metric: 'constructor',
+      category: 'B',
+      value: 20,
+      __metricKey: 'Metric',
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: [],
+    cols: ['Metric', 'category'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Total',
+  });
+
+  expect(pivotData.getAggregator([], ['constructor', 'A']).value()).toBeCloseTo(
+    10 / 30,
+    5,
+  );
+  expect(pivotData.getAggregator([], ['constructor', 'B']).value()).toBeCloseTo(
+    20 / 30,
+    5,
+  );
+});
+
+test('"... as Fraction of Total" stays scoped to the metric when a category value equals a metric name', () => {
+  // cols: [category, Metric], column subtotals on. The category-only
+  // subtotal slot (depth 1) and a metric-substituted lookup both flatten to
+  // the same key when a category value equals a metric's own name -- here
+  // category "sales" and metric "sales" both flatten to "sales". The
+  // metric-substituted denominator must come from `colMetricTotals` (keyed
+  // purely by metric value) rather than the generic keyed tree, or it
+  // silently returns the category "sales" subtotal (10 + 90 = 100, an
+  // unrelated cost value) instead of the "sales" metric's own total
+  // (10 + 20 = 30).
+  const leaves: PivotRecord[] = [
+    { category: 'sales', Metric: 'sales', value: 10, __metricKey: 'Metric' },
+    { category: 'other', Metric: 'sales', value: 20, __metricKey: 'Metric' },
+    { category: 'sales', Metric: 'cost', value: 90, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData(
+    {
+      data: leaves,
+      rows: [],
+      cols: ['category', 'Metric'],
+      vals: ['value'],
+      aggregateFunction: 'Sum as Fraction of Total',
+    },
+    { colEnabled: true },
+  );
+
+  expect(pivotData.getAggregator([], ['sales', 'sales']).value()).toBeCloseTo(
+    10 / 30,
+    5,
+  );
+  expect(pivotData.getAggregator([], ['other', 'sales']).value()).toBeCloseTo(
+    20 / 30,
+    5,
+  );
+});
+
+test('an empty-string category does not share a denominator key with the collapsed scope', () => {
+  const leaves = [
+    { region: '', item: 'A', value: 10 },
+    { region: '', item: 'B', value: 20 },
+    { region: 'X', item: 'A', value: 30 },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData(
+    {
+      data: leaves,
+      rows: ['item'],
+      cols: ['region'],
+      vals: ['value'],
+      aggregateFunction: 'Sum as Fraction of Columns',
+    },
+    {},
+  );
+
+  expect(pivotData.getAggregator(['A'], ['']).value()).toBeCloseTo(10 / 30, 5);
+  expect(pivotData.getAggregator(['B'], ['']).value()).toBeCloseTo(20 / 30, 5);
+});
+
+test('value sorting keeps a sort key for rows whose mixed-metric total renders blank', () => {
+  const leaves = [
+    { color: 'blue', Metric: 'm1', value: 100, __metricKey: 'Metric' },
+    { color: 'blue', Metric: 'm2', value: 250, __metricKey: 'Metric' },
+    { color: 'red', Metric: 'm1', value: 10, __metricKey: 'Metric' },
+    { color: 'red', Metric: 'm2', value: 50, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData(
+    {
+      data: leaves,
+      rows: ['color'],
+      cols: ['Metric'],
+      vals: ['value'],
+      rowOrder: 'value_a_to_z',
+    },
+    {},
+  );
+
+  expect(pivotData.getAggregator(['blue'], []).value()).toBeNull();
+  expect(pivotData.getRowKeys()).toEqual([['red'], ['blue']]);
+});
+
+test('value sorting under a result aggregation keeps a sort key for rows whose mixed-metric total renders blank', () => {
+  const leaves = [
+    { color: 'blue', Metric: 'm1', value: 100, __metricKey: 'Metric' },
+    { color: 'blue', Metric: 'm2', value: 250, __metricKey: 'Metric' },
+    { color: 'red', Metric: 'm1', value: 10, __metricKey: 'Metric' },
+    { color: 'red', Metric: 'm2', value: 50, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData(
+    {
+      data: leaves,
+      rows: ['color'],
+      cols: ['Metric'],
+      vals: ['value'],
+      aggregateFunction: 'Sum',
+      rowOrder: 'value_a_to_z',
+    },
+    {},
+  );
+
+  expect(pivotData.getAggregator(['blue'], []).value()).toBeNull();
+  expect(pivotData.getRowKeys()).toEqual([['red'], ['blue']]);
+});
+
+test('single-metric "% of Columns" and "% of Rows" still fill the Total column and Total row', () => {
+  const leaves = [
+    { color: 'blue', Metric: 'm1', value: 10, __metricKey: 'Metric' },
+    { color: 'red', Metric: 'm1', value: 30, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const byColumn = new PivotData({
+    data: leaves,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Columns',
+  });
+  expect(byColumn.getAggregator(['blue'], []).value()).toBeCloseTo(0.25, 5);
+  expect(byColumn.getAggregator(['red'], []).value()).toBeCloseTo(0.75, 5);
+
+  const byRow = new PivotData({
+    data: leaves.map(r => ({ ...r })),
+    rows: ['Metric'],
+    cols: ['color'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Rows',
+  });
+  expect(byRow.getAggregator([], ['blue']).value()).toBeCloseTo(0.25, 5);
+  expect(byRow.getAggregator([], ['red']).value()).toBeCloseTo(0.75, 5);
+});
+
+test('"Sum as Fraction of Total" keeps an all-null scope blank while other scopes ignore null inputs', () => {
+  const leaves = [
+    { color: 'blue', Metric: 'm1', value: null, __metricKey: 'Metric' },
+    { color: 'red', Metric: 'm1', value: 30, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData({
+    data: leaves,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Sum as Fraction of Total',
+  });
+
+  expect(pivotData.getAggregator(['blue'], ['m1']).value()).toBeNull();
+  expect(pivotData.getAggregator(['red'], ['m1']).value()).toBeCloseTo(1, 5);
 });

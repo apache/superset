@@ -226,6 +226,13 @@ test('TableRenderer renders grand total when both totals are enabled', () => {
  * empty key on the metric axis. Records carry `__metricKey` so PivotData can
  * mirror the value into rowTotals / allTotal. (Regression guard for the gap that
  * in-app verification surfaced: a null right-hand "Total" column.)
+ *
+ * This fixture uses a single metric ("m1") throughout, so every record
+ * mirrored into a shared total slot agrees on the metric -- the case this
+ * guards is "no data at all reaches the slot", not a metric mismatch. See
+ * `TAGGED_MULTI_METRIC_ON_COLUMNS` below for the genuinely-mixed-metric case,
+ * where the same slot receiving two different metrics' records correctly
+ * blanks instead of picking one.
  */
 const TAGGED_METRIC_ON_COLUMNS = [
   // leaf cells: rows = [color], columns = [Metric] (metric on the column axis)
@@ -1001,13 +1008,16 @@ test('TableRenderer shows actual values when showValuesAs is unset (default)', (
 /**
  * Regression guard: the grand-total corner cell is a single shared aggregator
  * slot that "Metric-collapse totals" mirrors every metric's grand-total
- * record into (see `processRecord`), so both its own value and `metricAxis`
- * reflect the last metric pushed (m2). The denominator lookup must resolve
- * against that same metric's own total (m2's 300, not m1's 30) so the corner
- * cell reads a self-consistent 100% instead of an obviously wrong
- * cross-metric ratio (300 / 30 = "1000.0%").
+ * record into (see `processRecord`), so it receives one record per metric
+ * (m1 then m2 here). `cellValue`'s `push()` detects that the records disagree
+ * on which metric they belong to and renders the cell blank -- there's no
+ * meaningful single ratio for "m1 as a fraction of m1's total, or is it m2's,
+ * mixed with m2's own numerator" -- rather than a fabricated number: neither
+ * an obviously wrong cross-metric ratio (m2's 300 / m1's 30 = "1000.0%") nor
+ * a self-consistent-looking but still meaningless 100% (m2 / m2, discarding
+ * m1's contribution) is actually correct.
  */
-test('TableRenderer keeps the grand-total corner cell self-consistent when it mixes multiple metrics in fraction mode', () => {
+test('TableRenderer blanks the grand-total corner cell instead of fabricating a cross-metric ratio in fraction mode', () => {
   const props = buildDefaultProps({
     data: TAGGED_MULTI_METRIC_ON_COLUMNS,
     rows: ['color'],
@@ -1022,7 +1032,51 @@ test('TableRenderer keeps the grand-total corner cell self-consistent when it mi
     .getAllByRole('gridcell')
     .filter(cell => cell.classList.contains('pvtGrandTotal'));
   expect(grandTotalCells).toHaveLength(1);
-  expect(grandTotalCells[0]).toHaveTextContent('100.0%');
+  expect(grandTotalCells[0]).toHaveTextContent('');
+});
+
+/**
+ * Regression guard: `processRecord`'s "Metric-collapse totals" mirrors the
+ * same per-metric records into a row's own Total slot (not just the
+ * grand-total corner) whenever the Metric axis collapses for that row -- here
+ * "blue" receives both m1=10 and m2=250 into its own `.pvtTotal` cell through
+ * the identical `cellValue`-based aggregator. A fix that only special-cased
+ * the grand corner would leave this cell fabricating a value unnoticed.
+ */
+test('TableRenderer blanks a row total cell that combines two different metrics', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_MULTI_METRIC_ON_COLUMNS,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    tableOptions: { rowTotals: true, colTotals: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const blueRow = screen.getByText('blue').closest('tr');
+  const rowTotalCell = blueRow?.querySelector('.pvtTotal');
+  expect(rowTotalCell).toHaveTextContent('');
+});
+
+test('TableRenderer renders a mixed-metric Minimum total as blank, not "null"', () => {
+  const props = buildDefaultProps({
+    data: TAGGED_MULTI_METRIC_ON_COLUMNS,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Minimum',
+    tableOptions: { rowTotals: true, colTotals: true },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells).toHaveLength(1);
+  expect(grandTotalCells[0].textContent).toBe('');
+  expect(
+    screen.getAllByRole('gridcell').some(c => c.textContent === 'null'),
+  ).toBe(false);
 });
 
 /**
