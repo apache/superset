@@ -19,6 +19,7 @@
 
 from typing import Any, TypeVar
 
+from flask_babel.speaklater import LazyString
 from pydantic import BaseModel, RootModel
 
 from superset.mcp_service.chart.query_result import response_json_failure
@@ -44,7 +45,7 @@ class UpdateChartPreviewResponse(RootModel[dict[str, Any]]):
 
 
 def bounded_exception_message(exception: BaseException) -> str:  # noqa: C901
-    """Extract bounded primitive exception arguments without formatting hooks."""
+    """Extract bounded exception arguments, including lazy translations."""
     try:
         args = object.__getattribute__(exception, "args")
     except Exception:  # pragma: no cover - BaseException provides args
@@ -54,6 +55,13 @@ def bounded_exception_message(exception: BaseException) -> str:  # noqa: C901
     if type(args) is tuple:
         for index in range(min(tuple.__len__(args), _MAX_EXCEPTION_PARTS)):
             value = tuple.__getitem__(args, index)
+            # Superset security exceptions carry Flask-Babel lazy translations.
+            # Resolve only the concrete library type, not arbitrary string hooks.
+            if type(value) is LazyString:
+                try:
+                    value = str(value)
+                except Exception:  # noqa: S112 - skip unresolvable translations
+                    continue
             if type(value) is str:
                 text = value
             elif type(value) is bool:

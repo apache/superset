@@ -71,6 +71,7 @@ from superset.mcp_service.chart.schemas import (
     GanttSortByConfig,
     GaugeChartConfig,
     GenerateChartRequest,
+    GenerateChartResponse,
     GenerateExploreLinkRequest,
     GetChartDataRequest,
     GetChartPreviewRequest,
@@ -3581,7 +3582,8 @@ def test_update_rebind_owns_chart_and_datasource_identity(
     assert resolve_form_data_datasource(state) == (99, "table")
 
 
-def test_dataset_only_rebind_rewrites_saved_sunburst_params() -> None:
+def test_dataset_only_rebind_requires_complete_sunburst_config() -> None:
+    """Reject incomplete rebinds without changing saved roles or presentation."""
     chart = Mock(
         id=19,
         datasource_id=10,
@@ -3609,22 +3611,14 @@ def test_dataset_only_rebind_rewrites_saved_sunburst_params() -> None:
 
     payload = _build_update_payload(request, chart)
 
-    assert isinstance(payload, dict)
-    assert payload["datasource_id"] == 99
-    assert payload["datasource_type"] == "table"
-    assert payload["query_context"] is None
-    persisted = json.loads(payload["params"])
-    assert persisted["slice_id"] == 19
-    assert persisted["datasource"] == "99__table"
-    assert persisted["show_labels"] is True
-    assert {
-        "adhoc_filters",
-        "column_config",
-        "columns",
-        "metric",
-        "order_by_cols",
-    }.isdisjoint(persisted)
-    assert resolve_form_data_datasource(persisted) == (99, "table")
+    assert isinstance(payload, GenerateChartResponse)
+    assert payload.success is False
+    assert payload.error is not None
+    assert "complete" in payload.error.message
+    assert json.loads(chart.params)["datasource"] == "10__table"
+    assert json.loads(chart.params)["columns"] == ["region", "country"]
+    assert json.loads(chart.params)["metric"] == "SavedSales"
+    assert json.loads(chart.params)["show_labels"] is True
 
 
 def test_update_tool_explicit_empty_filters_clear_saved_filters() -> None:

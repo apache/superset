@@ -25,12 +25,14 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from flask_babel import lazy_gettext
 from pydantic import BaseModel, Field
 
 from superset.exceptions import OAuth2Error
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart import query_result as query_result_module
 from superset.mcp_service.chart.response_preflight import (
+    bounded_exception_message,
     finalize_chart_response,
     finalize_generate_chart_response,
     finalize_update_chart_preview_response,
@@ -463,3 +465,22 @@ def test_preflight_does_not_report_uncommitted_chart_as_saved(unsaved: bool) -> 
     result = finalize_generate_chart_response(response)
     assert result.success is False
     assert result.chart is None
+
+
+@pytest.mark.parametrize("message", ["Guest row-level security denied", "é" * 300])
+def test_bounded_exception_message_preserves_lazy_translation(message: str) -> None:
+    """Translate library messages while retaining the byte-size limit."""
+    result = bounded_exception_message(ValueError(lazy_gettext(message)))
+    expected = message[:128] if len(message.encode("utf-8")) > 256 else message
+    assert result == expected
+    assert len(result.encode("utf-8")) <= 256
+
+
+def test_bounded_exception_message_skips_arbitrary_string_hooks() -> None:
+    """Non-library argument objects cannot execute formatting hooks."""
+
+    class HostileArgument:
+        def __str__(self) -> str:
+            raise AssertionError("String hook must not run")
+
+    assert bounded_exception_message(ValueError(HostileArgument())) == "request failed"
