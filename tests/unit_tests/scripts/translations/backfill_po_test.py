@@ -25,10 +25,12 @@ pinning against regressions.
 
 import importlib.util
 import json  # noqa: TID251 - testing a standalone script that uses stdlib json
+import shlex
 from pathlib import Path
 
 import polib  # type: ignore[import-untyped]
 import pytest
+from babel.messages.frontend import CommandLineInterface
 
 _SCRIPT_PATH = (
     Path(__file__).resolve().parents[4] / "scripts" / "translations" / "backfill_po.py"
@@ -622,27 +624,89 @@ def test_developer_note_reads_the_i18n_comment(
     assert backfill_po._developer_note(entry) == expected
 
 
-def test_developer_note_reads_the_committed_catalogs() -> None:
-    """Every catalog carries the four notes exactly as the template states them."""
-    translations = _SCRIPT_PATH.parents[2] / "superset" / "translations"
-    template = polib.pofile(str(translations / "messages.pot"))
-    expected = {
-        entry.msgid: backfill_po._developer_note(entry)
-        for entry in template
-        if backfill_po._developer_note(entry)
-    }
-    assert expected["Backend"] == _BACKEND_NOTE
-    assert len(expected) == 4
+def _babel_update_sh_update_args(template: Path, directory: Path) -> list[str]:
+    """The ``pybabel update`` call from babel_update.sh, with its paths replaced.
 
-    catalogs = sorted(translations.glob("*/LC_MESSAGES/messages.po"))
-    assert catalogs
-    for path in catalogs:
-        catalog = polib.pofile(str(path))
-        found = {
-            msgid: backfill_po._developer_note(catalog.find(msgid))
-            for msgid in expected
-        }
-        assert found == expected, path
+    Only ``-i`` and ``-d`` change, so any other flag in the script reaches the
+    test unchanged.
+    """
+    script = (_SCRIPT_PATH.parent / "babel_update.sh").read_text(encoding="utf-8")
+    start = script.find("\npybabel update")
+    assert start >= 0, (
+        "babel_update.sh has no line starting with `pybabel update`; update "
+        "_babel_update_sh_update_args to find the catalog update call"
+    )
+    lines = script[start + 1 :].splitlines()
+    command: list[str] = []
+    for line in lines:
+        command.append(line.rstrip("\\").strip())
+        if not line.endswith("\\"):
+            break
+    args = shlex.split(" ".join(command))
+    assert args[:2] == ["pybabel", "update"], args
+    for flag, value in (("-i", template), ("-d", directory)):
+        args[args.index(flag) + 1] = str(value)
+    return args
+
+
+@pytest.mark.parametrize(
+    ("template_comment", "catalog_comment", "expected"),
+    [
+        # A note added in source reaches a catalog entry that had none.
+        (
+            "i18n: a URL identifier, not the animal",
+            "",
+            "a URL identifier, not the animal",
+        ),
+        # A reworded note replaces the catalog's stale wording.
+        ("i18n: the new wording", "i18n: the old wording", "the new wording"),
+        # A note removed from source is removed from the catalog.
+        ("", "i18n: a note since removed", None),
+        # A wrapped note keeps its continuation line and the stamped marker.
+        (
+            "i18n: the kind of system behind a connection: a database engine\n"
+            "(PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver\n"
+            "do-not-translate",
+            "",
+            _BACKEND_NOTE,
+        ),
+    ],
+)
+def test_pybabel_update_carries_the_note_into_catalogs(
+    tmp_path: Path,
+    template_comment: str,
+    catalog_comment: str,
+    expected: str | None,
+) -> None:
+    """``pybabel update``, with the flags from ``babel_update.sh``, syncs each note.
+
+    The backfill reads notes from the catalog it translates, so a note only
+    reaches the model once ``pybabel update`` has copied it from the template.
+    Committed catalogs may lag the template between catalog refreshes, so this
+    exercises the propagation itself on a throwaway catalog rather than the
+    state of the committed files.
+    """
+    template = polib.POFile()
+    template.append(polib.POEntry(msgid="Slug", msgstr="", comment=template_comment))
+    pot = tmp_path / "messages.pot"
+    template.save(str(pot))
+
+    catalog = polib.POFile()
+    catalog.metadata = {"Language": "es", "Content-Type": "text/plain; charset=UTF-8"}
+    catalog.append(polib.POEntry(msgid="Slug", msgstr="Slug", comment=catalog_comment))
+    po = tmp_path / "es" / "LC_MESSAGES" / "messages.po"
+    po.parent.mkdir(parents=True)
+    catalog.save(str(po))
+
+    args = _babel_update_sh_update_args(pot, tmp_path)
+    CommandLineInterface().run(args)
+
+    updated = polib.pofile(str(po)).find("Slug")
+    assert updated.msgstr == "Slug"
+    assert backfill_po._developer_note(updated) == expected, (
+        f"`{' '.join(args)}` did not sync the note into the es catalog; check the "
+        "pybabel update flags in babel_update.sh"
+    )
 
 
 def test_build_batch_items_carries_the_note_only_when_present() -> None:
