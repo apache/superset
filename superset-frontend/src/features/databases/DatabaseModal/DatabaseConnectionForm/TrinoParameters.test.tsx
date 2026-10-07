@@ -105,7 +105,9 @@ test('uses Trino port placeholder and HTTPS SSL tooltip', async () => {
   expect(screen.queryByPlaceholderText('e.g. 5432')).not.toBeInTheDocument();
 
   const sslToggle = screen.getByText('SSL').parentElement as HTMLElement;
-  userEvent.hover(within(sslToggle).getByRole('img', { name: 'info-circle' }));
+  await userEvent.hover(
+    within(sslToggle).getByRole('img', { name: 'info-circle' }),
+  );
   expect(
     await screen.findByText(
       'HTTPS will be used to connect to the Trino coordinator.',
