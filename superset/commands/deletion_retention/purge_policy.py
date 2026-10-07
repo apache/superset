@@ -1532,6 +1532,31 @@ def _validate_scanner_requirements(policy: PurgeEntityPolicy) -> None:
             f"Purge root {policy.model.__name__} has no 'deleted_at' column; "
             "every purge path requires the row to be archived first"
         )
+    uuid_column: sa.Column[Any] | None = table.c.get("uuid")
+    if (
+        uuid_column is not None
+        and isinstance(uuid_column.type, sa.Uuid)
+        and not uuid_column.type.native_uuid
+    ):
+        # The third column the frame reads: the locked claim and the
+        # conditional delete both carry ``uuid == str(entity.uuid)``. A
+        # character-based UUID type binds through a processor that expects a
+        # UUID object, so every eligible row would raise and stay archived
+        # while a dry run counted it purgeable -- on every dialect, which is
+        # what makes it checkable here.
+        #
+        # ``native_uuid`` is left alone deliberately: it has no bind processor
+        # where the database has a UUID type of its own, so the string binds
+        # cleanly on Postgres and only a database without one rejects it. That
+        # is a per-row failure like any other, and the docs say so.
+        # ``sqlalchemy_utils.UUIDType`` is not a subclass of this at all and
+        # accepts the string everywhere, which is why the built-in roots are
+        # unaffected.
+        raise RuntimeError(
+            f"Purge root {policy.model.__name__} types 'uuid' as a "
+            "character-based sa.Uuid; the locked claim binds that value as a "
+            "string, which the type rejects on every dialect"
+        )
 
 
 #: Classifications the shared cleanup executes as SQL, through

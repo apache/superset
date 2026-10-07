@@ -1744,3 +1744,83 @@ def test_a_root_with_its_own_delete_listener_can_be_admitted() -> None:
             assert get_purge_policy(model) is accounted
     finally:
         remove_delete_listener(declaration)
+
+
+def test_root_typing_uuid_as_a_character_based_uuid_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The third column the frame reads, gated like the other two.
+
+    The locked claim and the conditional delete carry ``uuid == str(...)``,
+    and a character-based UUID type rejects that on every dialect, so every
+    eligible row would raise and stay archived while a dry run counted it
+    purgeable.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "charuuid_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("uuid", sa.Uuid(native_uuid=False)),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+
+    class CharUuidRoot:
+        """Temporary mapped root whose uuid is stored as characters."""
+
+    _map_host_root(CharUuidRoot, root_table)
+
+    _assert_rejected(
+        CharUuidRoot, _host_policy(CharUuidRoot, ()), "character-based", caplog
+    )
+
+
+def test_root_typing_uuid_as_a_native_uuid_is_admitted() -> None:
+    """A native UUID column binds the string cleanly where the database has one.
+
+    Refusing it would cost a Postgres host a declaration that works; the
+    dialects without a native type reject it per row, which the docs say.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "nativeuuid_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("uuid", sa.Uuid()),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+
+    class NativeUuidRoot:
+        """Temporary mapped root whose uuid uses the database's own type."""
+
+    _map_host_root(NativeUuidRoot, root_table)
+    policy: PurgeEntityPolicy = _host_policy(NativeUuidRoot, ())
+
+    with _installed(lambda: [policy]):
+        assert get_purge_policy(NativeUuidRoot) is policy
+
+
+def test_a_root_using_the_sqlalchemy_utils_uuid_type_is_admitted() -> None:
+    """The type the built-in roots use accepts the string, so it is fine.
+
+    Pinned because the check above rests on these two types being unrelated.
+    """
+    from sqlalchemy_utils import UUIDType
+
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "utilsuuid_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("uuid", UUIDType(binary=True)),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+
+    class UtilsUuidRoot:
+        """Temporary mapped root using the type the built-in roots use."""
+
+    _map_host_root(UtilsUuidRoot, root_table)
+    policy: PurgeEntityPolicy = _host_policy(UtilsUuidRoot, ())
+
+    with _installed(lambda: [policy]):
+        assert get_purge_policy(UtilsUuidRoot) is policy

@@ -162,9 +162,10 @@ correctly. A policy is refused when a mistake in it would delete the wrong
 rows or silently skip cleanup, since neither announces itself:
 
 - its root is not keyed on a single `id` column, has no `deleted_at` column,
-  is not a class, claims an `entity_type` the cascade branches on, or is
-  mapped onto one of Superset's own root tables -- a different class on the
-  chart table is still the chart rows;
+  types `uuid` as `sa.Uuid(native_uuid=False)`, is not a class, claims an
+  `entity_type` the cascade branches on, or is mapped onto one of Superset's
+  own root tables -- a different class on the chart table is still the chart
+  rows;
 - a table it names cannot be resolved unambiguously without a schema, so
   cleanup would resolve it to a different table;
 - a version target is not root-relative, so cleanup would delete another
@@ -174,9 +175,11 @@ rows or silently skip cleanup, since neither announces itself:
   but no version class of its own removes the declaration and clears that
   history in its own cleanup;
 - it declares a listener effect, whose action decides what to delete from an
-  entity type a host cannot claim and so never runs. A root whose own
-  registered listener does that work sets `accounts_for_own_listeners`
-  instead, which is what keeps such a root from being unpolicyable;
+  entity type a host cannot claim and so never runs. The purge deletes with
+  Core DML, which fires no ORM `after_delete`, so a root whose registered
+  listener would normally do that work carries it out in its own cleanup
+  callbacks and says so with `accounts_for_own_listeners` -- without which
+  such a root could not have a policy admitted at all;
 - it declares a block, which would run but records a reason code in the purge
   audit log, whose vocabulary is a closed set. A host refuses a purge by
   raising `PurgeBlockedError` from its own validator instead, where the code
@@ -203,14 +206,19 @@ so a passing outage is not remembered for the life of the process, and it is
 not re-attempted on every read either.
 
 A root with no policy is skipped rather than scanned, so it is not a
-failure. A pass in which every root that *could* be scanned failed is
-reported as a task failure as well as in `scan_failures`, since that is an
-outage rather than the isolation the per-root handling is for.
+failure. A pass in which every root that *could* be scanned failed also
+increments `deletion_retention.failed`, the same counter a task that raises
+outright increments, since that is an outage rather than the isolation the
+per-root handling is for. The run itself still returns its counts, so alert
+on that counter rather than on the task result.
 
-A root carrying a `uuid` column of SQLAlchemy's own `Uuid` type is one
-known shape left to fail: the identity predicate binds the value as a string,
-which that type's non-native bind processor rejects, so every eligible row
-raises and is counted. Superset's own roots use a type that accepts it.
+A root typing `uuid` as `sa.Uuid()` is one known shape left to fail, and
+only on a metadata database with no UUID type of its own -- SQLite, MySQL.
+There the identity predicate's string binding goes through a processor that
+rejects it, so every eligible row raises and is counted; on Postgres the same
+declaration binds cleanly, which is why it is not refused outright.
+Superset's own roots use `sqlalchemy_utils.UUIDType`, which accepts the
+string everywhere.
 
 Anything else is left to fail where it fails. A predicate the cleanup cannot
 build raises per row and is counted in `cascade_failures`; an ordering a
