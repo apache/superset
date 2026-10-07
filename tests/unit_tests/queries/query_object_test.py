@@ -16,7 +16,7 @@
 # under the License.
 from contextlib import contextmanager
 from datetime import datetime
-from unittest.mock import call, patch
+from unittest.mock import call, patch, PropertyMock
 
 import pandas as pd
 import pytest
@@ -25,8 +25,9 @@ from pandas import DataFrame
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
-from superset.exceptions import InvalidPostProcessingError
+from superset.exceptions import InvalidPostProcessingError, QueryObjectValidationError
 from superset.models.core import Database
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import Metric
 from superset.utils import pandas_postprocessing
 from superset.utils.core import override_user
@@ -88,6 +89,23 @@ def test_default_query_object_to_dict():
         "time_compare_full_range": False,
         "to_dttm": None,
     }
+
+
+@pytest.mark.parametrize("clause", ["where", "having"])
+def test_semantic_view_rejects_custom_sql_extras(clause: str) -> None:
+    """Unsupported SQL clauses fail before semantic provider access."""
+    view: SemanticView = SemanticView(name="Orders")
+    provider_access: PropertyMock = PropertyMock(
+        side_effect=AssertionError("provider accessed before SQL extras validation")
+    )
+    query: QueryObject = QueryObject(datasource=view, extras={clause: "amount > 10"})
+
+    with patch.object(SemanticView, "implementation", provider_access):
+        with pytest.raises(
+            QueryObjectValidationError, match="SQL WHERE/HAVING.*semantic views"
+        ):
+            query.validate()
+    provider_access.assert_not_called()
 
 
 def test_exec_post_processing_rejects_unsupported_operation():
