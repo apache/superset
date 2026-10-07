@@ -21,7 +21,7 @@ from typing import Any, Optional, TypedDict
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from flask_babel import gettext as __
+from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
 from sqlalchemy import types
 from sqlalchemy.engine.url import URL
@@ -48,22 +48,22 @@ class AthenaParametersSchema(Schema):
     aws_access_key_id = fields.Str(
         required=False,
         allow_none=True,
-        metadata={"description": __("AWS access key ID")},
+        metadata={"description": _("AWS access key ID")},
     )
     aws_secret_access_key = fields.Str(
         required=False,
         allow_none=True,
-        metadata={"description": __("AWS secret access key")},
+        metadata={"description": _("AWS secret access key")},
     )
     region_name = fields.Str(
         required=True,
-        metadata={"description": __("AWS region, e.g. us-east-1")},
+        metadata={"description": _("AWS region, e.g. us-east-1")},
     )
     s3_staging_dir = fields.Str(
         required=False,
         allow_none=True,
         metadata={
-            "description": __(
+            "description": _(
                 "S3 location where Athena query results are stored, "
                 "e.g. s3://my-bucket/athena-results/. Can be left empty when "
                 "the work group defines a query result location or uses "
@@ -74,12 +74,12 @@ class AthenaParametersSchema(Schema):
     schema_name = fields.Str(
         required=False,
         allow_none=True,
-        metadata={"description": __("Default schema (database) to connect to")},
+        metadata={"description": _("Default schema (database) to connect to")},
     )
     work_group = fields.Str(
         required=False,
         allow_none=True,
-        metadata={"description": __("Athena work group to run queries against")},
+        metadata={"description": _("Athena work group to run queries against")},
     )
 
 
