@@ -35,6 +35,9 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException, ForbiddenError
 from superset.extensions import event_logger
+from superset.mcp_service.dashboard.layout_placement import (
+    remove_component_and_prune,
+)
 from superset.mcp_service.dashboard.layout_validation import (
     normalize_chart_id,
     rebuild_parent_chains,
@@ -50,11 +53,6 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-# Container types that should be deleted once they have no children left.
-# TAB/TABS/GRID/ROOT containers are intentionally kept even when empty —
-# deleting a TAB would silently change the dashboard's visible structure.
-_PRUNABLE_TYPES = ("ROW", "COLUMN")
 
 
 def _find_chart_keys(layout: Dict[str, Any], chart_id: int) -> list[str]:
@@ -72,57 +70,6 @@ def _find_chart_keys(layout: Dict[str, Any], chart_id: int) -> list[str]:
     ]
 
 
-def _find_parent_key(layout: Dict[str, Any], component_key: str) -> str | None:
-    """Find the component whose children list contains *component_key*.
-
-    The reverse lookup scans children lists instead of trusting the
-    ``parents`` metadata on the node, which can be stale in hand-edited or
-    programmatically generated layouts.
-    """
-    for key, node in layout.items():
-        if not isinstance(node, dict):
-            continue
-        children = node.get("children")
-        if isinstance(children, list) and component_key in children:
-            return key
-    return None
-
-
-def _remove_component_and_prune(
-    layout: Dict[str, Any], component_key: str
-) -> list[str]:
-    """Remove *component_key* from the layout and prune empty containers.
-
-    Walks up the parent chain deleting ROW/COLUMN containers that become
-    empty as a result of the removal, so no orphaned wrapper nodes are left
-    behind. Returns the list of removed layout keys.
-    """
-    removed: list[str] = []
-    parent_key = _find_parent_key(layout, component_key)
-
-    layout.pop(component_key, None)
-    removed.append(component_key)
-
-    child_key = component_key
-    while parent_key is not None:
-        parent = layout.get(parent_key)
-        if not isinstance(parent, dict):
-            break
-        children = parent.get("children")
-        if isinstance(children, list):
-            parent["children"] = [c for c in children if c != child_key]
-        if parent.get("type") in _PRUNABLE_TYPES and not parent.get("children"):
-            grandparent_key = _find_parent_key(layout, parent_key)
-            layout.pop(parent_key, None)
-            removed.append(parent_key)
-            child_key = parent_key
-            parent_key = grandparent_key
-        else:
-            break
-
-    return removed
-
-
 def _remove_chart_from_layout(layout: Dict[str, Any], chart_id: int) -> list[str]:
     """Remove every CHART component for *chart_id* from the layout.
 
@@ -132,7 +79,7 @@ def _remove_chart_from_layout(layout: Dict[str, Any], chart_id: int) -> list[str
     for chart_key in _find_chart_keys(layout, chart_id):
         # The chart key may already be gone if it shared a pruned container.
         if chart_key in layout:
-            removed.extend(_remove_component_and_prune(layout, chart_key))
+            removed.extend(remove_component_and_prune(layout, chart_key))
     return removed
 
 
