@@ -110,8 +110,8 @@ committed deletion totals. Large backlogs drain over successive scheduled runs.
 If a database commit's outcome is uncertain, the task stops rather than
 retrying that window, so it cannot spend another cap allowance in the same
 run. The task reports an error because it cannot assert how many transactions
-were committed. An `OperationalError` before commit may retry up to three
-attempts.
+were committed. A definitive `OperationalError`, including one rejected at
+commit with a valid connection, may retry up to three attempts.
 Monitor the
 `superset.versioning.retention.remaining_count_complete` gauge alongside the
 `remaining_eligible_at_least` gauge so a lower-bound zero is not read as an

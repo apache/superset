@@ -36,6 +36,7 @@ from uuid import UUID
 
 import sqlalchemy as sa
 from flask import current_app
+from sqlalchemy.exc import DBAPIError
 
 from superset import db
 from superset.commands.deletion_retention import audit, prune_audit
@@ -506,6 +507,28 @@ def _confirm_committed_purge(record_id: UUID | None, result: CascadeResult) -> N
         )
 
 
+def _commit_purge_root(record_id: UUID | None) -> None:
+    """Commit a purge, keeping uncertain outcomes pending for reconciliation."""
+    try:
+        db.session.commit()  # pylint: disable=consider-using-transaction
+    except Exception as exc:
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("deletion_retention: rollback after commit error failed")
+            raise _PurgeCommitUncertainError(
+                "root purge rollback outcome unknown"
+            ) from exc
+        if isinstance(exc, DBAPIError) and not exc.connection_invalidated:
+            # The valid connection rejected the commit; the root can be
+            # recorded as failed without consuming the confirmed purge cap.
+            audit.fail(record_id)
+            raise
+        # A lost acknowledgement can follow a successful commit. Keep the
+        # audit pending and defer remaining roots for reconciliation.
+        raise _PurgeCommitUncertainError("root purge commit outcome unknown") from exc
+
+
 def _purge_one(
     model: type[SoftDeleteMixin], entity_id: int, cutoff: datetime
 ) -> CascadeResult | None:
@@ -569,23 +592,12 @@ def _purge_one(
         # versioned state would write the purge-queued shadows anyway.
         # Commit/rollback are managed manually so audit.fail() can record a
         # definitive pre-commit failure after the purge transaction resolves.
+        db.session.flush()
     except Exception:
         db.session.rollback()  # pylint: disable=consider-using-transaction
         audit.fail(record_id)
         raise
-    try:
-        db.session.commit()  # pylint: disable=consider-using-transaction
-    except Exception as exc:
-        # A lost acknowledgement can follow a successful commit. Keep the
-        # audit pending for reconciliation and stop this invocation rather
-        # than treating the root as failed and spending its cap slot again.
-        try:
-            db.session.rollback()  # pylint: disable=consider-using-transaction
-        except Exception:  # pylint: disable=broad-except
-            logger.exception(
-                "deletion_retention: rollback after uncertain commit failed"
-            )
-        raise _PurgeCommitUncertainError("root purge commit outcome unknown") from exc
+    _commit_purge_root(record_id)
     if result.purged:
         _confirm_committed_purge(record_id, result)
     elif result.blocker is not None:

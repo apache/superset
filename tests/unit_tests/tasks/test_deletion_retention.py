@@ -31,6 +31,7 @@ from uuid import UUID, uuid4
 import pytest
 import sqlalchemy as sa
 from flask.config import Config
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Mapped, mapped_column, registry, Session
 
 
@@ -624,6 +625,44 @@ def test_purge_model_counts_only_committed_deletions(app_context: None) -> None:
     assert result == mod._PurgeModelResult(0, 0, 0, 0, 0)
 
 
+def test_purge_cap_skips_blocked_and_failed_roots(app_context: None) -> None:
+    """Blocked and failed attempts leave budget for two successful roots."""
+    import superset.tasks.deletion_retention as task
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.commands.deletion_retention.purge_policy import BlockerReason
+    from superset.models.slice import Slice
+
+    blocked: CascadeResult = CascadeResult(
+        purged=False,
+        entity_type="chart",
+        entity_uuid="blocked",
+        blocker=BlockerReason("referenced", "still referenced"),
+    )
+    confirmed: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="confirmed"
+    )
+    purge_one: MagicMock
+    with (
+        patch.object(task, "_iter_eligible_ids", return_value=[[1, 2, 3, 4]]),
+        patch.object(
+            task,
+            "_purge_one",
+            side_effect=[blocked, RuntimeError("cascade failed"), confirmed, confirmed],
+        ) as purge_one,
+    ):
+        counts: task._PurgeModelResult = task._purge_model(
+            Slice, datetime.now(), dry_run=False, max_per_run=2
+        )
+
+    assert (
+        counts.purged,
+        counts.would_purge,
+        counts.failures,
+        counts.blocked,
+    ) == (2, 0, 1, 1)
+    assert [entry.args[1] for entry in purge_one.call_args_list] == [1, 2, 3, 4]
+
+
 def test_purge_model_returns_named_counts(app_context: None) -> None:
     """Callers can read each purge count without depending on tuple order."""
     import superset.tasks.deletion_retention as task
@@ -641,7 +680,18 @@ def test_purge_model_returns_named_counts(app_context: None) -> None:
     assert counts.scan_failures == 0
 
 
-def test_uncertain_purge_commit_preserves_pending_audit(app_context: None) -> None:
+@pytest.mark.parametrize(
+    "commit_error",
+    [
+        RuntimeError("acknowledgement lost"),
+        OperationalError(
+            "COMMIT", {}, Exception("connection lost"), connection_invalidated=True
+        ),
+    ],
+)
+def test_uncertain_purge_commit_preserves_pending_audit(
+    app_context: None, commit_error: Exception
+) -> None:
     """A lost commit acknowledgement cannot be recorded as a failed purge."""
     import superset.tasks.deletion_retention as task
     from superset.commands.deletion_retention.purge_cascade import CascadeResult
@@ -665,12 +715,50 @@ def test_uncertain_purge_commit_preserves_pending_audit(app_context: None) -> No
         patch.object(task.audit, "confirm") as audit_confirm,
     ):
         session.get.return_value = entity
-        session.commit.side_effect = RuntimeError("acknowledgement lost")
+        session.commit.side_effect = commit_error
         with pytest.raises(RuntimeError, match="commit outcome"):
             task._purge_one(Slice, 1, datetime.now())
 
     audit_fail.assert_not_called()
     audit_confirm.assert_not_called()
+
+
+@pytest.mark.parametrize("failure_stage", ["flush", "commit"])
+def test_definitive_purge_db_failure_finalizes_audit(
+    app_context: None, failure_stage: str
+) -> None:
+    """An acknowledged database rejection is a failed root, not uncertainty."""
+    import superset.tasks.deletion_retention as task
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.slice import Slice
+
+    entity: MagicMock = MagicMock(id=1)
+    result: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="rejected"
+    )
+    db_error: OperationalError = OperationalError(
+        failure_stage, {}, Exception("transaction rejected")
+    )
+    audit_fail: MagicMock
+    with (
+        patch.object(task, "skip_visibility_filter"),
+        patch.object(task, "entity_uuid", return_value="uuid-1"),
+        patch.object(task, "dashboard_slice_count", return_value=0),
+        patch.object(task, "suppress_purge_association_versions"),
+        patch.object(task, "cascade_hard_delete", return_value=result),
+        patch.object(task.db, "session") as session,
+        patch.object(task.audit, "write_ahead", return_value=uuid4()),
+        patch.object(task.audit, "fail") as audit_fail,
+    ):
+        session.get.return_value = entity
+        getattr(session, failure_stage).side_effect = db_error
+        with pytest.raises(OperationalError):
+            task._purge_one(Slice, 1, datetime.now())
+
+    audit_fail.assert_called_once()
+    session.rollback.assert_called()
+    if failure_stage == "flush":
+        session.commit.assert_not_called()
 
 
 def test_uncertain_purge_commit_stops_other_roots_and_reserves_cap(
@@ -710,6 +798,77 @@ def test_uncertain_purge_commit_stops_other_roots_and_reserves_cap(
     assert stats["remaining_count_complete"] is False
     assert [entry.args[1] for entry in purge_one.call_args_list] == [1, 2]
     count_eligible.assert_not_called()
+
+
+def test_uncertain_purge_commit_stops_remaining_ids_in_batch(
+    app_context: None,
+) -> None:
+    """A possible committed root stops a model before the next eligible ID."""
+    import superset.tasks.deletion_retention as task
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.slice import Slice
+
+    confirmed: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="confirmed"
+    )
+    purge_one: MagicMock
+    with (
+        patch.object(task, "_iter_eligible_ids", return_value=[[1, 2, 3]]),
+        patch.object(
+            task,
+            "_purge_one",
+            side_effect=[
+                confirmed,
+                task._PurgeCommitUncertainError("commit outcome unknown"),
+                confirmed,
+            ],
+        ) as purge_one,
+    ):
+        counts: task._PurgeModelResult = task._purge_model(
+            Slice, datetime.now(), dry_run=False, max_per_run=2
+        )
+
+    assert counts.purged == 1
+    assert counts.commit_uncertain is True
+    assert [entry.args[1] for entry in purge_one.call_args_list] == [1, 2]
+
+
+def test_uncertain_purge_commit_stops_next_model_with_budget_remaining(
+    app_context: None,
+) -> None:
+    """An unknown outcome halts the run even when the cap is not exhausted."""
+    import superset.tasks.deletion_retention as task
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    purge_model: MagicMock
+    with (
+        patch.object(task, "_ordered_purge_models", return_value=[Slice, Dashboard]),
+        patch.object(
+            task,
+            "_purge_model",
+            side_effect=[
+                task._PurgeModelResult(
+                    purged=0,
+                    would_purge=0,
+                    failures=0,
+                    blocked=0,
+                    scan_failures=0,
+                    commit_uncertain=True,
+                ),
+                task._PurgeModelResult(
+                    purged=1, would_purge=0, failures=0, blocked=0, scan_failures=0
+                ),
+            ],
+        ) as purge_model,
+    ):
+        scan: task._PurgeScan = task._scan_purge_models(
+            datetime.now(), dry_run=False, max_per_run=5
+        )
+
+    assert scan.commit_uncertain is True
+    assert scan.remaining_budget == 4
+    assert purge_model.call_count == 1
 
 
 def test_post_commit_audit_exception_still_spends_cap(app_context: None) -> None:

@@ -54,7 +54,7 @@ from typing import Any
 
 import sqlalchemy as sa
 from flask import current_app
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import DBAPIError, OperationalError
 
 from superset.config import (
     _MISSING_RETENTION,
@@ -393,6 +393,10 @@ class _PruneCommitUncertainError(RuntimeError):
     """The database did not acknowledge whether a prune pass committed."""
 
 
+class _PruneRollbackFailedError(RuntimeError):
+    """A prune transaction could not be rolled back safely."""
+
+
 def _run_prune_pass(
     cutoff: datetime,
     tables: ShadowTables,
@@ -448,15 +452,23 @@ def _run_prune_pass(
             try:
                 transaction.rollback()  # pylint: disable=consider-using-transaction
             except Exception as exc:
-                raise _PruneCommitUncertainError(
-                    "version prune rollback outcome unknown"
+                raise _PruneRollbackFailedError(
+                    "version prune rollback failed"
                 ) from exc
             raise
         try:
             transaction.commit()  # pylint: disable=consider-using-transaction
         except Exception as exc:
-            # The database may have committed despite a lost acknowledgement.
-            # Retrying the same cursor could prune beyond the per-run cap.
+            if isinstance(exc, DBAPIError) and not exc.connection_invalidated:
+                try:
+                    transaction.rollback()  # pylint: disable=consider-using-transaction
+                except Exception as rollback_exc:
+                    raise _PruneRollbackFailedError(
+                        "version prune rollback failed"
+                    ) from rollback_exc
+                raise
+            # A lost acknowledgement can follow a successful commit. Replaying
+            # the same cursor could prune beyond the per-run cap.
             raise _PruneCommitUncertainError(
                 "version prune commit outcome unknown"
             ) from exc
@@ -483,7 +495,7 @@ def _run_pass_with_retry(
     ``_MAX_RETRY_ATTEMPTS`` attempts conflict.
 
     Postgres surfaces conflicts as ``SerializationFailure`` (a subclass
-    of ``sqlalchemy.exc.OperationalError``). Errors before commit can retry
+    of ``sqlalchemy.exc.OperationalError``). Definitive errors may retry
     from a fresh transaction. A commit acknowledgement failure instead raises
     ``_PruneCommitUncertainError`` and defers the rest of this invocation, because
     replaying the same cursor could exceed the per-run cap.

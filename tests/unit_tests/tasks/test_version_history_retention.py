@@ -679,7 +679,18 @@ def test_prune_retry_reuses_the_same_transaction_budget(stats: MagicMock) -> Non
     stats.incr.assert_called_once_with("superset.versioning.retention.retried")
 
 
-def test_prune_does_not_retry_an_uncertain_commit(stats: MagicMock) -> None:
+@pytest.mark.parametrize(
+    "commit_error",
+    [
+        OperationalError(
+            "COMMIT", {}, Exception("connection lost"), connection_invalidated=True
+        ),
+        RuntimeError("acknowledgement lost"),
+    ],
+)
+def test_prune_does_not_retry_an_uncertain_commit(
+    stats: MagicMock, commit_error: Exception
+) -> None:
     """A lost commit acknowledgement must not spend another prune window."""
     tables: version_history_retention.ShadowTables = (
         version_history_retention.ShadowTables(
@@ -700,9 +711,6 @@ def test_prune_does_not_retry_an_uncertain_commit(stats: MagicMock) -> None:
         engine_connection.execution_options.return_value.__enter__.return_value
     )
     transaction: MagicMock = connection.begin.return_value
-    commit_error: OperationalError = OperationalError(
-        "COMMIT", {}, Exception("acknowledgement lost")
-    )
     transaction.commit.side_effect = commit_error
     mock_db: MagicMock
     sleep: MagicMock
@@ -718,6 +726,108 @@ def test_prune_does_not_retry_an_uncertain_commit(stats: MagicMock) -> None:
     ):
         mock_db.engine = engine
         with pytest.raises(RuntimeError, match="commit outcome"):
+            version_history_retention._run_pass_with_retry(
+                datetime(2026, 1, 1), tables, after_id=0, max_prune=1
+            )
+
+    assert engine.connect.call_count == 1
+    sleep.assert_not_called()
+    stats.incr.assert_not_called()
+
+
+def test_prune_retries_definitive_db_commit_failure(stats: MagicMock) -> None:
+    """An acknowledged transaction rejection may retry the same capped window."""
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[],
+            child=[],
+            m2m=None,
+            transaction=sa.table("version_transaction", sa.column("id")),
+        )
+    )
+    window: version_history_retention._PruneWindow = (
+        version_history_retention._PruneWindow(
+            prunable=[1], candidate_count=1, max_candidate_id=1
+        )
+    )
+    engine: MagicMock = MagicMock()
+    engine_connection: MagicMock = engine.connect.return_value
+    connection: MagicMock = (
+        engine_connection.execution_options.return_value.__enter__.return_value
+    )
+    transaction: MagicMock = connection.begin.return_value
+    commit_error: OperationalError = OperationalError(
+        "COMMIT", {}, Exception("serialization failure")
+    )
+    transaction.commit.side_effect = [commit_error, None]
+    mock_db: MagicMock
+    sleep: MagicMock
+    with (
+        patch.object(version_history_retention, "db") as mock_db,
+        patch.object(
+            version_history_retention, "_resolve_prune_window", return_value=window
+        ),
+        patch.object(
+            version_history_retention, "_delete_for_transactions", return_value=0
+        ),
+        patch.object(version_history_retention.time, "sleep") as sleep,
+    ):
+        mock_db.engine = engine
+        result: tuple[dict[str, Any], int] = (
+            version_history_retention._run_pass_with_retry(
+                datetime(2026, 1, 1), tables, after_id=0, max_prune=1
+            )
+        )
+
+    assert result[1] == 1
+    assert engine.connect.call_count == 2
+    transaction.rollback.assert_called_once()
+    sleep.assert_called_once()
+    stats.incr.assert_called_once_with("superset.versioning.retention.retried")
+
+
+def test_prune_failed_rollback_stops_retry(stats: MagicMock) -> None:
+    """A failed rollback cannot be classified as a retryable rejection."""
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[],
+            child=[],
+            m2m=None,
+            transaction=sa.table("version_transaction", sa.column("id")),
+        )
+    )
+    window: version_history_retention._PruneWindow = (
+        version_history_retention._PruneWindow(
+            prunable=[1], candidate_count=1, max_candidate_id=1
+        )
+    )
+    engine: MagicMock = MagicMock()
+    engine_connection: MagicMock = engine.connect.return_value
+    connection: MagicMock = (
+        engine_connection.execution_options.return_value.__enter__.return_value
+    )
+    transaction: MagicMock = connection.begin.return_value
+    transaction.commit.side_effect = OperationalError(
+        "COMMIT", {}, Exception("transaction rejected")
+    )
+    transaction.rollback.side_effect = RuntimeError("rollback failed")
+    mock_db: MagicMock
+    sleep: MagicMock
+    with (
+        patch.object(version_history_retention, "db") as mock_db,
+        patch.object(
+            version_history_retention, "_resolve_prune_window", return_value=window
+        ),
+        patch.object(
+            version_history_retention, "_delete_for_transactions", return_value=0
+        ),
+        patch.object(version_history_retention.time, "sleep") as sleep,
+    ):
+        mock_db.engine = engine
+        with pytest.raises(
+            version_history_retention._PruneRollbackFailedError,
+            match="rollback failed",
+        ):
             version_history_retention._run_pass_with_retry(
                 datetime(2026, 1, 1), tables, after_id=0, max_prune=1
             )
@@ -746,6 +856,27 @@ def test_scheduled_prune_rejects_invalid_cap_before_work(stats: MagicMock) -> No
     stats.incr.assert_called_once_with(
         "superset.versioning.retention.skipped_invalid_cap"
     )
+
+
+def test_scheduled_prune_passes_dry_run_and_cap_to_impl() -> None:
+    """The scheduled wrapper preserves both operator-selected controls."""
+    app: Flask = Flask(__name__)
+    app.config.update(
+        VERSION_HISTORY_RETENTION_DAYS=30,
+        VERSION_HISTORY_PRUNE_DRY_RUN=True,
+        VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN=2,
+    )
+    prune: MagicMock
+    with (
+        app.app_context(),
+        patch.object(
+            version_history_retention, "_prune_old_versions_impl", return_value={}
+        ) as prune,
+    ):
+        result: dict[str, Any] = version_history_retention.prune_old_versions()
+
+    assert result == {}
+    prune.assert_called_once_with(30, max_per_run=2, dry_run=True)
 
 
 @pytest.mark.parametrize("invalid", [None, 0, 1, "false", [], {}])
