@@ -28,14 +28,44 @@ from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
+@pytest.mark.parametrize(
+    "column_sql,expected",
+    [
+        ("0 + 1", datetime(1970, 1, 1, 0, 0, 1)),
+        ("0 - 1", datetime(1969, 12, 31, 23, 59, 59)),
+    ],
+)
+def test_epoch_timestamp_arithmetic_expression(
+    column_sql: str, expected: datetime
+) -> None:
+    """Convert the entire arithmetic expression before adding it to the epoch."""
+    import duckdb
+    from duckdb_engine import Dialect
+    from sqlalchemy import literal_column, select
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    expression = DuckDBEngineSpec.get_timestamp_expr(
+        literal_column(column_sql), "epoch_s", None
+    )
+    sql = str(select(expression).compile(dialect=Dialect()))
+    with duckdb.connect() as connection:
+        result = connection.execute(sql).fetchone()
+
+    assert result == (expected,)
+
+
 @pytest.mark.parametrize("timezone", ["UTC", "America/New_York"])
 @pytest.mark.parametrize(
     "date_format,epoch_value,time_grain,expected",
     [
         ("epoch_s", 0, None, datetime(1970, 1, 1)),
         ("epoch_s", -1, None, datetime(1969, 12, 31, 23, 59, 59)),
+        ("epoch_s", 2208988800, None, datetime(2040, 1, 1)),
         ("epoch_ms", 1234, None, datetime(1970, 1, 1, 0, 0, 1, 234000)),
         ("epoch_us", 1234567, None, datetime(1970, 1, 1, 0, 0, 1, 234567)),
+        ("epoch_ms", 1791340000123, None, datetime(2026, 10, 7, 2, 26, 40, 123000)),
+        ("epoch_us", 1791340000123456, None, datetime(2026, 10, 7, 2, 26, 40, 123456)),
         ("epoch_ms", None, None, None),
         ("epoch_ms", 86401234, "P1D", datetime(1970, 1, 2)),
     ],
