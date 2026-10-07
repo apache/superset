@@ -253,3 +253,14 @@ test('clips the item row while remeasuring, then restores it', () => {
   expect(measured[0]).toBe('hidden');
   expect(measured.at(-1)).toBe('visible');
 });
+
+test('does not force render popover content when forceRender is not specified', () => {
+  const dropdownContent = jest.fn(() => <div>Custom dropdown content</div>);
+  render(
+    <DropdownContainer
+      items={generateItems(3)}
+      dropdownContent={dropdownContent}
+    />,
+  );
+  expect(screen.queryByText('Custom dropdown content')).not.toBeInTheDocument();
+});
