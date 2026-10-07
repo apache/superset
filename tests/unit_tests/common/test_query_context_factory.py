@@ -674,6 +674,46 @@ class TestQueryContextFactory:
 
         assert query_object.granularity == "ds"
 
+    @pytest.mark.parametrize(
+        ("granularity_sqla", "expected"),
+        [
+            ({"label": "ds", "sqlExpression": "ds", "expressionType": "SQL"}, "ds"),
+            (
+                {
+                    "label": "day",
+                    "sqlExpression": "DATE_TRUNC('day', ds)",
+                    "expressionType": "SQL",
+                },
+                "other_dttm",
+            ),
+        ],
+    )
+    def test_apply_granularity_matches_adhoc_legacy_granularity_sqla(
+        self, granularity_sqla: dict[str, str], expected: str
+    ) -> None:
+        """An adhoc legacy time column is matched by its SQL expression."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "other_dttm"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "other_dttm", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"granularity_sqla": granularity_sqla},
+            datasource,
+        )
+
+        assert query_object.granularity == expected
+
     def test_apply_granularity_keeps_explicit_granularity(self) -> None:
         """An overridden Time Column wins over the legacy form data key."""
         query_object = Mock(spec=QueryObject)

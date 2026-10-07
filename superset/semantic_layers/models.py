@@ -34,7 +34,7 @@ from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy_utils import UUIDType
 from sqlalchemy_utils.types.json import JSONType
@@ -193,7 +193,7 @@ class SemanticLayer(AuditMixinNullable, Model):
     perm = Column(String(1000), nullable=True)
 
     # Semantic views relationship
-    semantic_views: list[SemanticView] = relationship(
+    semantic_views: Mapped[list[SemanticView]] = relationship(
         "SemanticView",
         back_populates="semantic_layer",
         cascade="all, delete-orphan",
@@ -246,6 +246,16 @@ class SemanticLayer(AuditMixinNullable, Model):
         from superset import security_manager
 
         security_manager.semantic_layer_before_update(mapper, connection, target)
+
+    @staticmethod
+    def before_delete(
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        from superset import security_manager
+
+        security_manager.semantic_layer_before_delete(mapper, connection, target)
 
     @staticmethod
     def after_delete(
@@ -370,7 +380,11 @@ class SemanticView(AuditMixinNullable, Model):
     # =========================================================================
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
-        result = get_results(query_object)
+        """Execute a semantic query only when guest row restrictions are enforceable."""
+        from superset import security_manager
+
+        security_manager.raise_for_unsupported_guest_rls(self)
+        result: QueryResult = get_results(query_object)
         if query_object.post_processing and not result.df.empty:
             try:
                 result.df = query_object.exec_post_processing(result.df)
@@ -604,6 +618,9 @@ class SemanticView(AuditMixinNullable, Model):
             "semantic_view_features": sorted(
                 _feature_value(feature) for feature in self.implementation.features
             ),
+            "semantic_selection_version": (
+                self.implementation.selection_identity_version
+            ),
             "name": self.name,
             "columns": [
                 {
@@ -761,6 +778,8 @@ class SemanticView(AuditMixinNullable, Model):
         from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
         from superset.exceptions import SupersetSecurityException
 
+        security_manager.raise_for_unsupported_guest_rls(self)
+
         if security_manager.can_access_all_datasources():
             return
 
@@ -826,6 +845,7 @@ class SemanticView(AuditMixinNullable, Model):
 
 sa.event.listen(SemanticLayer, "after_insert", SemanticLayer.after_insert)
 sa.event.listen(SemanticLayer, "before_update", SemanticLayer.before_update)
+sa.event.listen(SemanticLayer, "before_delete", SemanticLayer.before_delete)
 sa.event.listen(SemanticLayer, "after_delete", SemanticLayer.after_delete)
 
 sa.event.listen(SemanticView, "after_insert", SemanticView.after_insert)

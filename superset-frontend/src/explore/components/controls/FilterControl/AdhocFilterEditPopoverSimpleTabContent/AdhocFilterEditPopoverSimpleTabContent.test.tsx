@@ -1370,7 +1370,7 @@ test('Filter subject lists and commits an expression-less Cube dimension', async
   const subjectSelect = screen.getByRole('combobox', {
     name: 'Select subject',
   });
-  userEvent.click(subjectSelect);
+  await userEvent.click(subjectSelect);
 
   const dropdown = await waitFor(() => {
     const list = document.querySelector(
@@ -1382,11 +1382,28 @@ test('Filter subject lists and commits an expression-less Cube dimension', async
   expect(within(dropdown).getByText('Order Date')).toBeInTheDocument();
   expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
 
-  userEvent.click(within(dropdown).getByText('Product Category'));
+  await userEvent.click(within(dropdown).getByText('Product Category'));
 
   await waitFor(() => {
     expect(props.onChange).toHaveBeenCalledWith(
       expect.objectContaining({ subject: 'category' }),
     );
   });
+});
+
+test('versioned suggestions are unavailable without a failure and allow manual input', async () => {
+  const { onChange } = setupWithFilterValuesResponse({
+    result: [],
+    suggestions_status: 'unavailable_versioned_view',
+  });
+  const comparator = await openComparator();
+  expect(
+    await screen.findByText(
+      'Suggestions are unavailable for this view. Enter a value manually.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+  await userEvent.type(comparator, 'manual');
+  await userEvent.click(await screen.findByTitle('manual'));
+  expect(onChange).toHaveBeenCalled();
 });

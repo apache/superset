@@ -24,6 +24,7 @@ from typing import Any, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel
 
+from superset_core.semantic_layers.metadata import MetadataRefreshAdapter
 from superset_core.semantic_layers.view import SemanticView
 
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
@@ -93,6 +94,20 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         context: SemanticCacheExecutionContext,
     ) -> SemanticCacheIdentityMaterial | None:
         """Return complete request-context identity, or bypass containment."""
+        return None
+
+    @classmethod
+    def supports_metadata_refresh(cls, configuration: dict[str, Any]) -> bool:
+        """Declare opt-in support without construction, discovery or other I/O."""
+        return False
+
+    @property
+    def metadata_refresh(self) -> MetadataRefreshAdapter | None:
+        """Return a stable adapter instance, or None for legacy metadata behavior.
+
+        An opted-in layer returns the same adapter for its lifetime. Its views
+        and runtime schema use the instance bound by the host.
+        """
         return None
 
     @classmethod

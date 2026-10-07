@@ -28,7 +28,7 @@ import {
   ControlStateMapping,
   Dataset,
 } from '@superset-ui/chart-controls';
-import { omit, pick } from 'lodash-es';
+import { isEqual, omit, pick } from 'lodash-es';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -204,7 +204,8 @@ type ExploreAction =
   | SetForceQueryAction
   | UpdateExploreChartStateAction
   | SetCompatibilityAction
-  | HydrateExplore;
+  | HydrateExplore
+  | { type: typeof actions.RESET_SEMANTIC_SELECTIONS };
 
 // Extended control state for dynamic form controls - uses Record for flexibility
 // since control configs vary significantly across different control types
@@ -235,6 +236,31 @@ export default function exploreReducer(
   action: ExploreAction,
 ): ExploreState {
   const actionHandlers: ActionHandlers = {
+    [actions.RESET_SEMANTIC_SELECTIONS]() {
+      const version = state.datasource?.semantic_selection_version;
+      if (!version) return state;
+      // Build from an allowlist: an old title can exactly match a current ID.
+      const formData: QueryFormData = {
+        datasource: state.form_data.datasource,
+        viz_type: state.form_data.viz_type,
+        slice_id: state.form_data.slice_id,
+        semantic_selection_version: version,
+      };
+      const resetState: ExploreState = {
+        ...state,
+        controls: {},
+        form_data: formData,
+        hiddenFormData: {},
+        controlsTransferred: [],
+      };
+      return {
+        ...resetState,
+        controls: getControlsState(
+          resetState as Parameters<typeof getControlsState>[0],
+          formData,
+        ) as ControlStateMapping,
+      };
+    },
     [DYNAMIC_PLUGIN_CONTROLS_READY]() {
       const typedAction = action as DynamicPluginControlsReadyAction;
       return {
@@ -291,6 +317,7 @@ export default function exploreReducer(
         prevDatasource.type !== newDatasource.type
       ) {
         newFormData.datasource = newDatasource.uid;
+        delete newFormData.semantic_selection_version;
       }
       // reset control values for column/metric related controls
       Object.entries(controls).forEach(([controlName, controlState]) => {
@@ -418,17 +445,22 @@ export default function exploreReducer(
           const rerenderControl = (
             newState.controls as Record<string, ControlState>
           )[rerenderControlName];
+          const updatedControl = getControlStateFromControlConfig(
+            rerenderControl as Parameters<
+              typeof getControlStateFromControlConfig
+            >[0],
+            newState as Parameters<typeof getControlStateFromControlConfig>[1],
+            rerenderControl?.value,
+          );
           rerenderedControls[rerenderControlName] = {
-            ...getControlStateFromControlConfig(
-              rerenderControl as Parameters<
-                typeof getControlStateFromControlConfig
-              >[0],
-              newState as Parameters<
-                typeof getControlStateFromControlConfig
-              >[1],
-              rerenderControl?.value,
-            ),
+            ...updatedControl,
           } as ExtendedControlState;
+          if (
+            updatedControl &&
+            !isEqual(updatedControl.value, rerenderControl?.value)
+          ) {
+            new_form_data[rerenderControlName] = updatedControl.value;
+          }
         });
       }
 

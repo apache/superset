@@ -23,6 +23,11 @@ outputs:
   semantic-layers:
     description: Whether semantic-layer files were changed
     value: ${{ steps.change-detector.outputs.semantic-layers }}
+  languages:
+    description: >-
+      JSON array of CodeQL languages touched, classified by file extension
+      regardless of directory (e.g. ["javascript", "python"])
+    value: ${{ steps.change-detector.outputs.languages }}
 runs:
   using: composite
   steps:

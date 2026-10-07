@@ -210,4 +210,12 @@ class WaterfallChartPlugin(BaseChartPlugin):
             form_data, columns, resolve_shared_metrics(form_data), row_limit=row_limit
         )
         query["orderby"] = [(column, True) for column in columns]
+        # Bind the time grain to the SQL time column, as extractExtras does.
+        granularity = form_data.get("granularity", form_data.get("granularity_sqla"))
+        if granularity is not None:
+            query["granularity"] = granularity
+        if form_data.get("time_grain_sqla") is not None:
+            query.setdefault("extras", {})["time_grain_sqla"] = form_data[
+                "time_grain_sqla"
+            ]
         return [query]

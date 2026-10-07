@@ -107,6 +107,17 @@ npm link superset-plugin-chart-hello-world
 7. **Import and register in Superset**:
    Edit `superset-frontend/src/visualizations/presets/MainPreset.ts` to include your plugin.
 
+### Sharing colors in composed charts
+
+`ChartProps.colorScale` accepts an optional `CategoricalColorScale`. A parent
+visualization can pass the same scale to its child chart transforms so categories
+use consistent colors across the composition. Create a fresh scale for each parent
+transformation using the selected color scheme. Child plugins must explicitly use
+the supplied scale, falling back to their own scale when it is absent.
+
+Cartodiagram uses this contract with Pie charts to coordinate category colors
+across map locations in Explore.
+
 ## Testing
 
 ### Python Testing
@@ -166,11 +177,9 @@ npm run test -- MyComponent.test.tsx
 
 ### E2E Integration Testing
 
-We support both Playwright (recommended) and Cypress for end-to-end testing.
+We use Playwright for end-to-end testing.
 
-#### Playwright (Recommended - NEW)
-
-Playwright is our new E2E testing framework, gradually replacing Cypress.
+#### Playwright
 
 ```bash
 # Navigate to frontend directory
@@ -197,30 +206,6 @@ npm run playwright:debug tests/auth/login.spec.ts
 
 # Generate test report
 npm run playwright:report
-```
-
-#### Cypress (DEPRECATED - will be removed)
-
-Cypress is being phased out in favor of Playwright but is still available:
-
-```bash
-# Set base URL for Cypress
-export CYPRESS_BASE_URL='http://localhost:8088'
-export CYPRESS_DATABASE=test
-export CYPRESS_USERNAME=admin
-export CYPRESS_PASSWORD=admin
-
-# Navigate to Cypress directory
-cd superset-frontend/cypress-base
-
-# Run interactively
-npm run cypress-debug
-
-# Run headless (like CI)
-npm run cypress-run-chrome
-
-# Run specific file
-npm run cypress-run-chrome -- --spec "cypress/e2e/explore/chart.test.js"
 ```
 
 ### Debugging Server App

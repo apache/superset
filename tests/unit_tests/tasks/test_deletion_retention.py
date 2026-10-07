@@ -21,13 +21,17 @@ is preserved as the disable value, and malformed supplied values defer purge.
 """
 
 import runpy
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
-from unittest.mock import MagicMock, patch
+from typing import Any, ClassVar
+from unittest.mock import ANY, call, MagicMock, patch
+from uuid import UUID, uuid4
 
 import pytest
+import sqlalchemy as sa
 from flask.config import Config
+from sqlalchemy.orm import Mapped, mapped_column, registry, Session
 
 
 @pytest.fixture
@@ -226,13 +230,297 @@ def test_clock_uses_now_not_utcnow() -> None:
     with (
         patch.object(mod, "datetime") as clock,
         patch.object(mod, "_soft_delete_models", return_value=[Slice]),
-        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0)) as purge,
+        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0, 0)) as purge,
         patch.object(mod.audit, "reconcile_pending"),
     ):
         clock.now.return_value = now
         mod._purge_impl(30, dry_run=False)
 
     purge.assert_called_once_with(Slice, now - timedelta(days=30), False)
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+@pytest.mark.parametrize("row_count", [0, 1, 3])
+def test_unsupported_model_is_reported_without_scanning(
+    app_config: Config,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    dry_run: bool,
+    row_count: int,
+) -> None:
+    """Skip unsupported models once per run, regardless of eligible row count."""
+    # avoid app-init regression: model helpers require the app_config fixture first.
+    from superset.models.helpers import SoftDeleteMixin
+    from superset.tasks import deletion_retention as task
+
+    monkeypatch.setattr(SoftDeleteMixin, "_registered_subclasses", [])
+    mapper_registry: registry = registry()
+
+    @mapper_registry.mapped
+    class UnsupportedModel(SoftDeleteMixin):
+        """A host-style model with the legacy integer scan key but no purge policy."""
+
+        __tablename__: str = "unsupported_purge_test"
+        __table__: ClassVar[sa.Table]
+        id: Mapped[int] = mapped_column(primary_key=True)
+        uuid: Mapped[UUID] = mapped_column(sa.Uuid, default=uuid4)
+
+    engine: sa.Engine = sa.create_engine("sqlite://")
+    monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", dry_run)
+    try:
+        mapper_registry.metadata.create_all(engine)
+        session: Session
+        with Session(engine) as session:
+            if row_count:
+                session.execute(
+                    sa.insert(UnsupportedModel),
+                    [
+                        {
+                            "id": index + 1,
+                            "deleted_at": datetime.now() - timedelta(days=90),
+                        }
+                        for index in range(row_count)
+                    ],
+                )
+            session.commit()
+            scan: MagicMock
+            rollback: MagicMock
+            write_ahead: MagicMock
+            counter: MagicMock
+            gauge: MagicMock
+            with (
+                patch.object(task.db, "session", session),
+                patch.object(session, "execute", wraps=session.execute) as scan,
+                patch.object(session, "rollback", wraps=session.rollback) as rollback,
+                patch.object(task.audit, "reconcile_pending"),
+                patch.object(task.audit, "write_ahead") as write_ahead,
+                patch.object(task, "resolve_retention_window", return_value=30),
+                patch.object(
+                    task.feature_flag_manager, "is_feature_enabled", return_value=True
+                ),
+                patch.object(task.stats_logger_manager.instance, "incr") as counter,
+                patch.object(task.stats_logger_manager.instance, "gauge") as gauge,
+            ):
+                result: dict[str, Any] = task.purge_soft_deleted.run()
+            if dry_run:
+                assert result["would_purge"] == {}, result
+            else:
+                assert result["cascade_failures"] == 0, result
+                assert result["purged"] == {}, result
+                assert result["blocked_by_reference"] == 0, result
+            assert result["unsupported_models"] == {"unsupported_purge_test": 1}
+            scan.assert_not_called()
+            rollback.assert_not_called()
+            write_ahead.assert_not_called()
+            gauge.assert_not_called()
+            counter.assert_called_once_with(
+                "deletion_retention.unsupported_models.unsupported_purge_test"
+            )
+            assert (
+                caplog.text.count("skipping unsupported_purge_test: no purge policy")
+                == 1
+            )
+            assert (
+                session.scalar(
+                    sa.select(sa.func.count()).select_from(UnsupportedModel.__table__)
+                )
+                == row_count
+            )
+    finally:
+        mapper_registry.dispose()
+        engine.dispose()
+
+
+def test_scan_failure_keeps_the_counts_earned_before_it(app_context: None) -> None:
+    """A scan that fails part-way reports itself and keeps what it purged.
+
+    By the time a later page fails, the earlier page's deletions are
+    committed. Discarding the counts would make the run's summary and its
+    purge gauges understate what was actually removed.
+    """
+    import superset.tasks.deletion_retention as mod
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.slice import Slice
+
+    purged_result: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="gone"
+    )
+
+    def pages(*args: Any, **kwargs: Any) -> Iterator[list[int]]:
+        yield [1, 2]
+        raise RuntimeError("no such column: id")
+
+    with (
+        patch.object(mod, "_iter_eligible_ids", side_effect=pages),
+        patch.object(mod, "_purge_one", return_value=purged_result),
+    ):
+        purged, would, failures, blocked, scan_failures = mod._purge_model(
+            Slice, datetime.now(), dry_run=False
+        )
+
+    assert (purged, would, failures, blocked) == (2, 0, 0, 0)
+    assert scan_failures == 1
+
+
+def test_every_root_failing_reports_the_pass_as_failed(
+    app_config: Config,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Isolation is per root; an outage that takes them all is still a failure.
+
+    Before the per-root isolation this raised and incremented ``failed``, so
+    an alert on that metric covered a metadata-database outage. It still does.
+    """
+    # avoid app-init regression: model helpers require the app_config fixture first.
+    from superset.tasks import deletion_retention as task
+
+    monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", False)
+
+    def every_scan_fails(*args: Any, **kwargs: Any) -> tuple[int, int, int, int, int]:
+        return (0, 0, 0, 0, 1)
+
+    counter: MagicMock
+    with (
+        patch.object(task, "_purge_model", side_effect=every_scan_fails),
+        patch.object(task.audit, "reconcile_pending"),
+        patch.object(task, "resolve_retention_window", return_value=30),
+        patch.object(
+            task.feature_flag_manager, "is_feature_enabled", return_value=True
+        ),
+        patch.object(task.stats_logger_manager.instance, "incr") as counter,
+        patch.object(task.stats_logger_manager.instance, "gauge"),
+    ):
+        result: dict[str, Any] = task.purge_soft_deleted.run()
+
+    assert result["purged"] == {}
+    assert result["scan_failures"] == len(task.purge_policy_registry())
+    assert call("deletion_retention.failed") in counter.call_args_list
+
+
+def test_root_without_a_table_name_does_not_abort_the_run(
+    app_config: Config,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Resolving a root's table name is itself guarded.
+
+    The name is read off the model, so a root that cannot supply one must be
+    counted and skipped like any other failing root -- not end the pass before
+    the roots that could have purged are reached.
+    """
+    # avoid app-init regression: model helpers require the app_config fixture first.
+    from superset.models.helpers import SoftDeleteMixin
+    from superset.tasks import deletion_retention as task
+
+    supported_models: list[type[SoftDeleteMixin]] = list(task.purge_policy_registry())
+    # Swap the registry out before declaring the class below: subclassing
+    # appends to whichever list is current, so declaring it first would leave
+    # it in the real one for the rest of the session.
+    monkeypatch.setattr(SoftDeleteMixin, "_registered_subclasses", supported_models[:])
+
+    class NoTableName(SoftDeleteMixin):
+        """A registered root whose table name cannot be read."""
+
+    monkeypatch.setattr(
+        SoftDeleteMixin,
+        "_registered_subclasses",
+        [NoTableName, *supported_models],
+    )
+    monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", False)
+
+    counter: MagicMock
+    with (
+        patch.object(task, "_purge_model", return_value=(1, 0, 0, 0, 0)),
+        patch.object(task.audit, "reconcile_pending"),
+        patch.object(task, "resolve_retention_window", return_value=30),
+        patch.object(
+            task.feature_flag_manager, "is_feature_enabled", return_value=True
+        ),
+        patch.object(task.stats_logger_manager.instance, "incr") as counter,
+        patch.object(task.stats_logger_manager.instance, "gauge"),
+    ):
+        result: dict[str, Any] = task.purge_soft_deleted.run()
+
+    assert result["scan_failures"] == 1
+    assert len(result["purged"]) == len(supported_models)
+    # Named per root, like unsupported_models.<table>: a run-level count alone
+    # cannot say which root stopped.
+    assert (
+        call("deletion_retention.scan_failures.NoTableName") in counter.call_args_list
+    )
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_unsupported_model_does_not_prevent_supported_models_from_purging(
+    app_config: Config,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    dry_run: bool,
+) -> None:
+    """A skipped model must not stop the remaining supported models in the run."""
+    # avoid app-init regression: model helpers require the app_config fixture first.
+    from superset.models.helpers import SoftDeleteMixin
+    from superset.tasks import deletion_retention as task
+
+    supported_models: list[type[SoftDeleteMixin]] = list(task.purge_policy_registry())
+    monkeypatch.setattr(SoftDeleteMixin, "_registered_subclasses", supported_models[:])
+
+    class UnsupportedModel(SoftDeleteMixin):
+        """An unsupported root that must never reach the row-processing boundary."""
+
+        __tablename__: str = "unsupported_mixed_purge_test"
+
+    # Put the unsupported model first to detect an early return or break.
+    monkeypatch.setattr(
+        SoftDeleteMixin,
+        "_registered_subclasses",
+        [UnsupportedModel, *supported_models],
+    )
+    monkeypatch.setitem(app_config, "SOFT_DELETE_PURGE_DRY_RUN", dry_run)
+    purge: MagicMock
+    counter: MagicMock
+    gauge: MagicMock
+    with (
+        patch.object(
+            task,
+            "_purge_model",
+            return_value=(0, 1, 0, 0, 0) if dry_run else (1, 0, 0, 0, 0),
+        ) as purge,
+        patch.object(task.audit, "reconcile_pending"),
+        patch.object(task, "resolve_retention_window", return_value=30),
+        patch.object(
+            task.feature_flag_manager, "is_feature_enabled", return_value=True
+        ),
+        patch.object(task.stats_logger_manager.instance, "incr") as counter,
+        patch.object(task.stats_logger_manager.instance, "gauge") as gauge,
+    ):
+        result: dict[str, Any] = task.purge_soft_deleted.run()
+
+    assert purge.call_count == len(supported_models)
+    model: type[SoftDeleteMixin]
+    for model in supported_models:
+        assert call(model, ANY, dry_run) in purge.call_args_list
+    assert result["would_purge" if dry_run else "purged"] == {
+        "dashboards": 1,
+        "slices": 1,
+        "tables": 1,
+    }
+    outcome: str = "would_purge" if dry_run else "purged"
+    assert gauge.call_count == 3
+    gauge.assert_has_calls(
+        [
+            call(f"deletion_retention.{outcome}.dashboards", 1),
+            call(f"deletion_retention.{outcome}.slices", 1),
+            call(f"deletion_retention.{outcome}.tables", 1),
+        ],
+        any_order=True,
+    )
+    assert result["unsupported_models"] == {"unsupported_mixed_purge_test": 1}
+    counter.assert_called_once_with(
+        "deletion_retention.unsupported_models.unsupported_mixed_purge_test"
+    )
+    assert (
+        caplog.text.count("skipping unsupported_mixed_purge_test: no purge policy") == 1
+    )
 
 
 def test_default_config_purges_for_real_after_the_retention_window() -> None:
@@ -313,11 +601,11 @@ def test_purge_model_counts_only_committed_deletions(app_context: None) -> None:
         patch.object(mod, "_iter_eligible_ids", return_value=[[1]]),
         patch.object(mod, "_purge_one", return_value=lost_race),
     ):
-        result: tuple[int, int, int, int] = mod._purge_model(
+        result: tuple[int, int, int, int, int] = mod._purge_model(
             Slice, datetime.now(), dry_run=False
         )
 
-    assert result == (0, 0, 0, 0)
+    assert result == (0, 0, 0, 0, 0)
 
 
 def test_scheduled_purge_fails_closed_when_write_ahead_fails(
@@ -339,12 +627,12 @@ def test_scheduled_purge_fails_closed_when_write_ahead_fails(
         patch.object(mod.audit, "write_ahead", return_value=None),
     ):
         session.get.return_value = entity
-        result: tuple[int, int, int, int] = mod._purge_model(
+        result: tuple[int, int, int, int, int] = mod._purge_model(
             Slice, datetime.now(), dry_run=False
         )
 
     cascade.assert_not_called()
-    purged, would, failures, blocked = result
+    purged, would, failures, blocked, _ = result
     assert (purged, would, blocked) == (0, 0, 0)
     assert failures == 1
 
@@ -363,7 +651,7 @@ def test_immediate_cutoff_and_invalid_skip(days: int) -> None:
     with (
         patch.object(mod, "datetime") as clock,
         patch.object(mod, "_soft_delete_models", return_value=[Slice]) as models,
-        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0)) as purge,
+        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0, 0)) as purge,
         patch.object(mod.audit, "reconcile_pending") as reconcile,
     ):
         clock.now.return_value = now
@@ -397,7 +685,7 @@ def test_standalone_window_bounds_reach_safe_purge_cutoff(
         ),
         patch.object(mod, "datetime") as clock,
         patch.object(mod, "_soft_delete_models", return_value=[Slice]),
-        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0)) as purge,
+        patch.object(mod, "_purge_model", return_value=(0, 0, 0, 0, 0)) as purge,
         patch.object(mod.audit, "reconcile_pending"),
     ):
         clock.now.return_value = now

@@ -55,7 +55,7 @@ import {
   StackType,
 } from '../types';
 import { defaultLegendPadding } from '../defaults';
-import { getXAxisDomain } from './formatters';
+import { coerceTemporalMs, getXAxisDomain } from './formatters';
 
 function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
@@ -74,12 +74,31 @@ const LEGEND_MARGIN_GUTTER = 45;
 // ECharts does not expose pre-render measurements for plain legends, so these
 // values intentionally overestimate selector space to avoid clipping.
 const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
-// Keyed on every distinct legend label and (since Gantt's category names
-// share this cache too) every distinct category name ever measured, so an
-// unbounded cache could grow with high-cardinality data over a long session.
-// Cap it and evict the least-recently-used entry once full.
+// Keyed on every distinct legend label ever measured, so an unbounded cache
+// could grow with high-cardinality data over a long session. Cap it and evict
+// the least-recently-used entry once full.
 const TEXT_WIDTH_CACHE_MAX_SIZE = 2000;
 const TEXT_WIDTH_CACHE = new Map<string, number>();
+// Approximate glyph width as a fraction of the font size, used to estimate
+// text width when canvas measurement is unavailable (e.g. SSR).
+const APPROX_CHAR_WIDTH_RATIO = 0.62;
+
+function getTextMeasureContext(
+  theme: SupersetTheme,
+): CanvasRenderingContext2D | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+  const context = document.createElement('canvas').getContext('2d');
+  if (context) {
+    context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
+  }
+  return context;
+}
+
+function estimateTextWidth(text: string, theme: SupersetTheme): number {
+  return text.length * theme.fontSizeSM * APPROX_CHAR_WIDTH_RATIO;
+}
 
 type LegendDataItem =
   | string
@@ -116,16 +135,10 @@ export function measureTextWidth(text: string, theme: SupersetTheme): number {
     return cachedWidth;
   }
 
-  let width = text.length * theme.fontSizeSM * 0.62;
-
-  if (typeof document !== 'undefined') {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    if (context) {
-      context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
-      ({ width } = context.measureText(text));
-    }
-  }
+  const context = getTextMeasureContext(theme);
+  const width = context
+    ? context.measureText(text).width
+    : estimateTextWidth(text, theme);
 
   if (TEXT_WIDTH_CACHE.size >= TEXT_WIDTH_CACHE_MAX_SIZE) {
     const oldestKey = TEXT_WIDTH_CACHE.keys().next().value;
@@ -135,6 +148,30 @@ export function measureTextWidth(text: string, theme: SupersetTheme): number {
   }
   TEXT_WIDTH_CACHE.set(cacheKey, width);
   return width;
+}
+
+/**
+ * Measures the horizontal space `text` occupies when rendered at the theme's
+ * small font size, taking the larger of the advance width and the painted ink
+ * extent. Glyphs such as italics, or glyphs whose ink overhangs the pen
+ * advance, can paint past the advance width, so reserving only the advance
+ * width can clip them. Falls back to an approximate width when canvas is
+ * unavailable (e.g. SSR), or to the advance width when the browser does not
+ * report bounding-box metrics.
+ */
+export function measureTextInkWidth(
+  text: string,
+  theme: SupersetTheme,
+): number {
+  const context = getTextMeasureContext(theme);
+  if (!context) {
+    return estimateTextWidth(text, theme);
+  }
+  const metrics = context.measureText(text);
+  const inkWidth =
+    (metrics.actualBoundingBoxLeft ?? 0) +
+    (metrics.actualBoundingBoxRight ?? 0);
+  return Math.max(metrics.width, inkWidth);
 }
 
 function hasLegendLabel(item: LegendDataItem): boolean {
@@ -1059,23 +1096,6 @@ export function getAxisType(
   return AxisType.Category;
 }
 
-// `new Date('2024-04-06')` parses as UTC, but ECharts' own date parser treats
-// zone-less strings as local time — mismatch would offset the pinned tick.
-const DATE_ONLY_RE = /^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?$/;
-
-function parseTemporalString(value: string): number {
-  const dateOnly = DATE_ONLY_RE.exec(value);
-  if (dateOnly) {
-    const [, year, month, day] = dateOnly;
-    return new Date(
-      Number(year),
-      Number(month || 1) - 1,
-      Number(day || 1),
-    ).getTime();
-  }
-  return new Date(value).getTime();
-}
-
 /**
  * Bucket timestamps a temporal axis should tick on, or undefined to let ECharts
  * choose.
@@ -1100,14 +1120,7 @@ export function getTemporalTickValues(
   }
   const values = new Set<number>();
   data.forEach(row => {
-    const value = row[xAxisLabel];
-    const timestamp =
-      // eslint-disable-next-line no-nested-ternary
-      value instanceof Date
-        ? value.getTime()
-        : typeof value === 'string'
-          ? parseTemporalString(value)
-          : Number(value ?? NaN);
+    const timestamp = coerceTemporalMs(row[xAxisLabel]);
     if (Number.isFinite(timestamp)) {
       values.add(timestamp);
     }

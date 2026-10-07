@@ -511,6 +511,9 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
                 limit=limit,
                 offset=offset,
                 group_limit=group_limit,
+                selection_identity_version=query_object.extras.get(
+                    "semantic_selection_version"
+                ),
             )
         )
 
@@ -580,11 +583,17 @@ def _get_filters_from_query_object(
 
 def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
     """
-    Extract filters from the extras dict.
+    Convert SQL extras into ADHOC filters for direct mapper callers.
+
+    The chart-data path rejects non-empty SQL WHERE/HAVING extras for semantic
+    views before reaching this mapper. This conversion is therefore unreachable
+    through that validated path; it does not establish provider support for
+    arbitrary SQL predicates. Exposing it there would require a provider-specific
+    sanitization contract.
 
     The extras dict can contain various keys that affect query behavior:
 
-    Supported keys (converted to filters):
+    Direct mapper inputs (converted to filters, not chart-data support):
     - "where": SQL WHERE clause expression (e.g., "customer_id > 100")
     - "having": SQL HAVING clause expression (e.g., "SUM(sales) > 1000")
 
@@ -592,8 +601,8 @@ def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
     - "time_grain_sqla": Time granularity (e.g., "P1D", "PT1H")
       Handled in _convert_time_grain() and used for dimension grain matching
 
-    Note: The WHERE and HAVING clauses from extras are SQL expressions that
-    are passed through as-is to the semantic layer as adhoc Filter objects.
+    For direct mapper calls, WHERE and HAVING text is passed unchanged into
+    ADHOC Filter objects; this helper does not sanitize it.
     """
     filters: set[Filter] = set()
 
@@ -1190,6 +1199,9 @@ def validate_query_object(
 
     query_object = cast(ValidatedQueryObject, query_object)
 
+    query_object.datasource.implementation.validate_selection_version(
+        query_object.extras.get("semantic_selection_version")
+    )
     _validate_metrics(query_object)
     _validate_dimensions(query_object)
     _validate_filters(query_object)
