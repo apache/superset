@@ -25,7 +25,6 @@ import {
   CertifiedBadge,
   EmptyState,
   Loading,
-  Typography,
 } from '@superset-ui/core/components';
 import { chat, setActiveCanvas, useChat } from 'src/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
@@ -58,6 +57,23 @@ const Header = styled.header`
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit}px;
+  `}
+`;
+
+const Title = styled.h1`
+  ${({ theme }) => css`
+    margin: 0;
+    color: ${theme.colorTextHeading};
+    font-size: ${theme.fontSizeHeading3}px;
+    font-weight: ${theme.fontWeightStrong};
+    line-height: ${theme.lineHeightHeading3};
+  `}
+`;
+
+const Description = styled.p`
+  ${({ theme }) => css`
+    margin: 0;
+    color: ${theme.colorTextSecondary};
   `}
 `;
 
@@ -137,7 +153,7 @@ function CanvasContent({ id }: { id: number }) {
     <CrudThemeProvider theme={metadata.result?.theme}>
       <Page data-test="canvas-page">
         <Header>
-          <Typography.Title level={3}>
+          <Title>
             {certifiedBy && (
               <>
                 <CertifiedBadge
@@ -147,11 +163,9 @@ function CanvasContent({ id }: { id: number }) {
               </>
             )}
             {title}
-          </Typography.Title>
+          </Title>
           {metadata.result?.description && (
-            <Typography.Text type="secondary">
-              {metadata.result.description}
-            </Typography.Text>
+            <Description>{metadata.result.description}</Description>
           )}
         </Header>
         {isEmpty ? (
