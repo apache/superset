@@ -765,6 +765,8 @@ def test_export_charts_get_independent_budgets_before_query_construction(
     command.run.side_effect = execute
 
     class Export(celery_app.Task):
+        """Probe chart boundaries inside the real Celery application task."""
+
         def run(self) -> dict[str, list[str]]:
             """Exercise the real worker wrapper and workbook chart loop."""
             clock.return_value += task_delay
