@@ -32,8 +32,8 @@ from sqlalchemy.dialects import mysql, postgresql
 
 from superset.config import DISALLOWED_SQL_FUNCTIONS
 from superset.connectors.sqla.models import SqlaTable, TableColumn
-from superset.sql.parse import SQLStatement
 from superset.connectors.sqla.partition_mapping import (
+    _mirror_verdict_cache_key,
     _placeholder_is_bindable,
     _probe_cache_key,
     _render_literal,
@@ -70,7 +70,8 @@ from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.oracle import OracleEngineSpec
 from superset.models.core import Database
-from superset.utils.core import FilterOperator
+from superset.sql.parse import SQLStatement
+from superset.utils.core import FilterOperator, override_user
 
 
 @pytest.fixture(autouse=True)
@@ -709,6 +710,14 @@ def test_niladic_unix_timestamp_is_rejected_but_the_unary_form_is_not() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _user(username: str) -> Any:
+    """A stand-in for `override_user`, which only needs `.username` here."""
+    user = MagicMock()
+    user.username = username
+    user.is_anonymous = False
+    return user
+
+
 def _database_returning(values: list[Any]) -> Database:
     """A real ``Database`` (so the dialect is real) with only ``get_df`` stubbed."""
     database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
@@ -794,7 +803,7 @@ def test_a_postgres_cast_shorthand_is_not_bindable(
 ) -> None:
     """
     `VALUE_PLACEHOLDER_RE` is `:value\b`, which matches inside `:value::bigint`.
-    SQLAlchemy's own scan ends with `(?![:\w$])`, so the following colon stops
+    SQLAlchemy's own scan ends with `(?![:\\w$])`, so the following colon stops
     it: `text(":value::bigint")` reports a parameter named `valu`, and asking it
     to bind `value` raises.
 
@@ -1206,7 +1215,9 @@ def test_an_executable_comment_is_refused_by_every_gate(
     with app.app_context():
         assert stored_expression_error(database, None, None, transform) is not None
 
-    blocking = [issue for issue in validate_transform(transform, "mysql") if issue.blocking]
+    blocking = [
+        issue for issue in validate_transform(transform, "mysql") if issue.blocking
+    ]
     assert len(blocking) == 1
     assert "executable comment" in str(blocking[0].message)
 
@@ -1740,6 +1751,85 @@ def test_probe_cache_key_tracks_the_connection(app: Flask) -> None:
 
     assert before != after_uri
     assert after_uri != after_extra
+
+
+def test_the_probe_cache_ignores_the_caller_without_a_per_user_connection(
+    app: Flask,
+) -> None:
+    """
+    The common case keeps its hit rate.
+
+    The cache exists to keep a synchronous warehouse round trip off the
+    chart-query path, so keying it on the username everywhere would cost every
+    deployment the sharing that makes it worth having -- to fix the two hooks
+    that actually make the connection per-user.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+
+    with app.app_context():
+        with override_user(_user("alice")):
+            as_alice = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+        with override_user(_user("bob")):
+            as_bob = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+
+    assert as_alice == as_bob
+
+
+def test_an_impersonating_connection_keys_the_probe_cache_per_caller(
+    app: Flask,
+) -> None:
+    """
+    With impersonation the warehouse runs the probe as the Superset user, so the
+    values the transform returns are computed under *that* user's grants.
+    Shared, the cache handed user B what the transform saw as user A, and the
+    preview echoed it in `emitted_predicate` -- a cross-user read for a
+    transform wrapping any read-capable function the denylist does not name.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+    database.impersonate_user = True
+
+    with app.app_context():
+        with override_user(_user("alice")):
+            as_alice = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+            alice_verdict = _mirror_verdict_cache_key(
+                database, None, None, "lower(:value)"
+            )
+        with override_user(_user("bob")):
+            as_bob = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+            bob_verdict = _mirror_verdict_cache_key(
+                database, None, None, "lower(:value)"
+            )
+
+    assert as_alice != as_bob
+    # The verdict too: a function one account may call can be refused to
+    # another, so "this transform evaluates" is not a shared answer either.
+    assert alice_verdict != bob_verdict
+
+
+def test_a_connection_mutator_keys_the_probe_cache_per_caller(app: Flask) -> None:
+    """
+    `DB_CONNECTION_MUTATOR` receives the effective username and may return an
+    entirely different account's URL, so it makes the connection per-user even
+    with `impersonate_user` off -- which is why the gate checks both.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+
+    with app.app_context():
+        app.config["DB_CONNECTION_MUTATOR"] = lambda *args: args[:2]
+        try:
+            with override_user(_user("alice")):
+                as_alice = _probe_cache_key(
+                    database, None, None, "lower(:value)", ["US"]
+                )
+            with override_user(_user("bob")):
+                as_bob = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+        finally:
+            app.config["DB_CONNECTION_MUTATOR"] = None
+
+    assert as_alice != as_bob
 
 
 # ---------------------------------------------------------------------------

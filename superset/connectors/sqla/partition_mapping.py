@@ -175,7 +175,7 @@ from superset.extensions import cache_manager, feature_flag_manager
 from superset.sql.parse import SQLScript, SQLStatement
 from superset.superset_typing import FilterValues
 from superset.utils import core as utils, json
-from superset.utils.core import FilterOperator
+from superset.utils.core import FilterOperator, get_username
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -491,10 +491,7 @@ def contains_executable_comment(transform: str | None) -> bool:
     `contains_jinja` and for the same reason: the whole point is that no
     parser this module can reach reports the construct at all.
     """
-    return (
-        bool(transform)
-        and EXECUTABLE_COMMENT_RE.search(transform or "") is not None
-    )
+    return bool(transform) and EXECUTABLE_COMMENT_RE.search(transform or "") is not None
 
 
 def contains_jinja(transform: str | None) -> bool:
@@ -1059,7 +1056,7 @@ def _placeholder_is_bindable(transform: str) -> bool:
 
     `VALUE_PLACEHOLDER_RE` is ``:value\b``, which matches the placeholder in a
     Postgres cast such as ``:value::bigint``. SQLAlchemy's own bind scan is
-    ``(?<![:\w$]):([\w$]+)(?![:\w$])`` -- note the trailing exclusion -- so a
+    ``(?<![:\\w$]):([\\w$]+)(?![:\\w$])`` -- note the trailing exclusion -- so a
     following colon stops it: ``text(":value::bigint")`` reports a parameter
     named ``valu``, and ``.bindparams(bindparam("value"))`` then raises
     ``ArgumentError``.
@@ -1070,14 +1067,16 @@ def _placeholder_is_bindable(transform: str) -> bool:
     transform: it parses, it is a bare expression, and the placeholder *is* in
     an executable position.
 
-    Answered by asking SQLAlchemy rather than by pattern-matching ``::``, so
-    the two can never disagree about what it accepts -- including on dialects
-    and future versions whose scan differs.
+    Answered by attempting the bind itself rather than by pattern-matching
+    ``::`` or reading ``text()``'s private parameter map, so this cannot
+    disagree with what `build_probe_sql` is about to do -- on any dialect, or on
+    a SQLAlchemy whose scan changes.
     """
     try:
-        return "value" in sa.text(transform)._bindparams  # noqa: SLF001
+        sa.text(transform).bindparams(sa.bindparam("value", value=None))
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         return False
+    return True
 
 
 def build_probe_sql(
@@ -1426,6 +1425,40 @@ def _to_python_scalar(value: Any) -> Any:
     return value
 
 
+def _execution_identity(database: Database) -> str | None:
+    """
+    Who the warehouse will run the probe as, when that can vary by caller.
+
+    `_probe_cache_key` keys on the `Database` record, which is the *connection*
+    -- not the identity it is opened under. Two hooks make that identity a
+    function of the Superset user instead:
+
+    * ``impersonate_user`` on the database, which hands the effective username
+      to `db_engine_spec.impersonate_user`;
+    * ``DB_CONNECTION_MUTATOR``, which receives the effective username and may
+      return an entirely different account's URL.
+
+    Under either one, a cached probe result computed under user A's grants was
+    served to user B, and the preview echoed it back in ``emitted_predicate``.
+    A transform wrapping a read-capable function the denylist does not name --
+    Oracle's ``DBMS_XMLGEN.GETXML`` is the worked example -- then leaks across
+    users who were never allowed the same rows.
+
+    Returns ``None`` when neither hook is configured, which is the common case
+    and deliberately leaves the key as it was: the cache exists to keep a
+    synchronous warehouse round trip off the chart-query path, and keying every
+    deployment on the username would cost every deployment the hit rate to fix
+    the two that need it.
+
+    The *Superset* username rather than the resolved warehouse account, because
+    it is the input both hooks branch on, and reading it needs no URL parse and
+    puts no credential in the key.
+    """
+    if not (database.impersonate_user or app.config["DB_CONNECTION_MUTATOR"]):
+        return None
+    return get_username()
+
+
 def _probe_cache_key(
     database: Database,
     catalog: str | None,
@@ -1457,6 +1490,7 @@ def _probe_cache_key(
             schema,
             transform,
             [repr(value) for value in values],
+            _execution_identity(database),
         ],
         default=repr,
     )
@@ -1502,6 +1536,11 @@ def _mirror_verdict_cache_key(
             catalog,
             schema,
             transform,
+            # Whether a transform *can* be evaluated is a property of the
+            # transform and the connection -- but under impersonation the
+            # connection is per-user, and a function one account may call can
+            # be refused to another. See `_execution_identity`.
+            _execution_identity(database),
         ],
         default=repr,
     )
