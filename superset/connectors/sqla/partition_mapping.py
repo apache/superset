@@ -1053,6 +1053,33 @@ def normalize_mixed_numbers(values: Sequence[Any]) -> list[Any]:
     ]
 
 
+def _placeholder_is_bindable(transform: str) -> bool:
+    """
+    Whether SQLAlchemy's ``text()`` can see ``:value`` as a bound parameter.
+
+    `VALUE_PLACEHOLDER_RE` is ``:value\b``, which matches the placeholder in a
+    Postgres cast such as ``:value::bigint``. SQLAlchemy's own bind scan is
+    ``(?<![:\w$]):([\w$]+)(?![:\w$])`` -- note the trailing exclusion -- so a
+    following colon stops it: ``text(":value::bigint")`` reports a parameter
+    named ``valu``, and ``.bindparams(bindparam("value"))`` then raises
+    ``ArgumentError``.
+
+    `_probe` swallows that, so the only symptom was a perfectly valid transform
+    whose mapping silently never pruned, and a preview reporting an engine
+    failure for SQL that was never sent. Every write-side gate passes the
+    transform: it parses, it is a bare expression, and the placeholder *is* in
+    an executable position.
+
+    Answered by asking SQLAlchemy rather than by pattern-matching ``::``, so
+    the two can never disagree about what it accepts -- including on dialects
+    and future versions whose scan differs.
+    """
+    try:
+        return "value" in sa.text(transform)._bindparams  # noqa: SLF001
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        return False
+
+
 def build_probe_sql(
     transform: str,
     values: list[Any],
@@ -1080,6 +1107,7 @@ def build_probe_sql(
     alias and ``from_suffix`` are only safe on a transform with no clause of its
     own; on one carrying its own FROM they attach to that instead.
     """
+    bindable = _placeholder_is_bindable(transform)
     selections = []
     for index, value in enumerate(values):
         if isinstance(value, RawProbeValue):
@@ -1087,9 +1115,22 @@ def build_probe_sql(
             # not run through `_compile_literal`, which has nothing to compile
             # and would undouble percent signs the owner typed on purpose.
             rendered = parse_skeleton(transform, value.sql)
-        else:
+        elif bindable:
             clause = sa.text(transform).bindparams(sa.bindparam("value", value=value))
             rendered = _compile_literal(clause, dialect)
+        else:
+            # `text()` cannot see the placeholder (see
+            # `_placeholder_is_bindable`), so the value is rendered by the
+            # dialect's own literal processor first and substituted as SQL
+            # text. The same two steps in the other order: binding exists to
+            # get the value through that processor, and `_compile_literal`
+            # inlines the result either way, so this is the same string by a
+            # different route -- not a loosening of the "never interpolate a
+            # raw value" rule. `parse_skeleton` substitutes literally, so a
+            # rendered literal containing a backslash is safe here.
+            rendered = parse_skeleton(
+                transform, _compile_literal(sa.literal(value), dialect)
+            )
         selections.append(f"{rendered} AS v{index}")
     return "SELECT " + ", ".join(selections) + from_suffix
 

@@ -34,6 +34,7 @@ from superset.config import DISALLOWED_SQL_FUNCTIONS
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.sql.parse import SQLStatement
 from superset.connectors.sqla.partition_mapping import (
+    _placeholder_is_bindable,
     _probe_cache_key,
     _render_literal,
     build_probe_sql,
@@ -771,6 +772,74 @@ def test_evaluate_transform_binds_values_rather_than_interpolating(
 
     with app.app_context():
         evaluate_transform(database, None, None, "lower(:value)", ["O'Brien"])
+
+    sql = _probe(database).call_args.kwargs["sql"]
+    assert "O'Brien" not in sql
+    assert "O''Brien" in sql
+
+
+@pytest.mark.parametrize(
+    ("transform", "expected"),
+    [
+        ("lower(:value)", True),
+        ("CAST(:value AS BIGINT)", True),
+        ("date_format(:value, '%Y%m%d')", True),
+        # The cast shorthand: a trailing colon stops SQLAlchemy's bind scan.
+        (":value::bigint", False),
+        ("(:value::date)::text", False),
+    ],
+)
+def test_a_postgres_cast_shorthand_is_not_bindable(
+    transform: str, expected: bool
+) -> None:
+    """
+    `VALUE_PLACEHOLDER_RE` is `:value\b`, which matches inside `:value::bigint`.
+    SQLAlchemy's own scan ends with `(?![:\w$])`, so the following colon stops
+    it: `text(":value::bigint")` reports a parameter named `valu`, and asking it
+    to bind `value` raises.
+
+    Pinned because the two regexes disagreeing is the whole bug: every
+    write-side gate accepted the transform and the probe then died on an
+    `ArgumentError` that `_probe` swallows.
+    """
+    assert _placeholder_is_bindable(transform) is expected
+
+
+def test_a_cast_shorthand_transform_still_probes(app: Flask) -> None:
+    """
+    The transform is valid SQL, passes every gate, and used to prune nothing:
+    `build_probe_sql` raised, `_probe` swallowed it, and the only symptom was a
+    mapping that silently never mirrored -- with the preview reporting an engine
+    failure for SQL that was never sent.
+    """
+    database = _database_returning([20260115])
+
+    with app.app_context():
+        result = evaluate_transform(
+            database, None, None, ":value::bigint", ["20260115"]
+        )
+
+    assert result == [20260115]
+    assert _probe(database).call_count == 1
+    assert "::bigint" in _probe(database).call_args.kwargs["sql"]
+
+
+def test_a_cast_shorthand_value_is_still_escaped_by_the_dialect(
+    app: Flask,
+) -> None:
+    """
+    The fallback substitutes where the bind path binds, so it has to earn the
+    same guarantee its sibling above pins: the value is rendered by the
+    dialect's literal processor, not pasted in.
+
+    Binding was only ever the vehicle for reaching that processor --
+    `_compile_literal` inlines the result either way -- so this renders first
+    and substitutes second. Same string, different order.
+    """
+    database = _database_returning(["x"])
+
+    with app.app_context():
+        evaluate_transform(database, None, None, ":value::text", ["O'Brien"])
 
     sql = _probe(database).call_args.kwargs["sql"]
     assert "O'Brien" not in sql
