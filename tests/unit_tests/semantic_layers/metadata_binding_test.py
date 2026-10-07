@@ -930,3 +930,92 @@ def test_async_chart_starts_budget_before_deserialization(
             execute_chart_query.func(serialized, user_id=7)
         with pytest.raises(MetadataRefreshError, match="deadline"):
             operation_deadline()
+
+
+@pytest.mark.parametrize("task_delay", [0, 45])
+@pytest.mark.parametrize("first_fails", [False, True])
+def test_cache_warmup_charts_get_independent_metadata_budgets(
+    app: Flask, task_delay: int, first_fails: bool
+) -> None:
+    """Slow or failed warm-up queries cannot spend the next chart's budget."""
+    from superset.extensions import celery_app
+    from superset.tasks.cache import cache_warmup, CacheWarmupTask
+
+    clock: Mock = Mock(return_value=100.0)
+    observed: list[float] = []
+    user: Mock = Mock()
+    strategy: Mock = Mock(uses_webdriver=False)
+    tasks: list[CacheWarmupTask] = [
+        CacheWarmupTask(Mock(), dashboard_id=1, native_filter_id=name)
+        for name in ("first", "second")
+    ]
+    command: Mock = Mock()
+
+    def enumerate_tasks() -> list[CacheWarmupTask]:
+        """Model task work before any chart enters its acquisition scope."""
+        clock.return_value += task_delay
+        return tasks
+
+    def construct(_context: object) -> Mock:
+        """Require a live scope before chart validation can resolve metadata."""
+        observed.append(operation_deadline())
+        clock.return_value += 5
+        with metadata_operation():
+            assert operation_deadline() == observed[-1]
+        return command
+
+    def execute(*, cache: bool) -> None:
+        """Model slow warehouse work and an optional failure on the first chart."""
+        assert cache
+        clock.return_value += 40
+        if first_fails and len(observed) == 1:
+            raise RuntimeError("warehouse failure")
+
+    strategy.get_tasks.side_effect = enumerate_tasks
+    command.run.side_effect = execute
+
+    class Warmup(celery_app.Task):
+        """Exercise the actual warm-up body under the Celery task wrapper."""
+
+        def run(self) -> dict[str, list[str]] | str:
+            """Run without a broker or a browser."""
+            return cache_warmup.run("budget-test")
+
+    Warmup.bind(celery_app)
+    with (
+        app.app_context(),
+        patch.dict(
+            app.config,
+            {
+                "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True,
+                "SUPERSET_CACHE_WARMUP_USER": "warmup",
+            },
+        ),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch("superset.semantic_layers.metadata_binding.time.monotonic", clock),
+        patch.dict(
+            "superset.tasks.cache.strategy_registry",
+            {"budget-test": Mock(__name__="BudgetTest", return_value=strategy)},
+        ),
+        patch("superset.tasks.cache.security_manager.find_user", return_value=user),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            side_effect=construct,
+        ),
+    ):
+        result: dict[str, list[str]] | str = Warmup()()
+    assert observed == [130.0 + task_delay, 175.0 + task_delay]
+    assert result == {
+        "success": (
+            ["dashboard:1:native_filter:second"]
+            if first_fails
+            else [
+                "dashboard:1:native_filter:first",
+                "dashboard:1:native_filter:second",
+            ]
+        ),
+        "errors": ["dashboard:1:native_filter:first"] if first_fails else [],
+    }

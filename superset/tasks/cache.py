@@ -31,6 +31,7 @@ from superset.daos.dashboard import DashboardDAO
 from superset.extensions import celery_app
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
+from superset.semantic_layers.metadata_binding import chart_metadata_operation
 from superset.tags.models import Tag, TaggedObject
 from superset.tasks.native_filter_cache import (
     build_native_filter_option_form_data,
@@ -409,9 +410,10 @@ def cache_warmup(
                 )
                 try:
                     logger.info("Warming up cache for %s", task_name)
-                    command: Any = ChartDataCommand(task.query_context)
-                    command.validate()
-                    command.run(cache=True)
+                    with chart_metadata_operation():
+                        command: Any = ChartDataCommand(task.query_context)
+                        command.validate()
+                        command.run(cache=True)
                     results["success"].append(task_name)
                 except Exception:  # noqa: BLE001
                     logger.exception("Error warming up cache for %s", task_name)
