@@ -18,8 +18,8 @@
 """
 MCP tool: query_dataset
 
-Query a dataset using its semantic layer (saved metrics, calculated columns,
-dimensions) without requiring a saved chart.
+Query a SQL dataset using its saved metrics, calculated columns and
+dimensions without requiring a saved chart.
 """
 
 import logging
@@ -40,7 +40,10 @@ from superset.common.tabular_query import (
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
-from superset.mcp_service.dataset.dataset_utils import resolve_dataset
+from superset.mcp_service.dataset.dataset_utils import (
+    resolve_dataset,
+    SQL_DATASET_SOURCE_GUIDANCE,
+)
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     QueryDatasetFilter,
@@ -80,11 +83,13 @@ _NO_SAVED_METRICS_HINT = (
 async def query_dataset(  # noqa: C901
     request: QueryDatasetRequest, ctx: Context
 ) -> QueryDatasetResponse | DatasetError:
-    """Query a dataset using its semantic layer (saved metrics, dimensions, filters).
+    """Query SQL datasets only using saved metrics, dimensions and filters.
+
+    For semantic views, use list_metrics for discovery and get_table for queries.
 
     Returns tabular data without requiring a saved chart. Use this when you want
     to compute saved metrics, group by dimensions, or apply filters directly
-    against a dataset's curated semantic layer.
+    against a SQL dataset's curated metrics and columns.
 
     Metrics must be saved metric names from get_dataset_info; ad-hoc
     expressions such as "SUM(col)" are not accepted. When the dataset has no
@@ -159,6 +164,7 @@ async def query_dataset(  # noqa: C901
                 error=(
                     f"No dataset found with identifier: {request.dataset_id}."
                     " Use list_datasets to get valid dataset IDs."
+                    f" {SQL_DATASET_SOURCE_GUIDANCE}"
                 ),
                 error_type="NotFound",
             )
