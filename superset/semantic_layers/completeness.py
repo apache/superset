@@ -21,7 +21,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 
-from superset_core.semantic_layers.errors import SemanticResultIncompleteError
+from superset_core.semantic_layers import errors as core_errors
 
 from superset.exceptions import SemanticResultCompletenessError
 
@@ -29,8 +29,10 @@ from superset.exceptions import SemanticResultCompletenessError
 @contextmanager
 def provider_completeness() -> Iterator[None]:
     """
-    Convert ``superset_core``'s ``SemanticResultIncompleteError`` into the host's
-    ``SemanticResultCompletenessError`` around a provider call.
+    Convert ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+    into the host's ``superset.exceptions.SemanticResultCompletenessError`` around
+    a provider call. The two classes share a name, so refer to the core one only
+    through its module.
 
     Host handlers, translated guidance and the client error status stay keyed on
     the host error. Providers that raise the host error directly are passed
@@ -38,5 +40,5 @@ def provider_completeness() -> Iterator[None]:
     """
     try:
         yield
-    except SemanticResultIncompleteError as ex:
+    except core_errors.SemanticResultCompletenessError as ex:
         raise SemanticResultCompletenessError(ex.reason) from ex

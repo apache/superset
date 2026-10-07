@@ -97,7 +97,7 @@ class SemanticView(ABC):
         """
         Return distinct values for a dimension.
 
-        Raise ``superset_core.semantic_layers.errors.SemanticResultIncompleteError``
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;
         never return a partial result instead.
         Do not drop ``filters`` and retry when a filtered request is incomplete.
@@ -108,7 +108,7 @@ class SemanticView(ABC):
         """
         Execute a semantic query and return the results.
 
-        Raise ``superset_core.semantic_layers.errors.SemanticResultIncompleteError``
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;
         never return a partial result instead.
         """
@@ -118,7 +118,7 @@ class SemanticView(ABC):
         """
         Execute a query and return the number of rows the result would have.
 
-        Raise ``superset_core.semantic_layers.errors.SemanticResultIncompleteError``
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;
         never return a partial result instead.
         """

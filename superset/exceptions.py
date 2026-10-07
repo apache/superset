@@ -18,10 +18,11 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 from flask_babel import gettext as _
 from marshmallow import ValidationError
+from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -243,8 +244,8 @@ class QueryObjectValidationError(SupersetException):
 class SemanticResultCompletenessError(QueryObjectValidationError):
     """Reject incomplete or unverifiable semantic results with safe guidance."""
 
-    def __init__(self, reason: Literal["incomplete", "unverified"]) -> None:
-        self.reason: Literal["incomplete", "unverified"] = reason
+    def __init__(self, reason: SemanticResultCompletenessReason) -> None:
+        self.reason: SemanticResultCompletenessReason = reason
         # Keep fixed guidance aligned with frontend middleware/asyncQueryError.ts.
         message: str
         if reason == "incomplete":

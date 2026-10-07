@@ -26,6 +26,7 @@ from unittest.mock import MagicMock, patch
 import pyarrow as pa
 import pytest
 from sqlalchemy.orm import Session
+from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
     Dimension,
     Grains,
@@ -2751,18 +2752,22 @@ def test_dataset_delete_keeps_permission_a_semantic_view_owns(session: Any) -> N
     assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
 
 
+@pytest.mark.parametrize("reason", ["incomplete", "unverified"])
 @pytest.mark.parametrize("search", ["oo", None], ids=["search", "page"])
 def test_public_completeness_error_in_values_is_host_error_without_retry(
     mock_implementation: MagicMock,
     search: str | None,
+    reason: SemanticResultCompletenessReason,
 ) -> None:
     """A docs-following provider's error must not trigger the unfiltered retry."""
-    from superset_core.semantic_layers.errors import SemanticResultIncompleteError
+    from superset_core.semantic_layers import errors as core_errors
 
     from superset.exceptions import SemanticResultCompletenessError
 
     view: SemanticView = SemanticView()
-    failure: SemanticResultIncompleteError = SemanticResultIncompleteError("unverified")
+    failure: core_errors.SemanticResultCompletenessError = (
+        core_errors.SemanticResultCompletenessError(reason)
+    )
     mock_implementation.get_values.side_effect = [failure, _values_result(["Books"])]
     with patch.object(
         SemanticView,
@@ -2771,5 +2776,6 @@ def test_public_completeness_error_in_values_is_host_error_without_retry(
     ):
         with pytest.raises(SemanticResultCompletenessError) as excinfo:
             view.values_for_column("category", search=search)
-    assert excinfo.value.reason == "unverified"
+    assert excinfo.value.reason == reason
+    assert excinfo.value.__cause__ is failure
     assert mock_implementation.get_values.call_count == 1

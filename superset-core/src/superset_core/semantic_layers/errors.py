@@ -18,12 +18,12 @@
 
 from __future__ import annotations
 
-from typing import get_args, Literal
+from typing import get_args, Literal, TypeAlias
 
-SemanticResultIncompleteReason = Literal["incomplete", "unverified"]
+SemanticResultCompletenessReason: TypeAlias = Literal["incomplete", "unverified"]
 
 
-class SemanticResultIncompleteError(Exception):
+class SemanticResultCompletenessError(Exception):
     """
     Raise from ``get_table``, ``get_values`` or ``get_row_count`` when a result is
     incomplete (``"incomplete"``) or its completeness cannot be verified
@@ -35,8 +35,8 @@ class SemanticResultIncompleteError(Exception):
     of raising.
     """
 
-    def __init__(self, reason: SemanticResultIncompleteReason) -> None:
-        if reason not in get_args(SemanticResultIncompleteReason):
+    def __init__(self, reason: SemanticResultCompletenessReason) -> None:
+        if reason not in get_args(SemanticResultCompletenessReason):
             raise ValueError("Unknown completeness reason")
         super().__init__(reason)
-        self.reason: SemanticResultIncompleteReason = reason
+        self.reason: SemanticResultCompletenessReason = reason

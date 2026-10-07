@@ -16,7 +16,7 @@
 # under the License.
 
 from datetime import date, datetime, time, timezone
-from typing import Any, Literal
+from typing import Any
 from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
@@ -25,6 +25,7 @@ import pandas as pd
 import pyarrow as pa
 import pytest
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
@@ -4186,10 +4187,10 @@ def test_public_provider_completeness_error_becomes_host_error(
     mocker: MockerFixture,
     dispatch: str,
     offsets: list[str],
-    reason: Literal["incomplete", "unverified"],
+    reason: SemanticResultCompletenessReason,
 ) -> None:
     """A provider following the public contract gets the host's client error."""
-    from superset_core.semantic_layers.errors import SemanticResultIncompleteError
+    from superset_core.semantic_layers import errors as core_errors
 
     from superset.exceptions import SemanticResultCompletenessError
 
@@ -4197,7 +4198,9 @@ def test_public_provider_completeness_error_becomes_host_error(
         requests=[SemanticRequest(type="SQL", definition="fixture")],
         results=pa.table({"category": ["Books"], "total_sales": [10.0]}),
     )
-    failure: SemanticResultIncompleteError = SemanticResultIncompleteError(reason)
+    failure: core_errors.SemanticResultCompletenessError = (
+        core_errors.SemanticResultCompletenessError(reason)
+    )
     setattr(
         mock_datasource.implementation,
         dispatch,

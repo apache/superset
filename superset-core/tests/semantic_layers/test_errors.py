@@ -22,31 +22,31 @@ from typing import cast
 
 import pytest
 from superset_core.semantic_layers.errors import (
-    SemanticResultIncompleteError,
-    SemanticResultIncompleteReason,
+    SemanticResultCompletenessError,
+    SemanticResultCompletenessReason,
 )
 
 
 @pytest.mark.parametrize("reason", ["incomplete", "unverified"])
 def test_incomplete_error_carries_closed_reason(
-    reason: SemanticResultIncompleteReason,
+    reason: SemanticResultCompletenessReason,
 ) -> None:
-    error: SemanticResultIncompleteError = SemanticResultIncompleteError(reason)
+    error: SemanticResultCompletenessError = SemanticResultCompletenessError(reason)
     assert error.reason == reason
     assert not isinstance(error, (ValueError, LookupError))
 
 
 def test_incomplete_error_rejects_unknown_reason() -> None:
-    reason: SemanticResultIncompleteReason = cast(
-        SemanticResultIncompleteReason, "raw upstream diagnostics"
+    reason: SemanticResultCompletenessReason = cast(
+        SemanticResultCompletenessReason, "raw upstream diagnostics"
     )
     with pytest.raises(ValueError, match="Unknown completeness reason"):
-        SemanticResultIncompleteError(reason)
+        SemanticResultCompletenessError(reason)
 
 
 def _pickle_roundtrip(
-    error: SemanticResultIncompleteError,
-) -> SemanticResultIncompleteError:
+    error: SemanticResultCompletenessError,
+) -> SemanticResultCompletenessError:
     return pickle.loads(pickle.dumps(error))  # noqa: S301
 
 
@@ -54,9 +54,13 @@ def _pickle_roundtrip(
     "roundtrip", [_pickle_roundtrip, copy.copy], ids=["pickle", "copy"]
 )
 def test_incomplete_error_survives_serialization(
-    roundtrip: Callable[[SemanticResultIncompleteError], SemanticResultIncompleteError],
+    roundtrip: Callable[
+        [SemanticResultCompletenessError], SemanticResultCompletenessError
+    ],
 ) -> None:
-    error: SemanticResultIncompleteError = SemanticResultIncompleteError("unverified")
-    restored: SemanticResultIncompleteError = roundtrip(error)
-    assert type(restored) is SemanticResultIncompleteError
+    error: SemanticResultCompletenessError = SemanticResultCompletenessError(
+        "unverified"
+    )
+    restored: SemanticResultCompletenessError = roundtrip(error)
+    assert type(restored) is SemanticResultCompletenessError
     assert restored.reason == "unverified"
