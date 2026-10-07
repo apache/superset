@@ -41,9 +41,11 @@ def create_query_object_factory() -> QueryObjectFactory:
 
 class QueryContextFactory:  # pylint: disable=too-few-public-methods
     _query_object_factory: QueryObjectFactory
+    _authorize_semantic_before_metadata: bool
 
-    def __init__(self) -> None:
+    def __init__(self, authorize_semantic_before_metadata: bool = False) -> None:
         self._query_object_factory = create_query_object_factory()
+        self._authorize_semantic_before_metadata = authorize_semantic_before_metadata
 
     def create(  # pylint: disable=too-many-arguments
         self,
@@ -71,6 +73,28 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
+
+        if (
+            self._authorize_semantic_before_metadata
+            and datasource_model_instance is not None
+            and DatasourceType(datasource["type"]) == DatasourceType.SEMANTIC_VIEW
+        ):
+            from superset import (
+                security_manager,  # pylint: disable=import-outside-toplevel
+            )
+
+            # Guest dashboard and payload checks need the completed query context;
+            # keep their authorization path and timing unchanged.
+            if not security_manager.is_guest_user():
+                QueryContext(
+                    datasource=datasource_model_instance,
+                    queries=[],
+                    slice_=slice_,
+                    form_data=form_data,
+                    result_type=result_type,
+                    result_format=result_format,
+                    cache_values={},
+                ).raise_for_access()
 
         # The server pagination var is extracted from form data as the
         # row limit for server pagination is more

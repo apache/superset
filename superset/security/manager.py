@@ -5398,7 +5398,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and dashboard_.json_metadata
                             and (json_metadata := json.loads(dashboard_.json_metadata))
                             and any(
-                                target.get("datasetId") == datasource.data["id"]
+                                target.get("datasetId")
+                                == (
+                                    # Ordinary semantic-view checks use the model ID
+                                    # without loading provider metadata. Guest checks
+                                    # retain their existing access path and timing.
+                                    datasource.id
+                                    if datasource.type == DatasourceType.SEMANTIC_VIEW
+                                    and not self.is_guest_user()
+                                    else datasource.data["id"]
+                                )
                                 for fltr in json_metadata.get(
                                     "native_filter_configuration",
                                     [],
