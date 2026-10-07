@@ -100,7 +100,10 @@ The semantic-view editor exposes **Sync metadata** next to its tabs when the
 server reports maintenance capability and a stored UUID. This action refreshes
 metadata without saving the description or cache-timeout draft. It preserves
 the active tab. If publication succeeds but local reload fails, **Reload fields**
-retries the read only. Closing or switching editors discards stale completions.
+retries the read only. An unconfirmed sync also offers **Reload fields** and
+disables another sync until the reload succeeds. This refreshes both the editor
+and Explore without publishing again or claiming that sync succeeded; the draft
+stays intact. Closing or switching editors discards stale completions.
 Explore reloads datasource fields and compatibility for the current selection;
 it does not save chart settings or automatically run a chart query. Controls use
 their normal validation against the refreshed choices. If that removes or changes

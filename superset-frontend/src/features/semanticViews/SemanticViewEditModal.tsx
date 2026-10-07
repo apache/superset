@@ -110,8 +110,8 @@ const STRUCTURE_INFO_MESSAGE = t(
 
 type SyncState =
   | { status: 'idle' | 'syncing' }
-  | { status: 'reloading' | 'done' | 'reload-error'; changed: boolean }
-  | { status: 'error'; message: string };
+  | { status: 'reloading' | 'done' | 'reload-error'; changed: boolean | null }
+  | { status: 'error' | 'indeterminate'; message: string };
 
 export default function SemanticViewEditModal({
   show,
@@ -135,6 +135,8 @@ export default function SemanticViewEditModal({
   const busy = useRef(false);
   const syncing =
     syncState.status === 'syncing' || syncState.status === 'reloading';
+  const reloadOnly =
+    syncState.status === 'reload-error' || syncState.status === 'indeterminate';
 
   useEffect(() => {
     generation.current += 1;
@@ -168,7 +170,8 @@ export default function SemanticViewEditModal({
         const clientError = await getClientErrorObject(error);
         if (!isCurrent()) return;
         addDangerToast?.(
-          clientError.error ||
+          clientError.message ||
+            clientError.error ||
             t('An error occurred while fetching the semantic view structure'),
         );
       })
@@ -220,7 +223,7 @@ export default function SemanticViewEditModal({
 
   const reloadFields = async (
     viewId: number,
-    changed: boolean,
+    changed: boolean | null,
     isCurrent: () => boolean,
   ) => {
     setSyncState({ status: 'reloading', changed });
@@ -244,7 +247,7 @@ export default function SemanticViewEditModal({
       !structure?.uuid ||
       structure.can_refresh_metadata !== true ||
       busy.current ||
-      syncState.status === 'reload-error'
+      reloadOnly
     )
       return;
     busy.current = true;
@@ -265,23 +268,35 @@ export default function SemanticViewEditModal({
       );
     } catch (error) {
       if (!isCurrent()) return;
-      const message = await metadataSyncError(error);
+      const { message, reloadRequired } = await metadataSyncError(error);
       if (!isCurrent()) return;
-      setSyncState({ status: 'error', message });
+      setSyncState({
+        status: reloadRequired ? 'indeterminate' : 'error',
+        message,
+      });
     } finally {
       if (isCurrent()) busy.current = false;
     }
   };
 
   const handleReload = async () => {
-    if (!semanticView || busy.current || syncState.status !== 'reload-error')
+    if (
+      !semanticView ||
+      busy.current ||
+      (syncState.status !== 'reload-error' &&
+        syncState.status !== 'indeterminate')
+    )
       return;
     busy.current = true;
     generation.current += 1;
     const requestGeneration = generation.current;
     const isCurrent = () => requestGeneration === generation.current;
     try {
-      await reloadFields(semanticView.id, syncState.changed, isCurrent);
+      await reloadFields(
+        semanticView.id,
+        syncState.status === 'reload-error' ? syncState.changed : null,
+        isCurrent,
+      );
     } finally {
       if (isCurrent()) busy.current = false;
     }
@@ -307,16 +322,26 @@ export default function SemanticViewEditModal({
         {syncing && <output>{t('Syncing metadata…')}</output>}
         {syncState.status === 'done' && (
           <output>
-            {syncState.changed
-              ? t('Metadata synced')
-              : t('Metadata is up to date')}
+            {syncState.changed === null
+              ? t('Fields reloaded')
+              : syncState.changed
+                ? t('Metadata synced')
+                : t('Metadata is up to date')}
           </output>
         )}
-        {syncState.status === 'error' && (
+        {(syncState.status === 'error' ||
+          syncState.status === 'indeterminate') && (
           <Alert
-            type="error"
+            type={syncState.status === 'indeterminate' ? 'warning' : 'error'}
             role="alert"
             message={syncState.message}
+            action={
+              syncState.status === 'indeterminate' ? (
+                <Button buttonSize="small" onClick={handleReload}>
+                  {t('Reload fields')}
+                </Button>
+              ) : undefined
+            }
             showIcon
           />
         )}
@@ -325,7 +350,11 @@ export default function SemanticViewEditModal({
             type="warning"
             closable={false}
             role="alert"
-            message={t('Metadata synced; unable to reload fields')}
+            message={
+              syncState.changed === null
+                ? t('Unable to reload fields')
+                : t('Metadata synced; unable to reload fields')
+            }
             action={
               <Button buttonSize="small" onClick={handleReload}>
                 {t('Reload fields')}
@@ -344,9 +373,7 @@ export default function SemanticViewEditModal({
                 buttonSize="small"
                 buttonStyle="tertiary"
                 onClick={handleSync}
-                disabled={
-                  saving || syncing || syncState.status === 'reload-error'
-                }
+                disabled={saving || syncing || reloadOnly}
                 loading={syncing}
               >
                 <Icons.DatabaseOutlined iconSize="m" aria-hidden />

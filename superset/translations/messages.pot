@@ -17811,10 +17811,6 @@ msgstr ""
 msgid "Metadata storage is unavailable. Try again later."
 msgstr ""
 
-#: superset-frontend/src/features/semanticViews/metadataSyncError.ts:48
-msgid "Metadata sync could not be confirmed. Reopen the editor to reload fields before trying again."
-msgstr ""
-
 #: superset-frontend/src/features/semanticViews/metadataSyncError.ts:53
 msgid "You no longer have permission to sync metadata. Reopen the editor or sign in again."
 msgstr ""
@@ -17849,4 +17845,10 @@ msgstr ""
 
 #: superset-frontend/src/features/semanticViews/SemanticViewEditModal.tsx:414
 msgid "Cache metadata"
+msgstr ""
+
+msgid "Fields reloaded"
+msgstr ""
+
+msgid "Unable to reload fields"
 msgstr ""

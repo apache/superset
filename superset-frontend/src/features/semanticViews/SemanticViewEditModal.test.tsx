@@ -845,7 +845,7 @@ test.each([
   ['unavailable', 'Metadata storage is unavailable. Try again later.'],
   [
     'indeterminate',
-    'Metadata sync could not be confirmed. Reopen the editor to reload fields before trying again.',
+    'Metadata sync could not be confirmed. Reload fields before trying again.',
   ],
   ['unknown', 'Unable to sync metadata. Try again later.'],
 ])(
@@ -991,3 +991,126 @@ test('late cache inspection cannot appear in a reopened session', async () => {
     screen.getByRole('button', { name: 'Inspect cache metadata' }),
   ).toBeEnabled();
 });
+
+const realClientErrorParser =
+  jest.requireActual<typeof import('@superset-ui/core')>(
+    '@superset-ui/core',
+  ).getClientErrorObject;
+
+test.each<[string, number, string]>([
+  [
+    'unavailable',
+    503,
+    'Shared metadata storage is unavailable. Try again later.',
+  ],
+  ['deadline', 504, 'Metadata sync timed out. Try again later.'],
+])(
+  'structure category %s shows its localized response message',
+  async (error, status, message) => {
+    mockedGetClientErrorObject.mockImplementation(realClientErrorParser);
+    mockedGet.mockRejectedValue({
+      response: new Response(JSON.stringify({ error, message }), { status }),
+    });
+    const props = createProps();
+    render(<SemanticViewEditModal {...props} />);
+    await waitFor(() =>
+      expect(props.addDangerToast).toHaveBeenCalledWith(message),
+    );
+    expect(props.addDangerToast).not.toHaveBeenCalledWith(error);
+    expect(screen.getByRole('textbox')).toHaveValue('old description');
+    expect(mockedPost).not.toHaveBeenCalled();
+  },
+);
+
+test.each([false, true])(
+  'uncertain sync reloads fields without another publication (retry=%s)',
+  async failFirstReload => {
+    mockedGetClientErrorObject.mockImplementation(realClientErrorParser);
+    mockedGet.mockResolvedValueOnce({ json: SYNC_STRUCTURE });
+    if (failFirstReload)
+      mockedGet.mockRejectedValueOnce(new Error('reload failed'));
+    mockedGet.mockResolvedValue({ json: SYNCED_STRUCTURE });
+    mockedPost.mockRejectedValue({
+      response: new Response(
+        JSON.stringify({ error: 'indeterminate', message: 'private detail' }),
+        { status: 503 },
+      ),
+    });
+    const props = { ...createProps(), onMetadataSync: jest.fn() };
+    render(<SemanticViewEditModal {...props} />);
+    const sync = await screen.findByRole('button', { name: 'Sync metadata' });
+    await userEvent.type(screen.getByRole('textbox'), ' draft');
+    await userEvent.click(sync);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Metadata sync could not be confirmed',
+    );
+    expect(sync).toBeDisabled();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Reload fields' }),
+    );
+    if (failFirstReload) {
+      await waitFor(() =>
+        expect(screen.getByRole('alert')).toHaveTextContent(
+          'Unable to reload fields',
+        ),
+      );
+      expect(sync).toBeDisabled();
+      expect(props.onMetadataSync).not.toHaveBeenCalled();
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Reload fields' }),
+      );
+    }
+    expect(await screen.findByText('Fields reloaded')).toBeInTheDocument();
+    expect(props.onMetadataSync).toHaveBeenCalledTimes(1);
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+    expect(mockedGet).toHaveBeenCalledTimes(failFirstReload ? 3 : 2);
+    expect(screen.getByRole('textbox')).toHaveValue('old description draft');
+    expect(
+      screen.getByRole('tab', { name: 'Metrics (5)' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Metadata synced')).not.toBeInTheDocument();
+    expect(props.addSuccessToast).not.toHaveBeenCalled();
+    expect(sync).toBeEnabled();
+  },
+);
+
+test.each<[number, string]>([
+  [
+    401,
+    'You no longer have permission to sync metadata. Reopen the editor or sign in again.',
+  ],
+  [
+    403,
+    'You no longer have permission to sync metadata. Reopen the editor or sign in again.',
+  ],
+  [404, 'This semantic view is no longer available. Reopen the editor.'],
+])(
+  'real response %s preserves the draft without reloading or claiming success',
+  async (status, message) => {
+    mockedGetClientErrorObject.mockImplementation(realClientErrorParser);
+    mockedGet.mockResolvedValue({ json: SYNC_STRUCTURE });
+    mockedPost.mockRejectedValue({
+      response: new Response(JSON.stringify({ message: 'request refused' }), {
+        status,
+      }),
+    });
+    const props = { ...createProps(), onMetadataSync: jest.fn() };
+    render(<SemanticViewEditModal {...props} />);
+    const sync = await screen.findByRole('button', { name: 'Sync metadata' });
+    await userEvent.type(screen.getByRole('textbox'), ' draft');
+    await userEvent.clear(screen.getByRole('spinbutton'));
+    await userEvent.type(screen.getByRole('spinbutton'), '120');
+    await userEvent.click(sync);
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.getByRole('textbox')).toHaveValue('old description draft');
+    expect(screen.getByRole('spinbutton')).toHaveDisplayValue('120');
+    expect(mockedGet).toHaveBeenCalledTimes(1);
+    expect(mockedPost).toHaveBeenCalledTimes(1);
+    expect(props.onMetadataSync).not.toHaveBeenCalled();
+    expect(props.addSuccessToast).not.toHaveBeenCalled();
+    expect(screen.queryByText('Metadata synced')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Metadata is up to date'),
+    ).not.toBeInTheDocument();
+  },
+);

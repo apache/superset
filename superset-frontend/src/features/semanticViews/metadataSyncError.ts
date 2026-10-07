@@ -19,10 +19,15 @@
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
 
+interface MetadataSyncFailure {
+  message: string;
+  reloadRequired: boolean;
+}
+
 /** Only locally defined copy crosses this presentation boundary. */
 export async function metadataSyncError(
   error: Parameters<typeof getClientErrorObject>[0],
-): Promise<string> {
+): Promise<MetadataSyncFailure> {
   const fallback = t('Unable to sync metadata. Try again later.');
   try {
     const parsed = await getClientErrorObject(error);
@@ -46,20 +51,31 @@ export async function metadataSyncError(
       deadline: t('Metadata sync timed out. Try again later.'),
       unavailable: t('Metadata storage is unavailable. Try again later.'),
       indeterminate: t(
-        'Metadata sync could not be confirmed. Reopen the editor to reload fields before trying again.',
+        'Metadata sync could not be confirmed. Reload fields before trying again.',
       ),
     };
     if (parsed.status === 401 || parsed.status === 403) {
-      return t(
-        'You no longer have permission to sync metadata. Reopen the editor or sign in again.',
-      );
+      return {
+        message: t(
+          'You no longer have permission to sync metadata. Reopen the editor or sign in again.',
+        ),
+        reloadRequired: false,
+      };
     }
     if (parsed.status === 404)
-      return t('This semantic view is no longer available. Reopen the editor.');
-    return Object.hasOwn(messages, parsed.error)
-      ? messages[parsed.error]
-      : fallback;
+      return {
+        message: t(
+          'This semantic view is no longer available. Reopen the editor.',
+        ),
+        reloadRequired: false,
+      };
+    return {
+      message: Object.hasOwn(messages, parsed.error)
+        ? messages[parsed.error]
+        : fallback,
+      reloadRequired: parsed.error === 'indeterminate',
+    };
   } catch {
-    return fallback;
+    return { message: fallback, reloadRequired: false };
   }
 }
