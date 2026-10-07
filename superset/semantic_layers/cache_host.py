@@ -161,9 +161,10 @@ def build_cache_configuration(
         else str(changed_on),
     }
     # A metadata refresh changes the view's metadata cache token, not its
-    # ``changed_on``, so the token must key containment entries. A layer
-    # bound to a metadata store must supply one; bypass rather than fall
-    # back to the legacy identity.
+    # ``changed_on``, so the token must key containment entries. A layer that
+    # opts in to metadata refresh (returns an adapter) must supply one; core
+    # cannot tell whether the adapter is bound, so treat opting in as bound
+    # and bypass rather than fall back to the legacy identity.
     token: str | None = _metadata_cache_token(datasource)
     if token is not None:
         # Keyed as the observation it identifies; it is not a secret, and
