@@ -5704,7 +5704,7 @@ def test_semantic_layer_delete_locks_child_permission_before_owner_probe(
     connection: MagicMock = MagicMock()
     connection.execute.side_effect = [
         MagicMock(scalars=MagicMock(return_value=["[shared](id:42)"])),
-        MagicMock(scalar_one_or_none=MagicMock(return_value=1)),
+        MagicMock(all=MagicMock(return_value=[1])),
         MagicMock(scalars=MagicMock(return_value=[])),
         MagicMock(scalars=MagicMock(return_value=[])),
     ]
@@ -5716,4 +5716,5 @@ def test_semantic_layer_delete_locks_child_permission_before_owner_probe(
     lock_statement: Any = connection.execute.call_args_list[1].args[0]
     sql: str = str(lock_statement.compile(dialect=postgresql.dialect()))
     assert "ab_view_menu" in sql
+    assert "ORDER BY" in sql
     assert "FOR UPDATE" in sql

@@ -4428,9 +4428,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # The database can cascade unloaded views without firing their delete
         # hooks. Serialize their permission cleanup with direct owner deletes.
-        perm_to_lock: str
-        for perm_to_lock in sorted(view_perms):
-            self._lock_datasource_perm(connection, perm_to_lock)
+        self._lock_datasource_perms(connection, view_perms)
 
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
@@ -4491,7 +4489,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             SemanticView,
         )
 
-        self._lock_datasource_perm(connection, perm)
+        self._lock_datasource_perms(connection, {perm})
 
         table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
         if connection.execute(
@@ -4507,14 +4505,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             is not None
         )
 
-    def _lock_datasource_perm(self, connection: Connection, perm: str) -> None:
-        """Serialize owner checks sharing a datasource permission name."""
+    def _lock_datasource_perms(
+        self, connection: Connection, perms: AbstractSet[str]
+    ) -> None:
+        """Serialize owner checks sharing datasource permission names."""
         view_menu_table: SQLATable = self.viewmenu_model.__table__  # pylint: disable=no-member
         connection.execute(
             select(view_menu_table.c.id)
-            .where(view_menu_table.c.name == perm)
+            .where(view_menu_table.c.name.in_(perms))
+            .order_by(view_menu_table.c.name)
             .with_for_update()
-        ).scalar_one_or_none()
+        ).all()
 
     def semantic_layer_after_delete(
         self,
