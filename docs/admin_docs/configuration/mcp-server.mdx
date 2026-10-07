@@ -110,6 +110,56 @@ retains its call's slot rather than exhausting cancellation capacity for new
 calls. One warning with the call ID records abandonment. A timeout does not guarantee that warehouse writes were
 rolled back, so do not blindly retry mutating SQL.
 
+## Native filter defaults
+
+`manage_native_filters` accepts `default_value` for select filters. An empty
+list clears the selection. With `enable_empty_filter: true`, that explicit
+empty default matches no rows in both the dashboard UI and server-side
+dashboard chart queries, including for UI-created non-exact select filters.
+Creating a required select filter without `default_value` also stores this
+match-nothing default, unless `default_to_first_item` is enabled.
+Inverse-selection filters retain the UI's no-predicate behavior for empty
+selections. Disabling `enable_empty_filter` removes the empty default's
+match-nothing predicate without requiring another `default_value` update.
+Explicit defaults, including an empty list, cannot be combined with
+`default_to_first_item: true`. Creating a first-item filter or enabling that
+option on an existing filter leaves the stored selection unset so the dashboard
+can choose the first available item after loading options. Toggling
+`enable_empty_filter` on a first-item filter preserves that behavior rather than
+storing an explicit empty selection or match-nothing predicate. Any update to
+a first-item filter also clears a defined legacy stored selection (including
+`null`) when first-item mode remains enabled, allowing automatic selection.
+Select filters with legacy string-column
+targets support both default updates and applied selections.
+
+## Bounding dashboard dataset metadata
+
+`get_dashboard_datasets` lists a dashboard's datasets and semantic views with
+column and metric details. Its optional `max_columns` and `max_metrics`
+parameters limit the number of columns (0–100, default 100) and metrics (0–50,
+default 50) returned **per dataset**. Columns and metrics are sorted by name
+before the caps apply, so repeated calls return the same subset. For a wide
+dashboard, start with smaller caps or omit the details entirely:
+
+```json
+{
+  "request": {
+    "identifier": 123,
+    "max_columns": 0,
+    "max_metrics": 0
+  }
+}
+```
+
+Dataset identities, chart counts, and total column and metric counts are
+retained. `columns_truncated` and `metrics_truncated` are true whenever fewer
+items are returned than the dataset contains, including when a cap of 0 omits a
+nonempty list. Use `get_dataset_info` to fetch details for an individual
+dataset. Omitting both parameters returns up to 100 columns and 50 metrics per
+dataset. The caps bound per-dataset details, not the number of datasets or the
+entire response's byte size; a dashboard with many datasets can still exceed the
+server's configured byte limit.
+
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse
@@ -1534,6 +1584,39 @@ For saved and unsaved charts, `get_chart_data` column metadata excludes missing
 values from `unique_count`. Values serialized as JSON `null`, including NaN,
 NaT, and non-finite numbers, contribute to `null_count` instead.
 
+## Big Number headlines
+
+For Big Number charts (`big_number` and `big_number_total`), `get_chart_data`
+and `get_dashboard_data` return a `headline` object holding the number the chart
+displays. Agents should report `headline.value` rather than reading or summing
+the data rows: for the trendline variant the rows are a time series, and the
+displayed number is derived from the whole series by the chart's aggregation.
+
+| Field | Contents |
+| --- | --- |
+| `value` | The displayed number, or `null` when it cannot be computed exactly |
+| `aggregation` | `total` for `big_number_total`; otherwise the chart's aggregation (`LAST_VALUE`, `sum`, `mean`, `min`, `max`, `median`, or `raw`) |
+| `rows_used` | The number of non-null values aggregated |
+| `reason` | Why `value` is `null` |
+
+A headline is only returned when it matches the rendered chart, so `value` is
+`null` with a `reason` when:
+
+- The query returned no rows, the metric column is missing, or every metric
+  value is null.
+- The chart applies a rolling window or resampling that the executed query did
+  not include, or the fetch was truncated at the row limit.
+- The aggregation picks the latest value (`LAST_VALUE`) and some rows have no
+  usable timestamp. The chart's ordering of such rows depends on row order, so
+  the value it shows cannot be determined exactly. Order-independent
+  aggregations still include those rows.
+- The aggregation is `raw` ("Overall value") and the chart has no saved query
+  context. That value comes from a second query that only a saved query context
+  carries, so unsaved and `form_data_key` requests return `null`.
+
+When `form_data_key` is supplied, the headline follows the unsaved visualization
+type, including when switching to or from a Big Number chart.
+
 ## Dataset query dimensions and nested fields
 
 The `query_dataset` tool accepts exact column names registered on the selected
@@ -1617,6 +1700,20 @@ structured errors instead of apparently successful previews, charts or exports.
 
 ## Dataset discovery and routing
 
+`list_datasets`, `get_dataset_info`, `update_dataset`, and `query_dataset`
+operate on registered **SQL datasets** (physical tables or virtual SQL queries),
+not external semantic views. `create_dataset` registers a physical table as a
+SQL dataset; it does not create or register semantic views. The `certified`
+filter in `list_datasets` selects certified SQL datasets, not external views.
+
+For existing semantic views, use `list_metrics` to discover metrics and
+`get_table` to query them, retaining the returned source and view identity.
+These tools do not provision or edit semantic views. A dataset not-found error
+offers this routing guidance without establishing whether a semantic view
+exists or is accessible. Numeric IDs can overlap across source types; do not
+reuse a semantic-view ID as a SQL-dataset ID or substitute another source.
+All tool permissions, feature flags, and datasource access checks still apply.
+
 `list_datasets` searches table name, **description**, schema, and SQL using
 escaped, case-insensitive substring matching. Write descriptions with business
 terminology to make differently named datasets discoverable. A complete UUID
@@ -1695,6 +1792,11 @@ latency.
 `manage_native_filters` requires a numeric dataset column when adding a
 `filter_range` filter or changing its dataset/column target. Select filters
 continue to accept nonnumeric columns.
+
+Dividers are visual separators and are always in scope. When updating a
+`divider` with `manage_native_filters`, use `name` to change its title and
+`description` to change its description; `scope_chart_ids` is rejected.
+`apply_dashboard_filters` excludes dividers from its available-filter error lists.
 
 For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
 one datasource-supported duration (for example, `["P1D"]`). Custom engine
