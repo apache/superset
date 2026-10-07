@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-07 00:32+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1054,6 +1054,21 @@ msgid "AQE"
 msgstr ""
 
 msgid "AUG"
+msgstr ""
+
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
 msgstr ""
 
 msgid "Aborted"
@@ -2301,6 +2316,9 @@ msgid "Associated alerts and reports"
 msgstr ""
 
 msgid "Asynchronous query execution"
+msgstr ""
+
+msgid "Athena work group to run queries against"
 msgstr ""
 
 msgid "Attribution"
@@ -4859,6 +4877,9 @@ msgid "Default message"
 msgstr ""
 
 msgid "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space"
+msgstr ""
+
+msgid "Default schema (database) to connect to"
 msgstr ""
 
 msgid "Default value must be set when \"Filter has default value\" is checked"
@@ -9656,6 +9677,9 @@ msgstr ""
 msgid "Optional dimension used to split the chart into multiple candlestick series."
 msgstr ""
 
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
+
 msgid "Optional metric used to scale the size of each dot. Dot areas are scaled linearly between the minimum and maximum dot size."
 msgstr ""
 
@@ -10608,6 +10632,9 @@ msgstr ""
 msgid "Refreshing columns"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Register"
 msgstr ""
 
@@ -11221,6 +11248,12 @@ msgstr ""
 
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
+msgstr ""
+
+msgid "S3 location where Athena query results are stored, e.g. s3://my-bucket/athena-results/. Can be left empty when the work group defines a query result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
 msgstr ""
 
 msgid "SAT"
@@ -16239,6 +16272,9 @@ msgstr ""
 msgid "Word Rotation"
 msgstr ""
 
+msgid "Work Group"
+msgstr ""
+
 msgid "Working"
 msgstr ""
 
@@ -17078,6 +17114,9 @@ msgstr ""
 msgid "e.g. 5432"
 msgstr ""
 
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr ""
 
@@ -17096,7 +17135,16 @@ msgstr ""
 msgid "e.g. param1=value1&param2=value2"
 msgstr ""
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
+msgstr ""
+
+msgid "e.g. us-east-1"
 msgstr ""
 
 msgid "e.g. world_population"
