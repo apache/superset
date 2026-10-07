@@ -30,6 +30,7 @@ from decimal import InvalidOperation
 from typing import Literal, Protocol, TYPE_CHECKING
 from uuid import uuid4
 
+from celery.exceptions import SoftTimeLimitExceeded
 from redis.exceptions import RedisError
 from superset_core.semantic_layers.metadata import (
     CatalogLoader,
@@ -312,7 +313,7 @@ class ScopedMetadataStore:
         self._remaining()
         try:
             payload: str = fetch(self._deadline)
-        except MetadataRefreshError:
+        except (MetadataRefreshError, SoftTimeLimitExceeded):
             raise
         except Exception:  # pylint: disable=broad-except
             # Provider failures cannot transport vendor payloads into host errors.

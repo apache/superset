@@ -25,15 +25,19 @@ from __future__ import annotations
 
 import os
 import tempfile
+import time
 from collections.abc import Iterator
 from typing import Any
 from unittest import mock
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.workbook import build_workbook
+from superset.semantic_layers.metadata import ScopedMetadataStore
 from superset.utils import json
+from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
 
 MODULE = "superset.dashboards.excel_export.workbook"
 
@@ -144,3 +148,30 @@ def test_a_chart_missing_from_the_map_is_resolved_by_the_builder(
     _build(workbook_path, query_contexts={})
 
     mocks["resolve_query_context"].assert_called_once_with(chart)
+
+
+def test_provider_soft_time_limit_stops_remaining_workbook_charts(
+    mocks: dict[str, Any], workbook_path: str
+) -> None:
+    """A soft limit inside metadata fetch aborts export before the next chart."""
+    mocks["get_charts_in_layout_order"].return_value = [
+        _chart(10, "First"),
+        _chart(20, "Second"),
+    ]
+    backend: MemoryBackend = MemoryBackend()
+    deadline: float = time.monotonic() + 5
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "workbook", deadline=deadline
+    )
+    cancellation: SoftTimeLimitExceeded = SoftTimeLimitExceeded()
+    fetch: mock.Mock = mock.Mock(side_effect=cancellation)
+    mocks["ChartDataCommand"].return_value.run.side_effect = lambda: store.read(
+        fetch, deadline=deadline
+    )
+    error: pytest.ExceptionInfo[SoftTimeLimitExceeded]
+    with pytest.raises(SoftTimeLimitExceeded) as error:
+        _build(workbook_path, query_contexts={10: {}, 20: {}})
+    assert error.value is cancellation
+    mocks["ChartDataCommand"].assert_called_once()
+    fetch.assert_called_once_with(deadline)
+    assert backend.entries == {}
