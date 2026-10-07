@@ -134,7 +134,7 @@ Dashboard Management:
 - duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
-- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select, filter_time, filter_range, and filter_timegrain)
+- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select, filter_time, filter_range, filter_timegrain, and filter-bar divider)
 - manage_dashboard_markdown: Add, update, or remove markdown/header/divider layout components on a dashboard (requires write access)
 - apply_dashboard_filters: Apply values to a dashboard's existing native filters for the calling user and return a shareable permalink (read access; does NOT change the saved dashboard)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)

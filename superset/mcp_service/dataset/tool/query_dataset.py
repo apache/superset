@@ -18,8 +18,8 @@
 """
 MCP tool: query_dataset
 
-Query a dataset using its semantic layer (saved metrics, calculated columns,
-dimensions) without requiring a saved chart.
+Query a SQL dataset using its saved metrics, calculated columns and
+dimensions without requiring a saved chart.
 """
 
 import logging
@@ -45,7 +45,10 @@ from superset.mcp_service.chart.response_preflight import (
     finalize_query_dataset_response,
 )
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
-from superset.mcp_service.dataset.dataset_utils import resolve_dataset
+from superset.mcp_service.dataset.dataset_utils import (
+    resolve_dataset,
+    SQL_DATASET_SOURCE_GUIDANCE,
+)
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     QueryDatasetFilter,
@@ -74,11 +77,13 @@ _NO_SAVED_METRICS_HINT = (
 async def _query_dataset(  # noqa: C901
     request: QueryDatasetRequest, ctx: Context
 ) -> QueryDatasetResponse | DatasetError:
-    """Query a dataset using its semantic layer (saved metrics, dimensions, filters).
+    """Query SQL datasets only using saved metrics, dimensions and filters.
+
+    For semantic views, use list_metrics for discovery and get_table for queries.
 
     Returns tabular data without requiring a saved chart. Use this when you want
     to compute saved metrics, group by dimensions, or apply filters directly
-    against a dataset's curated semantic layer.
+    against a SQL dataset's curated metrics and columns.
 
     Metrics must be saved metric names from get_dataset_info; ad-hoc
     expressions such as "SUM(col)" are not accepted. When the dataset has no
@@ -153,6 +158,7 @@ async def _query_dataset(  # noqa: C901
                 error=(
                     f"No dataset found with identifier: {request.dataset_id}."
                     " Use list_datasets to get valid dataset IDs."
+                    f" {SQL_DATASET_SOURCE_GUIDANCE}"
                 ),
                 error_type="NotFound",
             )
@@ -491,5 +497,38 @@ async def _finalized_query_dataset(
 async def query_dataset(
     request: QueryDatasetRequest, ctx: Context
 ) -> QueryDatasetResponse | DatasetError:
-    """Query a dataset and preflight every public response branch."""
+    """Query SQL datasets only using saved metrics, dimensions and filters.
+
+    For semantic views, use list_metrics for discovery and get_table for queries.
+
+    Preflight every public response branch.
+
+    Returns tabular data without requiring a saved chart. Use this when you want
+    to compute saved metrics, group by dimensions, or apply filters directly
+    against a SQL dataset's curated metrics and columns.
+
+    Metrics must be saved metric names from get_dataset_info; ad-hoc
+    expressions such as "SUM(col)" are not accepted. When the dataset has no
+    saved metric for the aggregate you need, use execute_sql instead.
+
+    When reporting results, state the returned from_dttm (inclusive) and
+    to_dttm (exclusive) primary bounds rather than guessing dates from the
+    relative expression. Additional filters can further constrain the range.
+
+    Workflow:
+    1. list_datasets -> find a dataset
+    2. get_dataset_info -> discover available columns and metrics
+    3. query_dataset -> query using metric names and column names
+
+    Example:
+    ```json
+    {
+        "dataset_id": 123,
+        "metrics": ["count", "avg_revenue"],
+        "columns": ["product_category"],
+        "time_range": "Last 7 days",
+        "row_limit": 100
+    }
+    ```
+    """
     return await _finalized_query_dataset(request, ctx)
