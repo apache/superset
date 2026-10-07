@@ -27,6 +27,7 @@ from superset_core.semantic_layers.layer import (
     SemanticCacheResponsibility,
     SemanticCacheScope,
 )
+from superset_core.semantic_layers.metadata import MetadataRefreshAdapter
 
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.semantic_layers.cache_host import (
@@ -126,8 +127,10 @@ def _datasource() -> MagicMock:
     layer.get_semantic_cache_provider_identity.return_value = (
         SemanticCacheIdentityMaterial({"provider": "fixture"})
     )
+    layer.metadata_refresh = None
     datasource: MagicMock = MagicMock()
     datasource.semantic_layer.implementation = layer
+    datasource.implementation.metadata_cache_token = None
     datasource.uuid = "orders"
     datasource.changed_on = None
     datasource.cache_timeout = 60
@@ -252,3 +255,55 @@ def test_secret_like_identity_material_bypasses_containment(
     assert "secret-like identity material" in caplog.text
     assert "hunter2" not in caplog.text
     assert "api_token_version" not in caplog.text
+
+
+# A metadata observation identity, not a secret.
+OBSERVATION: str = "observation-1"
+
+
+def _definition_identity(token: object) -> object:
+    datasource: MagicMock = _datasource()
+    datasource.implementation.metadata_cache_token = token
+    configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
+        build_cache_configuration(datasource)
+    )
+    assert configuration is not None
+    return configuration[0].definition_identity
+
+
+def test_metadata_cache_token_is_part_of_definition_identity() -> None:
+    """A metadata refresh changes the token, not ``changed_on``, so the token
+    must key containment entries or results from the old metadata are reused."""
+    legacy: object = _definition_identity(None)
+    first: object = _definition_identity("observation-1")
+    second: object = _definition_identity("observation-2")
+    assert first != second
+    assert first != legacy
+    assert _definition_identity("observation-1") == first
+
+
+def test_views_without_a_metadata_cache_token_keep_legacy_identity() -> None:
+    """Legacy providers keep their existing containment keys."""
+    datasource: MagicMock = _datasource()
+    del datasource.implementation.metadata_cache_token
+    configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
+        build_cache_configuration(datasource)
+    )
+    assert configuration is not None
+    assert configuration[0].definition_identity == _definition_identity(None)
+
+
+@pytest.mark.parametrize("token", [None, "", 42], ids=["missing", "empty", "non-str"])
+def test_bound_metadata_store_without_a_token_bypasses_containment(
+    token: object,
+) -> None:
+    """A provider bound to a metadata store must supply a token; without one
+    the host bypasses containment instead of falling back to legacy keys."""
+    datasource: MagicMock = _datasource()
+    datasource.semantic_layer.implementation.metadata_refresh = MagicMock(
+        spec=MetadataRefreshAdapter
+    )
+    datasource.implementation.metadata_cache_token = token
+    assert build_cache_configuration(datasource) is None
+    datasource.implementation.metadata_cache_token = OBSERVATION
+    assert build_cache_configuration(datasource) is not None
