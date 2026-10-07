@@ -28,7 +28,7 @@ from multiprocessing.context import SpawnContext
 from multiprocessing.process import BaseProcess
 from multiprocessing.queues import Queue
 from multiprocessing.synchronize import Event
-from typing import Any, cast
+from typing import Any, cast, Literal
 from urllib.parse import ParseResult, urlparse
 from uuid import uuid4
 
@@ -426,3 +426,58 @@ def test_real_publication_caps_freshness_by_lease_age(
         assert value == b"new"
         assert 0 < ttl_ms <= 3000
         assert backend.get(lease_key) is None
+
+
+@pytest.mark.parametrize("kind", ["compatibility", "query_result"])
+def test_derived_inspection_factory_selects_prefixed_data_cache_database(
+    app: Flask,
+    redis_config: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    kind: Literal["compatibility", "query_result"],
+) -> None:
+    """The real inspection factory must not read a coordination-database decoy."""
+    from datetime import datetime, timezone
+
+    from flask_caching import Cache
+
+    from superset import cache_manager
+    from superset.commands.semantic_layer.refresh_metadata import inspect_derived_entry
+    from superset.semantic_layers.metadata_binding import request_metadata_budget
+
+    prefix: str = "sc121047-factory-" + uuid4().hex + ":"
+    data_config: dict[str, Any] = {
+        **redis_config,
+        "CACHE_REDIS_DB": (redis_config["CACHE_REDIS_DB"] + 1) % 16,
+        "CACHE_KEY_PREFIX": prefix,
+    }
+    coordination_config: dict[str, Any] = {
+        **redis_config,
+        "CACHE_KEY_PREFIX": prefix,
+    }
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    monkeypatch.setitem(app.config, "DATA_CACHE_CONFIG", data_config)
+    monkeypatch.setitem(
+        app.config, "DISTRIBUTED_COORDINATION_CONFIG", coordination_config
+    )
+    cache: Cache = Cache(app, config=data_config)
+    coordination: Cache = Cache(app, config=coordination_config)
+    monkeypatch.setattr(cache_manager, "_data_cache", cache)
+    value: dict[str, str] = {"dttm": "2026-10-07T12:00:00"}
+    decoy: dict[str, str] = {"dttm": "2026-10-06T12:00:00"}
+    try:
+        assert cache.set("entry", value, timeout=60)
+        assert coordination.set("entry", decoy, timeout=120)
+        with app.test_request_context():
+            request_metadata_budget()
+            info: CacheEntryInfo = inspect_derived_entry("entry", kind)
+        assert info.kind == kind
+        assert info.state == "present"
+        assert info.created_at == datetime(2026, 10, 7, 12, tzinfo=timezone.utc)
+        assert info.expiry_kind == "finite"
+        assert info.remaining_ttl_seconds is not None
+        assert 0 < info.remaining_ttl_seconds <= 60
+        assert cache.get("entry") == value
+        assert coordination.get("entry") == decoy
+    finally:
+        cache.delete("entry")
+        coordination.delete("entry")

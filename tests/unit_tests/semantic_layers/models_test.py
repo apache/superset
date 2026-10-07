@@ -20,11 +20,13 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pyarrow as pa
 import pytest
+from sqlalchemy import inspect, select
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Session
 from superset_core.semantic_layers.types import (
     Dimension,
@@ -1222,6 +1224,55 @@ def test_semantic_view_get_compatible_dimensions(
 # =============================================================================
 # SemanticLayer.get_perm tests
 # =============================================================================
+
+
+def test_semantic_layer_loads_all_semantic_views(session: Session) -> None:
+    """A reloaded layer exposes every stored view as a collection."""
+    assert inspect(SemanticLayer).relationships.semantic_views.uselist is True
+    SemanticView.metadata.create_all(session.get_bind())
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Orders", type="test", configuration="{}"
+    )
+    views: list[SemanticView] = [
+        SemanticView(name=name, semantic_layer=layer, configuration="{}")
+        for name in ("Daily", "Monthly")
+    ]
+    session.add_all([layer, *views])
+    session.flush()
+    session.expire(layer, ["semantic_views"])
+
+    assert isinstance(layer.semantic_views, list)
+    assert {view.name for view in layer.semantic_views} == {"Daily", "Monthly"}
+
+
+@pytest.mark.parametrize("load_before_delete", [True, False])
+def test_semantic_layer_delete_removes_multiple_views(
+    session: Session, load_before_delete: bool
+) -> None:
+    """Loaded and unloaded relationships delete all persisted child rows."""
+    engine: Engine = cast(Engine, session.get_bind())
+    connection: Connection
+    with engine.connect() as connection:
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+    SemanticView.metadata.create_all(engine)
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Orders", type="test", configuration="{}"
+    )
+    views: list[SemanticView] = [
+        SemanticView(name=name, semantic_layer=layer, configuration="{}")
+        for name in ("Daily", "Monthly")
+    ]
+    session.add_all([layer, *views])
+    session.flush()
+    view_ids: set[int] = {view.id for view in views}
+    session.expire(layer, ["semantic_views"])
+    if load_before_delete:
+        assert {view.id for view in layer.semantic_views} == view_ids
+
+    session.delete(layer)
+    session.flush()
+
+    assert session.scalars(select(SemanticView.id)).all() == []
 
 
 def test_semantic_view_compatible_dimensions_collapse_grains(
@@ -2486,7 +2537,6 @@ def test_layer_delete_removes_child_view_permissions(
 def test_layer_delete_batches_permission_ownership_queries(session: Any) -> None:
     """The unloaded layer hook batches child permission ownership checks."""
     from sqlalchemy import event, inspect
-    from sqlalchemy.engine import Connection
 
     from superset import security_manager
 
