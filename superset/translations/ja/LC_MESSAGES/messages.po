@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-06 02:49-0300\n"
+"POT-Creation-Date: 2026-10-07 00:05-0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -444,6 +444,11 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr "選択したすべてのオブジェクトに対する編集権限がないため、%s 個の項目にタグを付けられませんでした。"
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
 
 #, python-format
 msgid "%s metric"
@@ -1261,6 +1266,11 @@ msgstr "アラートを追加"
 msgid "Add an annotation layer"
 msgstr "注釈レイヤーを追加"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "項目を追加"
 
@@ -1670,6 +1680,9 @@ msgstr "+/- を揃える"
 
 msgid "Align +/- for all columns"
 msgstr "すべての列で +/- を揃える"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "すべて"
@@ -3451,9 +3464,6 @@ msgstr ""
 msgid "Child label position"
 msgstr "子ラベルの位置"
 
-msgid "Choose Application default or a specific user"
-msgstr ""
-
 #, python-format
 msgid "Choose a %s"
 msgstr "%s を選択"
@@ -3741,10 +3751,17 @@ msgstr "コードをコピーしました！"
 msgid "Collapse"
 msgstr "折りたたむ"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr "すべて折りたたむ"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4254,6 +4271,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -6658,8 +6678,15 @@ msgstr "全画面表示を終了"
 msgid "Expand"
 msgstr "展開"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
 msgstr "すべて展開"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "すべて展開"
@@ -7724,6 +7751,9 @@ msgstr "水平 (上)"
 msgid "Horizontal alignment"
 msgstr "水平方向の配置"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr "ホスト"
 
@@ -8285,6 +8315,9 @@ msgstr "JSON設定"
 
 msgid "JSON Metadata"
 msgstr "JSONメタデータ"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "JSONメタデータ"
@@ -10230,6 +10263,9 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr "データソースタブを開く"
 
+msgid "Open JSON"
+msgstr ""
+
 msgid "Open SQL Lab in a new tab"
 msgstr "新しいタブでSQL Labを開く"
 
@@ -10955,7 +10991,7 @@ msgid "Prefix or suffix"
 msgstr "接頭辞または接尾辞"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -12892,6 +12928,9 @@ msgstr "セマンティックビューが更新されました"
 
 msgid "Semantic views"
 msgstr "セマンティックビュー"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
@@ -15647,6 +15686,12 @@ msgid "This action will permanently delete the user."
 msgstr "この操作により、ユーザーは完全に削除されます。"
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr "これは IP アドレス (例: 127.0.0.1) またはドメイン名 (例: mydatabase.com) です。"
@@ -18006,9 +18051,10 @@ msgid ""
 msgstr "右側のパネルから新しいチャートを作成するか、既存のものを選択できます"
 
 msgid ""
-"You can edit the alert condition, name, and schedule, but changing the "
-"attachment content or recipients requires updating it to execute with "
-"your permissions. Only admins can select other users."
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
 msgstr ""
 
 msgid "You can enter a value that is not listed."

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-06 02:49-0300\n"
+"POT-Creation-Date: 2026-10-07 00:05-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -551,6 +551,13 @@ msgid ""
 msgstr ""
 "%s stavki nije moglo biti označeno jer nemate dozvole za uređivanje svih "
 "izabranih objekata."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%s metric"
@@ -1613,6 +1620,11 @@ msgstr "Dodaj upozorenje"
 msgid "Add an annotation layer"
 msgstr "Dodaj sloj anotacija"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Add an item"
 msgstr "Dodaj stavku"
@@ -2150,6 +2162,9 @@ msgstr "Poravnaj +/-"
 
 msgid "Align +/- for all columns"
 msgstr "Poravnaj +/- za sve kolone"
+
+msgid "Alignment"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "All"
@@ -4522,9 +4537,6 @@ msgstr ""
 msgid "Child label position"
 msgstr "Pozicija podređene oznake"
 
-msgid "Choose Application default or a specific user"
-msgstr ""
-
 #, python-format
 msgid "Choose a %s"
 msgstr "Izaberite %s"
@@ -4915,11 +4927,18 @@ msgstr "Kod kopiran!"
 msgid "Collapse"
 msgstr "Skupi"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 # ru, uk]
 msgid "Collapse All"
 msgstr "Skupi sve"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5564,6 +5583,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -8798,9 +8820,16 @@ msgstr "Izađi iz prikaza preko celog ekrana"
 msgid "Expand"
 msgstr "Proširi"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 # ru, uk]
 msgid "Expand All"
 msgstr "Proširi sve"
+
+msgid "Expand JSON"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Expand all"
@@ -10169,6 +10198,9 @@ msgstr "Horizontalno (Vrh)"
 msgid "Horizontal alignment"
 msgstr "Horizontalno poravnanje"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr "Host"
 
@@ -10892,6 +10924,9 @@ msgstr "JSON konfiguracija"
 # zh_TW]
 msgid "JSON Metadata"
 msgstr "JSON metapodaci"
+
+msgid "JSON in cell"
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "JSON metadata"
@@ -13403,6 +13438,9 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr "Otvori karticu izvora podataka"
 
+msgid "Open JSON"
+msgstr ""
+
 # uk]
 msgid "Open SQL Lab in a new tab"
 msgstr "Otvori SQL Lab u novoj kartici"
@@ -14365,7 +14403,7 @@ msgid "Prefix or suffix"
 msgstr "Prefiks ili sufiks"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -16858,6 +16896,9 @@ msgstr "Semantički pregled je ažuriran"
 
 msgid "Semantic views"
 msgstr "Semantički pregledi"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
@@ -20460,6 +20501,12 @@ msgstr "Ova radnja će trajno obrisati registraciju korisnika."
 msgid "This action will permanently delete the user."
 msgstr "Ova radnja će trajno obrisati korisnika."
 
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
@@ -23622,9 +23669,10 @@ msgstr ""
 "strane"
 
 msgid ""
-"You can edit the alert condition, name, and schedule, but changing the "
-"attachment content or recipients requires updating it to execute with "
-"your permissions. Only admins can select other users."
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
 msgstr ""
 
 msgid "You can enter a value that is not listed."

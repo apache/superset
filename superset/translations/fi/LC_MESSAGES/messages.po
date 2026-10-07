@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-06 02:49-0300\n"
+"POT-Creation-Date: 2026-10-07 00:05-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -607,6 +607,12 @@ msgid ""
 msgstr ""
 "%s kohdetta ei voitu merkitä, koska sinulla ei ole muokkausoikeuksia "
 "kaikkiin valittuihin objekteihin."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
@@ -2041,6 +2047,11 @@ msgstr "Lisää hälytys"
 msgid "Add an annotation layer"
 msgstr "Lisää merkintätaso"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -2773,6 +2784,9 @@ msgstr "Tasaa +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Näytä kaikki sarakkeet"
+
+msgid "Alignment"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -6021,9 +6035,6 @@ msgstr ""
 msgid "Child label position"
 msgstr "Lapsi-tunnisteen sijainti"
 
-msgid "Choose Application default or a specific user"
-msgstr ""
-
 #, python-format
 msgid "Choose a %s"
 msgstr ""
@@ -6569,6 +6580,10 @@ msgstr "Koodi kopioitu!"
 msgid "Collapse"
 msgstr "Supista rivi"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -6576,6 +6591,9 @@ msgid "Collapse All"
 msgstr "Supista kaikki"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -7467,6 +7485,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -11929,11 +11950,18 @@ msgstr "Poistu koko näytön tilasta"
 msgid "Expand"
 msgstr "Laajenna"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
 msgid "Expand All"
 msgstr "Laajenna kaikki"
+
+msgid "Expand JSON"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -13845,6 +13873,9 @@ msgstr "Vaakasuuntainen (ylös)"
 msgid "Horizontal alignment"
 msgstr "Vaakasuuntainen tasaus"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -14851,6 +14882,9 @@ msgstr "JSON-konfiguraatio"
 #, fuzzy
 msgid "JSON Metadata"
 msgstr "JSON-metatiedot"
+
+msgid "JSON in cell"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -18403,6 +18437,9 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr "Avaa tietolähde-välilehti"
 
+msgid "Open JSON"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -19732,7 +19769,7 @@ msgid "Prefix or suffix"
 msgstr "Etuliite tai jälkiliite"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -23227,6 +23264,9 @@ msgstr "Semanttinen näkymä päivitetty"
 #, fuzzy
 msgid "Semantic views"
 msgstr "Semanttiset näkymät"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
@@ -28029,6 +28069,12 @@ msgstr "Tämä toiminto poistaa käyttäjärekisteröinnin pysyvästi."
 msgid "This action will permanently delete the user."
 msgstr "Tämä toiminto poistaa käyttäjän pysyvästi."
 
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -32261,9 +32307,10 @@ msgstr ""
 "olevia kaavioita"
 
 msgid ""
-"You can edit the alert condition, name, and schedule, but changing the "
-"attachment content or recipients requires updating it to execute with "
-"your permissions. Only admins can select other users."
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
 msgstr ""
 
 msgid "You can enter a value that is not listed."

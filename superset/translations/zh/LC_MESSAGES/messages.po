@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-06 02:49-0300\n"
+"POT-Creation-Date: 2026-10-07 00:05-0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -477,6 +477,11 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr "%s 个项目无法添加标签，因为您没有对所有选定对象的编辑权限。"
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
 
 #, fuzzy, python-format
 msgid "%s metric"
@@ -1410,6 +1415,11 @@ msgstr "新增告警"
 msgid "Add an annotation layer"
 msgstr "新增注释层"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "新增一行"
 
@@ -1848,6 +1858,9 @@ msgstr "对齐 +/-"
 
 msgid "Align +/- for all columns"
 msgstr "对齐所有列的正负号"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "所有"
@@ -3815,9 +3828,6 @@ msgstr ""
 msgid "Child label position"
 msgstr "子标签位置"
 
-msgid "Choose Application default or a specific user"
-msgstr ""
-
 #, python-format
 msgid "Choose a %s"
 msgstr "选择一个 %s"
@@ -4131,12 +4141,19 @@ msgstr "代码已复制！"
 msgid "Collapse"
 msgstr "折叠"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 #, fuzzy
 msgid "Collapse All"
 msgstr "全部折叠"
 
 msgid "Collapse Datasource panel"
 msgstr "折叠数据源面板"
+
+msgid "Collapse JSON"
+msgstr ""
 
 msgid "Collapse all"
 msgstr "全部折叠"
@@ -4697,6 +4714,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -7374,9 +7394,16 @@ msgstr "退出全屏"
 msgid "Expand"
 msgstr "展开"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "全部展开"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "全部展开"
@@ -8594,6 +8621,9 @@ msgstr "横向（顶部对齐）"
 msgid "Horizontal alignment"
 msgstr "水平对齐"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr "主机"
 
@@ -9216,6 +9246,9 @@ msgstr "JSON 配置"
 
 msgid "JSON Metadata"
 msgstr "JSON 元数据"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "JSON 元数据"
@@ -11403,6 +11436,9 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr "打开数据源选项卡"
 
+msgid "Open JSON"
+msgstr ""
+
 msgid "Open SQL Lab in a new tab"
 msgstr "在新选项卡中打开 SQL Lab"
 
@@ -12216,7 +12252,7 @@ msgid "Prefix or suffix"
 msgstr "前缀或者后缀"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -14342,6 +14378,9 @@ msgstr "语义视图已更新"
 #, fuzzy
 msgid "Semantic views"
 msgstr "语义视图"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
@@ -17379,6 +17418,12 @@ msgid "This action will permanently delete the user."
 msgstr "此操作将永久删除该用户。"
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr "这可以是一个IP地址(例如127.0.0.1)或一个域名(例如mydatabase.com)。"
@@ -20064,9 +20109,10 @@ msgid ""
 msgstr "您可以创建一个新图表，或使用右侧面板中的现有图表。"
 
 msgid ""
-"You can edit the alert condition, name, and schedule, but changing the "
-"attachment content or recipients requires updating it to execute with "
-"your permissions. Only admins can select other users."
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
 msgstr ""
 
 msgid "You can enter a value that is not listed."

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-06 02:49-0300\n"
+"POT-Creation-Date: 2026-10-07 00:05-0300\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -557,6 +557,12 @@ msgid ""
 msgstr ""
 "Impossibile taggare %s elementi perché non disponi delle autorizzazioni "
 "di modifica per tutti gli oggetti selezionati."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s metric"
@@ -1644,6 +1650,11 @@ msgstr "Aggiungi avviso"
 msgid "Add an annotation layer"
 msgstr "Aggiungi un livello di annotazioni"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "Aggiungi un elemento"
 
@@ -2199,6 +2210,9 @@ msgstr "Allinea +/-"
 
 msgid "Align +/- for all columns"
 msgstr "Mostra colonna"
+
+msgid "Alignment"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4573,9 +4587,6 @@ msgstr ""
 msgid "Child label position"
 msgstr "Posizione dell'etichetta secondaria"
 
-msgid "Choose Application default or a specific user"
-msgstr ""
-
 #, python-format
 msgid "Choose a %s"
 msgstr "Seleziona un %s"
@@ -4999,6 +5010,10 @@ msgstr "Codice copiato"
 msgid "Collapse"
 msgstr "Comprimi"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, uk]
 msgid "Collapse All"
@@ -5006,6 +5021,9 @@ msgstr "Comprimi tutto"
 
 msgid "Collapse Datasource panel"
 msgstr "Comprimi pannello Origine Dati"
+
+msgid "Collapse JSON"
+msgstr ""
 
 msgid "Collapse all"
 msgstr "Collassa tutto"
@@ -5722,6 +5740,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -8892,10 +8913,17 @@ msgstr "Esci dalla modalità tutto schermo"
 msgid "Expand"
 msgstr "Espandi"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, uk]
 msgid "Expand All"
 msgstr "Espandi tutto"
+
+msgid "Expand JSON"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10351,6 +10379,9 @@ msgstr "Orizzontale (in alto)"
 msgid "Horizontal alignment"
 msgstr "Allineamento orizzontale"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -11170,6 +11201,9 @@ msgstr "Configurazione JSON"
 
 msgid "JSON Metadata"
 msgstr "Metadati JSON"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "Metadati JSON"
@@ -13807,6 +13841,9 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr "Apri il tab Sorgente Dati"
 
+msgid "Open JSON"
+msgstr ""
+
 msgid "Open SQL Lab in a new tab"
 msgstr "Apri SQL Lab in nuova scheda"
 
@@ -14862,7 +14899,7 @@ msgid "Prefix or suffix"
 msgstr "Prefisso o suffisso"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -17365,6 +17402,9 @@ msgstr "Vista semantica aggiornata"
 # sr_Latn]
 msgid "Semantic views"
 msgstr "Viste semantiche"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
@@ -21201,6 +21241,12 @@ msgstr "Questa azione eliminerà definitivamente la registrazione utente."
 msgid "This action will permanently delete the user."
 msgstr "Questa azione eliminerà definitivamente l'utente."
 
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -24759,9 +24805,10 @@ msgstr ""
 " destra"
 
 msgid ""
-"You can edit the alert condition, name, and schedule, but changing the "
-"attachment content or recipients requires updating it to execute with "
-"your permissions. Only admins can select other users."
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
 msgstr ""
 
 msgid "You can enter a value that is not listed."

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-06 02:49-0300\n"
+"POT-Creation-Date: 2026-10-07 00:05-0300\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -524,6 +524,14 @@ msgid ""
 msgstr ""
 "%s elementov ni mogoče označiti, ker nimate pravic za urejanje vseh "
 "izbranih elementov."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, python-format
 msgid "%s metric"
@@ -1420,6 +1428,11 @@ msgstr "Dodaj opozorilo"
 msgid "Add an annotation layer"
 msgstr "Dodaj sloj z oznakami"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "Dodaj element"
 
@@ -1856,6 +1869,9 @@ msgstr "Poravnaj +/-"
 
 msgid "Align +/- for all columns"
 msgstr "Poravnajte +/- za vse stolpce"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "Vse"
@@ -3816,9 +3832,6 @@ msgstr ""
 msgid "Child label position"
 msgstr "Položaj podrejene oznake"
 
-msgid "Choose Application default or a specific user"
-msgstr ""
-
 #, python-format
 msgid "Choose a %s"
 msgstr "Izberite %s"
@@ -4134,10 +4147,17 @@ msgstr "Koda kopirana!"
 msgid "Collapse"
 msgstr "Strni"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr "Strni vse"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4684,6 +4704,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -7329,8 +7352,15 @@ msgstr "Izhod iz celozaslonskega načina"
 msgid "Expand"
 msgstr "Razširi"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Razširi vse"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "Razširi vse"
@@ -8490,6 +8520,9 @@ msgstr "Vodoravno (zgoraj)"
 msgid "Horizontal alignment"
 msgstr "Vodoravna poravnava"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr "Gostitelj"
 
@@ -9083,6 +9116,9 @@ msgstr "Konfiguracija JSON"
 
 msgid "JSON Metadata"
 msgstr "JSON-metapodatki"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "JSON-metapodatki"
@@ -11161,6 +11197,9 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr "Odpri zavihek s podatkovnim virom"
 
+msgid "Open JSON"
+msgstr ""
+
 msgid "Open SQL Lab in a new tab"
 msgstr "Odprite SQL Lab v novem zavihku"
 
@@ -11955,7 +11994,7 @@ msgid "Prefix or suffix"
 msgstr "Predpona ali pripona"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -14038,6 +14077,9 @@ msgstr "Semantični pogled posodobljen"
 # sr_Latn]
 msgid "Semantic views"
 msgstr "Semantični pogledi"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
@@ -17115,6 +17157,12 @@ msgid "This action will permanently delete the user."
 msgstr "To dejanje bo trajno izbrisalo uporabnika."
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr ""
@@ -19813,9 +19861,10 @@ msgid ""
 msgstr "Ustvarite lahko nove grafikone ali uporabite obstoječe iz panela na desni"
 
 msgid ""
-"You can edit the alert condition, name, and schedule, but changing the "
-"attachment content or recipients requires updating it to execute with "
-"your permissions. Only admins can select other users."
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
 msgstr ""
 
 msgid "You can enter a value that is not listed."

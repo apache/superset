@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-06 02:49-0300\n"
+"POT-Creation-Date: 2026-10-07 00:05-0300\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -512,6 +512,12 @@ msgid ""
 msgstr ""
 "%s elementów nie można oznaczyć, ponieważ nie masz uprawnień do edycji "
 "wszystkich wybranych obiektów."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s metric"
@@ -1465,6 +1471,11 @@ msgstr "Dodaj alert"
 msgid "Add an annotation layer"
 msgstr "Dodaj warstwę adnotacji"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "Dodaj element"
 
@@ -1940,6 +1951,9 @@ msgstr "Wyrównaj +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Pokaż wszystkie kolumny"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "Wszystko"
@@ -4013,9 +4027,6 @@ msgstr ""
 msgid "Child label position"
 msgstr "Pozycja etykiety podrzędnej"
 
-msgid "Choose Application default or a specific user"
-msgstr ""
-
 #, python-format
 msgid "Choose a %s"
 msgstr ""
@@ -4372,11 +4383,18 @@ msgstr "SQL skopiowano!"
 msgid "Collapse"
 msgstr "Zwiń wiersz"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 #, fuzzy
 msgid "Collapse All"
 msgstr "Zwiń wszystko"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4989,6 +5007,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -7923,9 +7944,16 @@ msgstr "Wyjście z trybu pełnoekranowego"
 msgid "Expand"
 msgstr "Rozwiń"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "Rozwiń wszystko"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "Rozwiń wszystko"
@@ -9228,6 +9256,9 @@ msgstr "Poziomy (góra)"
 msgid "Horizontal alignment"
 msgstr "Wyrównanie poziome"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr "Host"
 
@@ -9872,6 +9903,9 @@ msgstr "Konfiguracja kolumn"
 
 msgid "JSON Metadata"
 msgstr "Metadane JSON"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "Metadane JSON"
@@ -12109,6 +12143,9 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr "Otwórz kartę Źródło danych"
 
+msgid "Open JSON"
+msgstr ""
+
 #, fuzzy
 msgid "Open SQL Lab in a new tab"
 msgstr "Uruchom zapytanie w nowej karcie"
@@ -12978,7 +13015,7 @@ msgid "Prefix or suffix"
 msgstr "Prefiks lub sufiks"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -15307,6 +15344,9 @@ msgstr "Widok semantyczny zaktualizowany"
 #, fuzzy
 msgid "Semantic views"
 msgstr "Widoki semantyczne"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
@@ -18710,6 +18750,12 @@ msgid "This action will permanently delete the user."
 msgstr "Ta akcja na stałe usunie warstwę."
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr ""
@@ -21637,9 +21683,10 @@ msgstr ""
 "prawej stronie."
 
 msgid ""
-"You can edit the alert condition, name, and schedule, but changing the "
-"attachment content or recipients requires updating it to execute with "
-"your permissions. Only admins can select other users."
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
 msgstr ""
 
 msgid "You can enter a value that is not listed."

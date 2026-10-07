@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-06 02:49-0300\n"
+"POT-Creation-Date: 2026-10-07 00:05-0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -557,6 +557,11 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr "선택한 모든 개체에 대한 편집 권한이 없어 %s개 항목에 태그를 지정할 수 없습니다."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
 
 #, fuzzy, python-format
 msgid "%s metric"
@@ -1825,6 +1830,11 @@ msgstr "차트 추가"
 msgid "Add an annotation layer"
 msgstr "주석 레이어"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 #, fuzzy
 msgid "Add an item"
 msgstr "테이블 추가"
@@ -2465,6 +2475,9 @@ msgstr "+/- 정렬"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "컬럼 보기"
+
+msgid "Alignment"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5366,9 +5379,6 @@ msgstr ""
 msgid "Child label position"
 msgstr "하위 레이블 위치"
 
-msgid "Choose Application default or a specific user"
-msgstr ""
-
 #, python-format
 msgid "Choose a %s"
 msgstr ""
@@ -5854,11 +5864,18 @@ msgstr "복사됨!"
 msgid "Collapse"
 msgstr "데이터 미리보기"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 #, fuzzy
 msgid "Collapse All"
 msgstr "데이터 미리보기"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -6696,6 +6713,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -10557,9 +10577,16 @@ msgstr "전체 화면 종료"
 msgid "Expand"
 msgstr "확장"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "데이터 미리보기"
+
+msgid "Expand JSON"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12335,6 +12362,9 @@ msgstr "수평 (위)"
 msgid "Horizontal alignment"
 msgstr "수평 정렬"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -13265,6 +13295,9 @@ msgstr "JSON 구성"
 #, fuzzy
 msgid "JSON Metadata"
 msgstr "JSON 메타데이터"
+
+msgid "JSON in cell"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -16554,6 +16587,9 @@ msgstr ""
 msgid "Open Datasource tab"
 msgstr "데이터소스 명"
 
+msgid "Open JSON"
+msgstr ""
+
 #, fuzzy
 msgid "Open SQL Lab in a new tab"
 msgstr "새로운 탭에서 Query실행"
@@ -17839,7 +17875,7 @@ msgid "Prefix or suffix"
 msgstr "접두사 또는 접미사"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -20878,6 +20914,9 @@ msgstr "시맨틱 뷰가 업데이트되었습니다"
 #, fuzzy
 msgid "Semantic views"
 msgstr "시맨틱 뷰"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
@@ -25324,6 +25363,12 @@ msgstr "이 작업으로 사용자 등록 정보가 영구적으로 삭제됩니
 msgid "This action will permanently delete the user."
 msgstr "이 작업으로 사용자가 영구적으로 삭제됩니다."
 
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -29351,9 +29396,10 @@ msgid ""
 msgstr "오른쪽 패널에서 새 차트를 만들거나 기존 차트를 사용할 수 있습니다"
 
 msgid ""
-"You can edit the alert condition, name, and schedule, but changing the "
-"attachment content or recipients requires updating it to execute with "
-"your permissions. Only admins can select other users."
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
 msgstr ""
 
 msgid "You can enter a value that is not listed."

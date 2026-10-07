@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-06 02:49-0300\n"
+"POT-Creation-Date: 2026-10-07 00:05-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1558,13 +1558,13 @@ msgstr ""
 msgid "Alerts & reports"
 msgstr ""
 
-msgid "Alignment"
-msgstr ""
-
 msgid "Align +/-"
 msgstr ""
 
 msgid "Align +/- for all columns"
+msgstr ""
+
+msgid "Alignment"
 msgstr ""
 
 msgid "All"
@@ -3227,9 +3227,6 @@ msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
 msgid "Child label position"
-msgstr ""
-
-msgid "Choose Application default or a specific user"
 msgstr ""
 
 #, python-format
@@ -14554,6 +14551,9 @@ msgstr ""
 msgid "This action will permanently delete the user."
 msgstr ""
 
+msgid "This alert query is not set to execute as your account. Only admins can change its condition; set \"Run alert query as\" to your own account first."
+msgstr ""
+
 msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com)."
 msgstr ""
 
@@ -16583,7 +16583,7 @@ msgstr ""
 msgid "You can create a new chart or use existing ones from the panel on the right"
 msgstr ""
 
-msgid "You can edit the alert condition, name, and schedule, but changing the attachment content or recipients requires updating it to execute with your permissions. Only admins can select other users."
+msgid "You can edit the name and schedule. Changing the alert condition requires its query to execute with your permissions. Changing the attachment content or recipients requires updating it to execute with your permissions. Only admins can select other users."
 msgstr ""
 
 msgid "You can enter a value that is not listed."
