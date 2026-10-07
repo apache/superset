@@ -598,3 +598,19 @@ test('renders native filters with requiredFirst and default values in the horizo
     'NATIVE_FILTER-2',
   ]);
 });
+
+test('maintains filter item order in horizontal bar', async () => {
+  const filters = [
+    createSelectNativeFilter('NATIVE_FILTER-1', 'alpha'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'beta'),
+    createSelectNativeFilter('NATIVE_FILTER-3', 'gamma'),
+  ];
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().items.map(i => i.id)).toEqual([
+    'NATIVE_FILTER-1',
+    'NATIVE_FILTER-2',
+    'NATIVE_FILTER-3',
+  ]);
+});
