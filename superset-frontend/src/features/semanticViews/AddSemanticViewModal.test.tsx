@@ -1013,7 +1013,7 @@ test('a refresh that drops the dependent value keeps the new options available',
   await act(async () => {
     pending[1].resolve(optionalDatabaseSchema(['no_database']));
   });
-  // Reconcile drops old_only, so the required dependent field is now empty;
+  // Reconcile drops old_only, leaving the required dependent field empty;
   // that error must not hide the options the refresh just loaded.
   await act(async () => {
     jest.advanceTimersByTime(10);
