@@ -11256,6 +11256,9 @@ msgstr ""
 msgid "SQL Query"
 msgstr ""
 
+msgid "SQL WHERE/HAVING expressions are not supported for semantic views. Remove the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 msgid "SQL expression"
 msgstr ""
 
