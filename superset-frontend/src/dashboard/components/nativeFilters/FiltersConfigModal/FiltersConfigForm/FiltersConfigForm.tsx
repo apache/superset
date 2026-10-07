@@ -35,10 +35,10 @@ import {
   getChartMetadataRegistry,
   JsonResponse,
   NativeFilterType,
-  SupersetApiError,
   ClientErrorObject,
   getClientErrorObject,
   getExtensionsRegistry,
+  selectClientErrorMessage,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -77,7 +77,7 @@ import {
   Loading,
 } from '@superset-ui/core/components';
 import { BasicErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Radio } from '@superset-ui/core/components/Radio';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -331,6 +331,7 @@ const FiltersConfigForm = (
     state => state.dashboardInfo.id,
   );
   const asyncModeOverride = useAsyncModeOverride();
+  const { addDangerToast } = useToasts();
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -809,6 +810,10 @@ const FiltersConfigForm = (
     // Responses for a binding that is no longer current are ignored, so a
     // slow load can never describe a different datasource.
     let current = true;
+    // Until this binding loads, the previous datasource's details must not
+    // describe it.
+    setDatasetDetails(undefined);
+    setMetrics([]);
     const keepTypeInStep = () => {
       // The hidden type field registers once; keep it in step with the
       // binding that loaded so saves and default-value queries carry it.
@@ -819,9 +824,17 @@ const FiltersConfigForm = (
         setNativeFilterFieldValues(form, filterId, { datasourceType });
       }
     };
-    const handleLoadFailure = (message: string) => {
+    const handleLoadFailure = async (
+      error: Parameters<typeof getClientErrorObject>[0],
+    ) => {
+      const message = selectClientErrorMessage(
+        await getClientErrorObject(error),
+        t('An error has occurred'),
+        { 403: t('You do not have permission to edit this dashboard') },
+      );
       if (!current) return;
-      addDangerToast(message);
+      // Matches the column select's message, so one failure shows one toast.
+      addDangerToast(message, { noDuplicate: true });
       setDatasetDetails(undefined);
       setMetrics([]);
       setNativeFilterFieldValues(form, filterId, {
@@ -869,9 +882,7 @@ const FiltersConfigForm = (
             keepTypeInStep();
           },
         )
-        .catch((response: SupersetApiError) =>
-          handleLoadFailure(response.message),
-        );
+        .catch(handleLoadFailure);
     } else {
       const endpoint = `/api/v1/dataset/${datasetId}?q=${rison.encode({
         columns: [
@@ -908,11 +919,11 @@ const FiltersConfigForm = (
           setDatasetDetails(dataset);
           keepTypeInStep();
         })
-        .catch((response: SupersetApiError) => {
+        .catch(error => {
           // The cache keeps rejected requests; evict so a later choice of
           // this dataset retries instead of replaying the failure.
           supersetGetCache.delete(endpoint);
-          handleLoadFailure(response.message);
+          return handleLoadFailure(error);
         });
     }
     return () => {

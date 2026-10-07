@@ -26,8 +26,9 @@ import { VizType } from '@superset-ui/core';
  * Semantic views follow `SemanticView.data` as serialized by
  * `DashboardRestApi._serialize_dashboard_dataset` (pinned by
  * `tests/unit_tests/dashboards/datasets_test.py`): `uid` is
- * `<id>__semantic_view`, `type` is `semantic_view`, the display name is `name`
- * (no `table_name`) and `database` is empty. Datasets and semantic views have
+ * `<id>__semantic_view`, `type` is `semantic_view`, `name` and `table_name`
+ * both carry the view's name, `column_types` follows its dimensions and
+ * `database` is empty. Datasets and semantic views have
  * independent id sequences, so the same numeric id can name one of each.
  */
 export interface MockDashboardColumn {

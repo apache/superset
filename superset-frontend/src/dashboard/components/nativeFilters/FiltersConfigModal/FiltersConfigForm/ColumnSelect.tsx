@@ -117,7 +117,7 @@ export function ColumnSelect({
           t('An error has occurred'),
           { 403: t('You do not have permission to edit this dashboard') },
         );
-        addDangerToast(errorText);
+        addDangerToast(errorText, { noDuplicate: true });
       };
 
       if (datasourceType === DatasourceType.SemanticView) {

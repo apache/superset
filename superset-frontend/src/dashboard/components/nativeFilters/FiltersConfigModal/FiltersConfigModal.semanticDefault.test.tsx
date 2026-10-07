@@ -198,9 +198,9 @@ const renderModal = (
 };
 
 const dangerToasts = (store: Store) =>
-  (store.getState().messageToasts as { toastType: string }[]).filter(
-    ({ toastType }) => toastType === ToastType.Danger,
-  );
+  (
+    store.getState().messageToasts as { toastType: string; text: string }[]
+  ).filter(({ toastType }) => toastType === ToastType.Danger);
 
 /**
  * Waits until the form has asked for the bound datasource's metadata through
@@ -1037,4 +1037,36 @@ test('a saved filter whose datasource fails to load asks for a datasource instea
     await screen.findByText('Datasource is required', {}, { timeout: 3000 }),
   ).toBeInTheDocument();
   expect(onSave).not.toHaveBeenCalled();
+});
+
+test('a failed load reports its error for a filter type without a column select', async () => {
+  fetchMock.get('glob:*/api/v1/dataset/7?*', 404);
+  const timeGrainFilter: Filter = {
+    ...savedSemanticFilter(
+      'NATIVE_FILTER-grain',
+      'Grain',
+      7,
+      DatasourceType.Table,
+      'sql_ts',
+    ),
+    filterType: 'filter_timegrain',
+  };
+
+  const { store } = renderModal(
+    stateFor(
+      dashboardDatasources(sqlDatasetEntry(7)),
+      ['7__table'],
+      [timeGrainFilter],
+    ),
+    { ...props, createNewOnOpen: false },
+  );
+
+  await expectUnboundDatasourceSelect(store);
+  expect(
+    screen.queryByRole('combobox', { name: 'Column select' }),
+  ).not.toBeInTheDocument();
+  expect(dangerToasts(store)).toHaveLength(1);
+  const [toast] = dangerToasts(store);
+  expect(toast.text).toEqual(expect.any(String));
+  expect(toast.text).not.toBe('');
 });
