@@ -135,8 +135,14 @@ by this setting.
 ## Operation lifetime and transport
 
 HTTP requests establish the absolute monotonic deadline before authentication
-hooks. Celery tasks establish it before task execution; eager/nested work shares
-the active operation. Other synchronous host callers must enter
+hooks. Each chart in a Celery worker gets its own 30-second metadata acquisition
+budget before query construction. Dashboard workbook charts and async chart
+queries enter this scope explicitly; annotations, contribution totals and other
+nested work within that chart share its deadline and captured observations.
+Earlier task work or a slow preceding chart does not consume the next chart's
+budget. Exiting a chart restores the enclosing task state, including on failure.
+Eager execution inside an HTTP request retains the request deadline. Celery tasks
+retain a fallback operation for non-chart work. Other synchronous host callers must enter
 `metadata_operation()` before access checks. A later store call never replenishes
 the budget; explicit worker budgets are capped at 30 seconds. The host passes
 that deadline explicitly to `adapter.bind(store, deadline=...)`. The adapter
