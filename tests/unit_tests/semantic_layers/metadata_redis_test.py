@@ -159,37 +159,60 @@ def test_real_invalidation_fences_a_paused_process(
     redis_config: dict[str, Any], redis_scope: str
 ) -> None:
     context: SpawnContext = cast(SpawnContext, multiprocessing.get_context("spawn"))
-    started: Event = context.Event()
-    release: Event = context.Event()
-    results: Queue[str] = context.Queue()
-    process: BaseProcess = context.Process(
+    started_a: Event = context.Event()
+    release_a: Event = context.Event()
+    started_b: Event = context.Event()
+    release_b: Event = context.Event()
+    results_a: Queue[str] = context.Queue()
+    results_b: Queue[str] = context.Queue()
+    writer_a: BaseProcess = context.Process(
         target=_paused_writer,
-        args=(redis_config, redis_scope, started, release, results),
+        args=(redis_config, redis_scope, started_a, release_a, results_a),
     )
-    process.start()
+    writer_b: BaseProcess = context.Process(
+        target=_paused_writer,
+        args=(redis_config, redis_scope, started_b, release_b, results_b),
+    )
     deadline: float = time.monotonic() + 30
-    store_deadline: float = deadline
-    store: ScopedMetadataStore = ScopedMetadataStore(
-        DeadlineRedisBackend(redis_config, deadline=deadline),
-        redis_scope,
-        deadline=store_deadline,
+    backend: DeadlineRedisBackend = DeadlineRedisBackend(
+        redis_config, deadline=deadline
     )
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, redis_scope, deadline=deadline
+    )
+    lease_key: str = f"semantic-metadata:{{{redis_scope}}}:lease"
+    writer_a.start()
     try:
-        assert started.wait(10)
+        assert started_a.wait(10)
+        owner_a: bytes | None = backend.get(lease_key)
+        assert owner_a is not None
         store.invalidate_catalog()
-        current: CatalogSnapshot = store.read(
-            lambda budget: '["new"]', deadline=store_deadline
-        )
-        release.set()
-        assert results.get(timeout=10) == "configuration_changed"
-        assert store.peek() == current
+        writer_b.start()
+        assert started_b.wait(10)
+        owner_b: bytes | None = backend.get(lease_key)
+        assert owner_b is not None
+        assert owner_b != owner_a
+        release_a.set()
+        assert results_a.get(timeout=10) == "configuration_changed"
+        # A's rejected publication and cleanup must both leave B's lease intact.
+        assert backend.get(lease_key) == owner_b
+        assert store.peek() is None
+        release_b.set()
+        assert results_b.get(timeout=10) == "published"
+        assert store.peek() is not None
+        assert backend.get(lease_key) is None
     finally:
-        release.set()
-        process.join(10)
-        if process.is_alive():
-            process.terminate()
-            process.join(2)
-        assert process.exitcode == 0
+        release_a.set()
+        release_b.set()
+        process: BaseProcess
+        for process in (writer_a, writer_b):
+            if process.pid is None:
+                continue
+            process.join(10)
+            if process.is_alive():
+                process.terminate()
+                process.join(2)
+            assert process.exitcode == 0
 
 
 def test_real_atomic_ttl_generation_and_namespace_isolation(

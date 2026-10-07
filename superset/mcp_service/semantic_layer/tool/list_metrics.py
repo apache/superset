@@ -21,6 +21,7 @@ Unified metric discovery across built-in datasets and external semantic views.
 """
 
 import logging
+from contextlib import nullcontext
 from typing import Any
 
 from fastmcp import Context
@@ -42,6 +43,10 @@ from superset.mcp_service.semantic_layer.schemas import (
     MetricInfo,
     MetricList,
     SemanticLayerError,
+)
+from superset.semantic_layers.metadata_binding import (
+    metadata_operation,
+    metadata_refresh_enabled,
 )
 from superset.semantic_layers.models import ColumnMetadata, SemanticView
 
@@ -297,7 +302,10 @@ async def list_metrics(
             await ctx.debug("Collected %d built-in metrics" % len(all_metrics))
 
         if request.dataset_id is None:
-            external: list[MetricInfo] = await _collect_external_metrics(request, ctx)
+            with metadata_operation() if metadata_refresh_enabled() else nullcontext():
+                external: list[MetricInfo] = await _collect_external_metrics(
+                    request, ctx
+                )
             all_metrics.extend(external)
             await ctx.debug("Collected %d external metrics" % len(external))
 

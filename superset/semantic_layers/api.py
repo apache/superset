@@ -220,6 +220,7 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.structure",
         log_to_statsd=False,
     )
+    @metadata_api_errors
     def structure(self, pk: int) -> Response:
         """Get a semantic view's editable fields and its structure.
 
@@ -282,6 +283,8 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
                     view.implementation.get_metrics(), key=lambda m: m.name
                 )
             ]
+        except MetadataRefreshError:
+            raise
         except Exception as ex:  # pylint: disable=broad-except
             logger.error(
                 "Error fetching structure for semantic view %d: %s",
@@ -762,6 +765,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
     @protect()
     @safe
     @statsd_metrics
+    @metadata_api_errors
     def views(self, uuid: str) -> FlaskResponse:
         """List available views from a semantic layer.
         ---
@@ -807,6 +811,8 @@ class SemanticLayerRestApi(BaseSupersetApi):
 
         try:
             views = layer.implementation.get_semantic_views(runtime_data)
+        except MetadataRefreshError:
+            raise
         except Exception as ex:  # pylint: disable=broad-except
             logger.error(
                 "Error fetching semantic views for layer %s: %s",

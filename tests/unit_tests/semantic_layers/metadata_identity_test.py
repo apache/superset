@@ -274,7 +274,11 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
         columns=[TableColumn(column_name="orders")],
         cache_timeout=300,
     )
-    monkeypatch.setattr(SqlaTable, "get_extra_cache_keys", lambda self, query: [])
+    parent_keys: Mock = Mock()
+    parent_keys.side_effect = lambda query: [
+        "P0" if parent_keys.call_count == 1 else "P1"
+    ]
+    monkeypatch.setattr(SqlaTable, "get_extra_cache_keys", parent_keys)
     monkeypatch.setattr(SemanticView, "raise_for_access", lambda self: None)
     provider: Mock = Mock()
     monkeypatch.setattr(
@@ -369,6 +373,9 @@ def test_sql_parent_cache_changes_with_semantic_annotation_observation(
             {"sourceType": source_type, "value": 31, "name": "semantic"}
         ]
         first: dict[str, Any] = context.get_df_payload(query)
+        parent_keys.assert_called_once()
+        parent_keys.side_effect = None
+        parent_keys.return_value = ["P0"]
         assert first["annotation_data"] == {"semantic": {"orders": [17]}}
         if not capture_source:
             assert first["df"]["orders"].tolist() == [1]
@@ -807,3 +814,60 @@ def test_annotation_cache_key_tracks_the_executed_datasource(
         assert any(call.args[0] is source for call in rls.call_args_list)
         token.return_value = "executed:refreshed"
         assert context.query_cache_key(query) != first
+
+
+@pytest.mark.parametrize("fallback", [False, True])
+def test_deleted_annotation_source_uses_relationship_fallback(fallback: bool) -> None:
+    """A missing saved source must not escape while building its parent's key."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.exceptions import DatasourceNotFound
+    from superset.models.slice import Slice
+
+    source: SqlaTable | None = SqlaTable(id=12) if fallback else None
+    chart: Slice = Slice(
+        datasource_type="table",
+        datasource_id=12,
+        table=source,
+        query_context='{"datasource":{"id":999,"type":"table"}}',
+    )
+    with patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        side_effect=DatasourceNotFound(),
+    ):
+        assert chart.get_query_context_datasource() is source
+
+
+@pytest.mark.parametrize("operation", ["peek", "capture"])
+def test_corrupt_annotation_configuration_uses_safe_failure_boundary(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    operation: str,
+) -> None:
+    """Unparseable annotation configuration cannot escape as a raw host failure."""
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.exceptions import QueryObjectValidationError
+    from superset.semantic_layers.metadata_cache import annotation_cache_token
+
+    source: SemanticView = view_for(ResultView("scope:captured", 17))
+    source.semantic_layer.configuration = "{broken"
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.is_feature_enabled",
+        lambda flag: True,
+    )
+    context: Mock = Mock(datasource=source)
+    chart: Mock = Mock()
+    chart.get_query_context.return_value = context
+    monkeypatch.setattr(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        lambda value: chart,
+    )
+    query: Mock = Mock(annotation_layers=[{"sourceType": "line", "value": 31}])
+    with app.app_context():
+        if operation == "peek":
+            token: str | None = annotation_cache_token(source)
+            assert token is not None
+            assert token.startswith("uncaptured:")
+        else:
+            with pytest.raises(QueryObjectValidationError, match="configuration"):
+                QueryContextProcessor(Mock())._capture_annotation_metadata(query)

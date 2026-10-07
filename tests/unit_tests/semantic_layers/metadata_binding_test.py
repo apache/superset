@@ -732,9 +732,10 @@ def test_invalid_host_snapshot_lifetime_fails_before_backend_work(
     assert backend.mock_calls == []
 
 
+@pytest.mark.parametrize("inline", [False, True])
 @pytest.mark.parametrize("task_delay", [0, 45])
 def test_export_charts_get_independent_budgets_before_query_construction(
-    app: Flask, task_delay: int
+    app: Flask, task_delay: int, inline: bool
 ) -> None:
     """Earlier task/warehouse work cannot exhaust a later chart's acquisition."""
     from superset.dashboards.excel_export.workbook import build_workbook
@@ -775,7 +776,7 @@ def test_export_charts_get_independent_budgets_before_query_construction(
     Export.bind(celery_app)
     schema: MagicMock
     with (
-        app.app_context(),
+        app.test_request_context() if inline else app.app_context(),
         patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True}),
         patch(
             "superset.semantic_layers.metadata_binding.is_feature_enabled",
@@ -807,10 +808,14 @@ def test_export_charts_get_independent_budgets_before_query_construction(
         ),
     ):
         schema.return_value.load.side_effect = construct
-        assert Export()() == {}
+        if inline:
+            request_metadata_budget()
+        assert (Export().run() if inline else Export()()) == {}
         assert observed == [130 + task_delay, 175 + task_delay]
         assert command.run.call_count == 2
-        with pytest.raises(MetadataRefreshError, match="configuration"):
+        with pytest.raises(
+            MetadataRefreshError, match="deadline" if inline else "configuration"
+        ):
             operation_deadline()
 
 
@@ -1019,3 +1024,31 @@ def test_cache_warmup_charts_get_independent_metadata_budgets(
         ),
         "errors": ["dashboard:1:native_filter:first"] if first_fails else [],
     }
+
+
+@pytest.mark.parametrize("error_type", [ValueError, TypeError])
+def test_bound_provider_constructor_failure_is_sanitized(
+    app: Flask,
+    error_type: type[Exception],
+) -> None:
+    """Invalid provider configuration is typed before binding or store creation."""
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), type="fixture", configuration="{}"
+    )
+    provider: Mock = Mock(wraps=OptedInLayer)
+    provider.from_configuration.side_effect = error_type("private provider credential")
+    store: Mock
+    error: pytest.ExceptionInfo[MetadataRefreshError]
+    with (
+        app.app_context(),
+        patch.dict(registry, {"fixture": provider}),
+        patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_NAMESPACE": "test"}),
+        patch("superset.semantic_layers.metadata_binding.connection_store") as store,
+        metadata_operation(),
+        pytest.raises(MetadataRefreshError) as error,
+    ):
+        layer_implementation(layer)
+    assert error.value.category == "configuration"
+    assert "private" not in str(error.value)
+    assert error.value.__suppress_context__
+    store.assert_not_called()

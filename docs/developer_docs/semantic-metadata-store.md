@@ -140,7 +140,9 @@ chart data command. Annotations, contribution totals and other nested work withi
 that chart share its deadline and captured observations.
 Earlier task work or a slow preceding chart does not consume the next chart's
 budget. Exiting a chart restores the enclosing task state, including on failure.
-Eager execution inside an HTTP request retains the request deadline. Celery tasks
+Inline workbook exports also give each chart its own acquisition scope; nested
+work shares that chart's budget. Other eager execution inside an HTTP request
+retains the request deadline. Celery tasks
 retain a fallback operation for non-chart work. Other synchronous host callers must enter
 `metadata_operation()` before access checks. A later store call never replenishes
 the budget; explicit worker budgets are capped at 30 seconds. The host passes

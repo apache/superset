@@ -54,9 +54,9 @@ def view_cache_token(view: SemanticView, token: str) -> str:
 
 def annotation_cache_token(view: SemanticView) -> str | None:
     """Key a host chart without discovering its annotation source's metadata."""
-    if not metadata_binding.participates(view.semantic_layer):
-        return None
     try:
+        if not metadata_binding.participates(view.semantic_layer):
+            return None
         token: str | None = metadata_binding.peek_view_metadata_token(view)
         if token:
             return view_cache_token(view, token)
