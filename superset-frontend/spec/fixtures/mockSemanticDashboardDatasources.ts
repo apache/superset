@@ -45,7 +45,6 @@ export interface MockDashboardDatasource {
   id: number;
   uid: string;
   type: 'semantic_view' | 'table';
-  datasource_type?: 'table';
   name: string;
   table_name?: string;
   columns: MockDashboardColumn[];
@@ -82,23 +81,32 @@ export const semanticViewDimensions = [
   { name: 'Orders.status', type: 'string', definition: 'status' },
 ];
 
+const dimensionTypes: Record<string, GenericDataType> = {
+  double: GenericDataType.Numeric,
+  'timestamp[us]': GenericDataType.Temporal,
+  string: GenericDataType.String,
+};
+
 export const semanticViewEntry = (
   id: number,
   name = 'Orders View',
-): MockDashboardDatasource => ({
-  id,
-  uid: `${id}__semantic_view`,
-  type: 'semantic_view',
-  name,
-  columns: [
-    column('Orders.amount', 'double', GenericDataType.Numeric),
-    column('Orders.created_at', 'timestamp[us]', GenericDataType.Temporal),
-    column('Orders.status', 'string', GenericDataType.String),
-  ],
-  metrics: [{ metric_name: 'Orders.count', expression: 'count' }],
-  database: {},
-  semantic_selection_version: null,
-});
+): MockDashboardDatasource => {
+  const columns = semanticViewDimensions.map(dimension =>
+    column(dimension.name, dimension.type, dimensionTypes[dimension.type]),
+  );
+  return {
+    id,
+    uid: `${id}__semantic_view`,
+    type: 'semantic_view',
+    name,
+    table_name: name,
+    columns,
+    column_types: columns.map(({ type_generic }) => type_generic),
+    metrics: [{ metric_name: 'Orders.count', expression: 'count' }],
+    database: {},
+    semantic_selection_version: null,
+  };
+};
 
 export const sqlDatasetEntry = (
   id: number,
@@ -107,7 +115,6 @@ export const sqlDatasetEntry = (
   id,
   uid: `${id}__table`,
   type: 'table',
-  datasource_type: 'table',
   name: `public.${tableName}`,
   table_name: tableName,
   columns: [

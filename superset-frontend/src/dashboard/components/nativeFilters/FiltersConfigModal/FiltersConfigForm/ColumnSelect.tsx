@@ -29,7 +29,10 @@ import {
 } from '@superset-ui/core';
 import { type FormInstance, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import {
+  cachedSupersetGet,
+  supersetGetCache,
+} from 'src/utils/cachedSupersetGet';
 import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import {
   fetchSemanticViewStructure,
@@ -132,26 +135,33 @@ export function ColumnSelect({
           }, handleError)
           .finally(() => setLoading(false));
       } else {
-        cachedSupersetGet({
-          endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
-            columns: [
-              'columns.column_name',
-              'columns.is_dttm',
-              'columns.type_generic',
-              'columns.filterable',
-            ],
-          })}`,
-        })
-          .then(({ json: { result } }) => {
-            const lookupValue = Array.isArray(value) ? value : [value];
-            const valueExists = result.columns.some((column: Column) =>
-              lookupValue?.includes(column.column_name),
-            );
-            if (!valueExists) {
-              resetColumnField();
-            }
-            setColumns(result.columns);
-          }, handleError)
+        const endpoint = `/api/v1/dataset/${datasetId}?q=${rison.encode({
+          columns: [
+            'columns.column_name',
+            'columns.is_dttm',
+            'columns.type_generic',
+            'columns.filterable',
+          ],
+        })}`;
+        cachedSupersetGet({ endpoint })
+          .then(
+            ({ json: { result } }) => {
+              const lookupValue = Array.isArray(value) ? value : [value];
+              const valueExists = result.columns.some((column: Column) =>
+                lookupValue?.includes(column.column_name),
+              );
+              if (!valueExists) {
+                resetColumnField();
+              }
+              setColumns(result.columns);
+            },
+            badResponse => {
+              // Evict the cached rejection so choosing this dataset again
+              // retries the request.
+              supersetGetCache.delete(endpoint);
+              return handleError(badResponse);
+            },
+          )
           .finally(() => setLoading(false));
       }
     }
