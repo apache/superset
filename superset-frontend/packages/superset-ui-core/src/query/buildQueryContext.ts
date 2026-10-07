@@ -62,11 +62,15 @@ export default function buildQueryContext(
   }
   const datasource = new DatasourceKey(formData.datasource).toObject();
   if (datasource.type === DatasourceType.SemanticView) {
-    queries = queries.map(query =>
-      (query.series_limit ?? 0) > 0 && !query.series_columns?.length
+    queries = queries.map(query => {
+      const hasInferredSeriesColumns =
+        query.is_timeseries && query.metrics?.length && query.columns?.length;
+      return (query.series_limit ?? 0) > 0 &&
+        !query.series_columns?.length &&
+        !hasInferredSeriesColumns
         ? { ...query, series_limit: 0 }
-        : query,
-    );
+        : query;
+    });
   }
   // --- query mutator end ---
   return {
