@@ -67,10 +67,23 @@ function resolveBind(bind: Bind, ctx: BindContext): unknown {
   throw new Error(`Unknown $bind source "${bind.source}"`);
 }
 
+// Drops URL keys at every depth, including in objects built from query rows.
+function stripUrlKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripUrlKeys);
+  if (!isObject(value)) return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !URL_KEYS.has(key))
+      .map(([key, item]) => [key, stripUrlKeys(item)]),
+  );
+}
+
 function resolveValue(value: unknown, ctx: BindContext): unknown {
   if (Array.isArray(value)) return value.map(item => resolveValue(item, ctx));
   if (!isObject(value)) return value;
-  if ('$bind' in value) return resolveBind(value.$bind as Bind, ctx);
+  if ('$bind' in value) {
+    return stripUrlKeys(resolveBind(value.$bind as Bind, ctx));
+  }
   if (typeof value.source === 'string' && BIND_SOURCES.has(value.source)) {
     throw new Error(
       `Found a $bind object without its "$bind" wrapper: ${JSON.stringify(value)}`,

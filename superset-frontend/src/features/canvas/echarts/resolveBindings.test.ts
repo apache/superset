@@ -76,6 +76,34 @@ test('drops URL keys and forces rich-text tooltips', () => {
   expect(option.tooltip).toEqual({ trigger: 'item', renderMode: 'richText' });
 });
 
+test('drops URL keys from objects built from query rows', () => {
+  const option = resolveOption(
+    {
+      series: [
+        {
+          type: 'treemap',
+          nodeClick: 'link',
+          data: {
+            $bind: {
+              source: 'records',
+              fields: { name: 'line', value: 'revenue', link: 'line' },
+            },
+          },
+        },
+      ],
+    },
+    { ...ctx, rows: [{ line: 'javascript:alert(1)', revenue: 10 }] },
+  );
+
+  expect(option.series).toEqual([
+    {
+      type: 'treemap',
+      nodeClick: 'link',
+      data: [{ name: 'javascript:alert(1)', value: 10 }],
+    },
+  ]);
+});
+
 test('rejects function-only keys and unwrapped markers', () => {
   expect(() =>
     resolveOption({ tooltip: { valueFormatter: 'x' } }, ctx),
