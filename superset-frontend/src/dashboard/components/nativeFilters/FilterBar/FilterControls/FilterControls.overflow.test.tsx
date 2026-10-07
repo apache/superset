@@ -614,3 +614,18 @@ test('maintains filter item order in horizontal bar', async () => {
     'NATIVE_FILTER-3',
   ]);
 });
+
+test('provides correct filter count when filters include requiredFirst', async () => {
+  const filters = [
+    {
+      ...createSelectNativeFilter('NATIVE_FILTER-1', 'account'),
+      requiredFirst: true,
+    },
+    createSelectNativeFilter('NATIVE_FILTER-2', 'country'),
+    createSelectNativeFilter('NATIVE_FILTER-3', 'status'),
+  ];
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().items).toHaveLength(3);
+});
