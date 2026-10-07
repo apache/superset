@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+jest.mock('remark-gfm', () => () => jest.fn());
+jest.mock('react-ace', () => () => <div data-test="mock-ace-editor" />, {
+  virtual: true,
+});
 import { Preset } from '@superset-ui/core';
 import type { DataMaskStateWithId } from '@superset-ui/core';
 import type {
@@ -564,4 +568,14 @@ test('focusing a filter that has not overflowed does not open the dropdown', asy
   });
 
   expect(mockDropdownOpen).not.toHaveBeenCalled();
+});
+
+test('initializes horizontal bar with items when native filters are configured', async () => {
+  const filters = [
+    createSelectNativeFilter('NATIVE_FILTER-1', 'country'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'city'),
+  ];
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().items).toHaveLength(2);
 });
