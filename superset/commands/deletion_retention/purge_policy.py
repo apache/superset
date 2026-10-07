@@ -30,7 +30,8 @@ Validating a policy is deliberately partial. Declarations whose mistakes would
 be silent are refused -- deleting the wrong rows, or skipping cleanup that was
 asked for -- and everything else is left to fail where it fails, per row and
 counted. Enumerating every shape a host might write is not a goal: see
-``_validate_executable_declarations`` for the line and the reasoning.
+``_validate_host_declarations`` for the line and the reasoning, and for why
+those rules run where a host policy is admitted rather than on every read.
 """
 
 from __future__ import annotations
@@ -965,6 +966,50 @@ def _host_policy_payload(provided: Any) -> tuple[Any, ...]:
     return tuple(provided)
 
 
+@lru_cache(maxsize=1)
+def _builtin_declared_tables() -> frozenset[str]:
+    """Every table this package's own policies name, by bare name.
+
+    Wider than the three root tables on purpose. The shared cleanup turns an
+    owned or association edge into one ``DELETE`` against the named table, so
+    an edge into ``report_schedule`` removes the very rows the built-in
+    blocker exists to protect, and one into ``ab_user`` removes users --
+    neither of which is a root, and both reachable the moment a host
+    distribution adds a column pointing from such a table into its own.
+
+    Owner tables are included alongside related ones: a declaration is
+    identified by both ends, and either end naming a table of this package's
+    is the thing being refused. Synthetic keys carry an empty owner, which is
+    dropped.
+    """
+    tables: set[str] = set()
+    for policy in _builtin_purge_policies():
+        tables.add(sa.inspect(policy.model).local_table.name)
+        for dependency in policy.dependencies:
+            tables.add(dependency.key.owner_table)
+            tables.add(dependency.key.related_table)
+    tables.discard("")
+    return frozenset(tables)
+
+
+def _version_reserved_class_names() -> frozenset[str]:
+    """Class names the version cascade resolves an entity kind from.
+
+    ``_delete_version_history`` maps ``model.__name__`` through
+    ``ENTITY_KIND_BY_CLASS_NAME`` to scope the ``version_changes`` delete, so
+    the identity it keys on is the bare class name, not the model. A host
+    class that happens to share one of those names therefore deletes the
+    change rows of the built-in entity with the same id -- live rows, not
+    just archived ones. Read lazily, and an empty set where versioning is not
+    installed, so admission does not depend on it being importable.
+    """
+    try:
+        from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
+    except ImportError:  # pragma: no cover - versioning not installed
+        return frozenset()
+    return frozenset(ENTITY_KIND_BY_CLASS_NAME)
+
+
 def _unqualified_table_conflict(policy: PurgeEntityPolicy) -> str | None:
     """Return the first table a bare-name lookup would resolve wrongly.
 
@@ -993,6 +1038,72 @@ def _unqualified_table_conflict(policy: PurgeEntityPolicy) -> str | None:
         if len(keys) != 1 or keys[0] != name:
             return name
     return None
+
+
+def _claims_a_reserved_identity(
+    candidate: PurgeEntityPolicy,
+    builtin_roots: frozenset[type[Any]],
+    builtin_tables: frozenset[str],
+    builtin_types: frozenset[str],
+) -> bool:
+    """Whether *candidate* claims an identity this package reads as its own.
+
+    Four of them, each resolved somewhere a host root must not land: the
+    model, the table it is mapped onto, the bare class name the version
+    cascade turns into an entity kind, and the entity type the cascade
+    branches on. Grouped so the admission sequence stays readable; each logs
+    its own reason, since the reason is what an operator has to act on.
+    """
+    if candidate.model in builtin_roots:
+        logger.error(
+            "purge_policy: host policy for built-in root %s ignored",
+            candidate.model.__name__,
+        )
+        return True
+    root_table: sa.Table = sa.inspect(candidate.model).local_table
+    if root_table.key in builtin_tables:
+        # A different class mapped onto a built-in table -- a subclass of
+        # Slice, say -- is not the built-in root by identity, but purging it
+        # runs host cleanup against this package's own rows. It also joins the
+        # soft-delete registry through the mixin, so the scheduled task would
+        # scan it.
+        logger.error(
+            "purge_policy: host policy root %s is mapped onto built-in "
+            "table %r; ignored",
+            candidate.model.__name__,
+            root_table.key,
+        )
+        return True
+    if candidate.model.__name__ in _version_reserved_class_names():
+        # The version cascade resolves an entity kind from the bare class
+        # name, so a host class sharing one clears the change rows of the
+        # built-in entity carrying the same id -- a live one, at that.
+        logger.error(
+            "purge_policy: host policy root is named %r, which the version "
+            "cascade resolves as a built-in entity kind; ignored",
+            candidate.model.__name__,
+        )
+        return True
+    if not isinstance(candidate.entity_type, str) or not candidate.entity_type:
+        # Read as a string by the cascade, the audit record and every log line
+        # that names the root.
+        logger.error(
+            "purge_policy: host policy for %s declares entity_type %r",
+            candidate.model.__name__,
+            candidate.entity_type,
+        )
+        return True
+    if candidate.entity_type in builtin_types:
+        # Core branches on entity_type -- the dataset impact path, the tag
+        # object type, the dataset permission name -- so a host reusing one of
+        # its names would have that logic pointed at its own rows.
+        logger.error(
+            "purge_policy: host policy for %s claims the reserved entity type %r",
+            candidate.model.__name__,
+            candidate.entity_type,
+        )
+        return True
+    return False
 
 
 def _admitted_host_policy(
@@ -1025,44 +1136,9 @@ def _admitted_host_policy(
                 _policy_label(candidate),
             )
             return None
-        if candidate.model in builtin_roots:
-            logger.error(
-                "purge_policy: host policy for built-in root %s ignored",
-                candidate.model.__name__,
-            )
-            return None
-        root_table: sa.Table = sa.inspect(candidate.model).local_table
-        if root_table.key in builtin_tables:
-            # A different class mapped onto a built-in table -- a subclass of
-            # Slice, say -- is not the built-in root by identity, but purging
-            # it runs host cleanup against this package's own rows. It also
-            # joins the soft-delete registry through the mixin, so the
-            # scheduled task would scan it.
-            logger.error(
-                "purge_policy: host policy root %s is mapped onto built-in "
-                "table %r; ignored",
-                candidate.model.__name__,
-                root_table.key,
-            )
-            return None
-        if not isinstance(candidate.entity_type, str) or not candidate.entity_type:
-            # Read as a string by the cascade, the audit record and every log
-            # line that names the root.
-            logger.error(
-                "purge_policy: host policy for %s declares entity_type %r",
-                candidate.model.__name__,
-                candidate.entity_type,
-            )
-            return None
-        if candidate.entity_type in builtin_types:
-            # Core branches on entity_type -- the dataset impact path, the tag
-            # object type, the dataset permission name -- so a host reusing
-            # one of its names would have that logic pointed at its own rows.
-            logger.error(
-                "purge_policy: host policy for %s claims the reserved entity type %r",
-                candidate.model.__name__,
-                candidate.entity_type,
-            )
+        if _claims_a_reserved_identity(
+            candidate, builtin_roots, builtin_tables, builtin_types
+        ):
             return None
         # Validated first, so a table the metadata simply does not contain is
         # reported as such rather than as an ambiguous name.
@@ -1088,6 +1164,34 @@ def _admitted_host_policy(
                 f"{', '.join(sorted(unusable))} dependencies are not available "
                 "to a host root"
             )
+        # ``Table.key`` carries a schema where there is one; the declarations
+        # are bare names, which _unqualified_table_conflict below pins to a
+        # single table each.
+        protected: frozenset[str] = _builtin_declared_tables() | {
+            key.rsplit(".", 1)[-1] for key in builtin_tables
+        }
+        into_builtin: set[str] = {
+            dependency.key.related_table
+            for dependency in candidate.dependencies
+            if dependency.classification in _EXECUTABLE_CLASSIFICATIONS
+            and dependency.key.related_table in protected
+        }
+        if into_builtin:
+            # The shared cleanup executes these as one DELETE each, so an edge
+            # into a table of this package's removes its rows with none of the
+            # frame around them: no eligibility predicate, no blocker, no
+            # audit record. A host root's references from Superset-owned
+            # tables are its own to clear in its own callbacks, which is what
+            # PRESERVE leaves it free to do.
+            raise RuntimeError(
+                f"dependencies on Superset-owned tables "
+                f"({', '.join(sorted(into_builtin))}) cannot be executed by "
+                "the shared cleanup"
+            )
+        # Before the coverage comparison, which is the order this package
+        # has always used: a declaration that would delete the wrong rows is
+        # reported as that rather than as a stale edge.
+        _validate_host_declarations(candidate)
         _validated_policy(candidate)
         conflict: str | None = _unqualified_table_conflict(candidate)
         if conflict is not None:
@@ -1199,7 +1303,31 @@ def _host_purge_policies(
                 count,
                 model.__name__,
             )
-    return tuple(policy for policy in admitted if counts[policy.model] == 1)
+    # Counted by table as well. Two classes mapped onto one table are two
+    # roots to the index and to the scan, which iterates models -- so the same
+    # rows are purged under whichever declarations the scan reaches them
+    # through, and a child one policy owns and the other preserves is cleaned
+    # or orphaned by that accident. Undecidable the same way two declarations
+    # for one model are, so the table is dropped the same way.
+    table_counts: dict[str, int] = {}
+    for policy in admitted:
+        key: str = sa.inspect(policy.model).local_table.key
+        table_counts[key] = table_counts.get(key, 0) + 1
+    for table_key, count in table_counts.items():
+        if count > 1:
+            logger.error(
+                "purge_policy: %s declares %d roots mapped onto table %r; "
+                "ignoring all of them",
+                HOST_POLICIES_CONFIG_KEY,
+                count,
+                table_key,
+            )
+    return tuple(
+        policy
+        for policy in admitted
+        if counts[policy.model] == 1
+        and table_counts[sa.inspect(policy.model).local_table.key] == 1
+    )
 
 
 #: Sentinel distinguishing "no index resolved yet" from an index resolved for
@@ -1281,7 +1409,14 @@ def _resolved_registry() -> _ResolvedRegistry:
     if getattr(_RESOLVING, "active", False):
         # A nested resolution: the provider is building its policy from a
         # built-in one, so hand it the roots this package declares rather than
-        # re-entering a resolution that has not finished.
+        # re-entering a resolution that has not finished. Host roots cannot be
+        # in it -- the provider that would supply them has not returned -- and
+        # this is the path the documented clone pattern takes, so it is logged
+        # at debug rather than warned about.
+        logger.debug(
+            "purge_policy: nested resolution served the built-in roots; a "
+            "provider cannot read its own roots while declaring them"
+        )
         return _builtin_registry()
     # Not nested: the branch above returns when the marker is already set,
     # so reaching here means this thread was not resolving.
@@ -1496,6 +1631,36 @@ def _validate_recursive_ownership(policy: PurgeEntityPolicy) -> None:
         )
 
 
+def _validate_self_referencing_association(policy: PurgeEntityPolicy) -> None:
+    """Reject an association edge pointing back at the root's own table.
+
+    The shared association cleanup turns each declared edge into one
+    ``DELETE``, and for an edge whose related table is the root's own that
+    statement reads ``DELETE FROM root WHERE <fk> IN (SELECT id FROM root
+    WHERE id = :id)``: it removes the purged row's live, unarchived children
+    outright, carrying none of the frame's eligibility predicates and leaving
+    no audit record of its own. Where foreign keys are unenforced, or the
+    child is a leaf, the purge then commits as a clean success.
+
+    Checked regardless of ``walks_own_subtree``, which says a policy walks its
+    owned sub-tree in ``delete_owned_children`` and says nothing about the
+    association phase -- so the owned variant of this shape is refused by
+    ``_validate_recursive_ownership`` under that exemption while this one has
+    none.
+    """
+    root_table: str = sa.inspect(policy.model).local_table.name
+    for dependency in policy.dependencies:
+        if (
+            dependency.classification is DependencyClassification.ASSOCIATION
+            and dependency.key.related_table == root_table
+        ):
+            raise RuntimeError(
+                f"Association dependency {dependency.key.describe()} targets "
+                f"the root's own table {root_table!r}; the shared cleanup "
+                "would delete live rows outside the purge frame"
+            )
+
+
 def _validate_scanner_requirements(policy: PurgeEntityPolicy) -> None:
     """Reject a root the scheduled scan cannot page through.
 
@@ -1620,9 +1785,19 @@ def _validate_version_target(
     column: str = cast(str, dependency.version_column)
     shadow_name: str = dependency.key.related_table
     suffix: str = "_version"
-    live_name: str = (
-        shadow_name[: -len(suffix)] if shadow_name.endswith(suffix) else shadow_name
-    )
+    if not shadow_name.endswith(suffix):
+        # Version cleanup resolves the declared name against the live
+        # metadata, so a target that is not a shadow resolves to a real table
+        # and the version phase deletes from it -- rows a PRESERVE declaration
+        # meant to keep, while the history the target was supposed to clear
+        # survives. The suffix is how a shadow is named and how its live
+        # counterpart is found below, so a target without it is refused.
+        raise RuntimeError(
+            f"Version target {shadow_name!r} for {dependency.key.describe()} "
+            f"is not a {suffix!r} shadow; version cleanup resolves that name "
+            "against the live metadata and would empty the real table"
+        )
+    live_name: str = shadow_name[: -len(suffix)]
     live_table: sa.Table | None = metadata.tables.get(live_name)
     if live_table is not None and column in live_table.c:
         live_column: sa.Column[Any] = live_table.c[column]
@@ -1650,30 +1825,35 @@ def _validate_version_target(
     )
 
 
-def _validate_dependency_declaration(
-    policy: PurgeEntityPolicy,
-    dependency: DependencyPolicy,
-    metadata: sa.MetaData,
-) -> None:
-    """Reject one declaration whose mistake would not announce itself."""
+def _validate_dependency_declaration(dependency: DependencyPolicy) -> None:
+    """Reject one declaration missing the metadata its classification needs.
+
+    Well-formedness only, and the same for every policy: a classification the
+    cascade dispatches on carries the field that dispatch reads, or nothing
+    downstream can run at all. The rules that only a host declaration can
+    fail live in ``_validate_host_declarations``.
+    """
     key: DependencyKey = dependency.key
     if (
         dependency.classification is DependencyClassification.LISTENER_EFFECT
         and dependency.listener_action is None
     ):
         raise RuntimeError(f"Missing listener action for {key.describe()}")
-    if dependency.classification is DependencyClassification.VERSION_OWNED:
-        if dependency.version_column is None:
-            raise RuntimeError(f"Missing version target column for {key.describe()}")
-        # Both silent either way: a target the version cascade never
-        # reaches, and one that is not root-relative and so deletes another
-        # root's history while leaving this root's behind.
-        _validate_versioned_root(policy)
-        _validate_version_target(policy, dependency, metadata)
+    if (
+        dependency.classification is DependencyClassification.VERSION_OWNED
+        and dependency.version_column is None
+    ):
+        raise RuntimeError(f"Missing version target column for {key.describe()}")
 
 
 def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
-    """Reject a declaration that would delete the wrong rows, and little else.
+    """Reject a declaration the cascade could not dispatch on at all."""
+    for dependency in policy.dependencies:
+        _validate_dependency_declaration(dependency)
+
+
+def _validate_host_declarations(policy: PurgeEntityPolicy) -> None:
+    """Reject a host declaration that would delete the wrong rows.
 
     Validation here is deliberately not an attempt to prove that an arbitrary
     declaration executes correctly -- the space of shapes a host might write
@@ -1690,13 +1870,32 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
       recorded, isolated to its own root by the scheduled task, and the
       entity is retried on the next run.
 
-    The frame's own requirements are checked regardless, since the scan and
-    the locked claim read them before any policy code runs.
+    Run at the host boundary and nowhere else. Every rule below is a function
+    of a policy's own declarations and its mapper, so for the roots this
+    package declares the answer is fixed at build time and a test pins it --
+    see ``test_builtin_policies_satisfy_the_host_rules``. Running them again
+    at runtime could only add a way for a built-in root to stop purging,
+    nightly and from the archive view alike, on a rule written for input this
+    package does not supply.
     """
+    # First, so the rules below can read the fields it checks are present,
+    # and so that holds wherever this is called from rather than resting on
+    # ``_validated_policy`` having run it already.
+    _validate_executable_declarations(policy)
     metadata: sa.MetaData = sa.inspect(policy.model).local_table.metadata
     for dependency in policy.dependencies:
-        _validate_dependency_declaration(policy, dependency, metadata)
+        if dependency.classification is DependencyClassification.VERSION_OWNED:
+            # Both silent either way: a target the version cascade never
+            # reaches, and one that is not root-relative and so deletes
+            # another root's history while leaving this root's behind.
+            _validate_versioned_root(policy)
+            _validate_version_target(policy, dependency, metadata)
+    # The frame's own requirements, which the scan and the locked claim read
+    # before any policy code runs.
     _validate_scanner_requirements(policy)
+    # Outside the exemption below: the association phase runs these edges
+    # whatever a policy says about walking its owned sub-tree.
+    _validate_self_referencing_association(policy)
     if not policy.walks_own_subtree:
         # Both shapes break the same way under cleanup that reaches one level
         # and resolves each predicate through the ownership path. Only a
@@ -1706,7 +1905,15 @@ def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
 
 
 def get_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
-    """Resolve a complete policy or reject an unsupported purge model."""
+    """Resolve a complete policy or reject an unsupported purge model.
+
+    A root is validated once per snapshot. Recorded only on success, so a
+    declaration that fails is validated again on the next call rather than
+    remembered as broken -- which is what an ``lru_cache`` did here before,
+    since it does not cache exceptions either. Only a built-in root can take
+    that path: a host root is validated where it is admitted and is already
+    recorded by the time the index carries it.
+    """
     resolved: _ResolvedRegistry = _resolved_registry()
     try:
         policy: PurgeEntityPolicy = resolved.registry[model]

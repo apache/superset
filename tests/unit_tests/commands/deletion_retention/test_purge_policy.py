@@ -1824,3 +1824,303 @@ def test_a_root_using_the_sqlalchemy_utils_uuid_type_is_admitted() -> None:
 
     with _installed(lambda: [policy]):
         assert get_purge_policy(UtilsUuidRoot) is policy
+
+
+def test_self_referencing_association_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An association edge onto the root's own table deletes live rows.
+
+    The shared association cleanup issues one ``DELETE`` per edge, so this
+    one removes the purged row's unarchived children with none of the frame's
+    eligibility predicates and no audit record. The owned spelling of the
+    same shape is already refused; this one reached the cleanup because only
+    ``OWNED`` was checked.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "selfassoc_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("parent_id", sa.Integer, sa.ForeignKey("selfassoc_entity.id")),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+
+    class SelfAssocRoot:
+        """Temporary mapped root whose rows reference one another."""
+
+    _map_host_root(SelfAssocRoot, root_table)
+    dependencies: tuple[DependencyPolicy, ...] = (
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key",
+                "selfassoc_entity",
+                "selfassoc_entity",
+                ("id",),
+                ("parent_id",),
+                "inbound",
+            ),
+            DependencyClassification.ASSOCIATION,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key",
+                "selfassoc_entity",
+                "selfassoc_entity",
+                ("parent_id",),
+                ("id",),
+                "outbound",
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+    )
+    policy: PurgeEntityPolicy = _host_policy(SelfAssocRoot, dependencies)
+
+    _assert_rejected(SelfAssocRoot, policy, "root's own table", caplog)
+    # walks_own_subtree speaks for delete_owned_children, not for the
+    # association phase, so it does not exempt this.
+    _assert_rejected(
+        SelfAssocRoot,
+        replace(policy, walks_own_subtree=True),
+        "root's own table",
+        caplog,
+    )
+
+
+@pytest.mark.parametrize("related_table", ["slices", "report_schedule", "ab_user"])
+def test_executable_dependency_on_a_superset_table_is_rejected(
+    related_table: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A host root cannot have the shared cleanup delete this package's rows.
+
+    An owned or association edge is executed as one ``DELETE`` against the
+    named table, with no eligibility predicate, no blocker and no audit
+    record. A root table loses charts, dashboards or datasets;
+    ``report_schedule`` loses the very rows the built-in blocker exists to
+    protect; ``ab_user`` loses users. None of them is the host's to clear
+    this way -- those references are its own to handle in its own callbacks,
+    which ``PRESERVE`` leaves it free to do.
+    """
+    model: type[Any] = _host_root(f"into{related_table}")
+    dependencies: tuple[DependencyPolicy, ...] = (
+        _host_edge(f"into{related_table}"),
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key",
+                f"into{related_table}_entity",
+                related_table,
+                ("id",),
+                ("id",),
+                "inbound",
+            ),
+            DependencyClassification.ASSOCIATION,
+        ),
+    )
+
+    _assert_rejected(
+        model, _host_policy(model, dependencies), "Superset-owned tables", caplog
+    )
+
+
+def test_two_host_roots_on_one_table_are_both_dropped(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """One table, two roots: which declarations apply is an accident.
+
+    The index keys on the model and the scan iterates models, so both are
+    scanned and a row is purged under whichever set of declarations reaches
+    it first. A child one policy owns and the other preserves is then cleaned
+    or orphaned by that accident, so neither is kept -- the same call made
+    for two declarations of one model.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "twin_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+
+    class TwinA:
+        """One of two temporary roots sharing a table."""
+
+    class TwinB:
+        """The other."""
+
+    for model in (TwinA, TwinB):
+        _map_host_root(model, root_table)
+
+    policies: list[PurgeEntityPolicy] = [
+        replace(_host_policy(TwinA, ()), entity_type="twin_a"),
+        replace(_host_policy(TwinB, ()), entity_type="twin_b"),
+    ]
+
+    with _installed(lambda: policies), caplog.at_level(logging.ERROR):
+        roots = set(purge_policy_registry())
+        assert TwinA not in roots
+        assert TwinB not in roots
+        assert {Slice, Dashboard, SqlaTable} <= roots
+    assert "mapped onto table" in caplog.text
+
+
+def test_host_root_named_after_a_builtin_entity_kind_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The version cascade resolves an entity kind from the bare class name.
+
+    ``_delete_version_history`` maps ``model.__name__`` through
+    ``ENTITY_KIND_BY_CLASS_NAME``, so a host class sharing one of those names
+    deletes the ``version_changes`` rows of the built-in entity carrying the
+    same id -- live rows, not only archived ones. A fourth reserved identity
+    alongside the model, its table and its entity type.
+    """
+    from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
+
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "host_dashboards",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+    # Named for the collision, with its own table and its own entity type:
+    # every other reserved identity is clear.
+    model: type[Any] = type("Dashboard", (), {"__doc__": "host root"})
+    assert model.__name__ in ENTITY_KIND_BY_CLASS_NAME
+    _map_host_root(model, root_table)
+
+    _assert_rejected(model, _host_policy(model, ()), "built-in entity kind", caplog)
+
+
+def test_version_target_that_is_not_a_shadow_is_rejected(
+    versioned_host_root: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A version target resolves by name, so a live table name deletes live rows.
+
+    ``_entity_version_targets`` looks the declared name up in the live
+    metadata. Without the ``_version`` suffix that lookup finds a real table
+    and the version phase deletes from it -- rows a ``PRESERVE`` declaration
+    meant to keep -- while the history the target named survives untouched.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        "liveversion_entity",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+    sa.Table(
+        "liveversion_note",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("entity_id", sa.Integer, sa.ForeignKey("liveversion_entity.id")),
+    )
+
+    class LiveVersionRoot:
+        """Temporary mapped root whose notes are meant to be preserved."""
+
+    _map_host_root(LiveVersionRoot, root_table)
+    dependencies: tuple[DependencyPolicy, ...] = (
+        DependencyPolicy(
+            DependencyKey(
+                "foreign_key",
+                "liveversion_entity",
+                "liveversion_note",
+                ("id",),
+                ("entity_id",),
+                "inbound",
+            ),
+            DependencyClassification.PRESERVE,
+        ),
+        DependencyPolicy(
+            DependencyKey(
+                "synthetic",
+                "liveversion_entity",
+                "liveversion_note",
+                relationship="note_history",
+            ),
+            DependencyClassification.VERSION_OWNED,
+            ExecutionPhase.VERSION,
+            version_column="entity_id",
+        ),
+    )
+
+    _assert_rejected(
+        LiveVersionRoot,
+        _host_policy(LiveVersionRoot, dependencies),
+        "is not a '_version' shadow",
+        caplog,
+    )
+
+
+def test_a_late_provider_failure_does_not_replace_a_good_index() -> None:
+    """A caller that fails after another published must not undo the publish.
+
+    Both callers share one provider, so the snapshot the slow one finds on
+    its way out is the fast one's. Without the guard it would publish the
+    built-in roots with a retry deadline instead, and the host root would
+    read as unsupported for that whole window.
+    """
+    app = current_app._get_current_object()  # noqa: SLF001
+    model: type[Any] = _host_root("latefailure")
+    policy: PurgeEntityPolicy = _host_policy(model, (_host_edge("latefailure"),))
+    slow_inside: threading.Event = threading.Event()
+    fast_published: threading.Event = threading.Event()
+    calls: list[str] = []
+
+    def provider() -> list[PurgeEntityPolicy]:
+        calls.append(threading.current_thread().name)
+        if threading.current_thread().name == "slow":
+            # Hold the slow caller inside host code until the fast one has
+            # published, so its failure lands on a good snapshot.
+            slow_inside.set()
+            assert fast_published.wait(timeout=10)
+            raise RuntimeError("provider went away")
+        return [policy]
+
+    seen: dict[str, Any] = {}
+
+    def resolve(label: str) -> None:
+        with app.app_context():
+            try:
+                seen[label] = get_purge_policy(model)
+            except Exception as ex:  # pylint: disable=broad-except
+                seen[label] = ex
+
+    with _installed(provider):
+        slow = threading.Thread(target=resolve, args=("slow",), name="slow")
+        slow.start()
+        assert slow_inside.wait(timeout=10), "slow caller never reached the provider"
+        fast = threading.Thread(target=resolve, args=("fast",), name="fast")
+        fast.start()
+        fast.join(timeout=10)
+        fast_published.set()
+        slow.join(timeout=10)
+
+        assert not slow.is_alive()
+        assert not fast.is_alive()
+        assert seen["fast"] is policy
+        # The slow caller's own lookup resolves against the published index.
+        assert seen["slow"] is policy
+        assert sorted(calls) == ["fast", "slow"]
+        # And the index is still the good one, answered without a third call.
+        assert get_purge_policy(model) is policy
+        assert len(calls) == 2
+
+
+@pytest.mark.parametrize("model", [Slice, Dashboard, SqlaTable])
+def test_builtin_policies_satisfy_the_host_rules(model: type[Any]) -> None:
+    """The host rules hold for this package's own roots, pinned here.
+
+    They run where a host policy is admitted, so nothing exercises them
+    against these three at runtime -- deliberately, since each is a function
+    of declarations and a mapper that are fixed at build time, and running
+    them per read could only add a way for a built-in root to stop purging.
+    That makes this test the thing standing between a bad edit to a built-in
+    declaration and a nightly purge that refuses the root.
+    """
+    purge_policy_module._validate_host_declarations(  # noqa: SLF001
+        get_purge_policy(model)
+    )
