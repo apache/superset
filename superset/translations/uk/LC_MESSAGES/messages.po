@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-10-02 21:57-0700\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1071,6 +1071,14 @@ msgstr "Перелік стовпців, розділених комами, як
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Перелік схем (через кому), у які можна вивантажувати файли."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Порт бази даних обовʼязковий для тунелів SSH."
 
@@ -1507,6 +1515,9 @@ msgstr "Додати показник"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Додайте показники через редагування набору даних"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Додати нову кольорову гамму"
@@ -3774,6 +3785,12 @@ msgstr "Виберіть стовпці, які розпізнавати як д
 msgid "Choose columns to read"
 msgstr "Виберіть стовпці, які читати"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
 "report results."
@@ -4116,6 +4133,10 @@ msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr ""
 "Поле кольору має бути шістнадцятковим кольором (#rrggbb) або 'rgb(r, g, "
 "b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -6943,6 +6964,9 @@ msgstr "Введіть псевдонім користувача"
 msgid "Enter theme name"
 msgstr "Введіть назву теми"
 
+msgid "Enter values"
+msgstr ""
+
 msgid "Enter your current password"
 msgstr ""
 
@@ -7122,6 +7146,9 @@ msgstr "Точне збігання (IN)"
 
 msgid "Example"
 msgstr "Приклад"
+
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
 
 msgid "Examples"
 msgstr "Приклади"
@@ -8428,6 +8455,9 @@ msgstr "Імпортувати %s"
 msgid "Import Error"
 msgstr "Помилка імпортування"
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 msgid "Import chart failed for an unknown reason"
 msgstr "Не вдалось імпортувати діаграму з невідомої причини"
 
@@ -8641,6 +8671,11 @@ msgstr "Некоректні параметри координат."
 
 msgid "Invalid JSON metadata"
 msgstr "Неправильні метадані JSON"
+
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
 
 #, python-format
 msgid "Invalid SQL: %(error)s"
@@ -8925,6 +8960,9 @@ msgstr "Кілометри"
 
 msgid "Label"
 msgstr "Мітка"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Вміст мітки"
@@ -9557,6 +9595,9 @@ msgstr "Моментальний перегляд"
 
 msgid "Map Style"
 msgstr "Стиль карти"
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10335,6 +10376,9 @@ msgstr "Немає доступних фільтрів."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
 msgid "No columns found"
@@ -12098,6 +12142,9 @@ msgstr "Вилучити системну темну тему"
 msgid "Remove System Default Theme"
 msgstr "Вилучити системну типову тему"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Вилучити перехресний фільтр"
 
@@ -12370,6 +12417,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Скинути"
 
@@ -12378,6 +12428,9 @@ msgstr "Скинути стовпці"
 
 msgid "Reset all folders to default"
 msgstr "Скинути всі теки до типових"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Скинути стовпці"
@@ -12948,6 +13001,14 @@ msgstr "Збережений запит не знайдено."
 msgid "Saved query parameters are invalid."
 msgstr "Збережені параметри запиту неправильні."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Збереження…"
 
@@ -13457,6 +13518,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Виберіть або ведіть власне значення..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Виберіть або ведіть символ валюти"
@@ -14628,6 +14692,21 @@ msgstr "Дата початку"
 msgid "Start date included in time range"
 msgstr "Дата початку входить у діапазон"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Почати вісь Y з нуля"
 
@@ -14812,6 +14891,12 @@ msgstr "Суфікс"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Суфікс після відсотків"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -17067,6 +17152,11 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr "Цей пароль занадто простий; будь ласка, оберіть більш складний."
 
 msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
@@ -18354,6 +18444,11 @@ msgstr "Значення"
 
 msgid "Values are dependent on other filters"
 msgstr "Значення залежать від інших фільтрів"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Значення, які залежать від"

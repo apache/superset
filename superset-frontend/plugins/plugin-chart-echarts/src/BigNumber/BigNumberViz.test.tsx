@@ -17,16 +17,21 @@
  * under the License.
  */
 
+import { ComponentProps } from 'react';
 import {
   DTTM_ALIAS,
   getNumberFormatter,
   TimeFormatter,
 } from '@superset-ui/core';
-import { render, fireEvent } from '../../../../spec/helpers/testing-library';
+import {
+  render,
+  fireEvent,
+  waitFor,
+} from '../../../../spec/helpers/testing-library';
 import BigNumberVis from './BigNumberViz';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
-import { BigNumberWithTrendlineFormData } from './types';
+import { BigNumberWithTrendlineFormData, HeaderAlignment } from './types';
 
 jest.mock('../components/Echart', () => ({
   __esModule: true,
@@ -244,5 +249,205 @@ describe('BigNumberViz trendline context menu', () => {
     });
 
     expect(onContextMenu).not.toHaveBeenCalled();
+  });
+});
+
+describe('BigNumberViz trendline and subheader rendering', () => {
+  beforeEach(() => {
+    mockedEchart.mockClear();
+  });
+
+  const renderViz = (
+    props: Partial<ComponentProps<typeof BigNumberVis>> = {},
+  ) =>
+    render(
+      <BigNumberVis
+        width={200}
+        height={100}
+        bigNumber={42}
+        headerFormatter={getNumberFormatter()}
+        headerFontSize={0.3}
+        subheaderFontSize={0.125}
+        subtitleFontSize={0.125}
+        subtitle=""
+        refs={{}}
+        trendLineData={[
+          [1577836800000, 10],
+          [1577923200000, 20],
+        ]}
+        echartOptions={{ series: [] }}
+        {...props}
+      />,
+    );
+
+  test('renders the trendline chart when showTrendLine is true', () => {
+    renderViz({ showTrendLine: true });
+
+    expect(mockedEchart).toHaveBeenCalled();
+  });
+
+  test('does not render the trendline chart when showTrendLine is false', () => {
+    const { container } = renderViz({ showTrendLine: false });
+
+    expect(mockedEchart).not.toHaveBeenCalled();
+    expect(container.querySelector('.no-trendline')).toBeInTheDocument();
+  });
+
+  test('renders the subheader when one is provided', () => {
+    const { container } = renderViz({ subheader: '10.0% WoW' });
+
+    expect(container.querySelector('.subheader-line')).toHaveTextContent(
+      '10.0% WoW',
+    );
+  });
+
+  test('does not render a subheader when none is provided', () => {
+    const { container } = renderViz({ subheader: '' });
+
+    expect(container.querySelector('.subheader-line')).not.toBeInTheDocument();
+  });
+});
+
+describe('BigNumberViz alignment', () => {
+  const renderViz = (headerAlignment?: HeaderAlignment) =>
+    render(
+      <BigNumberVis
+        width={200}
+        height={100}
+        bigNumber={42}
+        headerFormatter={getNumberFormatter()}
+        headerFontSize={0.3}
+        subheaderFontSize={0.125}
+        subtitleFontSize={0.125}
+        subtitle=""
+        refs={{}}
+        headerAlignment={headerAlignment}
+      />,
+    ).container;
+
+  test('defaults to left alignment', () => {
+    const container = renderViz();
+
+    const textContainer = container.querySelector('.text-container');
+    expect(container.firstElementChild).toHaveStyle({
+      alignItems: 'flex-start',
+    });
+    expect(textContainer).toHaveStyle({ alignItems: 'flex-start' });
+    const headerLine = container.querySelector('.header-line');
+    expect(headerLine).toHaveStyle({ justifyContent: 'flex-start' });
+  });
+
+  test('centers content when headerAlignment is "center"', () => {
+    const container = renderViz('center');
+
+    const textContainer = container.querySelector('.text-container');
+    expect(container.firstElementChild).toHaveStyle({ alignItems: 'center' });
+    expect(textContainer).toHaveStyle({ alignItems: 'center' });
+    const headerLine = container.querySelector('.header-line');
+    expect(headerLine).toHaveStyle({ justifyContent: 'center' });
+  });
+
+  test('right-aligns content when headerAlignment is "right"', () => {
+    const container = renderViz('right');
+
+    const textContainer = container.querySelector('.text-container');
+    expect(container.firstElementChild).toHaveStyle({ alignItems: 'flex-end' });
+    expect(textContainer).toHaveStyle({ alignItems: 'flex-end' });
+    const headerLine = container.querySelector('.header-line');
+    expect(headerLine).toHaveStyle({ justifyContent: 'flex-end' });
+  });
+
+  test.each([
+    ['center', 'center'],
+    ['right', 'flex-end'],
+  ] as const)(
+    'aligns the outer chart and text container for "%s" with a trendline',
+    (headerAlignment, alignItems) => {
+      const { container } = render(
+        <BigNumberVis
+          width={200}
+          height={100}
+          bigNumber={42}
+          headerFormatter={getNumberFormatter()}
+          headerFontSize={0.3}
+          subheaderFontSize={0.125}
+          subtitleFontSize={0.125}
+          subheader="subheader text"
+          subtitle=""
+          refs={{}}
+          headerAlignment={headerAlignment}
+          showTrendLine
+          trendLineData={[
+            [1577836800000, 10],
+            [1577923200000, 20],
+          ]}
+          echartOptions={{}}
+        />,
+      );
+
+      expect(container.firstElementChild).toHaveStyle({ alignItems });
+      expect(container.querySelector('.text-container')).toHaveStyle({
+        alignItems,
+      });
+    },
+  );
+
+  test('keeps the value and subheader centered when the trendline layout overflows', async () => {
+    const offsetHeightDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'offsetHeight',
+    );
+    // Force shouldApplyOverflow to report an overflow, which switches
+    // .text-container from a flex to a block container.
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      configurable: true,
+      get: () => 1000,
+    });
+
+    try {
+      const { container } = render(
+        <BigNumberVis
+          width={200}
+          height={100}
+          bigNumber={42}
+          headerFormatter={getNumberFormatter()}
+          headerFontSize={0.3}
+          subheaderFontSize={0.125}
+          subtitleFontSize={0.125}
+          subheader="subheader text"
+          subtitle=""
+          refs={{}}
+          headerAlignment="center"
+          showTrendLine
+          trendLineData={[
+            [1577836800000, 10],
+            [1577923200000, 20],
+          ]}
+          echartOptions={{}}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(container.querySelector('.text-container')).toHaveStyle({
+          display: 'block',
+        });
+      });
+
+      const headerLine = container.querySelector('.header-line');
+      expect(headerLine).toHaveStyle({ justifyContent: 'center' });
+      const subheaderLine = container.querySelector('.subheader-line');
+      expect(subheaderLine).toHaveStyle({ textAlign: 'center' });
+    } finally {
+      if (offsetHeightDescriptor) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          'offsetHeight',
+          offsetHeightDescriptor,
+        );
+      } else {
+        delete (HTMLElement.prototype as { offsetHeight?: number })
+          .offsetHeight;
+      }
+    }
   });
 });

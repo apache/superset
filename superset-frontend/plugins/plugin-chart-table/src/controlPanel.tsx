@@ -48,6 +48,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
+  DatasourceType,
   isAdhocColumn,
   isPhysicalColumn,
   validateInteger,
@@ -128,6 +129,7 @@ const allColumnsControl: typeof sharedControls.groupby = {
   }),
   visibility: isRawMode,
   resetOnHide: false,
+  rerender: ['order_by_cols'],
 };
 
 const percentMetricsControl: typeof sharedControls.metrics = {
@@ -295,7 +297,26 @@ const config: ControlPanelConfig = {
               },
             },
           },
-          'temporal_columns_lookup',
+          {
+            name: 'temporal_columns_lookup',
+            config: {
+              ...sharedControls.temporal_columns_lookup,
+              // A missing entry is unknown, not evidence of a non-temporal
+              // column when classifying a dormant semantic grain.
+              initialValue: (
+                control: ControlState,
+                state: ControlPanelState | null,
+              ) =>
+                Object.fromEntries(
+                  (state?.datasource?.columns ?? [])
+                    .filter(column => typeof column.is_dttm === 'boolean')
+                    .map(column => [
+                      column.column_name ?? column.name,
+                      column.is_dttm,
+                    ]),
+                ),
+            },
+          },
         ],
         [
           {
@@ -352,11 +373,36 @@ const config: ControlPanelConfig = {
               description: t('Order results by selected columns'),
               multi: true,
               default: [],
-              mapStateToProps: ({ datasource }) => ({
-                choices: datasource?.hasOwnProperty('order_by_choices')
-                  ? (datasource as Dataset)?.order_by_choices
-                  : datasource?.columns || [],
-              }),
+              mapStateToProps: ({ datasource, controls }) => {
+                if (datasource?.type === DatasourceType.SemanticView) {
+                  const selectedColumns = [
+                    ...new Set(
+                      ensureIsArray(
+                        controls?.all_columns?.value as
+                          | QueryFormColumn[]
+                          | undefined,
+                      ).filter(isPhysicalColumn),
+                    ),
+                  ];
+                  return {
+                    choices: selectedColumns.flatMap(column => [
+                      [
+                        JSON.stringify([column, true]),
+                        `${column} ${t('[asc]')}`,
+                      ],
+                      [
+                        JSON.stringify([column, false]),
+                        `${column} ${t('[desc]')}`,
+                      ],
+                    ]),
+                  };
+                }
+                return {
+                  choices: datasource?.hasOwnProperty('order_by_choices')
+                    ? (datasource as Dataset)?.order_by_choices
+                    : datasource?.columns || [],
+                };
+              },
               visibility: isRawMode,
               resetOnHide: false,
             },
