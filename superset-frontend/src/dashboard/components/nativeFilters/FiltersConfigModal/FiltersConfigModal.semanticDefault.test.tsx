@@ -1122,3 +1122,48 @@ test.each(['before', 'after'])(
     expect(within(openDropdown()).getByText('sql_only_column')).toBeVisible();
   },
 );
+
+test('switching filter type cannot let an old column picker clear the replacement selection', async () => {
+  let release: () => void = () => {};
+  const held = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  fetchMock.get(structureRoute(VIEW_ID), () =>
+    held.then(() => ({
+      result: {
+        name: VIEW_NAME,
+        semantic_selection_version: null,
+        dimensions: semanticViewDimensions,
+        metrics: [],
+      },
+    })),
+  );
+  allowDatasetRequests(VIEW_ID);
+  fetchMock.removeRoute('datasource-list');
+  mockCombinedDatasourceList([
+    sqlListItem(VIEW_ID),
+    { id: VIEW_ID, table_name: VIEW_NAME, kind: 'semantic_view' },
+  ]);
+  renderModal(sharedIdState(2, 1));
+  expect(
+    await within(await findDatasourceField()).findByText('sql_orders'),
+  ).toBeInTheDocument();
+  await chooseDatasource(VIEW_NAME);
+  await waitForDatasourceRequest(VIEW_ID);
+  await userEvent.click(screen.getByRole('combobox', { name: 'Filter type' }));
+  await pickOpenOption('Time grain');
+  expect(
+    screen.queryByRole('combobox', { name: 'Column select' }),
+  ).not.toBeInTheDocument();
+  await chooseDatasource('sql_orders');
+  await userEvent.click(screen.getByRole('combobox', { name: 'Filter type' }));
+  await pickOpenOption('Value');
+  await openColumnOptions();
+  await pickOpenOption('sql_only_column');
+  expect(selectedColumn()).toBe('sql_only_column');
+  await act(async () => {
+    release();
+    await fetchMock.callHistory.flush(true);
+  });
+  expect(selectedColumn()).toBe('sql_only_column');
+});

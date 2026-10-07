@@ -105,6 +105,14 @@ export function ColumnSelect({
   // Only the request for the current datasource may update the columns: a
   // late response for a previous (possibly same-id) datasource is ignored.
   const requestIdRef = useRef(0);
+  // The form outlives this picker: once unmounted, its pending request must
+  // not reset the column a replacement picker has set.
+  useEffect(
+    () => () => {
+      requestIdRef.current += 1;
+    },
+    [],
+  );
   useChangeEffect(datasourceKey, previous => {
     requestIdRef.current += 1;
     const requestId = requestIdRef.current;
@@ -124,6 +132,8 @@ export function ColumnSelect({
           t('An error has occurred'),
           { 403: t('You do not have permission to edit this dashboard') },
         );
+        // The binding may have changed while the error body was read.
+        if (!isCurrent()) return;
         addDangerToast(errorText, { noDuplicate: true });
       };
 
