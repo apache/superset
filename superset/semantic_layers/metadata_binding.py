@@ -87,6 +87,8 @@ def request_metadata_budget() -> None:
 
 
 def _current_operation() -> MetadataOperation | None:
+    if _worker_chart.get():
+        return _worker_operation.get()
     if has_request_context():
         return request.environ.get(_OPERATION_KEY) or _worker_operation.get()
     return _worker_operation.get()
@@ -132,18 +134,24 @@ def metadata_operation(*, deadline: float | None = None) -> Iterator[None]:
 
 
 @contextmanager
-def chart_metadata_operation() -> Iterator[None]:
-    """Give each worker chart a fresh budget; nested chart work shares it."""
-    if has_request_context() or _worker_chart.get() or not metadata_refresh_enabled():
+def chart_metadata_operation(*, allow_request: bool = False) -> Iterator[None]:
+    """Give a worker/export chart a fresh budget; nested chart work shares it."""
+    if (
+        (has_request_context() and not allow_request)
+        or _worker_chart.get()
+        or not metadata_refresh_enabled()
+    ):
         yield
         return
     # A task may have spent its fallback budget on earlier charts or other work.
     # Restore that state after this chart, including on cancellation or failure.
-    operation_token: Token[MetadataOperation | None] = _worker_operation.set(None)
+    operation_token: Token[MetadataOperation | None] = _worker_operation.set(
+        MetadataOperation(time.monotonic() + FETCH_DEADLINE_SECONDS)
+    )
     chart_token: Token[bool] = _worker_chart.set(True)
     try:
-        with metadata_operation():
-            yield
+        operation_deadline()
+        yield
     finally:
         _worker_chart.reset(chart_token)
         _worker_operation.reset(operation_token)
@@ -255,12 +263,15 @@ def layer_implementation(layer: SemanticLayer) -> LayerABC[Any, ViewABC]:
     scope: str = connection_metadata_scope(layer)
     if scope not in state.layers:
         operation_deadline()
-        store: ScopedMetadataStore = connection_store(layer)
-        implementation: LayerABC[Any, ViewABC] = registry[
-            layer.type
-        ].from_configuration(_configuration(layer.configuration))
+        try:
+            implementation: LayerABC[Any, ViewABC] = registry[
+                layer.type
+            ].from_configuration(_configuration(layer.configuration))
+        except (ValueError, TypeError):
+            raise MetadataRefreshError("configuration") from None
         if implementation.metadata_refresh is None:
             raise MetadataRefreshError("configuration")
+        store: ScopedMetadataStore = connection_store(layer)
         implementation.metadata_refresh.bind(store, deadline=state.deadline)
         state.layers[scope] = implementation
     return state.layers[scope]

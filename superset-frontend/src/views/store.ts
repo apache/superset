@@ -64,6 +64,7 @@ import { HydrateExplore } from 'src/explore/actions/hydrateExplore';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { Dataset } from '@superset-ui/chart-controls';
 import databaseReducer from 'src/database/reducers';
+import semanticMetadataSync from 'src/features/semanticViews/metadataSyncState';
 import versionHistoryReducer from 'src/features/versionHistory/reducer';
 import { versionSessionLogMiddleware } from 'src/features/versionHistory/sessionLogMiddleware';
 
@@ -163,6 +164,7 @@ const reducers = {
   explore,
   database: databaseReducer,
   versionHistory: versionHistoryReducer,
+  semanticMetadataSync,
 };
 
 /* In some cases the jinja template injects two separate React apps into basic.html

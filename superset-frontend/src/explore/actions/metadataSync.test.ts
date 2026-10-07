@@ -64,6 +64,7 @@ beforeEach(() => {
       {
         controlSetRows: [
           ['metrics'],
+          ['metric'],
           [
             {
               name: 'adhoc_filters',
@@ -127,6 +128,7 @@ test.each([false, true])(
       datasource: '7__semantic_view',
       viz_type: vizType,
       metrics: ['orders'],
+      metric: 'orders',
       groupby: ['country'],
       adhoc_filters: [],
     };
@@ -222,6 +224,17 @@ test.each([false, true])(
       expect(store.getState().explore.controls.metrics.value).toEqual([
         'orders',
       ]);
+      expect(store.getState().explore.controls.metrics.savedMetrics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ metric_name: 'revenue' }),
+        ]),
+      );
+      expect(store.getState().explore.controls.metric.savedMetrics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ metric_name: 'revenue' }),
+        ]),
+      );
+      expect(store.getState().explore.controls.metric.value).toBe('orders');
       expect(store.getState().explore.controls.groupby.value).toEqual(
         removed ? [] : ['country'],
       );

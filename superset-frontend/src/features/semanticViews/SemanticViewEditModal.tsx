@@ -17,6 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useRef } from 'react';
+import { useAppDispatch, useAppSelector } from 'src/views/store';
+import { confirmReload, markUnconfirmed } from './metadataSyncState';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { Button, Input, InputNumber } from '@superset-ui/core/components';
@@ -129,7 +131,17 @@ export default function SemanticViewEditModal({
     null,
   );
   const [structureLoading, setStructureLoading] = useState(false);
-  const [syncState, setSyncState] = useState<SyncState>({ status: 'idle' });
+  const [localSyncState, setSyncState] = useState<SyncState>({
+    status: 'idle',
+  });
+  const dispatch = useAppDispatch();
+  const unconfirmedMessage = useAppSelector(state =>
+    structure?.uuid ? state.semanticMetadataSync?.[structure.uuid] : undefined,
+  );
+  const syncState: SyncState =
+    localSyncState.status === 'idle' && unconfirmedMessage
+      ? { status: 'indeterminate', message: unconfirmedMessage }
+      : localSyncState;
   const [activeTab, setActiveTab] = useState('details');
   const generation = useRef(0);
   const busy = useRef(false);
@@ -235,6 +247,7 @@ export default function SemanticViewEditModal({
       setStructure(json.result);
       await onMetadataSync?.(isCurrent);
       if (!isCurrent()) return;
+      if (structure?.uuid) dispatch(confirmReload(structure.uuid));
       setSyncState({ status: 'done', changed });
     } catch {
       if (isCurrent()) setSyncState({ status: 'reload-error', changed });
@@ -270,6 +283,8 @@ export default function SemanticViewEditModal({
       if (!isCurrent()) return;
       const { message, reloadRequired } = await metadataSyncError(error);
       if (!isCurrent()) return;
+      if (reloadRequired)
+        dispatch(markUnconfirmed({ uuid: structure.uuid, message }));
       setSyncState({
         status: reloadRequired ? 'indeterminate' : 'error',
         message,

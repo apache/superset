@@ -21,6 +21,7 @@ Returns metrics compatible with the current dimension/metric selection.
 """
 
 import logging
+from contextlib import nullcontext
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -38,6 +39,10 @@ from superset.mcp_service.semantic_layer.schemas import (
     SemanticLayerError,
 )
 from superset.mcp_service.utils.query_utils import validate_names
+from superset.semantic_layers.metadata_binding import (
+    metadata_operation,
+    metadata_refresh_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -182,69 +187,69 @@ async def get_compatible_metrics(
         # ------------------------------------------------------------------
         # External semantic view path
         # ------------------------------------------------------------------
-        from superset.daos.semantic_layer import SemanticViewDAO
-        from superset.exceptions import SupersetSecurityException
-        from superset.semantic_layers.models import MetricMetadata, SemanticView
+        with metadata_operation() if metadata_refresh_enabled() else nullcontext():
+            from superset.daos.semantic_layer import SemanticViewDAO
+            from superset.exceptions import SupersetSecurityException
+            from superset.semantic_layers.models import MetricMetadata, SemanticView
 
-        view_id: int = request.view_id  # type: ignore[assignment]
-        with event_logger.log_context(action="mcp.get_compatible_metrics.external"):
-            view: SemanticView | None = SemanticViewDAO.find_by_id(view_id)
+            view_id: int = request.view_id  # type: ignore[assignment]
+            with event_logger.log_context(action="mcp.get_compatible_metrics.external"):
+                view: SemanticView | None = SemanticViewDAO.find_by_id(view_id)
 
-        if view is None:
-            return SemanticLayerError.create(
-                error=f"No semantic view found with id: {view_id}.",
-                error_type="NotFound",
+            if view is None:
+                return SemanticLayerError.create(
+                    error=f"No semantic view found with id: {view_id}.",
+                    error_type="NotFound",
+                )
+
+            try:
+                view.raise_for_access()
+            except SupersetSecurityException as ex:
+                return SemanticLayerError.create(
+                    error=str(ex.error.message),
+                    error_type="AccessDenied",
+                )
+
+            compatible_names: list[str] = view.get_compatible_metrics(
+                request.selected_metrics,
+                request.selected_dimensions,
             )
 
-        try:
-            view.raise_for_access()
-        except SupersetSecurityException as ex:
-            return SemanticLayerError.create(
-                error=str(ex.error.message),
-                error_type="AccessDenied",
+            # Enrich with full metric metadata
+            all_metrics_map: dict[str, MetricMetadata] = {
+                m.metric_name: m for m in view.metrics
+            }
+            compatible = [
+                MetricInfo(
+                    name=name,
+                    description=(
+                        all_metrics_map[name].description
+                        if name in all_metrics_map
+                        else None
+                    ),
+                    expression=(
+                        all_metrics_map[name].expression
+                        if name in all_metrics_map
+                        else None
+                    ),
+                    source="external",
+                    view_id=view.id,
+                    view_name=view.name,
+                    semantic_selection_version=(
+                        view.implementation.selection_identity_version
+                    ),
+                )
+                for name in compatible_names
+            ]
+
+            await ctx.info(
+                "Compatible metrics (external view id=%d): count=%d"
+                % (view.id, len(compatible))
             )
-
-        compatible_names: list[str] = view.get_compatible_metrics(
-            request.selected_metrics,
-            request.selected_dimensions,
-        )
-
-        # Enrich with full metric metadata
-        all_metrics_map: dict[str, MetricMetadata] = {
-            m.metric_name: m for m in view.metrics
-        }
-        compatible = [
-            MetricInfo(
-                name=name,
-                description=(
-                    all_metrics_map[name].description
-                    if name in all_metrics_map
-                    else None
-                ),
-                expression=(
-                    all_metrics_map[name].expression
-                    if name in all_metrics_map
-                    else None
-                ),
+            return CompatibleMetricsResponse(
+                compatible_metrics=compatible,
                 source="external",
-                view_id=view.id,
-                view_name=view.name,
-                semantic_selection_version=(
-                    view.implementation.selection_identity_version
-                ),
             )
-            for name in compatible_names
-        ]
-
-        await ctx.info(
-            "Compatible metrics (external view id=%d): count=%d"
-            % (view.id, len(compatible))
-        )
-        return CompatibleMetricsResponse(
-            compatible_metrics=compatible,
-            source="external",
-        )
-
     except Exception as exc:
         logger.exception(
             "Unexpected error in get_compatible_metrics: %s: %s",

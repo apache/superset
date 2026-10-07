@@ -259,7 +259,10 @@ class QueryContextProcessor:
             # This ensures sanitize_clause() is called and extras are normalized
             query_obj.validate()
 
-        cache_key: str | None = self.query_cache_key(query_obj)
+        parent_cache_context: dict[str, Any] = {}
+        cache_key: str | None = self.query_cache_key(
+            query_obj, parent_cache_context=parent_cache_context
+        )
         timeout = self.get_cache_timeout()
         force_query = (
             self._resolve_forced_query(query_obj, cache_key)
@@ -322,7 +325,9 @@ class QueryContextProcessor:
                         # Discovery on a miss can capture a newer annotation
                         # snapshot than the lookup peek. Store only under the
                         # identity actually used by that annotation query.
-                        cache_key, cacheable = self._query_cache_key(query_obj)
+                        cache_key, cacheable = self._query_cache_key(
+                            query_obj, parent_cache_context=parent_cache_context
+                        )
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
@@ -446,15 +451,26 @@ class QueryContextProcessor:
         return self._query_cache_key(query_obj, **kwargs)[0]
 
     def _query_cache_key(
-        self, query_obj: QueryObject, **kwargs: Any
+        self,
+        query_obj: QueryObject,
+        *,
+        parent_cache_context: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> tuple[str | None, bool]:
         """Keep annotation cacheability alongside the opaque hashed result key."""
         datasource: Explorable = self._qc_datasource
-        # Reject unenforceable restrictions before provider identity or cache reads.
-        rls: list[str] = security_manager.get_rls_cache_key(datasource)
-        extra_cache_keys: list[Any] = datasource.get_extra_cache_keys(
-            query_obj.to_dict()
-        )
+        if parent_cache_context is None:
+            parent_cache_context = {}
+        if not parent_cache_context:
+            # Capture parent/Jinja inputs once; annotation discovery may re-key
+            # the result after execution but must not evaluate new parent inputs.
+            rls: list[str] = security_manager.get_rls_cache_key(datasource)
+            parent_cache_context.update(
+                datasource=datasource.uid,
+                extra_cache_keys=datasource.get_extra_cache_keys(query_obj.to_dict()),
+                rls=rls,
+                changed_on=datasource.changed_on,
+            )
         cacheable: bool = True
 
         # Annotation data is cached on the same entry as the dataframe, so the
@@ -473,10 +489,7 @@ class QueryContextProcessor:
 
         cache_key: str | None = (
             query_obj.cache_key(
-                datasource=datasource.uid,
-                extra_cache_keys=extra_cache_keys,
-                rls=rls,
-                changed_on=datasource.changed_on,
+                **parent_cache_context,
                 **kwargs,
             )
             if query_obj
@@ -490,6 +503,8 @@ class QueryContextProcessor:
         """Capture authorized annotation views on a miss before a slow parent query."""
         if not query_obj.annotation_layers:
             return
+        from superset_core.semantic_layers.metadata import MetadataRefreshError
+
         from superset.semantic_layers.metadata_binding import (
             metadata_refresh_enabled,
             participates,
@@ -525,7 +540,7 @@ class QueryContextProcessor:
                 # Reuse the annotation command's canonical query authority.
                 # Later execution retains this view without renewing its budget.
                 _captured: str | None = source.metadata_cache_token
-            except SupersetException as ex:
+            except (SupersetException, MetadataRefreshError) as ex:
                 raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 
     def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:

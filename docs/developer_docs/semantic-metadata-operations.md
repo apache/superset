@@ -103,7 +103,11 @@ the active tab. If publication succeeds but local reload fails, **Reload fields*
 retries the read only. An unconfirmed sync also offers **Reload fields** and
 disables another sync until the reload succeeds. This refreshes both the editor
 and Explore without publishing again or claiming that sync succeeded; the draft
-stays intact. Closing or switching editors discards stale completions.
+stays intact. The frontend store remembers an unconfirmed sync by semantic-view
+UUID. Closing and reopening that view keeps the warning and Sync lock until an
+explicit reload confirms the fields, or a full page reload resets frontend state.
+Other views remain independent. Closing or switching editors discards stale
+completions.
 Explore reloads datasource fields and compatibility for the current selection;
 it does not save chart settings or automatically run a chart query. Controls use
 their normal validation against the refreshed choices. If that removes or changes

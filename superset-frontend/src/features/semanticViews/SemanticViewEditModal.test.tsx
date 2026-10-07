@@ -19,7 +19,8 @@
 import userEvent from '@testing-library/user-event';
 import {
   act,
-  render,
+  createStore,
+  render as renderWithProviders,
   screen,
   waitFor,
   within,
@@ -27,6 +28,14 @@ import {
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 
 import SemanticViewEditModal from './SemanticViewEditModal';
+import semanticMetadataSync from './metadataSyncState';
+
+const render: typeof renderWithProviders = (ui, options) =>
+  renderWithProviders(ui, {
+    useRedux: true,
+    reducers: { semanticMetadataSync },
+    ...options,
+  });
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -1114,3 +1123,62 @@ test.each<[number, string]>([
     ).not.toBeInTheDocument();
   },
 );
+
+test('unconfirmed sync survives reopening only for its semantic view', async () => {
+  mockedGetClientErrorObject.mockImplementation(realClientErrorParser);
+  mockedGet.mockResolvedValue({ json: SYNC_STRUCTURE });
+  mockedPost.mockRejectedValue({
+    response: new Response(
+      JSON.stringify({ error: 'indeterminate', message: 'private detail' }),
+      { status: 503 },
+    ),
+  });
+  const store = createStore({}, { semanticMetadataSync });
+  const props = { ...createProps(), onMetadataSync: jest.fn() };
+  const first = render(<SemanticViewEditModal {...props} />, { store });
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Sync metadata' }),
+  );
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Metadata sync could not be confirmed',
+  );
+  first.unmount();
+
+  mockedGet.mockResolvedValueOnce({
+    json: {
+      result: { ...SYNC_STRUCTURE.result, uuid: 'another-view-uuid' },
+    },
+  });
+  const other = render(
+    <SemanticViewEditModal
+      {...props}
+      semanticView={{ ...props.semanticView, id: 8 }}
+    />,
+    { store },
+  );
+  expect(
+    await screen.findByRole('button', { name: 'Sync metadata' }),
+  ).toBeEnabled();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  other.unmount();
+
+  const reopened = render(<SemanticViewEditModal {...props} />, { store });
+  const sync = await screen.findByRole('button', { name: 'Sync metadata' });
+  expect(sync).toBeDisabled();
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'Metadata sync could not be confirmed',
+  );
+  await userEvent.click(sync);
+  expect(mockedPost).toHaveBeenCalledTimes(1);
+  await userEvent.click(screen.getByRole('button', { name: 'Reload fields' }));
+  expect(await screen.findByText('Fields reloaded')).toBeInTheDocument();
+  expect(props.onMetadataSync).toHaveBeenCalledTimes(1);
+  expect(sync).toBeEnabled();
+  reopened.unmount();
+  render(<SemanticViewEditModal {...props} />, { store });
+  expect(
+    await screen.findByRole('button', { name: 'Sync metadata' }),
+  ).toBeEnabled();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(mockedPost).toHaveBeenCalledTimes(1);
+});

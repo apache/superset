@@ -139,7 +139,9 @@ def test_metadata_database_boundary_only_maps_when_enabled(
     ],
     indirect=True,
 )
-@pytest.mark.parametrize("route", ["runtime", "compatible"])
+@pytest.mark.parametrize(
+    "route", ["runtime", "compatible", "columns", "views", "structure"]
+)
 @pytest.mark.parametrize("category,status", [("unavailable", 503), ("deadline", 504)])
 def test_discovery_http_preserves_typed_storage_and_budget_failures(
     client: FlaskClient[Any],
@@ -191,12 +193,23 @@ def test_discovery_http_preserves_typed_storage_and_budget_failures(
     monkeypatch.setattr(
         "superset.datasource.api.DatasourceDAO.get_datasource", lambda *args: view
     )
-    path: str = (
-        f"/api/v1/semantic_layer/{layer.uuid}/schema/runtime"
-        if route == "runtime"
-        else "/api/v1/datasource/semantic_view/17/compatible"
+    lookup: Mock = Mock()
+    lookup.filter_by.return_value.first.return_value = view
+    monkeypatch.setattr(
+        "superset.semantic_layers.api.db.session.query", lambda *args: lookup
     )
-    response: TestResponse = client.post(path, json={})
+    paths: dict[str, str] = {
+        "runtime": f"/api/v1/semantic_layer/{layer.uuid}/schema/runtime",
+        "views": f"/api/v1/semantic_layer/{layer.uuid}/views",
+        "structure": "/api/v1/semantic_view/17/structure",
+        "columns": "/api/v1/datasource/semantic_view/17/column/orders/values/",
+        "compatible": "/api/v1/datasource/semantic_view/17/compatible",
+    }
+    response: TestResponse = client.open(
+        paths[route],
+        method="GET" if route in {"columns", "structure"} else "POST",
+        json={},
+    )
     assert response.status_code == status
     assert response.json["error"] == category
     assert response.json["message"] != category
