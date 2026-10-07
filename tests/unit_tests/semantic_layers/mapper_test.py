@@ -4147,9 +4147,10 @@ def test_abc_only_provider_validates_and_maps(mocker: MockerFixture) -> None:
     assert {dim.name for dim in queries[0].dimensions} == {"category"}
 
 
-@pytest.mark.parametrize("offset", [None, 0, 2])
+@pytest.mark.parametrize("offset", [None, -1, 0, 2])
+@pytest.mark.parametrize("limit", [None, 0, 2])
 def test_row_offset_mapping_without_advertised_capability(
-    mock_datasource: MagicMock, offset: int | None
+    mock_datasource: MagicMock, offset: int | None, limit: int | None
 ) -> None:
     """Keep direct callers provider-local even when UI support is absent."""
     mock_datasource.implementation.features = frozenset()
@@ -4158,7 +4159,7 @@ def test_row_offset_mapping_without_advertised_capability(
         metrics=["total_sales"],
         columns=["category"],
         row_offset=offset,
-        row_limit=2,
+        row_limit=limit,
         orderby=[("category", True)],
     )
 
@@ -4166,7 +4167,7 @@ def test_row_offset_mapping_without_advertised_capability(
 
     assert len(queries) == 1
     assert queries[0].offset == (offset or 0)
-    assert queries[0].limit == 2
+    assert queries[0].limit == limit
     assert queries[0].order is not None
     assert queries[0].order[0][1] == OrderDirection.ASC
     assert isinstance(queries[0].order[0][0], Dimension)

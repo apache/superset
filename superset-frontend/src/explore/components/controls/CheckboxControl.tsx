@@ -18,7 +18,12 @@
  */
 import { useCallback, useId, type ReactNode } from 'react';
 import { styled, css } from '@apache-superset/core/theme';
-import { Button, Checkbox } from '@superset-ui/core/components';
+import {
+  Button,
+  Checkbox,
+  Space,
+  Typography,
+} from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
 
 interface CheckboxControlProps {
@@ -78,7 +83,20 @@ export default function CheckboxControl({
     />
   );
   const explanation = disabled && disabledReason && (
-    <p id={explanationId}>{disabledReason}</p>
+    <Typography.Text id={explanationId} type="secondary">
+      {disabledReason}
+    </Typography.Text>
+  );
+  const resetButton = disabled && value && resetLabel && (
+    <Button buttonSize="small" onClick={() => onChange(false)}>
+      {resetLabel}
+    </Button>
+  );
+  const feedback = (explanation || resetButton) && (
+    <Space direction="vertical" size="small">
+      {explanation}
+      {resetButton}
+    </Space>
   );
 
   if (label) {
@@ -102,20 +120,15 @@ export default function CheckboxControl({
                 }
           }
         />
-        {explanation}
-        {disabled && value && resetLabel && (
-          <Button buttonSize="small" onClick={() => onChange(false)}>
-            {resetLabel}
-          </Button>
-        )}
+        {feedback}
       </CheckBoxControlWrapper>
     );
   }
-  if (explanation) {
+  if (feedback) {
     return (
       <CheckBoxControlWrapper>
         {checkbox}
-        {explanation}
+        {feedback}
       </CheckBoxControlWrapper>
     );
   }

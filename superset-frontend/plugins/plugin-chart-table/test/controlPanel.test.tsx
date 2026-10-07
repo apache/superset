@@ -624,6 +624,38 @@ test('fails closed while semantic datasource metadata is unavailable', () => {
 });
 
 test.each([
+  ['table', 'semantic_view', true],
+  ['semantic_view', 'table', false],
+])(
+  'trusts form datasource %s -> %s while metadata is stale',
+  (previous, next, disabled) => {
+    const state = panelState([], previous, true);
+    state.form_data.datasource = `2__${next}`;
+    renderPagination(state);
+    expect(screen.getByRole('checkbox').hasAttribute('disabled')).toBe(
+      disabled,
+    );
+    expect(
+      pageLength.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({ disabled });
+    expect(state.controls.server_pagination.value).toBe(true);
+  },
+);
+
+test('does not offer a reset before datasource metadata arrives', () => {
+  const state = {
+    ...panelState(undefined, 'semantic_view', true),
+    datasource: null,
+  };
+  renderPagination(state);
+  expect(screen.getByRole('checkbox')).toBeDisabled();
+  expect(screen.getByRole('checkbox')).toBeChecked();
+  expect(
+    screen.queryByRole('button', { name: 'Turn off server pagination' }),
+  ).not.toBeInTheDocument();
+});
+
+test.each([
   ['semantic_view', ['ROW_OFFSET']],
   ['table', undefined],
   ['table', []],

@@ -27,12 +27,13 @@ export function isServerPaginationUnsupported({
   datasource,
   form_data,
 }: ControlPanelState): boolean {
-  const isSemanticView =
-    datasource?.type === DatasourceType.SemanticView ||
-    (!datasource &&
-      form_data.datasource?.endsWith(`__${DatasourceType.SemanticView}`));
+  const datasourceType =
+    form_data.datasource?.split('__')[1] ?? datasource?.type;
+  const isSemanticView = datasourceType === DatasourceType.SemanticView;
   const features =
-    datasource && 'semantic_view_features' in datasource
+    datasource &&
+    datasource.type === datasourceType &&
+    'semantic_view_features' in datasource
       ? datasource.semantic_view_features
       : undefined;
   return Boolean(isSemanticView && !features?.includes(ROW_OFFSET));

@@ -394,7 +394,9 @@ const config: ControlPanelConfig = {
                 disabledReason: t(
                   'This semantic view does not support server pagination.',
                 ),
-                resetLabel: t('Turn off server pagination'),
+                resetLabel: state.datasource
+                  ? t('Turn off server pagination')
+                  : undefined,
               }),
             },
           },

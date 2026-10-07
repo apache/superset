@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Explore control headers without a click action render as plain text, not disabled buttons; interactive headers retain keyboard activation.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.

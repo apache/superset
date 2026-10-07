@@ -77,3 +77,15 @@ def test_row_offset_is_optional_for_minimal_provider() -> None:
     assert view.features == frozenset()
     assert SemanticViewFeature.ROW_OFFSET not in view.features
     assert view.uid() == "minimal"
+
+    class OffsetView(MinimalView):
+        """Advertise pagination without changing the required interface."""
+
+        features: frozenset[SemanticViewFeature] = frozenset(
+            {SemanticViewFeature.ROW_OFFSET}
+        )
+
+    offset_view: OffsetView = OffsetView()
+    assert SemanticViewFeature.ROW_OFFSET in offset_view.features
+    assert SemanticViewFeature.ROW_OFFSET.value == "ROW_OFFSET"
+    assert SemanticViewFeature.ROW_OFFSET not in view.features

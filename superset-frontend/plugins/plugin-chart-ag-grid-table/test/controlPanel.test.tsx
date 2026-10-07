@@ -391,5 +391,32 @@ test('AG Grid fails closed while semantic datasource metadata loads', () => {
   };
   expect(
     panel.mapStateToProps?.(state, state.controls.server_pagination),
-  ).toMatchObject({ disabled: true });
+  ).toMatchObject({ disabled: true, resetLabel: undefined });
 });
+
+test.each([
+  ['table', 'semantic_view', true],
+  ['semantic_view', 'table', false],
+])(
+  'AG Grid trusts form datasource %s -> %s while metadata is stale',
+  (previous, next, disabled) => {
+    const panel = getPaginationControl('server_pagination');
+    const base = createMockExplore(undefined);
+    const state: ControlPanelState = {
+      ...base,
+      datasource: {
+        ...base.datasource,
+        type: previous,
+        semantic_view_features: [],
+      } as Dataset,
+      form_data: {
+        ...base.form_data,
+        datasource: `2__${next}`,
+        server_pagination: true,
+      },
+    };
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({ disabled });
+  },
+);

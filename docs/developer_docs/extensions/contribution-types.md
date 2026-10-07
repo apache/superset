@@ -353,7 +353,9 @@ an unsupported query continues to return the provider's actionable error until
 the author explicitly turns off server pagination and saves the chart. Opening
 a chart or switching datasources does not rewrite pagination settings. A saved
 enabled control offers a **Turn off server pagination** action beside the
-explanation.
+explanation once datasource metadata is available. During a datasource-type
+switch, controls follow the selected form-data datasource type rather than stale
+metadata; capabilities from a different datasource type do not enable pagination.
 
 This is an optional UI capability, not a new permission or a host-wide query
 validator. Direct API callers continue to use provider-local enforcement.

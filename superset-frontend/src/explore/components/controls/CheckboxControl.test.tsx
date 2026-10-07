@@ -36,6 +36,27 @@ const setup = (overrides = {}) => (
   <CheckboxControl {...defaultProps} {...overrides} />
 );
 
+test.each([undefined, 'Unavailable'])(
+  'resets a disabled saved value without a label, explanation=%s',
+  async disabledReason => {
+    const onChange = jest.fn();
+    render(
+      setup({
+        label: undefined,
+        disabled: true,
+        value: true,
+        disabledReason,
+        resetLabel: 'Turn off',
+        onChange,
+      }),
+    );
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Turn off' }));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(false);
+  },
+);
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CheckboxControl', () => {
   test('renders a Checkbox', () => {
