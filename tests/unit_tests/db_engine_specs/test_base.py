@@ -53,6 +53,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     SupersetGenericDBErrorException,
 )
+from superset.security.guest_token import GuestToken, GuestUser
 from superset.sql.parse import Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -63,6 +64,7 @@ from superset.superset_typing import (
 from superset.utils.core import FilterOperator, GenericDataType
 from superset.utils.oauth2 import decode_oauth2_state
 from tests.conftest import with_config
+from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
@@ -2045,3 +2047,104 @@ def test_epoch_us_to_dttm(spec: type[BaseEngineSpec], expected: str) -> None:
     microsecond function (via their own override).
     """
     assert spec.epoch_us_to_dttm() == expected
+
+
+def _guest_user(username: str = "guest_user") -> GuestUser:
+    """
+    Build an embedded guest principal, the way the guest-token loader would.
+    """
+    token: GuestToken = {
+        "user": {"username": username},
+        "resources": [],
+        "rls_rules": [],
+        "iat": 0,
+        "exp": 1,
+    }
+    return GuestUser(token=token, roles=[])
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_needs_oauth2_for_a_logged_in_user(mocker: MockerFixture) -> None:
+    """
+    Test that a logged-in user hitting an OAuth2 error still starts the dance.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = mocker.MagicMock(spec=["id", "username"])
+
+    assert BaseEngineSpec.needs_oauth2(OAuth2RedirectError("url", "tab", "redirect"))
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_needs_oauth2_is_false_for_an_embedded_guest(mocker: MockerFixture) -> None:
+    """
+    Test that an embedded guest never triggers the OAuth2 dance.
+
+    A guest authenticates with a guest token rather than a Superset account, so there
+    is no per-user token to resolve and no way for them to authorize one. Before this
+    guard, `start_oauth2_dance` read `g.user.id` -- which `GuestUser` does not define
+    -- and the viewer got an `AttributeError` and a 500 instead of the driver's error.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = _guest_user()
+
+    assert not BaseEngineSpec.needs_oauth2(
+        OAuth2RedirectError("url", "tab", "redirect")
+    )
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_needs_oauth2_is_false_for_an_unrelated_exception(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a non-OAuth2 error is not treated as one, for either principal.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+
+    g.user = mocker.MagicMock(spec=["id", "username"])
+    assert not BaseEngineSpec.needs_oauth2(ValueError("not an OAuth2 problem"))
+
+    g.user = _guest_user()
+    assert not BaseEngineSpec.needs_oauth2(ValueError("not an OAuth2 problem"))
+
+
+def test_needs_oauth2_without_a_user(mocker: MockerFixture) -> None:
+    """
+    Test that a request with no user on `g` does not start the dance.
+    """
+    mocker.patch("superset.db_engine_specs.base.g", spec=[])
+
+    assert not BaseEngineSpec.needs_oauth2(
+        OAuth2RedirectError("url", "tab", "redirect")
+    )
+
+
+@with_config(
+    {
+        "SECRET_KEY": "test-secret-key",
+        "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
+    }
+)
+def test_start_oauth2_dance_rejects_a_principal_without_an_id(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the dance fails legibly when the principal has no id.
+
+    This is the backstop behind `needs_oauth2`: a caller that skips the guest check
+    should get an `OAuth2Error` naming the problem, not an `AttributeError` raised
+    while building the state dict.
+    """
+    mocker.patch("superset.daos.key_value.KeyValueDAO")
+    mocker.patch("superset.db_engine_specs.base.db")
+
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = _guest_user()
+
+    database = mocker.MagicMock()
+    database.id = 1
+
+    with pytest.raises(OAuth2Error) as excinfo:
+        BaseEngineSpec.start_oauth2_dance(database)
+
+    assert "authenticated user with an id" in excinfo.value.error.extra["error"]
