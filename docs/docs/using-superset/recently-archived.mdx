@@ -209,10 +209,10 @@ rows or silently skip cleanup, since neither announces itself:
 - it declares a table that owns itself, an owned edge whose target is the
   root's own table -- the back edge of a root/child foreign-key cycle, which
   removes other live roots sharing that child -- or a table reachable only
-  through an association, without setting `walks_own_subtree`. Cleanup that issues one
-  statement per declared edge reaches one level and resolves each predicate
-  through the ownership path, so without enforced foreign keys the root is
-  purged and the rows below it are orphaned silently. A policy whose
+  through an association, without setting `walks_own_subtree`. Cleanup that
+  issues one statement per declared edge reaches one level and resolves each
+  predicate through the ownership path, so without enforced foreign keys the
+  root is purged and the rows below it are orphaned silently. A policy whose
   `delete_owned_children` walks the sub-tree itself says so with that field,
   rather than being recognised by which callable it holds -- wrapping the
   shared one keeps its behaviour while defeating any such check. The field
