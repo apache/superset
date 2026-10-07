@@ -435,10 +435,14 @@ def _build_replacement_form_data(
     effective_dataset_id: int | None,
     replacement_dataset_id: int | None = None,
     replacement_type: str = "table",
+    temporal_columns: set[str] | None = None,
 ) -> dict[str, Any]:
     """Map and merge a replacement config for preview and save paths."""
     new_form_data = map_config_to_form_data(
-        parsed_config, dataset_id=effective_dataset_id, include_disabled=True
+        parsed_config,
+        dataset_id=effective_dataset_id,
+        include_disabled=True,
+        temporal_columns=temporal_columns,
     )
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
@@ -479,15 +483,14 @@ def _build_replacement_form_data(
 def _source_rebind_payload(
     chart: Slice, rebind_id: int, rebind_type: str
 ) -> dict[str, Any]:
-    """Keep stored params aligned when a rebind involves a semantic view."""
+    """Keep stored params and compiled query aligned with every source rebind."""
     payload: dict[str, Any] = {
         "datasource_id": rebind_id,
         "datasource_type": rebind_type,
     }
-    if "semantic_view" in (rebind_type, _chart_datasource_type(chart)):
-        form_data: dict[str, Any] = _get_existing_form_data(chart)
-        form_data["datasource"] = f"{rebind_id}__{rebind_type}"
-        payload.update(params=json.dumps(form_data), query_context=None)
+    form_data: dict[str, Any] = _get_existing_form_data(chart)
+    form_data["datasource"] = f"{rebind_id}__{rebind_type}"
+    payload.update(params=json.dumps(form_data), query_context=None)
     return payload
 
 
@@ -495,6 +498,7 @@ def _build_update_payload(
     request: UpdateChartRequest,
     chart: Any,
     parsed_config: Any = None,
+    temporal_columns: set[str] | None = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Build the update payload for a chart update.
 
@@ -520,6 +524,7 @@ def _build_update_payload(
             None if rebind_type != DatasourceType.TABLE.value else effective_dataset_id,
             replacement_dataset_id=rebind_id if is_rebind else None,
             replacement_type=rebind_type,
+            temporal_columns=temporal_columns,
         )
 
         chart_name = (
@@ -577,6 +582,7 @@ def _build_preview_form_data(
     request: UpdateChartRequest,
     chart: Any,
     parsed_config: Any = None,
+    temporal_columns: set[str] | None = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Merge the existing chart's form_data with the requested changes.
 
@@ -604,6 +610,7 @@ def _build_preview_form_data(
             None if rebind_type != DatasourceType.TABLE.value else effective_dataset_id,
             replacement_dataset_id=rebind_id if is_rebind else None,
             replacement_type=rebind_type,
+            temporal_columns=temporal_columns,
         )
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
@@ -1025,13 +1032,14 @@ async def update_chart(  # noqa: C901
                 }
             )
 
+        semantic_target: ChartDatasource | None = None
         if request.view_id is not None:
-            replacement: ChartDatasource | None = resolve_semantic_view(request.view_id)
-            if replacement is None:
+            semantic_target = resolve_semantic_view(request.view_id)
+            if semantic_target is None:
                 return GenerateChartResponse(
                     success=False, error=view_not_found_error(request.view_id)
                 )
-            request = request.model_copy(update={"view_id": replacement.id})
+            request = request.model_copy(update={"view_id": semantic_target.id})
         rebind_id: int | None
         rebind_type: str
         is_rebind: bool
@@ -1065,8 +1073,10 @@ async def update_chart(  # noqa: C901
         if _chart_datasource_type(chart) == DatasourceType.SEMANTIC_VIEW.value:
             # Views share the id space with datasets: never look the id up
             # through DatasetDAO.
-            view_ok: bool = resolve_semantic_view(chart.datasource_id) is not None
-            if not view_ok:
+            existing_target: ChartDatasource | None = resolve_semantic_view(
+                chart.datasource_id
+            )
+            if existing_target is None:
                 error_msg: str = view_not_found_error(chart.datasource_id).message
                 return GenerateChartResponse.model_validate(
                     {
@@ -1081,6 +1091,8 @@ async def update_chart(  # noqa: C901
                         "api_version": "v1",
                     }
                 )
+            if rebind_type == DatasourceType.SEMANTIC_VIEW.value:
+                semantic_target = semantic_target or existing_target
             validation_result = None
         elif _chart_datasource_type(chart) in (
             DatasourceType.QUERY.value,
@@ -1113,6 +1125,18 @@ async def update_chart(  # noqa: C901
                     "api_version": "v1",
                 }
             )
+
+        temporal_columns: set[str] | None = (
+            {
+                column.column_name
+                for column in semantic_target.explorable.columns
+                if column.is_dttm
+            }
+            if rebind_type == DatasourceType.SEMANTIC_VIEW.value
+            and semantic_target is not None
+            and request.config is not None
+            else None
+        )
 
         updated_chart: Any = None
         explore_url: str
@@ -1189,7 +1213,9 @@ async def update_chart(  # noqa: C901
         if not request.generate_preview:
             from superset.commands.chart.update import UpdateChartCommand
 
-            payload_or_error = _build_update_payload(request, chart, parsed_config)
+            payload_or_error = _build_update_payload(
+                request, chart, parsed_config, temporal_columns=temporal_columns
+            )
             if isinstance(payload_or_error, GenerateChartResponse):
                 return payload_or_error
 
@@ -1219,7 +1245,10 @@ async def update_chart(  # noqa: C901
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_target(
                         None,
-                        new_form_data or {},
+                        (new_form_data or {})
+                        if DatasourceType.SEMANTIC_VIEW.value
+                        in (rebind_type, _chart_datasource_type(chart))
+                        else {},
                         chart,
                         rebind_id,
                         rebind_type,
@@ -1236,7 +1265,9 @@ async def update_chart(  # noqa: C901
                 f"{get_superset_base_url()}/explore/?slice_id={updated_chart.id}"
             )
         else:
-            preview_or_error = _build_preview_form_data(request, chart, parsed_config)
+            preview_or_error = _build_preview_form_data(
+                request, chart, parsed_config, temporal_columns=temporal_columns
+            )
             if isinstance(preview_or_error, GenerateChartResponse):
                 return preview_or_error
             new_form_data = preview_or_error

@@ -2527,30 +2527,47 @@ class TestBuildUpdatePayloadDatasetId:
     """Tests for dataset_id support in _build_update_payload."""
 
     def test_dataset_only_update_returns_datasource_fields(self) -> None:
-        """dataset_id alone produces a payload with datasource_id + datasource_type."""
-        request = UpdateChartRequest(identifier=1, dataset_id=42)
-        chart = Mock()
+        """A source-only rebind also rewrites stored query identity."""
+        request: UpdateChartRequest = UpdateChartRequest(identifier=1, dataset_id=42)
+        chart: Mock = Mock()
         chart.datasource_id = 10
+        chart.datasource_type = "table"
+        chart.params = json.dumps({"viz_type": "table", "datasource": "10__table"})
 
-        result = _build_update_payload(request, chart)
+        result: dict[str, Any] | GenerateChartResponse = _build_update_payload(
+            request, chart
+        )
 
         assert isinstance(result, dict)
-        assert result == {"datasource_id": 42, "datasource_type": "table"}
+        assert result == {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "params": json.dumps({"viz_type": "table", "datasource": "42__table"}),
+            "query_context": None,
+        }
 
     def test_dataset_and_name_update(self) -> None:
         """dataset_id + chart_name: payload includes datasource fields
         and slice_name."""
-        request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
-        chart = Mock()
+        request: UpdateChartRequest = UpdateChartRequest(
+            identifier=1, dataset_id=42, chart_name="Renamed"
+        )
+        chart: Mock = Mock()
         chart.datasource_id = 10
+        chart.datasource_type = "table"
+        chart.params = json.dumps({"viz_type": "table", "datasource": "10__table"})
 
-        result = _build_update_payload(request, chart)
+        result: dict[str, Any] | GenerateChartResponse = _build_update_payload(
+            request, chart
+        )
 
         assert isinstance(result, dict)
         assert result == {
             "datasource_id": 42,
             "datasource_type": "table",
             "slice_name": "Renamed",
+            "params": json.dumps({"viz_type": "table", "datasource": "42__table"}),
+            "query_context": None,
         }
 
     def test_dataset_and_config_update_includes_datasource(self):

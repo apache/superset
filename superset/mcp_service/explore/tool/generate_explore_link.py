@@ -455,9 +455,17 @@ async def _generate_for_semantic_view(
         )
 
     await ctx.report_progress(3, 4, "Converting configuration to form data")
-    # No dataset id here: the plugins' dataset-backed temporal checks fall back
-    # to their permissive defaults, and the view's own validation ran above.
-    form_data: dict[str, Any] = map_config_to_form_data(request.config, dataset_id=None)
+    # No dataset ID here: use the authorized view metadata to correct any
+    # dataset-backed temporal defaults applied by the chart plugin.
+    form_data: dict[str, Any] = map_config_to_form_data(
+        request.config,
+        dataset_id=None,
+        temporal_columns={
+            column["name"]
+            for column in _context.available_columns
+            if column["is_temporal"]
+        },
+    )
     form_data.pop("_mcp_warnings", None)
     form_data["datasource"] = target.form_data_datasource
     error = validate_semantic_view_form_data(form_data, target)

@@ -25,6 +25,8 @@ from typing import Any, ClassVar
 from superset.mcp_service.chart.chart_utils import (
     _mixed_timeseries_what,
     _summarize_filters,
+    configure_temporal_handling,
+    is_column_truly_temporal,
     map_mixed_timeseries_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
@@ -112,6 +114,19 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
         return map_mixed_timeseries_config(config, dataset_id=dataset_id)
+
+    def apply_temporal_columns(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        temporal_columns: set[str],
+    ) -> None:
+        """Treat an unpublished time-axis type as a categorical dimension."""
+        if config.x.name is None or is_column_truly_temporal(
+            config.x.name, None, temporal_columns=temporal_columns
+        ):
+            return
+        configure_temporal_handling(form_data, False, config.time_grain)
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
         what = _mixed_timeseries_what(config)

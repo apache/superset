@@ -24,8 +24,11 @@ from collections.abc import Mapping
 from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
+    _add_adhoc_filters,
     _xy_chart_context,
     _xy_chart_what,
+    configure_temporal_handling,
+    is_column_truly_temporal,
     map_xy_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
@@ -109,6 +112,26 @@ class XYChartPlugin(BaseChartPlugin):
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
         return map_xy_config(config, dataset_id=dataset_id)
+
+    def apply_temporal_columns(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        temporal_columns: set[str],
+    ) -> None:
+        """Undo dataset-less time defaults for a categorical semantic x-axis."""
+        if (
+            config.x is None
+            or config.x.name is None
+            or is_column_truly_temporal(
+                config.x.name, None, temporal_columns=temporal_columns
+            )
+        ):
+            return
+        configure_temporal_handling(form_data, False, config.time_grain)
+        form_data.pop("adhoc_filters", None)
+        _add_adhoc_filters(form_data, config.filters)
+        form_data.pop("x_axis_time_format", None)
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         config_dict = config.model_dump(exclude_unset=True)

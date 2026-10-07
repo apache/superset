@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.mcp_service.chart.chart_helpers import resolve_form_data_datasource
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.chart.compile import CompileResult
 from superset.mcp_service.chart.datasource_resolver import ChartDatasource
@@ -110,6 +111,29 @@ class TestRebindTarget:
 
 
 class TestBuildUpdatePayload:
+    def test_semantic_replacement_uses_target_temporal_columns(self) -> None:
+        request: UpdateChartRequest = UpdateChartRequest(
+            identifier=12,
+            view_id=5,
+            config=XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="region"),
+                y=[ColumnRef(name="revenue", saved_metric=True)],
+            ),
+        )
+        payload: dict[str, Any] | GenerateChartResponse = _build_update_payload(
+            request, _chart(), request.config, temporal_columns={"metric_time"}
+        )
+
+        assert isinstance(payload, dict)
+        form_data: dict[str, Any] = json.loads(payload["params"])
+        assert form_data["granularity_sqla"] is None
+        assert form_data["x_axis_sort_series_type"] == "name"
+        assert not any(
+            item.get("subject") == "region" and item.get("operator") == "TEMPORAL_RANGE"
+            for item in form_data.get("adhoc_filters", [])
+        )
+
     def test_view_rebind_writes_semantic_view_datasource(self) -> None:
         request: UpdateChartRequest = UpdateChartRequest(
             identifier=12, view_id=5, config=_view_config()
@@ -393,6 +417,7 @@ async def test_table_source_only_rebind_retains_filters_in_both_modes(
         }
     ]
     chart.params = json.dumps(form_data)
+    chart.query_context = json.dumps({"datasource": {"id": 3, "type": "table"}})
     target: SqlaTable = SqlaTable(id=9, table_name="replacement")
     mocker.patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
     mocker.patch.object(
@@ -437,10 +462,13 @@ async def test_table_source_only_rebind_retains_filters_in_both_modes(
         assert preview.call_args.args[1]["datasource"] == "9__table"
         write.assert_not_called()
     else:
-        assert write.call_args.args[1] == {
-            "datasource_id": 9,
-            "datasource_type": "table",
-        }
+        payload: dict[str, Any] = write.call_args.args[1]
+        assert payload["datasource_id"] == 9
+        assert payload["datasource_type"] == "table"
+        assert payload["query_context"] is None
+        updated_form_data: dict[str, Any] = json.loads(payload["params"])
+        assert updated_form_data["adhoc_filters"] == form_data["adhoc_filters"]
+        assert resolve_form_data_datasource(updated_form_data, chart) == (9, "table")
         preview.assert_not_called()
     assert json.loads(chart.params) == form_data
 

@@ -378,7 +378,17 @@ async def generate_chart(  # noqa: C901
         # Map the simplified config to Superset's form_data format
         # Pass dataset_id to enable column type checking for proper viz_type selection
         form_data: dict[str, Any] = map_config_to_form_data(
-            config, dataset_id=request.dataset_id
+            config,
+            dataset_id=request.dataset_id,
+            temporal_columns=(
+                {
+                    column["name"]
+                    for column in semantic_context.available_columns
+                    if column["is_temporal"]
+                }
+                if target is not None
+                else None
+            ),
         )
         if target is not None:
             form_data["datasource"] = target.form_data_datasource

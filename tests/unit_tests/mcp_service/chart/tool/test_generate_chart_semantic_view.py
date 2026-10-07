@@ -44,6 +44,86 @@ from superset.mcp_service.chart.tool.generate_chart import generate_chart
 from superset.mcp_service.chart.tool.get_chart_preview import (
     _get_chart_preview_internal,
 )
+from superset.utils import json
+
+
+@pytest.mark.asyncio
+async def test_categorical_semantic_axis_compiles_without_temporal_filter(
+    mocker: MockerFixture,
+) -> None:
+    """An authorized string dimension must not become a time-range subject."""
+    view: Mock = Mock(id=1)
+    view.name = "Semantic revenue"
+    view.datasource_name = "Semantic revenue"
+    view.table_name = "Semantic revenue"
+    view.columns = [
+        Mock(column_name="region", type="STRING", is_dttm=False),
+        Mock(column_name="metric_time", type="TIMESTAMP", is_dttm=True),
+    ]
+    view.metrics = [Mock(metric_name="revenue", expression="revenue", description=None)]
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+    )
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.common.query_context_factory.QueryContextFactory")
+    command: MagicMock = mocker.patch(
+        "superset.commands.chart.data.get_data_command.ChartDataCommand"
+    )
+    command.return_value.run.return_value = {
+        "queries": [{"status": "success", "data": []}]
+    }
+    create: MagicMock = mocker.patch(
+        "superset.commands.chart.create.CreateChartCommand"
+    )
+    create.return_value.run.return_value = Mock(
+        id=91,
+        slice_name="Revenue",
+        viz_type="echarts_timeseries_bar",
+        uuid=None,
+        datasource_id=1,
+        datasource_type="semantic_view",
+    )
+    mocker.patch("superset.extensions.db.session.refresh")
+    cache: MagicMock = mocker.patch(
+        "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand"
+    )
+    cache.return_value.run.return_value = "semantic-key"
+    mocker.patch(
+        "superset.mcp_service.chart.schemas.serialize_chart_object", return_value=None
+    )
+    ctx: MagicMock = MagicMock(
+        info=AsyncMock(),
+        debug=AsyncMock(),
+        warning=AsyncMock(),
+        error=AsyncMock(),
+        report_progress=AsyncMock(),
+    )
+    request: GenerateChartRequest = GenerateChartRequest(
+        view_id=1,
+        save_chart=True,
+        generate_preview=False,
+        config=XYChartConfig(
+            chart_type="xy",
+            kind="bar",
+            x=ColumnRef(name="region"),
+            y=[ColumnRef(name="revenue", saved_metric=True)],
+        ),
+    )
+    response: GenerateChartResponse = await generate_chart(request, ctx=ctx)
+    assert response.success, response.error
+    command.return_value.validate.assert_called_once()
+    command.return_value.run.assert_called_once()
+    form_data: dict[str, Any] = json.loads(create.call_args.args[0]["params"])
+    assert form_data["granularity_sqla"] is None
+    assert form_data["x_axis_sort_series_type"] == "name"
+    assert not any(
+        item.get("subject") == "region" and item.get("operator") == "TEMPORAL_RANGE"
+        for item in form_data.get("adhoc_filters", [])
+    )
 
 
 @pytest.mark.asyncio

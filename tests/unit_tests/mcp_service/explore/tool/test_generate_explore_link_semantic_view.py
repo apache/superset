@@ -118,6 +118,26 @@ async def test_view_id_builds_a_semantic_view_explore_link() -> None:
 
 
 @pytest.mark.asyncio
+async def test_categorical_view_axis_does_not_bind_dashboard_time() -> None:
+    view: Mock = _mock_view()
+    view.columns.append(Mock(column_name="region", type="STRING", is_dttm=False))
+    config: dict[str, Any] = {**LINE_CONFIG, "x": {"name": "region"}}
+    with (
+        patch(GET_DATASOURCE, return_value=view),
+        patch(PERMALINK, return_value="view_permalink"),
+    ):
+        content: dict[str, Any] = await _call({"view_id": 1, "config": config})
+
+    assert content["success"], content["error"]
+    form_data: dict[str, Any] = content["form_data"]
+    assert form_data["granularity_sqla"] is None
+    assert not any(
+        item.get("subject") == "region" and item.get("operator") == "TEMPORAL_RANGE"
+        for item in form_data.get("adhoc_filters", [])
+    )
+
+
+@pytest.mark.asyncio
 async def test_view_id_without_config_opens_the_view_in_explore() -> None:
     with patch(GET_DATASOURCE, return_value=_mock_view(4)):
         content: dict[str, Any] = await _call({"view_id": 4})
