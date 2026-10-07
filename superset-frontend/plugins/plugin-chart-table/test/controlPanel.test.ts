@@ -17,9 +17,45 @@ import {
   ControlPanelsContainerProps,
   ControlState,
   CustomControlItem,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { ComparisonType, QueryMode } from '@superset-ui/core';
 import config from '../src/controlPanel';
+
+test('Table temporal metadata distinguishes non-temporal from unknown columns', () => {
+  const item = config.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(control =>
+      typeof control === 'string'
+        ? control === 'temporal_columns_lookup'
+        : control &&
+          'name' in control &&
+          control.name === 'temporal_columns_lookup',
+    );
+  const control =
+    typeof item === 'object' && item && 'config' in item
+      ? item.config
+      : sharedControls.temporal_columns_lookup;
+  const { initialValue } = control;
+  expect(typeof initialValue).toBe('function');
+  if (typeof initialValue !== 'function') {
+    throw new Error('Expected temporal lookup initializer');
+  }
+  const state = {
+    datasource: {
+      columns: [
+        { column_name: 'metric_time', is_dttm: true },
+        { column_name: 'country', is_dttm: false },
+        { column_name: 'unknown' },
+      ],
+    },
+  } as unknown as Parameters<typeof initialValue>[1];
+  expect(initialValue({} as ControlState, state)).toEqual({
+    metric_time: true,
+    country: false,
+  });
+});
 
 type VisibilityFn = (
   props: ControlPanelsContainerProps,
@@ -229,6 +265,14 @@ test('time_grain_sqla visibility should be case-insensitive', () => {
   expect(vis(mkProps(['some_other_col']), controlState)).toBe(false);
 });
 
+test('time grain visibility follows axis removal and re-addition', () => {
+  const visible = getVisibility(config, 'time_grain_sqla');
+  expect(visible(mkProps(['ORDERDATE']))).toBe(true);
+  expect(visible(mkProps([]))).toBe(false);
+  expect(visible(mkProps(['some_other_col']))).toBe(false);
+  expect(visible(mkProps(['ORDERDATE']))).toBe(true);
+});
+
 test('time_grain_sqla is hidden in raw records mode', () => {
   const vis = getVisibility(config, 'time_grain_sqla');
   const controlState = {} as ControlState;
@@ -289,4 +333,59 @@ test('time_grain_sqla is hidden in raw records mode for an adhoc dimension', () 
       controlState,
     ),
   ).toBe(false);
+});
+
+/**
+ * Finds the visibility function of a control whether it is declared through a
+ * full `config` (e.g. `all_columns`) or through an `override` of a shared
+ * control (e.g. `groupby`, `metrics`).
+ */
+function getModeVisibility(controlName: string): VisibilityFn {
+  const item = (config.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(
+      c =>
+        typeof c === 'object' &&
+        c !== null &&
+        'name' in c &&
+        (c as { name: string }).name === controlName,
+    ) as
+    | {
+        config?: { visibility?: VisibilityFn };
+        override?: { visibility?: VisibilityFn };
+      }
+    | undefined;
+  const visibility = item?.config?.visibility ?? item?.override?.visibility;
+  if (typeof visibility !== 'function') {
+    throw new Error(`Control "${controlName}" with visibility not found`);
+  }
+  return visibility;
+}
+
+const modeProps = (mode: QueryMode): ControlPanelsContainerProps =>
+  ({
+    controls: { query_mode: { value: mode } },
+  }) as unknown as ControlPanelsContainerProps;
+
+test('raw mode shows the raw-only controls and hides the aggregate-only controls', () => {
+  const props = modeProps(QueryMode.Raw);
+
+  expect(getModeVisibility('all_columns')(props)).toBe(true);
+  expect(getModeVisibility('order_by_cols')(props)).toBe(true);
+  expect(getModeVisibility('groupby')(props)).toBe(false);
+  expect(getModeVisibility('metrics')(props)).toBe(false);
+  expect(getModeVisibility('percent_metrics')(props)).toBe(false);
+  expect(getModeVisibility('timeseries_limit_metric')(props)).toBe(false);
+});
+
+test('aggregate mode shows the aggregate-only controls and hides the raw-only controls', () => {
+  const props = modeProps(QueryMode.Aggregate);
+
+  expect(getModeVisibility('groupby')(props)).toBe(true);
+  expect(getModeVisibility('metrics')(props)).toBe(true);
+  expect(getModeVisibility('percent_metrics')(props)).toBe(true);
+  expect(getModeVisibility('timeseries_limit_metric')(props)).toBe(true);
+  expect(getModeVisibility('all_columns')(props)).toBe(false);
+  expect(getModeVisibility('order_by_cols')(props)).toBe(false);
 });
