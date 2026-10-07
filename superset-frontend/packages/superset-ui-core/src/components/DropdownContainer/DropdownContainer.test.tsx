@@ -264,3 +264,15 @@ test('does not force render popover content when forceRender is not specified', 
   );
   expect(screen.queryByText('Custom dropdown content')).not.toBeInTheDocument();
 });
+
+test('renders popover content when forceRender is true', () => {
+  const dropdownContent = () => <div>Forced dropdown content</div>;
+  render(
+    <DropdownContainer
+      items={generateItems(3)}
+      dropdownContent={dropdownContent}
+      forceRender
+    />,
+  );
+  expect(screen.getByText('Forced dropdown content')).toBeInTheDocument();
+});
