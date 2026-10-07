@@ -2043,7 +2043,8 @@ def _probe_input(
     conversion `_collect_partition_mirror_range` applies -- a ``datetime`` into
     the column's stored representation -- has no counterpart here.
 
-    :returns: `UNMIRRORABLE` where the samples cannot be coerced at all
+    Always answers with a value: nothing here declines. `UNMIRRORABLE` is
+    `mirror_probe_request`'s to return, and the caller hands this straight to it.
     """
     is_list = operator == FilterOperator.IN
     column_spec = datasource.db_engine_spec.get_column_spec(native_type=column.type)

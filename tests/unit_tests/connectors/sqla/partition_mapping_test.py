@@ -789,17 +789,28 @@ def test_evaluate_transform_fails_open_on_a_wide_result_row(app: Flask) -> None:
     Too many columns is the dangerous direction. A transform whose select list
     holds two expressions returns 2N columns for N inputs, and reading the first
     N interleaves the expressions instead of taking one per value -- a predicate
-    built from the wrong values rather than one that is merely short. Here
-    `lower('US'), 'x', lower('CA'), 'x'` would have yielded `('us', 'x')` and
-    dropped every CA row.
+    built from the wrong values rather than one that is merely short. A frame of
+    `('us', 'x', 'ca', 'x')` read as the first two columns would have yielded
+    `('us', 'x')` and dropped every CA row.
+
+    The transform is a perfectly ordinary `lower(:value)` and the width comes
+    from the stubbed frame, which is the only way to reach the guard: a
+    transform that really does carry two expressions -- `lower(:value), 'x'` --
+    is refused by `stored_expression_error` for not being a single expression,
+    so `get_df` is never called and `None` comes back for an unrelated reason.
+    Asserting the probe *ran* is what separates the two, and it is what makes
+    relaxing the guard from `!=` to `<` fail here rather than pass: four columns
+    for two inputs is not fewer than two.
     """
     database = _database_returning(["us", "x", "ca", "x"])
 
     with app.app_context():
         assert (
-            evaluate_transform(database, None, None, "lower(:value), 'x'", ["US", "CA"])
+            evaluate_transform(database, None, None, "lower(:value)", ["US", "CA"])
             is None
         )
+
+    assert _probe(database).call_count == 1
 
 
 def test_the_probe_select_carries_the_engine_s_from_clause(app: Flask) -> None:
