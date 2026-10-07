@@ -659,3 +659,21 @@ test('preserves item element stability across overflow state transitions', async
   await waitFor(() => expect(latestProps().dropdownContent).toBeDefined());
   expect(latestProps().items).toHaveLength(2);
 });
+
+test('integrates requiredFirst filter with default value without triggering forced popover render (#45050)', async () => {
+  const accountFilter = {
+    ...createSelectNativeFilter('NATIVE_FILTER-ACCOUNT', 'Account'),
+    requiredFirst: true,
+  };
+  const dateFilter = createSelectNativeFilter('NATIVE_FILTER-DATE', 'Date range');
+  const filters = [accountFilter, dateFilter];
+  const dataMask = buildDataMaskSelected(filters, ['NATIVE_FILTER-DATE']);
+
+  renderHorizontal(filters, dataMask);
+
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().forceRender).toBeFalsy();
+  expect(latestProps().items).toHaveLength(2);
+  expect(latestProps().items[0].id).toBe('NATIVE_FILTER-ACCOUNT');
+  expect(latestProps().items[1].id).toBe('NATIVE_FILTER-DATE');
+});
