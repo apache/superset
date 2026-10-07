@@ -2878,10 +2878,27 @@ def test_real_decimal_producer_preserves_sunburst_numeric_provenance() -> None:
 
 @pytest.mark.parametrize(
     "value",
-    [Decimal("9" * 1024), Decimal("1e4096"), Decimal("1e-4096")],
-    ids=["digit-limit", "positive-exponent-limit", "negative-exponent-limit"],
+    [
+        Decimal("9" * 1024),
+        Decimal("1e4096"),
+        Decimal("1e-4096"),
+        float("inf"),
+        float("-inf"),
+        None,
+    ],
+    ids=[
+        "digit-limit",
+        "positive-exponent-limit",
+        "negative-exponent-limit",
+        "positive-infinity",
+        "negative-infinity",
+        "null",
+    ],
 )
-def test_compile_accepts_finite_decimal_boundaries(value: Decimal) -> None:
+def test_compile_accepts_nullable_and_finite_metric_boundaries(
+    value: Decimal | float | None,
+) -> None:
+    """Non-finite floats follow the same valid NULL metric contract as missing data."""
     form_data = map_config_to_form_data(_config())
     command = MagicMock()
     command.run.return_value = chart_data_command_result(
@@ -2906,6 +2923,8 @@ def test_compile_accepts_finite_decimal_boundaries(value: Decimal) -> None:
     ):
         result = _compile_chart(form_data, 7)
 
+    if type(value) is float or value is None:
+        assert command.run.return_value["queries"][0]["data"][0]["Sales"] is None
     assert result.success is True
     assert result.row_count == 1
 
@@ -2917,10 +2936,6 @@ def test_compile_accepts_finite_decimal_boundaries(value: Decimal) -> None:
         (
             [{"region": "A", "country": "B", "Sales": "12.50"}],
             "INVALID_SUNBURST_RESULT",
-        ),
-        (
-            [{"region": "A", "country": "B", "Sales": float("inf")}],
-            "CHART_COMPILE_FAILED",
         ),
         (
             [{"region": "A", "country": "B", "Sales": Decimal("NaN")}],

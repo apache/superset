@@ -2478,3 +2478,56 @@ def test_external_view_malformed_configuration_is_sanitized(
     assert isinstance(result, SemanticLayerError)
     assert result.error_type == "ConfigurationError"
     assert result.error == "The semantic view configuration is invalid."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "value,expected", [({1: "a"}, {"1": "a"}), ([1.0, float("inf")], [1.0, None])]
+)
+async def test_get_table_normalizes_nested_builtin_cells(
+    mcp_server: FastMCP, value: Any, expected: Any
+) -> None:
+    """get_table returns tabular data for a built-in dataset."""
+    mock_ds = _make_dataset(42)
+    query_result = chart_data_command_result(
+        [
+            {
+                "created_at": pd.Timestamp("2026-09-02T10:11:12Z"),
+                "revenue": value,
+            }
+        ],
+        columns=["created_at", "revenue"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "dimensions": ["created_at"],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["data"][0]["revenue"] == expected
+    assert data["success"] is True
+    assert data["row_count"] == 1
+    assert data["source"] == "builtin"
+    assert data["dataset_id"] == 42
+    assert data["dataset_name"] == mock_ds.table_name

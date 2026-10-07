@@ -270,8 +270,8 @@ def test_saved_previews_validate_hostile_secondary_results_without_hooks(
 )
 @pytest.mark.parametrize(
     "value",
-    [10**5000, float("inf"), b"\xff" * 65_537, QueryStatus.SUCCESS],
-    ids=["huge-int", "infinity", "oversized-bytes", "query-status"],
+    [10**5000, b"\xff" * 65_537, QueryStatus.SUCCESS],
+    ids=["huge-int", "oversized-bytes", "query-status"],
 )
 def test_saved_previews_reject_noncanonical_scalars_before_rendering(
     strategy_class: type[PreviewFormatStrategy], preview_format: str, value: Any

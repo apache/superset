@@ -3810,6 +3810,37 @@ class XYChartConfig(BaseChartConfig):
         le=10000,
     )
 
+    series_limit_metric: ColumnRef | None = Field(
+        None,
+        description="Metric used to rank limited series; null clears it",
+    )
+    timeseries_limit_metric: ColumnRef | None = Field(
+        None,
+        description="Native timeseries ranking metric; null clears it",
+    )
+
+    @field_validator("series_limit_metric", "timeseries_limit_metric", mode="before")
+    @classmethod
+    def coerce_series_ranking_metric(cls, value: Any) -> Any:
+        """Accept the same native metric references as the Y-axis."""
+        if isinstance(value, dict) and "expressionType" in value:
+            return SunburstChartConfig._coerce_native_metric(
+                value, allow_extensible_column_meta=False
+            )
+        return value
+
+    @field_validator("series_limit_metric", "timeseries_limit_metric")
+    @classmethod
+    def validate_series_ranking_metric(
+        cls, value: ColumnRef | None
+    ) -> ColumnRef | None:
+        """Reject dimension references where the query expects a metric."""
+        if value is not None and not value.is_metric:
+            raise ValueError(
+                "Series ranking requires an aggregate, saved metric, or SQL metric"
+            )
+        return value
+
     @field_validator("group_by", mode="before")
     @classmethod
     def wrap_single_group_by(cls, v: Any) -> Any:

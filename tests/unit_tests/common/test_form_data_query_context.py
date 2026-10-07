@@ -728,8 +728,9 @@ def test_big_number_native_axis_pivot_references_selected_column() -> None:
         DATASOURCE,
     )
     query = context["queries"][0]
-    assert query["columns"] == ["ds"]
-    assert "granularity" not in query
+    assert query["columns"][0]["sqlExpression"] == "ds"
+    assert query["columns"][0]["isColumnReference"] is True
+    assert query["granularity"] == "ds"
     pivot = next(p for p in query["post_processing"] if p["operation"] == "pivot")
     assert pivot["options"]["index"] == ["ds"]
 
@@ -834,3 +835,33 @@ def test_table_pagination_keeps_query_builder_caller_cap(
         row_limit=2,
     )[0]
     assert query["row_limit"] == expected
+
+
+@pytest.mark.parametrize(
+    "axis",
+    [
+        {"column_name": "ds"},
+        {"expressionType": "SQL", "sqlExpression": "ds", "label": "ds"},
+    ],
+)
+def test_big_number_saved_axis_keeps_monthly_range_binding(
+    axis: dict[str, str],
+) -> None:
+    """Native saved axes retain the same temporal contract as physical strings."""
+    form_data = {
+        "viz_type": "big_number",
+        "granularity_sqla": "ds",
+        "time_grain_sqla": "P1M",
+        "time_range": "2026-01-01 : 2026-02-01",
+        "metric": "revenue",
+    }
+    query = build_query_context_from_form_data(
+        {**form_data, "x_axis": axis}, DATASOURCE
+    )["queries"][0]
+    assert query["granularity"] == "ds"
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+    assert query["time_range"] == form_data["time_range"]
+    assert query["columns"][0]["sqlExpression"] == "ds"
+    assert query["columns"][0]["timeGrain"] == "P1M"
+    pivot = next(p for p in query["post_processing"] if p["operation"] == "pivot")
+    assert pivot["options"]["index"] == ["ds"]

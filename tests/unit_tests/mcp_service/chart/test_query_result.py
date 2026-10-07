@@ -649,8 +649,6 @@ def test_cache_and_filter_metadata_rejects_non_wire_shapes(metadata):
     "value",
     [
         10**5000,
-        float("inf"),
-        float("-inf"),
         Decimal("NaN"),
         Decimal("Infinity"),
         Decimal("1e5000"),
@@ -662,8 +660,6 @@ def test_cache_and_filter_metadata_rejects_non_wire_shapes(metadata):
     ],
     ids=[
         "huge-int",
-        "positive-infinity",
-        "negative-infinity",
         "decimal-nan",
         "decimal-infinity",
         "decimal-magnitude",
@@ -1881,3 +1877,50 @@ def test_sequence_subclasses_are_rejected_without_conversion_hooks() -> None:
         )
         assert error is not None
         assert "subclassed" in error.error
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ({1: "a"}, {"1": "a"}),
+        (
+            {True: "yes", None: "null", 1.5: "fraction"},
+            {"True": "yes", "None": "null", "1.5": "fraction"},
+        ),
+        ({1: "first", "1": "last"}, {"1": "last"}),
+        ([1.0, float("inf"), float("-inf"), float("nan")], [1.0, None, None, None]),
+        ([np.float32("inf"), np.float64("-inf")], [None, None]),
+        ({1: [float("inf"), {2: "nested"}]}, {"1": [None, {"2": "nested"}]}),
+    ],
+)
+def test_nested_warehouse_values_keep_serializer_coercions(
+    value: Any, expected: Any
+) -> None:
+    """ClickHouse maps and arrays normalize without rejecting the whole result."""
+    payload = {
+        "queries": [
+            {"data": [{"payload": value}], "colnames": ["payload"], "coltypes": [1]}
+        ]
+    }
+    assert validate_query_result_envelope(payload) is None
+    assert payload["queries"][0]["data"] == [{"payload": expected}]
+    assert json.loads(json.dumps(payload))["queries"][0]["data"] == [
+        {"payload": expected}
+    ]
+
+
+def test_nested_mapping_key_coercion_still_rejects_hostile_and_oversized_keys() -> None:
+    """Key conversion excludes subclasses and charges the existing key budgets."""
+
+    class HostileKey(int):
+        """Expose a conversion hook that the key normalizer must not invoke."""
+
+        def __str__(self) -> str:
+            raise AssertionError("key conversion hook executed")
+
+    for key in (HostileKey(1), 10**5000):
+        error = validate_query_result_envelope(
+            {"queries": [{"data": [{"payload": {key: "a"}}]}]}
+        )
+        assert error is not None
+        assert error.error_type == "InvalidQueryResult"

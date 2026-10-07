@@ -1769,7 +1769,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 def generate_xy_vega_lite_preview(
     data: list[dict[str, Any]], form_data: dict[str, Any]
 ) -> VegaLitePreview | ChartError:
-    """Render both long-form and post-processed wide XY chart results."""
+    """Render long-form and post-processed wide timeseries results."""
     preview = _generate_vega_lite_preview_from_data(data, form_data, use_plugin=False)
     if isinstance(preview, ChartError):
         return preview

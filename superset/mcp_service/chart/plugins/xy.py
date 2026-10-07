@@ -115,6 +115,9 @@ class XYChartPlugin(BaseChartPlugin):
         if config.x is not None:
             refs.append(config.x)
         refs.extend(config.y)
+        for metric in (config.series_limit_metric, config.timeseries_limit_metric):
+            if metric is not None:
+                refs.append(metric)
         if config.group_by:
             refs.extend(config.group_by)
         if config.filters:
@@ -136,7 +139,13 @@ class XYChartPlugin(BaseChartPlugin):
             config_dict["x"]["name"] = get_canonical(
                 config_dict["x"]["name"], dataset_context
             )
-        for y_col in config_dict.get("y") or []:
+        metrics = list(config_dict.get("y") or [])
+        metrics.extend(
+            config_dict[key]
+            for key in ("series_limit_metric", "timeseries_limit_metric")
+            if config_dict.get(key)
+        )
+        for y_col in metrics:
             if y_col.get("sql_expression"):
                 continue  # sql_expression metrics have no underlying column
             if y_col.get("saved_metric"):

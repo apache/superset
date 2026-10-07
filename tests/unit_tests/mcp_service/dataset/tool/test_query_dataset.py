@@ -795,7 +795,7 @@ async def test_query_dataset_preserves_authoritative_coltypes_for_empty_data(
 
 
 @pytest.mark.asyncio
-async def test_query_dataset_rejects_post_materialization_infinity(
+async def test_query_dataset_normalizes_post_materialization_infinity(
     mcp_server: FastMCP,
 ) -> None:
     dataset = _make_dataset()
@@ -833,7 +833,7 @@ async def test_query_dataset_rejects_post_materialization_infinity(
             )
 
     data = json.loads(result.content[0].text)
-    assert data["error_type"] == "InvalidQueryResult"
+    assert data["data"] == [{"category": "Electronics", "count": None}]
 
 
 @pytest.mark.asyncio
@@ -876,6 +876,54 @@ async def test_query_dataset_normalizes_nan_producer_data(
     data = json.loads(result.content[0].text)
     assert data["data"] == [{"category": "Electronics", "count": None}]
     assert data["columns"][1]["null_count"] == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "value,expected", [({1: "a"}, {"1": "a"}), ([1.0, float("inf")], [1.0, None])]
+)
+async def test_query_dataset_normalizes_nested_warehouse_cells(
+    mcp_server: FastMCP,
+    value: Any,
+    expected: Any,
+) -> None:
+    """Return nested ClickHouse maps and arrays without losing the whole query."""
+    dataset = _make_dataset()
+    result_data = chart_data_command_result(
+        [{"category": "Electronics", "count": value}],
+        columns=["category", "count"],
+        coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [{"category": "Electronics", "count": expected}]
+    assert data["columns"][1]["sample_values"] == [expected]
 
 
 @pytest.mark.asyncio

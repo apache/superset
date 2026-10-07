@@ -28,7 +28,12 @@ from superset.mcp_service.chart.chart_utils import (
     map_mixed_timeseries_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, MixedTimeseriesChartConfig
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    MixedTimeseriesChartConfig,
+    VegaLitePreview,
+)
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
@@ -42,6 +47,16 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "mixed_timeseries": "Mixed Timeseries Chart",
     }
+
+    def vega_lite_preview(
+        self, data: list[dict[str, Any]], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        """Fold flattened grouped results instead of plotting one numeric series."""
+        from superset.mcp_service.chart.preview_utils import (
+            generate_xy_vega_lite_preview,
+        )
+
+        return generate_xy_vega_lite_preview(data, form_data)
 
     def pre_validate(
         self,

@@ -249,9 +249,7 @@ def test_metric_outputs_must_be_finite_numeric(value: Any) -> None:
     rows = [*ROWS, {**ROWS[0], "revenue": value}]
     result = normalize_chart_query_result({"queries": [{"data": rows}]}, FORM_DATA)
     assert isinstance(result, ChartError)
-    assert result.error_type == (
-        "InvalidQueryResult" if value == float("inf") else "InvalidTreemapMetric"
-    )
+    assert result.error_type == "InvalidTreemapMetric"
 
 
 def test_result_validation_is_non_mutating_and_chart_specific() -> None:

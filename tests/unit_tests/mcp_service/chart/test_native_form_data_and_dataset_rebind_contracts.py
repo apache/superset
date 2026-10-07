@@ -1030,3 +1030,177 @@ def test_xy_update_preserves_grouping_only_when_omitted(
     assert cross_viz.get("groupby", []) == (
         ["product"] if expected == ["product"] else []
     )
+
+
+@pytest.mark.parametrize(
+    "grouping,primary,secondary",
+    [
+        ({}, ["region"], ["product"]),
+        ({"group_by": []}, [], ["product"]),
+        ({"group_by_secondary": []}, ["region"], []),
+        ({"group_by_secondary": None}, ["region"], []),
+        ({"group_by": [], "group_by_secondary": []}, [], []),
+        ({"group_by": None, "group_by_secondary": None}, [], []),
+        ({"groupby": ["product"], "groupby_b": ["region"]}, ["product"], ["region"]),
+    ],
+)
+def test_mixed_update_preserves_only_omitted_grouping(
+    grouping: dict[str, list[str] | None], primary: list[str], secondary: list[str]
+) -> None:
+    """Presentation updates keep both queries' grouping, but explicit clears win."""
+    from superset.mcp_service.chart.schemas import MixedTimeseriesChartConfig
+
+    config = MixedTimeseriesChartConfig.model_validate(
+        {
+            "x": {"name": "ds"},
+            "y": [{"name": "revenue", "saved_metric": True}],
+            "y_secondary": [{"name": "cost", "saved_metric": True}],
+            "show_value": True,
+            **{
+                key: ([{"name": value} for value in values] if values else values)
+                for key, values in grouping.items()
+            },
+        }
+    )
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    saved = {
+        "viz_type": "mixed_timeseries",
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "metrics_b": ["cost"],
+        "groupby": ["region"],
+        "groupby_b": ["product"],
+    }
+    merged = merge_form_data_for_update(saved, deepcopy(mapped), config)
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        queries = build_query_dicts_from_form_data(merged, 7, "table")
+    assert [q["series_columns"] for q in queries] == [primary, secondary]
+    assert merged["show_value"] is True
+    cross = merge_form_data_for_update(
+        {**saved, "viz_type": "pie"}, deepcopy(mapped), config
+    )
+    assert cross.get("groupby", []) == (
+        primary if {"group_by", "groupby"} & grouping.keys() else []
+    )
+    assert cross.get("groupby_b", []) == (
+        secondary if {"group_by_secondary", "groupby_b"} & grouping.keys() else []
+    )
+
+
+@pytest.mark.parametrize(
+    "saved_key", ["series_limit_metric", "timeseries_limit_metric"]
+)
+@pytest.mark.parametrize("key", ["series_limit_metric", "timeseries_limit_metric"])
+@pytest.mark.parametrize(
+    "update,expected",
+    [({}, "profit"), ({"metric": None}, None), ({"metric": "cost"}, "cost")],
+)
+def test_xy_update_keeps_omitted_series_ranking_metric(
+    key: str, saved_key: str, update: dict[str, object], expected: str | None
+) -> None:
+    """An unrelated update cannot change which series survive the saved limit."""
+    from superset.mcp_service.chart.schemas import XYChartConfig
+
+    config = XYChartConfig.model_validate(
+        {
+            "x": "ds",
+            "y": [{"name": "revenue", "saved_metric": True}],
+            "stacked": True,
+            **(
+                {
+                    key: {"name": update["metric"], "saved_metric": True}
+                    if update["metric"]
+                    else None
+                }
+                if update
+                else {}
+            ),
+        }
+    )
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    saved = {
+        "viz_type": mapped["viz_type"],
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+        "series_limit": 1,
+        saved_key: "profit",
+    }
+    merged = merge_form_data_for_update(saved, deepcopy(mapped), config)
+    assert merged.get(key if update else saved_key) == expected
+    if update and key != saved_key:
+        assert saved_key not in merged
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        query = build_query_dicts_from_form_data(merged, 7, "table")[0]
+    assert query.get("series_limit_metric") == expected
+    assert query["series_limit"] == 1
+    cross = merge_form_data_for_update(
+        {**saved, "viz_type": "pie"}, deepcopy(mapped), config
+    )
+    assert cross.get(key) == (expected if update else None)
+
+
+@pytest.mark.parametrize("key", ["series_limit_metric", "timeseries_limit_metric"])
+def test_xy_explicit_ranking_metric_wins_over_implicit_default(key: str) -> None:
+    """Creating a limited chart ranks by the requested metric, not the first Y."""
+    from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+    from superset.mcp_service.chart.schemas import XYChartConfig
+
+    metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "profit"},
+        "aggregate": "SUM",
+        "label": "Profit",
+        "hasCustomLabel": True,
+    }
+    config = XYChartConfig.model_validate(
+        {
+            "x": "ds",
+            "y": [{"name": "revenue", "saved_metric": True}],
+            "group_by": [{"name": "region"}],
+            "series_limit": 1,
+            key: metric,
+        }
+    )
+    assert getattr(config, key) in XYChartPlugin().extract_column_refs(config)
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        query = build_query_dicts_from_form_data(mapped, 7, "table")[0]
+    assert query["series_limit_metric"]["column"]["column_name"] == "profit"
+    assert query["series_limit_metric"]["aggregate"] == "SUM"
+
+
+@pytest.mark.parametrize("key", ["series_limit_metric", "timeseries_limit_metric"])
+def test_xy_ranking_metric_rejects_dimension_reference(key: str) -> None:
+    """Ranking accepts metrics, not bare dimension references."""
+    from superset.mcp_service.chart.schemas import XYChartConfig
+
+    with pytest.raises(ValueError, match="Series ranking requires"):
+        XYChartConfig.model_validate(
+            {
+                "x": "ds",
+                "y": [{"name": "revenue", "saved_metric": True}],
+                key: {"name": "profit"},
+            }
+        )

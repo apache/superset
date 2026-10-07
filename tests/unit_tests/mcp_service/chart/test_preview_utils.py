@@ -206,7 +206,7 @@ def test_generate_preview_seeds_form_data_before_query_execution():
 def test_unsaved_big_number_preview_uses_temporal_query_contract(
     time_grain: str | None,
 ) -> None:
-    """The shared preview keeps raw temporal grouping, not grain bucketing."""
+    """Native axes retain bucketing and the independently selected range column."""
     form_data = {
         "viz_type": "big_number",
         "x_axis": {"column_name": "recorded_at"},
@@ -245,9 +245,10 @@ def test_unsaved_big_number_preview_uses_temporal_query_contract(
 
     assert isinstance(result, TablePreview)
     query = factory.return_value.create.call_args.kwargs["queries"][0]
-    assert query["columns"] == ["recorded_at"]
-    assert "granularity" not in query
-    assert "time_grain_sqla" not in query.get("extras", {})
+    assert query["columns"][0]["sqlExpression"] == "recorded_at"
+    assert query["columns"][0].get("timeGrain") == time_grain
+    assert query["granularity"] == "event_time"
+    assert query.get("extras", {}).get("time_grain_sqla") == time_grain
     assert query["metrics"] == ["count"]
     assert query["time_range"] == "Last week"
     assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]

@@ -1510,12 +1510,24 @@ def _resolve_default_x_axis(
 
 
 def _add_xy_limits(form_data: Dict[str, Any], config: XYChartConfig) -> None:
+    """Map row/series limits and explicit series-ranking metrics."""
     form_data["row_limit"] = config.row_limit
     if config.series_limit is not None:
         form_data["series_limit"] = config.series_limit
         metrics = form_data.get("metrics") or []
-        if metrics:
+        if (
+            metrics
+            and not {"series_limit_metric", "timeseries_limit_metric"}
+            & config.model_fields_set
+        ):
             form_data["series_limit_metric"] = metrics[0]
+    for key in ("series_limit_metric", "timeseries_limit_metric"):
+        if key in config.model_fields_set:
+            metric = getattr(config, key)
+            if metric is not None:
+                form_data[key] = create_metric_object(metric)
+            else:
+                form_data.pop(key, None)
 
 
 def map_xy_config(  # noqa: C901
@@ -1902,6 +1914,11 @@ _MODELED_UPDATE_CONTROL_PATHS: dict[str, dict[str, tuple[tuple[str, ...], ...]]]
         "column_config": (("column_config",),),
     },
     "XYChartConfig": {
+        "series_limit_metric": (("series_limit_metric",), ("timeseries_limit_metric",)),
+        "timeseries_limit_metric": (
+            ("series_limit_metric",),
+            ("timeseries_limit_metric",),
+        ),
         "groupby": (("group_by",),),
         "row_limit": (("row_limit",),),
         "series_limit": (("series_limit",),),
@@ -1995,6 +2012,8 @@ _MODELED_UPDATE_CONTROL_PATHS: dict[str, dict[str, tuple[tuple[str, ...], ...]]]
         "comparison_type": (("comparison_type",),),
     },
     "MixedTimeseriesChartConfig": {
+        "groupby": (("group_by",),),
+        "groupby_b": (("group_by_secondary",),),
         "seriesType": (("primary_kind",),),
         "area": (("primary_kind",),),
         "seriesTypeB": (("secondary_kind",),),
@@ -2360,7 +2379,9 @@ def retain_mixed_timeseries_secondary_update_state(
             "time_compare_b",
         } and isinstance(value, list)
         is_valid_modeled_control = False
-        if field := MixedTimeseriesChartConfig.model_fields.get(key):
+        if field := MixedTimeseriesChartConfig.model_fields.get(
+            {"groupby_b": "group_by_secondary"}.get(key, key)
+        ):
             try:
                 TypeAdapter(field.rebuild_annotation()).validate_python(value)
                 is_valid_modeled_control = True
@@ -3001,6 +3022,11 @@ def map_mixed_timeseries_config(  # noqa: C901
 
     # Configure temporal handling
     configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
+
+    if "group_by" in config.model_fields_set:
+        form_data["groupby"] = []
+    if "group_by_secondary" in config.model_fields_set:
+        form_data["groupby_b"] = []
 
     # Primary groupby (Query A)
     if config.group_by:

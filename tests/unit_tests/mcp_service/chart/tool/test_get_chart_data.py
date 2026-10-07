@@ -1457,11 +1457,6 @@ async def test_unsaved_get_data_rejects_invalid_result_before_consumers(
             "coltypes": [0],
         },
         {
-            "data": [{"value": float("inf")}],
-            "colnames": ["value"],
-            "coltypes": [0],
-        },
-        {
             "data": [{"value": b"\xff" * 65_537}],
             "colnames": ["value"],
             "coltypes": [1],
@@ -1486,7 +1481,6 @@ async def test_unsaved_get_data_rejects_invalid_result_before_consumers(
         "misaligned-coltypes",
         "mismatched-columns",
         "huge-int",
-        "infinity",
         "oversized-bytes",
         "query-status-row",
         "ordered-keys",
@@ -1556,6 +1550,73 @@ async def test_saved_get_data_rejects_invalid_result_before_consumers(
 
     data = json.loads(response.content[0].text)
     assert data["error_type"] == "InvalidQueryResult"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "value,expected", [({1: "a"}, {"1": "a"}), ([1.0, float("inf")], [1.0, None])]
+)
+async def test_saved_get_data_normalizes_nested_warehouse_cells(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    value: Any,
+    expected: Any,
+) -> None:
+    """A raw saved Table preserves nested ClickHouse map/array values at the wire."""
+    query_payload = {"data": [{"value": value}], "colnames": ["value"], "coltypes": [1]}
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=9,
+        slice_name="Invalid result",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context=json.dumps(
+            {"datasource": {"id": 1, "type": "table"}, "queries": []}
+        ),
+        params=None,
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [query_payload]}
+
+    monkeypatch.setattr(
+        module, "find_chart_by_identifier", lambda *_args, **_kwargs: chart
+    )
+    monkeypatch.setattr(
+        module,
+        "validate_chart_dataset",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            is_valid=True, warnings=[], error=None
+        ),
+    )
+    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+    monkeypatch.setattr(
+        "superset.charts.schemas.ChartDataQueryContextSchema.load",
+        lambda self, data: SimpleNamespace(form_data={}, queries=[]),
+    )
+    monkeypatch.setattr(
+        "superset.charts.data.form_data.set_query_context_form_data",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    async with Client(mcp_server) as client:
+        response = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 9}}
+        )
+
+    data = json.loads(response.content[0].text)
+    assert data["data"] == [{"value": expected}]
 
 
 class TestUnsavedChartDataQueryConstruction:

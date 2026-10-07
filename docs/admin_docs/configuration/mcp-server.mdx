@@ -1582,8 +1582,10 @@ Data-bearing tool responses sanitize row values, column samples, and statistics.
 Tuple-valued cells and NumPy arrays (including arrays materialized by Arrow) are
 returned as JSON arrays. Nested values share the same depth, item, and byte
 limits as list-valued cells; unsupported containers and subclasses are rejected.
-Missing and non-finite values become JSON `null`; non-UTF-8 binary values become
-base64 strings prefixed with `base64:`. Boolean row counts are treated as
+Nested maps stringify exact built-in string, integer, float, boolean, and null
+keys within the key-size budget; arbitrary key objects and subclasses are rejected.
+Missing and non-finite floating-point values become JSON `null`; non-UTF-8 binary
+values become base64 strings prefixed with `base64:`. Boolean row counts are treated as
 unavailable, producing `null` for nullable counts and `0` for non-nullable counts,
 rather than being interpreted as one or zero rows.
 Finite SQL Decimal values retain their precision during chart validation and
@@ -1596,14 +1598,22 @@ a saved Table's server-pagination page size. CSV and Excel exports are not
 restricted to the first Explore page, and explicit limits apply before execution.
 Same-visualization Mixed Timeseries updates preserve omitted secondary-query
 controls, including time range, row limits, time grain, and rolling/resample
-settings. Explicit secondary controls and clears replace the saved values.
+settings. Omitted primary and secondary grouping also retain their saved values;
+`group_by: []`/`null` and `group_by_secondary: []`/`null` clear only that query's
+grouping. Explicit secondary controls and clears replace the saved values.
 Same-visualization Table updates preserve saved ordering when `sort_by` is
 omitted; `sort_by: []` clears it. Same-visualization XY updates preserve saved
-series grouping when `group_by` is omitted; `group_by: []` clears it. Native XY
+series grouping when `group_by` is omitted; `group_by: []` clears it. Omitted
+`series_limit_metric` and `timeseries_limit_metric` preserve saved series ranking.
+Either spelling replaces the saved ranking when supplied; `null` clears it. Native XY
 `BASE_AXIS` SQL x-axis objects carry their `timeGrain` into the chart's
 `time_grain` unless a panel-level `time_grain` or `time_grain_sqla` is supplied.
 Table compile and preview row caps take precedence over saved row limits;
 server pagination can reduce a cap only when its page size is positive.
+Grouped Mixed Timeseries Vega-Lite previews fold all flattened series columns,
+so every primary-query group remains visible rather than only the first numeric
+column. Saved Big Number axes using `column_name` mappings retain time-range
+bindings and time-grain bucketing like string axes.
 Sort-only Timeseries metrics retain their raw values when displayed metrics
 undergo rolling or cumulative processing.
 

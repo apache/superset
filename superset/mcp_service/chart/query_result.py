@@ -881,9 +881,7 @@ def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
     if value_type is int:
         return value, _integer_failure(value)
     if value_type is float:
-        if math.isnan(value):
-            return None, None
-        return (value, None) if math.isfinite(value) else (None, "a non-finite number")
+        return (value, None) if math.isfinite(value) else (None, None)
     if value_type is Decimal:
         return value, _decimal_failure(value)
     if value_type is datetime:
@@ -928,12 +926,10 @@ def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
         return normalized, _integer_failure(normalized)
     if value_type in _NUMPY_FLOAT_TYPES:
         normalized_float = float(value)
-        if math.isnan(normalized_float):
-            return None, None
         return (
             (normalized_float, None)
             if math.isfinite(normalized_float)
-            else (None, "a non-finite NumPy number")
+            else (None, None)
         )
     if value_type is np.bool_:
         return bool(value), None
@@ -1051,15 +1047,38 @@ def _normalize_value(  # noqa: C901
                 metadata=metadata,
             ):
                 return None, reason
-            children: list[tuple[Any, dict[str, Any], str, int, bool]] = []
+            normalized_object: dict[str, Any] = {}
             for key, child in dict.items(item):
-                if type(key) is not str:
-                    return None, "a non-string object key"
-                if reason := _charge_text(key, budget, key=True, metadata=metadata):
+                # Only exact built-in keys may be stringified: arbitrary objects
+                # and subclasses can run conversion hooks. Bound integers before
+                # rendering and charge each rendered key against the text budget.
+                if metadata and type(key) is not str:
+                    return None, "a non-string metadata key"
+                if type(key) is int:
+                    if reason := _integer_failure(key):
+                        return None, reason
+                elif type(key) not in {str, bool, float, type(None)}:
+                    return None, "an unsupported object key"
+                normalized_key = key if type(key) is str else str(key)
+                if reason := _charge_text(
+                    normalized_key, budget, key=True, metadata=metadata
+                ):
                     return None, reason
-                children.append((child, item, key, depth + 1, False))
+                normalized_object[normalized_key] = child
+            if parent is None:
+                root = normalized_object
+            elif type(parent) is list:
+                assert type(slot) is int
+                list.__setitem__(parent, slot, normalized_object)
+            else:
+                assert type(parent) is dict
+                assert type(slot) is str
+                dict.__setitem__(parent, slot, normalized_object)
             stack.append((item, None, None, depth, True))
-            stack.extend(reversed(children))
+            stack.extend(
+                (child, normalized_object, key, depth + 1, False)
+                for key, child in reversed(list(dict.items(normalized_object)))
+            )
             continue
 
         source_item = item
@@ -1071,6 +1090,12 @@ def _normalize_value(  # noqa: C901
         elif any(base is Enum for base in _type_mro(type(item))):
             return None, "an enum outside its expected metadata slot"
 
+        # Metadata retains its strict wire contract (for example a rowcount
+        # cannot become null merely because the producer supplied infinity).
+        if metadata and (type(item) is float or type(item) in _NUMPY_FLOAT_TYPES):
+            number = float(item)
+            if not math.isfinite(number) and not math.isnan(number):
+                return None, "a non-finite metadata number"
         normalized, reason = _normalize_scalar(item)
         if reason is not None:
             return None, reason

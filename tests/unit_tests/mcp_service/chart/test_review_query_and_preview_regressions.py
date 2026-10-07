@@ -139,14 +139,15 @@ def test_forecast_resolves_frontend_grain_precedence(
     assert query["post_processing"][-1]["options"]["time_grain"] == expected
 
 
+@pytest.mark.parametrize("viz_type", ["echarts_timeseries_line", "mixed_timeseries"])
 @pytest.mark.parametrize("truncate", [False, True])
 @pytest.mark.parametrize("groupby", [["region"], ["region", "product"]])
 def test_grouped_timeseries_preview_keeps_all_pivoted_series(
-    truncate: bool, groupby: list[str]
+    truncate: bool, groupby: list[str], viz_type: str
 ) -> None:
     """Render real flattened pipeline output, including truncated metric labels."""
     form_data: dict[str, Any] = {
-        "viz_type": "echarts_timeseries_line",
+        "viz_type": viz_type,
         "x_axis": "ds",
         "metrics": ["revenue"],
         "groupby": groupby,
@@ -192,7 +193,10 @@ def test_table_temporal_column_is_a_semantic_column_reference(viz_type: str) -> 
     assert _normalize_column(query["columns"][0], {"ds", "region"}) == "ds"
 
 
-def test_grouped_timeseries_long_preview_preserves_original_encoding() -> None:
+@pytest.mark.parametrize("viz_type", ["echarts_timeseries_line", "mixed_timeseries"])
+def test_grouped_timeseries_long_preview_preserves_original_encoding(
+    viz_type: str,
+) -> None:
     """Existing long-form results remain usable without the wide-data transform."""
     rows = [
         {"ds": "2026-01-01", "region": "East", "revenue": 10},
@@ -201,7 +205,7 @@ def test_grouped_timeseries_long_preview_preserves_original_encoding() -> None:
     result = _generate_vega_lite_preview_from_data(
         rows,
         {
-            "viz_type": "echarts_timeseries_line",
+            "viz_type": viz_type,
             "x_axis": "ds",
             "metrics": ["revenue"],
             "groupby": ["region"],

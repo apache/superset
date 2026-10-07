@@ -908,7 +908,8 @@ class TestBuildQueryContextTimeseriesAndMixed:
             _build_query_context_from_form_data(form_data, chart=None)
 
         queries = mock_factory.create.call_args[1]["queries"]
-        assert queries[0]["columns"][0] == "order_date"
+        assert queries[0]["columns"][0]["sqlExpression"] == "order_date"
+        assert queries[0]["columns"][0]["isColumnReference"] is True
 
     @patch("superset.common.query_context_factory.QueryContextFactory")
     @patch("superset.daos.datasource.DatasourceDAO.get_datasource")

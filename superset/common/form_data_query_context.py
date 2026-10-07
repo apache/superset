@@ -903,8 +903,7 @@ def _table_time_offsets(form_data: dict[str, Any]) -> list[Any]:
 def _x_axis_column(form_data: Mapping[str, Any]) -> Any | None:
     """Return a supported x-axis column, excluding legacy granularity.
 
-    ``column_name`` mappings are retained for old server/native payloads. Big
-    Number uses the stricter frontend predicate below.
+    ``column_name`` mappings are normalized for old server/native payloads.
     """
     x_axis = form_data.get("x_axis")
     if isinstance(x_axis, str):
@@ -918,8 +917,8 @@ def _x_axis_column(form_data: Mapping[str, Any]) -> Any | None:
 
 
 def _frontend_x_axis_column(form_data: Mapping[str, Any]) -> Any | None:
-    """Mirror ``isQueryFormColumn`` for physical and SQL adhoc columns."""
-    x_axis = form_data.get("x_axis")
+    """Normalize saved physical references before the frontend column predicate."""
+    x_axis = _x_axis_column(form_data)
     if isinstance(x_axis, str):
         return x_axis if x_axis else None
     if (
@@ -1278,11 +1277,7 @@ def _big_number_queries(
     form_data: dict[str, Any], query: dict[str, Any]
 ) -> list[dict[str, Any]]:
     """Mirror Big Number with Trendline's one/two-query contract."""
-    # Saved/native Big Number payloads can carry the temporal binding as a
-    # ``{"column_name": ...}`` mapping, which the strict frontend predicate does
-    # not recognize; keep grouping by it rather than falling back to a total.
-    frontend_x_axis = _frontend_x_axis_column(form_data)
-    explicit_x_axis = frontend_x_axis or _x_axis_column(form_data)
+    explicit_x_axis = _frontend_x_axis_column(form_data) or _x_axis_column(form_data)
     time_column = _as_list(explicit_x_axis)
     x_axis_label = (
         _label(explicit_x_axis)
@@ -1290,18 +1285,7 @@ def _big_number_queries(
         else _x_axis_label(form_data, frontend_strict=True)
     )
     query["columns"] = time_column
-    if time_column and frontend_x_axis is None:
-        # A native ``{"column_name": ...}`` axis groups by its temporal column
-        # but is not rewritten by normalize_time_column, so drop the legacy
-        # granularity binding here rather than bucketing the same dimension
-        # twice.
-        query.pop("granularity", None)
-        extras = query.get("extras")
-        if isinstance(extras, dict):
-            extras.pop("time_grain_sqla", None)
-            if not extras:
-                query.pop("extras", None)
-    elif not time_column:
+    if not time_column:
         query["is_timeseries"] = True
     metric_labels = [_label(value, metric=True) for value in query.get("metrics") or []]
     post_processing: list[dict[str, Any]] = []
