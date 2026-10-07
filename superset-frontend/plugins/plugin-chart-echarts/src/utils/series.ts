@@ -703,11 +703,22 @@ export function sortRows(
     };
   });
 
-  return orderBy(
-    sortedRows,
-    ['value'],
-    [xAxisSortSeriesAscending ? 'asc' : 'desc'],
-  ).map(({ row, totalStackedValue }) => ({ row, totalStackedValue }));
+  // Rows with no aggregate (every sorted column is NULL) stay last in both
+  // directions, matching the ungrouped sort.
+  const isMissing = (value: unknown) =>
+    aggregation !== SortSeriesType.Name &&
+    (value === undefined || value === null);
+  const measured = sortedRows.filter(({ value }) => !isMissing(value));
+  const missing = sortedRows.filter(({ value }) => isMissing(value));
+
+  return [
+    ...orderBy(
+      measured,
+      ['value'],
+      [xAxisSortSeriesAscending ? 'asc' : 'desc'],
+    ),
+    ...missing,
+  ].map(({ row, totalStackedValue }) => ({ row, totalStackedValue }));
 }
 
 export function extractSeries(

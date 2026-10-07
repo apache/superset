@@ -396,6 +396,22 @@ test('sortRows by the sum of specific columns puts rows with no value last when 
   ]);
 });
 
+test('sortRows by the sum of specific columns puts rows with no value last when descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x'] },
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+  ]);
+});
+
 test('sortAndFilterSeries by min ascending', () => {
   expect(
     sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Min, true),

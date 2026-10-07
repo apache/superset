@@ -462,7 +462,7 @@ describe('Scatter Chart Orientation and Dot Size Metric', () => {
     });
 
     const series = getScatterSeries(
-      transformProps(chartProps as EchartsTimeseriesChartProps),
+      transformProps(chartProps as unknown as EchartsTimeseriesChartProps),
     );
     expect(series.map(s => s.name).sort()).toEqual([
       'sum_val, g1',
