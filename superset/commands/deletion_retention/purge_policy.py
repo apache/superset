@@ -1031,6 +1031,8 @@ def _detach_dataset_charts(session: Session, entity_id: int) -> None:
     permission, and would adopt any later dataset that reuses the id. Only
     ``slices`` rows are updated; no chart is deleted. Runs after the
     dangling-chart impact snapshot, inside the purge's transaction.
+    This system purge does not advance chart history or ETag; the purge audit's
+    ``affected_referrers`` records the detached charts instead.
     """
     # avoid circular import: model listener registration imports neutral event helpers
     from superset.models.slice import Slice

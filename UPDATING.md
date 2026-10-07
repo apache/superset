@@ -33,7 +33,9 @@ assists people when migrating to a new version.
   longer appear in the chart list through `schema_access` or `catalog_access`
   grants, matching the object-level check that already denies them. Charts of a
   soft-deleted dataset keep their permissions, so restoring the dataset restores
-  access. Charts left by purges that ran before this change are not migrated:
+  access. Purge does not advance the detached charts' history or ETags; the
+  purge audit's `affected_referrers` records which charts were detached. Charts
+  left by purges that ran before this change are not migrated:
   they keep the purged dataset's ID and permission fields. Saving such a chart
   clears its permission fields only while no dataset has that ID; if a new
   dataset has since taken the ID, the save adopts that dataset instead.

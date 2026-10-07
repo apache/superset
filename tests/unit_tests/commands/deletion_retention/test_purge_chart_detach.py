@@ -16,25 +16,46 @@
 # under the License.
 """SC-119912: purging a dataset detaches the charts that reference it."""
 
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
+from uuid import UUID
 
 import pytest
+import sqlalchemy as sa
+from flask_appbuilder import Model
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm.session import Session
+from sqlalchemy_continuum import version_class
 
+from superset.app import SupersetApp
 from superset.commands.deletion_retention import purge_cascade
 from superset.commands.deletion_retention.purge_cascade import (
     cascade_hard_delete,
     CascadeResult,
 )
 from superset.connectors.sqla.models import SqlaTable
+from superset.extensions import db
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.semantic_layers.models import SemanticLayer, SemanticView
+from superset.versioning.api_helpers import current_entity_etag_uuid
+
+
+@pytest.fixture(scope="module", autouse=True)
+def file_metadata_database(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Iterator[None]:
+    """Give app capture a separate connection for the purge table probe."""
+    metadata_path: Path = tmp_path_factory.mktemp("purge-history") / "metadata.db"
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setenv(
+            "SUPERSET__SQLALCHEMY_DATABASE_URI", f"sqlite:///{metadata_path}"
+        )
+        yield
 
 
 @pytest.fixture
@@ -57,6 +78,16 @@ def session_engine(tmp_path: Path) -> Engine:
         connection.exec_driver_sql("BEGIN")
 
     return engine
+
+
+@pytest.fixture
+def versioned_session(app: SupersetApp) -> Iterator[Session]:
+    """Use the app's capture listeners with disposable metadata tables."""
+    Model.metadata.create_all(db.engine)
+    capture_session: Session = db.session()
+    yield capture_session
+    db.session.remove()
+    Model.metadata.drop_all(db.engine)
 
 
 def _trashed_dataset_with_charts(
@@ -116,13 +147,19 @@ def test_purge_detaches_dataset_charts(session: Session, app_context: None) -> N
     dataset: SqlaTable
     orphan: Slice
     other: Slice
-    dataset, orphan, other, _ = _trashed_dataset_with_charts(session)
+    database: Database
+    dataset, orphan, other, database = _trashed_dataset_with_charts(session)
     other_before: tuple[Any, ...] = (
         other.datasource_type,
         other.datasource_id,
         other.perm,
     )
-    bystander_id: int = dataset.id + 1
+    bystander_dataset: SqlaTable = SqlaTable(
+        table_name="bystander", database=database, schema="public"
+    )
+    session.add(bystander_dataset)
+    session.flush()
+    bystander_id: int = bystander_dataset.id
     bystander: Slice = Slice(
         slice_name="bystander",
         datasource_type="table",
@@ -131,6 +168,9 @@ def test_purge_detaches_dataset_charts(session: Session, app_context: None) -> N
     )
     session.add(bystander)
     session.commit()
+    bystander_perm: str | None = bystander.perm
+    assert bystander_perm is not None
+    assert bystander_perm == bystander_dataset.perm
 
     assert _purge(session, dataset).purged
 
@@ -148,6 +188,41 @@ def test_purge_detaches_dataset_charts(session: Session, app_context: None) -> N
         untouched.perm,
     ) == other_before
     assert session.get(Slice, bystander.id).datasource_id == bystander_id
+    assert session.get(Slice, bystander.id).perm == bystander_perm
+
+
+def test_purge_detach_keeps_chart_history_and_etag(
+    versioned_session: Session,
+) -> None:
+    """The purge audit, not a new chart version, records detachment."""
+    dataset: SqlaTable
+    chart: Slice
+    dataset, chart, _, _ = _trashed_dataset_with_charts(versioned_session)
+    chart_id: int = chart.id
+    dataset_id: int = dataset.id
+    chart_uuid: UUID = chart.uuid
+    shadow: Any = version_class(Slice)
+    latest_before: Any = versioned_session.scalars(
+        sa.select(shadow)
+        .where(shadow.id == chart_id)
+        .order_by(shadow.transaction_id.desc())
+    ).first()
+    assert latest_before.datasource_id == dataset_id
+    etag_before: str | None = current_entity_etag_uuid(Slice, chart_id, chart_uuid)
+    assert etag_before is not None
+
+    assert _purge(versioned_session, dataset).purged
+
+    kept: Slice = versioned_session.get(Slice, chart_id)
+    latest_after: Any = versioned_session.scalars(
+        sa.select(shadow)
+        .where(shadow.id == chart_id)
+        .order_by(shadow.transaction_id.desc())
+    ).first()
+    assert kept.datasource_id is None
+    assert latest_after.transaction_id == latest_before.transaction_id
+    assert latest_after.datasource_id == dataset_id
+    assert current_entity_etag_uuid(Slice, chart_id, chart_uuid) == etag_before
 
 
 def test_purged_dataset_id_reuse_cannot_rebind_chart(
