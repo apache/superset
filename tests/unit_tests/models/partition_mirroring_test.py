@@ -853,7 +853,53 @@ def test_the_probe_honours_a_per_column_date_format_from_db_extra(
 ) -> None:
     """
     `dttm_sql_literal` falls back to ``python_date_format_by_column_name`` in
-    the database's extra, so the probe has to read the same fallback.
+    the database's extra, so the probe has to read the same fallback -- on a
+    column where that fallback is actually reached. `event_epoch` is a BIGINT,
+    so SQLite's `convert_dttm` answers nothing and the format decides the
+    literal.
+
+    Its sibling below is the same configuration on a column where the engine
+    *does* answer, which is the case this test used to assert by accident.
+    """
+    table = _table(mapped_column="event_epoch", main_dttm_col="event_epoch")
+    table.columns.append(
+        TableColumn(column_name="event_epoch", is_dttm=True, type="BIGINT")
+    )
+    table.columns[-1].partition_value_transform = "to_date(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+    table.database.extra = json.dumps(
+        {"python_date_format_by_column_name": {"event_epoch": "%Y%m%d"}}
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]) as probe:
+            _query(
+                table,
+                granularity="event_epoch",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    assert probe.call_args.args[-1] == ["20260101", "20260201"]
+
+
+def test_a_date_format_the_engine_literal_preempts_is_not_probed(
+    app: Flask,
+) -> None:
+    """
+    `dttm_sql_literal` asks `convert_dttm` first and reaches the format only if
+    the engine answers nothing. `event_time` is a TIMESTAMP, so SQLite answers
+    `'2026-01-01 00:00:00'` and the `%Y%m%d` format never applies to the real
+    predicate -- but the probe applied it anyway.
+
+    The mirror therefore described a different bound from the filter it stands
+    in for: `event_time >= '2026-01-01 00:00:00'` became
+    `dt_epoch >= '20260101'`, and a January 15 row keyed `2026-01-15` sorts
+    below that string, so the chart dropped a row the filter keeps.
+
+    The `datetime` goes to the probe unchanged, which is what already happens
+    for every temporal column carrying no format -- `_engine_literal_resolution`
+    then widens the bound for whatever the engine's own literal throws away.
     """
     table = _table()
     table.database.extra = json.dumps(
@@ -869,7 +915,7 @@ def test_the_probe_honours_a_per_column_date_format_from_db_extra(
                 to_dttm=datetime(2026, 2, 1),
             )
 
-    assert probe.call_args.args[-1] == ["20260101", "20260201"]
+    assert probe.call_args.args[-1] == [datetime(2026, 1, 1), datetime(2026, 2, 1)]
 
 
 def test_the_probe_rounds_outward_when_the_engine_drops_subseconds(
