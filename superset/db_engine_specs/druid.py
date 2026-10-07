@@ -21,7 +21,7 @@ import logging
 from datetime import datetime
 from typing import Any, TYPE_CHECKING
 
-from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 from marshmallow import EXCLUDE, fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import types
@@ -65,24 +65,24 @@ class DruidParametersSchema(Schema):
         # raising an "Unknown field" error.
         unknown = EXCLUDE
 
-    username = fields.String(allow_none=True, metadata={"description": __("Username")})
-    password = fields.String(allow_none=True, metadata={"description": __("Password")})
+    username = fields.String(allow_none=True, metadata={"description": _("Username")})
+    password = fields.String(allow_none=True, metadata={"description": _("Password")})
     host = fields.String(
-        required=True, metadata={"description": __("Hostname or IP address")}
+        required=True, metadata={"description": _("Hostname or IP address")}
     )
     port = fields.Integer(
         required=True,
-        metadata={"description": __("Database port")},
+        metadata={"description": _("Database port")},
         validate=Range(min=0, max=2**16, max_inclusive=False),
     )
     encryption = fields.Boolean(
         required=False,
-        metadata={"description": __("Use an encrypted connection to the database")},
+        metadata={"description": _("Use an encrypted connection to the database")},
     )
     query = fields.Dict(
         keys=fields.Str(),
         values=fields.Raw(),
-        metadata={"description": __("Additional parameters")},
+        metadata={"description": _("Additional parameters")},
     )
 
 
