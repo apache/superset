@@ -44,7 +44,13 @@ test('semantic queries omit a positive limit without final series columns', () =
   ).toBe(2);
   expect(
     buildQueryContext(formData, baseQuery => [
-      { ...baseQuery, is_timeseries: true, metrics: [], series_columns: [] },
+      {
+        ...baseQuery,
+        is_timeseries: true,
+        metrics: [],
+        columns: ['product'],
+        series_columns: [],
+      },
     ]).queries[0].series_limit,
   ).toBe(0);
   expect(
