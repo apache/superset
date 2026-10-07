@@ -601,3 +601,35 @@ test('conditional formatting on the additive path uses the raw leaf query rows',
   // Scale spans the leaf cells (max 40), never the client-side grand total 100.
   expect(getColorFromValue(40)).toEqual('#ACE1C4FF');
 });
+
+test('result aggregation passes the leaf query data through as a single, unsynthesized level', () => {
+  const resultChartProps = new ChartProps<QueryFormData>({
+    ...chartProps,
+    formData: { ...formData, aggregateFunction: 'Median' },
+    queriesData: [
+      {
+        data: [
+          { row1: 'a', row2: 'x', col1: 'p', col2: 'q', metric1: 10 },
+          { row1: 'a', row2: 'y', col1: 'p', col2: 'q', metric1: 20 },
+        ],
+        colnames: ['row1', 'row2', 'col1', 'col2', 'metric1'],
+        coltypes: [1, 1, 1, 1, 0],
+      },
+    ],
+  });
+
+  const result = transformProps(resultChartProps) as ReturnType<
+    typeof transformProps
+  >;
+  // Passed straight through to PivotTableChart/PivotData, which does the
+  // actual per-scope reduction (see react-pivottable/utilities.test.ts).
+  expect(result.aggregateFunction).toBe('Median');
+  expect(result.data).toHaveLength(1);
+  expect(result.data[0].data).toEqual(resultChartProps.queriesData[0].data);
+  // transposePivot is true in the shared fixture: rows/columns swap, same
+  // as buildQuery.ts's own fullGroupby.
+  expect(result.data[0].groupby).toEqual({
+    rows: formData.groupbyColumns,
+    columns: formData.groupbyRows,
+  });
+});
