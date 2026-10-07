@@ -1609,7 +1609,10 @@ examples. See the compact chart config schema migration note in `UPDATING.md`.
 - **World map:** set `country_format` to `name`, `cca2`, `cca3`, or `cioc`,
   plus `entity` and `metric`. Choropleth color uses `metric`. For bubbles set
   `show_bubbles: true` and supply `secondary_metric` for size (it may be the
-  same metric). A `secondary_metric` kept with `show_bubbles: false` is not
+  same metric). Same-type saved and cached-preview updates can enable bubbles
+  while omitting `secondary_metric` when the existing chart already has one;
+  the size-metric requirement is checked against the merged configuration.
+  A `secondary_metric` kept with `show_bubbles: false` is not
   rendered, so its values are not validated. Superset's bundled
   world topology defines choropleth coverage, not the broader country
   dictionary. Countries without a polygon (such as Singapore) require bubbles

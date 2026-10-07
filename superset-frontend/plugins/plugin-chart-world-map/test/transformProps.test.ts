@@ -100,3 +100,33 @@ test.each([null, undefined, {}, 'invalid'])(
     );
   },
 );
+
+test.each(['US', 'us'])(
+  'typed chart props reject duplicate country aggregates (%s)',
+  country => {
+    const props = new ChartProps({
+      width: 800,
+      height: 600,
+      theme: supersetTheme,
+      datasource: { columnFormats: {}, currencyFormats: {}, verboseMap: {} },
+      formData: {
+        mcp_geographic: true,
+        entity: 'country',
+        country_fieldtype: 'cca2',
+        metric: 'sales',
+        color_picker: { r: 0, g: 0, b: 0, a: 1 },
+      },
+      queriesData: [
+        {
+          data: [
+            { country: 'US', sales: 10 },
+            { country, sales: 20 },
+          ],
+        },
+      ],
+    });
+    expect(() => transformProps(props)).toThrow(
+      'Unrecognized or duplicate country value',
+    );
+  },
+);

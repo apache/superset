@@ -545,6 +545,7 @@ async def _exercise_public_geographic_entry(  # noqa: C901
     existing_override: dict[str, Any] | None = None,
     config_override: dict[str, Any] | None = None,
     expected_error: str | None = None,
+    expected_form_data: dict[str, Any] | None = None,
 ) -> None:
     """Run native public compile/save paths against controlled database results."""
     import importlib
@@ -763,6 +764,11 @@ async def _exercise_public_geographic_entry(  # noqa: C901
         assert command.return_value.run.called
         if valid:
             assert payload["form_data"]["viz_type"] == kind
+            for field, value in (expected_form_data or {}).items():
+                assert payload["form_data"][field] == value
+                if persist:
+                    saved_form = json.loads(update.call_args.args[-1]["params"])
+                    assert saved_form[field] == value
             if existing_override is not None and persist:
                 saved_form = json.loads(update.call_args.args[-1]["params"])
                 assert saved_form["adhoc_filters"] == []
@@ -2037,3 +2043,57 @@ def test_null_native_filters_allow_explicit_temporal_clear(kind: str) -> None:
     old = {**form_for(kind), "adhoc_filters": None}
     merged = merge_chart_form_data(old, map_config_to_form_data(config), config)
     assert merged["adhoc_filters"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "entry,persist",
+    [("update_chart", True), ("update_chart", False), ("update_chart_preview", False)],
+)
+async def test_world_map_enabling_bubbles_retains_omitted_size_metric(
+    entry: str, persist: bool
+) -> None:
+    """Bubble toggles validate the merged saved or cached metric, not the patch."""
+    await _exercise_public_geographic_entry(
+        "world_map",
+        True,
+        entry,
+        persist,
+        existing_override={
+            "show_bubbles": False,
+            "secondary_metric": form_for("world_map")["metric"],
+        },
+        config_override={"show_bubbles": True},
+        expected_form_data={
+            "show_bubbles": True,
+            "secondary_metric": form_for("world_map")["metric"],
+        },
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("entry", ["generate_chart", "generate_explore_link"])
+async def test_world_map_fresh_bubbles_require_size_metric(entry: str) -> None:
+    """Fresh generation still rejects bubbles without a size metric."""
+    await _exercise_public_geographic_entry(
+        "world_map", False, entry, False, config_override={"show_bubbles": True}
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "entry,persist",
+    [("update_chart", True), ("update_chart", False), ("update_chart_preview", False)],
+)
+async def test_world_map_bubbles_reject_explicit_size_metric_clear(
+    entry: str, persist: bool
+) -> None:
+    """Explicit clearing must not inherit the saved or cached size metric."""
+    await _exercise_public_geographic_entry(
+        "world_map",
+        False,
+        entry,
+        persist,
+        existing_override={"secondary_metric": form_for("world_map")["metric"]},
+        config_override={"show_bubbles": True, "secondary_metric": None},
+    )

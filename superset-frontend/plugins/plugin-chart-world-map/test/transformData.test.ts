@@ -230,3 +230,23 @@ test('saved Custom SQL entities resolve their result label', () => {
     })[0],
   ).toMatchObject({ country: 'USA', sourceValue: 'USA', m1: 42 });
 });
+
+test.each(['US', 'us'])(
+  'typed world maps reject two country aggregates resolving to USA (%s)',
+  country => {
+    expect(() =>
+      transformData(
+        [
+          { country: 'US', sales: 10 },
+          { country, sales: 20 },
+        ],
+        {
+          entity: 'country',
+          metric: 'sales',
+          countryFieldtype: 'cca2',
+          strict: true,
+        },
+      ),
+    ).toThrow('Unrecognized or duplicate country value');
+  },
+);

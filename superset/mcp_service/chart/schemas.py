@@ -3862,7 +3862,10 @@ class CountryMapChartConfig(GeographicChartConfig):
 
 
 class WorldMapChartConfig(GeographicChartConfig):
-    """Country choropleth with optional metric-sized bubbles."""
+    """Country choropleth with optional metric-sized bubbles.
+
+    The plugin checks the bubble metric after omitted update controls merge.
+    """
 
     chart_type: Literal["world_map"]
     entity: GeographicColumnRef
@@ -3873,15 +3876,6 @@ class WorldMapChartConfig(GeographicChartConfig):
     max_bubble_size: int = Field(25, ge=1, le=100)
     sort_by_metric: bool = True
     linear_color_scheme: str = Field("schemeBlues", min_length=1, max_length=100)
-
-    @model_validator(mode="after")
-    def validate_bubble_metric(self) -> "WorldMapChartConfig":
-        """Require an explicit size metric when bubbles are requested."""
-        if self.show_bubbles and self.secondary_metric is None:
-            raise ValueError(
-                "show_bubbles requires secondary_metric (may equal metric)"
-            )
-        return self
 
 
 class DeckScatterChartConfig(GeographicChartConfig):
