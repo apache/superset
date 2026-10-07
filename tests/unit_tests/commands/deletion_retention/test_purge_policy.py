@@ -2124,3 +2124,71 @@ def test_builtin_policies_satisfy_the_host_rules(model: type[Any]) -> None:
     purge_policy_module._validate_host_declarations(  # noqa: SLF001
         get_purge_policy(model)
     )
+
+
+def _host_cycle(prefix: str) -> type[Any]:
+    """Map a root and child that reference each other.
+
+    ``root.link_id -> link.id`` and ``link.root_id -> root.id``: a foreign-key
+    cycle, which a host can declare as two owned edges.
+    """
+    metadata: sa.MetaData = sa.MetaData()
+    root_table: sa.Table = sa.Table(
+        f"{prefix}_root",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("link_id", sa.Integer, sa.ForeignKey(f"{prefix}_link.id")),
+        sa.Column("deleted_at", sa.DateTime, nullable=True),
+    )
+    sa.Table(
+        f"{prefix}_link",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("root_id", sa.Integer, sa.ForeignKey(f"{prefix}_root.id")),
+    )
+
+    class HostCycleRoot:
+        """Temporary mapped root in a foreign-key cycle with its child."""
+
+    return _map_host_root(HostCycleRoot, root_table)
+
+
+def test_owned_back_edge_into_the_root_table_is_rejected(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """The back edge of a root/child cycle deletes other live roots.
+
+    Its predicate resolves through the ownership path, so the statement reads
+    ``DELETE FROM root WHERE link_id IN (SELECT id FROM link WHERE root_id =
+    :id)`` -- removing any other root sharing that child, outside the purge
+    frame, with no audit record, and committing cleanly even with foreign
+    keys enforced.
+    """
+    model: type[Any] = _host_cycle("cycle")
+    root, link = "cycle_root", "cycle_link"
+    owned = (DependencyClassification.OWNED, ExecutionPhase.OWNED)
+    declared: tuple[DependencyPolicy, ...] = (
+        DependencyPolicy(
+            DependencyKey("foreign_key", root, link, ("id",), ("root_id",), "inbound"),
+            *owned,
+        ),
+        DependencyPolicy(
+            DependencyKey("foreign_key", link, root, ("id",), ("link_id",), "inbound"),
+            *owned,
+        ),
+        DependencyPolicy(
+            DependencyKey("foreign_key", root, link, ("link_id",), ("id",), "outbound"),
+            DependencyClassification.PRESERVE,
+        ),
+        DependencyPolicy(
+            DependencyKey("foreign_key", link, root, ("root_id",), ("id",), "outbound"),
+            DependencyClassification.PRESERVE,
+        ),
+    )
+
+    _assert_rejected(
+        model,
+        _host_policy(model, declared),
+        "the root's own table",
+        caplog,
+    )

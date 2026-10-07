@@ -1609,25 +1609,40 @@ def _validate_owned_traversal(policy: PurgeEntityPolicy) -> None:
 
 
 def _validate_recursive_ownership(policy: PurgeEntityPolicy) -> None:
-    """Reject a self-referencing owned table under one-level cleanup.
+    """Reject an owned edge that one-level cleanup cannot execute safely.
 
-    Cleanup that issues one statement per declared edge prunes a table that
-    owns itself one level deep. Where foreign keys are enforced the root's own
-    delete then fails and rolls back; where they are not -- SQLite -- the root
-    is purged and its grandchildren are left behind with a dangling parent id
-    and nothing reported. A policy declaring a tree walks it itself and says
-    so with ``walks_own_subtree``.
+    Two shapes, both of which the shared cleanup turns into a single
+    ``DELETE`` against the named table:
+
+    * a table that owns itself is pruned one level deep. Where foreign keys
+      are enforced the root's own delete then fails and rolls back; where they
+      are not -- SQLite -- the root is purged and its grandchildren are left
+      behind with a dangling parent id and nothing reported.
+    * an edge whose related table is the root's own, reached from elsewhere --
+      the back edge of a root/child foreign-key cycle. Its predicate resolves
+      through the ownership path, so the statement reads ``DELETE FROM root
+      WHERE <fk> IN (SELECT id FROM child WHERE <fk> = :id)``: it removes
+      *other*, live root rows that happen to share a child, outside the purge
+      frame and with no audit record, and commits cleanly even where foreign
+      keys are enforced. The association spelling of the same shape is
+      refused unconditionally by ``_validate_self_referencing_association``.
+
+    A policy declaring either walks its own tree and says so with
+    ``walks_own_subtree``, which is why this runs only without it.
     """
+    root_table: str = sa.inspect(policy.model).local_table.name
     for dependency in policy.dependencies:
         if dependency.classification is not DependencyClassification.OWNED:
             continue
         key: DependencyKey = dependency.key
-        if key.owner_table != key.related_table:
+        if key.related_table not in {root_table, key.owner_table}:
             continue
         raise RuntimeError(
-            f"Owned dependency {key.describe()} is self-referencing; the stock "
-            "owned-child cleanup deletes one level, so this policy must supply "
-            "its own delete_owned_children"
+            f"Owned dependency {key.describe()} targets "
+            f"{key.related_table!r}, which is the root's own table or its own "
+            "owner; the shared owned-child cleanup would delete one level, or "
+            "rows outside the purge, so this policy must supply its own "
+            "delete_owned_children"
         )
 
 

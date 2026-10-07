@@ -206,8 +206,10 @@ rows or silently skip cleanup, since neither announces itself:
   audit log, whose vocabulary is a closed set. A host refuses a purge by
   raising `PurgeBlockedError` from its own validator instead, where the code
   it records is plainly its own;
-- it declares a table that owns itself, or one reachable only through an
-  association, without setting `walks_own_subtree`. Cleanup that issues one
+- it declares a table that owns itself, an owned edge whose target is the
+  root's own table -- the back edge of a root/child foreign-key cycle, which
+  removes other live roots sharing that child -- or a table reachable only
+  through an association, without setting `walks_own_subtree`. Cleanup that issues one
   statement per declared edge reaches one level and resolves each predicate
   through the ownership path, so without enforced foreign keys the root is
   purged and the rows below it are orphaned silently. A policy whose
