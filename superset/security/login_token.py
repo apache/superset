@@ -86,11 +86,13 @@ class LoginTokenUserInfo(TypedDict, total=False):
 
 LoginTokenIdentityResolver = Callable[..., LoginTokenUserInfo | None]
 
-# Characters a WHATWG URL parser strips before resolving, plus their
-# percent-encoded forms, which some browsers also remove when following a
-# Location header. Their presence is grounds for rejection, not something to
-# normalize away -- see :func:`is_safe_next_path`.
-_URL_STRIPPED_CONTROL_CHARS = re.compile(r"[\t\n\r]|%09|%0[ADad]")
+# Any C0 control character or DEL, plus the percent-encoded tab, LF and CR that
+# some browsers also remove when following a Location header. A WHATWG URL
+# parser strips tab/LF/CR anywhere and C0 controls at either end, so each of
+# these can make the URL a browser resolves differ from the one validated. Their
+# presence is grounds for rejection, not something to normalize away -- see
+# :func:`is_safe_next_path`.
+_DISALLOWED_NEXT_CHARS = re.compile(r"[\x00-\x1f\x7f]|%09|%0[ADad]")
 
 
 def is_safe_next_path(url: str) -> bool:
@@ -118,18 +120,22 @@ def is_safe_next_path(url: str) -> bool:
     than what was asked for. Rejecting keeps the checked value and the
     redirected value identical.
     """
-    if not url or not url.strip():
+    # The value validated here is the value redirected to, byte for byte, so
+    # nothing is stripped first. Trimming would leave whatever it removed
+    # unchecked: a trailing CR/LF, for one, would pass on the trimmed copy and
+    # then reach ``redirect()``, which Werkzeug refuses -- a 500 after the token
+    # has been burned. Surrounding whitespace is rejected instead.
+    if not url or url != url.strip():
         return False
 
-    candidate = url.strip()
-    if _URL_STRIPPED_CONTROL_CHARS.search(candidate):
+    if _DISALLOWED_NEXT_CHARS.search(url):
         return False
 
     # Browsers treat backslashes as forward slashes in special schemes, so
     # `/\evil.com` would resolve as the protocol-relative `//evil.com`. Folded
     # only to decide, never to rewrite: a value needing the fold is rejected by
     # the check below rather than redirected to in its folded form.
-    folded = candidate.replace("\\", "/")
+    folded = url.replace("\\", "/")
 
     # A single leading slash, and nothing that could be read as a host or a
     # scheme. `//host`, `https://host` and `mailto:x` are all rejected.
