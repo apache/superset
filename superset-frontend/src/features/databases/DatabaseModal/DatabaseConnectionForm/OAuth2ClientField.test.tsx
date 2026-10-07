@@ -197,6 +197,25 @@ describe('OAuth2ClientField', () => {
     expect(queryByText('OAuth2 client information')).not.toBeInTheDocument();
   });
 
+  test('renders for snowflake', () => {
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        engine: 'snowflake',
+      },
+    };
+
+    const { getByText, getByTestId } = render(<OAuth2ClientField {...props} />);
+
+    // The only early return in this component is the gsheets one, so Snowflake
+    // renders as soon as its parameters schema advertises oauth2_client_info.
+    fireEvent.click(getByText('OAuth2 client information'));
+
+    expect(getByTestId('client-id')).toHaveValue('test-id');
+    expect(getByTestId('client-secret')).toHaveValue('test-secret');
+  });
+
   test('renders normally when engine is gsheets but isPublic is false', () => {
     const props = {
       ...defaultProps,

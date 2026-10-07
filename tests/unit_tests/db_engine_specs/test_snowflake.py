@@ -18,7 +18,7 @@
 # pylint: disable=import-outside-toplevel
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 from unittest import mock
 
 import pytest
@@ -854,3 +854,139 @@ def test_snowflake_oauth2_exception_catches_refresh_token_error() -> None:
             "OAuth2TokenRefreshError must be caught by "
             "SnowflakeEngineSpec.oauth2_exception"
         )
+
+
+def test_parameters_json_schema_has_encrypted_extra() -> None:
+    """
+    Test that ``parameters_json_schema`` marks ``oauth2_client_info`` with
+    ``x-encrypted-extra``.
+
+    That annotation is what makes the connection dialog render the OAuth2 client
+    fields and move their values into ``masked_encrypted_extra`` instead of posting
+    them as plain parameters. Without it the whole form half of Snowflake's OAuth2
+    support is unreachable, and an admin has to hand-edit the Secure extra JSON.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    schema = SnowflakeEngineSpec.parameters_json_schema()
+
+    assert schema is not None
+    oauth2_client_info = schema["properties"]["oauth2_client_info"]
+    assert oauth2_client_info["x-encrypted-extra"] is True
+
+
+def test_parameters_json_schema_keeps_oauth2_client_info_optional() -> None:
+    """
+    Test that adding ``oauth2_client_info`` does not make it a required parameter.
+
+    Every other Snowflake parameter is required; a connection that does not use
+    OAuth2 must still validate.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    schema = SnowflakeEngineSpec.parameters_json_schema()
+
+    assert schema is not None
+    assert "oauth2_client_info" in schema["properties"]
+    assert "oauth2_client_info" not in schema.get("required", [])
+    assert sorted(schema["required"]) == [
+        "account",
+        "database",
+        "password",
+        "role",
+        "username",
+        "warehouse",
+    ]
+
+
+def test_validate_parameters_unaffected_by_oauth2_client_info() -> None:
+    """
+    Test that supplying ``oauth2_client_info`` neither satisfies nor breaks
+    ``validate_parameters``.
+
+    Snowflake still needs a base credential for the connection test it runs on save,
+    so the required set must not shift just because OAuth2 is being configured.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    properties: dict[str, Any] = {
+        "parameters": {
+            "oauth2_client_info": {"id": "client-id", "secret": "client-secret"},
+        }
+    }
+
+    errors = SnowflakeEngineSpec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    assert len(errors) == 1
+    assert errors[0].extra is not None
+    assert errors[0].extra["missing"] == [
+        "account",
+        "database",
+        "password",
+        "role",
+        "username",
+        "warehouse",
+    ]
+
+
+def test_build_sqlalchemy_uri_does_not_leak_the_oauth2_client() -> None:
+    """
+    Test that the OAuth2 client id and secret never reach the stored URI.
+
+    ``build_sqlalchemy_uri`` reads only named parameters, so this holds by
+    construction -- but a client secret leaked into a connection string would be the
+    worst possible outcome of exposing this field, so it is pinned rather than
+    reasoned about.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    parameters: dict[str, Any] = {
+        "username": "username",
+        "password": "password",
+        "account": "account",
+        "database": "database",
+        "role": "role",
+        "warehouse": "warehouse",
+        "oauth2_client_info": {
+            "id": "super-secret-client-id",
+            "secret": "super-secret-client-secret",
+        },
+    }
+
+    uri = SnowflakeEngineSpec.build_sqlalchemy_uri(
+        parameters,  # type: ignore[arg-type]
+        encrypted_extra={
+            "oauth2_client_info": {
+                "id": "super-secret-client-id",
+                "secret": "super-secret-client-secret",
+            }
+        },
+    )
+
+    assert "super-secret-client-id" not in uri
+    assert "super-secret-client-secret" not in uri
+    assert "oauth2_client_info" not in uri
+
+
+def test_update_params_from_encrypted_extra_does_not_leak_the_oauth2_client(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the OAuth2 client does not end up in the engine kwargs.
+
+    An unrecognised key reaching ``create_engine(**engine_kwargs)`` would raise, and
+    a recognised one would be sent to the driver; neither is wanted for the client
+    config, which is consumed by Superset itself.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps(
+        {"oauth2_client_info": {"id": "client-id", "secret": "client-secret"}}
+    )
+
+    params: dict[str, object] = {}
+    SnowflakeEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert "oauth2_client_info" not in params
+    assert "client-secret" not in json.dumps(params, default=str)

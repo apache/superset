@@ -36,9 +36,14 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
 from sqlalchemy.sql import quoted_name
 from sqlalchemy.sql.elements import ColumnElement
+from typing_extensions import NotRequired
 
 from superset import is_feature_enabled
 from superset.constants import TimeGrain
+from superset.databases.schemas import (
+    encrypted_field_properties,
+    EncryptedString,
+)
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
@@ -125,6 +130,19 @@ class SnowflakeParametersSchema(Schema):
     database = fields.Str(required=True)
     role = fields.Str(required=True)
     warehouse = fields.Str(required=True)
+    # Unlike GSheets, the endpoints cannot be defaulted: they live on the customer's
+    # own Snowflake account (`https://<account>.snowflakecomputing.com/oauth/...`),
+    # so there is no URI that would be right for every deployment. `scope` can be,
+    # since a refresh token is what makes an OAuth2 connection usable beyond the
+    # first hour.
+    oauth2_client_info = EncryptedString(
+        required=False,
+        metadata={
+            "description": "OAuth2 client information",
+            "default": {"scope": "refresh_token"},
+        },
+        allow_none=True,
+    )
 
 
 class SnowflakeParametersType(TypedDict):
@@ -134,6 +152,7 @@ class SnowflakeParametersType(TypedDict):
     database: str
     role: str
     warehouse: str
+    oauth2_client_info: NotRequired[dict[str, Any] | None]
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
@@ -638,6 +657,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             openapi_version="3.0.0",
             plugins=[ma_plugin],
         )
+
+        # `APISpec` has already run `init_spec` for the plugin passed above, so the
+        # converter exists by now. This is what tags `EncryptedField` parameters with
+        # `x-encrypted-extra`, which is the signal the connection dialog uses both to
+        # render the field and to move its value into `masked_encrypted_extra` rather
+        # than posting it as a plain parameter.
+        ma_plugin.converter.add_attribute_function(encrypted_field_properties)
 
         spec.components.schema(cls.__name__, schema=cls.parameters_schema)
         return spec.to_dict()["components"]["schemas"][cls.__name__]
