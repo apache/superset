@@ -59,6 +59,7 @@ from superset.mcp_service.chart.compile import (
 )
 from superset.mcp_service.chart.datasource_resolver import (
     ChartDatasource,
+    normalize_semantic_gantt_form_data,
     resolve_semantic_view,
     validate_semantic_view_config,
     validate_semantic_view_form_data,
@@ -1257,6 +1258,15 @@ async def update_chart(  # noqa: C901
                 if validation_error is not None:
                     return validation_error
 
+            if (
+                rebind_id is not None
+                and rebind_type == DatasourceType.SEMANTIC_VIEW.value
+                and parsed_config is None
+                and new_form_data is not None
+            ):
+                new_form_data = normalize_semantic_gantt_form_data(new_form_data)
+                payload_or_error["params"] = json.dumps(new_form_data)
+
             with event_logger.log_context(action="mcp.update_chart.db_write"):
                 command = UpdateChartCommand(chart.id, payload_or_error)
                 updated_chart = command.run()
@@ -1301,6 +1311,14 @@ async def update_chart(  # noqa: C901
                     )
                 if validation_error is not None:
                     return validation_error
+
+            if (
+                rebind_id is not None
+                and rebind_type == DatasourceType.SEMANTIC_VIEW.value
+                and parsed_config is None
+            ):
+                preview_or_error = normalize_semantic_gantt_form_data(preview_or_error)
+                new_form_data = preview_or_error
 
             with event_logger.log_context(action="mcp.update_chart.preview_link"):
                 explore_url, form_data_key, warnings = _create_preview_url(

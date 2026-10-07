@@ -837,6 +837,41 @@ def test_query_fields_and_query_context_shape_match_frontend() -> None:
     assert query["row_limit"] == 321
 
 
+def test_saved_column_objects_become_semantic_query_names() -> None:
+    """Saved Gantt references remain queryable after a semantic-view rebind."""
+    form_data: dict[str, Any] = {
+        "viz_type": "gantt_chart",
+        "start_time": {"column_name": "start_time"},
+        "end_time": {"column_name": "end_time"},
+        "y_axis": {"column_name": "task"},
+        "series": {"column_name": "owner"},
+        "tooltip_columns": [{"column_name": "project"}],
+    }
+    expected_columns: list[str] = [
+        "start_time",
+        "end_time",
+        "task",
+        "owner",
+        "project",
+    ]
+
+    columns: list[Any]
+    series_columns: list[Any]
+    columns, _, _, series_columns = resolve_gantt_query_fields(form_data)
+
+    assert columns == expected_columns
+    assert series_columns == ["owner"]
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="semantic_view",
+    ):
+        query: dict[str, Any] = build_query_dicts_from_form_data(
+            form_data, 7, "semantic_view"
+        )[0]
+    assert query["columns"] == expected_columns
+    assert query["series_columns"] == ["owner"]
+
+
 def test_saved_query_fallback_rejects_malformed_native_order() -> None:
     form_data = {
         "viz_type": "gantt_chart",

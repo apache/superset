@@ -28,7 +28,10 @@ from pytest_mock import MockerFixture
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from superset.mcp_service.chart.chart_helpers import resolve_form_data_datasource
+from superset.mcp_service.chart.chart_helpers import (
+    build_query_dicts_from_form_data,
+    resolve_form_data_datasource,
+)
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.chart.compile import CompileResult
 from superset.mcp_service.chart.datasource_resolver import ChartDatasource
@@ -471,6 +474,106 @@ async def test_table_source_only_rebind_retains_filters_in_both_modes(
         assert resolve_form_data_datasource(updated_form_data, chart) == (9, "table")
         preview.assert_not_called()
     assert json.loads(chart.params) == form_data
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("preview_mode", [False, True])
+async def test_source_only_gantt_rebind_saved_columns_remain_queryable(
+    mocker: MockerFixture,
+    preview_mode: bool,
+) -> None:
+    """A saved Gantt column object survives rebind as a queryable dimension."""
+    chart: Mock = _chart()
+    chart.uuid = None
+    chart.viz_type = "gantt_chart"
+    chart.params = json.dumps(
+        {
+            "viz_type": "gantt_chart",
+            "datasource": "3__table",
+            "start_time": {"column_name": "start_time"},
+            "end_time": {"column_name": "end_time"},
+            "y_axis": {"column_name": "task"},
+            "series": {"column_name": "owner"},
+            "tooltip_columns": [{"column_name": "project"}],
+        }
+    )
+    view: Mock = Mock(
+        columns=[
+            Mock(column_name=name, type="TIMESTAMP", is_dttm=True)
+            for name in ("start_time", "end_time")
+        ]
+        + [
+            Mock(column_name=name, type="STRING", is_dttm=False)
+            for name in ("task", "owner", "project")
+        ],
+        metrics=[],
+    )
+    target: ChartDatasource = ChartDatasource(
+        view, DatasourceType.SEMANTIC_VIEW, 7, "Semantic tasks"
+    )
+    mocker.patch.object(
+        update_chart_module, "find_chart_by_identifier", return_value=chart
+    )
+    mocker.patch.object(
+        update_chart_module, "resolve_semantic_view", return_value=target
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        return_value=DatasetValidationResult(True, 3, "Original", []),
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="owner", roles=[], groups=[]),
+    )
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    preview: MagicMock = mocker.patch.object(
+        update_chart_module,
+        "_create_preview_url",
+        return_value=("http://localhost/explore/?form_data_key=key", "key", []),
+    )
+    write: MagicMock = mocker.patch("superset.commands.chart.update.UpdateChartCommand")
+    write.return_value.run.return_value = chart
+    ctx: MagicMock = MagicMock(
+        info=AsyncMock(),
+        debug=AsyncMock(),
+        warning=AsyncMock(),
+        error=AsyncMock(),
+        report_progress=AsyncMock(),
+    )
+
+    response: GenerateChartResponse = await update_chart_module.update_chart(
+        UpdateChartRequest(
+            identifier=12,
+            view_id=7,
+            generate_preview=preview_mode,
+            preview_formats=[],
+        ),
+        ctx=ctx,
+    )
+
+    assert response.success, response.error
+    saved_form_data: dict[str, Any]
+    if preview_mode:
+        write.assert_not_called()
+        saved_form_data = preview.call_args.args[1]
+    else:
+        payload: dict[str, Any] = write.call_args.args[1]
+        saved_form_data = json.loads(payload["params"])
+        assert payload["query_context"] is None
+    assert saved_form_data["start_time"] == "start_time"
+    assert saved_form_data["end_time"] == "end_time"
+    assert saved_form_data["y_axis"] == "task"
+    assert saved_form_data["series"] == "owner"
+    assert saved_form_data["tooltip_columns"] == ["project"]
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="semantic_view",
+    ):
+        query: dict[str, Any] = build_query_dicts_from_form_data(
+            saved_form_data, 7, "semantic_view"
+        )[0]
+    assert query["columns"] == ["start_time", "end_time", "task", "owner", "project"]
+    assert query["series_columns"] == ["owner"]
 
 
 @pytest.mark.asyncio

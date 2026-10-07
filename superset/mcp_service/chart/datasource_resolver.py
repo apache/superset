@@ -174,6 +174,51 @@ def validate_semantic_view_config(
     return valid, error, context
 
 
+def _saved_dimension_name(value: object) -> object:
+    """Extract a saved column name without accepting an ad-hoc expression."""
+    if not isinstance(value, dict):
+        return value
+    if value.get("expressionType") not in (None, "SIMPLE") or value.get(
+        "sqlExpression"
+    ):
+        return value
+    return value.get("column_name")
+
+
+def normalize_semantic_gantt_form_data(form_data: dict[str, Any]) -> dict[str, Any]:
+    """Persist validated Gantt saved columns as queryable semantic names."""
+    if form_data.get("viz_type") != "gantt_chart":
+        return form_data
+    normalized: dict[str, Any] = dict(form_data)
+    key: str
+    for key in ("start_time", "end_time", "y_axis", "series"):
+        if key in normalized:
+            normalized[key] = _saved_dimension_name(normalized[key])
+    tooltip_columns: object = normalized.get("tooltip_columns")
+    if isinstance(tooltip_columns, list):
+        normalized["tooltip_columns"] = [
+            _saved_dimension_name(column) for column in tooltip_columns
+        ]
+    return normalized
+
+
+def _gantt_column_shape_error(form_data: dict[str, Any]) -> ChartGenerationError | None:
+    """Reject Gantt role shapes the query builder cannot consume."""
+    if form_data.get("viz_type") != "gantt_chart":
+        return None
+    from superset.mcp_service.chart.chart_helpers import resolve_gantt_query_fields
+
+    try:
+        resolve_gantt_query_fields(normalize_semantic_gantt_form_data(form_data))
+    except ValueError:
+        return ChartGenerationError(
+            error_type="column_not_found",
+            message="The chart contains dimensions not available on the target view.",
+            details="A retained Gantt query role has an invalid shape.",
+        )
+    return None
+
+
 def validate_semantic_view_form_data(
     form_data: dict[str, Any], target: ChartDatasource
 ) -> ChartGenerationError | None:
@@ -235,8 +280,16 @@ def validate_semantic_view_form_data(
             details="A retained metric is not a saved metric on the selected view.",
             suggestions=["Provide a complete configuration valid for the target view"],
         )
+    shape_error: ChartGenerationError | None = _gantt_column_shape_error(form_data)
+    if shape_error is not None:
+        return shape_error
     dimensions: list[object] = [
-        dimension
+        (
+            _saved_dimension_name(dimension)
+            if viz_type == "gantt_chart"
+            and key in ("start_time", "end_time", "y_axis", "series", "tooltip_columns")
+            else dimension
+        )
         for key in (
             "groupby",
             "groupby_b",
@@ -254,7 +307,7 @@ def validate_semantic_view_form_data(
         )
         for dimension in (
             [form_data[key]]
-            if isinstance(form_data.get(key), str)
+            if isinstance(form_data.get(key), (str, dict))
             else form_data.get(key) or []
         )
     ] + [form_data[key] for key in ("x_axis", "granularity_sqla") if form_data.get(key)]

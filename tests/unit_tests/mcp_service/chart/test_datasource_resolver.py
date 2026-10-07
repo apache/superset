@@ -244,6 +244,15 @@ class TestValidateSemanticViewConfig:
         assert "not_a_dimension" in (error.message + error.details)
 
 
+def _valid_gantt_form_data() -> dict[str, Any]:
+    return {
+        "viz_type": "gantt_chart",
+        "start_time": "metric_time",
+        "end_time": "metric_time",
+        "y_axis": "customer__region",
+    }
+
+
 @pytest.mark.parametrize(
     "form_data",
     [
@@ -436,15 +445,120 @@ def test_retained_gantt_histogram_and_percent_roles(
     target: ChartDatasource = ChartDatasource(
         _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
     )
+    base: dict[str, Any] = (
+        _valid_gantt_form_data()
+        if viz_type == "gantt_chart"
+        else {"viz_type": viz_type}
+    )
     error: ChartGenerationError | None = validate_semantic_view_form_data(
-        {"viz_type": viz_type, key: invalid}, target
+        {**base, key: invalid}, target
     )
     assert error is not None
     assert error.error_type in {"column_not_found", SEMANTIC_VIEW_ADHOC_ERROR}
+    assert validate_semantic_view_form_data({**base, key: valid}, target) is None
+
+
+@pytest.mark.parametrize(
+    "key,column_name",
+    [
+        ("start_time", "metric_time"),
+        ("end_time", "metric_time"),
+        ("y_axis", "customer__region"),
+        ("series", "customer__region"),
+        ("tooltip_columns", "customer__region"),
+    ],
+)
+def test_retained_gantt_saved_column_objects_are_valid(
+    key: str, column_name: str
+) -> None:
+    """Saved Gantt column objects should resolve to published dimension names."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    column: dict[str, str] = {"column_name": column_name}
+    value: object = [column] if key == "tooltip_columns" else column
+
     assert (
-        validate_semantic_view_form_data({"viz_type": viz_type, key: valid}, target)
+        validate_semantic_view_form_data(
+            {**_valid_gantt_form_data(), key: value}, target
+        )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "column",
+    [
+        {"column_name": "missing"},
+        {
+            "column_name": "metric_time",
+            "expressionType": "SQL",
+            "sqlExpression": "1",
+            "label": "expression",
+        },
+        {"metric_time": "not_a_column_reference"},
+    ],
+)
+def test_retained_gantt_invalid_column_objects_fail_closed(
+    column: dict[str, str],
+) -> None:
+    """Unknown, ad-hoc, and malformed column objects cannot pass validation."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+
+    error: ChartGenerationError | None = validate_semantic_view_form_data(
+        {**_valid_gantt_form_data(), "start_time": column}, target
+    )
+
+    assert error is not None
+    assert error.error_type == "column_not_found"
+
+
+def test_non_gantt_column_objects_remain_rejected() -> None:
+    """Other plugins must prove their query path before accepting object refs."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+
+    error: ChartGenerationError | None = validate_semantic_view_form_data(
+        {
+            "viz_type": "table",
+            "groupby": [{"column_name": "customer__region"}],
+        },
+        target,
+    )
+
+    assert error is not None
+    assert error.error_type == "column_not_found"
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("tooltip_columns", {"column_name": "customer__region"}),
+        ("start_time", [{"column_name": "metric_time"}]),
+        ("series", [{"column_name": "customer__region"}]),
+        ("start_time", ""),
+        ("end_time", None),
+        ("tooltip_columns", ["customer__region"] * 51),
+    ],
+)
+def test_gantt_column_roles_reject_non_queryable_shapes(
+    key: str, value: object
+) -> None:
+    """Source-only rebind cannot save shapes the Gantt builder rejects."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+
+    error: ChartGenerationError | None = validate_semantic_view_form_data(
+        {**_valid_gantt_form_data(), key: value},
+        target,
+    )
+
+    assert error is not None
+    assert error.error_type == "column_not_found"
 
 
 @pytest.mark.parametrize("viz_type", [None, "", "unregistered_viz", 123])
