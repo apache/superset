@@ -2429,6 +2429,38 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert "category" in caplog.text
 
 
+@pytest.mark.parametrize("reason", ["incomplete", "unverified"])
+def test_values_fallback_translates_provider_completeness_error(
+    mock_implementation: MagicMock,
+    reason: SemanticResultCompletenessReason,
+) -> None:
+    """An unfiltered retry must retain the provider's fail-closed error."""
+    from superset_core.semantic_layers import errors as core_errors
+
+    from superset.exceptions import SemanticResultCompletenessError
+
+    view: SemanticView = SemanticView()
+    failure: core_errors.SemanticResultCompletenessError = (
+        core_errors.SemanticResultCompletenessError(reason)
+    )
+    mock_implementation.get_values.side_effect = [
+        RuntimeError("LIKE unsupported on this dimension"),
+        failure,
+    ]
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        with pytest.raises(SemanticResultCompletenessError) as excinfo:
+            view.values_for_column("category", search="oo")
+
+    assert excinfo.value.reason == reason
+    assert excinfo.value.__cause__ is failure
+    assert mock_implementation.get_values.call_count == 2
+    assert mock_implementation.get_values.call_args.args[1] is None
+
+
 @pytest.mark.parametrize("version", [None, "metricflow-completeness-v1"])
 def test_result_generation_reads_class_without_provider_construction(
     version: str | None,
