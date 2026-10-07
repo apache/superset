@@ -44,6 +44,7 @@ def get_time_range_from_filters(
         filter_
         for filter_ in filters or []
         if filter_.get("op") == FilterOperator.TEMPORAL_RANGE
+        and isinstance(filter_.get("val"), str)
     ]
     if not temporal_filters:
         return NO_TIME_RANGE

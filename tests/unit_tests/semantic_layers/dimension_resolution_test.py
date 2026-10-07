@@ -18,16 +18,32 @@
 """Default selection and ambiguity contracts for semantic dimensions."""
 
 from itertools import permutations
+from unittest.mock import MagicMock
 
 import pyarrow as pa
 import pytest
+from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import Dimension, Grain, Grains
 
 from superset.exceptions import QueryObjectValidationError
+from superset.semantic_layers import dimension_resolution
 from superset.semantic_layers.dimension_resolution import (
     DimensionUsage,
     resolve_dimensions,
 )
+
+
+def test_preference_evaluated_once_per_dimension(mocker: MockerFixture) -> None:
+    """Repeated names do not re-evaluate the incumbent's preference key."""
+    dimensions: tuple[Dimension, ...] = tuple(
+        Dimension(str(index), "event_time", pa.timestamp("us"), grain=grain)
+        for index, grain in enumerate((Grains.MONTH, Grains.DAY, Grains.HOUR, None))
+    )
+    preference: MagicMock = mocker.spy(dimension_resolution, "grain_preference")
+    assert resolve_dimensions(dimensions, usage=DimensionUsage.METADATA) == {
+        "event_time": dimensions[-1]
+    }
+    assert preference.call_count == len(dimensions)
 
 
 @pytest.mark.parametrize(

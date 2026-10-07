@@ -34,7 +34,7 @@ from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy_utils import UUIDType
 from sqlalchemy_utils.types.json import JSONType
@@ -44,6 +44,7 @@ from superset_core.semantic_layers.layer import (
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
+    Metric,
     Operator,
     PredicateType,
 )
@@ -163,7 +164,7 @@ class SemanticLayer(AuditMixinNullable, Model):
     perm = Column(String(1000), nullable=True)
 
     # Semantic views relationship
-    semantic_views: list[SemanticView] = relationship(
+    semantic_views: Mapped[list[SemanticView]] = relationship(
         "SemanticView",
         back_populates="semantic_layer",
         cascade="all, delete-orphan",
@@ -766,6 +767,23 @@ class SemanticView(AuditMixinNullable, Model):
     def query_language(self) -> str | None:
         return None
 
+    def _compat_selection(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> tuple[set[Metric], set[Dimension]]:
+        """Resolve both compatibility projections through one selection policy."""
+        metric_map: dict[str, Metric] = {
+            metric.name: metric for metric in self.implementation.get_metrics()
+        }
+        dim_map: dict[str, Dimension] = resolve_dimensions(
+            self.implementation.get_dimensions(), usage=DimensionUsage.COMPATIBILITY
+        )
+        return (
+            {metric_map[name] for name in selected_metrics if name in metric_map},
+            {dim_map[name] for name in selected_dimensions if name in dim_map},
+        )
+
     def get_compatible_metrics(
         self,
         selected_metrics: list[str],
@@ -777,13 +795,14 @@ class SemanticView(AuditMixinNullable, Model):
         Translates string names to semantic-layer objects, delegates to the
         view implementation, and translates the result back to names.
         """
-        metric_map = {m.name: m for m in self.implementation.get_metrics()}
-        dim_map: dict[str, Dimension] = resolve_dimensions(
-            self.implementation.get_dimensions(), usage=DimensionUsage.COMPATIBILITY
+        sel_metrics: set[Metric]
+        sel_dims: set[Dimension]
+        sel_metrics, sel_dims = self._compat_selection(
+            selected_metrics, selected_dimensions
         )
-        sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
-        sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
-        compatible = self.implementation.get_compatible_metrics(sel_metrics, sel_dims)
+        compatible: set[Metric] = self.implementation.get_compatible_metrics(
+            sel_metrics, sel_dims
+        )
         return [m.name for m in compatible]
 
     def get_compatible_dimensions(
@@ -799,13 +818,12 @@ class SemanticView(AuditMixinNullable, Model):
         Collapse grain variants into sorted unique names, also bounding
         the shared list_metrics projection.
         """
-        metric_map = {m.name: m for m in self.implementation.get_metrics()}
-        dim_map: dict[str, Dimension] = resolve_dimensions(
-            self.implementation.get_dimensions(), usage=DimensionUsage.COMPATIBILITY
+        sel_metrics: set[Metric]
+        sel_dims: set[Dimension]
+        sel_metrics, sel_dims = self._compat_selection(
+            selected_metrics, selected_dimensions
         )
-        sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
-        sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
-        compatible = self.implementation.get_compatible_dimensions(
+        compatible: set[Dimension] = self.implementation.get_compatible_dimensions(
             sel_metrics, sel_dims
         )
         return sorted({d.name for d in compatible})

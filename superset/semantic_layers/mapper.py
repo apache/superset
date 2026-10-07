@@ -631,7 +631,9 @@ def _get_time_axis_column(
     # time-range filters on aggregate-only charts) carries the temporal
     # column name in its ``col`` field.
     for filter_ in query_object.filter or []:
-        if filter_.get("op") != FilterOperator.TEMPORAL_RANGE.value:
+        if filter_.get("op") != FilterOperator.TEMPORAL_RANGE.value or not isinstance(
+            filter_.get("val"), str
+        ):
             continue
         col = filter_.get("col")
         if isinstance(col, str) and is_temporal(col):

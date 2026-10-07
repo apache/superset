@@ -4492,6 +4492,48 @@ def test_aggregate_only_offset_shifts_secondary_temporal_range(
     }
 
 
+@pytest.mark.parametrize("invalid_value", [None, 42])
+def test_invalid_temporal_range_cannot_claim_another_columns_bounds(
+    mocker: MockerFixture, invalid_value: int | None
+) -> None:
+    """Factory bounds from a valid range stay on that range's temporal column."""
+    event_time: Dimension = Dimension("time", "event_time", pa.timestamp("us"))
+    shipped_at: Dimension = Dimension("shipped", "shipped_at", pa.timestamp("us"))
+    datasource: MagicMock = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView({event_time, shipped_at}, set())
+    datasource.fetch_values_predicate = None
+    factory: QueryObjectFactory = QueryObjectFactory(
+        {"ROW_LIMIT": 1000}, mocker.MagicMock()
+    )
+    query: QueryObject = factory.create(
+        parent_result_type=ChartDataResultType.FULL,
+        datasource_model_instance=datasource,
+        columns=[],
+        metrics=[],
+        filters=[
+            {"col": "event_time", "op": "TEMPORAL_RANGE", "val": invalid_value},
+            {
+                "col": "shipped_at",
+                "op": "TEMPORAL_RANGE",
+                "val": "2026-01-15 : 2026-02-01",
+            },
+        ],
+    )
+    assert validate_query_object(query)
+    result: SemanticQuery = map_query_object(query)[0]
+    assert result.filters == {
+        Filter(
+            PredicateType.WHERE,
+            shipped_at,
+            Operator.GREATER_THAN_OR_EQUAL,
+            datetime(2026, 1, 15),
+        ),
+        Filter(
+            PredicateType.WHERE, shipped_at, Operator.LESS_THAN, datetime(2026, 2, 1)
+        ),
+    }
+
+
 def test_time_series_offset_with_multiple_temporal_dimensions(
     mocker: MockerFixture,
 ) -> None:

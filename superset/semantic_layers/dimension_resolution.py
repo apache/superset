@@ -88,6 +88,7 @@ def resolve_dimensions(
         DimensionUsage.SERIES_LIMIT,
     }
     defaults: dict[str, Dimension] = {}
+    default_preferences: dict[str, tuple[int, int, str]] = {}
     identities: dict[tuple[str, Grain | None], str] = {}
     for dimension in dimensions:
         key: tuple[str, Grain | None] = (dimension.name, dimension.grain)
@@ -109,9 +110,9 @@ def resolve_dimensions(
             and dimension.grain == grouping_grains[dimension.name]
         ):
             selected[dimension.name] = dimension
-        preferred: Dimension | None = defaults.get(dimension.name)
-        if preferred is None or grain_preference(dimension) < grain_preference(
-            preferred
-        ):
+        preference: tuple[int, int, str] = grain_preference(dimension)
+        preferred: tuple[int, int, str] | None = default_preferences.get(dimension.name)
+        if preferred is None or preference < preferred:
             defaults[dimension.name] = dimension
+            default_preferences[dimension.name] = preference
     return {**defaults, **selected}
