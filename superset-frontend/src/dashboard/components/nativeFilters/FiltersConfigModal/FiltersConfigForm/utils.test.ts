@@ -226,6 +226,47 @@ test('doesColumnMatchFilterType returns false when column type does not match fi
   expect(doesColumnMatchFilterType('filter_range', stringColumn)).toBe(false);
 });
 
+test('doesColumnMatchFilterType offers only numeric semantic dimensions to filter_range', () => {
+  const numeric = createColumn('revenue', GenericDataType.Numeric);
+  const untyped = createColumn('payload');
+  const string = createColumn('region', GenericDataType.String);
+  const temporal = createColumn('ordered_at', GenericDataType.Temporal);
+  const semantic = DatasourceType.SemanticView;
+  expect(doesColumnMatchFilterType('filter_range', numeric, semantic)).toBe(
+    true,
+  );
+  // A semantic range filter has no runtime non-numeric check, so an
+  // unrecognised type must not be offered for >= / <= comparisons.
+  expect(doesColumnMatchFilterType('filter_range', untyped, semantic)).toBe(
+    false,
+  );
+  expect(doesColumnMatchFilterType('filter_range', string, semantic)).toBe(
+    false,
+  );
+  expect(doesColumnMatchFilterType('filter_range', temporal, semantic)).toBe(
+    false,
+  );
+});
+
+test('doesColumnMatchFilterType keeps untyped dataset columns for filter_range', () => {
+  const untyped = createColumn('payload');
+  expect(
+    doesColumnMatchFilterType('filter_range', untyped, DatasourceType.Table),
+  ).toBe(true);
+  expect(doesColumnMatchFilterType('filter_range', untyped)).toBe(true);
+});
+
+test('doesColumnMatchFilterType keeps untyped semantic dimensions for other filters', () => {
+  const untyped = createColumn('payload');
+  expect(
+    doesColumnMatchFilterType(
+      'filter_select',
+      untyped,
+      DatasourceType.SemanticView,
+    ),
+  ).toBe(true);
+});
+
 test('doesColumnMatchFilterType returns true when column type matches filter_time', () => {
   const temporalColumn = createColumn('created_at', GenericDataType.Temporal);
   expect(doesColumnMatchFilterType('filter_time', temporalColumn)).toBe(true);

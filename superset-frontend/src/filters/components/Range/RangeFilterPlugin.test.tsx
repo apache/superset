@@ -288,6 +288,26 @@ describe('RangeFilterPlugin', () => {
       expect(screen.queryAllByRole('slider')).toHaveLength(0);
     });
 
+    test('dataset input mode emits an exact filter for a typed exact value', () => {
+      getWrapper({
+        formData: {
+          rangeDisplayMode: RangeDisplayMode.Input,
+          enableSingleValue: SingleValueType.Exact,
+        },
+        filterState: { value: [10, 10] },
+      });
+      fireEvent.change(screen.getByRole('spinbutton'), {
+        target: { value: '42' },
+      });
+      expect(setDataMask).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          extraFormData: {
+            filters: [{ col: 'SP_POP_TOTL', op: '==', val: 42 }],
+          },
+        }),
+      );
+    });
+
     test('should render both slider and inputs in slider-and-input mode', () => {
       getWrapper({
         formData: {
