@@ -27,7 +27,7 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
-from flask_babel import gettext as __
+from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -79,7 +79,7 @@ class TrinoParametersSchema(BasicParametersSchema):
     # so relabel the generic "database" field accordingly for the dynamic form.
     database = fields.String(
         required=True,
-        metadata={"description": __("Catalog name")},
+        metadata={"description": _("Catalog name")},
     )
 
 
