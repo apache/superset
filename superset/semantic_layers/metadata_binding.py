@@ -73,6 +73,10 @@ _worker_operation: ContextVar[MetadataOperation | None] = ContextVar(
     _OPERATION_KEY, default=None
 )
 
+_worker_chart: ContextVar[bool] = ContextVar(
+    "superset.semantic_metadata.chart", default=False
+)
+
 
 def request_metadata_budget() -> None:
     """Register before authentication hooks; this performs no provider or cache I/O."""
@@ -125,6 +129,24 @@ def metadata_operation(*, deadline: float | None = None) -> Iterator[None]:
         yield
     finally:
         _worker_operation.reset(token)
+
+
+@contextmanager
+def chart_metadata_operation() -> Iterator[None]:
+    """Give each worker chart a fresh budget; nested chart work shares it."""
+    if has_request_context() or _worker_chart.get() or not metadata_refresh_enabled():
+        yield
+        return
+    # A task may have spent its fallback budget on earlier charts or other work.
+    # Restore that state after this chart, including on cancellation or failure.
+    operation_token: Token[MetadataOperation | None] = _worker_operation.set(None)
+    chart_token: Token[bool] = _worker_chart.set(True)
+    try:
+        with metadata_operation():
+            yield
+    finally:
+        _worker_chart.reset(chart_token)
+        _worker_operation.reset(operation_token)
 
 
 def metadata_refresh_enabled() -> bool:

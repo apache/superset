@@ -39,6 +39,7 @@ from superset.common.form_data_query_context import (
 from superset.dashboards.excel_export import email
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.screenshot import render_chart_image
+from superset.semantic_layers.metadata_binding import chart_metadata_operation
 from superset.utils import json
 from superset.utils.excel_streaming import StreamingXlsxWriter
 
@@ -270,26 +271,27 @@ def build_workbook(  # pylint: disable=too-many-arguments
                 errored.setdefault(reason, []).append(label)
                 continue
             try:
-                if renders_as_image(chart, mode):
-                    # Image charts do not need a query context.
-                    _write_chart_image_sheet(
-                        writer, chart, dashboard.id, active_data_mask, user
-                    )
-                else:
-                    # Reuse a planned context or resolve one here.
-                    json_body = (
-                        resolved[chart.id]
-                        if chart.id in resolved
-                        else resolve_query_context(chart)
-                    )
-                    if json_body is None:
-                        errored.setdefault(email.ERROR_NO_QUERY_CONTEXT, []).append(
-                            label
+                with chart_metadata_operation():
+                    if renders_as_image(chart, mode):
+                        # Image charts do not need a query context.
+                        _write_chart_image_sheet(
+                            writer, chart, dashboard.id, active_data_mask, user
                         )
-                        continue
-                    _write_chart_sheets(
-                        writer, chart, json_body, dashboard.id, active_data_mask
-                    )
+                    else:
+                        # Reuse a planned context or resolve one here.
+                        json_body: dict[str, Any] | None = (
+                            resolved[chart.id]
+                            if chart.id in resolved
+                            else resolve_query_context(chart)
+                        )
+                        if json_body is None:
+                            errored.setdefault(email.ERROR_NO_QUERY_CONTEXT, []).append(
+                                label
+                            )
+                            continue
+                        _write_chart_sheets(
+                            writer, chart, json_body, dashboard.id, active_data_mask
+                        )
             except SoftTimeLimitExceeded:
                 # Let the task handler report the timeout and clean up.
                 raise
