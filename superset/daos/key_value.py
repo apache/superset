@@ -42,9 +42,16 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
     def get_entry(
         resource: KeyValueResource,
         key: Key,
+        for_update: bool = False,
     ) -> KeyValueEntry | None:
         filter_ = get_filter(resource, key)
-        return db.session.query(KeyValueEntry).filter_by(**filter_).first()
+        query = db.session.query(KeyValueEntry).filter_by(**filter_)
+        if for_update:
+            # Row-lock the entry for the rest of the transaction. A locking read
+            # also returns the latest committed row under REPEATABLE READ, where a
+            # plain SELECT would keep using the transaction's earlier snapshot.
+            query = query.with_for_update()
+        return query.first()
 
     @classmethod
     def get_value(
