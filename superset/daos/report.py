@@ -18,20 +18,32 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, cast, Literal
 
-from sqlalchemy import or_, select
+from flask import current_app
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import selectinload
 
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
-from superset.extensions import db
+from superset.daos.key_value import KeyValueDAO
+from superset.extensions import db, feature_flag_manager
+from superset.key_value.types import (
+    FIXED_RESOURCE_KEYS,
+    JsonKeyValueCodec,
+    KeyValueResource,
+)
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
+    ReportConfigKey,
     ReportExecutionLog,
     ReportRecipients,
+    ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
     ReportState,
 )
+from superset.reports.types import ReportConfigDocument, ReportConfigSettings
+from superset.reports.utils import find_disallowed_addresses
 from superset.utils import json
 from superset.utils.core import get_user_id
 
@@ -391,4 +403,197 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
                 ReportExecutionLog.end_dttm < from_date,
             )
             .delete(synchronize_session="fetch")
+        )
+
+    @staticmethod
+    def find_with_email_recipients() -> list[ReportSchedule]:
+        """
+        Find every schedule (active or not) with at least one e-mail recipient.
+        """
+        return (
+            db.session.query(ReportSchedule)
+            .join(
+                ReportRecipients,
+                ReportRecipients.report_schedule_id == ReportSchedule.id,
+            )
+            .filter(ReportRecipients.type == ReportRecipientType.EMAIL)
+            .options(selectinload(ReportSchedule.recipients))
+            .distinct()
+            .all()
+        )
+
+    @staticmethod
+    def find_by_type(report_type: ReportScheduleType) -> list[ReportSchedule]:
+        """
+        Find every schedule (active or not) of the given type.
+        """
+        return (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.type == report_type)
+            .all()
+        )
+
+
+class ReportConfigDAO:
+    """
+    Access to the global Alerts & Reports configuration in ``key_value``.
+
+    One versioned document stores only settings explicitly saved by an admin.
+    Missing settings resolve to legacy application config or feature flag values.
+    """
+
+    VERSION: Literal[1] = 1
+
+    @staticmethod
+    def lock_for_update() -> None:
+        """Serialize configuration validation and merging within a transaction."""
+        KeyValueDAO.get_entry(
+            KeyValueResource.ALERT_REPORT_CONFIG,
+            FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+            for_update=True,
+        )
+
+    @staticmethod
+    def get_stored_values() -> dict[str, Any]:
+        """
+        Return explicitly saved settings from the versioned document.
+
+        A stored null is distinct from a missing setting key.
+        """
+        document: ReportConfigDocument | None = KeyValueDAO.get_value(
+            KeyValueResource.ALERT_REPORT_CONFIG,
+            FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+            JsonKeyValueCodec(),
+        )
+        if document is None:
+            return {}
+        return dict(document["settings"])
+
+    @staticmethod
+    def get_fallback_value(key: ReportConfigKey) -> Any:
+        """Return the legacy application config / feature flag value for ``key``."""
+        if key == ReportConfigKey.ALERTS_ATTACH_REPORTS:
+            return feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
+        if key == ReportConfigKey.DATE_FORMAT_IN_EMAIL_SUBJECT:
+            return feature_flag_manager.is_feature_enabled(
+                "DATE_FORMAT_IN_EMAIL_SUBJECT"
+            )
+        if key in (
+            ReportConfigKey.ALERT_MINIMUM_INTERVAL,
+            ReportConfigKey.REPORT_MINIMUM_INTERVAL,
+        ):
+            value = current_app.config.get(key.upper(), 0)
+            return value() if callable(value) else value
+        # These are new configs, no legacy fallback
+        if key == ReportConfigKey.LIMIT_RECIPIENTS_TO_USERS:
+            return False
+        if key == ReportConfigKey.ALLOWED_EMAIL_DOMAINS:
+            return []
+        return None
+
+    @staticmethod
+    def get_effective_value(key: ReportConfigKey) -> Any:
+        """
+        Return the value in effect for ``key``: the stored value when present,
+        otherwise the legacy fallback.
+        """
+        if key in (stored := ReportConfigDAO.get_stored_values()):
+            return stored[key]
+        return ReportConfigDAO.get_fallback_value(key)
+
+    @staticmethod
+    def get_effective_config() -> dict[str, Any]:
+        """Return the value in effect for every ``ReportConfigKey``."""
+        stored = ReportConfigDAO.get_stored_values()
+        return {
+            key.value: (
+                stored[key]
+                if key in stored
+                else ReportConfigDAO.get_fallback_value(key)
+            )
+            for key in ReportConfigKey
+        }
+
+    @staticmethod
+    def upsert(values: dict[str, Any]) -> None:
+        """
+        Merge submitted settings into the shared document without committing.
+        Only absent keys inherit application configuration; null stays explicit.
+        """
+        stored = ReportConfigDAO.get_stored_values()
+        for key, value in values.items():
+            stored[key] = value
+        document: ReportConfigDocument = {
+            "version": ReportConfigDAO.VERSION,
+            "settings": cast(ReportConfigSettings, stored),
+        }
+        KeyValueDAO.update_entry(
+            KeyValueResource.ALERT_REPORT_CONFIG,
+            document,
+            JsonKeyValueCodec(),
+            FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+        )
+
+    @staticmethod
+    def get_known_user_emails(addresses: list[str]) -> set[str]:
+        """
+        Return the lower-cased e-mails, among ``addresses``, that belong to
+        active users.
+        """
+        from superset import security_manager  # noqa: PLC0415
+
+        if not addresses:
+            return set()
+        user_model = security_manager.user_model
+        lowered = sorted({address.lower() for address in addresses})
+        known: set[str] = set()
+        # Bound IN clauses for metadata databases with parameter limits.
+        for offset in range(0, len(lowered), 500):
+            rows = (
+                db.session.query(func.lower(user_model.email))
+                .filter(
+                    func.lower(user_model.email).in_(lowered[offset : offset + 500]),
+                    user_model.active.is_(True),
+                )
+                .all()
+            )
+            known.update(row[0] for row in rows)
+        return known
+
+    @staticmethod
+    def find_disallowed_addresses(
+        addresses: list[str],
+        *,
+        allowed_domains: list[str] | None = None,
+        limit_to_users: bool | None = None,
+        known_emails: set[str] | None = None,
+    ) -> list[str]:
+        """
+        Return the addresses violating the recipient policy.
+
+        ``allowed_domains`` and ``limit_to_users`` override the effective
+        configuration when provided, which lets the configuration command
+        validate a proposed policy before saving it. ``known_emails`` reuses a
+        batch lookup when validating multiple schedules under users-only policy.
+        """
+        if not addresses:
+            return []
+        if allowed_domains is None:
+            allowed_domains = ReportConfigDAO.get_effective_value(
+                ReportConfigKey.ALLOWED_EMAIL_DOMAINS
+            )
+        if limit_to_users is None:
+            limit_to_users = ReportConfigDAO.get_effective_value(
+                ReportConfigKey.LIMIT_RECIPIENTS_TO_USERS
+            )
+        if not allowed_domains and not limit_to_users:
+            return []
+        if limit_to_users and known_emails is None:
+            known_emails = ReportConfigDAO.get_known_user_emails(addresses)
+        if not limit_to_users:
+            known_emails = None
+        return find_disallowed_addresses(
+            addresses,
+            allowed_domains=allowed_domains,
+            known_emails=known_emails,
         )
