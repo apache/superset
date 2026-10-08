@@ -979,6 +979,41 @@ def test_semantic_delete_reports_dependents_as_conflict(
     assert response.json["inaccessible_count"] == 24
 
 
+@pytest.mark.parametrize(
+    ("api_class", "method"),
+    [
+        (SemanticViewRestApi, "delete"),
+        (SemanticViewRestApi, "bulk_delete"),
+        (SemanticLayerRestApi, "delete"),
+    ],
+)
+def test_semantic_delete_openapi_conflict_schema(
+    api_class: type[SemanticViewRestApi] | type[SemanticLayerRestApi], method: str
+) -> None:
+    """The generated operation documents every field in the 409 response."""
+    api: SemanticViewRestApi | SemanticLayerRestApi = object.__new__(api_class)
+    operations: dict[str, Any] = {}
+    api.operation_helper(
+        path="/api/v1/semantic_source/delete",
+        operations=operations,
+        methods=["DELETE"],
+        func=getattr(api, method),
+    )
+    schema: dict[str, Any] = operations["delete"]["responses"][409]["content"][
+        "application/json"
+    ]["schema"]
+    assert set(schema["required"]) == {
+        "message",
+        "total",
+        "dependents",
+        "inaccessible_count",
+    }
+    assert schema["properties"]["dependents"]["maxItems"] == 20
+    assert schema["properties"]["dependents"]["items"]["properties"]["type"][
+        "enum"
+    ] == ["chart", "dashboard", "alert", "report"]
+
+
 @SEMANTIC_LAYERS_APP
 def test_get_list_semantic_layers(
     client: Any,

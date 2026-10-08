@@ -346,9 +346,6 @@ def test_semantic_delete_lists_live_dependents_only(
     )
     mocker.patch("superset.security_manager.is_admin", return_value=True)
 
-    total: int
-    dependents: list[dict[str, str | int]]
-    inaccessible_count: int
     total, dependents, inaccessible_count = _dependent_assets(sa.select(sa.literal(42)))
 
     assert total == 5
@@ -360,10 +357,13 @@ def test_semantic_delete_lists_live_dependents_only(
         "Live report",
         "Untitled",
     }
+    assert {item["type"] for item in dependents} == {
+        "chart",
+        "dashboard",
+        "alert",
+        "report",
+    }
     mocker.patch("superset.commands.semantic_layer.delete._DEPENDENT_LIMIT", 2)
-    capped_total: int
-    capped_dependents: list[dict[str, str | int]]
-    capped_inaccessible_count: int
     capped_total, capped_dependents, capped_inaccessible_count = _dependent_assets(
         sa.select(sa.literal(42))
     )
@@ -374,9 +374,6 @@ def test_semantic_delete_lists_live_dependents_only(
         "superset.commands.semantic_layer.delete.ChartFilter.apply",
         return_value=session.query(Slice.id).filter(sa.false()),
     )
-    hidden_total: int
-    hidden_dependents: list[dict[str, str | int]]
-    hidden_count: int
     hidden_total, hidden_dependents, hidden_count = _dependent_assets(
         sa.select(sa.literal(42))
     )
@@ -384,6 +381,250 @@ def test_semantic_delete_lists_live_dependents_only(
     assert hidden_count == 2
     assert all(dependent["type"] != "chart" for dependent in hidden_dependents)
     connection.close()
+
+
+def test_semantic_delete_finds_native_filter_dashboards(
+    session: Session, mocker: MockerFixture
+) -> None:
+    """Only live, typed semantic targets block deletion; membership is deduped."""
+    import uuid
+    from datetime import datetime
+
+    from superset.commands.semantic_layer.delete import (
+        _dependent_assets,
+        DeleteSemanticViewCommand,
+    )
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.reports.models import ReportSchedule
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+    from superset.utils import json
+
+    Slice.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    connection: Connection = session.get_bind().connect()
+    layer_uuid: uuid.UUID = uuid.uuid4()
+
+    def metadata(source_type: str | None, dataset_id: int | str) -> str:
+        target: dict[str, str | int] = {"datasetId": dataset_id}
+        if source_type is not None:
+            target["datasourceType"] = source_type
+        return json.dumps({"native_filter_configuration": [{"targets": [target]}]})
+
+    try:
+        connection.execute(
+            SemanticLayer.__table__.insert().values(  # pylint: disable=no-member
+                uuid=layer_uuid, name="Source", type="test"
+            )
+        )
+        connection.execute(
+            SemanticView.__table__.insert().values(  # pylint: disable=no-member
+                id=42, name="View", semantic_layer_uuid=layer_uuid
+            )
+        )
+        connection.execute(
+            Dashboard.__table__.insert(),  # pylint: disable=no-member
+            [
+                {
+                    "id": 731,
+                    "dashboard_title": "Typed integer",
+                    "json_metadata": metadata("semantic_view", 42),
+                },
+                {
+                    "id": 732,
+                    "dashboard_title": "Typed string",
+                    "json_metadata": metadata("semantic_view", "42"),
+                },
+                {
+                    "id": 733,
+                    "dashboard_title": "Table",
+                    "json_metadata": json.dumps(
+                        {
+                            "note": "semantic_view",
+                            "native_filter_configuration": [
+                                {
+                                    "targets": [
+                                        {"datasetId": 42, "datasourceType": "table"}
+                                    ]
+                                }
+                            ],
+                        }
+                    ),
+                },
+                {
+                    "id": 734,
+                    "dashboard_title": "Legacy table",
+                    "json_metadata": json.dumps(
+                        {
+                            "note": "semantic_view",
+                            "native_filter_configuration": [
+                                {"targets": [{"datasetId": 42}]}
+                            ],
+                        }
+                    ),
+                },
+                {
+                    "id": 735,
+                    "dashboard_title": "Malformed",
+                    "json_metadata": '{"native_filter_configuration": "semantic_view"',
+                },
+                {
+                    "id": 737,
+                    "dashboard_title": "Non-dict",
+                    "json_metadata": '"semantic_view"',
+                },
+                {
+                    "id": 739,
+                    "dashboard_title": "Filter and chart",
+                    "json_metadata": metadata("semantic_view", 42),
+                },
+            ],
+        )
+        connection.execute(
+            Dashboard.__table__.insert().values(  # pylint: disable=no-member
+                id=736,
+                dashboard_title="Deleted",
+                json_metadata=metadata("semantic_view", 42),
+                deleted_at=datetime(2026, 1, 1),
+            )
+        )
+        connection.execute(
+            Slice.__table__.insert().values(  # pylint: disable=no-member
+                id=738,
+                slice_name="Member chart",
+                datasource_type="semantic_view",
+                datasource_id=42,
+            )
+        )
+        connection.exec_driver_sql(
+            "INSERT INTO dashboard_slices (dashboard_id, slice_id) VALUES (739, 738)"
+        )
+        connection.execute(
+            ReportSchedule.__table__.insert().values(  # pylint: disable=no-member
+                id=740,
+                type="Report",
+                name="Native report",
+                crontab="* * * * *",
+                dashboard_id=731,
+                active=True,
+            )
+        )
+        mocker.patch("superset.db.session.scalar", side_effect=connection.scalar)
+        mocker.patch("superset.db.session.execute", side_effect=connection.execute)
+        mocker.patch("superset.security_manager.can_access", return_value=True)
+        mocker.patch(
+            "superset.security_manager.can_access_all_datasources", return_value=True
+        )
+        mocker.patch("superset.security_manager.is_admin", return_value=True)
+
+        total, dependents, inaccessible_count = _dependent_assets(
+            sa.select(SemanticView.id).where(SemanticView.id == 42)
+        )
+        assert total == 5
+        assert inaccessible_count == 0
+        assert {item["name"] for item in dependents} == {
+            "Typed integer",
+            "Typed string",
+            "Filter and chart",
+            "Member chart",
+            "Native report",
+        }
+        dao: MagicMock = mocker.patch(
+            "superset.commands.semantic_layer.delete.SemanticViewDAO"
+        )
+        dao.find_by_id.return_value = MagicMock(id=42)
+        mocker.patch(
+            "superset.commands.semantic_layer.delete.current_user_can_modify_object",
+            return_value=True,
+        )
+        with pytest.raises(SemanticDeleteDependentsError):
+            DeleteSemanticViewCommand(42).run()
+        dao.delete.assert_not_called()
+
+        mocker.patch(
+            "superset.commands.semantic_layer.delete.DashboardAccessFilter.apply",
+            return_value=session.query(Dashboard.id).filter(sa.false()),
+        )
+        hidden_total, hidden_dependents, hidden_count = _dependent_assets(
+            sa.select(SemanticView.id).where(SemanticView.id == 42)
+        )
+        assert hidden_total == 5
+        assert hidden_count == 3
+        assert {item["name"] for item in hidden_dependents} == {
+            "Member chart",
+            "Native report",
+        }
+    finally:
+        connection.close()
+
+
+def test_semantic_layer_delete_finds_native_filter_dashboard(
+    session: Session, mocker: MockerFixture
+) -> None:
+    """A filter-only dashboard blocks its owning layer's hard delete."""
+    import uuid
+
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+    from superset.utils import json
+
+    Slice.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    connection: Connection = session.get_bind().connect()
+    layer_uuid: uuid.UUID = uuid.uuid4()
+    try:
+        connection.execute(
+            SemanticLayer.__table__.insert().values(  # pylint: disable=no-member
+                uuid=layer_uuid, name="Source", type="test"
+            )
+        )
+        connection.execute(
+            SemanticView.__table__.insert().values(  # pylint: disable=no-member
+                id=42, name="View", semantic_layer_uuid=layer_uuid
+            )
+        )
+        connection.execute(
+            Dashboard.__table__.insert().values(  # pylint: disable=no-member
+                id=741,
+                dashboard_title="Filter-only",
+                json_metadata=json.dumps(
+                    {
+                        "native_filter_configuration": [
+                            {
+                                "targets": [
+                                    {"datasetId": 42, "datasourceType": "semantic_view"}
+                                ]
+                            }
+                        ]
+                    }
+                ),
+            )
+        )
+        mocker.patch("superset.db.session.scalar", side_effect=connection.scalar)
+        mocker.patch("superset.db.session.execute", side_effect=connection.execute)
+        mocker.patch("superset.security_manager.can_access", return_value=True)
+        mocker.patch(
+            "superset.security_manager.can_access_all_datasources", return_value=True
+        )
+        mocker.patch("superset.security_manager.is_admin", return_value=True)
+        dao: MagicMock = mocker.patch(
+            "superset.commands.semantic_layer.delete.SemanticLayerDAO"
+        )
+        model: MagicMock = MagicMock(uuid=layer_uuid)
+        dao.find_by_uuid.return_value = model
+        mocker.patch(
+            "superset.commands.semantic_layer.delete.current_user_can_modify_object",
+            return_value=True,
+        )
+
+        with pytest.raises(SemanticDeleteDependentsError) as exc_info:
+            DeleteSemanticLayerCommand(str(layer_uuid)).run()
+        assert exc_info.value.total == 1
+        assert exc_info.value.dependents == [
+            {"type": "dashboard", "id": 741, "name": "Filter-only"}
+        ]
+        dao.delete.assert_not_called()
+    finally:
+        connection.close()
 
 
 def test_semantic_delete_hides_unreadable_dependent(
@@ -462,9 +703,6 @@ def test_semantic_delete_counts_use_one_snapshot(
     rows.return_value.all.return_value = []
     mocker.patch("superset.security_manager.can_access", return_value=False)
 
-    total: int
-    dependents: list[dict[str, str | int]]
-    inaccessible_count: int
     total, dependents, inaccessible_count = _dependent_assets(sa.select(sa.literal(42)))
 
     assert (total, dependents, inaccessible_count) == (1, [], 1)

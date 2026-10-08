@@ -486,6 +486,32 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             409:
               description: Semantic view has dependent assets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    required: [message, total, dependents, inaccessible_count]
+                    properties:
+                      message:
+                        type: string
+                      total:
+                        type: integer
+                      dependents:
+                        type: array
+                        maxItems: 20
+                        items:
+                          type: object
+                          required: [type, id, name]
+                          properties:
+                            type:
+                              type: string
+                              enum: [chart, dashboard, alert, report]
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                      inaccessible_count:
+                        type: integer
             422:
               $ref: '#/components/responses/422'
         """
@@ -553,6 +579,32 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             409:
               description: A semantic view has dependent assets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    required: [message, total, dependents, inaccessible_count]
+                    properties:
+                      message:
+                        type: string
+                      total:
+                        type: integer
+                      dependents:
+                        type: array
+                        maxItems: 20
+                        items:
+                          type: object
+                          required: [type, id, name]
+                          properties:
+                            type:
+                              type: string
+                              enum: [chart, dashboard, alert, report]
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                      inaccessible_count:
+                        type: integer
             422:
               $ref: '#/components/responses/422'
         """
@@ -988,6 +1040,32 @@ class SemanticLayerRestApi(BaseSupersetApi):
               $ref: '#/components/responses/404'
             409:
               description: Semantic layer has dependent assets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    required: [message, total, dependents, inaccessible_count]
+                    properties:
+                      message:
+                        type: string
+                      total:
+                        type: integer
+                      dependents:
+                        type: array
+                        maxItems: 20
+                        items:
+                          type: object
+                          required: [type, id, name]
+                          properties:
+                            type:
+                              type: string
+                              enum: [chart, dashboard, alert, report]
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                      inaccessible_count:
+                        type: integer
             422:
               $ref: '#/components/responses/422'
         """

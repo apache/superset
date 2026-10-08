@@ -144,6 +144,23 @@ create provider connections or views, or contact providers. Provision the matchi
 view and access grants separately before importing. Full cross-workspace semantic
 provisioning is outside this workflow.
 
+## Deleting semantic sources
+
+Deleting a semantic view, multiple views, or a semantic layer returns HTTP 409
+while any affected view is used by a live chart, a live dashboard containing
+that chart or targeting the view in a native filter, or an active alert or report
+schedule. The response includes `total` dependent assets, up to 20 `dependents`
+the caller may list (each with `type`, `id`, and `name`), and
+`inaccessible_count` for dependent assets the caller cannot list. The `type`
+values are `chart`, `dashboard`, `alert`, and `report`. Remove or reassign the
+dependent assets before retrying the delete.
+
+Archived charts and dashboards do not block deletion. Restoring one after its
+semantic view was deleted leaves it without that datasource. The dependency
+check is best-effort: a chart or native filter created or re-pointed between
+the check and deletion can still become orphaned, so coordinate concurrent
+edits when deleting a source used by active workflows.
+
 ## UUIDs in API Responses
 
 The REST API POST endpoints for **datasets**, **charts**, and **dashboards** include the auto-generated `uuid` field in the response body:
