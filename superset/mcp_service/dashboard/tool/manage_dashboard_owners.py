@@ -279,8 +279,8 @@ def manage_dashboard_owners(
     up current owners — those remain off-limits per the server instructions.
     A request that has no effective change (e.g. "adding" an ID that is
     already an owner) returns an empty ``owners`` list rather than the full
-    current set, so this tool cannot be used as a disguised directory
-    lookup.
+    current set. Requesting removal of an unassigned owner ID is an error
+    that includes the current owner IDs.
 
     Example::
 
