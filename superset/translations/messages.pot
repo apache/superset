@@ -12056,6 +12056,9 @@ msgstr ""
 msgid "Semantic layer updated"
 msgstr ""
 
+msgid "Semantic metadata is unavailable. Try again later."
+msgstr ""
+
 msgid "Semantic view could not be created."
 msgstr ""
 
@@ -12235,9 +12238,6 @@ msgid "Share permalink by email"
 msgstr ""
 
 msgid "Shared"
-msgstr ""
-
-msgid "Shared metadata storage is unavailable. Try again later."
 msgstr ""
 
 msgid "Shared query"
