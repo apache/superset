@@ -541,6 +541,70 @@ test("the mapped column's row is muted in the columns table", async () => {
   );
 });
 
+test('designating a partition column does not arm a stranded transform', async () => {
+  // The sibling of NEW-R12-01 on the other handler that moves the mapping.
+  // With no partition column there is no mapped column, so `ds` holding a
+  // transform is a state no write path can produce -- the server clears every
+  // transform when `partition_column` is null. A row from before that cleanup,
+  // or a direct database edit, can still arrive that way, and choosing a
+  // partition column then makes `ds` the mapped column: one select, no typing,
+  // and an expression nobody authored starts mirroring.
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = null;
+  props.datasource.partition_mapped_column = null;
+  const seeded = props.datasource.columns as EditorColumn[];
+  columnNamed(seeded, 'ds')!.partition_value_transform =
+    'unix_timestamp(:value)';
+  columnNamed(seeded, 'ds')!.partition_transform_is_monotonic = true;
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await screen.findByTestId('partition-column-select');
+
+  await selectOption('num', 'Partition column');
+
+  // The mapping arrives inert, and the panel's own warning says a transform is
+  // still needed rather than a mirror switching itself on.
+  await waitFor(() => {
+    expect(columnNamed(lastSavedColumns(props), 'ds')).toMatchObject({
+      partition_value_transform: null,
+      partition_transform_is_monotonic: false,
+    });
+  });
+  expect(
+    await screen.findByText(/No value transform is set on ds/),
+  ).toBeInTheDocument();
+});
+
+test('re-pointing the partition column keeps the mapped transform', async () => {
+  // The limit of the rule above. `state` holds the mapping and the transform
+  // the owner wrote; moving the partition column from `num` to `gender` does
+  // not change which column is mirrored, so there is no move for the invariant
+  // to act on and nothing to discard.
+  const props = createProps();
+  props.datasource.main_dttm_col = 'ds';
+  props.datasource.partition_column = 'num';
+  props.datasource.partition_mapped_column = 'state';
+  const seeded = props.datasource.columns as EditorColumn[];
+  columnNamed(seeded, 'state')!.partition_value_transform = 'lower(:value)';
+
+  fastRender(props);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  await screen.findByTestId('partition-column-select');
+
+  await selectOption('gender', 'Partition column');
+
+  await waitFor(() => {
+    expect(props.onChange).toHaveBeenCalled();
+  });
+  expect(columnNamed(lastSavedColumns(props), 'state')).toMatchObject({
+    partition_value_transform: 'lower(:value)',
+  });
+});
+
 test('designating a partition column leaves its filterable and groupby flags alone', async () => {
   // The customer's decision (2026-09-22): marking a column as the partition
   // column must not change its "Is filterable" / "Is dimension" flags, and the

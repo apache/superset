@@ -1400,21 +1400,49 @@ function DatasourceEditor({
 
   const handlePartitionColumnChange = useCallback(
     (columnName: string | null) => {
-      setDatasource(prev => ({
-        ...prev,
+      const next = {
+        ...datasource,
         partition_column: columnName,
         partition_mapped_column: nextMappedColumnOverride(
-          prev.partition_mapped_column,
+          datasource.partition_mapped_column,
           columnName,
         ),
+      };
+      setDatasource(prev => ({
+        ...prev,
+        partition_column: next.partition_column,
+        partition_mapped_column: next.partition_mapped_column,
       }));
+      // Choosing or clearing the partition column moves which column the
+      // mapping mirrors, so the one-transform invariant is enforced on both
+      // sides of it -- the same reason the column sync does, and the same
+      // reason `DatasetDAO.update` runs its own pass twice. Designating a
+      // partition column where there was none makes the default datetime
+      // column the mapped one, and a transform stranded there by an earlier
+      // writer would otherwise arrive live from a single select. Clearing the
+      // partition column leaves no mapped column at all, so no column may hold
+      // a transform -- which is what the server does too.
+      //
+      // A transform on a column that is mapped on both sides is untouched, so
+      // re-pointing the partition column does not cost the owner what they
+      // wrote.
+      setDatabaseColumns(prev =>
+        clearUnmappedTransformsAcrossMove(datasource, next, prev),
+      );
+      setCalculatedColumns(prev =>
+        clearUnmappedTransformsAcrossMove(datasource, next, prev),
+      );
       // Deliberately nothing else. Designating a partition column must not
       // touch that column's own `filterable`/`groupby` flags: hiding it from
       // Explore is a per-column decision the owner makes, not a side effect of
       // the mapping, and forcing it here silently changed behaviour for a
       // dataset that already exposes its partition column.
+      //
+      // No feature-flag gate, unlike `handleMainDttmColChange`: the select that
+      // calls this only renders inside `PartitionColumnFields`, which mounts
+      // only when the flag is on.
     },
-    [],
+    [datasource],
   );
 
   const handleNavigateToColumn = useCallback((columnName: string) => {
