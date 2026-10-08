@@ -7517,6 +7517,10 @@ msgstr "扩展 '%(extension_id)s' 已超出其持久存储配额 %(quota)d 字�
 msgid "Extensions"
 msgstr "扩展"
 
+#, python-format
+msgid "Extensions failed to load: %s"
+msgstr ""
+
 msgid "Extent"
 msgstr "范围"
 
@@ -13239,6 +13243,9 @@ msgstr "九月"
 msgid "SQL"
 msgstr "SQL"
 
+msgid "SQL Editor"
+msgstr ""
+
 msgid "SQL Lab"
 msgstr "SQL 实验室"
 
@@ -14868,6 +14875,10 @@ msgid "Solid background"
 msgstr "纯色背景"
 
 msgid "Some charts did not finish loading. The export may be incomplete."
+msgstr ""
+
+#, python-format
+msgid "Some extensions failed to load: %s"
 msgstr ""
 
 msgid ""

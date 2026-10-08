@@ -65,7 +65,17 @@ class ExtensionsLoader {
 
   private extensionIndex: Map<string, LoadedExtension> = new Map();
 
-  private initializationPromise: Promise<void> | null = null;
+  private initializationPromise: Promise<string[]> | null = null;
+
+  // Tracks whether the first initializeExtensions() call has settled (either
+  // way), so UI that needs to distinguish "still loading" from "loaded, and
+  // there's genuinely nothing registered" — e.g. the sqllab.newTab dropdown
+  // deciding whether to show a spinner vs. fall back to a plain add — has
+  // something to check. A failed retry (initializationPromise reset to null)
+  // still counts as settled: there's no more loading happening either way.
+  private ready = false;
+
+  private readyListeners = new Set<() => void>();
 
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
@@ -85,9 +95,11 @@ class ExtensionsLoader {
 
   /**
    * Initializes extensions by fetching the list from the API and loading each one.
-   * @throws Error if initialization fails.
+   * Resolves to the names of any extensions that failed to initialize (empty
+   * when every extension loaded), so callers can surface partial failures.
+   * @throws Error if the extension list itself cannot be fetched.
    */
-  public initializeExtensions(): Promise<void> {
+  public initializeExtensions(): Promise<string[]> {
     if (this.initializationPromise) {
       return this.initializationPromise;
     }
@@ -100,20 +112,59 @@ class ExtensionsLoader {
         const results = await Promise.all(
           extensions.map(ext => this.initializeExtension(ext)),
         );
-        if (results.every(Boolean)) {
+        const failed = extensions
+          .filter((_, index) => !results[index])
+          .map(ext => ext.name);
+        if (failed.length === 0) {
           logging.info('Extensions initialized successfully.');
         } else {
-          const failedCount = results.filter(succeeded => !succeeded).length;
           logging.info(
-            `Extensions initialized with ${failedCount} of ` +
+            `Extensions initialized with ${failed.length} of ` +
               `${extensions.length} extension(s) failing. See errors above.`,
           );
         }
+        return failed;
       } catch (error) {
+        // Reset so a later call can retry, and rethrow so callers (e.g.
+        // ExtensionsStartup) can surface the failure instead of it being
+        // swallowed here and the success path running regardless.
+        this.initializationPromise = null;
         logging.error('Error setting up extensions:', error);
+        throw error;
       }
     })();
+    // Attached separately (not reassigning this.initializationPromise) so
+    // ready-tracking is purely a side effect and every caller still sees the
+    // original promise's own resolve/reject value.
+    this.initializationPromise.finally(() => this.markReady());
     return this.initializationPromise;
+  }
+
+  /**
+   * Whether the first initializeExtensions() call has settled — either
+   * because it succeeded, or because loading the list itself failed. False
+   * before the first call, and while a call is in flight.
+   */
+  public isReady(): boolean {
+    return this.ready;
+  }
+
+  /**
+   * Subscribes to the ready transition (fires at most once — readiness never
+   * reverts to false once reached, even across a failed-then-retried load).
+   * Returns an unsubscribe function.
+   */
+  public onReady(listener: () => void): () => void {
+    this.readyListeners.add(listener);
+    return () => {
+      this.readyListeners.delete(listener);
+    };
+  }
+
+  private markReady(): void {
+    if (this.ready) return;
+    this.ready = true;
+    this.readyListeners.forEach(listener => listener());
   }
 
   /**
