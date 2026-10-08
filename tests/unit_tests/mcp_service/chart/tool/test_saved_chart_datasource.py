@@ -31,6 +31,7 @@ from mcp.types import TextContent
 from superset.daos.exceptions import DatasourceNotFound
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.mcp_service import guest_scope
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import ChartInfo
 from superset.semantic_layers.models import SemanticView
@@ -164,3 +165,109 @@ async def test_saved_chart_reads_use_the_source_type(
     else:
         table_lookup.assert_called_once_with(17, skip_base_filter=False)
         view_lookup.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("outcome", ["allowed", "rls_refused", "missing"])
+async def test_guest_semantic_chart_data_uses_dashboard_authorization(
+    outcome: str,
+) -> None:
+    """A guest reads a semantic chart through the dashboard-scoped query check,
+    like a table chart, instead of the semantic view's direct grants."""
+    data_module: ModuleType = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    chart: SimpleNamespace = SimpleNamespace(
+        id=9,
+        slice_name="Sales",
+        viz_type="table",
+        datasource_id=17,
+        datasource_type="semantic_view",
+        params=json.dumps({"viz_type": "table", "datasource": "17__semantic_view"}),
+        query_context=json.dumps(
+            {"datasource": {"id": 17, "type": "semantic_view"}, "queries": []}
+        ),
+    )
+    view: SemanticView = SemanticView(id=17, name="Sales")
+    query_context: SimpleNamespace = SimpleNamespace(queries=[], form_data={})
+    command: Mock = Mock()
+    command.run.return_value = {
+        "queries": [{"data": [{"sales": 7}], "colnames": ["sales"], "rowcount": 1}]
+    }
+    # The query-context check refuses guest row-level security on semantic
+    # views (raise_for_unsupported_guest_rls via command.validate()).
+    refusal: SupersetSecurityException = SupersetSecurityException(
+        SupersetError(
+            message="Semantic views cannot enforce guest row-level security rules.",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.WARNING,
+        )
+    )
+    if outcome == "rls_refused":
+        command.validate.side_effect = refusal
+    view_lookup: Mock
+    view_access: Mock
+    authorize_query: Mock
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=None, username="guest"),
+        ),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch("superset.mcp_service.guest_scope.is_guest_read", return_value=True),
+        patch("superset.mcp_service.guest_scope.guest_dashboard_id", return_value=5),
+        patch(
+            "superset.mcp_service.guest_scope.authorize_query",
+            wraps=guest_scope.authorize_query,
+        ) as authorize_query,
+        patch.object(
+            data_module.event_logger, "log_context", return_value=nullcontext()
+        ),
+        patch.object(data_module, "find_chart_by_identifier", return_value=chart),
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=view,
+            side_effect=DatasourceNotFound() if outcome == "missing" else None,
+        ) as view_lookup,
+        patch.object(
+            SemanticView,
+            "raise_for_access",
+            side_effect=SupersetSecurityException(
+                SupersetError(
+                    message="no direct grant",
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ),
+        ) as view_access,
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=query_context,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        async with Client(mcp) as client:
+            response: CallToolResult = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": "9"}}
+            )
+    assert isinstance(response.content[0], TextContent)
+    result: dict[str, Any] = json.loads(response.content[0].text)
+    view_lookup.assert_called_once_with(DatasourceType.SEMANTIC_VIEW, 17)
+    view_access.assert_not_called()
+    if outcome == "missing":
+        assert result["error_type"] == "DatasetNotAccessible"
+        authorize_query.assert_not_called()
+        command.run.assert_not_called()
+        return
+    authorize_query.assert_called_once()
+    assert query_context.form_data == {"dashboardId": 5, "slice_id": 9}
+    command.validate.assert_called_once()
+    if outcome == "rls_refused":
+        assert "error_type" in result, result
+        command.run.assert_not_called()
+        return
+    assert "error_type" not in result, result
+    assert result["data"] == [{"sales": 7}]

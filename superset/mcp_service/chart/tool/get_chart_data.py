@@ -551,15 +551,14 @@ async def execute_chart_data(  # noqa: C901
         )
         logger.info("Getting data for chart %s: %s", chart_id, chart_name)
 
-        # Table guests skip the RBAC check (authorize_query covers it) but keep the
-        # existence check, so a deleted dataset still returns
+        # Guests skip the RBAC check (authorize_query covers it) but keep the
+        # existence check, so a deleted dataset or semantic view still returns
         # DatasetNotAccessible.
+        check_access: bool = not guest_scope.is_guest_read()
         validation_result: DatasetValidationResult = (
-            validate_chart_semantic_view(chart_datasource_id)
+            validate_chart_semantic_view(chart_datasource_id, check_access=check_access)
             if chart_datasource_type == DatasourceType.SEMANTIC_VIEW.value
-            else validate_chart_dataset(
-                chart_datasource_id, check_access=not guest_scope.is_guest_read()
-            )
+            else validate_chart_dataset(chart_datasource_id, check_access=check_access)
         )
         if not validation_result.is_valid:
             await ctx.warning(

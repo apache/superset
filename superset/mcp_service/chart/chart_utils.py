@@ -86,8 +86,17 @@ class DatasetValidationResult:
     error: str | None = None
 
 
-def validate_chart_semantic_view(datasource_id: int | None) -> DatasetValidationResult:
-    """Resolve and authorize a saved semantic source before ordinary chart reads."""
+def validate_chart_semantic_view(
+    datasource_id: int | None,
+    check_access: bool = True,
+) -> DatasetValidationResult:
+    """Resolve and authorize a saved semantic source before ordinary chart reads.
+
+    With ``check_access=False`` (embedded guests) only existence is checked: a
+    guest is authorized later by the dashboard-scoped query check, which also
+    refuses guest row-level security on semantic views. Callers passing False
+    must run that check (``ChartDataCommand.validate()``) before executing.
+    """
     # Avoid app-init regression: DatasourceDAO imports Database encrypted columns.
     from superset.daos.datasource import DatasourceDAO
 
@@ -99,7 +108,8 @@ def validate_chart_semantic_view(datasource_id: int | None) -> DatasetValidation
                     DatasourceType.SEMANTIC_VIEW, datasource_id
                 ),
             )
-            view.raise_for_access()
+            if check_access:
+                view.raise_for_access()
             return DatasetValidationResult(True, datasource_id, view.name, [])
         except (
             DatasourceNotFound,
