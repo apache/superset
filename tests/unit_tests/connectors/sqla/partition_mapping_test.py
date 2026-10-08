@@ -2310,6 +2310,88 @@ def test_the_probe_backstop_accepts_only_a_plain_projection_per_value(
     assert probe_sql_is_evaluable(sql, "sqlite", expected, suffix) is evaluable
 
 
+@pytest.mark.parametrize(
+    "transform",
+    [
+        # Advances a sequence. One function call, no clause, no sub-query, and
+        # absent from the shipped `DISALLOWED_SQL_FUNCTIONS` -- so every other
+        # gate in `stored_expression_error` passes it.
+        "nextval(:value)",
+        "setval('s', :value)",
+        # Also caught by the shipped denylist, which is config an operator can
+        # replace; this gate is not.
+        "lo_export(:value, '/tmp/x')",
+    ],
+)
+def test_a_transform_that_changes_data_is_refused(app: Flask, transform: str) -> None:
+    """
+    Shape is not effect. The gates around this one ask what the transform
+    *selects*; a bare scalar expression can still write, and the probe then
+    runs it -- on a cache schedule, so the write repeats every time the entry
+    expires, with no SQL Lab access needed and nothing on screen to say so.
+
+    `is_mutating` is the question SQL Lab and the chart executor already ask
+    before letting SQL run, so the transform is held to the bar the rest of
+    Superset sets rather than to one invented here.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://")
+
+    with app.app_context():
+        original = app.config["DISALLOWED_SQL_FUNCTIONS"]
+        try:
+            # Emptied so the verdict is this gate's and not the denylist's --
+            # `lo_export` is on both, and the point is that it does not need to
+            # be.
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = {}
+            reason = stored_expression_error(database, None, None, transform)
+        finally:
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = original
+
+    assert reason is not None
+    assert "cannot change data" in reason
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "unix_timestamp(:value)",
+        ":value::bigint",
+        "lower(:value)",
+        "to_char(:value, 'YYYYMMDD')",
+    ],
+)
+def test_an_ordinary_transform_still_reads(app: Flask, transform: str) -> None:
+    """The read-only gate must not cost the canonical mappings."""
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://")
+
+    with app.app_context():
+        assert stored_expression_error(database, None, None, transform) is None
+
+
+def test_a_transform_that_changes_data_stops_the_probe_before_the_engine(
+    app: Flask,
+) -> None:
+    """
+    The gate above is the save path. This is the row an earlier release stored,
+    or one an operator's own denylist let through: `_probe` consults
+    `stored_expression_error` on every call, so it never reaches `get_df`.
+    """
+    # PostgreSQL rather than the sibling helper's SQLite, because
+    # `is_mutating`'s function-name walk is dialect-gated -- the same names are
+    # read-only on other engines. `get_df` is stubbed, so nothing connects.
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        return_value=pd.DataFrame([["x"]], columns=["v0"])
+    )
+
+    with app.app_context():
+        assert (
+            evaluate_transform(database, None, None, "nextval(:value)", ["US"]) is None
+        )
+
+    assert _probe(database).call_count == 0
+
+
 def test_an_incoming_transform_on_a_non_mapped_column_is_dropped() -> None:
     """
     NEW-R11-01. The mapping mirrors one column, so only that column may carry a

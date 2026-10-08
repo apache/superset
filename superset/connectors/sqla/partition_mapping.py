@@ -845,7 +845,7 @@ def _denylist_engine_key(database: "Database") -> str:
         return database.backend
 
 
-def stored_expression_error(
+def stored_expression_error(  # noqa: C901
     database: "Database",
     catalog: str | None,
     schema: str | None,
@@ -868,6 +868,11 @@ def stored_expression_error(
     ``partition_col = T(mapped_col)``, which only type-checks for scalar ``T``
     -- and it is what makes the table denylist and the RLS rewrite moot here,
     since neither has a table reference left to govern.
+
+    And it must be a *read*. Shape is a separate question from effect: a bare
+    scalar expression can still write, so `SQLStatement.is_mutating` is asked
+    too -- the same question SQL Lab and the chart executor ask before letting
+    SQL run. See the gate itself for what that reaches and what it does not.
 
     Returns the engine-agnostic reason as a string rather than raising,
     because its four callers disagree about what to do with it: the preview
@@ -936,6 +941,43 @@ def stored_expression_error(
     # sub-query there is no table reference for either to govern.
     if statement.has_subquery():
         return str(_("A partition value transform cannot contain a sub-query."))
+
+    # The read-only gate, which nothing above implies. The shape gates ask what
+    # the transform *selects*; this asks what evaluating it *does*, and a bare
+    # scalar expression can still write. `nextval(:value)` on PostgreSQL
+    # advances a sequence: one function call, no clause, no sub-query, and not
+    # in the default `DISALLOWED_SQL_FUNCTIONS` either -- so every gate above
+    # passes it and the probe then runs it. `setval` is the same shape, and
+    # `exp.Execute` and the opaque-`exp.Command` forms arrive the same way.
+    #
+    # The large-object writers (`lo_export`, `lowrite`, `lo_from_bytea`, ...)
+    # are caught here too, and the shipped denylist happens to name them as
+    # well -- but that is config an operator can replace, while this is not.
+    #
+    # `is_mutating` is the same question SQL Lab, `get_virtual_table_metadata`
+    # and the chart executor ask before letting SQL run, so a transform is held
+    # to the bar the rest of Superset already sets rather than to one invented
+    # here. Unconditional rather than gated on `Database.allow_dml`: a transform
+    # is a scalar function of `:value` by definition, so there is no legitimate
+    # mutating one, and the probe runs on a cache schedule nobody chose -- a
+    # write would repeat every time the entry expired.
+    #
+    # It bears saying what this does not reach. A user-defined function whose
+    # body writes is a plain call no parser can tell from `lower(:value)`, and
+    # `is_mutating`'s function-name walk is PostgreSQL-only by design, since the
+    # same names are read-only elsewhere. Neither residual is specific to this
+    # feature -- a dataset editor can already have the engine evaluate an
+    # arbitrary expression through a calculated column or a virtual dataset's
+    # SQL -- and closing them means authorizing the preview against the
+    # database, not parsing harder.
+    if statement.is_mutating():
+        return str(
+            _(
+                "A partition value transform cannot change data. It is "
+                "evaluated against the database to check that it mirrors, so "
+                "it has to be a read."
+            )
+        )
 
     # The shape gates above read the transform with `:value` replaced by the
     # `NULL` keyword, which leaves no trace of where the placeholder was -- so

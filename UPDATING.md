@@ -48,6 +48,14 @@ assists people when migrating to a new version.
   flag. Override `DISALLOWED_SQL_FUNCTIONS` in `superset_config.py` if that is
   intended.
 
+- A partition value transform is now refused if it changes data --
+  `nextval(:value)`, a stored-procedure call, a PostgreSQL large-object writer.
+  The transform is evaluated against the engine to check that it mirrors, and
+  that evaluation is cached and repeated, so it has to be a read. The check is
+  the same `is_mutating` gate SQL Lab and chart queries already apply, and it
+  covers transforms already in storage: one stored by an earlier version simply
+  stops mirroring rather than failing a query.
+
 - Only the mapped column may carry a partition value transform, and that is now
   enforced on every write rather than only inside `UpdateDatasetCommand`. A
   transform arriving on any other column is dropped -- by the deprecated

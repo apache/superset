@@ -1000,6 +1000,9 @@ msgstr ""
 msgid "A partition value transform cannot call %(functions)s."
 msgstr ""
 
+msgid "A partition value transform cannot change data. It is evaluated against the database to check that it mirrors, so it has to be a read."
+msgstr ""
+
 msgid "A partition value transform cannot contain a MySQL executable comment, which the database executes and every validator reads as a comment."
 msgstr ""
 

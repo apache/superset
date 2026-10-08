@@ -265,6 +265,9 @@ refused when you save:
   probe's own query.
 - More than 1,024 characters. A transform is one hand-written expression, and the stored
   value is parsed on every Explore load.
+- Anything that changes data — `nextval(:value)`, a call to a stored procedure, a
+  PostgreSQL large-object writer. The transform is evaluated against the engine to check
+  that it mirrors, and that evaluation is cached and repeated, so it has to be a read.
 
 Only the mapped column may carry a transform. Setting one on any other column through the
 API, or in an import bundle, has no effect: Superset drops it on write, because a value parked on a column the
