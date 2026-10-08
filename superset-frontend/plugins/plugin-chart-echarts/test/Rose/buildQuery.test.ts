@@ -46,6 +46,18 @@ test('builds a pivot + flatten post-processing pipeline', () => {
   expect(query.time_offsets).toEqual([]);
 });
 
+test('keeps the semantic series limit inferred from timeseries columns', () => {
+  const [query] = buildQuery({
+    ...formData,
+    datasource: '5__semantic_view',
+    limit: 25,
+  }).queries;
+  expect(query.is_timeseries).toBe(true);
+  expect(query.columns).toEqual(['gender']);
+  expect(query.series_columns).toBeUndefined();
+  expect(query.series_limit).toBe(25);
+});
+
 test('adds rolling, resample and contribution operators when configured', () => {
   const [query] = buildQuery({
     ...formData,
