@@ -144,6 +144,7 @@ class TaskResponseSchema(Schema):
     def get_properties(self, obj: object) -> TaskProperties:
         """Get properties dict, stripping internal state outside debug mode."""
         from superset.tasks.utils import task_internals_visible
+        from superset.utils.error_sanitization import sanitize_error_message
 
         properties = cast(TaskProperties, dict(obj.properties_dict))  # type: ignore[attr-defined]
 
@@ -153,6 +154,9 @@ class TaskResponseSchema(Schema):
         # consumer-facing failure reason.
         if not task_internals_visible():
             properties.pop("private", None)
+        # Same treatment as the status route: embedded guests get generic text.
+        if isinstance(message := properties.get("error_message"), str):
+            properties["error_message"] = sanitize_error_message(message)
 
         return properties
 

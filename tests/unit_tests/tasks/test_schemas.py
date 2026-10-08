@@ -16,6 +16,7 @@
 # under the License.
 from types import SimpleNamespace
 
+import pytest
 from pytest_mock import MockerFixture
 
 from superset.tasks.schemas import TaskResponseSchema
@@ -54,6 +55,26 @@ def test_get_properties_strips_private_outside_debug(mocker: MockerFixture) -> N
     assert properties["error_message"] == "boom"
     assert properties["is_abortable"] is True
     assert properties["progress_percent"] == 1.0
+
+
+@pytest.mark.parametrize("is_guest", [False, True])
+def test_get_properties_sanitizes_error_message_for_guests(
+    mocker: MockerFixture, is_guest: bool
+) -> None:
+    """Guests get the generic failure text; other users keep the stored message."""
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    mocker.patch("superset.tasks.utils.current_app").debug = False
+    mocker.patch(
+        "superset.utils.error_sanitization.is_sanitization_required",
+        return_value=is_guest,
+    )
+
+    properties = TaskResponseSchema().get_properties(_task_with_private())
+
+    expected: str = str(GENERIC_ERROR_MESSAGE) if is_guest else "boom"
+    assert properties["error_message"] == expected
+    assert properties["is_abortable"] is True
 
 
 def test_get_properties_exposes_private_in_debug(mocker: MockerFixture) -> None:
