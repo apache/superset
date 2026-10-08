@@ -17,13 +17,19 @@
 
 """Preserve nullable integer values through semantic chart-data serialization."""
 
+from decimal import Decimal
 from unittest.mock import MagicMock
 
 import pyarrow as pa
 import pytest
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
-from superset_core.semantic_layers.types import Dimension, Metric, SemanticResult
+from superset_core.semantic_layers.types import (
+    Dimension,
+    Metric,
+    SemanticQuery,
+    SemanticResult,
+)
 from superset_core.semantic_layers.view import SemanticView as ProviderView
 from werkzeug.test import TestResponse
 
@@ -232,3 +238,96 @@ def test_post_processing_receives_numeric_nullable_integer_metrics(
     data: list[dict[str, object]] = response.get_json()["result"][0]["data"]
     for column, values in expected.items():
         assert [row[column] for row in data] == values
+
+
+@pytest.mark.parametrize(
+    ("dtype", "values"),
+    [
+        (
+            pa.decimal128(12, 2),
+            [Decimal("5.25"), None, Decimal("15.75"), Decimal("26.25")],
+        ),
+        (pa.int64(), [5, None, 15, 27]),
+        (pa.float64(), [5.25, None, 15.75, 26.25]),
+    ],
+    ids=["decimal", "int", "float"],
+)
+def test_contribution_with_separate_totals_query(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    dtype: pa.DataType,
+    values: list[Decimal | int | float | None],
+) -> None:
+    """Contribution divides by totals from a second query of the same metric."""
+    provider: MagicMock = MagicMock(spec=ProviderView)
+    provider.features = frozenset()
+    provider.selection_identity_version = None
+    provider.uid.return_value = "contribution-totals-view"
+    provider.get_dimensions.return_value = {
+        Dimension("category", "category", pa.string()),
+    }
+    provider.get_metrics.return_value = {
+        Metric("amount", "amount", dtype, "SUM(amount)"),
+    }
+    total: Decimal | int | float = sum(value for value in values if value is not None)
+    main_result: SemanticResult = SemanticResult(
+        results=pa.table(
+            {
+                "category": ["A", "B", "C", "D"],
+                "amount": pa.array(values, type=dtype),
+            }
+        ),
+        requests=[],
+    )
+    totals_result: SemanticResult = SemanticResult(
+        results=pa.table({"amount": pa.array([total], type=dtype)}),
+        requests=[],
+    )
+
+    def get_table(query: SemanticQuery) -> SemanticResult:
+        return main_result if query.dimensions else totals_result
+
+    provider.get_table.side_effect = get_table
+    view: SemanticView = SemanticView(id=7, name="Amounts", configuration="{}")
+    view.__dict__["implementation"] = provider
+    mocker.patch(
+        "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+        return_value=view,
+    )
+    mocker.patch("superset.common.query_context.QueryContext.raise_for_access")
+    mocker.patch("superset.security_manager.raise_for_unsupported_guest_rls")
+    mocker.patch(
+        "superset.common.query_context_processor.QueryContextProcessor.get_cache_timeout",
+        return_value=-1,
+    )
+
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["category"],
+                    "metrics": ["amount"],
+                    "post_processing": [
+                        {
+                            "operation": "contribution",
+                            "options": {"orientation": "column", "columns": ["amount"]},
+                        }
+                    ],
+                },
+                {"columns": [], "metrics": ["amount"], "post_processing": []},
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+
+    assert response.status_code == 200, response.get_data(as_text=True)
+    data: list[dict[str, object]] = response.get_json()["result"][0]["data"]
+    expected: list[float] = [
+        0.0 if value is None else float(value) / float(total) for value in values
+    ]
+    assert [row["amount"] for row in data] == pytest.approx(expected)
