@@ -536,9 +536,9 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
         target.catalog_perm = None
         target.schema_perm = None
         return
-    target.perm = ds.perm
-    target.catalog_perm = ds.catalog_perm
-    target.schema_perm = ds.schema_perm
+    target.perm = getattr(ds, "perm", None)
+    target.catalog_perm = getattr(ds, "catalog_perm", None)
+    target.schema_perm = getattr(ds, "schema_perm", None)
 
 
 def event_after_chart_changed(
