@@ -3496,6 +3496,9 @@ msgstr ""
 msgid "Collapse row"
 msgstr ""
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr ""
 
@@ -12457,6 +12460,9 @@ msgstr ""
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr ""
 
@@ -12858,6 +12864,9 @@ msgid "Start field selection using current member IDs. This clears any existing 
 msgstr ""
 
 msgid "Start field selection using current member IDs. This clears any existing query and formatting settings. Saved display titles cannot be safely mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid "Start with row groups collapsed when row subtotals are shown. Each group can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15662,6 +15671,9 @@ msgid "Value Format"
 msgstr ""
 
 msgid "Value and Percentage"
+msgstr ""
+
+msgid "Value axis labels"
 msgstr ""
 
 msgid "Value bounds"
