@@ -47,7 +47,6 @@ from superset.mcp_service.chart.preview_utils import (
 )
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
-    query_result_failure,
     safe_exception_message,
 )
 from superset.mcp_service.chart.registry import plugin_for_viz_type
@@ -200,6 +199,12 @@ def _temporal_json_numbers(viz_type: str | None) -> bool:
     return bool(plugin and plugin.temporal_json_numbers)
 
 
+def _preserve_nonfinite_floats(viz_type: str | None) -> bool:
+    """Whether the owning plugin's result normalizer handles non-finite values."""
+    plugin = plugin_for_viz_type(viz_type)
+    return bool(plugin and plugin.preserve_nonfinite_floats)
+
+
 def _build_chart_description(chart: ChartLike) -> str:
     """Build a human-readable chart description, with hints for special chart types."""
     base = (
@@ -297,6 +302,9 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             _queries_data, failure = query_result_data(
                 result,
                 temporal_json_numbers=_temporal_json_numbers(self.chart.viz_type),
+                preserve_nonfinite_floats=_preserve_nonfinite_floats(
+                    self.chart.viz_type
+                ),
             )
             if failure is not None:
                 return failure
@@ -394,18 +402,20 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
             from superset.mcp_service.chart.query_result import query_result_data
 
-            queries_data, failure = query_result_data(result)
+            _queries_data, failure = query_result_data(
+                result,
+                preserve_nonfinite_floats=_preserve_nonfinite_floats(
+                    self.chart.viz_type
+                ),
+            )
             if failure is not None:
                 return failure
 
-            data: list[Any] = queries_data[0] if queries_data else []
-            if query_failure := query_result_failure(result):
-                return query_failure
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
 
-            data = []
+            data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data") or []
 
@@ -531,14 +541,20 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             queries_data, failure = query_result_data(
                 result,
                 temporal_json_numbers=_temporal_json_numbers(self.chart.viz_type),
+                preserve_nonfinite_floats=_preserve_nonfinite_floats(
+                    self.chart.viz_type
+                ),
             )
             if failure is not None:
                 return failure
-            if query_failure := query_result_failure(result):
-                return query_failure
-            result = normalize_chart_query_result(result, form_data)
-            if isinstance(result, ChartError):
-                return result
+            normalized = normalize_chart_query_result(result, form_data)
+            if isinstance(normalized, ChartError):
+                return normalized
+            if normalized is not result:
+                # The owning plugin rewrote the rows it renders.
+                queries_data = [
+                    query.get("data", []) for query in normalized["queries"]
+                ]
 
             # Extract data from result
             chart_data = queries_data[0] if queries_data else []

@@ -1264,6 +1264,53 @@ def test_compile_accepts_real_postprocessing_null_and_large_full_sql(
     assert result.row_count == 1
 
 
+def test_compile_chart_skips_nonfinite_grouped_gauge_dial(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A non-finite dial is skipped by the Gauge normalizer, not rejected."""
+    from types import SimpleNamespace
+
+    chart_helpers_module = importlib.import_module(
+        "superset.mcp_service.chart.chart_helpers"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [
+                            {"team": "A", "score": float("inf")},
+                            {"team": "B", "score": 42},
+                        ]
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        chart_helpers_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.charts.data.form_data.set_query_context_form_data",
+        lambda *_args, **_kwargs: None,
+    )
+
+    result = _compile_chart(
+        {"viz_type": "gauge_chart", "metric": "score", "groupby": ["team"]}, 3
+    )
+
+    assert result.success, result.error
+    assert result.row_count == 1
+
+
 @patch("superset.charts.data.form_data.set_query_context_form_data")
 @patch("superset.daos.dataset.DatasetDAO")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")

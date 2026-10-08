@@ -127,9 +127,12 @@ def _compile_chart(  # noqa: C901
 
         warnings: List[str] = []
         row_count = 0
+        # The plugin's result normalizer owns non-finite handling (Gauge
+        # skips unrenderable dials), so the envelope check must not reject them.
         query_data, query_failure = query_result_data(
             result,
             temporal_json_numbers=bool(plugin and plugin.temporal_json_numbers),
+            preserve_nonfinite_floats=bool(plugin and plugin.preserve_nonfinite_floats),
         )
         if query_failure is not None:
             error_str = query_failure.error

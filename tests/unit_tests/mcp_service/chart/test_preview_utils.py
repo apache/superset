@@ -29,7 +29,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from superset.mcp_service.chart import preview_utils
-from superset.mcp_service.chart.schemas import TablePreview
+from superset.mcp_service.chart.schemas import ChartError, TablePreview
 
 
 def _imports_chart_data_command(node: ast.Import | ast.ImportFrom) -> bool:
@@ -320,6 +320,37 @@ def test_unsaved_gauge_preview_surfaces_query_error(
     )
     assert result.error_type == "QueryError"
     assert "bad metric" in result.error
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
+@patch("superset.extensions.db.session.get")
+def test_unsaved_gauge_preview_skips_nonfinite_dial(
+    mock_find_dataset, mock_build_query_context, mock_command
+):
+    """A grouped Gauge renders its finite dials when one dial is non-finite."""
+    mock_find_dataset.return_value = Mock(id=7)
+    mock_build_query_context.return_value = SimpleNamespace(form_data={}, queries=[])
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [
+            {
+                "data": [
+                    {"team": "A", "score": float("inf")},
+                    {"team": "B", "score": 42},
+                ]
+            }
+        ]
+    }
+
+    result = preview_utils.generate_preview_from_form_data(
+        {"viz_type": "gauge_chart", "metric": "score", "groupby": ["team"]},
+        dataset_id=7,
+        preview_format="ascii",
+    )
+
+    assert not isinstance(result, ChartError), result
+    assert "42" in result.ascii_content
 
 
 def test_histogram_preview_uses_postprocessed_bins() -> None:

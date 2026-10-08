@@ -164,6 +164,7 @@ def _generate_preview_from_form_data(  # noqa: C901
         queries_data, failure = query_result_data(
             result,
             temporal_json_numbers=bool(plugin and plugin.temporal_json_numbers),
+            preserve_nonfinite_floats=bool(plugin and plugin.preserve_nonfinite_floats),
         )
         if failure is not None:
             return failure
