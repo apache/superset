@@ -58,7 +58,8 @@ def from_configuration_with_cache_token(
 
 The default delegates to `from_configuration(configuration)`, preserving legacy
 providers. The host captures a database/workspace-scoped layer UUID and version
-once per metadata session (the ordinary request/task session). The namespace is
+once per metadata session (the ordinary request/task session); this is the layer's
+**metadata generation**, passed to providers as `cache_token`. The namespace is
 an opaque digest of the metadata database backend, host, port and database name;
 credentials, driver adapters, connection query options and `SECRET_KEY` do not
 affect it. `SEMANTIC_LAYER_CACHE_NAMESPACE`, when nonempty, replaces that database
@@ -71,8 +72,8 @@ or credential is exposed in the token.
 
 Providers with process-local metadata caches must include the supplied token
 alongside existing endpoint, credential, role and view scope **before**
-any dictionary lookup or eager discovery. Their returned SDK views carry the
-same captured identity through `metadata_cache_token`; never relabel previously
+any dictionary lookup or eager discovery. Their returned SDK views echo the
+token they were discovered under through `metadata_cache_token`; never relabel previously
 cached members with a later token. Runtime schema helpers receiving the layer's
 configuration must preserve its operation identity too. Keep existing expiries
 and prune retired dictionary generations to bound memory. Providers without local
@@ -83,9 +84,12 @@ metadata reload support. Provider adoption must accompany host deployment for
 complete invalidation.
 
 Host result, annotation-source, compatibility and value-suggestion cache keys
-include the captured generation while preserving their other key dimensions.
-Containment caches must likewise key on the **host ORM view**
-`metadata_cache_token`, optionally alongside the provider token. A legacy SDK
+include the captured generation (`SemanticView.metadata_generation` on the host
+ORM view) while preserving their other key dimensions. The SDK view's
+`metadata_cache_token` is only the provider's echo and never keys host caches.
+Containment caches must likewise key on the host generation, optionally alongside
+the provider token; the host ORM view also exposes it as `metadata_cache_token`
+for that integration. A legacy SDK
 view may return `None`; that must not disable host invalidation. Provider tokens
 keep their existing `str | None` contract. The containment integration is tracked
 in [#42760](https://github.com/apache/superset/pull/42760).

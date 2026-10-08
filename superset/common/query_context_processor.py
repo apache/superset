@@ -503,7 +503,7 @@ class QueryContextProcessor:
                     annotation_datasource = None
             if isinstance(annotation_datasource, SemanticView):
                 source_versions[str(layer_value)] = (
-                    annotation_datasource.metadata_cache_token
+                    annotation_datasource.metadata_generation
                 )
             source_rls[str(layer.get("value"))] = (
                 security_manager.get_rls_cache_key(annotation_datasource)

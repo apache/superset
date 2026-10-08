@@ -110,15 +110,15 @@ def test_version_token_is_captured_and_namespaced(
 ) -> None:
     """An operation cannot label old discovery with a newly rotated generation."""
     with app.app_context():
-        first: str = layer.metadata_cache_token
+        first: str = layer.metadata_generation
         layer.cache_version = 1
-        assert layer.metadata_cache_token == first
+        assert layer.metadata_generation == first
         session.info.clear()
-        second: str = layer.metadata_cache_token
+        second: str = layer.metadata_generation
         assert second != first
         app.config["SEMANTIC_LAYER_CACHE_NAMESPACE"] = "other-workspace"
         session.info.clear()
-        assert layer.metadata_cache_token != second
+        assert layer.metadata_generation != second
         app.config.pop("SEMANTIC_LAYER_CACHE_NAMESPACE")
 
 
@@ -139,11 +139,28 @@ def test_token_binding_precedes_provider_construction(
         )
         factory.from_configuration_with_cache_token.assert_called_once_with(
             {},
-            cache_token=layer.metadata_cache_token,
+            cache_token=layer.metadata_generation,
         )
         view: SemanticView = SemanticView(name="view", semantic_layer=layer)
-        assert view.metadata_cache_token == layer.metadata_cache_token
-        assert view.get_extra_cache_keys({}) == [layer.metadata_cache_token]
+        assert view.metadata_generation == layer.metadata_generation
+        assert view.get_extra_cache_keys({}) == [layer.metadata_generation]
+
+
+def test_host_generation_is_named_apart_from_provider_token(
+    app: Flask,
+    session: Session,
+    layer: SemanticLayer,
+) -> None:
+    """Host keys use the metadata generation, never the provider's echoed token."""
+    with app.app_context():
+        view: SemanticView = SemanticView(name="view", semantic_layer=layer)
+        view.__dict__["implementation"] = Mock(
+            metadata_cache_token="provider-echo"  # noqa: S106
+        )
+        assert view.metadata_generation == layer.metadata_generation
+        # Containment (#42760) still reads the host generation by its older name.
+        assert view.metadata_cache_token == view.metadata_generation
+        assert view.get_extra_cache_keys({}) == [layer.metadata_generation]
 
 
 @pytest.mark.parametrize(
@@ -239,7 +256,7 @@ def test_suggestion_cache_rotates_with_layer_version(
     view.cache_timeout = 60
     view.changed_on = None
     view.type = "semantic_view"
-    view.metadata_cache_token = "generation-zero"  # noqa: S105
+    view.metadata_generation = "generation-zero"  # noqa: S105
     view.implementation.selection_identity_version = None
     view.get_compatible_metrics.return_value = []
     view.get_compatible_dimensions.return_value = []
@@ -269,7 +286,7 @@ def test_suggestion_cache_rotates_with_layer_version(
 
         assert request().status_code == 200
         first: str = cache.data_cache.get.call_args.args[0]
-        view.metadata_cache_token = "generation-one"  # noqa: S105
+        view.metadata_generation = "generation-one"  # noqa: S105
         assert request().status_code == 200
         assert cache.data_cache.get.call_args.args[0] != first
 
@@ -336,12 +353,12 @@ def test_clear_discards_reused_implementation_objects(
     session.commit()
     layer.__dict__["implementation"] = Mock()
     view.__dict__["implementation"] = Mock()
-    previous: str = view.metadata_cache_token
+    previous: str = view.metadata_generation
     layer.clear_metadata_cache()
     session.commit()
     assert "implementation" not in layer.__dict__
     assert "implementation" not in view.__dict__
-    assert view.metadata_cache_token != previous
+    assert view.metadata_generation != previous
 
 
 def test_migration_backfills_existing_layers_and_downgrades() -> None:
@@ -438,10 +455,10 @@ def test_workspace_namespace_can_follow_the_active_tenant(
     """A shared database connection can distinguish routed workspace schemas."""
     scope: list[str] = ["first"]
     monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", lambda: scope[0])
-    first: str = layer.metadata_cache_token
+    first: str = layer.metadata_generation
     scope[0] = "second"
     session.info.clear()
-    assert layer.metadata_cache_token != first
+    assert layer.metadata_generation != first
     session.info["unrelated"] = 1
     layer.clear_metadata_cache()
     assert session.info["unrelated"] == 1
@@ -515,11 +532,11 @@ def test_namespace_is_validated_and_captured_once(
     """Reject misconfigured identity and evaluate a tenant resolver only once."""
     monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", 17)
     with pytest.raises(TypeError, match="must resolve to a string"):
-        assert layer.metadata_cache_token
+        assert layer.metadata_generation
     namespace: Mock = Mock(return_value="workspace")
     monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", namespace)
-    first: str = layer.metadata_cache_token
-    assert layer.metadata_cache_token == first
+    first: str = layer.metadata_generation
+    assert layer.metadata_generation == first
     namespace.assert_called_once_with()
 
 
@@ -564,7 +581,7 @@ def test_clear_preserves_loaded_views_of_other_layers(
     assert view.semantic_layer_uuid == other.uuid
     implementation: Mock = Mock()
     view.__dict__["implementation"] = implementation
-    before: str = view.metadata_cache_token
+    before: str = view.metadata_generation
     layer.clear_metadata_cache()
     assert view.implementation is implementation
-    assert view.metadata_cache_token == before
+    assert view.metadata_generation == before

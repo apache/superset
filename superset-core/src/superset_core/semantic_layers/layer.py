@@ -39,11 +39,12 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     def from_configuration_with_cache_token(
         cls, configuration: dict[str, Any], *, cache_token: str
     ) -> SemanticLayer[ConfigT, SemanticViewT]:
-        """Construct with a host cache identity before any metadata discovery.
+        """Construct with the host's metadata generation before any discovery.
 
-        Providers with local metadata caches override this factory to include
-        the token in their keys before construction or lookup. Legacy providers
-        retain their ordinary construction behavior.
+        ``cache_token`` is an opaque generation that changes when the layer's
+        metadata is reloaded. Providers with local metadata caches override this
+        factory to include it in their keys before construction or lookup. Legacy
+        providers retain their ordinary construction behavior.
         """
         return cls.from_configuration(configuration)
 

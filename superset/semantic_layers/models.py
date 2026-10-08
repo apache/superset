@@ -168,25 +168,25 @@ class ColumnMetadata:
     extra: str | None = None
 
 
-_METADATA_IDENTITY_KEY: str = "semantic_layer_cache_identity"
+_METADATA_GENERATIONS_KEY: str = "semantic_layer_metadata_generations"
 
 
 @dataclass
-class _MetadataCacheIdentity:
-    """Session-local identities, captured before discovery and forgotten on Save."""
+class _MetadataGenerations:
+    """Session-local generations, captured before discovery and forgotten on Save."""
 
-    tokens: dict[uuid.UUID, str] = field(default_factory=dict)
+    generations: dict[uuid.UUID, str] = field(default_factory=dict)
 
     @classmethod
-    def for_session(cls, session: Session) -> _MetadataCacheIdentity:
+    def for_session(cls, session: Session) -> _MetadataGenerations:
         """Keep the memo's storage convention in one place."""
-        if _METADATA_IDENTITY_KEY not in session.info:
-            session.info[_METADATA_IDENTITY_KEY] = cls()
-        return cast(_MetadataCacheIdentity, session.info[_METADATA_IDENTITY_KEY])
+        if _METADATA_GENERATIONS_KEY not in session.info:
+            session.info[_METADATA_GENERATIONS_KEY] = cls()
+        return cast(_MetadataGenerations, session.info[_METADATA_GENERATIONS_KEY])
 
     def capture(self, layer: SemanticLayer, session: Session) -> str:
         """Web, task and MCP operations share a credential-independent identity."""
-        if layer.uuid not in self.tokens:
+        if layer.uuid not in self.generations:
             namespace: str | Callable[[], str] = current_app.config.get(
                 "SEMANTIC_LAYER_CACHE_NAMESPACE", ""
             )
@@ -209,12 +209,12 @@ class _MetadataCacheIdentity:
                 ]
             )
             scope: str = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
-            self.tokens[layer.uuid] = f"{scope}:{layer.uuid}:{layer.cache_version}"
-        return self.tokens[layer.uuid]
+            self.generations[layer.uuid] = f"{scope}:{layer.uuid}:{layer.cache_version}"
+        return self.generations[layer.uuid]
 
     def forget(self, layer_uuid: uuid.UUID) -> None:
         """Permit a fresh capture after an authorized generation increment."""
-        self.tokens.pop(layer_uuid, None)
+        self.generations.pop(layer_uuid, None)
 
 
 class SemanticLayer(AuditMixinNullable, Model):
@@ -320,10 +320,14 @@ class SemanticLayer(AuditMixinNullable, Model):
         security_manager.semantic_layer_after_delete(mapper, connection, target)
 
     @property
-    def metadata_cache_token(self) -> str:
-        """Capture the database-scoped generation once per metadata session."""
+    def metadata_generation(self) -> str:
+        """Capture the database-scoped metadata generation once per session.
+
+        This is the host's cache identity for the layer's metadata: it keys host
+        caches and is passed to providers as ``cache_token``.
+        """
         session: Session = object_session(self) or db.session
-        return _MetadataCacheIdentity.for_session(session).capture(self, session)
+        return _MetadataGenerations.for_session(session).capture(self, session)
 
     def clear_metadata_cache(self) -> None:
         """Rotate atomically in the caller's transaction without provider I/O."""
@@ -336,7 +340,7 @@ class SemanticLayer(AuditMixinNullable, Model):
         )
         session.expire(self, ["cache_version"])
         self.__dict__.pop("implementation", None)
-        _MetadataCacheIdentity.for_session(session).forget(self.uuid)
+        _MetadataGenerations.for_session(session).forget(self.uuid)
         instance: object
         for instance in session.identity_map.values():
             if isinstance(instance, SemanticView):
@@ -358,7 +362,7 @@ class SemanticLayer(AuditMixinNullable, Model):
         # return extension_manager.get_contribution("semanticLayers", self.type)
         class_ = registry[self.type]
         return class_.from_configuration_with_cache_token(
-            json.loads(self.configuration), cache_token=self.metadata_cache_token
+            json.loads(self.configuration), cache_token=self.metadata_generation
         )
 
 
@@ -453,7 +457,7 @@ class SemanticView(AuditMixinNullable, Model):
         Return semantic view implementation.
         """
         # Pin before the provider can discover any members.
-        self._capture_metadata_token()
+        self._capture_metadata_generation()
         return self.semantic_layer.implementation.get_semantic_view(
             self.name,
             json.loads(self.configuration),
@@ -806,27 +810,39 @@ class SemanticView(AuditMixinNullable, Model):
     def data_for_slices(self, slices: list[Any]) -> ExplorableData:
         return self.data
 
-    _metadata_token: str | None = None
+    _metadata_generation: str | None = None
 
-    def _capture_metadata_token(self) -> None:
+    def _capture_metadata_generation(self) -> None:
         """Bind this view to the layer generation used by its implementation."""
-        if self._metadata_token is None:
-            self._metadata_token = self.semantic_layer.metadata_cache_token
+        if self._metadata_generation is None:
+            self._metadata_generation = self.semantic_layer.metadata_generation
 
     def forget_metadata(self) -> None:
-        """Discard this view's implementation and captured host identity together."""
+        """Discard this view's implementation and captured generation together."""
         self.__dict__.pop("implementation", None)
-        self._metadata_token = None
+        self._metadata_generation = None
+
+    @property
+    def metadata_generation(self) -> str:
+        """The host metadata generation that keys this view's cached results.
+
+        Unlike the SDK view's ``metadata_cache_token``, which a provider only
+        echoes back, this is the host's own value and the one caches use.
+        """
+        self._capture_metadata_generation()
+        assert self._metadata_generation is not None
+        return self._metadata_generation
 
     @property
     def metadata_cache_token(self) -> str:
-        """Host generation, independent of a provider's optional observation token."""
-        self._capture_metadata_token()
-        assert self._metadata_token is not None
-        return self._metadata_token
+        """Alias of ``metadata_generation`` for the containment cache (#42760).
+
+        Not the SDK view's provider-echoed ``metadata_cache_token``.
+        """
+        return self.metadata_generation
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return [self.metadata_cache_token]
+        return [self.metadata_generation]
 
     @property
     def catalog_perm(self) -> str | None:

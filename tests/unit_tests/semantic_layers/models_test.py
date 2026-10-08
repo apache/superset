@@ -267,7 +267,7 @@ def test_semantic_layer_implementation() -> None:
         result = layer.implementation
 
     mock_class.from_configuration_with_cache_token.assert_called_once_with(
-        {"key": "value"}, cache_token=layer.metadata_cache_token
+        {"key": "value"}, cache_token=layer.metadata_generation
     )
     assert result == mock_impl
 
@@ -490,7 +490,7 @@ def test_semantic_view_get_extra_cache_keys() -> None:
     """Test SemanticView get_extra_cache_keys method."""
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer())
     result: list[Any] = view.get_extra_cache_keys({})
-    assert result == [view.metadata_cache_token]
+    assert result == [view.metadata_generation]
 
 
 def test_semantic_view_perm() -> None:

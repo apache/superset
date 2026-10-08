@@ -242,7 +242,7 @@ class DatasourceRestApi(BaseSupersetApi):
                     {
                         "uid": datasource.uid,
                         "metadata_version": (
-                            datasource.metadata_cache_token
+                            datasource.metadata_generation
                             if isinstance(datasource, SemanticView)
                             else None
                         ),
@@ -588,7 +588,7 @@ class DatasourceRestApi(BaseSupersetApi):
                     {
                         "uid": datasource.uid,
                         "metadata_version": (
-                            datasource.metadata_cache_token
+                            datasource.metadata_generation
                             if isinstance(datasource, SemanticView)
                             else None
                         ),
