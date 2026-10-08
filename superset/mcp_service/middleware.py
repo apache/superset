@@ -536,8 +536,29 @@ class LoggingMiddleware(Middleware):
     payload).
     """
 
-    #: Proxy name used by FastMCP tool-search transforms.
-    _CALL_TOOL_PROXY = "call_tool"
+    @staticmethod
+    def _call_tool_proxy_name() -> str:
+        """Return the configured name of the tool-search call proxy.
+
+        Read from the same ``MCP_TOOL_SEARCH_CONFIG["call_tool_name"]`` setting
+        the proxy is registered under, so a renamed proxy is still recognised.
+        Falls back to the packaged default when no Flask app is reachable.
+        """
+        from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+
+        config: Any = MCP_TOOL_SEARCH_CONFIG
+        try:
+            from superset.mcp_service.flask_singleton import get_flask_app
+
+            config = get_flask_app().config.get(
+                "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("Flask app unavailable; using default call proxy name")
+        name = config.get("call_tool_name") if isinstance(config, dict) else None
+        if isinstance(name, str) and name:
+            return name
+        return MCP_TOOL_SEARCH_CONFIG["call_tool_name"]
 
     def _is_error_response(self, result: ToolResult) -> bool:
         """Check if a tool result contains an error schema response.
@@ -648,17 +669,17 @@ class LoggingMiddleware(Middleware):
     def _resolve_tool_name(tool_name: str | None, params: Any) -> str | None:
         """Resolve the underlying tool name from call_tool proxy arguments.
 
-        When tool search is enabled, the MCP client uses the ``call_tool``
-        proxy and passes the real tool name as the ``name`` argument.  This
-        helper extracts that value so we can log which tool was actually
-        executed rather than just ``"call_tool"``.
+        When tool search is enabled, the MCP client uses the configured call
+        proxy (``call_tool`` by default) and passes the real tool name as the
+        ``name`` argument.  This helper extracts that value so we can log which
+        tool was actually executed rather than just ``"call_tool"``.
 
         Returns:
             The resolved tool name if *tool_name* is the call_tool proxy and
             ``params["name"]`` is a non-empty string, otherwise ``None``.
         """
         if (
-            tool_name == LoggingMiddleware._CALL_TOOL_PROXY
+            tool_name == LoggingMiddleware._call_tool_proxy_name()
             and isinstance(params, dict)
             and isinstance(params.get("name"), str)
             and params["name"]
@@ -829,7 +850,7 @@ class LoggingMiddleware(Middleware):
             registered = None
         if registered is not None:
             return candidate
-        return "call_tool" if mcp_tool else "unknown"
+        return LoggingMiddleware._call_tool_proxy_name() if mcp_tool else "unknown"
 
     async def _emit_call_metrics(
         self,

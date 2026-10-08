@@ -113,7 +113,10 @@ async def canonical_tools() -> list[Tool]:
 
 
 async def build_server(
-    *, structured_output_enabled: bool, compatibility: bool
+    *,
+    structured_output_enabled: bool,
+    compatibility: bool,
+    search_config: dict[str, Any] | None = None,
 ) -> FastMCP:
     """Assemble a server from the registered tools as ``run_server`` does."""
     server = FastMCP(
@@ -125,7 +128,9 @@ async def build_server(
     for tool in await canonical_tools():
         server.add_tool(tool)
     if compatibility:
-        _apply_tool_search_transform(server, dict(MCP_TOOL_SEARCH_CONFIG))
+        _apply_tool_search_transform(
+            server, dict(search_config or MCP_TOOL_SEARCH_CONFIG)
+        )
     return server
 
 
@@ -699,14 +704,19 @@ def timing_keys(stats: MagicMock) -> list[str]:
 
 
 async def call_and_count(
-    server: FastMCP, name: str, arguments: dict[str, Any], *, proxied: bool
+    server: FastMCP,
+    name: str,
+    arguments: dict[str, Any],
+    *,
+    proxied: bool,
+    proxy_name: str = CALL_TOOL,
 ) -> tuple[CallToolResult, list[str], list[str]]:
     """Call a tool and return its result with the outcome and timing metrics."""
     with recorded_outcome_metrics() as stats:
         async with Client(server) as client:
             if proxied:
                 result = await client.call_tool(
-                    CALL_TOOL,
+                    proxy_name,
                     {"name": name, "arguments": arguments},
                     raise_on_error=False,
                 )
@@ -736,6 +746,38 @@ async def test_proxied_validation_failure_is_one_failure_and_an_error_result() -
     assert proxied_keys == direct_keys
     assert direct_timing == ["mcp.tool.get_chart_type_schema.time"]
     assert proxied_timing == direct_timing
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("unprivileged_user")
+@pytest.mark.parametrize("proxy_name", [CALL_TOOL, "invoke_tool"])
+async def test_proxied_failure_is_counted_once_under_any_configured_proxy_name(
+    proxy_name: str,
+) -> None:
+    """The proxy name is configurable; a failure forwarded through it must
+    still be counted once, as the inner tool's warning, never also as an
+    error on the proxy itself."""
+    search_config = {**MCP_TOOL_SEARCH_CONFIG, "call_tool_name": proxy_name}
+    flask_app = MagicMock()
+    flask_app.config = {"MCP_TOOL_SEARCH_CONFIG": search_config}
+    with patch("superset.mcp_service.flask_singleton.get_flask_app") as get_app:
+        get_app.return_value = flask_app
+        compatibility = await build_server(
+            structured_output_enabled=False,
+            compatibility=True,
+            search_config=search_config,
+        )
+        proxied, keys, timings = await call_and_count(
+            compatibility,
+            "get_chart_type_schema",
+            {"include_examples": "x"},
+            proxied=True,
+            proxy_name=proxy_name,
+        )
+
+    assert proxied.is_error is True
+    assert keys == ["mcp.tool.get_chart_type_schema.warning"]
+    assert timings == ["mcp.tool.get_chart_type_schema.time"]
 
 
 @pytest.mark.asyncio
