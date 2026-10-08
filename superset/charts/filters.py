@@ -167,12 +167,10 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             # unrelated table sharing its numeric id) and kept outer so
             # charts on other datasource types survive into the access
             # filter — their access matches through the perm columns
-            # denormalized onto Slice by ``set_related_perm``. ORM deletion
-            # of a table dataset removes its datasource_access PVM, but
-            # schema/catalog grants survive and can match a retained chart's
-            # denormalized schema_perm/catalog_perm. The list can include
-            # that orphan; the datasource-based object gate denies it
-            # (accepted edge, shared with the dashboard filter).
+            # denormalized onto Slice by ``set_related_perm``. Deleting or
+            # purging a table dataset clears its charts' denormalized perm
+            # columns, so a surviving schema/catalog grant cannot list such
+            # an orphan; the datasource-based object gate denies it too.
             .join(table_alias, table_backed_slice_join(table_alias), isouter=True)
             .join(
                 models.Database,
