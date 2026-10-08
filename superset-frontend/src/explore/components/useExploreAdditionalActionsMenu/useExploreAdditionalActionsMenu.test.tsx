@@ -29,6 +29,7 @@ import {
 } from './index';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { Slice } from 'src/types/Chart';
+import { chart } from 'src/components/Chart/chartReducer';
 
 jest.mock('src/explore/exploreUtils', () => ({
   __esModule: true,
@@ -120,6 +121,38 @@ const TestComponent = (props: TestComponentProps) => {
 
   return <div>{menu}</div>;
 };
+
+test('View query uses the saved Explore chart when form data omits slice_id', async () => {
+  const request = '-- SQL\nSELECT saved_explore_chart';
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        explore: {},
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: [{ query: '-- SQL\nSELECT unrelated' }],
+          },
+          1: { ...chart, id: 1, queriesResponse: [{ query: request }] },
+        },
+      },
+    },
+  );
+  await userEvent.click(await screen.findByText('View query'));
+  await waitFor(() =>
+    expect(screen.getByRole('dialog').querySelector('pre')?.textContent).toBe(
+      request,
+    ),
+  );
+});
 
 beforeEach(() => {
   jest.clearAllMocks();
