@@ -1692,52 +1692,6 @@ def build_single_query_dict(  # noqa: C901
     return qd
 
 
-def build_mixed_timeseries_secondary(
-    form_data: dict[str, Any],
-    x_axis_col: str | None,
-    engine: str,
-    row_limit: int | None = None,
-    order_desc: bool | None = None,
-) -> dict[str, Any]:
-    """Build the secondary query dict for the ``mixed_timeseries`` viz type."""
-    # avoid circular import
-    from superset.utils.core import split_adhoc_filters_into_base_filters
-
-    metrics_b: list[Any] = list(form_data.get("metrics_b") or [])
-    raw_b = form_data.get("groupby_b") or []
-    groupby_b: list[Any] = [raw_b] if isinstance(raw_b, str) else list(raw_b)
-    if x_axis_col and x_axis_col not in groupby_b:
-        groupby_b = [x_axis_col] + groupby_b
-
-    # Each series owns its ordering; primary metrics may not exist in query B.
-    qd = build_single_query_dict(
-        {**form_data, "orderby": form_data.get("orderby_b")},
-        groupby_b,
-        metrics_b,
-        row_limit=row_limit,
-        order_desc=order_desc,
-        orderby=form_data.get("orderby_b"),
-    )
-    if time_range_b := form_data.get("time_range_b"):
-        qd["time_range"] = time_range_b
-    if row_limit is None and (row_limit_b := form_data.get("row_limit_b")) is not None:
-        qd["row_limit"] = row_limit_b
-
-    if adhoc_filters_b := form_data.get("adhoc_filters_b"):
-        secondary_fd: dict[str, Any] = {"adhoc_filters": adhoc_filters_b}
-        split_adhoc_filters_into_base_filters(secondary_fd, engine)
-        if secondary_filters := secondary_fd.get("filters"):
-            qd["filters"] = secondary_filters
-        else:
-            qd.pop("filters", None)
-        for clause in ("where", "having"):
-            if secondary_clause := secondary_fd.get(clause):
-                qd[clause] = secondary_clause
-            else:
-                qd.pop(clause, None)
-    return qd
-
-
 def build_histogram_query_dicts(
     form_data: dict[str, Any],
     *,
@@ -2393,14 +2347,6 @@ def build_query_dicts_from_form_data(
             ),
         )
     ]
-
-
-def with_x_axis_column(form_data: dict[str, Any], groupby: list[Any]) -> list[Any]:
-    """Prepend a time-series chart's x-axis column to its query columns."""
-    x_axis_col = extract_x_axis_col(form_data)
-    if x_axis_col and x_axis_col not in groupby:
-        return [x_axis_col, *groupby]
-    return groupby
 
 
 def resolve_form_data_datasource(
