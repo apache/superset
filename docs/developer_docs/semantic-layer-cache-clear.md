@@ -3,6 +3,25 @@ title: Semantic layer cache invalidation
 sidebar_position: 21
 ---
 
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
 # Save configuration and reload metadata
 
 Saving a semantic layer's configuration increments its metadata database
@@ -47,26 +66,29 @@ identity with an operator-provided, globally unique workspace name. Configure it
 when routing through different database host aliases or sharing a database across
 tenants. A callable may return the active workspace, but web, Celery and MCP
 contexts must resolve the same value for the same workspace. The host captures it
-once per session. No URL or credential is exposed in the token.
+once per layer per session. A metadata session must not span workspaces. No URL
+or credential is exposed in the token.
 
-The MetricFlow and Snowflake shell implementations must include the supplied
-token alongside existing endpoint, credential, role and view scope **before**
+Providers with process-local metadata caches must include the supplied token
+alongside existing endpoint, credential, role and view scope **before**
 any dictionary lookup or eager discovery. Their returned SDK views carry the
 same captured identity through `metadata_cache_token`; never relabel previously
 cached members with a later token. Runtime schema helpers receiving the layer's
 configuration must preserve its operation identity too. Keep existing expiries
-and prune retired dictionary generations to bound memory. Cube should carry the
-token onward; this mechanism does not clear Cube or warehouse server caches.
+and prune retired dictionary generations to bound memory. Providers without local
+metadata caches may carry the token onward; this does not clear vendor or
+warehouse server caches.
 Until a provider honours this hook in its caches, it cannot promise complete
-metadata reload support. The shell implementation is a separate dependency.
+metadata reload support. Provider adoption must accompany host deployment for
+complete invalidation.
 
 Host result, annotation-source, compatibility and value-suggestion cache keys
 include the captured generation while preserving their other key dimensions.
 Containment caches must likewise key on the **host ORM view**
 `metadata_cache_token`, optionally alongside the provider token. A legacy SDK
 view may return `None`; that must not disable host invalidation. Provider tokens
-keep their existing `str | None` contract. The containment integration is owned
-by the separate containment-cache change.
+keep their existing `str | None` contract. The containment integration is tracked
+in [#42760](https://github.com/apache/superset/pull/42760).
 
 Old entries expire normally. A page reload clears browser structure promises and
 rehydrates Explore state. Reload does not create/delete saved views, widen

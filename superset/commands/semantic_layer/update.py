@@ -258,7 +258,7 @@ class ClearSemanticLayerCacheCommand(BaseCommand):
     @transaction(
         on_error=partial(
             on_error,
-            catches=SQLAlchemyError,
+            catches=(SQLAlchemyError,),
             reraise=SemanticLayerUpdateFailedError,
         )
     )
