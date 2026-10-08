@@ -237,11 +237,31 @@ async def test_native_inventory_report_matches_registered_tools() -> None:
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mode", OUTPUT_MODES)
 async def test_largest_native_entry_fits_one_gateway_page(mode: str) -> None:
-    """Any single tool definition fits a gateway list page on its own."""
+    """Any single tool definition fits a gateway list page on its own.
+
+    This bounds entries, not the native listing: the service does not paginate
+    ``tools/list``, and the full native catalog is several gateway pages (see
+    ``totals.catalog_bytes`` in the inventory). Deployments behind such a
+    gateway use compatibility mode, whose listing is checked below.
+    """
     listing = await list_native(OUTPUT_MODES[mode])
     sizes = {tool.name: compact_bytes(wire_entry(tool)) for tool in listing.tools}
     largest = max(sizes, key=sizes.__getitem__)
     assert sizes[largest] <= GATEWAY_PAGE_BYTE_LIMIT, (largest, sizes[largest])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", OUTPUT_MODES)
+async def test_compatibility_listing_fits_one_gateway_page(mode: str) -> None:
+    """The default compatibility ``tools/list`` is one page under the gateway cap."""
+    server = await build_server(
+        structured_output_enabled=OUTPUT_MODES[mode], compatibility=True
+    )
+    async with Client(server) as client:
+        listing = await client.list_tools_mcp()
+    assert listing.nextCursor is None
+    page_bytes = compact_bytes([wire_entry(tool) for tool in listing.tools])
+    assert page_bytes <= GATEWAY_PAGE_BYTE_LIMIT, page_bytes
 
 
 @pytest.mark.asyncio
