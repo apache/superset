@@ -175,6 +175,27 @@ def _is_calculated_column(column: TableColumn) -> bool:
     return column.expression != quoted_path
 
 
+def _without_shadowed_nested_fields(
+    new_columns: list[ResultSetColumnType],
+    old_columns_by_name: dict[str, TableColumn],
+) -> list[ResultSetColumnType]:
+    """Drop expanded nested fields named like an existing calculated column.
+
+    Such calculated columns (e.g. ``calendar.day`` on a BigQuery STRUCT) are
+    user-defined and must keep their expression; ``fetch_metadata`` adds them
+    back with the other calculated columns.
+    """
+    return [
+        col
+        for col in new_columns
+        if not (
+            col.get("nested_field")
+            and (old_column := old_columns_by_name.get(col["column_name"]))
+            and _is_calculated_column(old_column)
+        )
+    ]
+
+
 METRIC_FORM_DATA_PARAMS = [
     "metric",
     "metric_2",
@@ -2393,6 +2414,7 @@ class SqlaTable(
         old_columns_by_name: dict[str, TableColumn] = {
             col.column_name: col for col in old_columns
         }
+        new_columns = _without_shadowed_nested_fields(new_columns, old_columns_by_name)
         results = MetadataResult(
             removed=[
                 col

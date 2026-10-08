@@ -138,6 +138,10 @@ class ResultSetColumnType(TypedDict):
     # identifier.
     expression: NotRequired[Any]
 
+    # Set on columns an engine spec expanded from a nested type (e.g. a STRUCT
+    # member); such a column never replaces a calculated column of its name.
+    nested_field: NotRequired[bool]
+
 
 CacheConfig: TypeAlias = dict[str, Any]
 DbapiDescriptionRow: TypeAlias = tuple[
