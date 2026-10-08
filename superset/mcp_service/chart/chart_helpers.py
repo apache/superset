@@ -1902,7 +1902,9 @@ def _omit_dormant_table_grain(
     because the semantic layer rejects a time grain without a time column.
     """
     extras = query.get("extras")
-    grain = extras.get("time_grain_sqla") if isinstance(extras, dict) else None
+    if not isinstance(extras, dict):
+        return query
+    grain = extras.get("time_grain_sqla")
     columns = query.get("columns")
     if (
         not isinstance(grain, str)
