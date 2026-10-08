@@ -88,6 +88,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.mcp_service.chart.chart_utils import DatasetValidationResult
     from superset.security.guest_token import GuestToken
+    from superset.semantic_layers.models import SemanticView
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
@@ -911,7 +912,7 @@ def get_user_from_request() -> MCPUser:
     )
 
 
-def has_dataset_access(dataset: "SqlaTable") -> bool:
+def has_dataset_access(dataset: "SqlaTable | SemanticView") -> bool:
     """
     Validate user has access to the dataset.
 
@@ -919,7 +920,7 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
     has permission to access the given dataset using Superset's security manager.
 
     Args:
-        dataset: The SqlaTable dataset to check access for
+        dataset: The SqlaTable dataset or semantic view to check access for
 
     Returns:
         True if user has access, False otherwise
@@ -962,16 +963,16 @@ def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
     )
     from superset.utils.core import DatasourceType
 
-    datasource_type: str = chart.datasource_type
+    datasource_type: str | None = chart.datasource_type
     datasource_id: int | None = chart.datasource_id
     if datasource_type == DatasourceType.TABLE:
         return validate_chart_dataset(datasource_id, check_access=True)
 
     # Other kinds are resolved by their own type, never by a same-id dataset.
-    view: Any = (
+    view: "SemanticView | None" = (
         chart.semantic_view if datasource_type == DatasourceType.SEMANTIC_VIEW else None
     )
-    if view is None or not security_manager.can_access_datasource(view):
+    if view is None or not has_dataset_access(view):
         return DatasetValidationResult(
             is_valid=False,
             dataset_id=datasource_id,

@@ -65,8 +65,14 @@ from superset.mcp_service.utils.oauth2_utils import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
+
+_SEMANTIC_VIEW_UPDATE_UNSUPPORTED: str = (
+    "Semantic-layer charts can only be renamed here (with generate_preview=false) "
+    "or rebound to a dataset with dataset_id."
+)
 
 
 def _get_existing_form_data(chart: Any) -> dict[str, Any]:
@@ -666,7 +672,6 @@ def _create_preview_url(
     """
     from superset.commands.explore.form_data.parameters import CommandParameters
     from superset.mcp_service.commands.create_form_data import MCPCreateFormDataCommand
-    from superset.utils.core import DatasourceType
 
     base_url = get_superset_base_url()
 
@@ -877,6 +882,32 @@ async def update_chart(  # noqa: C901
                         "error_type": "DatasetNotAccessible",
                         "message": error_msg,
                         "details": error_msg,
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
+
+        # The config, column and preview steps below resolve the chart's
+        # datasource as a SQL dataset, so a semantic-view chart may only be
+        # renamed in place or rebound to an explicit dataset.
+        if (
+            getattr(chart, "datasource_type", None) == DatasourceType.SEMANTIC_VIEW
+            and request.dataset_id is None
+            and (
+                request.config is not None
+                or request.add_columns is not None
+                or request.generate_preview
+            )
+        ):
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "Unsupported",
+                        "message": _SEMANTIC_VIEW_UPDATE_UNSUPPORTED,
+                        "details": _SEMANTIC_VIEW_UPDATE_UNSUPPORTED,
                     },
                     "success": False,
                     "schema_version": "2.0",

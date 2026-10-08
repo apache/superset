@@ -154,7 +154,8 @@ class TaskResponseSchema(Schema):
         # consumer-facing failure reason.
         if not task_internals_visible():
             properties.pop("private", None)
-        # Same treatment as the status route: embedded guests get generic text.
+        # Embedded guests get the generic failure text, as on the status route
+        # (applied here to every task type).
         if isinstance(message := properties.get("error_message"), str):
             properties["error_message"] = sanitize_error_message(message)
 

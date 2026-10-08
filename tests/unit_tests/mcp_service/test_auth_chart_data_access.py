@@ -54,7 +54,7 @@ def test_semantic_view_chart_is_checked_against_the_view(
         return_value=_result(True),
     )
     can_access = mocker.patch(
-        "superset.mcp_service.auth.security_manager.can_access_datasource",
+        "superset.mcp_service.auth.has_dataset_access",
         return_value=can_access_view,
     )
 
@@ -85,10 +85,13 @@ def test_semantic_view_chart_without_its_view_is_refused(
     dataset_check.assert_not_called()
 
 
-def test_unknown_datasource_type_is_refused(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize("datasource_type", ["query", None])
+def test_unknown_datasource_type_is_refused(
+    mocker: MockerFixture, datasource_type: str | None
+) -> None:
     """Only datasource kinds this check understands can pass it."""
     chart: SimpleNamespace = SimpleNamespace(
-        datasource_type="query", datasource_id=5, semantic_view=None
+        datasource_type=datasource_type, datasource_id=5, semantic_view=None
     )
     mocker.patch(
         "superset.mcp_service.chart.chart_utils.validate_chart_dataset",

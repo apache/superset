@@ -2991,3 +2991,102 @@ def test_rebind_target_dataset_requires_data_level_access(
         assert response.error is not None
         assert response.error.error_type == "DatasetNotAccessible"
         assert "rebind_target" not in response.model_dump_json()
+
+
+class TestUpdateChartSemanticView:
+    """Semantic-view charts never enter the SQL-dataset update pipeline."""
+
+    @staticmethod
+    def _semantic_chart() -> Mock:
+        chart: Mock = Mock()
+        chart.id = 1
+        chart.datasource_id = 10
+        chart.datasource_type = "semantic_view"
+        chart.slice_name = "Old Name"
+        chart.viz_type = "table"
+        chart.uuid = "abc-123"
+        return chart
+
+    @staticmethod
+    def _view_access() -> DatasetValidationResult:
+        return DatasetValidationResult(
+            is_valid=True, dataset_id=10, dataset_name="orders view", warnings=[]
+        )
+
+    @pytest.mark.parametrize(
+        "update",
+        [
+            {"config": {"chart_type": "table", "columns": [{"name": "col1"}]}},
+            {"add_columns": [{"name": "col1"}]},
+            {"chart_name": "Renamed Chart"},
+        ],
+        ids=["config", "add-columns", "previewed-rename"],
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", new_callable=Mock)
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_semantic_chart_refuses_dataset_updates(
+        self,
+        mock_db_session: Mock,
+        mock_find_by_id: Mock,
+        mock_check_access: Mock,
+        mock_dataset_lookup: Mock,
+        update: dict[str, Any],
+    ) -> None:
+        """Config, column and preview updates are refused before any dataset use."""
+        mock_find_by_id.return_value = self._semantic_chart()
+        mock_check_access.return_value = self._view_access()
+
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "update_chart", {"request": {"identifier": 1, **update}}
+            )
+
+        assert result.structured_content["success"] is False
+        assert result.structured_content["error"]["error_type"] == "Unsupported"
+        mock_dataset_lookup.assert_not_called()
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_semantic_chart_persisted_rename_succeeds(
+        self,
+        mock_db_session: Mock,
+        mock_find_by_id: Mock,
+        mock_update_cmd_cls: Mock,
+        mock_check_access: Mock,
+    ) -> None:
+        """A rename saved directly needs no dataset and still works."""
+        mock_find_by_id.return_value = self._semantic_chart()
+        mock_check_access.return_value = self._view_access()
+        updated_chart: Mock = self._semantic_chart()
+        updated_chart.slice_name = "Renamed Chart"
+        mock_update_cmd_cls.return_value.run.return_value = updated_chart
+
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "update_chart",
+                {
+                    "request": {
+                        "identifier": 1,
+                        "chart_name": "Renamed Chart",
+                        "generate_preview": False,
+                    }
+                },
+            )
+
+        assert result.structured_content["success"] is True
+        mock_update_cmd_cls.assert_called_once_with(1, {"slice_name": "Renamed Chart"})
