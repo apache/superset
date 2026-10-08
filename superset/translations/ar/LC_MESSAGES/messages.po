@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -6674,6 +6674,9 @@ msgstr "لم يتم إرجاع أي عينات لمجموعة البيانات �
 msgid "Discard"
 msgstr "تجاهل"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "اسم العرض"
 
@@ -8215,6 +8218,9 @@ msgstr "فشل تحميل بيانات المخطط."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8288,6 +8294,9 @@ msgstr "فشلت عملية حفظ تحديد نطاق عوامل التصفية
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "فشلت عملية حفظ تحديد نطاق عوامل التصفية المشتركة"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11531,6 +11540,9 @@ msgid "No saved metrics found"
 msgstr "لم يتم العثور على مقاييس محفوظة"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -15767,9 +15779,6 @@ msgstr "حدث خطأ ما."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "عذرًا، حدث خطأ أثناء جلب معلومات قاعدة البيانات: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "عذرًا، حدث خطأ أثناء جلب المخططات المحفوظة: "
-
 msgid "Sorry, An error occurred"
 msgstr "عذرًا، حدث خطأ"
 
@@ -15784,6 +15793,9 @@ msgstr "آسف، حدث خطأ ما. لا يمكن إلغاء تفعيل الت�
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "آسف، حدث خطأ ما. يرجى المحاولة مرة أخرى."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "آسف، حدث خطأ ما. حاول مرة أخرى لاحقًا."
@@ -21352,6 +21364,9 @@ msgid ""
 msgstr ""
 "لقد قمت بتحديث القيم في لوحة التحكم، ولكن لم يتم تحديث المخطط تلقائيًا. "
 "قم بتشغيل الاستعلام بالنقر فوق الزر «تحديث المخطط» أو"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

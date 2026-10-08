@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -6188,6 +6188,9 @@ msgstr ""
 msgid "Discard"
 msgstr "Rejeter"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Nom d'affichage"
 
@@ -7573,6 +7576,9 @@ msgstr "Échec du chargement des données du graphique."
 msgid "Failed to load columns for %s %s"
 msgstr "Échec lors du chargement des colonnes pour %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7639,6 +7645,9 @@ msgstr "Échec de l'enregistrement de la portée du filtre croisé"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Échec de la sauvegarde des paramètres des filtres croisés"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Échec de la définition du thème local : configuration JSON invalide"
@@ -10637,6 +10646,9 @@ msgid "No saved metrics found"
 msgstr "Aucune mesure sauvegardée trouvée"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -14637,11 +14649,6 @@ msgstr ""
 "Désolé, une erreur s'est produite lors de la récupération des "
 "informations de cette base de données : %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr ""
-"Désolé, une erreur s'est produite lors de la récupération des graphiques "
-"sauvegardés: "
-
 msgid "Sorry, An error occurred"
 msgstr "Désolé, une erreur s'est produite"
 
@@ -14658,6 +14665,9 @@ msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Une erreur s'est produite. Veuillez réessayez plus tard."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Une erreur s'est produite. Réessayez plus tard."
@@ -20038,6 +20048,9 @@ msgstr ""
 "Vous avez mis à jour les valeurs dans le panneau de commande, mais le "
 "graphique n'a pas été mis à jour automatiquement. Exécutez la requête en "
 "cliquant sur le bouton « Mettre à jour le graphique » ou"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

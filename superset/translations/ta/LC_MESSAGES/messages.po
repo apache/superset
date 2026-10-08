@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -6053,6 +6053,9 @@ msgstr "இந்தத் தரவுத்தளத்திற்கான �
 msgid "Discard"
 msgstr "கைவிடு (Discard)"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "காட்சிப் பெயர்"
 
@@ -7423,6 +7426,9 @@ msgstr "சார்ட் தரவை ஏற்றுவதில் தோல
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7490,6 +7496,9 @@ msgstr "கிராஸ்-ஃபில்டர் ஸ்கோப்பிங�
 
 msgid "Failed to save cross-filters setting"
 msgstr "கிராஸ்-ஃபில்டர் அமைப்பைச் சேமிப்பதில் தோல்வி"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "உள்ளூர் தீமை அமைப்பதில் தோல்வி: தவறான JSON உள்ளமைவு"
@@ -10372,6 +10381,9 @@ msgid "No saved metrics found"
 msgstr "சேமிக்கப்பட்ட அளவீடுகள் எதுவும் காணப்படவில்லை"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -14154,9 +14166,6 @@ msgstr "ஏதோ தவறு நிகழ்ந்துவிட்டது.
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "மன்னிக்கவும், தரவுத்தளத் தகவலைப் பெறுவதில் பிழை ஏற்பட்டது: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "மன்னிக்கவும், சேமிக்கப்பட்ட சார்ட்டுகளைப் பெறுவதில் பிழை ஏற்பட்டது: "
-
 msgid "Sorry, An error occurred"
 msgstr "மன்னிக்கவும், ஒரு பிழை ஏற்பட்டது"
 
@@ -14173,6 +14182,9 @@ msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "மன்னிக்கவும், ஏதோ தவறு நடந்துவிட்டது. மீண்டும் முயற்சிக்கவும்."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr ""
@@ -19087,6 +19099,9 @@ msgid ""
 msgstr ""
 "நீங்கள் கட்டுப்பாட்டு பலகத்தில் மதிப்புகளைப் புதுப்பித்துள்ளீர்கள், ஆனால்"
 " சார்ட் தானாகப் புதுப்பிக்கப்படவில்லை."
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 #, python-format
 msgid ""

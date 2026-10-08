@@ -23,6 +23,8 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import { useDashboardLayoutStore } from 'src/dashboard/stores';
+import type { DashboardLayout } from 'src/dashboard/types';
 import {
   ChartsScopingListPanel,
   ChartsScopingListPanelProps,
@@ -113,11 +115,15 @@ const INITIAL_STATE = {
   },
 };
 
-const setup = (props = DEFAULT_PROPS) =>
-  render(<ChartsScopingListPanel {...props} />, {
+const setup = (props = DEFAULT_PROPS) => {
+  useDashboardLayoutStore.setState({
+    layout: INITIAL_STATE.dashboardLayout.present as unknown as DashboardLayout,
+  });
+  return render(<ChartsScopingListPanel {...props} />, {
     useRedux: true,
     initialState: INITIAL_STATE,
   });
+};
 
 test('Renders charts scoping list panel', () => {
   setup();

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -6354,6 +6354,9 @@ msgstr ""
 msgid "Discard"
 msgstr "Whakarerea"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Ingoa Whakaatu"
 
@@ -7811,6 +7814,9 @@ msgstr "I rahua te uta i ngā raraunga kauwhata."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7886,6 +7892,9 @@ msgstr "I rahua te tiaki i te korahi tātari-whiti"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "I rahua te tiaki i te korahi tātari-whiti"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11034,6 +11043,9 @@ msgid "No saved metrics found"
 msgstr "Kāore i kitea he ine kua tiakina"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -15178,9 +15190,6 @@ msgstr ""
 "Aroha mai, i puta he hapa i te tikitanga o ngā mōhiohio pātengi raraunga:"
 " %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Aroha mai, i puta he hapa i te tikitanga o ngā kauwhata kua tiakina: "
-
 msgid "Sorry, An error occurred"
 msgstr "Aroha mai, I puta he hapa"
 
@@ -15195,6 +15204,9 @@ msgstr "Aroha mai, i hē tētahi mea. Kāore i taea te whakakore i te tāmau."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Aroha mai, i hē tētahi mea. Tēnā whakamātauhia anō."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Aroha mai, i hē tētahi mea. Whakamātauhia anō ā muri ake nei."
@@ -20647,6 +20659,9 @@ msgstr ""
 "I whakahou koe i ngā uara i te papa whakahaere, engari kāore i "
 "whakahouhia aunoa te kauwhata. Whakahaere i te pātai mā te pāwhiri i te "
 "pātene \"Whakahou kauwhata\", "
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

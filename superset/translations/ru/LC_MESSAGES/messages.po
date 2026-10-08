@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -6024,6 +6024,9 @@ msgstr "Отключает переход к детализации для эт�
 msgid "Discard"
 msgstr "Отменить изменения"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Отображаемое имя"
 
@@ -7370,6 +7373,9 @@ msgstr "Не удалось загрузить данные"
 msgid "Failed to load columns for %s %s"
 msgstr "Не удалось загрузить столбцы %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7436,6 +7442,9 @@ msgstr "Не удалось сохранить область действия �
 
 msgid "Failed to save cross-filters setting"
 msgstr "Не удалось сохранить настройку кросс-фильтров"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Не удалось установить локальную тему: некорректная JSON-конфигурация"
@@ -10362,6 +10371,9 @@ msgid "No saved metrics found"
 msgstr "Сохраненные меры не найдены"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -14194,9 +14206,6 @@ msgstr "Что-то пошло не так"
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "К сожалению, произошла ошибка при получении информации о базе данных: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Произошла ошибка при загрузке сохраненных диаграмм: "
-
 msgid "Sorry, An error occurred"
 msgstr "Извините, произошла ошибка"
 
@@ -14211,6 +14220,9 @@ msgstr "Извините, что-то пошло не так. Встраиван
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Извините, произошла ошибка. Пожалуйста, попробуйте еще раз."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Извините, что-то пошло не так. Попробуйте еще раз позже."
@@ -19320,6 +19332,9 @@ msgstr ""
 "Вы обновили значения в панели управления, но диаграмма не была обновлена "
 "автоматически. Сделайте запрос, нажав на кнопку \"Обновить диаграмму\" "
 "или"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 #, python-format
 msgid ""

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -7424,6 +7424,9 @@ msgstr "Онемогућава функцију преласка на детаљ
 msgid "Discard"
 msgstr "Одбаци"
 
+msgid "Discard changes?"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
 msgstr "Назив за приказ"
@@ -9104,6 +9107,9 @@ msgstr "Неуспело учитавање података графикона.
 msgid "Failed to load columns for %s %s"
 msgstr "Неуспело учитавање колона за %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -9178,6 +9184,9 @@ msgstr "Неуспело чување опсега укрштеног филте
 # uk]
 msgid "Failed to save cross-filters setting"
 msgstr "Неуспело чување подешавања укрштених филтера"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -12799,6 +12808,9 @@ msgid "No saved metrics found"
 msgstr "Нису пронађене сачуване метрике"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -17554,10 +17566,6 @@ msgstr ""
 "Жао нам је, дошло је до грешке приликом преузимања информација о бази "
 "података: %s"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Жао нам је, дошло је до грешке приликом преузимања сачуваних графикона: "
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, An error occurred"
 msgstr "Жао нам је, дошло је до грешке"
@@ -17577,6 +17585,9 @@ msgstr "Жао нам је, дошло је до грешке. Уграђива�
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Жао нам је, дошло је до грешке. Покушајте поново."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Sorry, something went wrong. Try again later."
@@ -23691,6 +23702,9 @@ msgid ""
 msgstr ""
 "Ажурирали сте вредности на контролној табли, али графикон није аутоматски"
 " ажуриран. Покрените упит кликом на дугме „Ажурирај графикон” или"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 #, python-format
 msgid ""

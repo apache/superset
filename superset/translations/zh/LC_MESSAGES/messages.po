@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -6213,6 +6213,9 @@ msgstr "禁用此数据库的钻取到明细功能。"
 msgid "Discard"
 msgstr "放弃"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "显示名称"
 
@@ -7663,6 +7666,9 @@ msgstr "加载图表数据失败。"
 msgid "Failed to load columns for %s %s"
 msgstr "无法加载 %s %s 的列"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7735,6 +7741,9 @@ msgstr "保存交叉筛选作用域失败"
 
 msgid "Failed to save cross-filters setting"
 msgstr "保存交叉筛选设置失败"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10892,6 +10901,9 @@ msgid "No saved metrics found"
 msgstr "没有已保存的指标"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -14930,9 +14942,6 @@ msgstr "出了点问题。"
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "抱歉，获取数据库信息时出错：%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "抱歉，获取已保存的图表时出错： "
-
 msgid "Sorry, An error occurred"
 msgstr "抱歉，发生错误"
 
@@ -14949,6 +14958,9 @@ msgstr "抱歉，出了点问题。无法停用嵌入功能。"
 #, fuzzy
 msgid "Sorry, something went wrong. Please try again."
 msgstr "抱歉，出了点问题。请稍后再试。"
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "抱歉，出了点问题。请稍后再试。"
@@ -20134,6 +20146,9 @@ msgid ""
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
 msgstr "您已更新了控制面板中的值，但图表未自动更新。请点击“更新图表”按钮运行查询或"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

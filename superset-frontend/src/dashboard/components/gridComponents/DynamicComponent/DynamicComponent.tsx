@@ -16,12 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, Suspense } from 'react';
+import { FC, Suspense, useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { DashboardComponentMetadata, JsonObject } from '@superset-ui/core';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import cx from 'classnames';
-import { shallowEqual, useSelector } from 'react-redux';
+import {
+  useFilterEntries,
+  useFocusedFilterId,
+  useHoveredFilterId,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import type { ConnectDragSource } from 'react-dnd';
 import { Draggable } from '../../dnd/DragDroppable';
@@ -37,7 +42,6 @@ import HoverMenu from '../../menu/HoverMenu';
 import DeleteComponentButton from '../../DeleteComponentButton';
 import BackgroundStyleDropdown from '../../menu/BackgroundStyleDropdown';
 import dashboardComponents from '../../../../visualizations/presets/dashboardComponents';
-import { RootState } from '../../../types';
 
 type DynamicComponentProps = {
   component: JsonObject;
@@ -101,12 +105,16 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
   };
 
   const { Component } = dashboardComponents.get(component.meta.componentKey);
-  const dashboardData = useSelector<RootState, DashboardComponentMetadata>(
-    ({ nativeFilters, dataMask }) => ({
-      nativeFilters,
+  const filters = useFilterEntries();
+  const focusedFilterId = useFocusedFilterId();
+  const hoveredFilterId = useHoveredFilterId();
+  const dataMask = useDataMaskStore(s => s.dataMask);
+  const dashboardData = useMemo<DashboardComponentMetadata>(
+    () => ({
+      nativeFilters: { filters, focusedFilterId, hoveredFilterId },
       dataMask,
     }),
-    shallowEqual,
+    [filters, focusedFilterId, hoveredFilterId, dataMask],
   );
 
   return (

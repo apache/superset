@@ -31,7 +31,7 @@ import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_DRILL_TO_DETAIL_MODAL_OPENED } from 'src/logger/LogUtils';
-import { Slice } from 'src/types/Chart';
+import { useDashboardSlicesStore } from 'src/dashboard/stores';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { Dataset } from '../types';
@@ -103,10 +103,8 @@ export default function DrillDetailModal({
   const history = useHistory();
   const dispatch = useDispatch();
   const dashboardPageId = useContext(DashboardPageIdContext);
-  const { slice_name: chartName } = useSelector(
-    (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
-      state.sliceEntities?.slices?.[chartId] || {},
-  );
+  const { slice_name: chartName } =
+    useDashboardSlicesStore(s => s.slices[chartId]) || {};
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),
   );

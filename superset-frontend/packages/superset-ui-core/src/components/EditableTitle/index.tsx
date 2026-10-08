@@ -76,6 +76,7 @@ export function EditableTitle({
   extraClasses,
   noPermitTooltip,
   onSaveTitle,
+  onChange,
   showTooltip = true,
   style,
   title = '',
@@ -191,6 +192,7 @@ export function EditableTitle({
   function handleChange(event: any) {
     if (!canEdit) return;
     setCurrentTitle(event.target.value);
+    onChange?.(event.target.value);
   }
 
   function handleKeyPress(event: React.KeyboardEvent) {

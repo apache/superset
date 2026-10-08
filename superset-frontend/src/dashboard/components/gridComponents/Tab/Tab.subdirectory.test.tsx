@@ -18,6 +18,8 @@
  */
 import type { FC } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 
 // Tab.tsx is statically imported below; the mock pattern intercepts
 // applicationRoot() rather than relying on withApplicationRoot (which is for
@@ -103,14 +105,19 @@ const buildProps = () => ({
   onResizeStop: jest.fn(),
 });
 
-const renderEmptyEditModeTab = () =>
-  render(<Tab {...buildProps()} />, {
+const renderEmptyEditModeTab = () => {
+  // dash_edit_perm now lives in the Zustand info store, not Redux.
+  useDashboardInfoStore.setState({
+    dashboardInfo: { dash_edit_perm: true } as DashboardInfo,
+  });
+  return render(<Tab {...buildProps()} />, {
     useRedux: true,
     useDnd: true,
     initialState: {
       dashboardInfo: { dash_edit_perm: true },
     },
   });
+};
 
 beforeEach(() => {
   mockApplicationRoot.mockReturnValue('');

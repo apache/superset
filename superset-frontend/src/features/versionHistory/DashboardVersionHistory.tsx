@@ -18,13 +18,18 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useAppDispatch, useAppSelector } from 'src/views/store';
+import { useAppDispatch } from 'src/views/store';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import type { RootState } from 'src/dashboard/types';
+import {
+  useDashboardInfo,
+  useHasUnsavedChanges,
+  useStateVersionHistoryRevision,
+  useInfoVersionHistoryRevision,
+} from 'src/dashboard/stores';
 import type {
   ActivityInclude,
   ActivityRecord,
@@ -43,7 +48,7 @@ import {
   setVersionHistoryInclude,
   setVersionPreview,
 } from './reducer';
-import { selectCanRestoreDashboard } from './canRestoreDashboard';
+import { useCanRestoreDashboard } from './canRestoreDashboard';
 import { openRelatedEntity } from './openRelated';
 import { useVersionActivity } from './useVersionActivity';
 import { useVersionActions } from './useVersionActions';
@@ -54,16 +59,13 @@ import VersionHistoryPanel from './VersionHistoryPanel';
 export default function DashboardVersionHistory() {
   const dispatch = useAppDispatch();
   const { addDangerToast } = useToasts();
-  const uuid = useSelector<RootState, string | undefined>(
-    state => state.dashboardInfo?.uuid,
-  );
-  const canRestore = useSelector(selectCanRestoreDashboard);
+  const dashboardInfo = useDashboardInfo();
+  const uuid = dashboardInfo?.uuid;
+  const canRestore = useCanRestoreDashboard();
   const isPanelOpen = useSelector(selectIsVersionHistoryPanelOpen);
   const include = useSelector(selectVersionHistoryInclude);
   const preview = useSelector(selectVersionPreview);
-  const hasUnsavedChanges = useSelector<RootState, boolean>(
-    state => !!state.dashboardState?.hasUnsavedChanges,
-  );
+  const hasUnsavedChanges = useHasUnsavedChanges();
   // Dashboard edits are tracked coarsely (no per-control log like
   // explore): a single "unsaved edits" entry while edit mode is dirty.
   // The timestamp is captured when the dashboard first turns dirty —
@@ -143,12 +145,9 @@ export default function DashboardVersionHistory() {
   const lastRestoredUuid = useSelector(selectVersionLastRestoredUuid);
   // Only successful writes bump these revisions. Timestamps also change for
   // local metadata edits and may repeat across multiple saves in one second.
-  const saveRevision = useAppSelector(state =>
-    [
-      state.dashboardState?.versionHistoryRevision ?? 0,
-      state.dashboardInfo?.versionHistoryRevision ?? 0,
-    ].join('|'),
-  );
+  const stateRevision = useStateVersionHistoryRevision();
+  const infoRevision = useInfoVersionHistoryRevision();
+  const saveRevision = [stateRevision, infoRevision].join('|');
   const lastSaveRevisionRef = useRef(saveRevision);
   const lastSaveUuidRef = useRef(uuid);
   const lastRestoreCountRef = useRef(restoreCount);

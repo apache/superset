@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 14:36-0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -6214,6 +6214,9 @@ msgstr "Zakáže funkci přechodu na detail pro tuto databázi."
 msgid "Discard"
 msgstr "Zahodit"
 
+msgid "Discard changes?"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Zobrazované jméno"
 
@@ -7631,6 +7634,9 @@ msgstr "Nepodařilo se načíst data grafu."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7701,6 +7707,9 @@ msgstr "Nepodařilo se uložit rozsah křížového filtrování"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Nepodařilo se uložit nastavení křížových filtrů"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Nepodařilo se nastavit místní téma: Neplatná konfigurace JSON"
@@ -10729,6 +10738,9 @@ msgid "No saved metrics found"
 msgstr "Nebyly nalezeny žádné uložené metriky"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -14759,9 +14771,6 @@ msgstr "Něco se pokazilo."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Omlouváme se, při načítání informací o databázi došlo k chybě: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Omlouváme se, při načítání uložených grafů došlo k chybě: "
-
 msgid "Sorry, An error occurred"
 msgstr "Omlouváme se, došlo k chybě"
 
@@ -14776,6 +14785,9 @@ msgstr "Omlouváme se, něco se pokazilo. Vkládání se nepodařilo deaktivovat
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Omlouváme se, něco se pokazilo. Zkuste to prosím znovu."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Omlouváme se, něco se pokazilo. Zkuste to znovu později."
@@ -20028,6 +20040,9 @@ msgstr ""
 "Aktualizovali jste hodnoty v ovládacím panelu, ale graf se automaticky "
 "neaktualizoval. Spusťte dotaz kliknutím na tlačítko „Aktualizovat graf“ "
 "nebo"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
