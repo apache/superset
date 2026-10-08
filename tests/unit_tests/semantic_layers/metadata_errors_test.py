@@ -20,10 +20,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 import pytest
-from flask import Flask
+from flask import Flask, Response
 from flask.testing import FlaskClient
 from flask_appbuilder.api import BaseApi
 from sqlalchemy.exc import SQLAlchemyError
@@ -214,3 +214,22 @@ def test_discovery_http_preserves_typed_storage_and_budget_failures(
     assert response.json["error"] == category
     assert response.json["message"] != category
     access.assert_called_once()
+
+
+def test_unavailable_message_covers_metadata_database_constraints(app: Flask) -> None:
+    """A DB eligibility failure must not tell the user that Redis is broken."""
+    from flask_appbuilder.api import BaseApi
+    from superset_core.semantic_layers.metadata import MetadataRefreshError
+
+    from superset.semantic_layers.metadata_errors import metadata_error_response
+
+    with app.app_context():
+        response: Response = cast(
+            Response,
+            metadata_error_response(BaseApi, MetadataRefreshError("unavailable")),
+        )
+    assert response.status_code == 503
+    assert response.get_json() == {
+        "error": "unavailable",
+        "message": "Semantic metadata is unavailable. Try again later.",
+    }

@@ -19,7 +19,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import ExitStack
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 from unittest.mock import Mock
 from uuid import uuid4
@@ -30,6 +33,11 @@ from flask import Flask
 from flask.testing import FlaskClient
 from flask_caching import Cache
 from pytest_mock import MockerFixture
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Connection, Engine
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import QueuePool
+from sqlalchemy.sql.selectable import Exists
 from superset_core.semantic_layers.types import Dimension, Filter, SemanticResult
 from werkzeug.test import TestResponse
 
@@ -44,13 +52,22 @@ from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.utils import json
 from tests.unit_tests.semantic_layers.metadata_binding_test import (
-    mock_metadata_revalidation,
+    postgres_caller,
+    postgres_transaction_model,
 )
 from tests.unit_tests.semantic_layers.metadata_contract_test import (
     OptedInLayer,
     SnapshotView,
 )
 from tests.unit_tests.semantic_layers.metadata_store_test import MemoryBackend
+
+
+@pytest.fixture
+def metadata_context() -> Iterator[ExitStack]:
+    """Close only this test's private metadata session, connection and engine."""
+    stack: ExitStack
+    with ExitStack() as stack:
+        yield stack
 
 
 class ValuesView(SnapshotView):
@@ -94,6 +111,8 @@ def test_column_values_refresh_rotates_cache_with_stable_view_identity(
     full_api_access: None,
     caplog: pytest.LogCaptureFixture,
     mocker: MockerFixture,
+    tmp_path: Path,
+    metadata_context: ExitStack,
 ) -> None:
     """Warm T0, publish T1 and read new suggestions through the authorized route."""
     # Configure only this operation's private backend after app initialization,
@@ -127,12 +146,48 @@ def test_column_values_refresh_rotates_cache_with_stable_view_identity(
         "superset.semantic_layers.metadata_binding.DeadlineRedisBackend",
         return_value=backend,
     )
+    engine: Engine = create_engine(
+        f"sqlite:///{tmp_path / 'request.db'}",
+        poolclass=QueuePool,
+        pool_size=1,
+        max_overflow=0,
+        pool_timeout=0.05,
+    )
+    metadata_context.callback(engine.dispose)
+    metadata_context.enter_context(postgres_transaction_model(engine))
+    SemanticLayer.__table__.create(engine)
+    seed: Connection
+    with engine.begin() as seed:
+        seed.execute(
+            SemanticLayer.__table__.insert().values(
+                uuid=layer.uuid,
+                name="fixture",
+                type=layer.type,
+                configuration=layer.configuration,
+                configuration_version=1,
+            )
+        )
+    caller: Session = metadata_context.enter_context(
+        Session(bind=engine, autoflush=False)
+    )
+    live: Connection = caller.connection()
+    mocker.patch.object(live, "get_isolation_level", return_value="READ COMMITTED")
+    metadata_context.enter_context(postgres_caller(caller))
     database: Mock = mocker.patch("superset.semantic_layers.metadata_binding.db")
-    mock_metadata_revalidation(database, layer)
+    database.session = caller
     mocker.patch(
         "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
     )
-    access: Mock = mocker.patch.object(view, "raise_for_access")
+
+    def permission_prelude() -> None:
+        """Exercise FAB-shaped permission SQL on the publication caller connection."""
+        query: Exists = caller.query(SemanticLayer).filter_by(uuid=layer.uuid).exists()
+        assert caller.query(query).scalar()
+        assert caller.query(SemanticLayer).count() == 1
+
+    access: Mock = mocker.patch.object(
+        view, "raise_for_access", side_effect=permission_prelude
+    )
     mocker.patch(
         "superset.datasource.api.security_manager.get_rls_cache_key", return_value=[]
     )

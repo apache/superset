@@ -74,7 +74,7 @@ def metadata_error_response(
         "deadline": (504, str(t("Metadata sync timed out. Try again later."))),
         "unavailable": (
             503,
-            str(t("Shared metadata storage is unavailable. Try again later.")),
+            str(t("Semantic metadata is unavailable. Try again later.")),
         ),
         "indeterminate": (
             503,

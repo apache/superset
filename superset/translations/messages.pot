@@ -12044,6 +12044,9 @@ msgstr ""
 msgid "Semantic layer updated"
 msgstr ""
 
+msgid "Semantic metadata is unavailable. Try again later."
+msgstr ""
+
 msgid "Semantic view could not be created."
 msgstr ""
 
@@ -17730,10 +17733,6 @@ msgstr ""
 
 #: superset/semantic_layers/metadata_errors.py:65
 msgid "Metadata sync timed out. Try again later."
-msgstr ""
-
-#: superset/semantic_layers/metadata_errors.py:68
-msgid "Shared metadata storage is unavailable. Try again later."
 msgstr ""
 
 #: superset/semantic_layers/metadata_errors.py:74

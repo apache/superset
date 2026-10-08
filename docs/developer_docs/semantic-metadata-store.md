@@ -227,18 +227,30 @@ bridge with an explicit metadata operation before they can participate. An
 async caller or missing operation fails before Redis I/O. This change does not
 adapt those entry points.
 
-Before publication, revalidation reads through the caller's live metadata-DB
-connection without another pool checkout, autoflush, or transaction completion.
-Only a live `READ COMMITTED` isolation level is accepted. Other or unknown levels
-(including SQLite's `SERIALIZABLE`) fail closed with `unavailable`: a cold scope
-stays cold and an existing unexpired snapshot is not replaced or extended.
-READ COMMITTED also sees the caller's own writes, so publication requires a
-transaction observed from its beginning with only ordinary compiled SELECTs and
-no pending ORM changes. Flushed writes, raw SQL (including literal expressions), SQL functions, custom
-SQL constructs, write CTEs, or unknown transaction history make publication uncertain; SAVEPOINT rollback does
-not clear that state. A new outer transaction can qualify again. Application
-metadata-DB access must use SQLAlchemy's connection APIs; bypassing their events
-with a raw DBAPI cursor is unsupported for this optional path.
+The host's catalog publication check uses the caller's live metadata-DB
+connection without another pool checkout or ORM autoflush. PostgreSQL 10 or later
+with live `READ COMMITTED` isolation is required for this check. Other/unknown
+isolation levels, unsupported databases (including MySQL and SQLite), and pending
+ORM changes fail closed with `unavailable` (HTTP 503). This is an error response,
+not a silent cold read; no catalog is published and an existing unexpired
+snapshot is not replaced or extended.
+
+READ COMMITTED also sees the caller's own writes. Revalidation therefore requires
+`pg_catalog.pg_current_xact_id_if_assigned() IS NULL` (PostgreSQL 13+) or
+`pg_catalog.txid_current_if_assigned() IS NULL` (10–12). These database checks
+accept ordinary permission `exists()`/`count()` SELECTs while detecting flushed,
+Core and raw-DBAPI writes, including writes rolled back to a SAVEPOINT. An
+assigned transaction ID is treated conservatively as uncertainty even if it came
+from an explicit ID request rather than a relevant write. No process-wide SQL
+listeners or SQL-shape classification are used.
+
+A connection-level SAVEPOINT contains the isolation/provenance/scope reads.
+Statement failures roll back that nested scope without ending or flushing the
+caller's outer transaction. A lost connection or failed SAVEPOINT recovery can
+still make the connection unusable; worker cancellation remains cancellation.
+Distinct operator logs identify isolation, pending ORM state, unsupported
+provenance and SQL-read failures. The public category/status remain
+`unavailable`/503, with the neutral message “Semantic metadata is unavailable”.
 
 The revalidation read uses the operator's existing connection/statement timeouts. It is synchronous and is not cancelled by the
 metadata budget; a slow metadata DB can extend elapsed request time, although
