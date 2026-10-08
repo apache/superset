@@ -2597,6 +2597,11 @@ def validate_merged_bullet_form_data(
         if update_config is None or "filters" not in update_config.model_fields_set:
             validation_data.pop("adhoc_filters", None)
             validation_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+        if update_config is None or "order_by" not in update_config.model_fields_set:
+            # An inherited sort may rank by an independent saved metric; the
+            # native query contract validates it, not the authoring schema.
+            for order_key in ("orderby", "order_by_cols"):
+                validation_data.pop(order_key, None)
     return BulletChartConfig.model_validate(validation_data)
 
 

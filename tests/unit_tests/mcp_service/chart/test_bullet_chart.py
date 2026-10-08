@@ -5016,6 +5016,32 @@ async def test_saved_bullet_labels_update_keeps_independent_ranking_metric() -> 
     assert query["orderby"] == [["SavedRevenue", False]]
 
 
+@pytest.mark.asyncio
+async def test_saved_bullet_restated_dimensions_keep_independent_sort() -> None:
+    """Restating the saved hierarchy does not re-author the inherited sort."""
+    sales = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "Revenue"},
+        "aggregate": "SUM",
+        "label": "SUM(Revenue)",
+    }
+    persisted = await _run_saved_bullet_update(
+        {
+            "viz_type": "bullet",
+            "metric": sales,
+            "groupby": ["Region"],
+            "orderby": [["SavedRevenue", False]],
+        },
+        {
+            "metric": _simple_metric("Revenue"),
+            "dimensions": [{"name": "Region"}],
+            "show_labels": True,
+        },
+    )
+    assert persisted["groupby"] == ["Region"]
+    assert persisted["orderby"] == [["SavedRevenue", False]]
+
+
 def test_bullet_update_merge_row_limit_omission_and_explicit_value() -> None:
     """An omitted limit keeps the saved value; an explicit one replaces it."""
     from superset.mcp_service.chart.chart_utils import merge_chart_form_data
