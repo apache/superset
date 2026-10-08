@@ -597,6 +597,7 @@ def test_factory_server_respects_structured_output_setting(enabled: bool) -> Non
         os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
 
 
+@pytest.mark.parametrize("use_factory_config", [False, True])
 @pytest.mark.parametrize(
     ("flask_config", "expected"),
     [
@@ -624,7 +625,9 @@ def test_factory_server_respects_structured_output_setting(enabled: bool) -> Non
     ],
 )
 def test_run_server_applies_native_list_config_only_in_native_mode(
-    flask_config: dict[str, Any], expected: dict[str, Any] | None
+    flask_config: dict[str, Any],
+    expected: dict[str, Any] | None,
+    use_factory_config: bool,
 ) -> None:
     """The compact listing setting reaches the native server only."""
     from superset.mcp_service import server
@@ -638,13 +641,23 @@ def test_run_server_applies_native_list_config_only_in_native_mode(
                 mcp_instance,
                 _mock_build_middleware_list,
             ),
+            patch.object(server, "get_mcp_factory_config", return_value={}),
+            patch.object(server, "create_mcp_app", return_value=mcp_instance),
+            patch("superset.mcp_service.session_scope.install_mcp_session_scoping"),
             patch.object(server, "_apply_tool_search_transform") as search,
             patch.object(server, "_apply_compact_tool_list_transform") as compact,
         ):
-            run_server(host="127.0.0.1", port=port)
+            run_server(
+                host="127.0.0.1", port=port, use_factory_config=use_factory_config
+            )
 
         if expected is None:
-            search.assert_called_once()
+            search.assert_called_once_with(
+                mcp_instance,
+                flask_config.get(
+                    "MCP_TOOL_SEARCH_CONFIG", server.MCP_TOOL_SEARCH_CONFIG
+                ),
+            )
             compact.assert_not_called()
         else:
             search.assert_not_called()

@@ -1125,7 +1125,9 @@ def run_server(
         flask_app = None
 
         # Apply tool search transform if configured
-        tool_search_config = MCP_TOOL_SEARCH_CONFIG
+        tool_search_config = factory_flask_app.config.get(
+            "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+        )
         if tool_search_config.get("enabled", False):
             _apply_tool_search_transform(mcp_instance, tool_search_config)
         else:

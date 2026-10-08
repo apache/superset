@@ -1034,6 +1034,10 @@ type's fields, required fields, and examples. The setting has no effect in
 compatibility mode, whose search results are bounded by
 `MCP_TOOL_SEARCH_CONFIG["max_description_length"]`.
 
+Both default and factory startup read `MCP_TOOL_SEARCH_CONFIG` and
+`MCP_NATIVE_TOOL_LIST_CONFIG` from the Flask application configuration, falling
+back to the module defaults when a setting is absent.
+
 The recorded inventory includes catalog totals for both listings.
 
 Compatibility mode remains supported. Any change to its default will be listed
