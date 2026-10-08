@@ -2455,6 +2455,10 @@ def generate_xy_pivot_vega_lite_preview(
             for label in metric_labels
         )
     ]
+    if not fields and len(metric_labels) == 1 and form_data.get("truncate_metric"):
+        # A single truncated metric drops its label from the pivoted column
+        # names, so every non-x-axis column is one category series.
+        fields = [field for field in data[0] if field != x_axis]
     if not fields:
         return None
     sample = data[0][x_axis]
