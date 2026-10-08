@@ -943,21 +943,48 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
 
 
 def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
-    """Validate that the current user can access a chart's underlying dataset.
+    """Validate that the current user can access a chart's underlying datasource.
 
     This extends the RBAC system: ``mcp_auth_hook`` enforces class-level
     permissions before tool execution; this function enforces data-level
-    permissions inside tools after retrieving specific objects.
+    permissions inside tools after retrieving specific objects. The datasource
+    is resolved by the chart's ``datasource_type`` and id together.
 
     Args:
-        chart: A Slice ORM object with datasource_id attribute
+        chart: A Slice ORM object with datasource_type and datasource_id
 
     Returns:
         DatasetValidationResult with is_valid, error, etc.
     """
-    from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+    from superset.mcp_service.chart.chart_utils import (
+        DatasetValidationResult,
+        validate_chart_dataset,
+    )
+    from superset.utils.core import DatasourceType
 
-    return validate_chart_dataset(chart.datasource_id, check_access=True)
+    datasource_type: str = chart.datasource_type
+    datasource_id: int | None = chart.datasource_id
+    if datasource_type == DatasourceType.TABLE:
+        return validate_chart_dataset(datasource_id, check_access=True)
+
+    # Other kinds are resolved by their own type, never by a same-id dataset.
+    view: Any = (
+        chart.semantic_view if datasource_type == DatasourceType.SEMANTIC_VIEW else None
+    )
+    if view is None or not security_manager.can_access_datasource(view):
+        return DatasetValidationResult(
+            is_valid=False,
+            dataset_id=datasource_id,
+            dataset_name=None,
+            warnings=[],
+            error="Chart's datasource is not accessible",
+        )
+    return DatasetValidationResult(
+        is_valid=True,
+        dataset_id=datasource_id,
+        dataset_name=view.name,
+        warnings=[],
+    )
 
 
 def _log_user_resolution_failure(exc: ValueError | PermissionError) -> None:
