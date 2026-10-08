@@ -410,7 +410,7 @@ def test_configuration_schema_read_only_user_gets_static_schema(
     mocker: MockerFixture,
 ) -> None:
     """Without write access the submitted configuration is not used at all."""
-    mock_cls = MagicMock()
+    mock_cls: MagicMock = MagicMock()
     mock_cls.get_configuration_schema.return_value = {"type": "object"}
 
     mocker.patch.dict(
@@ -418,12 +418,12 @@ def test_configuration_schema_read_only_user_gets_static_schema(
         {"metricflow": mock_cls},
         clear=True,
     )
-    can_access = mocker.patch(
+    can_access: MagicMock = mocker.patch(
         "superset.semantic_layers.api.security_manager.can_access",
         side_effect=lambda permission, view: permission != "can_write",
     )
 
-    response = client.post(
+    response: TestResponse = client.post(
         "/api/v1/semantic_layer/schema/configuration",
         json={"type": "metricflow", "configuration": {"admin_host": "example"}},
     )
@@ -442,8 +442,8 @@ def test_configuration_schema_writer_gets_enriched_schema(
     mocker: MockerFixture,
 ) -> None:
     """With write access the submitted configuration enriches the schema."""
-    mock_config_obj = MagicMock()
-    mock_cls = MagicMock()
+    mock_config_obj: MagicMock = MagicMock()
+    mock_cls: MagicMock = MagicMock()
     mock_cls.configuration_class.model_json_schema.return_value = {"properties": {}}
     mock_cls.configuration_class.model_validate.return_value = mock_config_obj
     mock_cls.get_configuration_schema.return_value = {
@@ -456,12 +456,12 @@ def test_configuration_schema_writer_gets_enriched_schema(
         {"metricflow": mock_cls},
         clear=True,
     )
-    can_access = mocker.patch(
+    can_access: MagicMock = mocker.patch(
         "superset.semantic_layers.api.security_manager.can_access",
         return_value=True,
     )
 
-    response = client.post(
+    response: TestResponse = client.post(
         "/api/v1/semantic_layer/schema/configuration",
         json={"type": "metricflow", "configuration": {"admin_host": "example"}},
     )
