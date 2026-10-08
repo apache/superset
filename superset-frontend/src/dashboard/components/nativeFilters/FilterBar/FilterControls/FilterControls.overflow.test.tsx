@@ -29,6 +29,7 @@ import {
   act,
   createStore,
   render,
+  screen,
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
@@ -53,6 +54,8 @@ const callbackRef: {
     | ((s: { overflowed: string[]; notOverflowed: string[] }) => void)
     | null;
 } = { current: null };
+
+let mockUseRealDropdownContainer = false;
 
 // Real DropdownContainer partitions `items` into a visible main row and an
 // overflow slice by array index (`items.slice(0, overflowingIndex)` /
@@ -100,8 +103,14 @@ const mockDropdownClose = jest.fn();
 // resolves to this subpath, so the mock is picked up transparently.
 jest.mock('@superset-ui/core/components/DropdownContainer', () => {
   const React = jest.requireActual('react');
+  const { DropdownContainer: RealDropdownContainer } = jest.requireActual(
+    '@superset-ui/core/components/DropdownContainer',
+  );
   const MockDropdownContainer = React.forwardRef(
     (props: DropdownContainerProps, ref: React.Ref<unknown>) => {
+      if (mockUseRealDropdownContainer) {
+        return <RealDropdownContainer {...props} ref={ref} />;
+      }
       dropdownContainerProps.push(props);
       callbackRef.current = props.onOverflowingStateChange ?? null;
       React.useImperativeHandle(ref, () => ({
@@ -239,6 +248,7 @@ const fireOverflow = (overflowed: string[], notOverflowed: string[]) => {
 };
 
 beforeEach(() => {
+  mockUseRealDropdownContainer = false;
   dropdownContainerProps.length = 0;
   callbackRef.current = null;
   mockOverflowingIndex = -1;
@@ -669,7 +679,10 @@ test('integrates requiredFirst filter with default value without triggering forc
     ...createSelectNativeFilter('NATIVE_FILTER-ACCOUNT', 'Account'),
     requiredFirst: true,
   };
-  const dateFilter = createSelectNativeFilter('NATIVE_FILTER-DATE', 'Date range');
+  const dateFilter = createSelectNativeFilter(
+    'NATIVE_FILTER-DATE',
+    'Date range',
+  );
   const filters = [accountFilter, dateFilter];
   const dataMask = buildDataMaskSelected(filters, ['NATIVE_FILTER-DATE']);
 
@@ -680,4 +693,61 @@ test('integrates requiredFirst filter with default value without triggering forc
   expect(latestProps().items).toHaveLength(2);
   expect(latestProps().items[0].id).toBe('NATIVE_FILTER-ACCOUNT');
   expect(latestProps().items[1].id).toBe('NATIVE_FILTER-DATE');
+});
+
+test('keeps native controls reachable in row or More popover with real DropdownContainer when cross-filter chip is added and popover is closed (#45050)', async () => {
+  mockUseRealDropdownContainer = true;
+
+  const accountFilter = {
+    ...createSelectNativeFilter('NATIVE_FILTER-ACCOUNT', 'Account'),
+    requiredFirst: true,
+  };
+  const dateFilter = createSelectNativeFilter(
+    'NATIVE_FILTER-DATE',
+    'Date range',
+  );
+  const flowFilter = createSelectNativeFilter('NATIVE_FILTER-FLOW', 'Flow');
+  const filters = [accountFilter, dateFilter, flowFilter];
+
+  const stateWithCrossFilterAndNativeFilters = {
+    ...buildStateWithOneCrossFilter(),
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Horizontal,
+      metadata: {
+        native_filter_configuration: filters,
+      },
+    },
+    nativeFilters: {
+      filters: filters.reduce(
+        (acc, f) => ({ ...acc, [f.id]: f }),
+        {} as Record<string, ReturnType<typeof createSelectNativeFilter>>,
+      ),
+      filtersState: {},
+    },
+  };
+
+  render(
+    <FilterControls
+      dataMaskSelected={buildDataMaskSelected(filters)}
+      onFilterSelectionChange={jest.fn()}
+      onPendingCustomizationDataMaskChange={jest.fn()}
+      chartCustomizationValues={[]}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: stateWithCrossFilterAndNativeFilters,
+    },
+  );
+
+  // The cross-filter chip is rendered
+  expect(await screen.findByText(CROSS_FILTER_CHART_NAME)).toBeInTheDocument();
+
+  // The native filters remain reachable (Account, Date range, Flow) in the DOM
+  // (either in the horizontal row or inside More filters)
+  expect(screen.getByText('Account')).toBeInTheDocument();
+  expect(screen.getByText('Date range')).toBeInTheDocument();
+  expect(screen.getByText('Flow')).toBeInTheDocument();
 });
