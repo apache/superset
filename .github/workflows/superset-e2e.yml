@@ -219,9 +219,11 @@ jobs:
           # step keeps the plain test config, so the stub never serves them.
           SUPERSET_CONFIG: tests.integration_tests.superset_test_config_semantic
           # Fail rather than skip when the stub did not load.
+          # playwright-run-semantic re-runs `superset init` under this config
+          # first, so Admin holds the semantic-layer API permissions.
           PLAYWRIGHT_REQUIRE_SEMANTIC_STUB: "true"
         with:
-          run: playwright-run "${{ matrix.app_root }}" semantic-view/
+          run: playwright-run-semantic "${{ matrix.app_root }}"
       - name: Run Playwright (Embedded Tests)
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
