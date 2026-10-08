@@ -571,7 +571,8 @@ categories:
 
     - name: DouroECI
       url: https://www.douroeci.com/
-      contributors: ["@nunohelibeires"]
+      logo: douroeci.png
+      contributors: ["@nunohelibeires", "@J0s3-H3nr1qu3"]
 
     - name: Rogow
       url: https://rogow.com.br/
