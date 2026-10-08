@@ -709,10 +709,11 @@ def test_bullet_mapper_preserves_omission_and_honors_explicit_values() -> None:
         "ranges",
         "show_labels",
         "show_legend",
-        "row_limit",
         "time_range",
     ):
         assert key not in omitted
+    # A new chart is bounded by the advertised schema default.
+    assert omitted["row_limit"] == 10000
     assert explicit["groupby"] == []
     assert explicit["adhoc_filters"] == []
     assert explicit["ranges"] == ""
@@ -5013,6 +5014,24 @@ async def test_saved_bullet_labels_update_keeps_independent_ranking_metric() -> 
     assert persisted["row_limit"] == 1
     query = build_query_dicts_from_form_data(persisted, 7, "table")[0]
     assert query["orderby"] == [["SavedRevenue", False]]
+
+
+def test_bullet_update_merge_row_limit_omission_and_explicit_value() -> None:
+    """An omitted limit keeps the saved value; an explicit one replaces it."""
+    from superset.mcp_service.chart.chart_utils import merge_chart_form_data
+
+    saved = {"viz_type": "bullet", "metric": "SUM(Revenue)", "row_limit": 15000}
+    omitted = BulletChartConfig(metric=_simple_metric(), show_labels=True)
+    merged = merge_chart_form_data(saved, map_bullet_config(omitted), omitted)
+    assert merged["row_limit"] == 15000
+
+    explicit = BulletChartConfig(metric=_simple_metric(), row_limit=25)
+    merged = merge_chart_form_data(saved, map_bullet_config(explicit), explicit)
+    assert merged["row_limit"] == 25
+
+    unbounded = {"viz_type": "bullet", "metric": "SUM(Revenue)"}
+    merged = merge_chart_form_data(unbounded, map_bullet_config(omitted), omitted)
+    assert merged["row_limit"] == 10000
 
 
 @pytest.mark.asyncio

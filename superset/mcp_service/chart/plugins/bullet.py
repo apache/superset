@@ -452,8 +452,14 @@ class BulletChartPlugin(BaseChartPlugin):
         if existing_form_data.get("viz_type") == "bullet":
             existing_form_data = _normalize_bullet_query_aliases(existing_form_data)
         merged = dict(new_form_data)
+        if "row_limit" not in config.model_fields_set:
+            # The mapper always emits the schema default; an omitted limit
+            # keeps the saved value instead.
+            merged.pop("row_limit", None)
         merge_update_form_data(existing_form_data, merged, config)
         merge_bullet_form_data(existing_form_data, merged)
+        if "row_limit" not in merged and "row_limit" in new_form_data:
+            merged["row_limit"] = new_form_data["row_limit"]
         return merged
 
     def validate_merged_form_data(

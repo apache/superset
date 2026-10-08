@@ -1802,10 +1802,11 @@ def map_bullet_config(config: BulletChartConfig) -> Dict[str, Any]:  # noqa: C90
     # Optional semantic/query fields are emitted only when explicitly supplied.
     # This lets update_chart and update_chart_preview preserve native saved state,
     # while an explicit empty value still clears it through the generic merge path.
+    # The row limit always carries the schema default so a new chart is bounded;
+    # update merging restores the saved limit when the caller omits it.
     if "dimensions" in config.model_fields_set:
         form_data["groupby"] = [dimension.name for dimension in config.dimensions or []]
-    if "row_limit" in config.model_fields_set:
-        form_data["row_limit"] = config.row_limit
+    form_data["row_limit"] = config.row_limit
     if "time_range" in config.model_fields_set:
         form_data["time_range"] = config.time_range
 
