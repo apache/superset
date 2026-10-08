@@ -5562,13 +5562,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 member_slices = dashboard.slices
 
                 def member_datasource_accessible() -> bool:
-                    seen: set[tuple[str | None, int | None]] = set()
-                    for slc in member_slices:
-                        key = (slc.datasource_type, slc.datasource_id)
-                        if key in seen:
-                            continue
-                        seen.add(key)
-                        resolved = slc.resolved_datasource
+                    resolved: BaseDatasource | Explorable | None
+                    for resolved in Slice.iter_resolved_datasources(member_slices):
                         if resolved is not None and self.can_access_datasource(
                             resolved
                         ):
