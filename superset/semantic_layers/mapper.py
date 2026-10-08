@@ -24,6 +24,7 @@ single dataframe.
 
 """
 
+import logging
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
@@ -67,6 +68,8 @@ from superset.utils.core import (
     TIME_COMPARISON,
 )
 from superset.utils.date_parser import get_past_or_future
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 OPERATOR_MAP = {
     FilterOperator.EQUALS.value: Operator.EQUALS,
@@ -926,6 +929,13 @@ def _get_group_limit_from_query_object(
     all_metrics: dict[str, Metric],
     all_dimensions: dict[str, Dimension],
 ) -> GroupLimit | None:
+    if query_object.series_limit > 0 and not query_object.series_columns:
+        logger.debug(
+            "Treating semantic series_limit=%s as 0 without series columns",
+            query_object.series_limit,
+        )
+        return None
+
     # no limit
     if query_object.series_limit == 0 or not query_object.columns:
         return None
@@ -1214,6 +1224,9 @@ def _validate_group_limit(query_object: ValidatedQueryObject) -> None:
 
     # no limit
     if query_object.series_limit == 0:
+        return
+
+    if query_object.series_limit > 0 and not query_object.series_columns:
         return
 
     if (
