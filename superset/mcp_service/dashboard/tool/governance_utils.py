@@ -16,9 +16,7 @@
 # under the License.
 
 """
-Shared helpers for the dashboard governance tools
-(``manage_dashboard_owners`` / ``manage_dashboard_roles`` /
-``manage_dashboard_certification``).
+Shared helpers for MCP dashboard mutation tools.
 
 ``update_dashboard`` keeps its own variant of the lookup/authorization
 helper because its not-found contract differs — it returns a
@@ -118,3 +116,14 @@ def find_and_authorize_dashboard(
 def dashboard_url(dashboard: "Dashboard") -> str:
     """Build the user-facing dashboard URL, preferring slug over id."""
     return f"{get_superset_base_url()}/dashboard/{dashboard.slug or dashboard.id}/"
+
+
+def managed_dashboard_refusal(dashboard: "Dashboard") -> str | None:
+    """Return the shared refusal for an externally managed dashboard."""
+    if dashboard.is_managed_externally:
+        return (
+            f"Dashboard '{dashboard.dashboard_title}' (ID: {dashboard.id}) "
+            "is managed externally; its source of truth is the external system "
+            "and it cannot be changed here. Do not retry."
+        )
+    return None
