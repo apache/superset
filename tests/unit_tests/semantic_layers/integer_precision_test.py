@@ -1,0 +1,119 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Preserve nullable integer values through semantic chart-data serialization."""
+
+from unittest.mock import MagicMock
+
+import pyarrow as pa
+import pytest
+from flask.testing import FlaskClient
+from pytest_mock import MockerFixture
+from superset_core.semantic_layers.types import Dimension, Metric, SemanticResult
+from superset_core.semantic_layers.view import SemanticView as ProviderView
+from werkzeug.test import TestResponse
+
+from superset.semantic_layers.models import SemanticView
+
+
+@pytest.mark.parametrize("value", [9007199254740993, -9007199254740993, 2**63 - 1, 7])
+@pytest.mark.parametrize("with_offset", [False, True])
+def test_chart_data_preserves_nullable_integer_precision(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    value: int,
+    with_offset: bool,
+) -> None:
+    """Serialize exact main/offset integers and nulls through the real host path."""
+    provider: MagicMock = MagicMock(spec=ProviderView)
+    provider.features = frozenset()
+    provider.selection_identity_version = None
+    provider.uid.return_value = "integer-precision-view"
+    provider.get_dimensions.return_value = {
+        Dimension("category", "category", pa.string()),
+    }
+    provider.get_metrics.return_value = {
+        Metric("amount", "amount", pa.int64(), "SUM(amount)"),
+    }
+    provider.get_table.side_effect = [
+        SemanticResult(
+            results=pa.table(
+                {
+                    "category": ["A", "B"],
+                    "amount": pa.array([value, None], type=pa.int64()),
+                }
+            ),
+            requests=[],
+        ),
+        SemanticResult(
+            results=pa.table(
+                {
+                    "category": ["A", "B"],
+                    "amount": pa.array([None, -value], type=pa.int64()),
+                }
+            ),
+            requests=[],
+        ),
+    ]
+    view: SemanticView = SemanticView(id=7, name="Amounts", configuration="{}")
+    view.__dict__["implementation"] = provider
+    mocker.patch(
+        "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+        return_value=view,
+    )
+    mocker.patch("superset.common.query_context.QueryContext.raise_for_access")
+    mocker.patch("superset.security_manager.raise_for_unsupported_guest_rls")
+    mocker.patch(
+        "superset.common.query_context_processor.QueryContextProcessor.get_cache_timeout",
+        return_value=-1,
+    )
+
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["category"],
+                    "metrics": ["amount"],
+                    "time_offsets": ["1 week ago"] if with_offset else [],
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+
+    assert response.status_code == 200, response.get_data(as_text=True)
+    expected: list[dict[str, str | int | None]] = [
+        {"category": "A", "amount": str(value) if abs(value) > 2**53 - 1 else value},
+        {"category": "B", "amount": None},
+    ]
+    if with_offset:
+        expected[0]["amount__1 week ago"] = None
+        expected[1]["amount__1 week ago"] = (
+            str(-value) if abs(value) > 2**53 - 1 else -value
+        )
+    assert response.get_json()["result"][0]["data"] == expected
+    assert provider.get_table.call_count == (2 if with_offset else 1)
+    if abs(value) > 2**53 - 1:
+        # Check exact quoted wire values, not a numpy float/int equality comparison.
+        assert f'"{value}"' in response.get_data(as_text=True)
+        if with_offset:
+            assert f'"{-value}"' in response.get_data(as_text=True)
