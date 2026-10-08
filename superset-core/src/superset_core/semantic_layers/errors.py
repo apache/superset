@@ -14,10 +14,33 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Provider signals for query validation and result guarantees."""
 
-"""Portable, diagnostic-free signals for deliberate provider query rejection."""
+from __future__ import annotations
 
 from enum import Enum
+from typing import get_args, Literal, TypeAlias
+
+SemanticResultCompletenessReason: TypeAlias = Literal["incomplete", "unverified"]
+
+
+class SemanticResultCompletenessError(Exception):
+    """
+    Raise from ``get_table``, ``get_values`` or ``get_row_count`` when a result is
+    incomplete (``"incomplete"``) or its completeness cannot be verified
+    (``"unverified"``).
+
+    The host converts this error into its own client-facing error with fixed,
+    translated guidance, so do not put upstream diagnostic text in it. Never return
+    a partial result or retry a failed filtered request without its filter instead
+    of raising.
+    """
+
+    def __init__(self, reason: SemanticResultCompletenessReason) -> None:
+        if reason not in get_args(SemanticResultCompletenessReason):
+            raise ValueError("Unknown completeness reason")
+        super().__init__(reason)
+        self.reason: SemanticResultCompletenessReason = reason
 
 
 class SemanticQueryErrorCode(str, Enum):

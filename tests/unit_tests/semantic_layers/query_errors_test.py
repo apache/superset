@@ -23,7 +23,7 @@ import pyarrow as pa
 import pytest
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
-from superset_core.semantic_layers.exceptions import SemanticQueryRejectedError
+from superset_core.semantic_layers.errors import SemanticQueryRejectedError
 from superset_core.semantic_layers.types import Dimension, Metric, SemanticResult
 from superset_core.semantic_layers.view import SemanticView as ProviderView
 from werkzeug.test import TestResponse
@@ -126,6 +126,15 @@ def test_provider_execution_error_http(
             "Check its operator and values, then try again."
         )
     ) in response.get_data(as_text=True)
+    if failure == "rejection":
+        assert response.get_json()["message"] == (
+            "An error occurred while fetching the data."
+            if guest
+            else (
+                "A semantic query filter is invalid. "
+                "Check its operator and values, then try again."
+            )
+        )
     date_view.get_table.assert_called_once()
 
 
@@ -141,7 +150,7 @@ def test_provider_execution_error_http(
 )
 def test_rejection_contract_does_not_retain_arbitrary_text(code: str) -> None:
     """The portable exception round-trips codes without storing diagnostics."""
-    from superset_core.semantic_layers.exceptions import SemanticQueryErrorCode
+    from superset_core.semantic_layers.errors import SemanticQueryErrorCode
 
     error: SemanticQueryRejectedError = SemanticQueryRejectedError(code)
     restored: SemanticQueryRejectedError = SemanticQueryRejectedError(*error.args)
@@ -214,19 +223,28 @@ def test_required_secondary_query_rejection(
     assert date_view.get_table.call_count == (0 if phase == "count" else 2)
 
 
-@pytest.mark.parametrize("kind", ["oauth", "cancel", "worker_timeout"])
+@pytest.mark.parametrize("kind", ["oauth", "cancel", "worker_timeout", "security"])
 def test_provider_control_signal_is_preserved(app_context: None, kind: str) -> None:
     """Do not turn authentication, cancellation or worker control into faults."""
     from billiard.exceptions import SoftTimeLimitExceeded
     from superset_core.semantic_layers.types import SemanticQuery
 
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.exceptions import (
         OAuth2TokenRefreshError,
         SupersetCancelQueryException,
+        SupersetSecurityException,
     )
     from superset.semantic_layers.exceptions import execute_semantic_query
 
     control: Exception = {
+        "security": SupersetSecurityException(
+            SupersetError(
+                message="Denied",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.WARNING,
+            )
+        ),
         "oauth": OAuth2TokenRefreshError(),
         "cancel": SupersetCancelQueryException(),
         "worker_timeout": SoftTimeLimitExceeded(),
@@ -239,3 +257,147 @@ def test_provider_control_signal_is_preserved(app_context: None, kind: str) -> N
         )
     assert captured.value is control
     dispatcher.assert_called_once()
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "validation",
+        "core_incomplete",
+        "core_unverified",
+        "host_incomplete",
+        "host_unverified",
+    ],
+)
+def test_host_validation_keeps_400(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    guest: bool,
+    kind: str,
+) -> None:
+    """Provider dispatch must preserve explicit host validation classification."""
+    from superset_core.semantic_layers import errors as core_errors
+
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        SemanticResultCompletenessError,
+    )
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    failure: Exception = {
+        "validation": QueryObjectValidationError("host-validation"),
+        "core_incomplete": core_errors.SemanticResultCompletenessError("incomplete"),
+        "core_unverified": core_errors.SemanticResultCompletenessError("unverified"),
+        "host_incomplete": SemanticResultCompletenessError("incomplete"),
+        "host_unverified": SemanticResultCompletenessError("unverified"),
+    }[kind]
+    date_view.get_table.side_effect = failure
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 400
+    message: str = response.get_json()["message"]
+    if guest:
+        assert message == "An error occurred while fetching the data."
+    elif kind == "validation":
+        assert message == "Error: host-validation"
+    else:
+        assert (
+            message
+            == SemanticResultCompletenessError(
+                "incomplete" if kind.endswith("incomplete") else "unverified"
+            ).message
+        )
+    date_view.get_table.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "failure,status", [("fault", 500), ("rejection", 400), ("completeness", 400)]
+)
+def test_annotation_preserves_semantic_failure(
+    app_context: None, mocker: MockerFixture, failure: str, status: int
+) -> None:
+    """Annotation wrapping must not turn provider outages into client failures."""
+    from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.exceptions import SemanticResultCompletenessError, SupersetException
+    from superset.semantic_layers.exceptions import (
+        SemanticLayerExecutionError,
+        SemanticLayerQueryRejectedError,
+    )
+
+    error: SupersetException = {
+        "fault": SemanticLayerExecutionError(),
+        "rejection": SemanticLayerQueryRejectedError(
+            SemanticQueryErrorCode.INVALID_QUERY
+        ),
+        "completeness": SemanticResultCompletenessError("incomplete"),
+    }[failure]
+    chart: MagicMock = MagicMock()
+    chart.get_query_context.return_value.queries = []
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    command: MagicMock = mocker.patch(
+        "superset.commands.chart.data.get_data_command.ChartDataCommand"
+    ).return_value
+    command.run.side_effect = error
+    captured: pytest.ExceptionInfo[Exception]
+    with pytest.raises(type(error)) as captured:
+        QueryContextProcessor.get_viz_annotation_data(
+            {"value": 42, "name": "Source"}, False
+        )
+    assert captured.value is error
+    assert error.status == status
+    command.run.assert_called_once()
+
+
+@pytest.mark.parametrize("reason", ["incomplete", "unverified"])
+def test_async_completeness_does_not_publish_success(
+    app_context: None, date_view: MagicMock, mocker: MockerFixture, reason: str
+) -> None:
+    """Run the real processor from the async entry point and reject false success."""
+    from superset_core.semantic_layers import errors as core_errors
+
+    from superset.charts.schemas import ChartDataQueryContextSchema
+    from superset.common.query_context import QueryContext
+    from superset.common.query_serialization import serialize_query
+    from superset.exceptions import SemanticResultCompletenessError
+    from superset.tasks.async_queries import execute_chart_query
+
+    date_view.get_table.side_effect = core_errors.SemanticResultCompletenessError(
+        "incomplete" if reason == "incomplete" else "unverified"
+    )
+    context: QueryContext = ChartDataQueryContextSchema().load(
+        {
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        }
+    )
+    task_context: MagicMock = mocker.patch(
+        "superset.tasks.async_queries.get_context"
+    ).return_value
+    mocker.patch("superset.tasks.async_queries._resolve_user")
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query", return_value=context
+    )
+    with pytest.raises(SemanticResultCompletenessError):
+        execute_chart_query.func(serialize_query(context, 0), user_id=7)
+    task_context.update_task.assert_not_called()
+    date_view.get_table.assert_called_once()

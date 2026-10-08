@@ -46,6 +46,7 @@ from superset.daos.chart import ChartDAO
 from superset.dataframe import df_to_records
 from superset.exceptions import (
     QueryObjectValidationError,
+    SemanticResultCompletenessError,
     SupersetException,
     SupersetTemplateException,
 )
@@ -313,6 +314,8 @@ class QueryContextProcessor:
 
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
+            except SemanticResultCompletenessError:
+                raise
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
@@ -946,7 +949,11 @@ class QueryContextProcessor:
             command.validate()
             payload = command.run()
             return {"records": payload["queries"][0]["data"]}
-        except (SemanticLayerQueryRejectedError, SemanticLayerExecutionError):
+        except (
+            SemanticLayerQueryRejectedError,
+            SemanticLayerExecutionError,
+            SemanticResultCompletenessError,
+        ):
             raise
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex

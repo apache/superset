@@ -17,11 +17,13 @@
 
 """Host-owned presentation and classification for semantic provider execution."""
 
+import logging
 from collections.abc import Callable
 
 from billiard.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as _
-from superset_core.semantic_layers.exceptions import (
+from superset_core.semantic_layers import errors as core_errors
+from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
 )
@@ -31,6 +33,8 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
+    QueryObjectValidationError,
+    SemanticResultCompletenessError,
     SupersetCancelQueryException,
     SupersetErrorException,
     SupersetSecurityException,
@@ -39,6 +43,8 @@ from superset.utils.error_sanitization import (
     GENERIC_ERROR_MESSAGE,
     sanitize_error_message,
 )
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 def rejection_message(code: SemanticQueryErrorCode) -> str:
@@ -100,7 +106,10 @@ def execute_semantic_query(
         return dispatcher(query)
     except SemanticQueryRejectedError as ex:
         raise SemanticLayerQueryRejectedError(ex.code) from ex
+    except core_errors.SemanticResultCompletenessError as ex:
+        raise SemanticResultCompletenessError(ex.reason) from ex
     except (
+        QueryObjectValidationError,
         SemanticLayerQueryRejectedError,
         SemanticLayerExecutionError,
         SupersetSecurityException,
@@ -111,4 +120,5 @@ def execute_semantic_query(
     ):
         raise
     except Exception as ex:  # pylint: disable=broad-except
+        logger.exception("Semantic provider query execution failed")
         raise SemanticLayerExecutionError() from ex
