@@ -8152,10 +8152,10 @@ es-set-tostringtag@^2.1.0:
     has-tostringtag "^1.0.2"
     hasown "^2.0.2"
 
-es-toolkit@^1.45.1:
-  version "1.49.0"
-  resolved "https://registry.yarnpkg.com/es-toolkit/-/es-toolkit-1.49.0.tgz#93c5b031865792fc03cbf5bd20c132a4f976a52a"
-  integrity sha512-G5iZ6Pc/FNRY/soKZHC+TxGDD83rHUDXxzaWhGCX44vAv/tMs56WMusnm/KMNK+luUPsgA9U28cGr4RDlSzL2g==
+es-toolkit@^1.39.6, es-toolkit@^1.45.1:
+  version "1.52.0"
+  resolved "https://registry.yarnpkg.com/es-toolkit/-/es-toolkit-1.52.0.tgz#71eaf1a8b18834ef77637eccbb885ba4c03cd6dd"
+  integrity sha512-XTNEJQh1tY1ZJVcf6ayP/2n4ZPyaHlW2FWs7xvw5ddPuhUVjLD3olQVQS7kf58JbAB48iL0uL/jerTrjtV3lDA==
 
 es6-promise@^3.2.1:
   version "3.3.1"
@@ -12833,12 +12833,12 @@ react-redux@^9.2.0, react-redux@^9.3.0:
     "@types/use-sync-external-store" "^0.0.6"
     use-sync-external-store "^1.4.0"
 
-react-resize-detector@^9.1.1:
-  version "9.1.1"
-  resolved "https://registry.yarnpkg.com/react-resize-detector/-/react-resize-detector-9.1.1.tgz#ce13cf55b9b09d9978fc51e0c87bb3639704921e"
-  integrity sha512-siLzop7i4xIvZIACE/PHTvRegA8QRCEt0TfmvJ/qCIFQJ4U+3NuYcF8tNDmDWxfIn+X1eNCyY2rauH4KRxge8w==
+react-resize-detector@^12.3.0:
+  version "12.3.0"
+  resolved "https://registry.yarnpkg.com/react-resize-detector/-/react-resize-detector-12.3.0.tgz#f273586fccef9da5282909a160ce1ff44c7d5669"
+  integrity sha512-mIDOVrTHKGnKe6qEUWi8dFdfHM5CPyTOpqoHctdMQf89Ljm/0qqDIzkP3vTRZZJi9/raaMiRxDEOqO4you5x+A==
   dependencies:
-    lodash "^4.17.21"
+    es-toolkit "^1.39.6"
 
 react-router-config@^5.1.1:
   version "5.1.1"
