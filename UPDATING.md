@@ -29,6 +29,11 @@ assists people when migrating to a new version.
   the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
   `SEMANTIC_LAYERS`; configure shared persistent `DATA_CACHE_CONFIG` and Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every web/worker process.
 
+- MCP dashboard mutation tools refuse externally managed dashboards, including
+  owner and role changes. Update the dashboard in its external source of truth
+  instead; the response sets `managed_externally: true`. Read-only tools and
+  certification inspection are unaffected.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.
