@@ -154,6 +154,7 @@ def _mock_dashboard(
     """Build a mock dashboard with the given native filters and chart slices."""
     dashboard = Mock()
     dashboard.id = id
+    dashboard.is_managed_externally = False
     dashboard.dashboard_title = "Test Dashboard"
     dashboard.json_metadata = json.dumps({"native_filter_configuration": filters or []})
     slices = []
