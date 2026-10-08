@@ -431,6 +431,30 @@ async def test_query_dataset_maps_invalid_result_without_formatting_hooks(
 
 
 @pytest.mark.asyncio
+async def test_query_dataset_rejects_oversized_complete_response(
+    mcp_server: FastMCP,
+) -> None:
+    """Rows within the source budget fail once profiling repeats their cells."""
+    cell_bytes = 64 * 1024
+    data = [
+        {"category": f"{index:03d}" + "x" * (cell_bytes - 3), "count": index}
+        for index in range(255)
+    ]
+    source_data, source_failure = query_dataset_module.query_result_data(
+        _mock_command_result(data=[dict(row) for row in data])
+    )
+    assert source_failure is None
+    assert source_data is not None
+
+    payload = await _call_query_dataset_with_result(
+        mcp_server, _mock_command_result(data=data)
+    )
+
+    assert payload["error_type"] == "MalformedQueryResult"
+    assert "data" not in payload
+
+
+@pytest.mark.asyncio
 async def test_query_dataset_exposes_filters_to_jinja_macros(
     mcp_server: FastMCP,
 ) -> None:
