@@ -652,16 +652,22 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
     firstSortable.focus();
 
     fireEvent.keyDown(firstSortable, { code: 'Space' });
-    await sleep(1);
+    await waitFor(() =>
+      expect(firstSortable).toHaveAttribute('aria-pressed', 'true'),
+    );
+    // The keyboard sensor attaches its document listener on the next timer tick.
+    await sleep(0);
     fireEvent.keyDown(document.activeElement ?? firstSortable, {
       code: 'ArrowDown',
     });
-    await sleep(1);
+    await sleep(0);
     fireEvent.keyDown(document.activeElement ?? firstSortable, {
       code: 'Space',
     });
 
-    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    const saveButton = screen.getByRole('button', { name: SAVE_REGEX });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+    await userEvent.click(saveButton);
 
     await waitFor(
       () =>
