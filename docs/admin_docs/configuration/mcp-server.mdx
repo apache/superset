@@ -110,6 +110,15 @@ retains its call's slot rather than exhausting cancellation capacity for new
 calls. One warning with the call ID records abandonment. A timeout does not guarantee that warehouse writes were
 rolled back, so do not blindly retry mutating SQL.
 
+## Externally managed dashboards
+
+MCP dashboard mutation tools refuse changes to externally managed dashboards,
+including ownership and access-role changes, layout and filter edits, chart
+membership, certification, deletion, and restoration. Their responses set
+`managed_externally: true` and explain that the external system is the source
+of truth; changing Superset permissions or retrying does not override it.
+Read-only dashboard tools and certification's inspect-only call remain available.
+
 ## Native filter defaults
 
 `manage_native_filters` accepts `default_value` for select filters. An empty
@@ -1700,6 +1709,20 @@ structured errors instead of apparently successful previews, charts or exports.
 
 ## Dataset discovery and routing
 
+`list_datasets`, `get_dataset_info`, `update_dataset`, and `query_dataset`
+operate on registered **SQL datasets** (physical tables or virtual SQL queries),
+not external semantic views. `create_dataset` registers a physical table as a
+SQL dataset; it does not create or register semantic views. The `certified`
+filter in `list_datasets` selects certified SQL datasets, not external views.
+
+For existing semantic views, use `list_metrics` to discover metrics and
+`get_table` to query them, retaining the returned source and view identity.
+These tools do not provision or edit semantic views. A dataset not-found error
+offers this routing guidance without establishing whether a semantic view
+exists or is accessible. Numeric IDs can overlap across source types; do not
+reuse a semantic-view ID as a SQL-dataset ID or substitute another source.
+All tool permissions, feature flags, and datasource access checks still apply.
+
 `list_datasets` searches table name, **description**, schema, and SQL using
 escaped, case-insensitive substring matching. Write descriptions with business
 terminology to make differently named datasets discoverable. A complete UUID
@@ -1778,6 +1801,11 @@ latency.
 `manage_native_filters` requires a numeric dataset column when adding a
 `filter_range` filter or changing its dataset/column target. Select filters
 continue to accept nonnumeric columns.
+
+Dividers are visual separators and are always in scope. When updating a
+`divider` with `manage_native_filters`, use `name` to change its title and
+`description` to change its description; `scope_chart_ids` is rejected.
+`apply_dashboard_filters` excludes dividers from its available-filter error lists.
 
 For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
 one datasource-supported duration (for example, `["P1D"]`). Custom engine

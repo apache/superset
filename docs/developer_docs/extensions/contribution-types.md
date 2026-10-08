@@ -245,6 +245,9 @@ See [MCP Integration](./mcp.md) for implementation details.
 
 ### Semantic Layers
 
+For optional catalog acquisition and host publication, see the
+[semantic provider metadata contract](../semantic-metadata-contract.md).
+
 Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.
 
 ```python

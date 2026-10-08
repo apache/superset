@@ -26,6 +26,11 @@ assists people when migrating to a new version.
 
 - Explore control headers without a click action render as plain text, not disabled buttons; interactive headers retain keyboard activation.
 
+- MCP dashboard mutation tools refuse externally managed dashboards, including
+  owner and role changes. Update the dashboard in its external source of truth
+  instead; the response sets `managed_externally: true`. Read-only tools and
+  certification inspection are unaffected.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.
