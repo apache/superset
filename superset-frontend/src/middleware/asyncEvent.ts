@@ -92,6 +92,8 @@ type Waiter = {
   taskIds: string[];
   pending: Set<string>;
   failed: boolean;
+  failureMessage?: string;
+  settled?: boolean;
   // Re-issue the original chart-data request once every task has succeeded; the
   // per-query DATA cache is now warm, so it returns synchronously (200).
   resolve: () => void;
@@ -151,6 +153,7 @@ let pollingActive = false;
 // subscribed handler may run applyStatus even when async queries are off, and
 // must find a map rather than undefined.
 let waitersByTaskId: Map<string, Set<Waiter>> = new Map();
+let failureLookups = new Set<string>();
 // Server-issued watermark: seeded from a chart request's 202 pre-task cursor
 // and advanced by each poll. Always the server's own clock, never the browser's.
 let cursor: string | null;
@@ -226,6 +229,8 @@ const unregister = (waiter: Waiter) => {
 };
 
 const settle = (waiter: Waiter, error?: unknown) => {
+  if (waiter.settled) return;
+  waiter.settled = true;
   unregister(waiter);
   if (waiter.signal && waiter.onAbort) {
     waiter.signal.removeEventListener('abort', waiter.onAbort);
@@ -233,9 +238,9 @@ const settle = (waiter: Waiter, error?: unknown) => {
   if (error !== undefined) {
     waiter.reject(error);
   } else if (waiter.failed) {
-    waiter.reject(
-      new Error('One or more chart-data queries failed'), // surfaced via getClientErrorObject
-    );
+    const message =
+      waiter.failureMessage || 'One or more chart-data queries failed';
+    waiter.reject(Object.assign(new Error(message), { error: message }));
   } else {
     waiter.resolve();
   }
@@ -264,16 +269,47 @@ const abandonRealtimeWaiters = () => {
   );
 };
 
-const applyStatus = (taskId: string, status: string) => {
+const finishStatus = (taskId: string, status: string, message?: string) => {
   const waiters = waitersByTaskId.get(taskId);
-  if (!waiters || !TERMINAL_STATUSES.has(status)) return;
+  if (!waiters) return;
   // Settle every request awaiting this task, not just the most recent one.
   [...waiters].forEach(waiter => {
     waiter.pending.delete(taskId);
-    if (status !== STATUS_SUCCESS) waiter.failed = true;
+    if (status !== STATUS_SUCCESS) {
+      waiter.failed = true;
+      waiter.failureMessage ||= message;
+    }
     if (waiter.pending.size === 0) settle(waiter);
   });
   waitersByTaskId.delete(taskId);
+};
+
+const applyStatus = (taskId: string, status: string) => {
+  if (!waitersByTaskId.has(taskId) || !TERMINAL_STATUSES.has(status)) return;
+  if (status === STATUS_SUCCESS) {
+    finishStatus(taskId, status);
+    return;
+  }
+  if (failureLookups.has(taskId)) return;
+  const lookups = failureLookups;
+  lookups.add(taskId);
+  const generation = pollingGeneration;
+  SupersetClient.get({ endpoint: `/api/v1/task/${taskId}/status` })
+    .then(response => {
+      if (generation !== pollingGeneration) return;
+      const message = response.json.error_message;
+      finishStatus(
+        taskId,
+        status,
+        typeof message === 'string' ? message : undefined,
+      );
+    })
+    .catch(error => {
+      if (generation !== pollingGeneration) return;
+      logging.warn('Failed to load chart task failure detail', taskId, error);
+      finishStatus(taskId, status);
+    })
+    .finally(() => lookups.delete(taskId));
 };
 
 // Age the poll toward giving up when it isn't making progress (a quiet no-change
@@ -612,6 +648,7 @@ export const init = (appConfig?: AppConfig) => {
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
   waitersByTaskId = new Map();
+  failureLookups = new Set();
   cursor = null;
   pollingActive = false;
   catchUpScheduled = false;

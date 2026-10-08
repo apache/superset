@@ -25145,3 +25145,14 @@ msgstr[2] ""
 
 msgid "№"
 msgstr "№"
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid "No provider query is available for this run."
+msgstr ""
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
