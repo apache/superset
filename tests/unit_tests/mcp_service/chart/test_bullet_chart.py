@@ -4039,6 +4039,34 @@ def test_saved_chart_rebind_discards_invalid_temporal_provenance(
     assert merged["datasource"] == "7__table"
 
 
+@pytest.mark.parametrize(
+    ("saved_groupby", "kept"), [("OldRegion", False), ("Region", True)]
+)
+def test_bullet_rebind_prunes_scalar_saved_hierarchy(
+    saved_groupby: str, kept: bool
+) -> None:
+    """A scalar saved Bullet groupby is checked like its one-item list form."""
+    from superset.mcp_service.chart.tool.update_chart import (
+        _prune_inherited_query_state,
+    )
+
+    previous = {
+        "viz_type": "bullet",
+        "datasource": "6__table",
+        "metric": "SUM(Revenue)",
+        "groupby": saved_groupby,
+    }
+    config = BulletChartConfig(metric=_simple_metric("Revenue"))
+    with patch(
+        "superset.daos.dataset.DatasetDAO.find_by_id", return_value=_orm_dataset()
+    ):
+        pruned = _prune_inherited_query_state(previous, {}, config, 7)
+
+    assert ("groupby" in pruned) is kept
+    if kept:
+        assert pruned["groupby"] == saved_groupby
+
+
 def test_cached_table_rebind_does_not_restore_invalid_query_roles() -> None:
     """The preview's dataset and omitted roles must describe the new dataset."""
     dataset = _orm_dataset()

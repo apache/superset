@@ -336,6 +336,14 @@ _INHERITED_COLUMN_LIST_KEYS = frozenset(
 _INHERITED_COLUMN_SCALAR_KEYS = frozenset({"x_axis", "granularity_sqla"})
 
 
+def _ensure_reference_list(value: Any) -> list[Any]:
+    """Read a column role like frontend ``ensureIsArray``.
+
+    A scalar saved value (e.g. a Bullet ``groupby``) is a one-item list.
+    """
+    return list(value) if isinstance(value, (list, tuple)) else [value]
+
+
 def _inherited_state_invalid_keys(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
@@ -376,9 +384,9 @@ def _inherited_state_invalid_keys(
 
     invalid_keys: set[str] = set()
     for key in inherited_keys & _INHERITED_COLUMN_LIST_KEYS:
-        values = existing_form_data.get(key)
-        if isinstance(values, list) and not all(
-            _valid_dataset_reference(value, columns, metrics) for value in values
+        if not all(
+            _valid_dataset_reference(value, columns, metrics)
+            for value in _ensure_reference_list(existing_form_data.get(key))
         ):
             invalid_keys.add(key)
     for key in inherited_keys & _INHERITED_COLUMN_SCALAR_KEYS:
