@@ -778,34 +778,6 @@ def mock_dashboard_template() -> Dashboard:
     return dash
 
 
-def test_exclude_users_filter_with_custom_user_model(
-    app_context: None,
-    monkeypatch: pytest.MonkeyPatch,
-    custom_user_model: type[CustomUserModel],
-) -> None:
-    """Ensure ExcludeUsersFilter dynamically uses appbuilder.sm.user_model."""
-    from superset.security.manager import ExcludeUsersFilter
-
-    monkeypatch.setattr(current_app.appbuilder.sm, "user_model", custom_user_model)
-    monkeypatch.setattr(
-        current_app.appbuilder.sm,
-        "get_exclude_users_from_lists",
-        lambda: ["excluded_user"],
-    )
-    query_mock = Mock()
-    query_mock.filter.return_value = query_mock
-
-    datamodel_mock = Mock()
-    datamodel_mock.obj = custom_user_model
-    filtr = ExcludeUsersFilter("username", datamodel_mock)
-    result = filtr.apply(query_mock, None)
-
-    assert result == query_mock
-    query_mock.filter.assert_called_once()
-    filter_arg = query_mock.filter.call_args[0][0]
-    assert filter_arg.left == custom_user_model.username
-
-
 def test_register_dashboard_copy_events_dynamic_and_idempotent(
     custom_user_model: type[CustomUserModel],
 ) -> None:
@@ -843,24 +815,14 @@ def test_copy_dashboard_early_return_when_no_template_configured(
 
 def test_copy_dashboard_missing_template_returns_early(
     app_context: None,
-    monkeypatch: pytest.MonkeyPatch,
-    custom_user_model: type[CustomUserModel],
 ) -> None:
     """Ensure copy_dashboard exits gracefully if template dashboard is not found."""
     from superset.models.dashboard import copy_dashboard
 
-    monkeypatch.setattr(current_app.appbuilder.sm, "user_model", custom_user_model)
-    user_instance = custom_user_model()
-    user_instance.id = 42
-    user_instance.groups = []
-
     mock_session = Mock()
-    mock_session.query.return_value.filter_by.return_value.first.side_effect = [
-        user_instance,
-        None,
-    ]
+    mock_session.query.return_value.filter_by.return_value.first.return_value = None
 
-    target = Mock(id=42)
+    target = Mock(id=42, groups=[])
     with (
         patch.dict(current_app.config, {"DASHBOARD_TEMPLATE_ID": 999}),
         patch(
@@ -878,8 +840,6 @@ def test_copy_dashboard_missing_template_returns_early(
 
 def test_copy_dashboard_with_custom_user_model_in_isolated_session(
     app_context: None,
-    monkeypatch: pytest.MonkeyPatch,
-    custom_user_model: type[CustomUserModel],
     mock_dashboard_template: Dashboard,
 ) -> None:
     """Ensure copy_dashboard copies the template dashboard for custom user model
@@ -887,18 +847,12 @@ def test_copy_dashboard_with_custom_user_model_in_isolated_session(
     """
     from superset.models.dashboard import copy_dashboard
 
-    monkeypatch.setattr(current_app.appbuilder.sm, "user_model", custom_user_model)
-
-    user_instance = custom_user_model()
-    user_instance.id = 55
-    user_instance.groups = []
+    target = Mock(id=55, groups=[])
 
     mock_session = Mock()
-    # First query is for user_model, second query is for template Dashboard
-    mock_session.query.return_value.filter_by.return_value.first.side_effect = [
-        user_instance,
-        mock_dashboard_template,
-    ]
+    mock_session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_dashboard_template
+    )
     mock_session.__enter__ = Mock(return_value=mock_session)
     mock_session.__exit__ = Mock(return_value=None)
 
@@ -917,7 +871,6 @@ def test_copy_dashboard_with_custom_user_model_in_isolated_session(
             return_value=[],
         ),
     ):
-        target = Mock(id=55)
         copy_dashboard(Mock(), Mock(), target)
 
     mock_session.flush.assert_called_once()
@@ -927,3 +880,51 @@ def test_copy_dashboard_with_custom_user_model_in_isolated_session(
     extra_attributes = added_objects[1]
     assert cloned_dashboard.dashboard_title == "Template Dashboard"
     assert extra_attributes.user_id == 55
+
+
+def test_copy_dashboard_rebinds_subjects_in_isolated_session(
+    app_context: None,
+    mock_dashboard_template: Dashboard,
+) -> None:
+    """Ensure editors and viewers subjects are rebound in the isolated session."""
+    from superset.models.dashboard import copy_dashboard
+    from superset.subjects.models import Subject
+
+    group = Mock(id=10)
+    target = Mock(id=55, groups=[group])
+
+    db_subject = Subject()
+    db_subject.id = 1
+    rebound_subject = Subject()
+    rebound_subject.id = 1
+
+    mock_session = Mock()
+    mock_session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_dashboard_template
+    )
+    mock_session.query.return_value.filter.return_value.all.return_value = [
+        rebound_subject
+    ]
+    mock_session.__enter__ = Mock(return_value=mock_session)
+    mock_session.__exit__ = Mock(return_value=None)
+
+    added_objects: list[Any] = []
+    mock_session.add.side_effect = lambda obj: added_objects.append(obj)
+
+    with (
+        patch.dict(current_app.config, {"DASHBOARD_TEMPLATE_ID": 100}),
+        patch("superset.models.dashboard.Session", return_value=mock_session),
+        patch("superset.subjects.utils.get_user_subject", return_value=db_subject),
+        patch(
+            "superset.subjects.utils.get_default_viewers_for_groups",
+            return_value=[db_subject],
+        ),
+    ):
+        copy_dashboard(Mock(), Mock(), target)
+
+    mock_session.flush.assert_called_once()
+    mock_session.commit.assert_called_once()
+    assert len(added_objects) == 2
+    cloned_dashboard = added_objects[0]
+    assert cloned_dashboard.editors == [rebound_subject]
+    assert cloned_dashboard.viewers == [rebound_subject]

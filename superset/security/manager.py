@@ -490,52 +490,6 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("username")
     arg_name = "username"
 
-    @staticmethod
-    def _is_mock(obj: Any) -> bool:
-        if obj is None:
-            return False
-        from unittest.mock import Mock, NonCallableMock
-
-        if isinstance(obj, (Mock, NonCallableMock)) or hasattr(
-            obj, "_mock_return_value"
-        ):
-            return True
-        if isinstance(obj, type) and issubclass(obj, (Mock, NonCallableMock)):
-            return True
-        if getattr(obj, "__module__", "").startswith("unittest.mock"):
-            return True
-        return False
-
-    def _get_username_column(self) -> Any:
-        from contextlib import suppress
-
-        with suppress(Exception):
-            sm = getattr(getattr(current_app, "appbuilder", None), "sm", None)
-            sm_model = getattr(sm, "user_model", None)
-            if sm_model is not None and not self._is_mock(sm_model):
-                col = getattr(sm_model, "username", None)
-                if (
-                    col is not None
-                    and not self._is_mock(col)
-                    and hasattr(col, "not_in")
-                ):
-                    return col
-
-        with suppress(Exception):
-            model = getattr(self, "model", None)
-            if model is None and hasattr(self, "datamodel"):
-                model = getattr(self.datamodel, "obj", None)
-            if model is not None and not self._is_mock(model):
-                col = getattr(model, "username", None)
-                if (
-                    col is not None
-                    and not self._is_mock(col)
-                    and hasattr(col, "not_in")
-                ):
-                    return col
-
-        return User.username
-
     def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
         exclude_users = (
             current_app.appbuilder.sm.get_exclude_users_from_lists()
@@ -543,8 +497,7 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             else current_app.config["EXCLUDE_USERS_FROM_LISTS"]
         )
         if exclude_users:
-            username_col = self._get_username_column()
-            return query.filter(username_col.not_in(exclude_users))
+            return query.filter(User.username.not_in(exclude_users))
 
         return query
 

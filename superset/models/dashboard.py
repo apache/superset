@@ -84,21 +84,26 @@ def _copy_dashboard_for_user(
     :param target: The newly created user instance.
     :param dashboard_id: The ID of the template dashboard to copy.
     """
+    from superset.subjects.models import Subject
     from superset.subjects.utils import (
         get_default_viewers_for_groups,
         get_user_subject,
     )
 
-    user_model = security_manager.user_model
-    new_user = session.query(user_model).filter_by(id=target.id).first()
+    def _rebind(subjects: list[Subject | None]) -> list[Subject]:
+        """The helpers resolve subjects on ``db.session``; a persistent object
+        cannot be cascaded into a second session."""
+        ids = [s.id for s in subjects if s is not None]
+        return session.query(Subject).filter(Subject.id.in_(ids)).all() if ids else []
+
     template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
     if not template:
         return
-    editors = []
-    if new_user:
-        subj = get_user_subject(new_user.id)
-        if subj:
-            editors.append(subj)
+
+    editors = _rebind([get_user_subject(target.id)])
+    viewers = _rebind(
+        get_default_viewers_for_groups(list(getattr(target, "groups", []) or []))
+    )
     dashboard = Dashboard(
         dashboard_title=template.dashboard_title,
         position_json=template.position_json,
@@ -107,9 +112,7 @@ def _copy_dashboard_for_user(
         json_metadata=template.json_metadata,
         slices=template.slices,
         editors=editors,
-        viewers=get_default_viewers_for_groups(
-            list(getattr(new_user, "groups", []) or [])
-        ),
+        viewers=viewers,
     )
     session.add(dashboard)
     session.flush()
@@ -134,14 +137,6 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Any) -> Non
     dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
     if dashboard_id is None:
         return
-
-    # Check if sqla.inspect is mocked (for compatibility with legacy tests)
-    if hasattr(sqla.inspect, "mock_calls"):
-        inspected = sqla.inspect(target)
-        target_session = getattr(inspected, "session", None)
-        if target_session is not None:
-            _copy_dashboard_for_user(target_session, target, dashboard_id)
-            return
 
     with Session(bind=_connection) as session:  # pylint: disable=disallowed-name
         _copy_dashboard_for_user(session, target, dashboard_id)

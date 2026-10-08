@@ -173,13 +173,11 @@ def test_copy_dashboard_attaches_viewers_from_the_users_in_memory_groups(
 
     viewer = _group_subject()
     group = MagicMock()
-    new_user = MagicMock()
-    new_user.id = 5
-    new_user.groups = [group]
+    user = SimpleNamespace(id=5, groups=[group])
+    template = MagicMock()
     session = MagicMock()
-    # Both lookups (the user, then the template dashboard) go through the same
-    # mocked chain; a MagicMock stands in for either.
-    session.query.return_value.filter_by.return_value.first.return_value = new_user
+    session.query.return_value.filter_by.return_value.first.return_value = template
+    session.query.return_value.filter.return_value.all.return_value = [viewer]
 
     created: dict[str, Any] = {}
 
@@ -190,7 +188,9 @@ def test_copy_dashboard_attaches_viewers_from_the_users_in_memory_groups(
     with (
         patch.dict(dashboard_module.app.config, {"DASHBOARD_TEMPLATE_ID": 1}),
         patch.object(
-            dashboard_module.sqla, "inspect", return_value=MagicMock(session=session)
+            dashboard_module,
+            "Session",
+            return_value=MagicMock(__enter__=MagicMock(return_value=session)),
         ),
         patch.object(dashboard_module, "Dashboard", side_effect=_capture),
         patch("superset.subjects.utils.get_user_subject", return_value=None),
@@ -202,7 +202,7 @@ def test_copy_dashboard_attaches_viewers_from_the_users_in_memory_groups(
         dashboard_module.copy_dashboard(
             MagicMock(),
             MagicMock(),
-            SimpleNamespace(id=5),  # type: ignore[arg-type]
+            user,  # type: ignore[arg-type]
         )
 
     assert created["viewers"] == [viewer]
@@ -283,8 +283,10 @@ def test_dashboard_copy_dao_attaches_default_viewers(app_context) -> None:
         patch.object(
             dashboard_dao,
             "Dashboard",
-            side_effect=lambda: created.append(MagicMock())  # type: ignore[func-returns-value]
-            or created[-1],
+            side_effect=lambda: (
+                created.append(MagicMock())  # type: ignore[func-returns-value]
+                or created[-1]
+            ),
         ),
         patch("superset.subjects.utils.get_user_subject", return_value=None),
         patch(
