@@ -890,7 +890,7 @@ async def update_chart(  # noqa: C901
         ):
             # The update path builds table-typed form data from datasource_id,
             # which would rebind the chart to a same-id table.
-            unsupported_msg = (
+            unsupported_msg: str = (
                 f"Chart {chart.id} uses a semantic view; update_chart supports "
                 "only dataset-backed charts."
             )

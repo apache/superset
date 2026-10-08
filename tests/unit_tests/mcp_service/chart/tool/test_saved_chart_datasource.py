@@ -33,6 +33,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service import guest_scope
 from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.chart.schemas import ChartInfo
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
@@ -321,7 +322,7 @@ def test_chart_data_access_check_uses_the_source_type(
             else None,
         ) as view_access,
     ):
-        result = check_chart_data_access(chart)
+        result: DatasetValidationResult = check_chart_data_access(chart)
     assert result.is_valid is (outcome == "allowed")
     if source_type == "table":
         table_lookup.assert_called_once_with(17, skip_base_filter=False)
