@@ -393,11 +393,19 @@ def test_cleared_attachment_setting_does_not_restore_feature_flag(
 def test_configuration_errors_never_retry(
     exception: Exception, mocker: MockerFixture
 ) -> None:
-    schedule = ReportSchedule(retry_on_failure=True, retry_attempt=2)
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    schedule = ReportSchedule(
+        retry_on_failure=True, retry_attempt=2, retry_max_attempts=3
+    )
     state = BaseReportState(schedule, datetime.now(), str(uuid4()))
     reset = mocker.patch.object(state, "_reset_retry_counter")
+    schedule_retry = mocker.patch.object(state, "_schedule_retry")
     assert state._handle_retry_or_error(str(exception), exception) is False
     reset.assert_called_once()
+    schedule_retry.assert_not_called()
 
 
 def test_attachment_policy_is_read_for_each_check(mocker: MockerFixture) -> None:
