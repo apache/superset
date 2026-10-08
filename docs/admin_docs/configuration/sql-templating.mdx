@@ -587,13 +587,13 @@ SELECT * FROM {{ dataset(42) }} LIMIT 10
 If you prefer dataset's name:
 
 ```sql
-SELECT * FROM {{ dataset("my_dataset") }} LIMIT 10
+SELECT * FROM {{ dataset(dataset_name="my_dataset") }} LIMIT 10
 ```
 
-If name is ambiguous, pass optional qualifiers (`catalog`, `schema`, or `database_id` as a numeric ID or string name) to narrow down the search:
+If name is ambiguous, pass optional qualifiers (`catalog`, `schema`, either `database_id` or `database_name`) to narrow down the search:
 
 ```sql
-SELECT * FROM {{ dataset("my_dataset", database_id=1, catalog=None, schema="datasets") }} LIMIT 10
+SELECT * FROM {{ dataset(dataset_name="my_dataset", database_id=1, catalog=None, schema="datasets") }} LIMIT 10
 ```
 
 If you want to select the metric definitions as well, in addition to the columns, you need to pass an additional keyword argument:

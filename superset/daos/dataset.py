@@ -678,28 +678,34 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     @staticmethod
     def get_table_by_catalog_schema_and_name(
         table_name: str,
-        database_id: int | str | _Unset = _UNSET,
+        database_id: int | None = None,
         schema: str | _Unset | None = _UNSET,
         catalog: str | _Unset | None = _UNSET,
         skip_base_filter: bool = False,
+        *,
+        database_name: str | None = None,
     ) -> SqlaTable | None:
         # Filter by ``table_name`` and any additional identification attributes
-        # provided (``database_id``, ``catalog``, ``schema``). The full
-        # ``(database_id, catalog, schema, table_name)`` uniqueness key can be used
-        # to disambiguate datasets sharing the same ``table_name`` (#30377), while
+        # provided (either ``database_id`` or ``database_name``, ``catalog``,
+        # ``schema``). The full identification tuple, using either ``database_id``
+        # or ``database_name`` with ``catalog`` and ``schema``, can be used to
+        # disambiguate datasets sharing the same ``table_name`` (#30377), while
         # partial criteria may match multiple datasets (#35662).
+        if database_id is not None and database_name is not None:
+            raise ValueError("Specify either 'database_id' or 'database_name'.")
+
         query = db.session.query(SqlaTable).filter(SqlaTable.table_name == table_name)
 
         if not skip_base_filter:
             query = DatasetDAO._apply_base_filter(query)
 
-        if database_id is not _UNSET:
-            if isinstance(database_id, int):
-                query = query.filter(SqlaTable.database_id == database_id)
-            else:
-                query = query.filter(
-                    SqlaTable.database.has(Database.database_name == database_id)
-                )
+        if database_id is not None:
+            query = query.filter(SqlaTable.database_id == database_id)
+
+        if database_name is not None:
+            query = query.filter(
+                SqlaTable.database.has(Database.database_name == database_name)
+            )
 
         if catalog is not _UNSET:
             query = query.filter(
