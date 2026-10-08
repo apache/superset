@@ -17,10 +17,8 @@
 
 """Unit tests for the shared MCP time_range validator.
 
-These cases mirror the live-testing findings from SC-114824: values that
-superset.utils.date_parser.get_since_until() silently resolves to an
-unbounded (None, today) range -- rather than raising -- must be rejected
-here instead of reaching that function.
+Malformed ranges are rejected by the shared parser; MCP preserves its field-level
+error guidance and shorthand normalization.
 """
 
 from __future__ import annotations
@@ -244,11 +242,8 @@ class TestValidateTimeRangeRejectsSilentFailures:
         ],
     )
     def test_previously_silent_values_now_raise(self, value: str) -> None:
-        # Confirm the premise: get_since_until() really does silently
-        # discard this value (unbounded start, no exception) before
-        # asserting our validator closes the gap.
-        since, until = get_since_until(time_range=value)
-        assert since is None
+        with pytest.raises(TimeRangeParseFailError):
+            get_since_until(time_range=value)
 
         with pytest.raises(ValueError, match="Unrecognized time_range"):
             validate_time_range(value)
@@ -285,10 +280,9 @@ class TestValidateTimeRangeRejectsMalformedPrefixes:
             validate_time_range(value)
 
     def test_prefix_lookalike_that_silently_matches_is_rejected(self) -> None:
-        """'Lasagna' starts with neither prefix but shares 'Las' -- it takes
-        the silent unbounded path, not the raising one."""
-        since, _ = get_since_until(time_range="Lasagna")
-        assert since is None
+        """A prefix lookalike is rejected by both the parser and MCP."""
+        with pytest.raises(TimeRangeParseFailError):
+            get_since_until(time_range="Lasagna")
 
         with pytest.raises(ValueError, match="Unrecognized time_range"):
             validate_time_range("Lasagna")

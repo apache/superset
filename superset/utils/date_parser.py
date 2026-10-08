@@ -687,6 +687,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
 
         _since, _until = map(datetime_eval, since_and_until)
     else:
+        # Only an omitted time_range may use the legacy separate bounds.
+        # Explicit values must resolve through the range grammar above.
+        if time_range is not None:
+            raise TimeRangeParseFailError(time_range)
         since = since or ""
         if since:
             since = add_ago_to_since(since)

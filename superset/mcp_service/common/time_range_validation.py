@@ -15,33 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""
-Shared ``time_range`` validation for MCP tools that forward a free-form,
-model-generated string into a ``TEMPORAL_RANGE`` filter or a native filter's
-``default_time_range``.
+"""Normalize MCP time ranges and expose shared parser validation as field errors.
 
-``superset.utils.date_parser.get_since_until()`` only rewrites a
-separator-less ``time_range`` into a bounded range when it recognizes one of
-a handful of prefixes (``Last``, ``Next``, ``previous calendar ...``,
-``Current ...``, ``first ... of ...``). Anything else -- ``banana``,
-``this month``, lowercase ``last week``, ``[decade]`` -- silently falls
-through to an unbounded ``(None, today)`` result: no error, no warning, and
-the query returns the entire table.
-
-That silent behavior is unfixable at the ``get_since_until()`` level without
-risking regressions across the whole chart/dashboard query path (see
-``jinja_context.py`` and ``semantic_layers/mapper.py``, which also call it).
-The MCP tools are the surface that accepts free-form, model-generated
-strings, so the guard lives here instead: reject anything
-``get_since_until()`` would silently discard, with a message that lists the
-accepted forms so the caller (an LLM) can self-correct.
-
-Acceptance is decided by *calling* ``get_since_until()`` and checking what
-comes back, not by re-implementing its grammar here. Mirroring the grammar
-would drift from the real parser and force a choice between rejecting valid
-freeform values (``Last Monday``, ``Last year to date``) and admitting
-malformed ones (``Last nonsense``, a bare ``Last``). Delegating gets both
-right by construction.
+The shared parser rejects malformed separator-less ranges. MCP additionally
+accepts bracket shorthands and empty defaults, and provides accepted-format
+guidance when parser validation fails.
 """
 
 from __future__ import annotations
@@ -100,7 +78,7 @@ def _normalize_sub_day_last(value: str) -> str | None:
     to pick its default bound today.
 
     Returns ``None`` when ``value`` is not a sub-day ``Last`` expression, in
-    which case the caller falls back to ``_resolves_to_bounded_range()``.
+    which case the caller falls back to ``_is_valid_shorthand()``.
     """
     if not value.startswith(_LAST_PREFIX):
         return None
@@ -112,36 +90,13 @@ def _normalize_sub_day_last(value: str) -> str | None:
     return f"DATEADD(DATETIME('now'), -{quantity}, {unit}) : DATETIME('now')"
 
 
-def _resolves_to_bounded_range(value: str) -> bool:
-    """Whether get_since_until() turns this separator-less value into a
-    range bounded on both ends.
-
-    Asks the real parser instead of re-implementing its grammar, which is
-    what makes the accept/reject split exact:
-
-    * ``Last 7 days``, ``Current week``, ``previous calendar year``,
-      ``first week of this year`` -- and freeform tails the parser handles
-      on its own, like ``Last Monday``, ``Last January``,
-      ``Last year to date`` -- all resolve, so they're accepted.
-    * ``banana``, ``this month``, lowercase ``last week`` resolve to an
-      unbounded ``(None, today)``: the silent full-table match this module
-      exists to catch.
-    * ``Last nonsense``, ``Last decade`` and a bare ``Last`` raise inside
-      the parser. Rejecting them here turns what would surface as a
-      low-level parse error deep in the query path into a field-level
-      ``ValidationError`` carrying the accepted-format guidance.
-
-    Sub-day ``Last`` values are intercepted earlier by
-    ``_normalize_sub_day_last()`` and never reach this check -- they would
-    resolve correctly here too now, but the earlier rewrite still runs so
-    callers get its explicit ``DATEADD`` form instead of whatever bound
-    ``get_since_until()`` happens to default to.
-    """
+def _is_valid_shorthand(value: str) -> bool:
+    """Delegate shorthand acceptance to the shared parser without copying grammar."""
     try:
-        since, until = get_since_until(time_range=value)
+        get_since_until(time_range=value)
     except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError):
         return False
-    return since is not None and until is not None
+    return True
 
 
 def validate_time_range(value: str | None) -> str | None:
@@ -181,7 +136,7 @@ def validate_time_range(value: str | None) -> str | None:
     if _SEPARATOR in stripped:
         return stripped
 
-    if _resolves_to_bounded_range(stripped):
+    if _is_valid_shorthand(stripped):
         return stripped
 
     raise ValueError(

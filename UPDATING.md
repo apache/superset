@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Malformed explicit `time_range` values are rejected with a validation error
+  (HTTP 400 on chart-data requests) instead of silently producing an upper-bound-only
+  scan. Update saved charts, dashboard filters, imports, and API callers to use
+  `<start> : <end>` (including spaces around the colon) or a supported shorthand,
+  such as `Last week`. An empty string is invalid; use `No filter` for no time
+  filter. Omitted `time_range` values still support legacy `since`/`until` bounds.
+
 - MCP dashboard mutation tools refuse externally managed dashboards, including
   owner and role changes. Update the dashboard in its external source of truth
   instead; the response sets `managed_externally: true`. Read-only tools and
