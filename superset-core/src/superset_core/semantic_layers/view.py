@@ -22,7 +22,7 @@ from abc import ABC, abstractmethod
 
 from superset_core.semantic_layers.types import (
     Dimension,
-    Filter,
+    FilterExpression,
     Metric,
     SemanticQuery,
     SemanticResult,
@@ -39,6 +39,7 @@ class SemanticViewFeature(enum.Enum):
     ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
     GROUP_LIMIT = "GROUP_LIMIT"
     GROUP_OTHERS = "GROUP_OTHERS"
+    OR_FILTERS = "OR_FILTERS"
 
 
 class SemanticView(ABC):
@@ -103,7 +104,7 @@ class SemanticView(ABC):
     def get_values(
         self,
         dimension: Dimension,
-        filters: set[Filter] | None = None,
+        filters: set[FilterExpression] | None = None,
     ) -> SemanticResult:
         """
         Return distinct values for a dimension.

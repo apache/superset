@@ -4076,11 +4076,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return value
 
         if isinstance(values, (list, tuple)):
-            values = [handle_single_value(v) for v in values]  # type: ignore
+            values = [handle_single_value(v) for v in values]
         else:
             values = handle_single_value(values)
         if is_list_target and not isinstance(values, (tuple, list)):
-            values = [values]  # type: ignore
+            values = [values]
         elif not is_list_target and isinstance(values, (tuple, list)):
             values = values[0] if values else None
         return values

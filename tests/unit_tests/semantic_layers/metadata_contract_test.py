@@ -44,7 +44,7 @@ from superset_core.semantic_layers.metadata import (
 )
 from superset_core.semantic_layers.types import (
     Dimension,
-    Filter,
+    FilterExpression,
     Metric,
     SemanticQuery,
     SemanticResult,
@@ -73,7 +73,7 @@ class LegacyView(SemanticView):
         return {Metric("orders", "Orders", pa.int64(), "orders")}
 
     def get_values(
-        self, dimension: Dimension, filters: set[Filter] | None = None
+        self, dimension: Dimension, filters: set[FilterExpression] | None = None
     ) -> SemanticResult:
         return SemanticResult([], pa.table({"value": [17]}))
 

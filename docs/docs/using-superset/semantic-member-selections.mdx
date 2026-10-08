@@ -64,3 +64,34 @@ For versioned semantic views, Matrixify **All** mode with **A to Z** or **Z to A
 sorting cannot populate or refresh dimension values from suggestions. Existing
 saved values are preserved. For a new selection, switch to **Members** and enter
 values manually; the control displays this guidance when suggestions are unavailable.
+
+
+## NULL filter values
+
+For semantic views, a selected NULL value means a missing value, rather than SQL's
+unknown comparison result. Equality to NULL and `IN (NULL)` use `IS NULL`;
+inequality to NULL and `NOT IN (NULL)` use `IS NOT NULL`.
+
+A mixed selection such as `IN ('a', NULL)` means `IN ('a') OR IS NULL`. Its negative
+form, `NOT IN ('a', NULL)`, means `NOT IN ('a') AND IS NOT NULL`; it excludes both
+`'a'` and missing values. Empty IN and NOT IN selections are rejected with a query
+validation error. Non-NULL comparisons retain their existing semantics.
+
+Mixed positive selections require the provider's optional `OR_FILTERS` capability.
+A provider that does not declare it returns a clear query validation error instead
+of silently omitting missing-value rows. NULL-only and mixed negative selections
+use ordinary leaf predicates and do not require that capability.
+
+### Provider implementation
+
+The SDK's `FilterExpression` is either a `Filter` leaf or a frozen `OrFilter` holding
+at least two distinct leaves in one predicate stage (WHERE or HAVING). Query filter
+sets combine their members with AND; an `OrFilter` combines its leaves with OR.
+Nested groups are unsupported. Preserve parentheses and bind values using the
+provider's normal parameterization when rendering a group. Apply the same rules
+to main queries, row counts, group-limit subqueries and distinct-value requests.
+
+`OR_FILTERS` is off by default. Declare it only after the adapter supports groups
+at every relevant entry point. Upgrading the host/SDK alone does not upgrade the
+provider adapters; deployments must use compatible adapter versions before
+mixed positive NULL selections can succeed.

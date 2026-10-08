@@ -25,6 +25,7 @@ single dataframe.
 """
 
 import logging
+from dataclasses import replace
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
@@ -37,6 +38,7 @@ from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
     Filter,
+    FilterExpression,
     FilterValues,
     Grain,
     Grains,
@@ -45,6 +47,7 @@ from superset_core.semantic_layers.types import (
     Operator,
     OrderDirection,
     OrderTuple,
+    OrFilter,
     PredicateType,
     SemanticQuery,
     SemanticResult,
@@ -422,6 +425,9 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
             time_offset,
             all_dimensions,
         )
+        _validate_filter_features(filters, semantic_view.features)
+        if group_limit is not None:
+            _validate_filter_features(group_limit.filters, semantic_view.features)
         queries.append(
             SemanticQuery(
                 metrics=metrics,
@@ -444,14 +450,14 @@ def _get_filters_from_query_object(
     query_object: ValidatedQueryObject,
     time_offset: str | None,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter]:
+) -> set[FilterExpression]:
     """
     Extract all filters from the query object, including time range filters.
 
     This simplifies the complexity of from_dttm/to_dttm/inner_from_dttm/inner_to_dttm
     by converting all time constraints into filters.
     """
-    filters: set[Filter] = set()
+    filters: set[FilterExpression] = set()
 
     # 1. Add fetch values predicate if present
     if (
@@ -688,7 +694,7 @@ def _get_time_bounds(
 def _convert_query_object_filter(
     filter_: ValidatedQueryObjectFilterClause,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter] | None:
+) -> set[FilterExpression] | None:
     """
     Convert a QueryObject filter dict to a semantic layer Filter.
     """
@@ -715,7 +721,7 @@ def _convert_query_object_filter(
         if not isinstance(value, str) or value == NO_TIME_RANGE:
             return None
         start, end = get_since_until_from_time_range(time_range=value)
-        filters: set[Filter] = set()
+        filters: set[FilterExpression] = set()
         if start is not None:
             filters.add(
                 Filter(
@@ -743,14 +749,69 @@ def _convert_query_object_filter(
         # Unknown operator - raise error to prevent unauthorized access
         raise ValueError(f"Unsupported filter operator: {operator_str}")
 
-    return {
+    return _normalize_null_filter(
         Filter(
             type=PredicateType.WHERE,
             column=dimension,
             operator=operator,
             value=value,
         )
-    }
+    )
+
+
+def _normalize_null_filter(filter_: Filter) -> set[FilterExpression]:
+    """Treat NULL as a selected member, preserving positive and negative polarity."""
+    if filter_.operator in {Operator.EQUALS, Operator.NOT_EQUALS}:
+        if filter_.value is None:
+            return {
+                replace(
+                    filter_,
+                    operator=Operator.IS_NULL
+                    if filter_.operator == Operator.EQUALS
+                    else Operator.IS_NOT_NULL,
+                )
+            }
+        return {filter_}
+    if filter_.operator not in {Operator.IN, Operator.NOT_IN}:
+        return {filter_}
+
+    values: frozenset[FilterValues] = (
+        frozenset(filter_.value)
+        if isinstance(filter_.value, (tuple, frozenset))
+        else frozenset({filter_.value})
+    )
+    if not values:
+        raise QueryObjectValidationError("Semantic IN/NOT IN filters cannot be empty.")
+    if None not in values:
+        return {filter_}
+
+    negated: bool = filter_.operator == Operator.NOT_IN
+    null_filter: Filter = replace(
+        filter_,
+        operator=Operator.IS_NOT_NULL if negated else Operator.IS_NULL,
+        value=None,
+    )
+    non_null_values: frozenset[FilterValues] = values - {None}
+    if not non_null_values:
+        return {null_filter}
+    comparison: Filter = replace(filter_, value=non_null_values)
+    if negated:
+        return {comparison, null_filter}
+    return {OrFilter(frozenset({comparison, null_filter}))}
+
+
+def _validate_filter_features(
+    filters: set[FilterExpression] | None,
+    features: frozenset[SemanticViewFeature],
+) -> None:
+    """Fail before provider execution rather than flattening an unsupported group."""
+    if SemanticViewFeature.OR_FILTERS not in features and any(
+        isinstance(filter_, OrFilter) for filter_ in filters or ()
+    ):
+        raise QueryObjectValidationError(
+            "This semantic provider does not support OR_FILTERS. "
+            "Filtering for NULL together with other values requires this capability."
+        )
 
 
 def _coerce_filter_value(
@@ -968,7 +1029,7 @@ def _get_group_limit_from_query_object(
 def _get_group_limit_filters(
     query_object: ValidatedQueryObject,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter] | None:
+) -> set[FilterExpression] | None:
     """
     Get separate filters for the group limit subquery if needed.
 
@@ -991,7 +1052,7 @@ def _get_group_limit_filters(
         return None
 
     # Create separate filters for the group limit subquery
-    filters: set[Filter] = set()
+    filters: set[FilterExpression] = set()
     time_bounds_emitted = False
 
     # Add time range filter using inner bounds. The temporal column is resolved

@@ -24,7 +24,7 @@ import pyarrow as pa
 import pytest
 from superset_core.semantic_layers.types import (
     Dimension,
-    Filter,
+    FilterExpression,
     Metric,
     SemanticQuery,
     SemanticResult,
@@ -76,7 +76,7 @@ class IdentityView(SemanticView):
         return self.dimensions
 
     def get_values(
-        self, dimension: Dimension, filters: set[Filter] | None = None
+        self, dimension: Dimension, filters: set[FilterExpression] | None = None
     ) -> SemanticResult:
         raise AssertionError("legacy request must not execute")
 
