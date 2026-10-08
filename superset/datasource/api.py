@@ -133,6 +133,14 @@ class DatasourceRestApi(BaseSupersetApi):
               Optional case-insensitive substring; only values containing it are
               returned. Lets the client search the full column rather than the
               truncated first page.
+          - in: query
+            schema:
+              type: string
+            name: semantic_selection_version
+            description: >-
+              Identity version from the saved or explicitly initialized field
+              selections. Required for versioned semantic views; never infer it
+              from current datasource metadata for legacy selections.
           responses:
             200:
               description: A List of distinct values for the column
@@ -145,8 +153,9 @@ class DatasourceRestApi(BaseSupersetApi):
                         type: string
                         enum: [unavailable_versioned_view]
                         description: >-
-                          Suggestions are disabled for versioned semantic views;
-                          enter values manually.
+                          Selection provenance is missing or stale for this
+                          versioned semantic view; reselect fields or enter
+                          values manually.
                       result:
                         type: array
                         items:
@@ -189,14 +198,18 @@ class DatasourceRestApi(BaseSupersetApi):
         self, datasource: BaseDatasource, datasource_type: str, column_name: str
     ) -> FlaskResponse:
         """Return suggestions for an authorized datasource, gating before cache."""
-        # This route cannot prove the provenance of saved dimension names.
-        # Gate before cache access as well as provider execution.
+        # A saved display title may equal a different member's stable ID.
+        # Validate caller provenance before cache access or value retrieval.
+        selection_version: str | None = None
         if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
             from superset.semantic_layers.models import SemanticView
 
+            selection_version = cast(
+                SemanticView, datasource
+            ).implementation.selection_identity_version
             if (
-                cast(SemanticView, datasource).implementation.selection_identity_version
-                is not None
+                selection_version is not None
+                and request.args.get("semantic_selection_version") != selection_version
             ):
                 return self.response(
                     200,
@@ -241,6 +254,11 @@ class DatasourceRestApi(BaseSupersetApi):
             + hashlib.sha256(
                 json.dumps(
                     {
+                        **(
+                            {"semantic_selection_version": selection_version}
+                            if selection_version is not None
+                            else {}
+                        ),
                         "uid": datasource.uid,
                         "col": column_name,
                         "limit": row_limit,

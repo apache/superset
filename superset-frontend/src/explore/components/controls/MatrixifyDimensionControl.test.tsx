@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
@@ -652,7 +658,7 @@ test('available suggestions do not allow manual member values', async () => {
     });
     expect(await screen.findByText('No results')).toBeInTheDocument();
     expect(screen.queryByTitle('not-a-suggestion')).not.toBeInTheDocument();
-    await userEvent.keyboard('{Enter}');
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 });
     expect(onChange).not.toHaveBeenCalled();
   } finally {
     jest.useRealTimers();
@@ -684,5 +690,33 @@ test.each(['a_to_z', 'z_to_a'] as const)(
       screen.queryByRole('combobox', { name: 'Select dimension values' }),
     ).not.toBeInTheDocument();
     expect(onChange).not.toHaveBeenCalled();
+  },
+);
+
+test.each([undefined, 'old-title-version', 'cube-member-id-v1'])(
+  'suggestions carry only the selection provenance %s',
+  async version => {
+    (SupersetClient.get as jest.Mock).mockResolvedValue({
+      json: { result: ['US'] },
+    });
+    render(
+      <MatrixifyDimensionControl
+        {...defaultProps}
+        datasource={{
+          ...mockDatasource,
+          type: 'semantic_view',
+          semantic_selection_version: 'cube-member-id-v1',
+        }}
+        value={{ dimension: 'country', values: [] }}
+        formData={{ semantic_selection_version: version }}
+      />,
+    );
+    await waitFor(() => expect(SupersetClient.get).toHaveBeenCalled());
+    const { endpoint } = (SupersetClient.get as jest.Mock).mock.calls.at(-1)[0];
+    expect(
+      new URL(endpoint, 'http://localhost').searchParams.get(
+        'semantic_selection_version',
+      ),
+    ).toBe(version ?? null);
   },
 );

@@ -144,3 +144,70 @@ def test_versioned_suggestions_are_unavailable_before_cache(
     }
     cache.get.assert_not_called()
     implementation.get_values.assert_not_called()
+
+
+@pytest.mark.parametrize("version", [None, "old-title-version", "cube-member-id-v1"])
+@pytest.mark.parametrize("cached", [False, True])
+def test_versioned_suggestions_require_selection_provenance(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    version: str | None,
+    cached: bool,
+) -> None:
+    """A legacy title equal to an ID must not borrow metadata's version."""
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    implementation.selection_identity_version = "cube-member-id-v1"
+    implementation.get_dimensions.return_value = [
+        Dimension(
+            id="old-member", name="old-member", verbose_name="category", type=pa.utf8()
+        ),
+        Dimension(
+            id="category",
+            name="category",
+            verbose_name="Different member",
+            type=pa.utf8(),
+        ),
+    ]
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = ["Cached"] if cached else None
+    query: str = f"?semantic_selection_version={version}" if version else ""
+    response: Any = _get(client, f"category/values/{query}")
+    assert response.status_code == 200
+    if version == "cube-member-id-v1":
+        assert response.json["result"] == (
+            ["Cached"] if cached else ["Books", "Clothing"]
+        )
+        cache.get.assert_called_once()
+        assert implementation.get_values.call_count == (0 if cached else 1)
+        if not cached:
+            assert implementation.get_values.call_args.args[0].id == "category"
+    else:
+        assert response.json == {
+            "result": [],
+            "suggestions_status": "unavailable_versioned_view",
+        }
+        cache.get.assert_not_called()
+        implementation.get_values.assert_not_called()
+
+
+def test_suggestion_cache_separates_selection_versions(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+    keys: list[str] = []
+    version: str
+    for version in ("cube-member-id-v1", "cube-member-id-v2"):
+        implementation.selection_identity_version = version
+        response: Any = _get(
+            client, f"category/values/?semantic_selection_version={version}"
+        )
+        assert response.json["result"] == ["Books", "Clothing"]
+        keys.append(cache.get.call_args.args[0])
+    assert keys[0] != keys[1]

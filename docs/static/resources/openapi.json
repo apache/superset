@@ -25311,6 +25311,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Identity version from the saved or explicitly initialized field selections. Required for versioned semantic views; never infer it from current datasource metadata for legacy selections.",
+            "in": "query",
+            "name": "semantic_selection_version",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -25342,7 +25350,7 @@
                       "type": "array"
                     },
                     "suggestions_status": {
-                      "description": "Suggestions are disabled for versioned semantic views; enter values manually.",
+                      "description": "Selection provenance is missing or stale for this versioned semantic view; reselect fields or enter values manually.",
                       "enum": [
                         "unavailable_versioned_view"
                       ],
