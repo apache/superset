@@ -271,3 +271,137 @@ async def test_guest_semantic_chart_data_uses_dashboard_authorization(
         return
     assert "error_type" not in result, result
     assert result["data"] == [{"sales": 7}]
+
+
+@pytest.mark.parametrize(
+    "source_type, outcome",
+    [
+        ("semantic_view", "allowed"),
+        ("semantic_view", "missing"),
+        ("semantic_view", "denied"),
+        ("table", "allowed"),
+    ],
+)
+def test_chart_data_access_check_uses_the_source_type(
+    source_type: str, outcome: str
+) -> None:
+    """The shared check behind add_chart_to_existing_dashboard, generate_dashboard
+    and update_chart must not authorize a semantic chart against a same-id table."""
+    from superset.mcp_service.auth import check_chart_data_access
+
+    chart: SimpleNamespace = SimpleNamespace(
+        id=9, datasource_id=17, datasource_type=source_type
+    )
+    view: SemanticView = SemanticView(id=17, name="Sales")
+    dataset: SimpleNamespace = SimpleNamespace(id=17, table_name="Sales", sql=None)
+    table_lookup: Mock
+    view_lookup: Mock
+    view_access: Mock
+    with (
+        patch("superset.mcp_service.auth.has_dataset_access", return_value=True),
+        patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset
+        ) as table_lookup,
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=view,
+            side_effect=DatasourceNotFound() if outcome == "missing" else None,
+        ) as view_lookup,
+        patch.object(
+            SemanticView,
+            "raise_for_access",
+            side_effect=SupersetSecurityException(
+                SupersetError(
+                    message="private source detail",
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+            if outcome == "denied"
+            else None,
+        ) as view_access,
+    ):
+        result = check_chart_data_access(chart)
+    assert result.is_valid is (outcome == "allowed")
+    if source_type == "table":
+        table_lookup.assert_called_once_with(17, skip_base_filter=False)
+        view_lookup.assert_not_called()
+        return
+    table_lookup.assert_not_called()
+    view_lookup.assert_called_once_with(DatasourceType.SEMANTIC_VIEW, 17)
+    if outcome == "missing":
+        view_access.assert_not_called()
+    else:
+        view_access.assert_called_once()
+    if outcome != "allowed":
+        assert result.error is not None
+        assert "private source detail" not in result.error
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("outcome", ["allowed", "denied"])
+async def test_update_chart_refuses_saved_semantic_charts(outcome: str) -> None:
+    """update_chart builds table-typed form data, so an authorized semantic chart
+    is refused rather than rebound to a same-id table; denial stays uniform."""
+    update_module: ModuleType = importlib.import_module(
+        "superset.mcp_service.chart.tool.update_chart"
+    )
+    chart: SimpleNamespace = SimpleNamespace(
+        id=9,
+        slice_name="Sales",
+        viz_type="table",
+        datasource_id=17,
+        datasource_type="semantic_view",
+        params=json.dumps({"viz_type": "table", "datasource": "17__semantic_view"}),
+    )
+    view: SemanticView = SemanticView(id=17, name="Sales")
+    table_lookup: Mock
+    update_command: Mock
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin"),
+        ),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch.object(
+            update_module.event_logger, "log_context", return_value=nullcontext()
+        ),
+        patch.object(update_module, "find_chart_by_identifier", return_value=chart),
+        patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id", return_value=None
+        ) as table_lookup,
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=view,
+        ),
+        patch.object(
+            SemanticView,
+            "raise_for_access",
+            side_effect=SupersetSecurityException(
+                SupersetError(
+                    message="private source detail",
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+            if outcome == "denied"
+            else None,
+        ),
+        patch("superset.commands.chart.update.UpdateChartCommand") as update_command,
+    ):
+        async with Client(mcp) as client:
+            response: CallToolResult = await client.call_tool(
+                "update_chart",
+                {"request": {"identifier": 9, "chart_name": "Renamed"}},
+            )
+    result: dict[str, Any] = response.structured_content or {}
+    assert result["success"] is False, result
+    error: dict[str, Any] = result["error"]
+    table_lookup.assert_not_called()
+    update_command.assert_not_called()
+    if outcome == "denied":
+        assert error["error_type"] == "DatasetNotAccessible"
+        assert "private source detail" not in error["message"]
+    else:
+        assert error["error_type"] == "UnsupportedDatasourceType"
+        assert "semantic view" in error["message"]

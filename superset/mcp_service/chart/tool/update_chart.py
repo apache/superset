@@ -65,6 +65,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -666,7 +667,6 @@ def _create_preview_url(
     """
     from superset.commands.explore.form_data.parameters import CommandParameters
     from superset.mcp_service.commands.create_form_data import MCPCreateFormDataCommand
-    from superset.utils.core import DatasourceType
 
     base_url = get_superset_base_url()
 
@@ -877,6 +877,30 @@ async def update_chart(  # noqa: C901
                         "error_type": "DatasetNotAccessible",
                         "message": error_msg,
                         "details": error_msg,
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
+
+        if (
+            getattr(chart, "datasource_type", None)
+            == DatasourceType.SEMANTIC_VIEW.value
+        ):
+            # The update path builds table-typed form data from datasource_id,
+            # which would rebind the chart to a same-id table.
+            unsupported_msg = (
+                f"Chart {chart.id} uses a semantic view; update_chart supports "
+                "only dataset-backed charts."
+            )
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "UnsupportedDatasourceType",
+                        "message": unsupported_msg,
+                        "details": unsupported_msg,
                     },
                     "success": False,
                     "schema_version": "2.0",
