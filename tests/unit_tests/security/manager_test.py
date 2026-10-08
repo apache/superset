@@ -5806,3 +5806,101 @@ def test_raise_for_access_dashboard_paths_never_read_queries_for_non_guest(
         dashboard.has_member_datasource.assert_called_once_with(datasource)
     else:
         matches.assert_any_call(datasource, _OTHER_VIEW_ID, "semantic_view")
+
+
+@pytest.mark.parametrize("dashboard_granted", [True, False])
+@pytest.mark.parametrize("path", ["drill-to-detail", "drill-by"])
+def test_raise_for_access_dashboard_final_check_never_reads_queries_for_non_guest(
+    mocker: MockerFixture,
+    app_context: None,
+    path: str,
+    dashboard_granted: bool,
+) -> None:
+    """
+    Carry the non-guest invariant through a successful drill to the shared final
+    ``can_access_dashboard`` check.
+
+    The drill's membership or dimension check passes, so the final dashboard
+    check alone decides the outcome; a spy proves it was reached, and a read of
+    ``query_context.queries`` on the way there or around it fails the test.
+    """
+    from superset.models.dashboard import Dashboard
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=True)
+    final_check: MagicMock = mocker.patch.object(
+        sm, "can_access_dashboard", return_value=dashboard_granted
+    )
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    mocker.patch.dict(current_app.config, {"VIEWER_PROMISCUOUS_MODE": True})
+
+    datasource: MagicMock = mocker.MagicMock(
+        id=_VIEW_ID, type="semantic_view", perm="[view](id:1)"
+    )
+    datasource.has_drill_by_columns.return_value = True
+
+    form_data: dict[str, Any]
+    charts: dict[int, MagicMock]
+    if path == "drill-to-detail":
+        form_data = {"dashboardId": _DASHBOARD_ID}
+        charts = {}
+    else:
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "slice_id": 0,
+            "chart_id": 42,
+            "groupby": ["a"],
+        }
+        charts = {42: _chart(mocker, 42, _VIEW_ID)}
+
+    dashboard: MagicMock = mocker.MagicMock(
+        id=_DASHBOARD_ID, json_metadata=None, slices=list(charts.values())
+    )
+    dashboard.has_member_datasource.return_value = True
+
+    def query(model: Any) -> MagicMock:
+        """Resolve ``Model.id == <value>`` lookups against the fixtures."""
+        rows: dict[int, MagicMock] = (
+            {_DASHBOARD_ID: dashboard} if model is Dashboard else charts
+        )
+        chain: MagicMock = mocker.MagicMock()
+        chain.filter.side_effect = lambda clause: mocker.MagicMock(
+            one_or_none=lambda: rows.get(clause.right.value)
+        )
+        return chain
+
+    mocker.patch.object(
+        SupersetSecurityManager,
+        "session",
+        new_callable=mocker.PropertyMock,
+        return_value=mocker.MagicMock(query=query),
+    )
+
+    query_context: MagicMock = mocker.MagicMock()
+    query_context.datasource = datasource
+    query_context.form_data = form_data
+    type(query_context).queries = mocker.PropertyMock(
+        side_effect=AssertionError("raise_for_access read query_context.queries")
+    )
+
+    if dashboard_granted:
+        sm.raise_for_access(query_context=query_context)
+    else:
+        with pytest.raises(SupersetSecurityException) as excinfo:
+            sm.raise_for_access(query_context=query_context)
+        assert (
+            excinfo.value.error.error_type
+            == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
+        )
+
+    # The drill succeeded, so the final dashboard check made the decision.
+    if path == "drill-by":
+        datasource.has_drill_by_columns.assert_called_once_with(["a"])
+    else:
+        dashboard.has_member_datasource.assert_called_once_with(datasource)
+    final_check.assert_called_once_with(dashboard)
