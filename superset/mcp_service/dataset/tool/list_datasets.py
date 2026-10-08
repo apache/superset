@@ -98,11 +98,14 @@ async def list_datasets(
     ] = None,
     ctx: Context | None = None,
 ) -> DatasetList | DatasetError:
-    """List/search/filter datasets.
+    """SQL datasets only.
 
-    Returns dataset metadata including table name, schema, and last modified
-    time. Set ``request.certified`` to true to return only governed,
-    semantic-layer datasets; false returns only uncertified datasets, while
+    For semantic views, use list_metrics for discovery and get_table for queries.
+
+    List/search/filter physical or virtual SQL datasets. Returns dataset metadata
+    including table name, schema, and last modified
+    time. Set ``request.certified`` to true to return only certified SQL
+    datasets; false returns only uncertified datasets, while
     omitting it preserves the unfiltered behavior.
 
     Search matches schema, SQL, table name, and description as case-insensitive

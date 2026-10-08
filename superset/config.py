@@ -1061,6 +1061,13 @@ SOFT_DELETE_RETENTION_DAYS: int = _parse_soft_delete_retention_days()
 # Optional authoritative host policy, consulted before the shared CLI override.
 # Invalid/unavailable results skip purge rather than fall back to a stored value.
 SOFT_DELETE_RETENTION_DAYS_FUNC: Callable[[], int] | None = None
+# Optional host-installed purge policies, for soft-delete roots this package
+# does not own. A zero-argument callable returning a sequence of
+# ``superset.commands.deletion_retention.purge_policy.PurgeEntityPolicy``.
+# Annotated loosely to keep config import-light. A failing or malformed
+# provider, or one redeclaring a built-in root, is logged and dropped: the
+# built-in chart, dashboard and dataset roots are never affected.
+PURGE_POLICIES_FUNC: Callable[[], Any] | None = None
 SOFT_DELETE_PURGE_DRY_RUN: bool = False
 
 # Retention policy for the purge audit log itself (the durable evidence the

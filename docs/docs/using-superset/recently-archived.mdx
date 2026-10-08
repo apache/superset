@@ -123,7 +123,140 @@ Each skip increments `deletion_retention.unsupported_models.<table>` once per
 run. Unsupported models are excluded from `would_purge` and do not count as
 `cascade_failures`; supported models continue to use their existing policies.
 An empty `unsupported_models` map means no registered models were skipped for
-this reason. This reporting does not add purge support for host-defined models.
+this reason. A root whose eligible-row scan raises — an unreadable column, a
+transient database error — is counted in `scan_failures`, increments
+`deletion_retention.scan_failures.<root>` for that root (its table name, or
+its class name where reading the table name is what failed), and gauges
+`deletion_retention.scan_failures` for the run, leaving the remaining roots to
+purge normally. Rows that root had already purged before the failure stay in
+its reported counts, since those deletions are committed.
+
+Reporting a model is not the same as purging it: a host adds purge support for
+its own entities by installing a policy, described next.
+
+A host distribution that carries its own soft-deletable entities can supply
+their purge behavior by installing `PURGE_POLICIES_FUNC`: a callable returning
+one `PurgeEntityPolicy` per root it owns. Installed policies are validated
+against the discovered dependency graph exactly as the built-in ones are, and a
+model that gains an installed policy stops being reported as unsupported. A
+provider that fails, or returns anything other than an iterable of
+`PurgeEntityPolicy` — a list, a tuple, `dict.values()` and a generator all
+qualify — is logged and ignored, leaving the built-in roots unchanged. So is
+a policy whose root is not a class, which everything downstream assumes, and
+one that redeclares a built-in chart, dashboard or dataset root or claims
+one of their `entity_type` names, which the cascade branches on. Two
+declarations for one root are ignored too, so that root is reported as
+unsupported rather than purged by an arbitrary one of them.
+
+Superset guarantees the **frame** around a purge: the locked claim, the
+identity and eligibility predicates, the write-ahead audit record, the
+conditional delete and the blocked/failed accounting. Within that frame a
+policy either uses the shared cleanup callbacks, in which case its declared
+dependencies are the instructions they execute, or supplies its own callbacks
+and owns what happens between the claim and the delete. Either way the frame
+decides whether the row may be purged at all, so no policy can remove a row
+that is not archived and past the window.
+
+Validation is not an attempt to prove that an arbitrary declaration executes
+correctly. A policy is refused when a mistake in it would delete the wrong
+rows or silently skip cleanup, since neither announces itself:
+
+- its root is not keyed on a single `id` column, has no `deleted_at` column,
+  types `uuid` as `sa.Uuid(native_uuid=False)`, is not a class, claims an
+  `entity_type` the cascade branches on, or is mapped onto one of Superset's
+  own root tables -- a different class on the chart table is still the chart
+  rows;
+- its root class is named `Slice`, `Dashboard` or `SqlaTable`. The version
+  cascade resolves an entity kind from the bare class name, so a host class
+  sharing one would clear the `version_changes` rows of the built-in entity
+  carrying the same id -- a live one, not only an archived one. A fourth
+  reserved identity alongside the model, its table and its entity type;
+- an owned or association edge names the root's own table, or any table
+  Superset's own policies name. Each such edge is executed as one `DELETE`,
+  with none of the frame around it: no eligibility predicate, no blocker, no
+  audit record of its own. On the root's own table it removes the purged
+  row's unarchived children; on `slices`, `dashboards` or `tables` it removes
+  charts, dashboards or datasets; on `report_schedule` it removes the very
+  rows the built-in blocker exists to protect, and on `ab_user` it removes
+  users. A host root's references from Superset-owned tables are its own to
+  clear in its callbacks, which `PRESERVE` leaves it free to do;
+- two of its roots are mapped onto one table. The index keys on the model and
+  the scan iterates models, so both would be scanned and a row purged under
+  whichever declarations reached it first -- a child one policy owns and the
+  other preserves would be cleaned or orphaned by that accident. Both are
+  dropped, as two declarations for one model are;
+- a table it names cannot be resolved unambiguously without a schema, so
+  cleanup would resolve it to a different table;
+- a version target is not root-relative, so cleanup would delete another
+  root's history and leave this root's behind -- or the root has no version
+  class at all, in which case the cascade returns before reaching the target
+  and the history it names simply survives -- a root with a versioned child
+  but no version class of its own removes the declaration and clears that
+  history in its own cleanup. A target is also refused when it is not a
+  `*_version` shadow: the name is resolved against the live metadata, so
+  without the suffix it finds a real table and the version phase deletes
+  from that instead;
+- it declares a listener effect, whose action decides what to delete from an
+  entity type a host cannot claim and so never runs. The purge deletes with
+  Core DML, which fires no ORM `after_delete`, so a root whose registered
+  listener would normally do that work carries it out in its own cleanup
+  callbacks and says so with `accounts_for_own_listeners` -- without which
+  such a root could not have a policy admitted at all;
+- it declares a block, which would run but records a reason code in the purge
+  audit log, whose vocabulary is a closed set. A host refuses a purge by
+  raising `PurgeBlockedError` from its own validator instead, where the code
+  it records is plainly its own;
+- it declares a table that owns itself, an owned edge whose target is the
+  root's own table -- the back edge of a root/child foreign-key cycle, which
+  removes other live roots sharing that child -- or a table reachable only
+  through an association, without setting `walks_own_subtree`. Cleanup that
+  issues one statement per declared edge reaches one level and resolves each
+  predicate through the ownership path, so without enforced foreign keys the
+  root is purged and the rows below it are orphaned silently. A policy whose
+  `delete_owned_children` walks the sub-tree itself says so with that field,
+  rather than being recognised by which callable it holds -- wrapping the
+  shared one keeps its behaviour while defeating any such check. The field
+  speaks for that callback alone, so it does not exempt the association
+  spelling of the same shape, which the bullet above refuses outright.
+
+A host root's references from Superset-owned tables are the host's own to
+clean up, in its own callbacks: the tag and permission cleanups Superset runs
+for its roots resolve from entity types a host cannot claim, so they never
+run for one.
+
+Each application resolves its own index, so two in one process do not
+re-resolve each other's. A provider that cannot be called -- or whose lazy
+payload raises while being read -- is logged, and the built-in roots answer
+reads for a short window before it is tried again --
+so a passing outage is not remembered for the life of the process, and it is
+not re-attempted on every read either.
+
+A root with no policy is skipped rather than scanned, so it is not a
+failure. A pass in which every root that *could* be scanned failed also
+increments `deletion_retention.failed`, the same counter a task that raises
+outright increments, since that is an outage rather than the isolation the
+per-root handling is for. The run itself still returns its counts, so alert
+on that counter rather than on the task result.
+
+A root typing `uuid` as `sa.Uuid()` is one known shape left to fail, and
+only on a metadata database with no UUID type of its own -- SQLite, MySQL.
+There the identity predicate's string binding goes through a processor that
+rejects it, so every eligible row raises and is counted; on Postgres the same
+declaration binds cleanly, which is why it is not refused outright.
+Superset's own roots use `sqlalchemy_utils.UUIDType`, which accepts the
+string everywhere.
+
+Anything else is left to fail where it fails. A predicate the cleanup cannot
+build raises per row and is counted in `cascade_failures`; an ordering a
+foreign key refuses surfaces as an integrity error, which the cascade reports
+as a blocked purge carrying the `cascade_integrity_failure` reason code and
+counts in `blocked_by_reference`. Either way the attempt is recorded against
+the audit row and isolated to its own root, rather than quietly skipped.
+
+A host that wants to confirm this hook exists before relying on it can check
+for `HOST_POLICIES_CONFIG_KEY` in
+`superset.commands.deletion_retention.purge_policy`; installing the key on a
+version without the hook is harmless, since nothing reads it.
 
 The window resolves in this order:
 
