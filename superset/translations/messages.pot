@@ -14466,6 +14466,12 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart version can't be restored because the dataset it used has been permanently deleted. Restore a version that uses an existing dataset, or recreate the chart."
+msgstr ""
+
+msgid "This chart version can't be restored because the semantic view it used has been permanently deleted. Restore a version that uses an existing semantic view or dataset, or recreate the chart."
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
