@@ -102,7 +102,7 @@ const convertContourToNumeric = (contour: ContourType) => {
   const formattedContour = { ...contour };
   const numericKeys = ['lowerThreshold', 'upperThreshold', 'strokeWidth'];
   numericKeys.forEach(key => {
-    if (formattedContour[key] !== undefined) {
+    if (formattedContour[key] != null) {
       formattedContour[key] = Number(formattedContour[key]);
     }
   });

@@ -25,7 +25,7 @@ test('omits the unused upper threshold when saving an isoline', async () => {
   const onSave = jest.fn();
   render(
     <ContourPopoverControl
-      value={{ lowerThreshold: 4, color, strokeWidth: 2, zIndex: 10 }}
+      value={{ lowerThreshold: '4', color, strokeWidth: '2', zIndex: 10 }}
       onSave={onSave}
     />,
   );
@@ -34,6 +34,10 @@ test('omits the unused upper threshold when saving an isoline', async () => {
 
   const saved = onSave.mock.calls[0][0];
   expect(saved.upperThreshold).toBeUndefined();
+  expect(saved.lowerThreshold).toBe(4);
+  expect(typeof saved.lowerThreshold).toBe('number');
+  expect(saved.strokeWidth).toBe(2);
+  expect(typeof saved.strokeWidth).toBe('number');
   expect(JSON.parse(JSON.stringify(saved))).not.toHaveProperty(
     'upperThreshold',
   );
