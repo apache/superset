@@ -19,6 +19,7 @@
 from collections.abc import Callable
 from unittest.mock import Mock, patch, PropertyMock
 
+import pytest
 import sqlalchemy as sa
 from flask import current_app, g, Response
 
@@ -29,6 +30,10 @@ from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
 
 
 class TestSemanticMetadataAuthorization(SupersetTestCase):
@@ -265,6 +270,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_dataset_chart_data_is_unchanged(self) -> None:
         """The semantic preflight does not affect SQL chart-data requests."""
         self.login("admin")
