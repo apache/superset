@@ -137,6 +137,14 @@ EXISTING_TIMEGRAIN_FILTER = {
     "cascadeParentIds": [],
 }
 
+EXISTING_DIVIDER = {
+    "id": "NATIVE_FILTER_DIVIDER-existing5",
+    "type": "DIVIDER",
+    "title": "Geography",
+    "description": "Filters that target location columns",
+    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+}
+
 
 def _mock_dashboard(
     id: int = 1,
@@ -146,6 +154,7 @@ def _mock_dashboard(
     """Build a mock dashboard with the given native filters and chart slices."""
     dashboard = Mock()
     dashboard.id = id
+    dashboard.is_managed_externally = False
     dashboard.dashboard_title = "Test Dashboard"
     dashboard.json_metadata = json.dumps({"native_filter_configuration": filters or []})
     slices = []
@@ -528,6 +537,87 @@ async def test_add_filter_timegrain_with_invalid_dataset(mcp_server):
     command.assert_not_called()
 
 
+@pytest.mark.asyncio
+async def test_add_divider(mcp_server):
+    """A divider has no dataset/column; it stores title+description and is
+    keyed by a NATIVE_FILTER_DIVIDER- id, matching the frontend's shape."""
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "divider",
+                        "name": "Geography",
+                        "description": "Location filters",
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    new_id = data["added_filter_ids"][0]
+    assert new_id.startswith("NATIVE_FILTER_DIVIDER-")
+    config = captured["payload"]["modified"][0]
+    assert config == {
+        "id": new_id,
+        "type": "DIVIDER",
+        "title": "Geography",
+        "description": "Location filters",
+        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+    }
+
+    summary = data["filters"][0]
+    assert summary["id"] == new_id
+    assert summary["name"] == "Geography"
+    assert summary["filter_type"] == "divider"
+    assert summary["targets"] == []
+
+
+@pytest.mark.asyncio
+async def test_add_divider_default_description(mcp_server):
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {"dashboard_id": 1, "add": [{"filter_type": "divider", "name": "Time"}]},
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["description"] == ""
+
+
+@pytest.mark.asyncio
+async def test_add_divider_requires_non_empty_name(mcp_server):
+    dashboard = _mock_dashboard(filters=[])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        async with Client(mcp_server) as client:
+            with pytest.raises(Exception, match="at least 1 character"):
+                await client.call_tool(
+                    "manage_native_filters",
+                    {
+                        "request": {
+                            "dashboard_id": 1,
+                            "add": [{"filter_type": "divider", "name": ""}],
+                        }
+                    },
+                )
+
+
 # ---------------------------------------------------------------------------
 # Update
 # ---------------------------------------------------------------------------
@@ -614,6 +704,37 @@ async def test_update_time_field_on_select_filter_rejected(mcp_server):
 
     assert "default_time_range" in data["error"]
     assert "filter_time" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_filter_time_default_time_range(mcp_server):
+    captured: dict = {"current_config": [EXISTING_TIME_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_TIME_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing2",
+                        "default_time_range": "Last week",
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["filterType"] == "filter_time"
+    assert config["defaultDataMask"] == {
+        "filterState": {"value": "Last week"},
+        "extraFormData": {"time_range": "Last week"},
+    }
 
 
 @pytest.mark.asyncio
@@ -780,6 +901,145 @@ async def test_update_and_remove_same_filter_rejected(mcp_server):
     assert "NATIVE_FILTER-existing1" in data["error"]
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("include_type", [True, False])
+async def test_update_divider_title_and_description(
+    mcp_server: object, include_type: bool
+) -> None:
+    """``name`` on a divider update must land in "title", not "name" --
+    "title" is what the filter bar actually renders."""
+    divider = copy.deepcopy(EXISTING_DIVIDER)
+    if not include_type:
+        divider.pop("type")
+    captured: dict[str, Any] = {"current_config": [divider]}
+    dashboard = _mock_dashboard(filters=[divider])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER_DIVIDER-existing5",
+                        "name": "Region & Time",
+                        "description": "Updated grouping",
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["title"] == "Region & Time"
+    assert config["description"] == "Updated grouping"
+    assert "name" not in config
+    # No filter-only fields leak onto a divider during an update.
+    assert "controlValues" not in config
+    assert "defaultDataMask" not in config
+
+    summary = data["filters"][0]
+    assert summary["name"] == "Region & Time"
+    assert summary["filter_type"] == "divider"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scope_chart_ids", [[10], []])
+async def test_update_divider_rejects_scope_without_writing(
+    mcp_server: object, scope_chart_ids: list[int]
+) -> None:
+    """Divider scope updates fail validation before the write command runs."""
+    dashboard = _mock_dashboard(filters=[EXISTING_DIVIDER])
+    original_metadata = dashboard.json_metadata
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH) as command,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {"id": EXISTING_DIVIDER["id"], "scope_chart_ids": scope_chart_ids}
+                ],
+            },
+        )
+
+    assert "does not support scope_chart_ids" in data["error"]
+    assert "dividers are always in scope" in data["error"]
+    command.assert_not_called()
+    assert dashboard.json_metadata == original_metadata
+
+
+@pytest.mark.asyncio
+async def test_update_filter_scope(mcp_server: object) -> None:
+    """Regular filters retain support for chart-specific scope updates."""
+    captured: dict[str, Any] = {"current_config": [EXISTING_SELECT_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_SELECT_FILTER], chart_ids=[10, 11])
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {"id": EXISTING_SELECT_FILTER["id"], "scope_chart_ids": [10]}
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    assert captured["payload"]["modified"][0]["scope"] == {
+        "rootPath": ["ROOT_ID"],
+        "excluded": [11],
+    }
+
+
+@pytest.mark.asyncio
+async def test_update_divider_rejects_dataset_field(mcp_server):
+    dashboard = _mock_dashboard(filters=[EXISTING_DIVIDER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER_DIVIDER-existing5", "dataset_id": 5}],
+            },
+        )
+
+    assert "has type 'divider'" in data["error"]
+    assert "dataset_id" in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "field,value",
+    [("multi_select", True), ("default_value", ["EMEA"]), ("default_value", [])],
+)
+async def test_update_divider_rejects_select_only_field(
+    mcp_server, field: str, value: bool | list[str]
+):
+    dashboard = _mock_dashboard(filters=[EXISTING_DIVIDER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER_DIVIDER-existing5", field: value}],
+            },
+        )
+
+    assert "has type 'divider'" in data["error"]
+    assert field in data["error"]
+
+
 # ---------------------------------------------------------------------------
 # Remove
 # ---------------------------------------------------------------------------
@@ -886,6 +1146,25 @@ async def test_remove_unknown_filter_id(mcp_server):
     assert "do not exist" in data["error"]
 
 
+@pytest.mark.asyncio
+async def test_remove_divider(mcp_server):
+    captured: dict = {"current_config": [EXISTING_SELECT_FILTER, EXISTING_DIVIDER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_SELECT_FILTER, EXISTING_DIVIDER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {"dashboard_id": 1, "remove": ["NATIVE_FILTER_DIVIDER-existing5"]},
+        )
+
+    assert data["error"] is None
+    assert data["removed_filter_ids"] == ["NATIVE_FILTER_DIVIDER-existing5"]
+    assert [f["id"] for f in data["filters"]] == ["NATIVE_FILTER-existing1"]
+
+
 # ---------------------------------------------------------------------------
 # Reorder
 # ---------------------------------------------------------------------------
@@ -919,6 +1198,62 @@ async def test_reorder_filters(mcp_server):
         "NATIVE_FILTER-existing2",
         "NATIVE_FILTER-existing1",
     ]
+
+
+@pytest.mark.asyncio
+async def test_reorder_includes_divider_alongside_filters(mcp_server):
+    """Dividers share the same ordering as filters, so reorder must accept
+    (and require) their IDs right alongside filter IDs."""
+    captured: dict = {
+        "current_config": [
+            EXISTING_DIVIDER,
+            EXISTING_SELECT_FILTER,
+            EXISTING_TIME_FILTER,
+        ]
+    }
+    dashboard = _mock_dashboard(
+        filters=[EXISTING_DIVIDER, EXISTING_SELECT_FILTER, EXISTING_TIME_FILTER]
+    )
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "reorder": [
+                    "NATIVE_FILTER-existing1",
+                    "NATIVE_FILTER_DIVIDER-existing5",
+                    "NATIVE_FILTER-existing2",
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    assert [f["id"] for f in data["filters"]] == [
+        "NATIVE_FILTER-existing1",
+        "NATIVE_FILTER_DIVIDER-existing5",
+        "NATIVE_FILTER-existing2",
+    ]
+    assert data["filters"][1]["filter_type"] == "divider"
+
+
+@pytest.mark.asyncio
+async def test_reorder_missing_divider_rejected(mcp_server):
+    """A reorder that drops an existing divider is incomplete, same as one
+    that drops a filter -- the DAO would otherwise silently delete it."""
+    dashboard = _mock_dashboard(filters=[EXISTING_DIVIDER, EXISTING_SELECT_FILTER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {"dashboard_id": 1, "reorder": ["NATIVE_FILTER-existing1"]},
+        )
+
+    assert "every remaining filter" in data["error"]
+    assert "NATIVE_FILTER_DIVIDER-existing5" in data["error"]
 
 
 @pytest.mark.asyncio

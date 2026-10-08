@@ -352,13 +352,15 @@ def test_raise_for_access_guest_user_deck_multi_child_requires_child_datasource(
         return_value=False,
     )
 
-    child_datasource = mocker.MagicMock()
-    other_datasource = mocker.MagicMock()
+    child_datasource: MagicMock = mocker.MagicMock(id=7, type="table")
+    other_datasource: MagicMock = mocker.MagicMock(id=8, type="table")
 
     parent_slc = mocker.MagicMock()
     parent_slc.params = json.dumps({"viz_type": "deck_multi", "deck_slices": [42]})
     child_slc = mocker.MagicMock()
     child_slc.datasource = child_datasource
+    child_slc.datasource_id = 7
+    child_slc.datasource_type = "table"
 
     dashboard = mocker.MagicMock()
     dashboard.slices = [parent_slc]
@@ -1958,7 +1960,8 @@ def _native_filter_ctx(
         "native_filter_id": native_filter_id,
         "dashboardId": dashboard_id,
     }
-    qc.datasource.data = {"id": dataset_id}
+    qc.datasource.id = dataset_id
+    qc.datasource.type = "table"
     qc.queries = queries
     dash = mocker.MagicMock()
     dash.json_metadata = json.dumps(
