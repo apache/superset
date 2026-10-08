@@ -41,6 +41,7 @@ from werkzeug.exceptions import NotFound
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
@@ -5638,14 +5639,14 @@ def test_raise_for_access_never_reads_queries_for_non_guest(
     non-guest caller, ``raise_for_access`` decides from the datasource and form
     data alone and never reads ``query_context.queries``.
     """
-    sm = SupersetSecurityManager(appbuilder)
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
     mocker.patch.object(sm, "is_guest_user", return_value=False)
     mocker.patch.object(sm, "can_access", return_value=granted)
     mocker.patch.object(sm, "can_access_schema", return_value=False)
     mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
     mocker.patch.object(sm, "is_editor", return_value=False)
 
-    query_context = mocker.MagicMock()
+    query_context: MagicMock = mocker.MagicMock()
     # A consistent saved chart, so a payload comparison would reach the queries
     # rather than stopping at a slice mismatch.
     query_context.slice_.id = 42
@@ -5663,29 +5664,39 @@ def test_raise_for_access_never_reads_queries_for_non_guest(
             sm.raise_for_access(query_context=query_context)
 
 
+_DASHBOARD_ID: int = 7
+_VIEW_ID: int = 1
+_OTHER_VIEW_ID: int = 2
+
+
+def _chart(mocker: MockerFixture, chart_id: int, datasource_id: int) -> MagicMock:
+    """A saved chart on the given semantic view."""
+    chart: MagicMock = mocker.MagicMock(
+        id=chart_id, datasource_id=datasource_id, datasource_type="semantic_view"
+    )
+    return chart
+
+
 @pytest.mark.parametrize(
-    "form_data",
-    [
-        {"dashboardId": 7, "type": "NATIVE_FILTER", "native_filter_id": "f"},
-        {"dashboardId": 7, "slice_id": 42},
-        {"dashboardId": 7, "slice_id": 42, "parent_slice_id": 43},
-        {"dashboardId": 7},
-        {"dashboardId": 7, "slice_id": 0, "chart_id": 42, "groupby": ["a"]},
-    ],
-    ids=["native-filter", "chart", "multilayer-child", "drill-to-detail", "drill-by"],
+    "path",
+    ["native-filter", "chart", "multilayer-child", "drill-to-detail", "drill-by"],
 )
 def test_raise_for_access_dashboard_paths_never_read_queries_for_non_guest(
     mocker: MockerFixture,
     app_context: None,
-    form_data: dict[str, Any],
+    path: str,
 ) -> None:
     """
-    Extend the non-guest invariant to the dashboard, viewer and drill branches:
-    each is evaluated to a denial without reading ``query_context.queries``.
+    Extend the non-guest invariant to the dashboard, viewer and drill branches.
+
+    Each case passes every earlier check on its branch and is refused only by
+    that branch's last check, which a spy proves was reached, so a read of
+    ``query_context.queries`` anywhere along the branch would fail the test.
     """
     from superset.models.dashboard import Dashboard
+    from superset.security import manager as manager_module
 
-    sm = SupersetSecurityManager(appbuilder)
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
     mocker.patch.object(sm, "is_guest_user", return_value=False)
     mocker.patch.object(sm, "can_access", return_value=False)
     mocker.patch.object(sm, "can_access_schema", return_value=False)
@@ -5693,24 +5704,77 @@ def test_raise_for_access_dashboard_paths_never_read_queries_for_non_guest(
     mocker.patch.object(sm, "is_editor", return_value=False)
     mocker.patch.object(sm, "is_viewer", return_value=True)
     mocker.patch.object(sm, "can_access_dashboard", return_value=True)
+    mocker.patch.object(sm, "_validate_child_in_parent_multilayer", return_value=True)
     mocker.patch("superset.is_feature_enabled", return_value=True)
     mocker.patch.dict(current_app.config, {"VIEWER_PROMISCUOUS_MODE": True})
+    matches: MagicMock = mocker.patch.object(
+        manager_module,
+        "_datasource_matches",
+        wraps=manager_module._datasource_matches,
+    )
 
-    datasource = mocker.MagicMock(id=1, type="semantic_view", perm="[view](id:1)")
+    datasource: MagicMock = mocker.MagicMock(
+        id=_VIEW_ID, type="semantic_view", perm="[view](id:1)"
+    )
     datasource.has_drill_by_columns.return_value = False
-    dashboard = mocker.MagicMock(
-        json_metadata=json.dumps({"native_filter_configuration": []}), slices=[]
+    own_chart: MagicMock = _chart(mocker, 42, _VIEW_ID)
+    foreign_chart: MagicMock = _chart(mocker, 42, _OTHER_VIEW_ID)
+    parent_chart: MagicMock = _chart(mocker, 43, _OTHER_VIEW_ID)
+    native_filters: list[dict[str, Any]] = [
+        {
+            "id": "f",
+            "targets": [
+                {"datasetId": _OTHER_VIEW_ID, "datasourceType": "semantic_view"}
+            ],
+        }
+    ]
+
+    form_data: dict[str, Any]
+    charts: dict[int, MagicMock]
+    if path == "native-filter":
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "type": "NATIVE_FILTER",
+            "native_filter_id": "f",
+        }
+        charts = {}
+    elif path == "chart":
+        form_data = {"dashboardId": _DASHBOARD_ID, "slice_id": 42}
+        charts = {42: foreign_chart}
+    elif path == "multilayer-child":
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "slice_id": 42,
+            "parent_slice_id": 43,
+        }
+        charts = {42: foreign_chart, 43: parent_chart}
+    elif path == "drill-to-detail":
+        form_data = {"dashboardId": _DASHBOARD_ID}
+        charts = {}
+    else:
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "slice_id": 0,
+            "chart_id": 42,
+            "groupby": ["a"],
+        }
+        charts = {42: own_chart}
+
+    dashboard: MagicMock = mocker.MagicMock(
+        id=_DASHBOARD_ID,
+        json_metadata=json.dumps({"native_filter_configuration": native_filters}),
+        slices=list(charts.values()),
     )
     dashboard.has_member_datasource.return_value = False
-    # A chart on some other datasource and outside the dashboard, so every
-    # chart-based grant is evaluated and refused.
-    other_chart = mocker.MagicMock(id=42, datasource_id=-1, datasource_type="table")
 
     def query(model: Any) -> MagicMock:
-        """Return the dashboard for dashboard lookups and the chart otherwise."""
+        """Resolve ``Model.id == <value>`` lookups against the fixtures."""
+        rows: dict[int, MagicMock] = (
+            {_DASHBOARD_ID: dashboard} if model is Dashboard else charts
+        )
         chain: MagicMock = mocker.MagicMock()
-        chain.filter.return_value.one_or_none.return_value = (
-            dashboard if model is Dashboard else other_chart
+        chain.filter.side_effect = lambda clause: mocker.MagicMock(
+            one_or_none=lambda: rows.get(clause.right.value)
         )
         return chain
 
@@ -5720,14 +5784,25 @@ def test_raise_for_access_dashboard_paths_never_read_queries_for_non_guest(
         new_callable=mocker.PropertyMock,
         return_value=mocker.MagicMock(query=query),
     )
-    mocker.patch.object(sm, "_validate_child_in_parent_multilayer", return_value=True)
 
-    query_context = mocker.MagicMock()
+    query_context: MagicMock = mocker.MagicMock()
     query_context.datasource = datasource
     query_context.form_data = form_data
     type(query_context).queries = mocker.PropertyMock(
         side_effect=AssertionError("raise_for_access read query_context.queries")
     )
 
-    with pytest.raises(SupersetSecurityException):
+    with pytest.raises(SupersetSecurityException) as excinfo:
         sm.raise_for_access(query_context=query_context)
+
+    assert (
+        excinfo.value.error.error_type
+        == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
+    )
+    # Prove each case reached its branch's final check.
+    if path == "drill-by":
+        datasource.has_drill_by_columns.assert_called_once_with(["a"])
+    elif path == "drill-to-detail":
+        dashboard.has_member_datasource.assert_called_once_with(datasource)
+    else:
+        matches.assert_any_call(datasource, _OTHER_VIEW_ID, "semantic_view")
