@@ -18,6 +18,7 @@ from types import SimpleNamespace
 
 import pytest
 from pytest_mock import MockerFixture
+from superset_core.tasks.types import TaskProperties
 
 from superset.tasks.schemas import TaskResponseSchema
 
@@ -70,7 +71,9 @@ def test_get_properties_sanitizes_error_message_for_guests(
         return_value=is_guest,
     )
 
-    properties = TaskResponseSchema().get_properties(_task_with_private())
+    properties: TaskProperties = TaskResponseSchema().get_properties(
+        _task_with_private()
+    )
 
     expected: str = str(GENERIC_ERROR_MESSAGE) if is_guest else "boom"
     assert properties["error_message"] == expected

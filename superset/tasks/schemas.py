@@ -156,7 +156,8 @@ class TaskResponseSchema(Schema):
             properties.pop("private", None)
         # Embedded guests get the generic failure text, as on the status route
         # (applied here to every task type).
-        if isinstance(message := properties.get("error_message"), str):
+        message: object = properties.get("error_message")
+        if isinstance(message, str):
             properties["error_message"] = sanitize_error_message(message)
 
         return properties

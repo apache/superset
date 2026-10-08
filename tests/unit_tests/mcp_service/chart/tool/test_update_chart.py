@@ -25,6 +25,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.client.client import CallToolResult
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
@@ -3042,8 +3043,9 @@ class TestUpdateChartSemanticView:
         mock_find_by_id.return_value = self._semantic_chart()
         mock_check_access.return_value = self._view_access()
 
-        async with Client(mcp) as client:
-            result = await client.call_tool(
+        client: Client = Client(mcp)
+        async with client:
+            result: CallToolResult = await client.call_tool(
                 "update_chart", {"request": {"identifier": 1, **update}}
             )
 
@@ -3076,8 +3078,9 @@ class TestUpdateChartSemanticView:
         updated_chart.slice_name = "Renamed Chart"
         mock_update_cmd_cls.return_value.run.return_value = updated_chart
 
-        async with Client(mcp) as client:
-            result = await client.call_tool(
+        client: Client = Client(mcp)
+        async with client:
+            result: CallToolResult = await client.call_tool(
                 "update_chart",
                 {
                     "request": {
