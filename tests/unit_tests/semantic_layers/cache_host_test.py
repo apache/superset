@@ -33,6 +33,7 @@ from superset.semantic_layers.cache_host import (
     _execution_context,
     build_cache_configuration,
 )
+from superset.semantic_layers.cache_identity import SemanticCacheIdentityFactory
 from superset.semantic_layers.cache_policy import ContainmentCapabilities
 from superset.semantic_layers.cache_repository import ViewMeta
 
@@ -129,6 +130,7 @@ def _datasource() -> MagicMock:
     datasource: MagicMock = MagicMock()
     datasource.semantic_layer.implementation = layer
     datasource.implementation.metadata_cache_token = None
+    datasource.metadata_cache_token = OBSERVATION
     datasource.uuid = "orders"
     datasource.changed_on = None
     datasource.cache_timeout = 60
@@ -261,7 +263,7 @@ OBSERVATION: str = "observation-1"
 
 def _definition_identity(token: object) -> object:
     datasource: MagicMock = _datasource()
-    datasource.implementation.metadata_cache_token = token
+    datasource.metadata_cache_token = token
     configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
         build_cache_configuration(datasource)
     )
@@ -272,7 +274,7 @@ def _definition_identity(token: object) -> object:
 def test_metadata_cache_token_is_part_of_definition_identity() -> None:
     """A metadata refresh changes the token, not ``changed_on``, so the token
     must key containment entries or results from the old metadata are reused."""
-    legacy: object = _definition_identity(None)
+    legacy: object = SemanticCacheIdentityFactory.definition({"changed_on": "None"})
     first: object = _definition_identity("observation-1")
     second: object = _definition_identity("observation-2")
     assert first != second
@@ -280,23 +282,43 @@ def test_metadata_cache_token_is_part_of_definition_identity() -> None:
     assert _definition_identity("observation-1") == first
 
 
-def test_views_without_a_metadata_cache_token_keep_legacy_identity() -> None:
-    """Legacy providers keep their existing containment keys."""
+def test_missing_host_metadata_token_bypasses_containment() -> None:
+    """A provider token cannot substitute for a missing host generation."""
     datasource: MagicMock = _datasource()
-    del datasource.implementation.metadata_cache_token
-    configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
-        build_cache_configuration(datasource)
-    )
-    assert configuration is not None
-    assert configuration[0].definition_identity == _definition_identity(None)
+    del datasource.metadata_cache_token
+    datasource.implementation.metadata_cache_token = OBSERVATION
+    assert build_cache_configuration(datasource) is None
 
 
-@pytest.mark.parametrize("token", [None, "", 42, OBSERVATION])
-def test_cache_identity_does_not_consult_removed_metadata_adapter(
-    token: object,
+@pytest.mark.parametrize("token", [None, "", 42])
+def test_invalid_host_metadata_token_bypasses_containment(token: object) -> None:
+    """Invalid host generations must never fall back to legacy reuse."""
+    datasource: MagicMock = _datasource()
+    datasource.metadata_cache_token = token
+    datasource.implementation.metadata_cache_token = OBSERVATION
+    assert build_cache_configuration(datasource) is None
+
+
+def test_unavailable_host_metadata_token_bypasses_containment(
     mocker: MockerFixture,
 ) -> None:
-    """Only the view token governs identity; the removed adapter is irrelevant."""
+    """An AttributeError from the token property is a miss, not a legacy key."""
+    datasource: MagicMock = _datasource()
+    del datasource.metadata_cache_token
+    mocker.patch.object(
+        type(datasource),
+        "metadata_cache_token",
+        new_callable=PropertyMock,
+        side_effect=AttributeError,
+        create=True,
+    )
+    assert build_cache_configuration(datasource) is None
+
+
+def test_cache_identity_does_not_consult_provider_token_or_removed_adapter(
+    mocker: MockerFixture,
+) -> None:
+    """The captured ORM host token works with legacy provider implementations."""
     datasource: MagicMock = _datasource()
     layer: MagicMock = datasource.semantic_layer.implementation
     mocker.patch.object(
@@ -306,11 +328,22 @@ def test_cache_identity_does_not_consult_removed_metadata_adapter(
         side_effect=AssertionError("removed adapter accessed"),
         create=True,
     )
-    datasource.implementation.metadata_cache_token = token
+    mocker.patch.object(
+        type(datasource.implementation),
+        "metadata_cache_token",
+        new_callable=PropertyMock,
+        side_effect=AssertionError("provider token accessed"),
+        create=True,
+    )
     configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
         build_cache_configuration(datasource)
     )
     assert configuration is not None
-    assert configuration[0].definition_identity == _definition_identity(
-        token if isinstance(token, str) and token else None
+    assert configuration[0].definition_identity == _definition_identity(OBSERVATION)
+
+
+def test_legacy_definition_digest_remains_pinned() -> None:
+    """Keep the independently verified pre-token identity encoding, without reuse."""
+    assert SemanticCacheIdentityFactory.definition({"changed_on": "None"}).digest == (
+        "v4:7c038bb0c633af651913f2fb9350339c70a3373e681a53db31d8cdf31e048a73"
     )

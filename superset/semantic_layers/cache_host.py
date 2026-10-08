@@ -124,6 +124,10 @@ def build_cache_configuration(
         # TTL as "no expiry"), so containment caching is bypassed entirely
         # instead: nothing is read and nothing is stored.
         return None
+    token: str | None = _metadata_cache_token(datasource)
+    if token is None:
+        # The host generation is required; never reuse a legacy definition key.
+        return None
     layer: _SemanticCacheProvider = cast(
         _SemanticCacheProvider,
         datasource.semantic_layer.implementation,
@@ -159,14 +163,9 @@ def build_cache_configuration(
         if isinstance(changed_on, datetime)
         else str(changed_on),
     }
-    # A metadata refresh changes the view's metadata cache token, not its
-    # ``changed_on``, so the token must key containment entries. Providers
-    # without a token retain their existing legacy identity.
-    token: str | None = _metadata_cache_token(datasource)
-    if token is not None:
-        # Keyed as the observation it identifies; it is not a secret, and
-        # "token" in a key would trip the secret-material guard.
-        definition_material["metadata_observation"] = token
+    # The captured host generation changes on metadata clear, not changed_on.
+    # It is an identity, not a secret; "token" keys trip the secret-material guard.
+    definition_material["metadata_observation"] = token
     meta: ViewMeta | None = _view_meta(
         datasource, definition_material, provider_material, scope_material, timeout
     )
@@ -176,8 +175,8 @@ def build_cache_configuration(
 
 
 def _metadata_cache_token(datasource: BaseDatasource) -> str | None:
-    """Return the view's nonempty metadata cache token, or None."""
-    token: object = getattr(datasource.implementation, "metadata_cache_token", None)
+    """Return the captured ORM host generation, never a provider-only token."""
+    token: object = getattr(datasource, "metadata_cache_token", None)
     return token if isinstance(token, str) and token else None
 
 

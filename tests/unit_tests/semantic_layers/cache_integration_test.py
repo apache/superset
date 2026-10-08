@@ -70,6 +70,10 @@ from superset.semantic_layers.mapper import (
 from superset.utils.core import QueryObjectFilterClause
 from tests.unit_tests.semantic_layers.conftest import build_view_meta
 
+# Metadata generation identities, not authentication secrets.
+HOST_GENERATION: str = "host-generation-1"
+NEXT_HOST_GENERATION: str = "host-generation-2"
+
 
 @pytest.mark.parametrize("narrow_start", [False, True])
 @pytest.mark.parametrize(
@@ -265,6 +269,7 @@ def datasource(provider: MagicMock) -> MagicMock:
     layer.get_semantic_cache_provider_identity.return_value = (
         SemanticCacheIdentityMaterial({"type": "fixture", "catalog": "one"})
     )
+    semantic_view.metadata_cache_token = HOST_GENERATION
     semantic_view.implementation = provider
     semantic_view.semantic_layer.implementation = layer
     semantic_view.uuid = "orders-view"
@@ -885,3 +890,43 @@ def test_secret_like_provider_identity_never_fails_the_query(
     assert second.semantic_cache_status == "MISS"
     assert provider.get_table.call_count == 2
     assert not data_cache.store
+
+
+@pytest.mark.parametrize("token", [None, "", 42])
+def test_missing_metadata_token_never_reuses_containment(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+    token: object,
+) -> None:
+    """Even populated containment cannot serve a view with no host generation."""
+    provider.get_table.return_value = _result([("GB", "London", 10.0)])
+    first: QueryResult = get_results(_query(datasource))
+    assert first.semantic_cache_status == "MISS"
+    assert data_cache.store
+    datasource.metadata_cache_token = token
+    provider.get_table.return_value = _result([("GB", "London", 20.0)])
+    second: QueryResult = get_results(_query(datasource))
+    third: QueryResult = get_results(_query(datasource))
+    assert second.semantic_cache_status == third.semantic_cache_status == "MISS"
+    assert second.df.iloc[0]["revenue"] == third.df.iloc[0]["revenue"] == 20.0
+    assert provider.get_table.call_count == 3
+
+
+def test_host_generation_rotation_prevents_containment_reuse(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+) -> None:
+    """A legacy provider with no observation token still follows host clears."""
+    provider.metadata_cache_token = None
+    provider.get_table.return_value = _result([("GB", "London", 10.0)])
+    get_results(_query(datasource))
+    hit: QueryResult = get_results(_query(datasource))
+    assert hit.semantic_cache_status == "HIT"
+    datasource.metadata_cache_token = NEXT_HOST_GENERATION
+    provider.get_table.return_value = _result([("GB", "London", 20.0)])
+    refreshed: QueryResult = get_results(_query(datasource))
+    assert refreshed.semantic_cache_status == "MISS"
+    assert refreshed.df.iloc[0]["revenue"] == 20.0
+    assert provider.get_table.call_count == 2
