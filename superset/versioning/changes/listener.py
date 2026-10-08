@@ -75,7 +75,7 @@ logger = logging.getLogger(__name__)
 
 
 # Keys for transaction-scoped state stored on ``session.info``.
-_INITIAL_STATES_KEY = "_version_changes_initial_states"
+INITIAL_STATES_KEY: str = "_version_changes_initial_states"
 _FINALIZING_KEY = "_version_changes_finalizing"
 
 # Key on ``session.info`` that commands set to declare the high-level
@@ -230,7 +230,7 @@ def _reset_transaction_state(session: Session) -> None:
     """Discard versioning intent and retained state after a terminal event."""
     session.info.pop(ACTION_KIND_KEY, None)
     session.info.pop(ACTION_META_KEY, None)
-    session.info.pop(_INITIAL_STATES_KEY, None)
+    session.info.pop(INITIAL_STATES_KEY, None)
     session.info.pop(_FINALIZING_KEY, None)
     session.info.pop(NORMALIZATION_CONTEXT_KEY, None)
 
@@ -466,7 +466,7 @@ def finalize_change_records(session: Session) -> None:
         session.flush()
         start = perf_counter()
         initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
-            session.info.get(_INITIAL_STATES_KEY, {})
+            session.info.get(INITIAL_STATES_KEY, {})
         )
         buffer: dict[tuple[str, int], list[ChangeRecord]] = _build_scalar_buffer(
             initial_states
@@ -511,7 +511,7 @@ def _capture_initial_states(
     unit-testable without ``db.session``.
     """
     initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
-        session.info.setdefault(_INITIAL_STATES_KEY, {})
+        session.info.setdefault(INITIAL_STATES_KEY, {})
     )
     start: float = perf_counter()
     attempted: bool = False

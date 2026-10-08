@@ -59,6 +59,7 @@ from superset.common.utils.time_range_utils import (
 )
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.completeness import provider_completeness
@@ -1213,7 +1214,7 @@ def _validate_granularity(query_object: ValidatedQueryObject) -> None:
             if dimension.name == time_column and dimension.grain
         }
         if _convert_time_grain(time_grain) not in supported_time_grains:
-            raise ValueError(
+            raise QueryObjectValidationError(
                 "The time grain is not supported for the time column in the "
                 "Semantic View."
             )
