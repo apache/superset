@@ -121,7 +121,16 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
-        ['series_limit'],
+        [
+          {
+            name: 'series_limit',
+            config: {
+              ...sharedControls.series_limit,
+              visibility: ({ form_data }) =>
+                !form_data.datasource?.endsWith('__semantic_view'),
+            },
+          },
+        ],
         [
           {
             name: 'row_limit',
@@ -189,6 +198,23 @@ const config: ControlPanelConfig = {
               default: false,
               renderTrigger: true,
               description: t('Display row level subtotal'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'collapseRows',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Collapse rows by default'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Start with row groups collapsed when row subtotals are shown. ' +
+                  'Each group can still be expanded with its arrow.',
+              ),
+              visibility: ({ controls }) =>
+                Boolean(controls?.rowSubTotals?.value),
             },
           },
         ],

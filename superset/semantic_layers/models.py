@@ -366,7 +366,13 @@ class SemanticView(AuditMixinNullable, Model):
         return result
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
-        return "Not implemented for semantic layers"
+        """Reject previews because provider queries are returned with chart data."""
+        raise QueryObjectValidationError(
+            _(
+                "A semantic view's provider query is produced when the chart runs "
+                "and returned with its data."
+            )
+        )
 
     @property
     def normalize_columns(self) -> bool:

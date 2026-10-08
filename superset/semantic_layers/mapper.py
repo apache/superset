@@ -24,6 +24,7 @@ single dataframe.
 
 """
 
+import logging
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
@@ -72,6 +73,8 @@ from superset.utils.core import (
     TIME_COMPARISON,
 )
 from superset.utils.date_parser import get_past_or_future
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 OPERATOR_MAP = {
     FilterOperator.EQUALS.value: Operator.EQUALS,
@@ -539,11 +542,17 @@ def _get_adhoc_filters(
 
 def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
     """
-    Extract filters from the extras dict.
+    Convert SQL extras into ADHOC filters for direct mapper callers.
+
+    The chart-data path rejects non-empty SQL WHERE/HAVING extras for semantic
+    views before reaching this mapper. This conversion is therefore unreachable
+    through that validated path; it does not establish provider support for
+    arbitrary SQL predicates. Exposing it there would require a provider-specific
+    sanitization contract.
 
     The extras dict can contain various keys that affect query behavior:
 
-    Supported keys (converted to filters):
+    Direct mapper inputs (converted to filters, not chart-data support):
     - "where": SQL WHERE clause expression (e.g., "customer_id > 100")
     - "having": SQL HAVING clause expression (e.g., "SUM(sales) > 1000")
 
@@ -551,8 +560,8 @@ def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
     - "time_grain_sqla": Time granularity (e.g., "P1D", "PT1H")
       Handled in _convert_time_grain() and used for dimension grain matching
 
-    Note: The WHERE and HAVING clauses from extras are SQL expressions that
-    are passed through as-is to the semantic layer as adhoc Filter objects.
+    For direct mapper calls, WHERE and HAVING text is passed unchanged into
+    ADHOC Filter objects; this helper does not sanitize it.
     """
     filters: set[Filter] = set()
 
@@ -968,6 +977,13 @@ def _get_group_limit_from_query_object(
     all_dimensions: dict[str, Dimension],
     ranking_dimensions: dict[str, Dimension],
 ) -> GroupLimit | None:
+    if query_object.series_limit > 0 and not query_object.series_columns:
+        logger.debug(
+            "Treating semantic series_limit=%s as 0 without series columns",
+            query_object.series_limit,
+        )
+        return None
+
     # no limit
     if query_object.series_limit == 0 or not query_object.columns:
         return None
@@ -1258,6 +1274,9 @@ def _validate_group_limit(query_object: ValidatedQueryObject) -> None:
 
     # no limit
     if query_object.series_limit == 0:
+        return
+
+    if query_object.series_limit > 0 and not query_object.series_columns:
         return
 
     if (
