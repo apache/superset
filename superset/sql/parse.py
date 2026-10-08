@@ -1029,6 +1029,19 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # last value, so it is intentionally not listed.)
             "SETVAL",
             "NEXTVAL",
+            # dblink functions open a separate connection and auto-commit,
+            # so writes persist even when the outer transaction is read-only.
+            "DBLINK",
+            "DBLINK_EXEC",
+            # PostgreSQL state-mutating functions callable via SELECT
+            "PG_CANCEL_BACKEND",
+            "PG_RELOAD_CONF",
+            "PG_ROTATE_LOGFILE",
+            "PG_STAT_RESET",
+            "PG_SWITCH_WAL",
+            "PG_LOGICAL_EMIT_MESSAGE",
+            "PG_CREATE_RESTORE_POINT",
+            "PG_DROP_REPLICATION_SLOT",
         }
     )
 
