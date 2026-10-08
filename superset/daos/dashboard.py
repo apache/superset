@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
@@ -536,55 +537,90 @@ class DashboardDAO(BaseDAO[Dashboard]):
         ]
 
     @staticmethod
+    def _remap_slice_id_list(
+        slice_ids: list[Any],
+        old_to_new_slice_ids: dict[int, int],
+    ) -> list[Any]:
+        remapped: list[Any] = []
+        for cid in slice_ids:
+            try:
+                int_id = int(cid)
+                remapped.append(old_to_new_slice_ids.get(int_id, cid))
+            except (ValueError, TypeError):
+                remapped.append(cid)
+        return remapped
+
+    @staticmethod
+    def _remap_selected_layers(
+        selected_layers: dict[str, Any],
+        old_to_new_slice_ids: dict[int, int],
+    ) -> dict[str, Any]:
+        remapped: dict[str, Any] = {}
+        for layer_key, layer_val in selected_layers.items():
+            match = re.match(r"^chart-(\d+)(.*)$", str(layer_key))
+            if match:
+                old_id = int(match.group(1))
+                suffix = match.group(2)
+                new_id = old_to_new_slice_ids.get(old_id, old_id)
+                remapped[f"chart-{new_id}{suffix}"] = layer_val
+            else:
+                remapped[layer_key] = layer_val
+        return remapped
+
+    @staticmethod
     def _remap_filter_scope(
         container: dict[str, Any] | Any,
         old_to_new_slice_ids: dict[int, int],
     ) -> None:
-        """Remap scope.excluded and chartsInScope of a filter container.
-
-        This method updates in-place the chart ID references stored inside
-        a filter configuration container. Both native filters and cross-filter
-        scopes store denormalized lists of chart IDs in chartsInScope and
-        scope.excluded. When duplicate_slices is requested during dashboard
-        copy, these identifiers must point to the newly cloned slice IDs.
-
-        Non-dictionary elements, visual dividers (type DIVIDER or IDs starting
-        with NATIVE_FILTER_DIVIDER), and non-list attributes are skipped safely.
-
-        :param container: Dictionary holding filter scope or cross-filter
-            configuration.
-        :param old_to_new_slice_ids: Mapping from original chart ID to
-            duplicated chart ID.
-        """
+        """Remap scope.excluded, selectedLayers and chartsInScope of a container."""
         if not isinstance(container, dict):
             return
 
-        # Skip divider entities which represent visual section dividers in filter bar
         if container.get("type") == "DIVIDER" or str(
             container.get("id", "")
         ).startswith(("NATIVE_FILTER_DIVIDER", "DIVIDER")):
             return
 
         scope = container.get("scope")
-        if isinstance(scope, dict) and isinstance(scope.get("excluded"), list):
-            remapped_excluded: list[int] = []
-            for cid in scope["excluded"]:
-                try:
-                    int_id = int(cid)
-                    remapped_excluded.append(old_to_new_slice_ids.get(int_id, int_id))
-                except (ValueError, TypeError):
-                    remapped_excluded.append(cid)
-            scope["excluded"] = remapped_excluded
+        if isinstance(scope, dict):
+            if isinstance(scope.get("excluded"), list):
+                scope["excluded"] = DashboardDAO._remap_slice_id_list(
+                    scope["excluded"], old_to_new_slice_ids
+                )
+            if isinstance(scope.get("selectedLayers"), dict):
+                scope["selectedLayers"] = DashboardDAO._remap_selected_layers(
+                    scope["selectedLayers"], old_to_new_slice_ids
+                )
 
         if isinstance(container.get("chartsInScope"), list):
-            remapped_in_scope: list[int] = []
-            for cid in container["chartsInScope"]:
-                try:
-                    int_id = int(cid)
-                    remapped_in_scope.append(old_to_new_slice_ids.get(int_id, int_id))
-                except (ValueError, TypeError):
-                    remapped_in_scope.append(cid)
-            container["chartsInScope"] = remapped_in_scope
+            container["chartsInScope"] = DashboardDAO._remap_slice_id_list(
+                container["chartsInScope"], old_to_new_slice_ids
+            )
+
+    @classmethod
+    def _remap_chart_configuration(
+        cls,
+        chart_configuration: dict[str, Any],
+        old_to_new_slice_ids: dict[int, int],
+    ) -> dict[str, Any]:
+        new_chart_configuration: dict[str, Any] = {}
+        for old_key, chart_config in chart_configuration.items():
+            try:
+                int_key = int(old_key)
+                new_key = str(old_to_new_slice_ids.get(int_key, int_key))
+            except (ValueError, TypeError):
+                new_key = str(old_key)
+
+            if isinstance(chart_config, dict):
+                if isinstance(chart_config.get("id"), int):
+                    chart_config["id"] = old_to_new_slice_ids.get(
+                        chart_config["id"], chart_config["id"]
+                    )
+                cls._remap_filter_scope(
+                    chart_config.get("crossFilters"), old_to_new_slice_ids
+                )
+            new_chart_configuration[new_key] = chart_config
+        return new_chart_configuration
 
     @classmethod
     def _remap_filter_scopes(
@@ -592,26 +628,14 @@ class DashboardDAO(BaseDAO[Dashboard]):
         metadata: dict[str, Any],
         old_to_new_slice_ids: dict[int, int],
     ) -> None:
-        """Remap filter scopes and cross-filter references in dashboard metadata.
-
-        Mutates metadata in-place to redirect slice ID references across:
-        1. native_filter_configuration: list of native filter definitions.
-        2. global_chart_configuration: dashboard-wide cross-filter scoping.
-        3. chart_configuration: per-chart cross-filter scopes, keys, and chart IDs.
-
-        This ensures that after duplicating dashboard charts, all filter
-        scopes remain bound to the new chart copies instead of the originals.
-
-        :param metadata: Deserialized dashboard json_metadata dictionary.
-        :param old_to_new_slice_ids: Mapping from original chart ID to
-            duplicated chart ID.
-        """
+        """Remap filter scopes and cross-filter references in dashboard metadata."""
         if not isinstance(metadata, dict) or not old_to_new_slice_ids:
             return
 
-        if isinstance(metadata.get("native_filter_configuration"), list):
-            for native_filter in metadata["native_filter_configuration"]:
-                cls._remap_filter_scope(native_filter, old_to_new_slice_ids)
+        for key in ("native_filter_configuration", "chart_customization_config"):
+            if isinstance(metadata.get(key), list):
+                for item in metadata[key]:
+                    cls._remap_filter_scope(item, old_to_new_slice_ids)
 
         if isinstance(metadata.get("global_chart_configuration"), dict):
             cls._remap_filter_scope(
@@ -619,24 +643,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
             )
 
         if isinstance(metadata.get("chart_configuration"), dict):
-            new_chart_configuration: dict[str, Any] = {}
-            for old_key, chart_config in metadata["chart_configuration"].items():
-                try:
-                    int_key = int(old_key)
-                    new_key = str(old_to_new_slice_ids.get(int_key, int_key))
-                except (ValueError, TypeError):
-                    new_key = str(old_key)
-
-                if isinstance(chart_config, dict):
-                    if isinstance(chart_config.get("id"), int):
-                        chart_config["id"] = old_to_new_slice_ids.get(
-                            chart_config["id"], chart_config["id"]
-                        )
-                    cls._remap_filter_scope(
-                        chart_config.get("crossFilters"), old_to_new_slice_ids
-                    )
-                new_chart_configuration[new_key] = chart_config
-            metadata["chart_configuration"] = new_chart_configuration
+            metadata["chart_configuration"] = cls._remap_chart_configuration(
+                metadata["chart_configuration"], old_to_new_slice_ids
+            )
 
     @classmethod
     def copy_dashboard(

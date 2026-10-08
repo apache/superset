@@ -858,7 +858,14 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
             {
                 "id": "NATIVE_FILTER-gate",
                 "name": "Gate Filter",
-                "scope": {"rootPath": ["ROOT_ID"], "excluded": [c2.id]},
+                "scope": {
+                    "rootPath": ["ROOT_ID"],
+                    "excluded": [c2.id],
+                    "selectedLayers": {
+                        f"chart-{c2.id}-layer-0": True,
+                        f"chart-{c3.id}-layer-1": False,
+                    },
+                },
                 "chartsInScope": [c1.id, c2.id, c3.id],
             },
             {
@@ -866,6 +873,13 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
                 "type": "DIVIDER",
                 "title": "Gate Divider",
             },
+        ],
+        "chart_customization_config": [
+            {
+                "id": "CUSTOMIZATION-gate",
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": [c1.id]},
+                "chartsInScope": [c2.id],
+            }
         ],
         "global_chart_configuration": {
             "scope": {"rootPath": ["ROOT_ID"], "excluded": [c3.id]},
@@ -910,6 +924,10 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
     # 2. Native filter remapping
     gate_filter = copied_metadata["native_filter_configuration"][0]
     assert gate_filter["scope"]["excluded"] == [copied_slice_map["gate_c2"]]
+    assert gate_filter["scope"]["selectedLayers"] == {
+        f"chart-{copied_slice_map['gate_c2']}-layer-0": True,
+        f"chart-{copied_slice_map['gate_c3']}-layer-1": False,
+    }
     assert gate_filter["chartsInScope"] == [
         copied_slice_map["gate_c1"],
         copied_slice_map["gate_c2"],
@@ -921,6 +939,12 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
     assert gate_divider["id"] == "NATIVE_FILTER_DIVIDER-gate"
     assert gate_divider["type"] == "DIVIDER"
     assert "scope" not in gate_divider
+
+    # 3b. Chart customization configuration remapping
+    custom_cfg = copied_metadata["chart_customization_config"][0]
+    assert custom_cfg["id"] == "CUSTOMIZATION-gate"
+    assert custom_cfg["scope"]["excluded"] == [copied_slice_map["gate_c1"]]
+    assert custom_cfg["chartsInScope"] == [copied_slice_map["gate_c2"]]
 
     # 4. Global chart configuration remapping
     global_cfg = copied_metadata["global_chart_configuration"]
@@ -943,3 +967,32 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
     # 6. Original dashboard slices preserved untouched
     original_slice_ids = {s.id for s in dashboard.slices}
     assert original_slice_ids == {original_c1_id, original_c2_id, original_c3_id}
+
+
+def test_remap_selected_layers_edge_cases() -> None:
+    old_to_new = {10: 100, 20: 200}
+    layers = {
+        "chart-10-layer-0": True,
+        "chart-20-layer-sub1": False,
+        "chart-30-layer-0": "unmapped",
+        "custom-key": 123,
+    }
+    remapped = DashboardDAO._remap_selected_layers(layers, old_to_new)
+    assert remapped == {
+        "chart-100-layer-0": True,
+        "chart-200-layer-sub1": False,
+        "chart-30-layer-0": "unmapped",
+        "custom-key": 123,
+    }
+
+
+def test_remap_slice_id_list_edge_cases() -> None:
+    old_to_new = {1: 10, 2: 20}
+    raw = [1, "2", "3", "invalid", None]
+    assert DashboardDAO._remap_slice_id_list(raw, old_to_new) == [
+        10,
+        20,
+        "3",
+        "invalid",
+        None,
+    ]
