@@ -112,3 +112,34 @@ test('rejects function-only keys and unwrapped markers', () => {
     resolveOption({ data: { source: 'metric', alias: 'revenue' } }, ctx),
   ).toThrow(/without its "\$bind" wrapper/);
 });
+
+test('nests dotted record fields and refuses prototype paths', () => {
+  const fields = { name: 'line', 'label.fontSize': 'revenue' };
+  const option = resolveOption(
+    { series: [{ data: { $bind: { source: 'records', fields } } }] },
+    ctx,
+  );
+  expect((option.series as { data: unknown[] }[])[0].data[0]).toEqual({
+    name: 'Cars',
+    label: { fontSize: 10 },
+  });
+
+  expect(() =>
+    resolveOption(
+      {
+        series: [
+          {
+            data: {
+              $bind: {
+                source: 'records',
+                fields: { '__proto__.polluted': 'line' },
+              },
+            },
+          },
+        ],
+      },
+      ctx,
+    ),
+  ).toThrow('not a valid field path');
+  expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+});

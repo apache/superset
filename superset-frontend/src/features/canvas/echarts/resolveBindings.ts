@@ -41,6 +41,9 @@ const URL_KEYS = new Set(['link', 'sublink']);
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+// Keys that would reach the object prototype instead of the record.
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 // A dotted key (`label.fontSize`) nests, so a column can drive a per-item
 // style.
 function setPath(
@@ -49,9 +52,12 @@ function setPath(
   value: unknown,
 ): void {
   const keys = path.split('.');
+  if (keys.some(key => UNSAFE_KEYS.has(key))) {
+    throw new Error(`"${path}" is not a valid field path`);
+  }
   let node = target;
   keys.slice(0, -1).forEach(key => {
-    if (!isObject(node[key])) node[key] = {};
+    if (!Object.hasOwn(node, key) || !isObject(node[key])) node[key] = {};
     node = node[key] as Record<string, unknown>;
   });
   node[keys[keys.length - 1]] = value;
