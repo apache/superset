@@ -1177,6 +1177,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -11134,6 +11139,9 @@ msgstr "هیچ رکوردی پیدا نشد"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "فعلاً هیچ فیلتری به این داشبورد اضافه نشده است."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "هیچ رکوردی یافت نشد"
 
@@ -17004,6 +17012,9 @@ msgstr "معیار اصلی برای تعریف اندازه‌های بخش‌�
 
 msgid "The provided table was not found in the provided database"
 msgstr "جدول ارائه شده در پایگاه داده ارائه شده یافت نشد."
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "کوئری مرتبط با نتایج حذف شد."

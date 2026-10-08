@@ -525,9 +525,9 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
     if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
-            target.perm = ds.perm
-            target.catalog_perm = ds.catalog_perm
-            target.schema_perm = ds.schema_perm
+            target.perm = getattr(ds, "perm", None)
+            target.catalog_perm = getattr(ds, "catalog_perm", None)
+            target.schema_perm = getattr(ds, "schema_perm", None)
 
 
 def event_after_chart_changed(

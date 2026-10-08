@@ -42,7 +42,11 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.query_context import QueryContext
 from superset.exceptions import QueryObjectValidationError
+from superset.models.helpers import QueryResult
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -1594,6 +1598,88 @@ def test_validate_query_object_group_limit_not_supported_error(
 
     with pytest.raises(ValueError, match="Group limit is not supported"):
         validate_query_object(query_object)
+
+
+def test_get_results_ignores_limit_without_series_columns(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Keep stored Pivot results unlimited without changing the cache input."""
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        series_columns=[],
+        series_limit=2,
+        series_limit_metric="total_sales",
+    )
+    rows: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books", "Clothing"], "total_sales": [500.0, 750.0]}
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(
+        return_value=SemanticResult(requests=[], results=pa.Table.from_pandas(rows))
+    )
+
+    with caplog.at_level("DEBUG", logger="superset.semantic_layers.mapper"):
+        result: QueryResult = get_results(query_object)
+
+    pd.testing.assert_frame_equal(result.df, rows)
+    assert (
+        mock_datasource.implementation.get_table.call_args.args[0].group_limit is None
+    )
+    assert query_object.series_limit == 2
+    assert "Treating semantic series_limit=2 as 0" in caplog.text
+
+
+def test_chart_data_command_replays_stored_limit_without_series_columns(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """A chart-data command can run the old stored context unchanged."""
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        series_columns=[],
+        series_limit=2,
+        series_limit_metric="total_sales",
+    )
+    rows: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books", "Clothing"], "total_sales": [500.0, 750.0]}
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(
+        return_value=SemanticResult(requests=[], results=pa.Table.from_pandas(rows))
+    )
+    mock_datasource.get_query_result.side_effect = get_results
+    mock_datasource.column_names = ["category", "total_sales"]
+    mock_datasource.columns = []
+    mock_datasource.type = "semantic_view"
+    mock_datasource.cache_timeout = 0
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.uid = "semantic-test"
+    mock_datasource.changed_on = None
+    mock_datasource.database = None
+    query_context: QueryContext = QueryContext(
+        datasource=mock_datasource,
+        queries=[query_object],
+        slice_=None,
+        form_data=None,
+        result_type=ChartDataResultType.FULL,
+        result_format=ChartDataResultFormat.JSON,
+        force=True,
+        cache_values={"queries": [query_object.to_dict()]},
+    )
+    cache_key_before: str | None = query_context.query_cache_key(query_object)
+
+    payload: dict[str, Any] = ChartDataCommand(query_context).run()
+
+    assert payload["queries"][0]["data"] == [
+        {"category": "Books", "total_sales": 500.0},
+        {"category": "Clothing", "total_sales": 750.0},
+    ]
+    assert query_object.series_limit == 2
+    assert query_context.query_cache_key(query_object) == cache_key_before
 
 
 def test_validate_query_object_undefined_series_column_error(
