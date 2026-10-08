@@ -373,6 +373,46 @@ def test_old_retry_is_discarded_before_state_machine(
     machine.assert_not_called()
 
 
+def test_attachment_free_alert_without_content_user_skips_permalink_precommit(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """A missing content identity must not block the alert condition query."""
+    from superset.commands.report.execution_claim import ExecutionClaim
+
+    command = AsyncExecuteReportScheduleCommand(str(uuid4()), 11, datetime.utcnow())
+    command._model = ReportSchedule(
+        id=11,
+        name="query-only alert",
+        type=ReportScheduleType.ALERT,
+        report_format=ReportDataFormat.NONE,
+        dashboard_id=7,
+        last_state=ReportState.NOOP,
+    )
+    mocker.patch.object(command, "validate")
+    mocker.patch(
+        "superset.commands.report.execute._should_build_execution_context",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, "inactive"),
+    )
+    permalink = mocker.patch.object(BaseReportState, "get_dashboard_urls")
+    claim = mocker.patch(
+        "superset.commands.report.execute.claim_execution",
+        return_value=ExecutionClaim(ReportState.NOOP),
+    )
+    machine = mocker.patch(
+        "superset.commands.report.execute.ReportScheduleStateMachine"
+    )
+
+    command.run()
+
+    permalink.assert_not_called()
+    claim.assert_called_once()
+    machine.return_value.run.assert_called_once()
+
+
 @pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
 def test_partial_delivery_does_not_retry_whole_execution(
     mocker: MockerFixture, schedule_type: ReportScheduleType

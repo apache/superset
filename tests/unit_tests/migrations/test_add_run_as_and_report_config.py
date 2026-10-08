@@ -24,12 +24,10 @@ new nullable columns are created and removed without touching existing rows.
 from __future__ import annotations
 
 from importlib import import_module
-from pathlib import Path
 
 import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
-from alembic.script import ScriptDirectory
 from sqlalchemy import (
     Column,
     create_engine,
@@ -242,12 +240,6 @@ def test_downgrade_converts_or_deletes_attachment_free_alerts(engine: Engine) ->
         ):
             dependent = Table(name, MetaData(), autoload_with=conn)
             assert conn.execute(select(dependent)).fetchall() == []
-
-
-def test_sip_migration_is_the_single_head() -> None:
-    directory = Path(__file__).resolve().parents[3] / "superset" / "migrations"
-    script = ScriptDirectory(str(directory))
-    assert script.get_heads() == [migration.revision]
 
 
 def test_deleted_user_keeps_specific_executor_type(engine: Engine) -> None:

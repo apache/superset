@@ -222,15 +222,17 @@ class TestReportSchedulesApi(SupersetTestCase):
         metadata = self.client.put(uri, json={"name": "sip209_api_shared_renamed"})
         assert metadata.status_code == 200, metadata.json
         db.session.refresh(schedule)
+        original_format = schedule.report_format
         changed_format = (
             ReportDataFormat.PDF
-            if schedule.report_format != ReportDataFormat.PDF
+            if original_format != ReportDataFormat.PDF
             else ReportDataFormat.PNG
         )
         format_only = self.client.put(uri, json={"report_format": changed_format})
-        assert format_only.status_code == 200, format_only.json
+        assert format_only.status_code == 422, format_only.json
+        assert "run_as" in format_only.json["message"]
         db.session.refresh(schedule)
-        assert schedule.report_format == changed_format
+        assert schedule.report_format == original_format
         recipients_only = self.client.put(uri, json={"recipients": recipients})
         assert recipients_only.status_code == 422, recipients_only.json
         assert "run_as" in recipients_only.json["message"]
@@ -249,6 +251,13 @@ class TestReportSchedulesApi(SupersetTestCase):
         db.session.refresh(schedule)
         assert schedule.run_as_fk == alpha.id
         assert len(schedule.recipients) == 1
+
+        format_after_takeover = self.client.put(
+            uri, json={"report_format": changed_format}
+        )
+        assert format_after_takeover.status_code == 200, format_after_takeover.json
+        db.session.refresh(schedule)
+        assert schedule.report_format == changed_format
 
     @with_feature_flags(ALERT_REPORT_DYNAMIC_EXECUTOR=False)
     @pytest.mark.usefixtures(

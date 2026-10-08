@@ -707,6 +707,14 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
+        # An attachment-free alert only needs its query executor. Without
+        # a content executor, no asset link can be created safely.
+        if (
+            self._report_schedule.type == ReportScheduleType.ALERT
+            and not self._attachments_enabled()
+            and get_executor_user(self._report_schedule)[0] is None
+        ):
+            return ""
         chart = self._report_schedule.chart
         dashboard = self._report_schedule.dashboard
 
@@ -1839,7 +1847,7 @@ class BaseReportState:
             header_data=header_data,
             url=url,
             # NULL (rows predating the include_cta column) is treated as True
-            include_cta=self._report_schedule.include_cta is not False,
+            include_cta=self._report_schedule.include_cta is not False and bool(url),
         )
 
         # filter recipients to recipients who are also editors
@@ -1995,6 +2003,7 @@ class BaseReportState:
             url=url,
             retry_attempt=attempt,
             retry_max_attempts=max_attempts,
+            include_cta=self._report_schedule.include_cta is not False and bool(url),
         )
         self._send(notification_content, recipients)
 
@@ -2016,6 +2025,7 @@ class BaseReportState:
             header_data=header_data,
             url=url,
             retry_max_attempts=max_attempts,
+            include_cta=self._report_schedule.include_cta is not False and bool(url),
         )
         self._send(notification_content, self._report_schedule.recipients)
 
@@ -2694,7 +2704,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 # machine's inner call to get_dashboard_urls() hits get_entry()
                 # for the same deterministic UUID and returns the
                 # already-committed row without a second INSERT.
-                if self._model.dashboard_id:
+                if self._model.dashboard_id and user is not None:
                     BaseReportState(
                         self._model,
                         self._scheduled_dttm,

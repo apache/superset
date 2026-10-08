@@ -750,7 +750,6 @@ def test_update_non_admin_can_change_display_settings_run_by_other(
         ("sql", "SELECT 2"),
         ("validator_type", "op"),
         ("validator_config_json", {"op": ">"}),
-        ("type", ReportScheduleType.ALERT),
     ],
 )
 def test_condition_fields_do_not_count_as_delivered_content(
@@ -760,6 +759,22 @@ def test_condition_fields_do_not_count_as_delivered_content(
     command._model = _make_model(run_as=OTHER_USER)
 
     assert command._changed_content_fields() == set()
+
+
+def test_non_admin_cannot_switch_other_user_alert_to_report(
+    mocker: MockerFixture,
+) -> None:
+    model = _make_model(model_type=ReportScheduleType.ALERT, run_as=OTHER_USER)
+    _stub_update_deps(mocker, model, is_admin=False)
+
+    command = UpdateReportScheduleCommand(
+        1, {"type": ReportScheduleType.REPORT, "database": None}
+    )
+    with pytest.raises(ReportScheduleInvalidError) as exc:
+        command.validate()
+
+    assert ReportScheduleRunAsContentForbiddenError in _errors(exc)
+    assert command._changed_content_fields() == {"type"}
 
 
 @pytest.mark.parametrize(

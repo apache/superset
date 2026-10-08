@@ -67,6 +67,7 @@ logger = logging.getLogger(__name__)
 # When a schedule executes as another user, only admins may change these.
 CONTENT_FIELDS: frozenset[str] = frozenset(
     {
+        "type",
         "chart",
         "dashboard",
         "extra",
@@ -178,6 +179,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         assert self._model is not None
         model = self._model
         current: dict[str, Any] = {
+            "type": model.type,
             "chart": model.chart_id,
             "dashboard": model.dashboard_id,
             "extra": _normalize_extra(model.extra_json),

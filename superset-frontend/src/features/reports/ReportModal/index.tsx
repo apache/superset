@@ -34,9 +34,10 @@ import {
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { SupersetTheme } from '@apache-superset/core/theme';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import {
   editReport,
+  fetchUISpecificReport,
   subscribeReport,
 } from 'src/features/reports/ReportModal/actions';
 import {
@@ -60,6 +61,7 @@ import {
   NotificationFormats,
 } from 'src/features/reports/types';
 import { reportSelector } from 'src/views/CRUD/hooks';
+import { useAppDispatch } from 'src/views/store';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { StyledInputContainer } from 'src/features/alerts/AlertReportModal';
@@ -175,7 +177,7 @@ function ReportModal({
   const [cronError, setCronError] = useState<CronError>();
   const [executeAsSelf, setExecuteAsSelf] = useState(false);
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
     const isChartReport = creationMethod === CreationMethod.Charts;
@@ -266,6 +268,24 @@ function ReportModal({
       } else {
         // Subscribe path: creation_method, editors, and recipients are set server-side.
         await dispatch(subscribeReport(commonFields as ReportObject));
+      }
+      const resourceId =
+        creationMethod === CreationMethod.Charts ? chart?.id : dashboardId;
+      if (
+        isFeatureEnabled(FeatureFlag.AlertReportDynamicExecutor) &&
+        resourceId != null
+      ) {
+        await dispatch(
+          fetchUISpecificReport({
+            userId: currentUserId,
+            filterField:
+              creationMethod === CreationMethod.Charts
+                ? 'chart_id'
+                : 'dashboard_id',
+            creationMethod,
+            resourceId,
+          }),
+        );
       }
       onHide();
     } catch (e) {

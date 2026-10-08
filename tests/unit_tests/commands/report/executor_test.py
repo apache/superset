@@ -519,3 +519,36 @@ def test_attachment_free_alert_without_asset_builds_message(
     assert not content.include_cta
     assert not content.url
     assert not content.screenshots
+
+
+def test_attachment_free_alert_without_content_user_omits_dashboard_link(
+    mocker: MockerFixture,
+) -> None:
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.type = "Alert"
+    schedule.report_format = "PNG"
+    schedule.dashboard = mocker.Mock()
+    schedule.dashboard.dashboard_title = "Dashboard"
+    schedule.chart = None
+    schedule.name = "Condition met"
+    schedule.description = "Alert message"
+    schedule.email_subject = None
+    schedule.include_cta = True
+    schedule.working_timeout = None
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    mocker.patch(
+        "superset.commands.report.execute.alerts_attach_reports_enabled",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, "inactive"),
+    )
+    mocker.patch.object(state, "_get_log_data", return_value={})
+    permalink = mocker.patch.object(state, "_get_tab_url")
+
+    content = state._get_notification_content()
+
+    assert content.url == ""
+    assert not content.include_cta
+    permalink.assert_not_called()
