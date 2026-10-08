@@ -1706,7 +1706,7 @@ def test_validate_query_object_unsupported_time_grain_error(
     )
 
     with pytest.raises(
-        ValueError,
+        QueryObjectValidationError,
         match=(
             "The time grain is not supported for the time column in the Semantic View."
         ),
