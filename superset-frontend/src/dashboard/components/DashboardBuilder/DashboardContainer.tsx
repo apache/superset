@@ -164,8 +164,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   const renderedChartIds = useRenderedChartIds();
 
-  const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
-    useState(false);
+  const [colorInitializedDashboardId, setColorInitializedDashboardId] =
+    useState<number | null>(null);
+  const dashboardLabelsColorInitiated =
+    colorInitializedDashboardId === dashboardInfo?.id;
   const prevRenderedChartIds = useRef<number[]>([]);
   const prevTabIndexRef = useRef<number>();
   const prevFilterScopesRef = useRef<FilterScopeData[]>([]);
@@ -304,7 +306,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     if (dashboardInfo?.id && !dashboardLabelsColorInitiated) {
       dispatch(applyDashboardLabelsColorOnLoad(dashboardInfo.metadata));
       // apply labels color as dictated by stored metadata (if any)
-      setDashboardLabelsColorInitiated(true);
+      setColorInitializedDashboardId(dashboardInfo.id);
     }
 
     return () => {
@@ -315,12 +317,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [dashboardInfo?.id, dispatch]);
 
   useEffect(() => {
-    // 'beforeunload' event interferes with Cypress data cleanup process.
-    // This code prevents 'beforeunload' from triggering in Cypress tests,
-    // as it is not required for end-to-end testing scenarios.
-    if (!(window as any).Cypress) {
-      window.addEventListener('beforeunload', onBeforeUnload);
-    }
+    window.addEventListener('beforeunload', onBeforeUnload);
 
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
@@ -379,7 +376,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   return (
     <div className="grid-container" data-test="grid-container" ref={parentRef}>
-      {renderParentSizeChildren({ width })}
+      {/* Defer the grid until hydration and color initialization complete,
+          before cached charts consume their color scales on first render. */}
+      {dashboardLabelsColorInitiated && renderParentSizeChildren({ width })}
     </div>
   );
 };

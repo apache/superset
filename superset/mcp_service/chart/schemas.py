@@ -26,6 +26,7 @@ import logging
 import math
 import re
 from collections.abc import Mapping
+from copy import deepcopy
 from datetime import datetime, time
 from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol
 
@@ -40,7 +41,9 @@ from pydantic import (
     model_validator,
     StrictBool,
     ValidationError,
+    WithJsonSchema,
 )
+from pydantic.json_schema import SkipJsonSchema
 from typing_extensions import Self, TypedDict
 
 from superset.constants import NO_TIME_RANGE, TimeGrain
@@ -75,6 +78,7 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
 from superset.mcp_service.utils.serialization import (
     JsonSafeMapping,
     JsonSafeRows,
@@ -92,6 +96,7 @@ class ChartLike(Protocol):
     id: int
     slice_name: str | None
     viz_type: str | None
+    datasource_id: int | None
     datasource_name: str | None
     datasource_type: str | None
     url: str | None
@@ -128,7 +133,16 @@ class ChartInfo(BaseModel):
             "fall back to viz_type when this field is null."
         ),
     )
-    datasource_name: str | None = Field(None, description="Datasource name")
+    datasource_id: int | None = Field(
+        None, description="ID of the dataset (or semantic view) the chart queries"
+    )
+    datasource_name: str | None = Field(
+        None,
+        description=(
+            "Current name of the dataset (or semantic view) the chart queries, "
+            "resolved from the live datasource"
+        ),
+    )
     datasource_type: str | None = Field(None, description="Datasource type")
     url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
@@ -301,6 +315,7 @@ class VersionedResponse(BaseModel):
 
 DEFAULT_GET_CHART_INFO_COLUMNS: List[str] = [
     "id",
+    "datasource_id",
     "slice_name",
     "viz_type",
     "datasource_name",
@@ -355,7 +370,7 @@ class GetChartInfoRequest(BaseModel):
     form_data_key: str | None = Field(
         default=None,
         description=(
-            "Cache key for retrieving unsaved chart state. When a user "
+            "Cache key from the Explore URL for unsaved chart state. When a user "
             "edits a chart in Explore but hasn't saved, the current state is stored "
             "with this key. If provided, the tool returns the current unsaved "
             "configuration instead of the saved version. "
@@ -376,8 +391,9 @@ class GetChartInfoRequest(BaseModel):
         default=None,
         description=(
             "When provided, resolves dashboard-level native filters that are in "
-            "scope for this chart on the given dashboard and returns them under "
-            "filters.dashboard_filters. Requires the chart to be on the dashboard "
+            "scope for this chart on the given dashboard and returns their column, "
+            "operator, and value under filters.dashboard_filters. Requires the chart "
+            "to be on the dashboard "
             "and the caller to have dashboard access."
         ),
     )
@@ -398,7 +414,8 @@ class GetChartInfoRequest(BaseModel):
             description=(
                 "Top-level fields to include in the response. Defaults to a lean "
                 "set that excludes 'form_data' (the full chart config, can be 50KB+). "
-                "Add 'form_data' explicitly when you need the raw chart configuration."
+                "Add 'form_data' explicitly when you need the raw chart configuration. "
+                "The url field links to the chart's Explore page in Superset."
             ),
             validation_alias=AliasChoices("select_columns", "columns"),
         ),
@@ -549,7 +566,44 @@ CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = frozenset(
 )
 
 
-def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
+def resolve_chart_datasource_id(chart: Any) -> int | None:
+    """Return the ID of the datasource a chart is joined to."""
+    datasource_id = getattr(chart, "datasource_id", None)
+    if isinstance(datasource_id, int) and not isinstance(datasource_id, bool):
+        return datasource_id
+    return None
+
+
+def resolve_chart_datasource_name(chart: Any) -> str | None:
+    """Return the chart's datasource name, read from the live datasource.
+
+    ``Slice.datasource_name`` is a stored, denormalized column that is not
+    refreshed when a dataset is renamed or a chart is re-pointed, so it can
+    name a table the chart no longer queries. ``Slice.datasource_name_text``
+    resolves the name through the type-guarded ``table`` / ``semantic_view``
+    relationships instead, and yields ``None`` when the datasource no longer
+    exists. Query and saved-query charts, and objects without that resolver
+    (row tuples, lightweight stand-ins), fall back to the stored value.
+    """
+    resolver = getattr(chart, "datasource_name_text", None)
+    if callable(resolver) and getattr(chart, "datasource_type", None) not in {
+        "query",
+        "saved_query",
+    }:
+        live_name = resolver()
+        if live_name is None or isinstance(live_name, str):
+            return live_name
+    stored_name = getattr(chart, "datasource_name", None)
+    return stored_name if isinstance(stored_name, str) else None
+
+
+def serialize_chart_object(
+    chart: ChartLike | None, *, select_columns: list[str] | None = None
+) -> ChartInfo | None:
+    """Serialize a chart, loading collection relationships only when requested.
+
+    Omitting ``select_columns`` preserves full-object serialization.
+    """
     if not chart:
         return None
 
@@ -595,7 +649,8 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         slice_name=getattr(chart, "slice_name", None),
         viz_type=_viz_type,
         chart_type_display_name=_display_name,
-        datasource_name=getattr(chart, "datasource_name", None),
+        datasource_id=resolve_chart_datasource_id(chart),
+        datasource_name=resolve_chart_datasource_name(chart),
         datasource_type=getattr(chart, "datasource_type", None),
         url=chart_url,
         description=getattr(chart, "description", None),
@@ -614,14 +669,16 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             TagInfo.model_validate(tag, from_attributes=True)
             for tag in getattr(chart, "tags", [])
         ]
-        if getattr(chart, "tags", None)
+        if (select_columns is None or "tags" in select_columns)
+        and getattr(chart, "tags", None)
         else [],
         editors=[
             info
             for editor in getattr(chart, "editors", [])
             if (info := serialize_subject_object(editor)) is not None
         ]
-        if getattr(chart, "editors", None)
+        if (select_columns is None or "editors" in select_columns)
+        and getattr(chart, "editors", None)
         else [],
     )
 
@@ -745,7 +802,7 @@ class UnknownFieldCheckMixin(BaseModel):
         return _check_unknown_fields(data, cls)
 
 
-class BaseChartConfig(UnknownFieldCheckMixin):
+class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     """Fields shared by every MCP chart configuration."""
 
     temporal_column: str | None = Field(
@@ -772,7 +829,7 @@ class BaseChartConfig(UnknownFieldCheckMixin):
         )
 
 
-class ColumnRef(UnknownFieldCheckMixin):
+class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     name: str | None = Field(
@@ -898,7 +955,7 @@ class ColumnRef(UnknownFieldCheckMixin):
         )
 
 
-class AxisConfig(UnknownFieldCheckMixin):
+class AxisConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     model_config = ConfigDict(extra="ignore")
 
     title: str | None = Field(None, max_length=200)
@@ -936,7 +993,7 @@ class CurrencyFormat(UnknownFieldCheckMixin):
 LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
 
 
-class FilterConfig(UnknownFieldCheckMixin):
+class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     column: str = Field(
@@ -2305,7 +2362,7 @@ class BigNumberChartConfig(BaseChartConfig):
         return self
 
 
-class TableColumnConfig(UnknownFieldCheckMixin):
+class TableColumnConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     """Display formatting supported by the MCP table-chart schema."""
 
     model_config = ConfigDict(
@@ -2656,6 +2713,9 @@ class XYChartConfig(BaseChartConfig):
         return self
 
 
+DEFAULT_HISTOGRAM_BINS: int = 5
+
+
 class HistogramChartConfig(BaseChartConfig):
     """Config for histogram charts (viz_type ``histogram_v2``)."""
 
@@ -2670,7 +2730,9 @@ class HistogramChartConfig(BaseChartConfig):
         None,
         description="Optional dimensions to split the distribution into series",
     )
-    bins: int = Field(5, description="Number of histogram bins", ge=1, le=1000)
+    bins: int = Field(
+        DEFAULT_HISTOGRAM_BINS, description="Number of histogram bins", ge=1, le=1000
+    )
     normalize: bool = Field(False, description="Normalize bin counts to proportions")
     cumulative: bool = Field(False, description="Accumulate bin counts left to right")
     filters: List[FilterConfig] | None = Field(
@@ -3676,6 +3738,9 @@ class GanttChartConfig(BaseChartConfig):
 
 
 # Discriminated union for runtime validation (not exposed in JSON Schema)
+CHART_TYPE_DISCRIMINATOR: str = "chart_type"
+
+
 ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
@@ -3693,7 +3758,7 @@ ChartConfig = Annotated[
     | WaterfallChartConfig
     | GanttChartConfig,
     Field(
-        discriminator="chart_type",
+        discriminator=CHART_TYPE_DISCRIMINATOR,
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
             "'pie', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', "
@@ -3704,8 +3769,47 @@ ChartConfig = Annotated[
 ]
 
 
-# Compact description for JSON Schema — keeps tool inputSchema small while
-# giving LLMs enough context to construct valid configs.
+def _chart_type_values(*config_types: Any) -> list[str]:
+    """Return discriminator values from Annotated models or unions, in order."""
+    values: list[str] = []
+    for config_type in config_types:
+        union_type = get_args(config_type)[0]
+        for model in get_args(union_type) or (union_type,):
+            for value in get_args(
+                model.model_fields[CHART_TYPE_DISCRIMINATOR].annotation
+            ):
+                if value not in values:
+                    values.append(value)
+    return values
+
+
+CHART_TYPE_VALUES: list[str] = _chart_type_values(ChartConfig)
+
+# Tool input schemas advertise ``config`` as a compact discriminated reference.
+# Inlining every chart type's schema made each chart tool grow by several kB
+# per registered type; the per-type schemas and examples are served by
+# get_chart_type_schema instead. Server-side validation is unchanged: fields
+# typed with these annotations still validate against the full ChartConfig
+# discriminated union.
+CHART_CONFIG_DESCRIPTION = (
+    "Chart configuration. chart_type selects the chart type; call "
+    "get_chart_type_schema(chart_type) for that type's fields and examples."
+)
+CHART_CONFIG_REFERENCE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {"chart_type": {"type": "string", "enum": CHART_TYPE_VALUES}},
+    "required": ["chart_type"],
+    "additionalProperties": True,
+}
+
+
+def chart_config_reference_schema(*, nullable: bool = False) -> WithJsonSchema:
+    """Return the compact ``config`` schema annotation for chart tool inputs."""
+    if not nullable:
+        return WithJsonSchema(deepcopy(CHART_CONFIG_REFERENCE_SCHEMA))
+    return WithJsonSchema(
+        {"anyOf": [deepcopy(CHART_CONFIG_REFERENCE_SCHEMA), {"type": "null"}]}
+    )
 
 
 # Superset viz_type values that LLM clients routinely send where this API
@@ -3784,6 +3888,18 @@ class ListChartsRequest(
 ):
     """Request schema for list_charts with clear, unambiguous types."""
 
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, slice_name, viz_type, description, "
+                "changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
+
     certified: Annotated[
         StrictBool | None,
         Field(
@@ -3806,8 +3922,12 @@ class ListChartsRequest(
                 "trashed charts, 'include' returns live and trashed charts "
                 "together. Omit for live charts only (default). Trashed rows "
                 "carry a non-null deleted_at and are limited to charts the "
-                "caller owns (admins see all); requires the SOFT_DELETE "
-                "feature flag to have produced trashed rows."
+                "caller can edit (the same audience that can restore them, "
+                "not merely the ones they own; admins see all). This omits "
+                "EXTRA_EDITORS_RESOLVER-granted and guest role-derived "
+                "editorship, so some restorable charts may be under-"
+                "enumerated. Requires the SOFT_DELETE feature flag to have "
+                "produced trashed rows."
             ),
         ),
     ]
@@ -3824,7 +3944,9 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     model_config = ConfigDict(populate_by_name=True)
 
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: Annotated[ChartConfig, chart_config_reference_schema()] = Field(
+        ..., description=CHART_CONFIG_DESCRIPTION
+    )
     chart_name: str | None = Field(
         None,
         description="Auto-generates if omitted",
@@ -3836,7 +3958,7 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
-    sanitization_warnings: List[str] = Field(
+    sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
         description=(
             "Internal: warnings emitted when user input was altered by "
@@ -3924,17 +4046,21 @@ class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheContr
     model_config = ConfigDict(populate_by_name=True)
 
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig | None = Field(
+    config: Annotated[
+        ChartConfig | None, chart_config_reference_schema(nullable=True)
+    ] = Field(
         None,
         description=(
-            "Chart configuration. Optional; omit to get a default "
+            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to get a default "
             "explore URL that opens the dataset in Superset without a "
             "preconfigured chart."
         ),
     )
 
 
-class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
+class UpdateChartRequest(
+    ChartRequestNormalizerMixin, OmittedMeansUnchanged, QueryCacheControl
+):
     model_config = ConfigDict(populate_by_name=True)
 
     identifier: int | str = Field(
@@ -3942,9 +4068,14 @@ class UpdateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
         description="Chart ID or UUID",
         validation_alias=AliasChoices("identifier", "id", "chart_id"),
     )
-    config: ChartConfig | TreemapChartUpdateConfig | None = Field(
+    config: Annotated[
+        ChartConfig | TreemapChartUpdateConfig | None,
+        chart_config_reference_schema(nullable=True),
+    ] = Field(
         None,
-        description="Chart configuration. Optional; omit to only update chart_name.",
+        description=(
+            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
+        ),
     )
     add_columns: List[ColumnRef] | None = Field(
         None,
@@ -4017,9 +4148,9 @@ class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheContro
         ),
     )
     dataset_id: int | str = Field(..., description="Dataset ID or UUID")
-    config: ChartConfig | TreemapChartUpdateConfig = Field(
-        ..., description="Chart configuration"
-    )
+    config: Annotated[
+        ChartConfig | TreemapChartUpdateConfig, chart_config_reference_schema()
+    ] = Field(..., description=CHART_CONFIG_DESCRIPTION)
     generate_preview: bool = True
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
@@ -4145,6 +4276,39 @@ class ChartQueryResult(BaseModel):
     total_rows: OptionalRowCount = Field(None, description="Total available rows")
 
 
+class BigNumberHeadline(BaseModel):
+    """The single headline number a Big Number chart displays.
+
+    The data rows are a time series for the trendline variant, so the displayed
+    number is not any one row: it is derived from the series by the chart's
+    aggregation (for example, the sum over all weekly rows). `value` is null,
+    with `reason` set, when it cannot be computed exactly.
+    """
+
+    value: int | float | str | None = Field(
+        None,
+        description=(
+            "The headline number as the chart displays it; null when it could "
+            "not be computed exactly (see reason)"
+        ),
+    )
+    aggregation: str | None = Field(
+        None,
+        description=(
+            "How the value was derived: 'total' for a Big Number chart, "
+            "otherwise the chart's aggregation applied to the trend series "
+            "(LAST_VALUE, sum, mean, min, max, median, or raw)"
+        ),
+    )
+    rows_used: int | None = Field(
+        None,
+        description="Count of non-null values aggregated; null if not applicable",
+    )
+    reason: str | None = Field(
+        None, description="Why value is null; null when a value is present"
+    )
+
+
 class ChartData(BaseModel):
     """Rich chart data response with statistical insights."""
 
@@ -4161,6 +4325,16 @@ class ChartData(BaseModel):
         description=(
             "All query results for multi-query charts. The top-level columns and data "
             "fields remain aliases for the first query for backward compatibility."
+        ),
+    )
+
+    headline: BigNumberHeadline | None = Field(
+        None,
+        description=(
+            "Big Number charts only (big_number, big_number_total): the headline "
+            "number the chart displays, computed from the full result rather than "
+            "the sample rows. Report this as the chart's value; do not derive it "
+            "from the rows. Null for other chart types."
         ),
     )
 

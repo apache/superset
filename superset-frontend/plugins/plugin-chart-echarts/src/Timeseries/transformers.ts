@@ -72,6 +72,7 @@ import {
   OpacityEnum,
   StackControlsValue,
   TIMESERIES_CONSTANTS,
+  X_AXIS_CROSS_FILTER_SOURCE,
 } from '../constants';
 
 const AUTO_LABEL_FIT_RATIO = 0.8;
@@ -407,8 +408,9 @@ export function transformSeries(
     onlyTotal?: boolean;
     legendState?: LegendState;
     formatter?: ValueFormatter;
-    totalStackedValues?: number[];
-    showValueIndexes?: number[];
+    totalStackedValues?: number[] | Record<string, number[]>;
+    showValueIndexes?: Record<string, number[]>;
+    stackGroup?: string;
     thresholdValues?: number[];
     richTooltip?: boolean;
     seriesKey?: OptionName;
@@ -445,7 +447,8 @@ export function transformSeries(
     formatter,
     legendState,
     totalStackedValues = [],
-    showValueIndexes = [],
+    showValueIndexes = {},
+    stackGroup,
     thresholdValues = [],
     richTooltip,
     seriesKey,
@@ -468,10 +471,11 @@ export function transformSeries(
   const isConfidenceBand =
     forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
     forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
-  // When cross-filtering by X-axis (no dimensions), selectedValues contains
-  // X-axis values rather than series names, so skip series-level dimming.
+  // When cross-filtering by X-axis, selectedValues contains X-axis values
+  // rather than series names, so skip series-level dimming.
   const isFiltered =
     opts.hasDimensions !== false &&
+    filterState?.crossFilterSource !== X_AXIS_CROSS_FILTER_SOURCE &&
     filterState?.selectedValues &&
     !filterState?.selectedValues.includes(name);
   const opacity = isFiltered
@@ -604,7 +608,11 @@ export function transformSeries(
     // @ts-ignore
     type: plotType,
     // Cap bar width so a single data point doesn't stretch across the
-    // entire chart area. Bars with many categories auto-size below this cap.
+    // entire chart area. Bars with many categories auto-size below this
+    // cap. For a sub-daily time grain, transformProps.ts overrides this
+    // with a grain-derived value once the chart's real grid padding is
+    // known (see getGrainBarMaxWidth in utils/series.ts) — 100 is the
+    // fallback for everything else (non-temporal axes, no resolved grain).
     ...(plotType === 'bar' ? { barMaxWidth: 100 } : {}),
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
@@ -678,6 +686,37 @@ export function transformSeries(
         if (!stack && isSelectedLegend) {
           return formatter(numericValue);
         }
+        // Resolve per-stack-group index array and totals. When stackDimension
+        // creates separate ECharts stacks, each group has its own topmost-
+        // series index so the label appears on the correct bar segment.
+        const DEFAULT_STACK_GROUP = '__default__';
+        const resolvedStackGroup = stackGroup ?? DEFAULT_STACK_GROUP;
+        const stackShowValueIndexes = Array.isArray(showValueIndexes)
+          ? showValueIndexes
+          : Object.prototype.hasOwnProperty.call(
+                showValueIndexes,
+                resolvedStackGroup,
+              ) && Array.isArray(showValueIndexes[resolvedStackGroup])
+            ? showValueIndexes[resolvedStackGroup]
+            : Object.prototype.hasOwnProperty.call(
+                  showValueIndexes,
+                  DEFAULT_STACK_GROUP,
+                ) && Array.isArray(showValueIndexes[DEFAULT_STACK_GROUP])
+              ? showValueIndexes[DEFAULT_STACK_GROUP]
+              : [];
+        const resolvedTotalStackedValues = Array.isArray(totalStackedValues)
+          ? totalStackedValues
+          : Object.prototype.hasOwnProperty.call(
+                totalStackedValues,
+                resolvedStackGroup,
+              ) && Array.isArray(totalStackedValues[resolvedStackGroup])
+            ? totalStackedValues[resolvedStackGroup]
+            : Object.prototype.hasOwnProperty.call(
+                  totalStackedValues,
+                  DEFAULT_STACK_GROUP,
+                ) && Array.isArray(totalStackedValues[DEFAULT_STACK_GROUP])
+              ? totalStackedValues[DEFAULT_STACK_GROUP]
+              : [];
         if (!onlyTotal) {
           // A stacked segment with no height begins and ends at the same
           // coordinate as the top of the segment beneath it, so its label is
@@ -695,8 +734,10 @@ export function transformSeries(
           }
           return '';
         }
-        if (seriesIndex === showValueIndexes[dataIndex]) {
-          return formatter(isAreaExpand ? 1 : totalStackedValues[dataIndex]);
+        if (seriesIndex === stackShowValueIndexes[dataIndex]) {
+          return formatter(
+            isAreaExpand ? 1 : resolvedTotalStackedValues[dataIndex],
+          );
         }
         return '';
       },

@@ -180,6 +180,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       dashboardId,
       addSuccessToast,
       addDangerToast,
+      addWarningToast,
       handleToggleFullSize,
       isFullSize,
       chartStatus,
@@ -428,6 +429,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   dashboardId={dashboardId}
                   addSuccessToast={addSuccessToast}
                   addDangerToast={addDangerToast}
+                  addWarningToast={addWarningToast}
                   handleToggleFullSize={handleToggleFullSize}
                   isFullSize={isFullSize}
                   isDescriptionExpanded={isExpanded}

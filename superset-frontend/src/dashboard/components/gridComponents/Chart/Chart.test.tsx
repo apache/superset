@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect } from 'react';
 import { act, fireEvent, render } from 'spec/helpers/testing-library';
-import { FeatureFlag, VizType } from '@superset-ui/core';
+import {
+  DatasourceType,
+  FeatureFlag,
+  TimeGranularity,
+  VizType,
+} from '@superset-ui/core';
 import * as redux from 'redux';
 
 import * as exploreUtils from 'src/explore/exploreUtils';
@@ -27,7 +33,17 @@ import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
   sliceId as queryId,
 } from 'spec/fixtures/mockChartQueries';
+import {
+  AutoRefreshProvider,
+  useAutoRefreshContext,
+} from 'src/dashboard/contexts/AutoRefreshContext';
 import Chart from './Chart';
+import {
+  DashboardDatasetsContext,
+  type DashboardDatasetsContextValue,
+} from 'src/dashboard/contexts/DashboardDatasetsContext';
+import { buildQuery as buildTableQuery } from '../../../../../plugins/plugin-chart-table/src/buildQuery';
+import type { TableChartFormData } from '../../../../../plugins/plugin-chart-table/src/types';
 
 let capturedChartContainerProps: Record<string, unknown> = {};
 jest.mock('src/components/Chart/ChartContainer', () => {
@@ -101,12 +117,49 @@ const defaultState = {
 function setup(
   overrideProps: Record<string, unknown> = {},
   overrideState: Record<string, unknown> = {},
+  currentDatasets: DashboardDatasetsContextValue | null = null,
 ) {
-  return render(<Chart {...props} {...overrideProps} />, {
-    useRedux: true,
-    useRouter: true,
-    initialState: { ...defaultState, ...overrideState },
-  });
+  const chart = <Chart {...props} {...overrideProps} />;
+  return render(
+    currentDatasets ? (
+      <DashboardDatasetsContext.Provider value={currentDatasets}>
+        {chart}
+      </DashboardDatasetsContext.Provider>
+    ) : (
+      chart
+    ),
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: { ...defaultState, ...overrideState },
+    },
+  );
+}
+
+function StartAutoRefreshFor({ chartIds }: { chartIds: number[] }) {
+  const { startAutoRefresh } = useAutoRefreshContext();
+  useEffect(() => {
+    startAutoRefresh(chartIds);
+  }, [chartIds, startAutoRefresh]);
+  return null;
+}
+
+function setupDuringUnrelatedAutoRefresh(
+  refreshingChartIds: number[],
+  overrideProps: Record<string, unknown> = {},
+  overrideState: Record<string, unknown> = {},
+) {
+  return render(
+    <AutoRefreshProvider>
+      <StartAutoRefreshFor chartIds={refreshingChartIds} />
+      <Chart {...props} {...overrideProps} />
+    </AutoRefreshProvider>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: { ...defaultState, ...overrideState },
+    },
+  );
 }
 
 const refreshChart = jest.fn();
@@ -134,6 +187,34 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
+test('shows the loading spinner for a chart that starts loading outside the in-flight auto-refresh batch', () => {
+  setupDuringUnrelatedAutoRefresh([queryId + 1], undefined, {
+    charts: {
+      ...defaultState.charts,
+      [queryId]: {
+        ...defaultState.charts[queryId],
+        chartStatus: 'loading',
+      },
+    },
+  });
+
+  expect(capturedChartContainerProps.suppressLoadingSpinner).toBe(false);
+});
+
+test('suppresses the loading spinner for a chart included in the in-flight auto-refresh batch', () => {
+  setupDuringUnrelatedAutoRefresh([queryId], undefined, {
+    charts: {
+      ...defaultState.charts,
+      [queryId]: {
+        ...defaultState.charts[queryId],
+        chartStatus: 'loading',
+      },
+    },
+  });
+
+  expect(capturedChartContainerProps.suppressLoadingSpinner).toBe(true);
+});
+
 test('should render a SliceHeader', () => {
   const { getByTestId, container } = setup();
   expect(getByTestId('slice-header')).toBeInTheDocument();
@@ -143,6 +224,260 @@ test('should render a SliceHeader', () => {
 test('should render a ChartContainer', () => {
   const { getByTestId } = setup();
   expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('uses current semantic dimensions instead of a saved stale temporal lookup', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'complete',
+      },
+    },
+    {
+      dashboardId: props.dashboardId,
+      datasets: [
+        {
+          uid: '2__semantic_view',
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: true }],
+        },
+      ],
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toEqual({ event_time: true });
+  expect(buildTableQuery(formData).queries[0].columns).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        label: 'event_time',
+        timeGrain: TimeGranularity.DAY,
+      }),
+    ]),
+  );
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+  expect(savedFormData.temporal_columns_lookup).toEqual({ event_time: false });
+});
+
+test('keeps a saved semantic grain when current datasource metadata is unavailable', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {},
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toBeUndefined();
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+  expect(savedFormData.temporal_columns_lookup).toEqual({ event_time: false });
+});
+
+test('ignores prior dashboard metadata while current datasets are loading', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'loading',
+      },
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toBeUndefined();
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+});
+
+test('ignores prior metadata when a completed response omits the semantic source', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'complete',
+      },
+    },
+    { dashboardId: props.dashboardId, datasets: [] },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toBeUndefined();
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+});
+
+test('omits a dormant semantic grain when current metadata proves the axis non-temporal', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['country'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { country: true },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'country', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'complete',
+      },
+    },
+    {
+      dashboardId: props.dashboardId,
+      datasets: [
+        {
+          uid: '2__semantic_view',
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'country', is_dttm: false }],
+        },
+      ],
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toEqual({ country: false });
+  expect(buildTableQuery(formData).queries[0].extras).not.toHaveProperty(
+    'time_grain_sqla',
+  );
+});
+
+test('leaves saved SQL dataset lookup unchanged on dashboards', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '11__table',
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toEqual({ event_time: false });
 });
 
 const noDescriptionRenderInputs = ([undefined, false, true] as const).flatMap(
@@ -832,4 +1167,20 @@ test('Existing expand/collapse behavior continues to work', () => {
   } finally {
     restore();
   }
+});
+
+test('a hidden chart does not adopt a prop update, and adopts it once revealed', () => {
+  const { rerender } = setup({ isComponentVisible: false, isInView: false });
+  expect(capturedChartContainerProps.isInView).toBe(false);
+
+  // The parent passes an updated prop while the chart is still hidden: the
+  // memoized export bails out, so the prop update never reaches
+  // ChartContainer while the tab is hidden. Store-driven updates (such as a
+  // query trigger read via useSelector) are not gated by this memo.
+  rerender(<Chart {...props} isComponentVisible={false} isInView />);
+  expect(capturedChartContainerProps.isInView).toBe(false);
+
+  // Revealing the tab lets the chart re-render and adopt the pending update.
+  rerender(<Chart {...props} isComponentVisible isInView />);
+  expect(capturedChartContainerProps.isInView).toBe(true);
 });

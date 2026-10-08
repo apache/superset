@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-23 12:43+0200\n"
+"POT-Creation-Date: 2026-10-02 21:57-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -150,26 +150,12 @@ msgid ""
 "Note\n"
 "                      currently time zones are not supported. If time is "
 "stored\n"
-"                      in epoch format, put `epoch_s` or `epoch_ms`. If no"
-" pattern\n"
+"                      in epoch format, put `epoch_s`, `epoch_ms` or "
+"`epoch_us`. If no pattern\n"
 "                      is specified we fall back to using the optional "
 "defaults on a per\n"
 "                      database/column name level via the extra parameter."
 msgstr ""
-" standard, aby bylo zajištěno, že lexikografické řazení\n"
-"                      se shoduje s chronologickým řazením. Pokud formát\n"
-"                      časového razítka neodpovídá standardu ISO 8601,\n"
-"                      budete muset definovat výraz a typ pro\n"
-"                      transformaci řetězce na datum nebo časové razítko. "
-"Upozornění:\n"
-"                      v současné době nejsou časová pásma podporována. "
-"Pokud je čas uložen\n"
-"                      ve formátu epochy, zadejte `epoch_s` nebo "
-"`epoch_ms`. Pokud není\n"
-"                      zadán žádný vzor, použijí se volitelné výchozí "
-"hodnoty na úrovni\n"
-"                      databáze/názvu sloupce prostřednictvím dodatečného "
-"parametru."
 
 msgid " to add calculated columns"
 msgstr " pro přidání počítaných sloupců"
@@ -356,9 +342,9 @@ msgstr "%s%s"
 msgid "%s (copy from %s)"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Zabezpečené extra"
+msgstr ""
 
 #, python-format
 msgid "%s Error"
@@ -372,9 +358,9 @@ msgstr ""
 msgid "%s PASSWORD"
 msgstr "HESLO %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Physical"
-msgstr "Fyzický"
+msgstr ""
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -392,9 +378,9 @@ msgstr "HESLO K SOUKROMÉMU KLÍČI SSH TUNELU %s"
 msgid "%s Selected"
 msgstr "Vybráno %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Selected (%s)"
-msgstr "Vybráno %s"
+msgstr ""
 
 #, python-format
 msgid "%s Selected (Physical)"
@@ -414,9 +400,9 @@ msgstr "%s Sémantický pohled"
 msgid "%s URL"
 msgstr "%s URL"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Virtual"
-msgstr "Virtuální"
+msgstr ""
 
 #, python-format
 msgid "%s additional restricted chart"
@@ -496,9 +482,9 @@ msgstr[0] "%s řádek"
 msgstr[1] "%s řádky"
 msgstr[2] "%s řádků"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s imported"
-msgstr "Data importována"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s item"
@@ -559,23 +545,23 @@ msgstr[2] "%s možností"
 msgid "%s option(s)"
 msgstr "%s možnost(i)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Automatická velikost sloupce"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Řadit metriku"
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s selected"
-msgstr "%s záložka vybrána"
+msgstr ""
 
 #, python-format
 msgid "%s recipients"
@@ -1037,6 +1023,9 @@ msgstr ""
 " { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Podrobnosti: "
 "https://echarts.apache.org/en/option.html. "
 
+msgid "A Slack channel is required for Slack recipients"
+msgstr ""
+
 msgid "A TTL is required for ephemeral state."
 msgstr ""
 
@@ -1045,12 +1034,29 @@ msgid ""
 " bars that extend left and right from a central axis."
 msgstr ""
 
+msgid ""
+"A candlestick chart shows opening, closing, high, and low values for each"
+" period. It is commonly used for financial and other time-series range "
+"analysis."
+msgstr ""
+"Svíčkový graf zobrazuje otevírací, uzavírací, nejvyšší a nejnižší hodnoty"
+" za každé období. Běžně se používá pro finanční a jinou analýzu rozpětí "
+"časových řad."
+
 #, fuzzy
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Čárkami oddělený seznam sloupců, které se mají zpracovat jako data"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Čárkami oddělený seznam schémat, do kterých je povoleno nahrávat soubory."
+
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
 
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Při připojování přes SSH tunel je vyžadován port databáze."
@@ -1161,6 +1167,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "S vaším grafem bude uložena znovupoužitelná sada dat."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
 msgstr ""
 
 msgid ""
@@ -1487,6 +1498,9 @@ msgstr ""
 msgid "Add folder"
 msgstr "Přidat složku"
 
+msgid "Add group"
+msgstr "Přidat skupinu"
+
 msgid "Add item"
 msgstr "Přidat položku"
 
@@ -1495,6 +1509,9 @@ msgstr "Přidat metriku"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Přidat metriky do sady dat v modálním okně „Upravit zdroj dat“"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Přidat nový formátovač barev"
@@ -1529,6 +1546,9 @@ msgstr ""
 
 msgid "Add sheet"
 msgstr "Přidat list"
+
+msgid "Add subgroup"
+msgstr "Přidat podskupinu"
 
 msgid "Add tag to entities"
 msgstr "Přidat značku k entitám"
@@ -1673,6 +1693,9 @@ msgstr "Dotčené grafy"
 msgid "Affected Dashboards"
 msgstr "Dotčené nástěnky"
 
+msgid "Affected Datasets"
+msgstr ""
+
 msgid "Affected semantic views"
 msgstr ""
 
@@ -1764,6 +1787,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -2033,21 +2060,21 @@ msgstr ""
 "Při rozbalování schématu tabulky došlo k chybě. Kontaktujte prosím svého "
 "administrátora."
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s"
-msgstr "Při načítání %s došlo k chybě: %s"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
 msgstr "Při načítání informací o %s došlo k chybě: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "Při načítání dat souvisejících se sadou dat došlo k chybě"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "Při načítání uživatelských hodnot došlo k chybě: %s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s: %s"
@@ -2138,16 +2165,15 @@ msgstr "Při načítání hodnot schématu došlo k chybě: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Při načítání dostupných témat došlo k chybě"
 
-#, fuzzy
 msgid "An error occurred while fetching semantic layers"
-msgstr "Při načítání hodnot schématu došlo k chybě: %s"
+msgstr ""
 
 msgid "An error occurred while fetching tab state"
 msgstr "Při načítání stavu karty došlo k chybě"
 
-#, fuzzy, python-format
+#, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Při načítání metadat tabulky došlo k chybě"
+msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -2222,9 +2248,8 @@ msgstr "Při parsování klíče došlo k chybě."
 msgid "An error occurred while pruning logs "
 msgstr "Při promazávání protokolů došlo k chybě "
 
-#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
-msgstr "Při vykreslování vizualizace došlo k chybě: %s"
+msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -2861,9 +2886,8 @@ msgstr "Exponent základu"
 msgid "Base height"
 msgstr "Výška základu"
 
-#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
-msgstr "Styl mapy základní vrstvy. Viz dokumentaci Mapbox: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -3266,6 +3290,19 @@ msgstr "Zrušit dotaz při události uvolnění okna"
 msgid "Cancellation not available due to missing abort handler"
 msgstr "Zrušení není dostupné z důvodu chybějícího obslužného programu přerušení"
 
+msgid "Candlestick"
+msgstr "Svíčkový graf"
+
+msgid "Candlestick Chart"
+msgstr "Svíčkový graf"
+
+msgid ""
+"Candlestick draws a filled body between open and close. OHLC draws ticks "
+"for open and close on a high-low stem."
+msgstr ""
+"Svíčky kreslí vyplněné tělo mezi otevřením a uzavřením. OHLC kreslí "
+"značky otevření a uzavření na stonku maximum–minimum."
+
 msgid "Cannot access the query"
 msgstr "Nelze přistoupit k dotazu"
 
@@ -3378,6 +3415,9 @@ msgstr "Limit buněk"
 #, fuzzy
 msgid "Cell title template"
 msgstr "Šablona názvu buňky"
+
+msgid "Center"
+msgstr "Na střed"
 
 msgid "Center value"
 msgstr ""
@@ -3682,6 +3722,13 @@ msgstr "Graf byl uložen, ale se nepodařilo přidat do vybraného panelu."
 msgid "Chart width"
 msgstr "Šířka grafu"
 
+#, python-format
+msgid ""
+"Chart with ID %(chart_id)s (referenced by annotation layer "
+"'%(layer_name)s') was not found. Please verify that the chart exists and "
+"is accessible."
+msgstr ""
+
 msgid "Charts"
 msgstr "Grafy"
 
@@ -3733,9 +3780,9 @@ msgstr ""
 msgid "Child label position"
 msgstr "Pozice popisku podřízené položky"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Choose a %s"
-msgstr "Vyberte zdroj"
+msgstr ""
 
 msgid "Choose a chart for displaying on the map"
 msgstr "Vyberte graf pro zobrazení na mapě"
@@ -3772,6 +3819,12 @@ msgstr "Vyberte sloupce, které se mají zpracovat jako data"
 
 msgid "Choose columns to read"
 msgstr "Vyberte sloupce ke čtení"
+
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
 
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
@@ -3874,9 +3927,9 @@ msgstr "Klauzule"
 msgid "Clear"
 msgstr "Vymazat"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Clear %s filter"
-msgstr "Vymazat všechny filtry"
+msgstr ""
 
 #, fuzzy
 msgid "Clear Sort"
@@ -4019,6 +4072,9 @@ msgstr "Zavřít kartu"
 msgid "Close version history"
 msgstr ""
 
+msgid "Closing value for each period."
+msgstr "Uzavírací hodnota za každé období."
+
 msgid "Cluster label aggregator"
 msgstr "Agregátor popisků shluků"
 
@@ -4051,6 +4107,9 @@ msgstr "Sbalit datový panel"
 
 msgid "Collapse row"
 msgstr "Sbalit řádek"
+
+msgid "Collapse settings"
+msgstr "Sbalit nastavení"
 
 msgid "Collapse tab content"
 msgstr "Sbalit obsah karty"
@@ -4110,11 +4169,18 @@ msgstr "Hranice barev"
 msgid "Color by"
 msgstr "Barva podle"
 
+msgid "Color by direction"
+msgstr "Barva podle směru"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Pole barvy musí být hexadecimální barva (#rrggbb) nebo 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -4138,6 +4204,14 @@ msgstr "Barva cílového umístění"
 
 msgid "Color scheme"
 msgstr "Barevné schéma"
+
+msgid ""
+"Color used when the close value is greater than or equal to the open "
+"value."
+msgstr "Barva, pokud je uzavírací hodnota větší nebo rovna otevírací."
+
+msgid "Color used when the close value is less than the open value."
+msgstr "Barva, pokud je uzavírací hodnota menší než otevírací."
 
 msgid ""
 "Color will be shaded based the normalized (0% to 100%) value of a given "
@@ -4182,6 +4256,9 @@ msgstr "Sloupec obsahující data o zeměpisné délce"
 
 msgid "Column data types"
 msgstr "Datové typy sloupců"
+
+msgid "Column groups"
+msgstr "Skupiny sloupců"
 
 msgid "Column header tooltip"
 msgstr "Nápověda záhlaví sloupce"
@@ -4400,9 +4477,9 @@ msgstr "Interval spolehlivosti musí být mezi 0 a 1 (vyjma)"
 msgid "Configuration"
 msgstr "Konfigurace"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Configure %s"
-msgstr "Potvrdit uložení"
+msgstr ""
 
 msgid "Configure Advanced Time Range "
 msgstr "Konfigurovat pokročilý časový rozsah "
@@ -4453,6 +4530,9 @@ msgstr "Potvrdit"
 msgid "Confirm Password"
 msgstr "Potvrdit heslo"
 
+msgid "Confirm new password"
+msgstr ""
+
 msgid "Confirm overwrite"
 msgstr "Potvrdit přepsání"
 
@@ -4462,6 +4542,9 @@ msgstr "Potvrdit heslo"
 
 msgid "Confirm save"
 msgstr "Potvrdit uložení"
+
+msgid "Confirm the new password"
+msgstr ""
 
 msgid "Confirm the user's password"
 msgstr "Potvrďte heslo uživatele"
@@ -4676,9 +4759,9 @@ msgstr "Nepodařilo se načíst SQL Lab"
 msgid "Could not load database driver"
 msgstr "Nepodařilo se načíst ovladač databáze"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Could not load database driver for: %(engine)s"
-msgstr "Nepodařilo se načíst ovladač databáze: %(engine)"
+msgstr ""
 
 msgid ""
 "Could not load metadata for this configuration; showing the default form."
@@ -4693,6 +4776,12 @@ msgstr ""
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nelze přeložit název hostitele: „%(host)s“."
+
+msgid ""
+"Could not resolve the user to impersonate on the database connection. The"
+" query was not run, because running it would have connected as the wrong "
+"user."
+msgstr ""
 
 msgid "Could not validate the user in the current session."
 msgstr "Nepodařilo se ověřit uživatele v aktuální relaci."
@@ -4783,9 +4872,9 @@ msgstr "Vytvořil(a)"
 msgid "Created by me"
 msgstr "Vytvořeno mnou"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Created by: %s"
-msgstr "Vytvořil(a)"
+msgstr ""
 
 #, python-format
 msgid "Created from version: %s"
@@ -4858,6 +4947,9 @@ msgstr "Aktuální den"
 
 msgid "Current month"
 msgstr "Aktuální měsíc"
+
+msgid "Current password"
+msgstr ""
 
 msgid "Current quarter"
 msgstr "Aktuální čtvrtletí"
@@ -5058,9 +5150,9 @@ msgstr "Tmavý režim"
 msgid "Dashboard"
 msgstr "Nástěnka"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "Graf %(id)s nenalezen"
+msgstr ""
 
 #, fuzzy
 msgid "Dashboard Filter"
@@ -5106,6 +5198,9 @@ msgstr "Nepodařilo se obnovit řídicí panel."
 msgid "Dashboard could not be updated."
 msgstr "Nástěnku se nepodařilo aktualizovat."
 
+msgid "Dashboard data exported to Excel"
+msgstr ""
+
 msgid "Dashboard does not exist"
 msgstr "Nástěnka neexistuje"
 
@@ -5116,6 +5211,9 @@ msgstr "Tato nástěnka byla úspěšně uložena jako příklad."
 #, fuzzy
 msgid "Dashboard exported successfully"
 msgstr "Tato nástěnka byla úspěšně uložena."
+
+msgid "Dashboard has no charts to export."
+msgstr ""
 
 msgid "Dashboard imported"
 msgstr "Nástěnka importována"
@@ -5759,6 +5857,11 @@ msgstr "Smazat skupinu"
 msgid "Delete item"
 msgstr "Smazat položku"
 
+msgid ""
+"Delete or move active datasets. To remove archived datasets, open "
+"Recently archived and select Delete permanently."
+msgstr ""
+
 msgid "Delete permanently"
 msgstr ""
 
@@ -5877,9 +5980,9 @@ msgstr[2] "Smazáno %(num)d témat CSS"
 msgid "Deleted %s"
 msgstr "Smazáno %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Deleted %s item(s)"
-msgstr "Smazat položku"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -6065,9 +6168,9 @@ msgstr "Hodnoty dimenze"
 msgid "Dimensions"
 msgstr "Dimenze"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Dimensions (%s)"
-msgstr "Dimenze"
+msgstr ""
 
 msgid "Dimensions and metrics"
 msgstr ""
@@ -6562,9 +6665,9 @@ msgstr "Šířka hrany"
 msgid "Edit"
 msgstr "Upravit"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Edit %s"
-msgstr "Upravit uživatele"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Edit %s in modal"
@@ -6914,6 +7017,9 @@ msgstr "Zadejte primární pověření"
 msgid "Enter a name for this sheet"
 msgstr "Zadejte název pro tento list"
 
+msgid "Enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Enter a part of the object name"
 msgstr "Zadejte část názvu objektu"
@@ -6926,6 +7032,9 @@ msgstr "Zadejte dobu trvání v sekundách"
 
 msgid "Enter fullscreen"
 msgstr "Vstoupit do režimu celé obrazovky"
+
+msgid "Enter group name"
+msgstr "Zadejte název skupiny"
 
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Zadejte minimální a maximální hodnoty pro filtr rozsahu"
@@ -6970,6 +7079,12 @@ msgstr "Zadejte uživatelské jméno uživatele"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "Zadejte název tématu"
+
+msgid "Enter values"
+msgstr ""
+
+msgid "Enter your current password"
+msgstr ""
 
 msgid "Enter your login and password below:"
 msgstr "Zadejte vaše přihlašovací údaje níže:"
@@ -7152,6 +7267,9 @@ msgstr "Přesná shoda (IN)"
 msgid "Example"
 msgstr "Příklad"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Příklady"
 
@@ -7162,9 +7280,6 @@ msgstr "Export do Excelu"
 #, fuzzy
 msgid "Excel XML Export"
 msgstr "XML Export do Excelu"
-
-msgid "Excel export is not configured on this server."
-msgstr ""
 
 msgid "Excel file format cannot be determined"
 msgstr "Formát souboru Excel nelze určit"
@@ -7218,6 +7333,9 @@ msgstr "Rozbalit řádek"
 #, fuzzy
 msgid "Expand row to edit"
 msgstr "Rozbalit řádek"
+
+msgid "Expand settings"
+msgstr "Rozbalit nastavení"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7341,6 +7459,11 @@ msgstr "Exportovat do původního .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportovat do kontingenčního .CSV"
+
+msgid ""
+"Exporting images to Excel requires background exports. Ask an "
+"administrator to enable them, or export the dashboard's data instead."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -7494,9 +7617,9 @@ msgstr "Nepodařilo se označit položky"
 msgid "Failed to generate chart edit URL"
 msgstr "Nepodařilo se vygenerovat URL pro úpravu grafu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to generate download: %s"
-msgstr "Nepodařilo se vygenerovat URL pro úpravu grafu"
+msgstr ""
 
 msgid "Failed to load chart data"
 msgstr "Nepodařilo se načíst data grafu"
@@ -7504,9 +7627,9 @@ msgstr "Nepodařilo se načíst data grafu"
 msgid "Failed to load chart data."
 msgstr "Nepodařilo se načíst data grafu."
 
-#, fuzzy, python-format
+#, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "Nepodařilo se načíst sloupce pro datovou sadu %s"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -7819,6 +7942,9 @@ msgstr ""
 "jeden se vztahuje na region Evropa (klíč skupiny = 'region'), klauzule "
 "filtru by použila filtr (department = 'Finance' OR department = "
 "'Marketing') AND (region = 'Europe')."
+
+msgid "Financial"
+msgstr ""
 
 msgid "Find"
 msgstr "Najít"
@@ -8212,6 +8338,10 @@ msgstr ""
 msgid "Group"
 msgstr "Skupina"
 
+#, python-format
+msgid "Group %s"
+msgstr "Skupina %s"
+
 msgid "Group By"
 msgstr "Seskupit podle"
 
@@ -8223,6 +8353,12 @@ msgstr "Klíč skupiny"
 
 msgid "Group by"
 msgstr "Seskupit podle"
+
+msgid "Group columns"
+msgstr "Seskupit sloupce"
+
+msgid "Group name"
+msgstr "Název skupiny"
 
 msgid "Group remaining as \"Others\""
 msgstr "Zůstávající řádky seskupit do skupiny \"Ostatní\""
@@ -8310,8 +8446,14 @@ msgstr "Skryje čáru pro časovou řadu"
 msgid "Hierarchy"
 msgstr "Hierarchie"
 
+msgid "High"
+msgstr ""
+
 msgid "High color"
 msgstr ""
+
+msgid "Highest value for each period."
+msgstr "Nejvyšší hodnota za každé období."
 
 msgid "Histogram"
 msgstr "Histogram"
@@ -8465,6 +8607,9 @@ msgstr "Importovat %s"
 #, fuzzy
 msgid "Import Error"
 msgstr "Chyba importu"
+
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
 
 msgid "Import chart failed for an unknown reason"
 msgstr "Import grafu selhal z neznámého důvodu"
@@ -8694,6 +8839,11 @@ msgstr "Neplatná konfigurace zeměpisné šířky/délky."
 msgid "Invalid JSON metadata"
 msgstr "Neplatná JSON metadata"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Neplatný SQL: %(error)s"
@@ -8819,10 +8969,6 @@ msgstr "Neplatná ID karet: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Neplatné uživatelské jméno nebo heslo"
 
 msgid "Inverse"
 msgstr ""
@@ -8988,6 +9134,9 @@ msgstr "Kilometry"
 msgid "Label"
 msgstr "Popisek"
 
+msgid "Label Colors"
+msgstr ""
+
 msgid "Label Contents"
 msgstr "Obsah popisku"
 
@@ -9042,6 +9191,12 @@ msgstr "Jednotka velikosti popisku"
 
 msgid "Label threshold"
 msgstr "Prahová hodnota popisku"
+
+msgid "Label used for decreasing candles in the tooltip."
+msgstr "Popisek klesajících svíček v tooltipu."
+
+msgid "Label used for increasing candles in the tooltip."
+msgstr "Popisek rostoucích svíček v tooltipu."
 
 msgid "Labelling"
 msgstr "Označování"
@@ -9169,6 +9324,9 @@ msgstr "Typ rozložení stromu"
 
 msgid "Least recently modified"
 msgstr "Nejméně nedávno změněné"
+
+msgid "Leave blank to keep the current password"
+msgstr ""
 
 msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
@@ -9529,6 +9687,9 @@ msgstr "Zeměpisná délka a šířka"
 msgid "Longitude of default viewport"
 msgstr "Zeměpisná délka výchozího zobrazení"
 
+msgid "Low"
+msgstr ""
+
 msgid "Low color"
 msgstr ""
 
@@ -9542,6 +9703,9 @@ msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Dolní práh musí být nižší než horní práh"
+
+msgid "Lowest value for each period."
+msgstr "Nejnižší hodnota za každé období."
 
 msgid "MAR"
 msgstr "BŘE"
@@ -9620,6 +9784,9 @@ msgstr "Živé vykreslení"
 
 msgid "Map Style"
 msgstr "Styl mapy"
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -9931,9 +10098,9 @@ msgstr ""
 msgid "Metrics"
 msgstr "Metriky"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Metrics (%s)"
-msgstr "Metriky"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10060,9 +10227,9 @@ msgstr "Minuta"
 msgid "Minutes %s"
 msgstr "Minuty %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Missing %s"
-msgstr "Chybí sada dat"
+msgstr ""
 
 msgid "Missing OAuth2 token"
 msgstr "Chybí token OAuth2"
@@ -10132,6 +10299,12 @@ msgstr "Více filtrů"
 msgid "MotherDuck token"
 msgstr "Token MotherDuck"
 
+msgid "Move group left"
+msgstr "Přesunout skupinu doleva"
+
+msgid "Move group right"
+msgstr "Přesunout skupinu doprava"
+
 #, fuzzy
 msgid "Move icon"
 msgstr "Pouze přesunout"
@@ -10150,6 +10323,9 @@ msgstr ""
 msgid "Moves the given set of dates by a specified interval."
 msgstr "Posune danou sadu dat o zadaný interval."
 
+msgid "Moving averages"
+msgstr "Klouzavé průměry"
+
 msgid "Multi-Dimensions"
 msgstr "Více dimenzí"
 
@@ -10161,6 +10337,9 @@ msgstr "Více úrovní"
 
 msgid "Multi-Variables"
 msgstr "Více proměnných"
+
+msgid "Multi-level header"
+msgstr "Víceúrovňové záhlaví"
 
 msgid "Multiple"
 msgstr "Vícenásobný"
@@ -10257,6 +10436,13 @@ msgstr "Název cílových uzlů"
 msgid "Name of your tag"
 msgstr "Název vaší značky"
 
+msgid ""
+"Name used for the candlestick series in the legend and tooltip when no "
+"series dimension is set."
+msgstr ""
+"Název svíčkové řady v legendě a popisku, pokud není nastavena dimenze "
+"řady."
+
 msgid "Name your database"
 msgstr "Pojmenujte svou databázi"
 
@@ -10313,6 +10499,9 @@ msgstr "Nový název sady dat"
 
 msgid "New header"
 msgstr "Nové záhlaví"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nová karta"
@@ -10392,12 +10581,15 @@ msgstr "Nejsou k dispozici žádné filtry."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
+msgstr ""
+
 msgid "No columns found"
 msgstr "Nebyly nalezeny žádné sloupce"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No compatible %s found"
-msgstr "Nebylo nalezeno žádné kompatibilní schéma"
+msgstr ""
 
 msgid "No compatible catalog found"
 msgstr "Nebyl nalezen žádný kompatibilní katalog"
@@ -10488,6 +10680,9 @@ msgstr "Žádné odpovídající výsledky"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Na této nástěnce nejsou v současné době přidány žádné filtry."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nebyly nalezeny žádné záznamy"
 
@@ -10519,13 +10714,13 @@ msgstr "Žádné role"
 msgid "No roles yet"
 msgstr "Zatím žádné role"
 
-#, fuzzy, python-format
+#, python-format
 msgid "No rows were returned for this %s"
-msgstr "Pro tuto sadu dat nebyly vráceny žádné řádky"
+msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "No samples were returned for this %s"
-msgstr "Pro tuto sadu dat nebyly vráceny žádné vzorky"
+msgstr ""
 
 msgid "No saved expressions found"
 msgstr "Nebyly nalezeny žádné uložené výrazy"
@@ -10547,9 +10742,8 @@ msgstr ""
 msgid "No table columns"
 msgstr "Žádné sloupce tabulky"
 
-#, fuzzy
 msgid "No tasks yet"
-msgstr "Zatím žádné %s"
+msgstr ""
 
 msgid "No temporal columns found"
 msgstr "Nebyly nalezeny žádné časové sloupce"
@@ -10592,6 +10786,11 @@ msgstr "Žádný -> Šipka"
 msgid "None -> None"
 msgstr "Žádný -> Žádný"
 
+msgid ""
+"None of this dashboard's charts can be downloaded directly. Ask an "
+"administrator to enable background exports."
+msgstr ""
+
 msgid "Normal"
 msgstr "Normální"
 
@@ -10617,6 +10816,15 @@ msgstr "Není rovno"
 
 msgid "Not Time Series"
 msgstr "Není časová řada"
+
+#, python-format
+msgid ""
+"Not a Slack channel id: %(invalid)s. Superset uploads report attachments "
+"with files_upload_v2, which accepts a channel id and rejects a channel "
+"name, so a name is saved successfully and then never delivers. Choose the"
+" channel from the dropdown, or copy its id from Slack (channel name, View"
+" channel details, the id is at the bottom)."
+msgstr ""
 
 msgid "Not a valid ZIP file"
 msgstr "Není platný soubor ZIP"
@@ -10786,6 +10994,9 @@ msgstr "Informace o OAuth2 klientovi"
 msgid "OCT"
 msgstr "ŘÍJ"
 
+msgid "OHLC"
+msgstr "OHLC"
+
 msgid "OK"
 msgstr "OK"
 
@@ -10941,6 +11152,9 @@ msgstr "Neprůhlednost bublin, 0 znamená zcela průhledné, 1 znamená neprůhl
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Neprůhlednost, očekává hodnoty mezi 0 a 100"
 
+msgid "Open"
+msgstr ""
+
 msgid "Open Datasource tab"
 msgstr "Otevřít kartu Zdroje dat"
 
@@ -10977,6 +11191,9 @@ msgstr "Otevřít v SQL Labu"
 msgid "Open query in SQL Lab"
 msgstr "Otevřít dotaz v SQL Labu"
 
+msgid "Opening value for each period."
+msgstr "Otevírací hodnota za každé období."
+
 msgid ""
 "Operate the database in asynchronous mode, meaning that the queries are "
 "executed on remote workers as opposed to on the web server itself. This "
@@ -11007,6 +11224,11 @@ msgstr "Volitelný řetězec formátu data d3"
 
 msgid "Optional d3 number format string"
 msgstr "Volitelný řetězec formátu čísla d3"
+
+msgid ""
+"Optional dimension used to split the chart into multiple candlestick "
+"series."
+msgstr "Volitelná dimenze, která rozdělí graf na více svíčkových řad."
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -11132,6 +11354,13 @@ msgstr ""
 "posunutí porovnávacího časového rozsahu o stejnou délku jako váš časový "
 "rozsah a použijte „Vlastní“ pro nastavení vlastního porovnávacího "
 "rozsahu."
+
+msgid ""
+"Overlay simple moving averages of the close price (MA5, MA10, MA15, ...)."
+" Type a custom period to add it."
+msgstr ""
+"Překryjte jednoduché klouzavé průměry uzavírací ceny (MA5, MA10, MA15, "
+"...). Vlastní období zadejte pro jeho přidání."
 
 msgid ""
 "Overlays a hexagonal grid on a map, and aggregates data within the "
@@ -11528,6 +11757,9 @@ msgstr "Potvrďte prosím své heslo"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Zadejte prosím SQLAlchemy URI k otestování"
 
+msgid "Please enter a new password"
+msgstr ""
+
 #, fuzzy
 msgid "Please enter a valid email"
 msgstr "Zadejte prosím platný e-mail"
@@ -11594,9 +11826,9 @@ msgstr ""
 msgid "Please select at least one role or group"
 msgstr "Vyberte prosím alespoň jednu roli nebo skupinu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Pro pokračování vyberte prosím sadu dat i typ grafu"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -11687,6 +11919,9 @@ msgstr "Port %(port)s na hostiteli „%(hostname)s“ odmítl připojení."
 msgid "Port out of range 0-65535"
 msgstr "Port mimo rozsah 0-65535"
 
+msgid "Position"
+msgstr "Pozice"
+
 msgid "Position JSON"
 msgstr "JSON pozice"
 
@@ -11731,6 +11966,12 @@ msgstr "Předpona nebo přípona"
 
 #, python-format
 msgid "Preparing %(count)s charts for export. This may take a moment."
+msgstr ""
+
+msgid "Preparing dashboard Excel export…"
+msgstr ""
+
+msgid "Preparing export…"
 msgstr ""
 
 msgid "Preview"
@@ -12147,6 +12388,9 @@ msgstr "Odstranit systémové tmavé téma"
 msgid "Remove System Default Theme"
 msgstr "Odstranit systémové výchozí téma"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Odstranit křížový filtr"
 
@@ -12163,6 +12407,9 @@ msgstr "Odstranit položku"
 
 msgid "Remove from favorites"
 msgstr ""
+
+msgid "Remove group"
+msgstr "Odstranit skupinu"
 
 msgid "Remove item"
 msgstr "Odstranit položku"
@@ -12397,6 +12644,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Požadované hodnoty ovládacích prvků byly odstraněny"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Převzorkovat"
 
@@ -12412,6 +12662,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Resetovat"
 
@@ -12421,6 +12674,9 @@ msgstr "Resetovat sloupce"
 
 msgid "Reset all folders to default"
 msgstr "Resetovat všechny složky na výchozí hodnoty"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Resetovat sloupce"
@@ -12911,9 +13167,9 @@ msgstr "Uložit (přepsat)"
 msgid "Save as"
 msgstr "Uložit jako"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Save as %s"
-msgstr "Uložit jako"
+msgstr ""
 
 msgid "Save as Dataset"
 msgstr "Uložit jako sadu dat"
@@ -13000,6 +13256,14 @@ msgstr "Uložený dotaz nenalezen."
 msgid "Saved query parameters are invalid."
 msgstr "Parametry uloženého dotazu jsou neplatné."
 
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
+
 msgid "Saving..."
 msgstr "Ukládání..."
 
@@ -13058,6 +13322,9 @@ msgstr "Schéma"
 
 msgid "Schema cache timeout"
 msgstr "Časový limit mezipaměti schématu"
+
+msgid "Schema not found."
+msgstr ""
 
 msgid "Schemas allowed for File upload"
 msgstr "Schémata povolená pro nahrání souboru"
@@ -13223,9 +13490,9 @@ msgstr "Zobrazit podrobnosti dotazu"
 msgid "Select"
 msgstr "Vybrat"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Select %s or type to search %s"
-msgstr "Vyberte schéma nebo zadejte text pro vyhledávání schémat"
+msgstr ""
 
 msgid "Select ..."
 msgstr "Vybrat..."
@@ -13255,9 +13522,9 @@ msgstr "Vybrat značky"
 msgid "Select Value"
 msgstr "Vybrat hodnotu"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Select a %s"
-msgstr "Vybrat značky"
+msgstr ""
 
 #, fuzzy
 msgid "Select a CSS template"
@@ -13387,6 +13654,9 @@ msgstr "Vybrat sloupec"
 #, fuzzy
 msgid "Select column name"
 msgstr "Vybrat sloupec"
+
+msgid "Select columns"
+msgstr "Vybrat sloupce"
 
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
@@ -13520,6 +13790,9 @@ msgstr ""
 
 msgid "Select or type a custom value..."
 msgstr "Vyberte nebo zadejte vlastní hodnotu..."
+
+msgid "Select or type a label"
+msgstr ""
 
 msgid "Select or type currency symbol"
 msgstr "Vyberte nebo zadejte symbol měny"
@@ -13839,6 +14112,9 @@ msgstr "Styl série"
 msgid "Series chart type (line, bar etc)"
 msgstr "Typ grafu série (spojnicový, sloupcový atd.)"
 
+msgid "Series colors"
+msgstr "Barvy série"
+
 msgid "Series decrease setting"
 msgstr "Nastavení snížení série"
 
@@ -13848,9 +14124,15 @@ msgstr "Nastavení zvýšení série"
 msgid "Series limit"
 msgstr "Limit sérií"
 
+msgid "Series name"
+msgstr "Název série"
+
 #, fuzzy
 msgid "Series settings"
 msgstr "Nastavení sérií"
+
+msgid "Series style"
+msgstr "Styl série"
 
 #, fuzzy
 msgid "Series total setting"
@@ -14182,6 +14464,9 @@ msgid ""
 msgstr ""
 
 msgid "Show or hide the X axis line, ticks, and labels"
+msgstr ""
+
+msgid "Show or hide the Y axis line and labels"
 msgstr ""
 
 msgid "Show or hide the Y axis line, ticks, gridlines, and labels"
@@ -14711,6 +14996,21 @@ msgstr "Datum zahájení"
 msgid "Start date included in time range"
 msgstr "Datum zahájení zahrnuto v časovém rozsahu"
 
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
 msgid "Start y-axis at 0"
 msgstr "Začít osu Y na 0"
 
@@ -14850,6 +15150,10 @@ msgstr "Podkategorie"
 msgid "Subdomain"
 msgstr "Subdoména"
 
+#, python-format
+msgid "Subgroup %s"
+msgstr "Podskupina %s"
+
 msgid "Subject"
 msgstr "Subjekt"
 
@@ -14884,15 +15188,21 @@ msgstr "Úspěch"
 msgid "Success message"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "Successfully changed %s!"
-msgstr "Sada dat úspěšně změněna!"
+msgstr ""
 
 msgid "Suffix"
 msgstr "Přípona"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Přípona, která se použije za zobrazením procent"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -14939,9 +15249,9 @@ msgstr "Superset narazil na neočekávanou chybu."
 msgid "Supported databases"
 msgstr "Podporované databáze"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Swap %s"
-msgstr "Vyměnit sadu dat"
+msgstr ""
 
 msgid "Swap rows and columns"
 msgstr "Prohodit řádky a sloupce"
@@ -15089,6 +15399,9 @@ msgstr "Název tabulky není definován"
 msgid "Table or View \"%(table)s\" does not exist."
 msgstr "Tabulka nebo pohled „%(table)s“ neexistuje."
 
+msgid "Table side"
+msgstr "Strana tabulky"
+
 msgid ""
 "Table that visualizes paired t-tests, which are used to understand "
 "statistical differences between groups."
@@ -15164,9 +15477,9 @@ msgstr "Cílová hodnota"
 msgid "Task"
 msgstr "značky"
 
-#, fuzzy, python-format
+#, python-format
 msgid "Task cancelled: %s"
-msgstr "Export zrušen"
+msgstr ""
 
 #, fuzzy
 msgid "Task could not be aborted."
@@ -15287,9 +15600,9 @@ msgstr ""
 msgid "The %s"
 msgstr "Načteno %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "Sada dat propojená s tímto grafem mohla být smazána."
+msgstr ""
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -15692,6 +16005,12 @@ msgid ""
 msgstr ""
 
 msgid ""
+"The following charts were omitted because their size cannot be determined"
+" before they run. Ask an administrator to enable background exports to "
+"include them."
+msgstr ""
+
+msgid ""
 "The following charts were omitted because they have no saved query "
 "context. To include them, open each chart in Explore and re-save."
 msgstr ""
@@ -16021,6 +16340,9 @@ msgstr "Primární metrika se používá k definování velikostí segmentů obl
 msgid "The provided table was not found in the provided database"
 msgstr "Zadaná tabulka nebyla nalezena v zadané databázi"
 
+msgid "The provider query will be available after the chart runs."
+msgstr ""
+
 msgid "The query associated with the results was deleted."
 msgstr "Dotaz spojený s výsledky byl smazán."
 
@@ -16035,6 +16357,13 @@ msgid "The query contains one or more malformed template parameters."
 msgstr "Dotaz obsahuje jeden nebo více chybně formátovaných parametrů šablony."
 
 msgid "The query context datasource does not match the chart datasource"
+msgstr ""
+
+#, python-format
+msgid ""
+"The query context for chart ID %(chart_id)s (referenced by annotation "
+"layer '%(layer_name)s') was not found. Please ensure the chart is "
+"properly configured and has a valid query context."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -16158,6 +16487,10 @@ msgstr ""
 "použito platné schéma."
 
 #, python-format
+msgid "The schema \"%(schema_name)s\" does not exist."
+msgstr ""
+
+#, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
@@ -16218,6 +16551,10 @@ msgid ""
 msgstr ""
 "Tabulka „%(table)s“ neexistuje. Pro spuštění tohoto dotazu musí být "
 "použita platná tabulka."
+
+#, python-format
+msgid "The table \"%(table_name)s\" does not exist."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -16570,9 +16907,9 @@ msgstr ""
 msgid "There was an issue archiving: %s"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "Při mazání %s došlo k problému: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -16590,9 +16927,9 @@ msgstr "Při mazání registrace pro uživatele %s došlo k problému."
 msgid "There was an issue deleting rules: %s"
 msgstr "Při mazání pravidel došlo k problému: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Při mazání vybraných %s došlo k problému: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
@@ -16630,25 +16967,24 @@ msgstr "Při mazání vybraných témat došlo k problému: %s"
 msgid "There was an issue deleting: %s"
 msgstr "Při mazání došlo k problému: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Při duplikování sady dat došlo k problému."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue duplicating the selected %s: %s"
 msgstr "Při mazání vybraných %s došlo k problému: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Při exportu databáze došlo k problému."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "There was an issue exporting the selected %s"
 msgstr "Při exportu vybraných šablon došlo k problému: %s"
 
-#, fuzzy
 msgid "There was an issue exporting the selected charts"
-msgstr "Při exportu vybraných grafů došlo k problému: %s"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
@@ -16657,16 +16993,14 @@ msgstr "Při exportu vybraných nástěnek došlo k problému."
 msgid "There was an issue exporting the selected queries"
 msgstr ""
 
-#, fuzzy
 msgid "There was an issue exporting the selected themes"
-msgstr "Při exportu vybraných šablon došlo k problému: %s"
+msgstr ""
 
 msgid "There was an issue favoriting this dashboard."
 msgstr "Při přidávání této nástěnky do oblíbených došlo k problému."
 
-#, fuzzy
 msgid "There was an issue fetching reports."
-msgstr "Při načítání vašich reportů došlo k problému: %s"
+msgstr ""
 
 msgid "There was an issue fetching the favorite status of this dashboard."
 msgstr "Při načítání stavu oblíbenosti této nástěnky došlo k problému."
@@ -16697,6 +17031,12 @@ msgstr "Při náhledu vybraného dotazu došlo k problému. %s"
 
 #, python-format
 msgid ""
+"These %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "These %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover them there within %(days)s day."
 msgid_plural ""
@@ -16717,6 +17057,12 @@ msgstr "Toto jsou sady dat, na které bude tento filtr aplikován."
 
 #, python-format
 msgid ""
+"This %(type)s will be moved to Recently Archived and may be permanently "
+"deleted on the next cleanup run."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived in the Settings menu. "
 "You can recover it there within %(days)s day."
 msgid_plural ""
@@ -16733,6 +17079,11 @@ msgid ""
 msgstr ""
 
 msgid "This CSS uses @import, which cannot be saved"
+msgstr ""
+
+msgid ""
+"This Google Sheets connection impersonates the logged-in user, who has no"
+" e-mail address."
 msgstr ""
 
 msgid ""
@@ -16815,9 +17166,9 @@ msgstr ""
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Tento sloupec může být nekompatibilní s aktuální sadou dat"
+msgstr ""
 
 msgid "This column might be incompatible with current dataset"
 msgstr "Tento sloupec může být nekompatibilní s aktuální sadou dat"
@@ -16860,6 +17211,12 @@ msgstr ""
 "                  pohledu předáno grafu obsahujícímu data anotací."
 
 msgid "This dashboard does not exist"
+msgstr ""
+
+msgid ""
+"This dashboard has too much data to download directly. Ask an "
+"administrator to enable background exports, or lower the row limits of "
+"its charts."
 msgstr ""
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
@@ -16991,9 +17348,9 @@ msgstr ""
 msgid "This filter already exist on the report"
 msgstr "Tento filtr již existuje na reportu."
 
-#, fuzzy, python-format
+#, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Tento filtr může být nekompatibilní s aktuální sadou dat"
+msgstr ""
 
 msgid "This folder is currently empty"
 msgstr "Tento složka je aktuálně prázdná."
@@ -17112,9 +17469,9 @@ msgid ""
 "compatible metric."
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Tato metrika může být nekompatibilní s aktuální sadou dat"
+msgstr ""
 
 #, fuzzy
 msgid "This name is already taken. Please choose another one."
@@ -17132,6 +17489,11 @@ msgstr "Tato stránka je určena k vložení do iframe, ale zdá se, že tomu ta
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Toto heslo je příliš běžné; zvolte prosím méně předvídatelné."
+
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -17708,6 +18070,9 @@ msgstr "Úterý"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off the logarithmic axis before stacking bars"
+msgstr ""
 
 msgid "Type"
 msgstr "Typ"
@@ -18454,6 +18819,11 @@ msgstr "Hodnoty"
 msgid "Values are dependent on other filters"
 msgstr "Hodnoty jsou závislé na jiných filtrech"
 
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
+
 msgid "Values dependent on"
 msgstr "Hodnoty závislé na"
 
@@ -18745,6 +19115,10 @@ msgstr ""
 "%(location)s."
 
 #, python-format
+msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+#, python-format
 msgid "We have the following keys: %s"
 msgstr "Máme následující klíče: %s"
 
@@ -18863,6 +19237,15 @@ msgstr "Když je poskytnuta sekundární metrika, použije se lineární barevn�
 
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Když je zaškrtnuto, mapa se po každém dotazu přiblíží k vašim datům"
+
+msgid ""
+"When enabled, increasing candles use the increase color and decreasing "
+"candles use the decrease color. Turn off to use one series color, with a "
+"filled body for increases and a hollow body for decreases."
+msgstr ""
+"Je-li zapnuto, rostoucí svíčky používají barvu růstu a klesající barvu "
+"poklesu. Vypněte pro jednu barvu řady: vyplněné tělo při růstu a prázdné "
+"při poklesu."
 
 msgid ""
 "When enabled, the axis will display labels for the minimum and maximum "
@@ -19546,9 +19929,9 @@ msgstr "Nemáte práva k vytvoření grafu"
 msgid "You don't have the rights to create a dashboard"
 msgstr "Nemáte práva k vytvoření nástěnky"
 
-#, fuzzy, python-format
+#, python-format
 msgid "You have been removed from task: %s"
-msgstr "Tento filtr jste odstranili."
+msgstr ""
 
 msgid "You have removed this filter."
 msgstr "Tento filtr jste odstranili."
@@ -19694,7 +20077,18 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 
-msgid "Your export is being prepared. You'll receive an email when it's ready."
+msgid ""
+"Your export is being generated and will download automatically when "
+"ready. We'll also email you a download link."
+msgstr ""
+
+msgid "Your export is being generated. Please, do not leave the page."
+msgstr ""
+
+msgid "Your export is ready and downloading."
+msgstr ""
+
+msgid "Your export is taking longer than expected. Try again later."
 msgstr ""
 
 #, python-format
@@ -19941,6 +20335,13 @@ msgstr "tlačítko (cmd + z), dokud neuložíte své změny."
 
 msgid "by using"
 msgstr "použitím"
+
+#, python-format
+msgid "cannot be deleted because %s dataset is still attached to it."
+msgid_plural "cannot be deleted because %s datasets are still attached to it."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "cannot be empty"
 msgstr "nesmí být prázdné"

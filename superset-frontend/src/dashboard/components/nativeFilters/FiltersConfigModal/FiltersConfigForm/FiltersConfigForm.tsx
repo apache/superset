@@ -55,6 +55,7 @@ import {
   memo,
 } from 'react';
 import rison from 'rison';
+import { Alert } from '@apache-superset/core/components';
 import {
   PluginFilterSelectCustomizeProps,
   SelectFilterOperatorType,
@@ -63,6 +64,7 @@ import { useSelector } from 'react-redux';
 import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import {
   Constants,
+  Button,
   FormItem,
   type FormInstance,
   Collapse,
@@ -473,13 +475,15 @@ const FiltersConfigForm = (
   const hasFilledDataset =
     !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
 
-  const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
-    formFilter?.filterType,
-  );
+  // Use itemTypeField, not formFilter?.filterType directly: the latter can
+  // be undefined on the first render before the antd Form hydrates (see
+  // itemTypeField's own fallback chain above), which would otherwise hide
+  // this section and the cascade-dependency section for a filter type that
+  // does support them.
+  const hasAdditionalFilters =
+    FILTERS_WITH_ADHOC_FILTERS.includes(itemTypeField);
 
-  const canDependOnOtherFilters = filterSupportsDependencies(
-    formFilter?.filterType,
-  );
+  const canDependOnOtherFilters = filterSupportsDependencies(itemTypeField);
 
   const isDataDirty = formFilter?.isDataDirty ?? true;
 
@@ -573,8 +577,17 @@ const FiltersConfigForm = (
 
   newFormData.extra_form_data = dependenciesDefaultValues;
 
+  const selectionsReset =
+    !!formFilter?.semantic_selection_version &&
+    formFilter.semantic_selection_version !==
+      (filterToEdit ?? customizationToEdit)?.targets?.[0]
+        ?.semantic_selection_version;
   const [hasDefaultValue, isRequired, defaultValueTooltip, setHasDefaultValue] =
-    useDefaultValue(formFilter, filterToEdit, customizationToEdit);
+    useDefaultValue(
+      formFilter,
+      selectionsReset ? undefined : filterToEdit,
+      selectionsReset ? undefined : customizationToEdit,
+    );
 
   const showDataset =
     !datasetId || datasetDetails || formFilter?.dataset?.label;
@@ -588,13 +601,14 @@ const FiltersConfigForm = (
   );
 
   const hasPreFilter =
-    !!formFilter?.adhoc_filters ||
+    !!formFilter?.adhoc_filters?.length ||
     !!formFilter?.time_range ||
-    !!filterToEdit?.adhoc_filters?.length ||
-    !!filterToEdit?.time_range;
+    (!selectionsReset &&
+      (!!filterToEdit?.adhoc_filters?.length || !!filterToEdit?.time_range));
 
   const hasTimeGrainPreFilter = !!(
-    formFilterWithTimeGrains?.time_grains?.length || savedTimeGrains?.length
+    formFilterWithTimeGrains?.time_grains?.length ||
+    (!selectionsReset && savedTimeGrains?.length)
   );
 
   const hasEnableSingleValue =
@@ -723,10 +737,11 @@ const FiltersConfigForm = (
   const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
 
   const initialDefaultValue =
+    !selectionsReset &&
     itemTypeField ===
-    (isChartCustomization
-      ? customizationToEdit?.filterType
-      : filterToEdit?.filterType)
+      (isChartCustomization
+        ? customizationToEdit?.filterType
+        : filterToEdit?.filterType)
       ? isChartCustomization
         ? customizationToEdit?.defaultDataMask
         : filterToEdit?.defaultDataMask
@@ -760,32 +775,40 @@ const FiltersConfigForm = (
     if (datasetId) {
       if (datasourceType === DatasourceType.SemanticView) {
         fetchSemanticViewStructure(datasetId)
-          .then(({ name: svName, dimensions, metrics: svMetrics }) => {
-            const columns = semanticViewDimensionsToColumns(dimensions);
-            // The /structure wire carries no metric uuid, and this state's
-            // consumers key on metric_name/verbose_name without reading
-            // uuid — so the cast is narrowed to exactly that one absent
-            // property; every other field stays compiler-checked.
-            const mappedMetrics = svMetrics.map(
-              (m: { name: string; definition: string }) => ({
-                metric_name: m.name,
-                expression: m.definition,
-              }),
-            ) as Omit<Metric, 'uuid'>[] as Metric[];
-            setMetrics(mappedMetrics);
-            setDatasetDetails({
-              columns,
-              metrics: mappedMetrics,
-              datasource_type: DatasourceType.SemanticView,
-              type: DatasourceType.SemanticView,
-              filter_select: true,
-              filter_select_enabled: true,
-              time_grain_sqla: [],
-              main_dttm_col: null,
-              id: datasetId,
-              table_name: svName,
-            });
-          })
+          .then(
+            ({
+              name: svName,
+              dimensions,
+              metrics: svMetrics,
+              semantic_selection_version,
+            }) => {
+              const columns = semanticViewDimensionsToColumns(dimensions);
+              // The /structure wire carries no metric uuid, and this state's
+              // consumers key on metric_name/verbose_name without reading
+              // uuid — so the cast is narrowed to exactly that one absent
+              // property; every other field stays compiler-checked.
+              const mappedMetrics = svMetrics.map(
+                (m: { name: string; definition: string }) => ({
+                  metric_name: m.name,
+                  expression: m.definition,
+                }),
+              ) as Omit<Metric, 'uuid'>[] as Metric[];
+              setMetrics(mappedMetrics);
+              setDatasetDetails({
+                semantic_selection_version,
+                columns,
+                metrics: mappedMetrics,
+                datasource_type: DatasourceType.SemanticView,
+                type: DatasourceType.SemanticView,
+                filter_select: true,
+                filter_select_enabled: true,
+                time_grain_sqla: [],
+                main_dttm_col: null,
+                id: datasetId,
+                table_name: svName,
+              });
+            },
+          )
           .catch((response: SupersetApiError) => {
             addDangerToast(response.message);
           });
@@ -961,6 +984,52 @@ const FiltersConfigForm = (
           forceRender: true,
           children: (
             <>
+              <FormItem
+                hidden
+                name={['filters', filterId, 'semantic_selection_version']}
+                initialValue={
+                  (filterToEdit ?? customizationToEdit)?.targets?.[0]
+                    ?.semantic_selection_version
+                }
+              />
+              {datasetDetails?.semantic_selection_version &&
+                formFilter?.semantic_selection_version !==
+                  datasetDetails.semantic_selection_version && (
+                  <Alert
+                    type="warning"
+                    message={t('Choose current semantic filter fields')}
+                    description={t(
+                      'Start field selection using current member IDs. This clears any existing field selections, pre-filters, sorting, defaults and dependencies. Saved display titles cannot be recovered automatically.',
+                    )}
+                    action={
+                      <Button
+                        onClick={() => {
+                          setNativeFilterFieldValues(form, filterId, {
+                            semantic_selection_version:
+                              datasetDetails.semantic_selection_version,
+                            column: undefined,
+                            adhoc_filters: [],
+                            time_range: undefined,
+                            time_grains: [],
+                            preFilter: false,
+                            preFilterTimegrain: false,
+                            granularity_sqla: undefined,
+                            sortMetric: null,
+                            defaultDataMask: {},
+                            dependencies: [],
+                            defaultValue: undefined,
+                            controlValues: {},
+                          });
+                          setHasDefaultValue(false);
+                          forceUpdate();
+                          formChanged();
+                        }}
+                      >
+                        {t('Start field selection')}
+                      </Button>
+                    }
+                  />
+                )}
               <StyledSettings>
                 <StyledContainer>
                   <StyledFormItem
@@ -1173,6 +1242,7 @@ const FiltersConfigForm = (
                                 datasourceType: newDatasourceType,
                                 defaultDataMask: null,
                                 column: null,
+                                semantic_selection_version: undefined,
                               });
                             }
                             forceUpdate();
@@ -1256,6 +1326,7 @@ const FiltersConfigForm = (
                                     name={['filters', filterId, 'preFilter']}
                                   >
                                     <CollapsibleControl
+                                      key={`pre-filter-${selectionsReset}`}
                                       initialValue={hasPreFilter}
                                       title={t('Pre-filter available values')}
                                       tooltip={t(`Add filter clauses to control the filter's source query,
@@ -1338,7 +1409,8 @@ const FiltersConfigForm = (
                                             </StyledLabel>
                                           }
                                           initialValue={
-                                            filterToEdit?.time_range ||
+                                            (!selectionsReset &&
+                                              filterToEdit?.time_range) ||
                                             t('No filter')
                                           }
                                           required={!hasAdhoc}
@@ -1385,6 +1457,7 @@ const FiltersConfigForm = (
                                       ]}
                                     >
                                       <CollapsibleControl
+                                        key={`time-grain-filter-${selectionsReset}`}
                                         initialValue={hasTimeGrainPreFilter}
                                         title={t('Pre-filter available values')}
                                         tooltip={t(
@@ -1408,7 +1481,11 @@ const FiltersConfigForm = (
                                             filterId,
                                             'time_grains',
                                           ]}
-                                          initialValue={savedTimeGrains}
+                                          initialValue={
+                                            selectionsReset
+                                              ? undefined
+                                              : savedTimeGrains
+                                          }
                                           {...getFiltersConfigModalTestId(
                                             'time-grain-allowlist',
                                           )}

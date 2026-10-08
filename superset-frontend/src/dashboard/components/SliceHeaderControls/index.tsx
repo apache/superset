@@ -143,6 +143,7 @@ export interface SliceHeaderControlsProps {
 
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
+  addWarningToast?: (message: string) => void;
 
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
@@ -337,6 +338,8 @@ const SliceHeaderControls = (
             props.slice.slice_name,
             true,
             theme,
+            undefined,
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -368,6 +371,7 @@ const SliceHeaderControls = (
             true,
             theme,
             { format: 'png', backgroundType },
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -395,6 +399,7 @@ const SliceHeaderControls = (
             getScreenshotNodeSelector(props.slice.slice_id),
             props.slice.slice_name,
             true,
+            props.addWarningToast,
           )(domEvent),
         ).finally(() => {
           if (menu) {
@@ -455,7 +460,8 @@ const SliceHeaderControls = (
     supersetCanShare = false,
     isCached = [],
   } = props;
-  const isTable = slice.viz_type === VizType.Table;
+  const isTable =
+    slice.viz_type === VizType.Table || slice.viz_type === VizType.TableAgGrid;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     (extendedDayjs.utc(itemCachedDttm) as any).fromNow(),
@@ -594,6 +600,7 @@ const SliceHeaderControls = (
           modalTitle={t('Query inspector')}
           modalBody={
             <ViewQueryModal
+              chartId={props.slice.slice_id}
               latestQueryFormData={props.formData}
               ownState={props.ownState}
               queriesResponse={props.queriesResponse}

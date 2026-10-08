@@ -38,6 +38,12 @@ const createUpdateDashboardApi = (id: number) =>
     endpoint: `/api/v1/dashboard/${id}`,
   });
 
+export const DASHBOARD_SAVE_SUCCEEDED = 'DASHBOARD_SAVE_SUCCEEDED';
+
+export function dashboardSaveSucceeded(dashboardId: number) {
+  return { type: DASHBOARD_SAVE_SUCCEEDED, dashboardId };
+}
+
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 export const DASHBOARD_INFO_FILTERS_CHANGED = 'DASHBOARD_INFO_FILTERS_CHANGED';
 
@@ -92,6 +98,7 @@ export const saveChartConfiguration =
         chartConfiguration,
         globalChartConfiguration,
       });
+      dispatch(dashboardSaveSucceeded(id));
     } catch (err) {
       dispatch({
         type: SAVE_CHART_CONFIG_FAIL,
