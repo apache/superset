@@ -885,7 +885,13 @@ class LoggingMiddleware(Middleware):
         raised_is_user_error: bool | None = None
         try:
             result = await call_next(context)
-            success = not self._is_error_response(result)
+            # An error result returned rather than raised (e.g. a call
+            # forwarded by the tool-search call_tool proxy, whose inner call
+            # already converted its exception) is still a failure.
+            success = not (
+                (isinstance(result, ToolResult) and result.is_error)
+                or self._is_error_response(result)
+            )
             if not success and isinstance(result, ToolResult):
                 error_type = self._extract_error_type_from_response(result)
             if isinstance(result, ToolResult):
@@ -894,6 +900,7 @@ class LoggingMiddleware(Middleware):
                     content=result.content,
                     meta={**existing_meta, "mcp_call_id": mcp_call_id},
                     structured_content=result.structured_content,
+                    is_error=result.is_error,
                 )
             return result
         except Exception as exc:
