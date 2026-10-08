@@ -2061,6 +2061,12 @@ class SqlaTable(
                 if active and transform
                 else None
             ),
+            # The transform `evaluable` above is a verdict *about*. The dataset
+            # editor applies a stored refusal only while the expression in the
+            # box still is this one -- without it, reopening a dataset whose
+            # stored transform had failed and then fixing the transform left the
+            # banner reporting the old failure against the new text.
+            "evaluated_transform": transform if active else None,
             "is_monotonic": is_monotonic,
             # How much of a value this engine compares on the mapped column, so
             # the Explore indicator can replay the gates it otherwise cannot

@@ -109,14 +109,41 @@ assists people when migrating to a new version.
   enabled. A deployment that relied on a resync to restore those defaults has
   to set them explicitly.
 
-- `DISALLOWED_SQL_FUNCTIONS` now names the whole PostgreSQL XML family. Four
-  shapes were missing -- `schema_to_xml`, `schema_to_xmlschema`,
-  `schema_to_xml_and_xmlschema` and `database_to_xml_and_xmlschema` -- which,
-  being scalar calls with no FROM clause and no sub-query, cleared every gate
-  that reasons about table references. The denylist is shared with SQL Lab and
-  Charts, so a deployment relying on one of those four functions there will now
-  see it refused; override `DISALLOWED_SQL_FUNCTIONS` in `superset_config.py`
-  if that is intended.
+- `DISALLOWED_SQL_FUNCTIONS` now names the whole PostgreSQL XML family, plus the
+  two full-text search functions that share its blind spot. Seven shapes were
+  missing -- `schema_to_xml`, `schema_to_xmlschema`,
+  `schema_to_xml_and_xmlschema`, `database_to_xml_and_xmlschema`,
+  `table_to_xmlschema`, `ts_rewrite` and `ts_stat` -- which, being scalar calls
+  with no FROM clause and no sub-query, cleared every gate that reasons about
+  table references. `ts_rewrite` and `ts_stat` run their text argument as a
+  query, so the statement they execute is a string with no clause of its own for
+  such a gate to see. The denylist is shared with SQL Lab and Charts, so a
+  deployment relying on any of those seven functions there will now see it
+  refused -- including a deployment that never enables
+  `PARTITION_FILTER_MAPPING`, since the denylist is not gated on the feature
+  flag. Override `DISALLOWED_SQL_FUNCTIONS` in `superset_config.py` if that is
+  intended.
+
+- A partition value transform is now refused if it changes data --
+  `nextval(:value)`, a stored-procedure call, a PostgreSQL large-object writer.
+  The transform is evaluated against the engine to check that it mirrors, and
+  that evaluation is cached and repeated, so it has to be a read. The check is
+  the same `is_mutating` gate SQL Lab and chart queries already apply, and it
+  covers transforms already in storage: one stored by an earlier version simply
+  stops mirroring rather than failing a query.
+
+- Only the mapped column may carry a partition value transform, and that is now
+  enforced on every write rather than only inside `UpdateDatasetCommand`. A
+  transform arriving on any other column is dropped -- by the deprecated
+  `POST /datasource/save/`, and by `PUT /api/v1/dataset/<pk>` and dataset import
+  even when `PARTITION_FILTER_MAPPING` is off. An API client that was storing one there
+  will find the field `null` on the next read. The value was never readable:
+  a transform on a column the mapping does not mirror is invisible in the
+  dataset editor, and it went live the moment the mapped column resolved back to
+  it -- silently dropping rows from every chart on the dataset, with the
+  pruning indicator still reporting the mapping healthy. Transforms already in
+  storage on a column a request does not carry are left alone unless the feature
+  flag is on.
 
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard

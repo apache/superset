@@ -114,9 +114,19 @@ export default function PartitionMappingSection({
   // Reported rather than read upward, because the transform the preview judges
   // is the local, debounced one this panel holds. `null` while a request is in
   // flight: the previous verdict belongs to text that is no longer on screen.
+  //
+  // Only from the mapped row. Every expanded column renders this component and
+  // they all report to the same `onPreviewVerdict`, but only the mapped one
+  // previews anything (`enabled: state === 'mapped'`) -- so the others reported
+  // a permanent `null`. Expanding any other column after the mapped row's
+  // preview had failed therefore reset the dataset banner to claiming filters
+  // will mirror, while the mapped row went on showing the failure.
   useEffect(() => {
+    if (state !== 'mapped') {
+      return;
+    }
     onPreviewVerdict?.(loading || !preview ? null : preview.valid);
-  }, [loading, preview, onPreviewVerdict]);
+  }, [state, loading, preview, onPreviewVerdict]);
 
   if (state === 'none' || state === 'partition') {
     return null;

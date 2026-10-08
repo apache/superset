@@ -4445,9 +4445,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Only the ``python_date_format`` branches of `dttm_sql_literal` are
         reproduced, because only those produce a *value*. `convert_dttm` yields
         engine-specific SQL text, which cannot be bound as a parameter; its own
-        divergence from the probe is handled by widening the bounds instead.
+        divergence from the probe is handled by widening the bounds instead
+        (`_engine_literal_resolution`).
+
+        In `dttm_sql_literal`'s own order, though: it asks ``convert_dttm``
+        first and reaches the format only when the engine answers nothing. A
+        column can carry both -- a TIMESTAMP with a ``%Y%m%d``
+        ``python_date_format``, or an entry in
+        ``python_date_format_by_column_name`` -- and applying the format
+        unconditionally probed a value the real predicate never compares.
+        ``event_time >= '2026-01-01 00:00:00'`` mirrored as
+        ``partition_col >= '20260101'``, and a January 15 row keyed
+        ``2026-01-15`` sorts below that string, so the chart lost a row the
+        filter keeps.
+
+        Where the engine does answer, the `datetime` is returned unchanged and
+        the widening path takes over -- which is exactly what already happens
+        for every temporal column that carries no format at all.
         """
         if col is None:
+            return dttm
+
+        if col.type and self.db_engine_spec.convert_dttm(
+            col.type, dttm, db_extra=self.db_extra
+        ):
+            # The format is unreachable in `dttm_sql_literal` for this column,
+            # so reproducing it here would describe a different bound.
             return dttm
 
         tf = col.python_date_format
