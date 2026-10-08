@@ -155,7 +155,7 @@ DbapiDescription: TypeAlias = (
 DbapiResult: TypeAlias = Sequence[list[Any] | tuple[Any, ...]]
 FilterValue: TypeAlias = bool | datetime | float | int | str
 FilterValues: TypeAlias = (
-    FilterValue | list[FilterValue | None] | tuple[FilterValue | None]
+    FilterValue | list[FilterValue | None] | tuple[FilterValue | None, ...]
 )
 FormData: TypeAlias = dict[str, Any]
 Granularity: TypeAlias = str | dict[str, str | float]

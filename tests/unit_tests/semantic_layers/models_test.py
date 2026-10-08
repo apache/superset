@@ -485,10 +485,18 @@ def test_semantic_view_query_endpoint_returns_error(
 
 
 def test_semantic_view_get_extra_cache_keys() -> None:
-    """Test SemanticView get_extra_cache_keys method."""
-    view = SemanticView()
-    result = view.get_extra_cache_keys({})
-    assert result == []
+    """A rolling deploy cannot reuse results from the legacy NULL protocol."""
+    from superset.common.query_object import QueryObject
+
+    view: SemanticView = SemanticView()
+    query: QueryObject = QueryObject(
+        columns=["category"],
+        filters=[{"col": "category", "op": "IN", "val": ["a", "<NULL>"]}],
+    )
+    assert query.cache_key(
+        extra_cache_keys=view.get_extra_cache_keys({})
+    ) != query.cache_key(extra_cache_keys=[])
+    assert view.get_extra_cache_keys({}) == SemanticView().get_extra_cache_keys({})
 
 
 def test_semantic_view_perm() -> None:

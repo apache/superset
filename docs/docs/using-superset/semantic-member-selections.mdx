@@ -82,16 +82,4 @@ A provider that does not declare it returns a clear query validation error inste
 of silently omitting missing-value rows. NULL-only and mixed negative selections
 use ordinary leaf predicates and do not require that capability.
 
-### Provider implementation
-
-The SDK's `FilterExpression` is either a `Filter` leaf or a frozen `OrFilter` holding
-at least two distinct leaves in one predicate stage (WHERE or HAVING). Query filter
-sets combine their members with AND; an `OrFilter` combines its leaves with OR.
-Nested groups are unsupported. Preserve parentheses and bind values using the
-provider's normal parameterization when rendering a group. Apply the same rules
-to main queries, row counts, group-limit subqueries and distinct-value requests.
-
-`OR_FILTERS` is off by default. Declare it only after the adapter supports groups
-at every relevant entry point. Upgrading the host/SDK alone does not upgrade the
-provider adapters; deployments must use compatible adapter versions before
-mixed positive NULL selections can succeed.
+For adapter authors, see the [semantic filter contract](../../developer_docs/extensions/semantic-filters.md).

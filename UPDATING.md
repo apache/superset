@@ -24,6 +24,19 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic filters normalize UI NULL/empty-string selections. Mixed positive
+  NULL membership returns HTTP 400 unless the provider supports `OR_FILTERS`;
+  previously it could silently omit NULL rows. Empty membership and invalid NULL
+  comparison operands also return query validation errors. The semantic result
+  cache key includes a protocol version, so pre-upgrade answers are not reused
+  and semantic caches warm again after deployment.
+- SDK adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
+  members (`Filter | OrFilter`) before reading leaf attributes. `get_values`
+  remains `set[Filter] | None`. Host filter-value typing also permits NULL within
+  lists and variable-length tuples. See the
+  [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
+  for capability opt-in and guarded loading on older SDKs.
+
 - A chart whose datasource no longer exists (hard-deleted, or no datasource ID)
   has its denormalized `perm`, `schema_perm` and `catalog_perm` cleared when it is
   saved, including during the dataset's deletion. Purging a soft-deleted dataset

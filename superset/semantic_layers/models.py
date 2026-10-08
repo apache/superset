@@ -723,7 +723,8 @@ class SemanticView(AuditMixinNullable, Model):
         return self.data
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return []
+        # Separate cached pre-normalization results during rolling deployments.
+        return ["semantic-null-filters-v1"]
 
     @property
     def catalog_perm(self) -> str | None:

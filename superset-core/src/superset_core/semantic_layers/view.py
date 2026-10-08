@@ -22,7 +22,7 @@ from abc import ABC, abstractmethod
 
 from superset_core.semantic_layers.types import (
     Dimension,
-    FilterExpression,
+    Filter,
     Metric,
     SemanticQuery,
     SemanticResult,
@@ -104,7 +104,7 @@ class SemanticView(ABC):
     def get_values(
         self,
         dimension: Dimension,
-        filters: set[FilterExpression] | None = None,
+        filters: set[Filter] | None = None,
     ) -> SemanticResult:
         """
         Return distinct values for a dimension.
