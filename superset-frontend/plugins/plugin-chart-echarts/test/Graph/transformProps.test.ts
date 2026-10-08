@@ -18,6 +18,7 @@
  */
 import { ChartProps, SqlaFormData } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import type { GraphSeriesOption } from 'echarts/charts';
 import transformProps from '../../src/Graph/transformProps';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
 import { EchartsGraphChartProps } from '../../src/Graph/types';
@@ -56,6 +57,43 @@ const chartPropsConfig = {
   queriesData,
   theme: supersetTheme,
 };
+
+test.each([false, true, 0])('preserves the label for category %s', category => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      sourceCategory: 'source_category_column',
+      targetCategory: 'target_category_column',
+    },
+    queriesData: [
+      {
+        data: [
+          {
+            ...queriesData[0].data[0],
+            source_category_column: category,
+            target_category_column: category,
+          },
+        ],
+      },
+    ],
+  });
+  const { echartOptions } = transformProps(
+    chartProps as EchartsGraphChartProps,
+  );
+  const [series] = echartOptions.series as GraphSeriesOption[];
+
+  expect(series.data).toEqual(
+    ['source', 'target'].map(column =>
+      expect.objectContaining({
+        category:
+          typeof category === 'boolean'
+            ? `${column}_category_column: ${category}`
+            : '0',
+      }),
+    ),
+  );
+});
 
 describe('EchartsGraph transformProps', () => {
   test('should transform chart props for viz without category', () => {
