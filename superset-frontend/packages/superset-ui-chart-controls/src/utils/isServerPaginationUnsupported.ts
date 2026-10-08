@@ -28,7 +28,9 @@ export function isServerPaginationUnsupported({
   form_data,
 }: ControlPanelState): boolean {
   const datasourceType =
-    form_data.datasource?.split('__')[1] ?? datasource?.type;
+    datasource && 'uid' in datasource && datasource.uid === form_data.datasource
+      ? datasource.type
+      : (form_data.datasource?.split('__')[1] ?? datasource?.type);
   const isSemanticView = datasourceType === DatasourceType.SemanticView;
   const features =
     datasource &&

@@ -394,6 +394,32 @@ test('AG Grid fails closed while semantic datasource metadata loads', () => {
   ).toMatchObject({ disabled: true, resetLabel: undefined });
 });
 
+test.each([undefined, [], ['ROW_OFFSET']])(
+  'AG Grid matches opaque provider uid before parsing datasource type: %s',
+  features => {
+    const base = createMockExplore(undefined);
+    const state: ControlPanelState = {
+      ...base,
+      datasource: {
+        ...base.datasource,
+        uid: 'cube__orders',
+        type: 'semantic_view',
+        semantic_view_features: features,
+      } as Dataset,
+      form_data: { ...base.form_data, datasource: 'cube__orders' },
+    };
+    const disabled = !features?.includes('ROW_OFFSET');
+    for (const name of ['server_pagination', 'server_page_length']) {
+      expect(
+        getPaginationControl(name).mapStateToProps?.(
+          state,
+          state.controls[name],
+        ),
+      ).toMatchObject({ disabled });
+    }
+  },
+);
+
 test.each([
   ['table', 'semantic_view', true],
   ['semantic_view', 'table', false],

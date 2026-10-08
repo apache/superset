@@ -623,6 +623,23 @@ test('fails closed while semantic datasource metadata is unavailable', () => {
   expect(screen.getByRole('checkbox')).toBeDisabled();
 });
 
+test.each([undefined, [], ['ROW_OFFSET']])(
+  'matches opaque provider uid before parsing datasource type: %s',
+  features => {
+    const state = panelState(features);
+    state.datasource = { ...state.datasource, uid: 'cube__orders' } as Dataset;
+    state.form_data.datasource = 'cube__orders';
+    renderPagination(state);
+    const disabled = !features?.includes('ROW_OFFSET');
+    expect(screen.getByRole('checkbox').hasAttribute('disabled')).toBe(
+      disabled,
+    );
+    expect(
+      pageLength.mapStateToProps?.(state, state.controls.server_page_length),
+    ).toMatchObject({ disabled });
+  },
+);
+
 test.each([
   ['table', 'semantic_view', true],
   ['semantic_view', 'table', false],
