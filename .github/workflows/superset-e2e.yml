@@ -208,6 +208,20 @@ jobs:
           SUPERSET_FEATURE_SOFT_DELETE: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" recently-archived/
+      - name: Run Playwright (Semantic View Tests)
+        # Same ./ form as the steps above: cached-dependencies is a submodule.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step's gunicorn, like Soft-delete above: this config
+          # turns on SEMANTIC_LAYERS and ENABLE_EXTENSIONS and loads the
+          # test-only stub provider from tests/e2e_extensions. Every other
+          # step keeps the plain test config, so the stub never serves them.
+          SUPERSET_CONFIG: tests.integration_tests.superset_test_config_semantic
+          # Fail rather than skip when the stub did not load.
+          PLAYWRIGHT_REQUIRE_SEMANTIC_STUB: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" semantic-view/
       - name: Run Playwright (Embedded Tests)
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
