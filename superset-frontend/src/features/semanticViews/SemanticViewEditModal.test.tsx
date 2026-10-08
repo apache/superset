@@ -586,7 +586,7 @@ test.each([
       expect(props.addSuccessToast).toHaveBeenCalledWith(
         'Semantic view updated',
       );
-      expect(props.onSave).toHaveBeenCalledTimes(1);
+      expect(props.onSave).not.toHaveBeenCalled();
       expect(props.addDangerToast).not.toHaveBeenCalled();
     } else {
       expect(props.addDangerToast).toHaveBeenCalledWith('Save failed');
@@ -1182,3 +1182,81 @@ test('unconfirmed sync survives reopening only for its semantic view', async () 
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(mockedPost).toHaveBeenCalledTimes(1);
 });
+
+test('late Save does not refresh Explore after reopening and syncing', async () => {
+  const pending = deferred<object>();
+  mockedPut.mockReturnValue(pending.promise);
+  mockedGet.mockResolvedValue({ json: SYNC_STRUCTURE });
+  mockedPost.mockResolvedValue({ json: { result: { status: 'changed' } } });
+  const props = { ...createProps(), onMetadataSync: jest.fn() };
+  const { rerender } = render(<SemanticViewEditModal {...props} />);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  rerender(<SemanticViewEditModal {...props} show={false} />);
+  rerender(<SemanticViewEditModal {...props} />);
+  const sync = await screen.findByRole('button', { name: 'Sync metadata' });
+  mockedGet.mockResolvedValue({ json: SYNCED_STRUCTURE });
+  await userEvent.click(sync);
+  expect(await screen.findByText('Metadata synced')).toBeInTheDocument();
+  expect(props.onMetadataSync).toHaveBeenCalledTimes(1);
+
+  await act(async () => pending.resolve({}));
+
+  expect(props.onSave).not.toHaveBeenCalled();
+  expect(props.onHide).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('tab', { name: 'Metrics (5)' })).toBeInTheDocument();
+});
+
+test.each(['closed', 'reopened', 'newer-sync-done'])(
+  'late indeterminate sync persists after close (%s)',
+  async state => {
+    mockedGetClientErrorObject.mockImplementation(realClientErrorParser);
+    mockedGet.mockResolvedValue({ json: SYNC_STRUCTURE });
+    const pending = deferred<object>();
+    mockedPost.mockReturnValue(pending.promise);
+    const store = createStore({}, { semanticMetadataSync });
+    const props = { ...createProps(), onMetadataSync: jest.fn() };
+    const first = render(<SemanticViewEditModal {...props} />, { store });
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Sync metadata' }),
+    );
+    first.unmount();
+    if (state !== 'closed')
+      render(<SemanticViewEditModal {...props} />, { store });
+    if (state === 'newer-sync-done') {
+      mockedPost.mockResolvedValue({ json: { result: { status: 'changed' } } });
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Sync metadata' }),
+      );
+      expect(await screen.findByText('Metadata synced')).toBeInTheDocument();
+    }
+
+    await act(async () => {
+      pending.reject({
+        response: new Response(
+          JSON.stringify({ error: 'indeterminate', message: 'private detail' }),
+          { status: 503 },
+        ),
+      });
+    });
+    if (state === 'closed')
+      render(<SemanticViewEditModal {...props} />, { store });
+
+    const sync = await screen.findByRole('button', { name: 'Sync metadata' });
+    expect(sync).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Metadata sync could not be confirmed',
+    );
+    expect(screen.getByRole('button', { name: 'Reload fields' })).toBeEnabled();
+    await userEvent.click(sync);
+    expect(mockedPost).toHaveBeenCalledTimes(
+      state === 'newer-sync-done' ? 2 : 1,
+    );
+    expect(props.onMetadataSync).toHaveBeenCalledTimes(
+      state === 'newer-sync-done' ? 1 : 0,
+    );
+  },
+);

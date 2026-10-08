@@ -139,7 +139,10 @@ export default function SemanticViewEditModal({
     structure?.uuid ? state.semanticMetadataSync?.[structure.uuid] : undefined,
   );
   const syncState: SyncState =
-    localSyncState.status === 'idle' && unconfirmedMessage
+    unconfirmedMessage &&
+    localSyncState.status !== 'syncing' &&
+    localSyncState.status !== 'reloading' &&
+    localSyncState.status !== 'reload-error'
       ? { status: 'indeterminate', message: unconfirmedMessage }
       : localSyncState;
   const [activeTab, setActiveTab] = useState('details');
@@ -217,8 +220,10 @@ export default function SemanticViewEditModal({
         },
       });
       addSuccessToast?.(t('Semantic view updated'));
-      onSave();
-      if (isCurrent()) handleHide();
+      if (isCurrent()) {
+        onSave();
+        handleHide();
+      }
     } catch (error) {
       const clientError = await getClientErrorObject(error);
       addDangerToast?.(
@@ -280,11 +285,10 @@ export default function SemanticViewEditModal({
         isCurrent,
       );
     } catch (error) {
-      if (!isCurrent()) return;
       const { message, reloadRequired } = await metadataSyncError(error);
-      if (!isCurrent()) return;
       if (reloadRequired)
         dispatch(markUnconfirmed({ uuid: structure.uuid, message }));
+      if (!isCurrent()) return;
       setSyncState({
         status: reloadRequired ? 'indeterminate' : 'error',
         message,
