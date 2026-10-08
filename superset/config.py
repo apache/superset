@@ -3438,6 +3438,9 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
 # Additional query filters for chart/dashboard list views.
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
+# The hook receives the complete query context, so setting it turns off the
+# semantic-view chart-data check that otherwise denies before provider metadata
+# is loaded.
 EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 # Resolve additional editor subjects for a resource. Also used for editorship
 # checks and lockout-prevention logic.

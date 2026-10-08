@@ -5661,3 +5661,73 @@ def test_raise_for_access_never_reads_queries_for_non_guest(
     else:
         with pytest.raises(SupersetSecurityException):
             sm.raise_for_access(query_context=query_context)
+
+
+@pytest.mark.parametrize(
+    "form_data",
+    [
+        {"dashboardId": 7, "type": "NATIVE_FILTER", "native_filter_id": "f"},
+        {"dashboardId": 7, "slice_id": 42},
+        {"dashboardId": 7, "slice_id": 42, "parent_slice_id": 43},
+        {"dashboardId": 7},
+        {"dashboardId": 7, "slice_id": 0, "chart_id": 42, "groupby": ["a"]},
+    ],
+    ids=["native-filter", "chart", "multilayer-child", "drill-to-detail", "drill-by"],
+)
+def test_raise_for_access_dashboard_paths_never_read_queries_for_non_guest(
+    mocker: MockerFixture,
+    app_context: None,
+    form_data: dict[str, Any],
+) -> None:
+    """
+    Extend the non-guest invariant to the dashboard, viewer and drill branches:
+    each is evaluated to a denial without reading ``query_context.queries``.
+    """
+    from superset.models.dashboard import Dashboard
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=True)
+    mocker.patch.object(sm, "can_access_dashboard", return_value=True)
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    mocker.patch.dict(current_app.config, {"VIEWER_PROMISCUOUS_MODE": True})
+
+    datasource = mocker.MagicMock(id=1, type="semantic_view", perm="[view](id:1)")
+    datasource.has_drill_by_columns.return_value = False
+    dashboard = mocker.MagicMock(
+        json_metadata=json.dumps({"native_filter_configuration": []}), slices=[]
+    )
+    dashboard.has_member_datasource.return_value = False
+    # A chart on some other datasource and outside the dashboard, so every
+    # chart-based grant is evaluated and refused.
+    other_chart = mocker.MagicMock(id=42, datasource_id=-1, datasource_type="table")
+
+    def query(model: Any) -> MagicMock:
+        """Return the dashboard for dashboard lookups and the chart otherwise."""
+        chain: MagicMock = mocker.MagicMock()
+        chain.filter.return_value.one_or_none.return_value = (
+            dashboard if model is Dashboard else other_chart
+        )
+        return chain
+
+    mocker.patch.object(
+        SupersetSecurityManager,
+        "session",
+        new_callable=mocker.PropertyMock,
+        return_value=mocker.MagicMock(query=query),
+    )
+    mocker.patch.object(sm, "_validate_child_in_parent_multilayer", return_value=True)
+
+    query_context = mocker.MagicMock()
+    query_context.datasource = datasource
+    query_context.form_data = form_data
+    type(query_context).queries = mocker.PropertyMock(
+        side_effect=AssertionError("raise_for_access read query_context.queries")
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
