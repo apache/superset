@@ -381,7 +381,11 @@ export const selectChartCrossFilters = (
 
       return { ...filterIndicator, status: filterStatus };
     })
-    .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
+    .filter(
+      filter =>
+        filter.status === IndicatorStatus.CrossFilterApplied ||
+        filter.status === IndicatorStatus.Incompatible,
+    );
 
   return crossFilterIndicators;
 };

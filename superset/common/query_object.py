@@ -454,7 +454,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     dimension_names: set[str] = {
                         dimension.name for dimension in implementation.get_dimensions()
                     }
-                    validate_filter_columns(self.filter, dimension_names)
+                    metric_names: set[str] = {
+                        metric.name for metric in implementation.get_metrics()
+                    }
+                    validate_filter_columns(self.filter, dimension_names, metric_names)
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
             self._validate_time_offsets()

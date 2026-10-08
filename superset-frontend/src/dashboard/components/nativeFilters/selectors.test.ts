@@ -24,7 +24,31 @@ import {
   getCrossFilterIndicator,
   IndicatorStatus,
   selectNativeIndicatorsForChart,
+  selectChartCrossFilters,
 } from './selectors';
+
+test('a SQL chart cross-filter rejected by a semantic chart remains Incompatible', () => {
+  const result = selectChartCrossFilters(
+    {
+      17: {
+        id: '17',
+        extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
+        filterState: { value: ['US'], label: 'US' },
+      },
+    },
+    73,
+    [],
+    { 17: { id: 17, crossFilters: { scope: 'global', chartsInScope: [73] } } },
+    new Set(),
+    new Set(['country']),
+  );
+  expect(result).toEqual([
+    expect.objectContaining({
+      column: 'country',
+      status: IndicatorStatus.Incompatible,
+    }),
+  ]);
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getCrossFilterIndicator', () => {

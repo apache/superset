@@ -28,6 +28,47 @@ import {
   VizType,
 } from '@superset-ui/core';
 
+test.each(['5__semantic_view', '5__table'])(
+  'preserves dashboard filter provenance without mutating form data (%s)',
+  datasource => {
+    const formData = {
+      datasource,
+      viz_type: VizType.Table,
+      extra_filters: [{ col: 'legacy', op: '==', val: 'US' }],
+      extra_form_data: {
+        filters: [{ col: 'cross_filter', op: 'IN', val: ['US'] }],
+        adhoc_filters: [
+          {
+            expressionType: 'SIMPLE',
+            clause: 'WHERE',
+            subject: 'native',
+            operator: '==',
+            comparator: 'US',
+          },
+        ],
+      },
+      adhoc_filters: [
+        {
+          expressionType: 'SIMPLE',
+          clause: 'WHERE',
+          subject: 'own',
+          operator: '==',
+          comparator: 'Books',
+        },
+      ],
+    } satisfies Parameters<typeof buildQueryObject>[0];
+    const original = JSON.stringify(formData);
+    const result = buildQueryObject(formData);
+    expect(result.filters).toEqual([
+      { col: 'legacy', op: '==', val: 'US', isExtra: true },
+      { col: 'cross_filter', op: 'IN', val: ['US'], isExtra: true },
+      { col: 'own', op: '==', val: 'Books' },
+      { col: 'native', op: '==', val: 'US', isExtra: true },
+    ]);
+    expect(JSON.stringify(formData)).toBe(original);
+  },
+);
+
 describe('buildQueryObject', () => {
   let query: QueryObject;
 
@@ -78,7 +119,7 @@ describe('buildQueryObject', () => {
       },
     });
     expect(query.filters).toEqual([
-      { col: 'abc', op: '==', val: 'qwerty' },
+      { col: 'abc', op: '==', val: 'qwerty', isExtra: true },
       { col: 'foo', op: '!=', val: 'bar' },
     ]);
     expect(query.extras?.where).toEqual('(a = b) AND ((1 = 1))');

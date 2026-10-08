@@ -6718,7 +6718,7 @@ msgid "Filter charts"
 msgstr ""
 
 #, python-format
-msgid "Filter column '%(column)s' is not a dimension in this semantic view. Metric filters are not supported."
+msgid "Filter column '%(column)s' is a metric; semantic views only filter on dimensions"
 msgstr ""
 
 msgid "Filter has default value"
@@ -6758,6 +6758,10 @@ msgid "Filter your charts"
 msgstr ""
 
 msgid "Filters"
+msgstr ""
+
+#, python-format
+msgid "Filters (%s)"
 msgstr ""
 
 msgid "Filters and controls"
@@ -7414,6 +7418,10 @@ msgid "In this view you can preview the first 25 rows. "
 msgstr ""
 
 msgid "Inactive"
+msgstr ""
+
+#, python-format
+msgid "Incompatible filters (%d)"
 msgstr ""
 
 msgid "Include Series"

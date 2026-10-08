@@ -45,7 +45,6 @@ from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
-from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
@@ -403,7 +402,7 @@ def test_get_time_filter_with_granularity(mock_datasource: MagicMock) -> None:
 
 
 def test_convert_query_object_filter_temporal_range() -> None:
-    """Temporal filters cannot silently discard an unknown dimension."""
+    """Unknown temporal columns are skipped for rejected-filter reporting."""
     all_dimensions: dict[str, Dimension] = {}
     filter_: ValidatedQueryObjectFilterClause = {
         "op": FilterOperator.TEMPORAL_RANGE.value,
@@ -411,8 +410,7 @@ def test_convert_query_object_filter_temporal_range() -> None:
         "val": "Last 7 days",
     }
 
-    with pytest.raises(QueryObjectValidationError, match="order_date"):
-        _convert_query_object_filter(filter_, all_dimensions)
+    assert _convert_query_object_filter(filter_, all_dimensions) is None
 
 
 def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
@@ -3514,6 +3512,7 @@ def test_validate_filters_with_valid_filters(mocker: MockerFixture) -> None:
         Dimension("category", "category", pa.string()),
         Dimension("region", "region", pa.string()),
     }
+    query_object.datasource.implementation.get_metrics.return_value = set()
     query_object.filter = [
         {
             "op": FilterOperator.EQUALS.value,

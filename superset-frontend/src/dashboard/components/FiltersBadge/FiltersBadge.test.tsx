@@ -54,6 +54,24 @@ function setup(store: Store = defaultStore) {
   return render(<FiltersBadge chartId={sliceId} />, { store });
 }
 
+test('keeps the badge visible when the only dashboard filter is rejected', () => {
+  const store = getMockStoreWithFilters();
+  store.dispatch({
+    type: CHART_UPDATE_SUCCEEDED,
+    key: sliceId,
+    queriesResponse: [
+      {
+        status: 'success',
+        applied_filters: [],
+        rejected_filters: [{ column: 'region' }],
+      },
+    ],
+    dashboardFilters,
+  });
+  const { getByRole } = setup(store);
+  expect(getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
+});
+
 // there's this bizarre "active filters" thing
 // that doesn't actually use any kind of state management.
 // Have to set variables in there.

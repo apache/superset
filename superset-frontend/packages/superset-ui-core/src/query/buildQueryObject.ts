@@ -87,8 +87,14 @@ export default function buildQueryObject<T extends QueryFormData>(
     filters: QueryObjectFilterClause[];
     adhoc_filters: AdhocFilter[];
   } = {
-    filters: [...extraFilters, ...appendFilters],
-    adhoc_filters: [...(formData.adhoc_filters || []), ...appendAdhocFilters],
+    filters: [...extraFilters, ...appendFilters].map(filter => ({
+      ...filter,
+      isExtra: true,
+    })),
+    adhoc_filters: [
+      ...(formData.adhoc_filters || []),
+      ...appendAdhocFilters.map(filter => ({ ...filter, isExtra: true })),
+    ],
   };
   const extrasAndfilters = processFilters({
     ...formData,

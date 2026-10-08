@@ -185,12 +185,16 @@ To add a filter on a semantic view:
 Any chart on the dashboard that's powered by the same semantic view is filtered by the selected
 dimension when the filter is applied.
 
-Chart-data filters on semantic views must name dimensions. Metric-only names and
-unknown columns return a client error naming the offending column; they are not
-automatically translated into aggregate (HAVING) filters. If a saved chart has
-such a filter, select a dimension or remove the unsupported filter. A request
-containing both valid and unsupported filters is rejected rather than returning
-partially filtered data.
+Semantic views apply filters to dimensions, not metrics. A metric filter defined
+by the chart returns a client error naming the metric; select a dimension or
+remove that predicate. It is not automatically translated into a HAVING filter.
+
+Dashboard cross-filters and native filters may target charts from other datasets.
+If their column is not a dimension of the semantic view (including metric names),
+the chart still renders and reports the filter as **Incompatible**. Unknown
+chart-defined columns are likewise skipped and reported as rejected, matching SQL
+datasets. Compatible dimension filters still apply, and the response reports both
+applied and rejected columns so skipped predicates are visible.
 
 :::note
 Semantic views and native filter support for them are part of the experimental Semantic Layers

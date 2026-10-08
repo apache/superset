@@ -24,11 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
-- Semantic-view chart-data requests reject filters naming metrics or unknown
-  columns with a client error identifying the column. Filters must name a
-  dimension; previously non-dimension filters could be silently discarded.
-  Correct affected saved charts by selecting a dimension or removing the
-  unsupported filter. Existing dimension filters are unchanged.
+- Semantic-view chart-defined metric filters return a client error identifying
+  the metric; select a dimension or remove the unsupported predicate. Dashboard
+  filters on incompatible columns (including metrics) are skipped and reported
+  as rejected, so the chart renders with an **Incompatible** filter indicator.
+  Unknown chart-defined columns are also reported as rejected, matching SQL
+  datasets. Valid dimension filters are reported as applied.
 
 - MCP dashboard mutation tools refuse externally managed dashboards, including
   owner and role changes. Update the dashboard in its external source of truth
