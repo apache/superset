@@ -1247,6 +1247,15 @@ SCOPE_REWRITERS: dict[str, Rewriter] = {
 SCOPE_NEUTRAL_TOOLS = frozenset(
     {
         "apply_dashboard_filters",
+        # Canvases are separate from the scoped dashboard, and their widgets
+        # query as the viewer when rendered; these tools return no rows.
+        "apply_canvas_ops",
+        "create_canvas",
+        "get_canvas",
+        "get_widget_control_schema",
+        "list_canvases",
+        "list_widget_types",
+        "update_canvas",
         "create_dataset",
         "create_theme",
         "delete_chart",

@@ -36,6 +36,16 @@ from pydantic.json_schema import SkipJsonSchema
 from superset_core.widgets import MetricControl
 
 
+class SortKey(BaseModel):
+    """One sort key of a ``dataBinding``: a metric label or a dimension."""
+
+    field: str = Field(
+        min_length=1,
+        description="A metric's label or a dimension column name.",
+    )
+    descending: bool = False
+
+
 class DataBinding(MetricControl):
     """Query binding for a data-backed widget (mirrors the frontend
     ``DataBindingSpec``). ``datasetId`` and ``metrics`` are mandatory; the rest
@@ -51,6 +61,7 @@ class DataBinding(MetricControl):
         "datasetId",
         "metrics",
         "dimensions",
+        "orderBy",
         "rowLimit",
     ]
 
@@ -80,6 +91,15 @@ class DataBinding(MetricControl):
         alias="rowLimit",
         title="Row limit",
         description="Maximum number of rows to fetch.",
+    )
+    order_by: list[SortKey] = Field(
+        default_factory=list,
+        alias="orderBy",
+        title="Sort",
+        description=(
+            "Sort keys applied before the row limit, e.g. "
+            '`[{"field": "revenue", "descending": true}]` for a top N.'
+        ),
     )
 
 
@@ -255,8 +275,20 @@ class MarkdownControls(BaseModel):
 
     content: str = Field(
         title="Text",
-        description="Markdown content rendered by the widget.",
+        description=(
+            "Markdown content rendered by the widget. With a dataBinding, "
+            "`{{alias}}` is replaced by the first row's value for a metric "
+            "or dimension alias, `{{alias|format}}` formats a number with a "
+            "d3-format string (e.g. `{{revenue|$,.2s}}`), and "
+            "`{{#rows}}...{{/rows}}` repeats its content once per row."
+        ),
         json_schema_extra={"x-control": "markdown"},
+    )
+    data_binding: DataBinding | None = Field(
+        default=None,
+        alias="dataBinding",
+        title="Data",
+        description="Optional query whose results fill the content's placeholders.",
     )
 
 

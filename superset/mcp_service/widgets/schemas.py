@@ -28,6 +28,15 @@ class WidgetTypeInfo(BaseModel):
     id: str
     name: str
     description: str
+    canvas: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "How the type takes part in a canvas: whether it is a container, "
+            "which children and parents it allows, its filter roles and its "
+            "default size in grid columns and rows. Only non-default facts "
+            "are listed."
+        ),
+    )
 
 
 class ListWidgetTypesResponse(BaseModel):

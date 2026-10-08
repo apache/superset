@@ -16,6 +16,15 @@
 # under the License.
 
 from .apply_canvas_ops import apply_canvas_ops
+from .create_canvas import create_canvas
 from .get_canvas import get_canvas
+from .list_canvases import list_canvases
+from .update_canvas import update_canvas
 
-__all__ = ["apply_canvas_ops", "get_canvas"]
+__all__ = [
+    "apply_canvas_ops",
+    "create_canvas",
+    "get_canvas",
+    "list_canvases",
+    "update_canvas",
+]

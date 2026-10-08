@@ -41,6 +41,22 @@ const URL_KEYS = new Set(['link', 'sublink']);
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+// A dotted key (`label.fontSize`) nests, so a column can drive a per-item
+// style.
+function setPath(
+  target: Record<string, unknown>,
+  path: string,
+  value: unknown,
+): void {
+  const keys = path.split('.');
+  let node = target;
+  keys.slice(0, -1).forEach(key => {
+    if (!isObject(node[key])) node[key] = {};
+    node = node[key] as Record<string, unknown>;
+  });
+  node[keys[keys.length - 1]] = value;
+}
+
 function resolveBind(bind: Bind, ctx: BindContext): unknown {
   if (bind.source === 'theme') {
     if (!bind.token) throw new Error('$bind with source "theme" needs "token"');
@@ -58,11 +74,13 @@ function resolveBind(bind: Bind, ctx: BindContext): unknown {
     if (Object.keys(fields).length === 0) {
       throw new Error('$bind with source "records" needs "fields"');
     }
-    return ctx.rows.map(row =>
-      Object.fromEntries(
-        Object.entries(fields).map(([key, column]) => [key, row[column]]),
-      ),
-    );
+    return ctx.rows.map(row => {
+      const record: Record<string, unknown> = {};
+      Object.entries(fields).forEach(([key, column]) =>
+        setPath(record, key, row[column]),
+      );
+      return record;
+    });
   }
   throw new Error(`Unknown $bind source "${bind.source}"`);
 }

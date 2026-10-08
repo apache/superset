@@ -23,6 +23,11 @@ import { css, styled } from '@apache-superset/core/theme';
 import { SafeMarkdown, Tabs, Typography } from '@superset-ui/core/components';
 import { canvas } from 'src/core';
 import EchartsRenderer from './echarts/EchartsRenderer';
+import type { DataBinding } from './echarts/chartData';
+import { renderTemplate } from './markdownTemplate';
+import { MetricTileRenderer, TableRenderer } from './dataRenderers';
+import { useWidgetRows } from './useWidgetRows';
+import FilterSelectRenderer from './FilterSelectRenderer';
 
 type Props = canvasApi.CanvasWidgetProps;
 
@@ -87,20 +92,37 @@ const Markdown = styled.div`
   `}
 `;
 
-const MarkdownRenderer = ({ props }: Props) => (
-  <Markdown>
-    <SafeMarkdown source={text(props?.content)} />
-  </Markdown>
-);
+const MarkdownRenderer = ({ props, filters, refreshKey }: Props) => {
+  const binding = props?.dataBinding as DataBinding | undefined;
+  const { rows, error } = useWidgetRows(binding, filters, refreshKey);
 
-/** Renderers for the core containers, text and the ECharts widget. */
+  const content = text(props?.content);
+  return (
+    <Markdown>
+      <SafeMarkdown
+        source={
+          error
+            ? `${t('Data unavailable')}: ${error}`
+            : binding?.datasetId
+              ? renderTemplate(content, rows)
+              : content
+        }
+      />
+    </Markdown>
+  );
+};
+
+/** Renderers for the core containers, filters, text and the ECharts widget. */
 export const BUILTIN_RENDERERS: Record<string, ComponentType<Props>> = {
   tabs: TabsRenderer,
   tab: GridRenderer,
   group: GroupRenderer,
   'filter.bar': GridRenderer,
+  'filter.select': FilterSelectRenderer,
   markdown: MarkdownRenderer,
   echarts: EchartsRenderer,
+  'metric-tile': MetricTileRenderer,
+  'ag-grid-table': TableRenderer,
 };
 
 let registered = false;

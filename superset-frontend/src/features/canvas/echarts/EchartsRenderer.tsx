@@ -25,9 +25,9 @@ import {
   getCategoricalSchemeRegistry,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { DataBinding, fetchRows } from './chartData';
+import { DataBinding, fetchRows, withFilters } from './chartData';
 import { DataRow, resolveOption } from './resolveBindings';
-import { themedOption } from './themedOption';
+import { themedOption, withLabelColors } from './themedOption';
 
 const Chart = styled.div`
   width: 100%;
@@ -64,15 +64,19 @@ export default function EchartsRenderer({
   props,
   refreshKey,
   colors,
+  filters,
+  crossFilters,
 }: canvasApi.CanvasWidgetProps) {
   const theme = useTheme();
   const container = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
-  const binding = props?.dataBinding as DataBinding | undefined;
+  const bound = props?.dataBinding as DataBinding | undefined;
+  const binding = bound && withFilters(bound, [...filters, ...crossFilters]);
   const option = (props?.echartsOptions ?? {}) as Record<string, unknown>;
   const bindingKey = JSON.stringify(binding ?? null);
   const optionKey = JSON.stringify(option);
   const { scheme } = colors;
+  const labelColorsKey = JSON.stringify(colors.labelColors);
 
   useEffect(() => {
     let disposed = false;
@@ -94,7 +98,13 @@ export default function EchartsRenderer({
         const palette =
           getCategoricalSchemeRegistry().get(scheme)?.colors ?? [];
         const instance = echarts.init(container.current);
-        instance.setOption(themedOption(resolved, theme, palette));
+        instance.setOption(
+          themedOption(
+            withLabelColors(resolved, colors.labelColors),
+            theme,
+            palette,
+          ),
+        );
         chart = instance;
         observer = new ResizeObserver(() => instance.resize());
         observer.observe(container.current);
@@ -110,7 +120,7 @@ export default function EchartsRenderer({
     };
     // Keys stand in for the objects, which are recreated on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bindingKey, optionKey, refreshKey, theme, scheme]);
+  }, [bindingKey, optionKey, refreshKey, theme, scheme, labelColorsKey]);
 
   if (error) {
     return <Message>{t('This chart could not be drawn: %s', error)}</Message>;

@@ -65,3 +65,35 @@ class ApplyCanvasOpsResponse(BaseModel):
     stale: bool | None = Field(
         default=None, description="Reload the canvas: base_revision is too old."
     )
+
+
+class CanvasSummary(BaseModel):
+    id: int
+    title: str
+    slug: str | None = None
+    url: str
+    revision: int
+    description: str | None = None
+    changed_on: str | None = None
+
+
+class ListCanvasesResponse(BaseModel):
+    canvases: list[CanvasSummary] = Field(default_factory=list)
+    count: int = 0
+    error: str | None = None
+
+
+class CanvasWriteResponse(BaseModel):
+    """The result of creating or updating a canvas."""
+
+    id: int | None = None
+    url: str | None = None
+    revision: int | None = None
+    ops: list[dict[str, Any]] | None = Field(
+        default=None, description="The initial operations applied, with their ids."
+    )
+    error: str | None = None
+    errors: Any | None = None
+    operation: int | None = Field(
+        default=None, description="Index of the initial operation that failed."
+    )

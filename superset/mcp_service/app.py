@@ -809,7 +809,10 @@ from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.canvas.tool import (  # noqa: F401, E402
     apply_canvas_ops,
+    create_canvas,
     get_canvas,
+    list_canvases,
+    update_canvas,
 )
 from superset.mcp_service.catalog.tool import (  # noqa: F401, E402
     get_catalog,
@@ -1028,7 +1031,10 @@ def _remove_tool_quietly(tool_name: str, reason: str) -> None:
 
 # Registered only with the CANVAS feature flag, like the canvas and widget APIs.
 CANVAS_TOOLS = (
+    "list_canvases",
     "get_canvas",
+    "create_canvas",
+    "update_canvas",
     "apply_canvas_ops",
     "list_widget_types",
     "get_widget_control_schema",

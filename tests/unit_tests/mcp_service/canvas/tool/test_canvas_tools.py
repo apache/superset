@@ -99,3 +99,110 @@ def test_apply_reports_unsupported_definition_versions() -> None:
         result = _apply_canvas_ops_impl(1, 3, [{"op": "remove", "id": "a"}])
 
     assert "Upgrade Superset" in result["error"]
+
+
+CREATE = "superset.mcp_service.canvas.tool.create_canvas"
+UPDATE = "superset.mcp_service.canvas.tool.update_canvas"
+
+
+def test_list_canvases_returns_summaries() -> None:
+    from superset.mcp_service.canvas.tool.list_canvases import _list_canvases_impl
+
+    canvas = MagicMock(
+        id=1,
+        title="Sales",
+        slug="sales",
+        url="/canvas/sales/",
+        revision=3,
+        description=None,
+        changed_on=None,
+    )
+    with patch("superset.mcp_service.canvas.tool.list_canvases.CanvasDAO") as dao:
+        dao.list.return_value = ([canvas], 1)
+        result = _list_canvases_impl("sal", page=1, page_size=500)
+
+    assert dao.list.call_args.kwargs["search"] == "sal"
+    assert dao.list.call_args.kwargs["page"] == 0
+    assert dao.list.call_args.kwargs["page_size"] == 100
+    assert result["count"] == 1
+    assert result["canvases"][0]["url"] == "/canvas/sales/"
+
+
+def test_create_canvas_applies_initial_ops() -> None:
+    from superset.mcp_service.canvas.tool.create_canvas import _create_canvas_impl
+
+    canvas = MagicMock(id=5, url="/canvas/demo/", revision=1)
+    with (
+        patch(f"{CREATE}.CreateCanvasCommand") as create,
+        patch(f"{CREATE}._apply_canvas_ops_impl") as apply,
+    ):
+        create.return_value.run.return_value = canvas
+        apply.return_value = {"revision": 2, "ops": [{"op": "add", "id": "intro"}]}
+        result = _create_canvas_impl("Demo", "demo", None, [{"op": "add"}])
+
+    assert create.call_args.args[0] == {"title": "Demo", "slug": "demo"}
+    apply.assert_called_once_with(5, 1, [{"op": "add"}])
+    assert result == {
+        "id": 5,
+        "url": "/canvas/demo/",
+        "revision": 2,
+        "ops": [{"op": "add", "id": "intro"}],
+    }
+
+
+def test_create_canvas_rolls_back_when_initial_ops_fail() -> None:
+    from superset.mcp_service.canvas.tool.create_canvas import _create_canvas_impl
+
+    with (
+        patch(f"{CREATE}.CreateCanvasCommand") as create,
+        patch(f"{CREATE}.DeleteCanvasCommand") as delete,
+        patch(f"{CREATE}._apply_canvas_ops_impl") as apply,
+    ):
+        create.return_value.run.return_value = MagicMock(id=5, revision=1)
+        apply.return_value = {"error": "Invalid operations", "operation": 0}
+        result = _create_canvas_impl("Demo", None, None, [{"op": "add"}])
+
+    delete.assert_called_once_with([5])
+    assert result == {"error": "Invalid operations", "operation": 0}
+
+
+def test_create_canvas_reports_invalid_metadata() -> None:
+    from superset.mcp_service.canvas.tool.create_canvas import _create_canvas_impl
+
+    with patch(f"{CREATE}.CreateCanvasCommand") as create:
+        result = _create_canvas_impl("", None, None, None)
+
+    create.assert_not_called()
+    assert result["error"] == "Invalid canvas"
+
+
+def test_update_canvas_changes_only_given_fields() -> None:
+    from superset.mcp_service.canvas.tool.update_canvas import _update_canvas_impl
+
+    with (
+        patch(f"{UPDATE}.CanvasDAO") as dao,
+        patch(f"{UPDATE}.UpdateCanvasCommand") as update,
+    ):
+        dao.find_by_id_or_uuid.return_value = MagicMock(id=5)
+        update.return_value.run.return_value = MagicMock(
+            id=5, url="/canvas/5/", revision=4
+        )
+        result = _update_canvas_impl("5", {"title": "Renamed"})
+
+    update.assert_called_once_with(5, {"title": "Renamed"})
+    assert result == {"id": 5, "url": "/canvas/5/", "revision": 4}
+
+
+def test_update_canvas_needs_editorship() -> None:
+    from superset.commands.canvas.exceptions import CanvasForbiddenError
+    from superset.mcp_service.canvas.tool.update_canvas import _update_canvas_impl
+
+    with (
+        patch(f"{UPDATE}.CanvasDAO") as dao,
+        patch(f"{UPDATE}.UpdateCanvasCommand") as update,
+    ):
+        dao.find_by_id_or_uuid.return_value = MagicMock(id=5)
+        update.return_value.run.side_effect = CanvasForbiddenError()
+        result = _update_canvas_impl("5", {"title": "Renamed"})
+
+    assert "editors" in result["error"]

@@ -180,6 +180,7 @@ def test_data_binding_schema_is_unchanged_after_metric_control_extraction() -> N
         "datasetId",
         "metrics",
         "dimensions",
+        "orderBy",
         "rowLimit",
     ]
     assert data_binding["required"] == ["datasetId", "metrics"]
@@ -242,6 +243,7 @@ def test_data_binding_schema_unchanged_via_mcp_boundary() -> None:
         "datasetId",
         "metrics",
         "dimensions",
+        "orderBy",
         "rowLimit",
     ]
 

@@ -49,8 +49,11 @@ def test_prune_surfaces_mandatory_leaves_and_collapses_the_rest() -> None:
     assert dimensions["type"] == "array"
     assert "x-collapsed" not in dimensions
     assert data_binding["properties"]["rowLimit"]["type"] == "integer"
-    # dataBinding has no collapsed (object) children → not partial.
-    assert "x-partial" not in data_binding
+    # orderBy is an optional array of objects → collapsed, so dataBinding is
+    # partial.
+    assert data_binding["properties"]["orderBy"]["x-collapsed"] is True
+    assert data_binding["properties"]["orderBy"]["x-path"] == "dataBinding/orderBy"
+    assert data_binding["x-partial"] is True
     # colorDimension is an optional scalar at the root → inlined, not collapsed.
     assert minimal["properties"]["colorDimension"]["type"] == "string"
     assert "x-collapsed" not in minimal["properties"]["colorDimension"]

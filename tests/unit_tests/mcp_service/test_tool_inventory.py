@@ -53,6 +53,13 @@ def budgeted_bytes(text: str) -> int:
 
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
+    "apply_canvas_ops": 800,
+    "create_canvas": 900,
+    "get_canvas": 700,
+    "get_widget_control_schema": 1_100,
+    "list_canvases": 800,
+    "list_widget_types": 700,
+    "update_canvas": 900,
     "apply_dashboard_filters": 3_700,
     "create_dataset": 1_800,
     "create_dataset_metric": 2_800,

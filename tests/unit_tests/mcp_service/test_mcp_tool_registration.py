@@ -38,7 +38,10 @@ _FFM_PATH = "superset.extensions.feature_flag_manager"
 EXPECTED_TOOL_OUTPUT_FIELDS = {
     "add_chart_to_existing_dashboard": "dashboard_url",
     "apply_canvas_ops": "revision",
+    "create_canvas": "revision",
     "get_canvas": "definition",
+    "list_canvases": "canvases",
+    "update_canvas": "revision",
     "get_widget_control_schema": "control_schema",
     "list_widget_types": "widget_types",
     "apply_dashboard_filters": "permalink_key",
@@ -134,6 +137,7 @@ MUTATING_TOOLS = {
     "add_chart_to_existing_dashboard",
     "apply_canvas_ops",
     "apply_dashboard_filters",
+    "create_canvas",
     "create_dataset",
     "create_dataset_metric",
     "create_theme",
@@ -158,6 +162,7 @@ MUTATING_TOOLS = {
     "save_sql_query",
     "update_chart",
     "update_chart_preview",
+    "update_canvas",
     "update_dashboard",
     "update_dataset",
     "update_dataset_metric",
@@ -737,7 +742,10 @@ def test_canvas_tools_removed_when_canvas_disabled(gtf_ffm: MagicMock) -> None:
 
     removed = {call.args[0] for call in mock_remove.call_args_list}
     assert {
+        "list_canvases",
         "get_canvas",
+        "create_canvas",
+        "update_canvas",
         "apply_canvas_ops",
         "list_widget_types",
         "get_widget_control_schema",

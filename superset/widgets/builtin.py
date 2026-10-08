@@ -86,6 +86,7 @@ def _metric_key(metric: Any) -> str:
 )
 class Markdown(Widget):
     controls_class = MarkdownControls
+    behavior = QUERYING
     ui = WidgetUi(default_size=(6, 4))
 
 
