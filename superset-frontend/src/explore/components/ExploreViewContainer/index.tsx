@@ -705,8 +705,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         (previousControls.datasource == null ||
           props.controls.datasource.value !== previousControls.datasource.value)
       ) {
-        // this should really be handled by actions
-        fetchDatasourceMetadata(props.form_data.datasource);
+        Promise.resolve()
+          .then(() =>
+            props.actions.fetchDatasourceMetadata(props.form_data.datasource),
+          )
+          .catch(() => {
+            props.addDangerToast(t('Failed to load datasource metadata'));
+          });
       }
 
       const changedControlKeys = Object.keys(props.controls).filter(
@@ -1423,6 +1428,7 @@ function mapDispatchToProps(dispatch: Dispatch): DispatchProps {
     ...saveModalActions,
     ...chartActions,
     ...logActions,
+    fetchDatasourceMetadata,
   };
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Action modules export mixed types (creators + constants)
