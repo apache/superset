@@ -320,7 +320,8 @@ that is unambiguous in context can be guessed wrong in isolation. Shipped
 examples include `Slug` rendered as the animal, `Host` as a guest, and `Backend`
 as a driver.
 
-To attach context, put a comment tagged `i18n:` immediately above the string:
+To attach context, put a comment tagged `i18n:` on the line directly above the
+call:
 
 ```python
 # i18n: the short identifier in a dashboard's URL, not the animal
@@ -344,17 +345,31 @@ msgid "Slug"
 msgstr ""
 ```
 
-Only `i18n:`-tagged comments are extracted, so ordinary code comments near a
-string are not published to translators. Write the comment for someone who
-cannot see the code: say what the term refers to, and where a translation would
-plausibly go wrong. A note only guides the translation; to keep a string
-untranslated, add it to the do-not-translate registry described below.
+Where the comment goes decides whether it is extracted:
 
-The comment also reaches machine translation: `scripts/translations/backfill_po.py`
-sends it to the model as a developer note that takes precedence over other
-languages' translations. After changing a comment, re-run `babel_update.sh`:
-CI's template drift check fails when a string's `i18n:` comment in source no
-longer matches `messages.pot`.
+- A blank line between the comment and the call drops the comment.
+- A comment inside the call's parentheses is dropped.
+- In Python, the string must start on the same line as `_(`. When the string is
+  on the line after `_(`, the comment is dropped. A wrapped `t(` call in
+  TypeScript keeps it.
+- Every comment line between the `i18n:` line and the call is published with
+  the note. Put lint directives and other comments above the `i18n:` line.
+
+A dropped comment raises no error, and the drift check cannot see it. After
+`babel_update.sh`, confirm the note is on its entry, for example with
+`grep -B3 'msgid "Slug"' superset/translations/messages.pot`.
+
+Write the comment for someone who cannot see the code: say what the term refers
+to, and where a translation would plausibly go wrong. A note only guides the
+translation; to keep a string untranslated, add it to the do-not-translate
+registry described below.
+
+`scripts/translations/backfill_po.py` also sends the comment to the model as a
+developer note. In a live run, the note did not change the model's choice when
+every reference translation used another sense, so review machine translations
+of noted strings. After changing a comment, re-run `babel_update.sh`: CI's
+template drift check fails when a string's `i18n:` comment in source no longer
+matches `messages.pot`.
 
 Per-string context disambiguates one entry. It does not enforce consistency
 across entries — one term used for two concepts across a catalog is a
@@ -362,10 +377,10 @@ catalog-wide problem and needs a per-language terminology decision instead.
 
 ### Updating language files
 
-```bash
-# Update all language files with new strings
-pybabel update -i superset/translations/messages.pot -d superset/translations
-```
+`babel_update.sh` updates every language catalog from `messages.pot`. Do not
+run `pybabel update` on its own: babel adds a `python-format` flag to labels
+such as `% calculation`, and `msgfmt` then rejects their translations. The
+script removes that flag after its update pass.
 
 ### Applying translations
 
