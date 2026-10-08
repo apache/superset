@@ -2423,11 +2423,15 @@ def generate_xy_pivot_vega_lite_preview(
     complete metric/category label.
     Long-form results continue through the generic renderer.
     """
-    from superset.mcp_service.chart.chart_helpers import _as_list
+    from superset.mcp_service.chart.chart_helpers import _as_list, _time_comparison
     from superset.utils.pandas_postprocessing.utils import (
         escape_separator,
         FLAT_COLUMN_SEPARATOR,
     )
+
+    def vega_field(name: str) -> str:
+        """Escape a literal key so Vega-Lite does not read it as a nested path."""
+        return "".join("\\" + char if char in ".[]\\" else char for char in name)
 
     if not data:
         return None
@@ -2448,9 +2452,18 @@ def generate_xy_pivot_vega_lite_preview(
     ]
     # Chart-data results unescape the flattened column names, while raw
     # post-processing output keeps escaped separators; match either spelling.
+    series_labels = list(metric_labels)
+    if len(metric_labels) == 1 and _time_comparison(
+        form_data, _as_list(form_data.get("metrics"))
+    ):
+        # A single compared metric renames each shifted series to its bare
+        # offset, so those series carry the offset rather than the metric.
+        series_labels.extend(
+            str(offset) for offset in _as_list(form_data.get("time_compare"))
+        )
     prefixes = {
         spelling
-        for label in metric_labels
+        for label in series_labels
         for spelling in (label, escape_separator(label))
     }
     fields = [
@@ -2483,18 +2496,13 @@ def generate_xy_pivot_vega_lite_preview(
             "data": {"values": data},
             "transform": [
                 {
-                    "fold": [
-                        "".join(
-                            "\\" + char if char in ".[]\\" else char for char in field
-                        )
-                        for field in fields
-                    ],
+                    "fold": [vega_field(field) for field in fields],
                     "as": ["__mcp_xy_series", "__mcp_xy_value"],
                 }
             ],
             "mark": mark,
             "encoding": {
-                "x": {"field": x_axis, "type": x_type, "title": x_axis},
+                "x": {"field": vega_field(x_axis), "type": x_type, "title": x_axis},
                 "y": {
                     "field": "__mcp_xy_value",
                     "type": "quantitative",
@@ -2506,7 +2514,7 @@ def generate_xy_pivot_vega_lite_preview(
                     "title": ", ".join(dimensions),
                 },
                 "tooltip": [
-                    {"field": x_axis, "type": x_type},
+                    {"field": vega_field(x_axis), "type": x_type, "title": x_axis},
                     {"field": "__mcp_xy_series", "type": "nominal"},
                     {"field": "__mcp_xy_value", "type": "quantitative"},
                 ],

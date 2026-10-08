@@ -3452,6 +3452,94 @@ def test_xy_preview_renders_all_post_processed_series(
     assert spec["encoding"]["x"]["field"] == "event_date"
 
 
+@pytest.mark.parametrize("comparison_type", ["values", "difference"])
+def test_xy_preview_renders_offset_named_comparison_series(
+    monkeypatch: pytest.MonkeyPatch, comparison_type: str
+) -> None:
+    """A single compared metric folds its offset-renamed series too."""
+    from superset.mcp_service.chart.preview_utils import (
+        _generate_vega_lite_preview_from_data,
+    )
+    from superset.mcp_service.chart.schemas import VegaLitePreview
+    from superset.utils.pandas_postprocessing.utils import unescape_separator
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "event_date",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+        "time_compare": ["1 year ago"],
+        "comparison_type": comparison_type,
+    }
+    query = _query_objects(form_data)[0]
+    frame = query.exec_post_processing(
+        pd.DataFrame(
+            {
+                "event_date": ["2026-10-01", "2026-10-01", "2026-10-02", "2026-10-02"],
+                "region": ["East", "West", "East", "West"],
+                "revenue": [10, 20, 30, 40],
+                "revenue__1 year ago": [1, 2, 3, 4],
+            }
+        )
+    )
+    frame.columns = [unescape_separator(column) for column in frame.columns]
+    rows = frame.to_dict(orient="records")
+    offset_fields = {"1 year ago, East", "1 year ago, West"}
+    assert offset_fields <= set(rows[0])
+    expected = [field for field in rows[0] if field != "event_date"]
+
+    preview = _generate_vega_lite_preview_from_data(rows, form_data)
+
+    assert isinstance(preview, VegaLitePreview)
+    folded = preview.specification["transform"][0]["fold"]
+    assert folded == expected
+    assert offset_fields <= set(folded)
+
+
+def test_xy_preview_escapes_dotted_x_axis_field(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A dotted x-axis name is a literal key, not a nested Vega-Lite path."""
+    from superset.mcp_service.chart.preview_utils import (
+        _generate_vega_lite_preview_from_data,
+    )
+    from superset.mcp_service.chart.schemas import VegaLitePreview
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "orders.date",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+    }
+    query = _query_objects(form_data)[0]
+    rows = query.exec_post_processing(
+        pd.DataFrame(
+            {
+                "orders.date": ["2026-10-01", "2026-10-01"],
+                "region": ["East", "West"],
+                "revenue": [10, 20],
+            }
+        )
+    ).to_dict(orient="records")
+    assert "orders.date" in rows[0]
+
+    preview = _generate_vega_lite_preview_from_data(rows, form_data)
+
+    assert isinstance(preview, VegaLitePreview)
+    encoding = preview.specification["encoding"]
+    assert encoding["x"]["field"] == "orders\\.date"
+    assert encoding["x"]["title"] == "orders.date"
+    assert encoding["tooltip"][0]["field"] == "orders\\.date"
+
+
 def test_xy_preview_renders_series_for_metric_label_with_separator(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
