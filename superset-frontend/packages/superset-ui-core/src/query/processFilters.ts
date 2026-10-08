@@ -51,8 +51,8 @@ export default function processFilters(
     const { clause } = filter;
     if (isSimpleAdhocFilter(filter)) {
       const filterClause = convertFilter(filter);
-      if (filter.isExtra !== undefined) {
-        filterClause.isExtra = filter.isExtra;
+      if (filter.isExtra) {
+        filterClause.isExtra = true;
       }
       if (clause === 'WHERE') {
         simpleWhere.push(filterClause);

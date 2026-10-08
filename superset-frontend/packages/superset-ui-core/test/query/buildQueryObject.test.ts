@@ -54,6 +54,7 @@ test.each(['5__semantic_view', '5__table'])(
           subject: 'own',
           operator: '==',
           comparator: 'Books',
+          isExtra: false,
         },
       ],
     } satisfies Parameters<typeof buildQueryObject>[0];
@@ -68,6 +69,38 @@ test.each(['5__semantic_view', '5__table'])(
     expect(JSON.stringify(formData)).toBe(original);
   },
 );
+
+test('preserves the SQL query payload for chart-owned filters with isExtra false', () => {
+  const formData = {
+    datasource: '5__table',
+    viz_type: VizType.Table,
+    adhoc_filters: [
+      {
+        expressionType: 'SIMPLE',
+        clause: 'WHERE',
+        subject: 'country',
+        operator: '==',
+        comparator: 'USA',
+      },
+    ],
+  } satisfies Parameters<typeof buildQueryObject>[0];
+  const original = JSON.stringify(formData);
+  const legacyQuery = buildQueryObject(formData);
+  const savedChartQuery = buildQueryObject({
+    ...formData,
+    adhoc_filters: formData.adhoc_filters.map(filter => ({
+      ...filter,
+      isExtra: false,
+    })),
+  });
+
+  // Filter properties feed the server's result-cache key, including false values.
+  expect(JSON.stringify(savedChartQuery)).toBe(JSON.stringify(legacyQuery));
+  expect(savedChartQuery.filters).toEqual([
+    { col: 'country', op: '==', val: 'USA' },
+  ]);
+  expect(JSON.stringify(formData)).toBe(original);
+});
 
 describe('buildQueryObject', () => {
   let query: QueryObject;
