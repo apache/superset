@@ -69,6 +69,5 @@ adapter module so older SDKs can still load the legacy leaf path.
 ## Result caches
 
 The host includes `semantic-null-filters-v1` in semantic result-cache keys. This
-also versions outer chart caches containing semantic chart annotations. This
 separates legacy answers during rolling deployment without flushing unrelated
 caches. Keep this protocol marker alongside any metadata-generation cache keys.

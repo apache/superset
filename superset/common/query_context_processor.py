@@ -40,11 +40,7 @@ from superset.common.grouping_sets import grouping_marker_label
 from superset.common.query_actions import get_query_results_with_timing
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
-from superset.constants import (
-    CACHE_DISABLED_TIMEOUT,
-    CacheRegion,
-    SEMANTIC_FILTER_CACHE_VERSION,
-)
+from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
 from superset.dataframe import df_to_records
@@ -466,7 +462,6 @@ class QueryContextProcessor:
         chart's datasource.
         """
         source_rls: dict[str, list[str] | None] = {}
-        has_semantic_source: bool = False
         for layer in query_obj.annotation_layers:
             if (
                 layer.get("sourceType")
@@ -478,18 +473,12 @@ class QueryContextProcessor:
                 ChartDAO.find_by_id(layer_value) if layer_value is not None else None
             )
             annotation_datasource = chart.datasource if chart else None
-            if annotation_datasource and annotation_datasource.type == "semantic_view":
-                has_semantic_source = True
             source_rls[str(layer.get("value"))] = (
                 security_manager.get_rls_cache_key(annotation_datasource)
                 if annotation_datasource
                 else None
             )
-        context: dict[str, Any] = {"user_id": get_user_id(), "source_rls": source_rls}
-        if has_semantic_source:
-            # The outer chart also caches the semantic annotation's result rows.
-            context["semantic_filter_protocol"] = SEMANTIC_FILTER_CACHE_VERSION
-        return context
+        return {"user_id": get_user_id(), "source_rls": source_rls}
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """

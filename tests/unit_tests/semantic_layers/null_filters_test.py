@@ -20,7 +20,7 @@
 from dataclasses import FrozenInstanceError, replace
 from datetime import datetime
 from typing import cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pyarrow as pa
 import pytest
@@ -329,52 +329,3 @@ def test_ui_empty_string_sentinel(operator: str, value: FilterValues) -> None:
     assert expressions
     assert all(_matches(item, "") for item in expressions)
     assert not all(_matches(item, None) for item in expressions)
-
-
-@pytest.mark.parametrize("semantic_annotation", [False, True])
-def test_annotation_parent_cache_versions_semantic_rows(
-    semantic_annotation: bool,
-) -> None:
-    """A SQL parent must not serve semantic annotation rows from the old protocol."""
-    from superset.common.query_context_processor import QueryContextProcessor
-    from superset.common.query_object import QueryObject
-    from superset.semantic_layers.models import SemanticView as SemanticViewModel
-
-    context: MagicMock = MagicMock()
-    context.datasource.uid = "1__table"
-    context.datasource.changed_on = None
-    context.datasource.get_extra_cache_keys.return_value = []
-    processor: QueryContextProcessor = QueryContextProcessor(context)
-    annotation_source: SemanticViewModel | MagicMock = (
-        SemanticViewModel() if semantic_annotation else MagicMock(type="table")
-    )
-    query: QueryObject = QueryObject(
-        columns=["category"],
-        annotation_layers=[
-            {
-                "sourceType": "table",
-                "annotationType": "TIME_SERIES",
-                "name": "annotation",
-                "value": 1,
-            }
-        ],
-    )
-    with (
-        patch(
-            "superset.common.query_context_processor.ChartDAO.find_by_id",
-            return_value=MagicMock(datasource=annotation_source),
-        ),
-        patch(
-            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
-            return_value=[],
-        ),
-        patch("superset.common.query_context_processor.get_user_id", return_value=7),
-    ):
-        actual: str | None = processor.query_cache_key(query)
-        with patch.object(
-            processor,
-            "_annotation_cache_context",
-            return_value={"user_id": 7, "source_rls": {"1": []}},
-        ):
-            legacy: str | None = processor.query_cache_key(query)
-    assert (actual != legacy) is semantic_annotation

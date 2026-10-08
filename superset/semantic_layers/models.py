@@ -51,7 +51,6 @@ from superset_core.semantic_layers.view import (
 )
 
 from superset.common.query_object import QueryObject
-from superset.constants import SEMANTIC_FILTER_CACHE_VERSION
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,
@@ -725,7 +724,7 @@ class SemanticView(AuditMixinNullable, Model):
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         # Separate cached pre-normalization results during rolling deployments.
-        return [SEMANTIC_FILTER_CACHE_VERSION]
+        return ["semantic-null-filters-v1"]
 
     @property
     def catalog_perm(self) -> str | None:

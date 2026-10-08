@@ -75,6 +75,7 @@ const sidebars = {
         'extensions/architecture',
         'extensions/dependencies',
         'extensions/contribution-types',
+        'extensions/semantic-filters',
         {
           type: 'category',
           label: 'Extension Points',
