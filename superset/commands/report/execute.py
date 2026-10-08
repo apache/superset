@@ -101,7 +101,7 @@ from superset.reports.notifications.slack_transport import (
 from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
-from superset.utils.core import HeaderDataType, override_user
+from superset.utils.core import apply_max_row_limit, HeaderDataType, override_user
 from superset.utils.csv import (
     chart_data_to_dataframe,
     get_chart_csv_data,
@@ -1175,6 +1175,11 @@ class BaseReportState:
 
             if form_data.get("server_pagination"):
                 row_limit = form_data.get("row_limit") or 0
+                row_limit = (
+                    apply_max_row_limit(row_limit)
+                    if result_format == ChartDataResultFormat.JSON
+                    else row_limit
+                )
                 queries = query_context.get("queries")
                 if isinstance(queries, list):
                     data_query_updated = False
@@ -1371,7 +1376,7 @@ class BaseReportState:
         """
         start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
 
-        url: str = self._get_url(result_format=ChartDataResultFormat.JSON)
+        url: str
         user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
@@ -1392,6 +1397,7 @@ class BaseReportState:
             )
             dataframe: pd.DataFrame | None
             if self._report_schedule.chart.query_context is None:
+                url = self._get_url(result_format=ChartDataResultFormat.JSON)
                 dataframe = get_chart_dataframe(url, auth_cookies, timeout=timeout)
             else:
                 # Match the GET endpoint's current chart settings for client processing.
@@ -1403,7 +1409,7 @@ class BaseReportState:
                 if not isinstance(form_data, dict):
                     form_data = {}
                 request_payload: dict[str, Any] = self._get_chart_data_request_payload(
-                    ChartDataResultFormat.JSON, form_data=form_data
+                    ChartDataResultFormat.JSON, form_data=form_data or None
                 )
                 url = get_url_path("ChartDataRestApi.data")
                 dataframe = chart_data_to_dataframe(

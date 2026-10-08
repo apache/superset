@@ -5983,15 +5983,27 @@ def test_chart_data_http_failure_does_not_expose_request(
     assert "SECRET" not in "".join(traceback.format_exception(exc.value))
 
 
-@pytest.mark.parametrize("row_limit", [100, 0, None])
+@pytest.mark.parametrize("row_limit", [100, 0, None, 500000])
 @pytest.mark.parametrize("server_pagination", [True, False])
-@pytest.mark.parametrize("stored_form_data", ["current", "missing", "stale"])
+@pytest.mark.parametrize(
+    ("stored_form_data", "params"),
+    [
+        ("current", "current"),
+        ("missing", "current"),
+        ("stale", "current"),
+        ("current", None),
+        ("current", "{}"),
+        ("current", "[]"),
+        ("current", "invalid"),
+    ],
+)
 def test_embedded_data_uses_export_pagination(
     app: SupersetApp,
     mocker: MockerFixture,
     row_limit: int | None,
     server_pagination: bool,
     stored_form_data: str,
+    params: str | None,
 ) -> None:
     """Embedded tables request all configured rows, not the saved page."""
     from urllib.parse import parse_qs
@@ -5999,6 +6011,8 @@ def test_embedded_data_uses_export_pagination(
 
     import pandas as pd
 
+    mocker.patch.dict(app.config, {"SQL_MAX_ROW": 150})
+    expected_limit: int = min(row_limit or 150, 150)
     schedule: ReportSchedule = create_report_schedule(mocker)
     schedule.force_screenshot = True
     schedule.chart.query_context = json.dumps(
@@ -6017,6 +6031,8 @@ def test_embedded_data_uses_export_pagination(
     )
     context: dict[str, Any] = json.loads(schedule.chart.query_context)
     schedule.chart.params = json.dumps(context["form_data"])
+    if params != "current":
+        schedule.chart.params = params
     if stored_form_data == "missing":
         context.pop("form_data")
     elif stored_form_data == "stale":
@@ -6072,7 +6088,7 @@ def test_embedded_data_uses_export_pagination(
 
     mocker.patch("urllib.request.build_opener").return_value.open.side_effect = serve
     frame: pd.DataFrame = state._get_embedded_data()
-    assert len(frame) == ((row_limit or 50) if server_pagination else 20)
+    assert len(frame) == (expected_limit if server_pagination else 20)
     assert frame.iloc[0, 0] == (0 if server_pagination else 20)
     assert len(requested) == 1
     request: Request | str = requested[0]
@@ -6084,7 +6100,7 @@ def test_embedded_data_uses_export_pagination(
         parse_qs(request.data.decode())["form_data"][0]
     )
     assert payload["queries"] == (
-        [{"row_limit": row_limit or 0, "row_offset": 0}]
+        [{"row_limit": expected_limit, "row_offset": 0}]
         if server_pagination
         else [{"row_limit": 20, "row_offset": 20}, {"is_rowcount": True}]
     )

@@ -859,6 +859,7 @@ def test_slack_mixin_get_body_truncates_large_table(
     )
     body = notification._get_body(content=content)
     assert "(table was truncated)" in body
+    assert len(body) <= 4000
 
 
 @patch("superset.reports.notifications.slackv2.g")
