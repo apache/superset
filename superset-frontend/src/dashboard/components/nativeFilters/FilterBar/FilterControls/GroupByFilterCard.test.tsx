@@ -439,7 +439,7 @@ test('only offers allowlisted columns to viewers', async () => {
     { useRedux: true, initialState },
   );
 
-  userEvent.click(await screen.findByRole('combobox'));
+  await userEvent.click(await screen.findByRole('combobox'));
 
   expect(await screen.findByText('Country')).toBeInTheDocument();
   expect(screen.getByText('City')).toBeInTheDocument();
@@ -451,7 +451,7 @@ test('offers every groupable column when no allowlist is configured', async () =
 
   renderCard([{ datasetId: 321 }]);
 
-  userEvent.click(await screen.findByRole('combobox'));
+  await userEvent.click(await screen.findByRole('combobox'));
 
   expect(await screen.findByText('Country')).toBeInTheDocument();
   expect(screen.getByText('State')).toBeInTheDocument();
@@ -486,7 +486,7 @@ test('keeps an applied selection that a narrowed allowlist excludes, with its la
   expect(screen.queryByText('state')).not.toBeInTheDocument();
 
   // Other excluded columns are still not offered.
-  userEvent.click(await screen.findByRole('combobox'));
+  await userEvent.click(await screen.findByRole('combobox'));
   expect(await screen.findByText('Country')).toBeInTheDocument();
   expect(screen.queryByText('City')).not.toBeInTheDocument();
 });
@@ -509,7 +509,7 @@ test('tells viewers when none of the allowed columns remain in the dataset', asy
 
   expect(await screen.findByText(allowlistGoneMessage)).toBeInTheDocument();
   // It does not quietly open the control up to every column instead.
-  userEvent.click(await screen.findByRole('combobox'));
+  await userEvent.click(await screen.findByRole('combobox'));
   await waitFor(() =>
     expect(screen.queryByText('Country')).not.toBeInTheDocument(),
   );
@@ -528,7 +528,7 @@ test('shows no message while at least one allowed column remains', async () => {
     { useRedux: true, initialState },
   );
 
-  userEvent.click(await screen.findByRole('combobox'));
+  await userEvent.click(await screen.findByRole('combobox'));
   expect(await screen.findByText('Country')).toBeInTheDocument();
   expect(screen.queryByText(allowlistGoneMessage)).not.toBeInTheDocument();
 });
