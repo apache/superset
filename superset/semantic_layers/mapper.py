@@ -1262,7 +1262,7 @@ def _validate_granularity(query_object: ValidatedQueryObject) -> None:
             if dimension.name == time_column and dimension.grain
         }
         if _convert_time_grain(time_grain) not in supported_time_grains:
-            raise ValueError(
+            raise QueryObjectValidationError(
                 "The time grain is not supported for the time column in the "
                 "Semantic View."
             )
