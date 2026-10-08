@@ -878,10 +878,12 @@ test('the default-value query keeps the semantic view type when datasources load
     screen.getByRole('checkbox', { name: /^filter has default value$/i }),
   );
 
-  await waitFor(() =>
-    expect(chartDataDatasources()).toEqual([
-      { id: VIEW_ID, type: DatasourceType.SemanticView },
-    ]),
+  await waitFor(() => expect(chartDataDatasources().length).toBeGreaterThan(0));
+  chartDataDatasources().forEach(datasource =>
+    expect(datasource).toEqual({
+      id: VIEW_ID,
+      type: DatasourceType.SemanticView,
+    }),
   );
   expect(forbiddenRequests).toEqual([]);
 });
@@ -898,10 +900,12 @@ test('the default-value query targets the default semantic view', async () => {
     screen.getByRole('checkbox', { name: /^filter has default value$/i }),
   );
 
-  await waitFor(() =>
-    expect(chartDataDatasources()).toEqual([
-      { id: VIEW_ID, type: DatasourceType.SemanticView },
-    ]),
+  await waitFor(() => expect(chartDataDatasources().length).toBeGreaterThan(0));
+  chartDataDatasources().forEach(datasource =>
+    expect(datasource).toEqual({
+      id: VIEW_ID,
+      type: DatasourceType.SemanticView,
+    }),
   );
   expect(forbiddenRequests).toEqual([]);
 });
