@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import {
   fireEvent,
   render,
@@ -57,18 +58,31 @@ const mockConfiguredIntervals: [number, string][] = [
 const createInitialState = (
   intervals?: [number, string][],
   extraConf?: Record<string, unknown>,
-) => ({
-  dashboardInfo: {
-    common: {
-      conf: {
-        ...(intervals !== undefined
-          ? { DASHBOARD_AUTO_REFRESH_INTERVALS: intervals }
-          : {}),
-        ...extraConf,
-      },
-    },
-  },
-});
+  useTopLevelCommon = false,
+) =>
+  useTopLevelCommon
+    ? {
+        common: {
+          conf: {
+            ...(intervals !== undefined
+              ? { DASHBOARD_AUTO_REFRESH_INTERVALS: intervals }
+              : {}),
+            ...extraConf,
+          },
+        },
+      }
+    : {
+        dashboardInfo: {
+          common: {
+            conf: {
+              ...(intervals !== undefined
+                ? { DASHBOARD_AUTO_REFRESH_INTERVALS: intervals }
+                : {}),
+              ...extraConf,
+            },
+          },
+        },
+      };
 
 const defaultTestProps: RefreshFrequencySelectProps = {
   value: 0,
@@ -252,4 +266,87 @@ test('issue 44981 consolidated evidence gate: reactive auto refresh intervals, c
   expect(screen.getByRole('radio', { name: '10 seconds' })).toBeInTheDocument();
   expect(screen.getByRole('radio', { name: '30 seconds' })).toBeInTheDocument();
   expect(screen.getByRole('radio', { name: '1 minute' })).toBeInTheDocument();
+});
+
+test('renders configured intervals from top-level state.common.conf (list page shape)', () => {
+  setup({}, createInitialState(mockConfiguredIntervals, {}, true));
+
+  expect(screen.getByRole('radio', { name: '15 seconds' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '45 seconds' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '90 seconds' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('radio', { name: '10 seconds' }),
+  ).not.toBeInTheDocument();
+});
+
+test('preserves Custom mode in controlled parent when configured intervals include 1 second preset', async () => {
+  const intervalsWithOneSecond: [number, string][] = [
+    [0, "Don't refresh"],
+    [1, '1 second'],
+    [30, '30 seconds'],
+  ];
+
+  const ControlledWrapper = () => {
+    const [value, setValue] = useState(0);
+    return <RefreshFrequencySelect value={value} onChange={setValue} />;
+  };
+
+  render(<ControlledWrapper />, {
+    useRedux: true,
+    initialState: createInitialState(intervalsWithOneSecond),
+  });
+
+  const customRadio = screen.getByRole('radio', { name: /Custom/i });
+  const oneSecondRadio = screen.getByRole('radio', { name: '1 second' });
+
+  // Initially "Don't refresh" is checked
+  expect(screen.getByRole('radio', { name: "Don't refresh" })).toBeChecked();
+
+  // Click Custom: emits 1, parent feeds 1 back
+  await userEvent.click(customRadio);
+
+  // Custom radio must remain checked, NOT reverted to 1 second preset
+  expect(customRadio).toBeChecked();
+  expect(oneSecondRadio).not.toBeChecked();
+
+  const input = screen.getByPlaceholderText('1+');
+  expect(input).not.toBeDisabled();
+  expect(input).toHaveValue(1);
+
+  // User types into custom input
+  fireEvent.change(input, { target: { value: '45' } });
+  expect(customRadio).toBeChecked();
+  expect(input).toHaveValue(45);
+});
+
+test('preserves previously entered custom value when switching between preset and custom', async () => {
+  const ControlledWrapper = () => {
+    const [value, setValue] = useState(0);
+    return <RefreshFrequencySelect value={value} onChange={setValue} />;
+  };
+
+  render(<ControlledWrapper />, {
+    useRedux: true,
+    initialState: createInitialState(mockConfiguredIntervals),
+  });
+
+  const customRadio = screen.getByRole('radio', { name: /Custom/i });
+  const presetRadio = screen.getByRole('radio', { name: '45 seconds' });
+
+  // Select custom and type 120
+  await userEvent.click(customRadio);
+  const input = screen.getByPlaceholderText('1+');
+  fireEvent.change(input, { target: { value: '120' } });
+  expect(input).toHaveValue(120);
+
+  // Switch to preset 45 seconds
+  await userEvent.click(presetRadio);
+  expect(presetRadio).toBeChecked();
+  expect(input).toBeDisabled();
+
+  // Switch back to custom
+  await userEvent.click(customRadio);
+  expect(customRadio).toBeChecked();
+  expect(input).not.toBeDisabled();
+  expect(input).toHaveValue(120);
 });
