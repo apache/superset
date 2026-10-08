@@ -113,12 +113,17 @@ class SemanticView(ABC):
     def get_table(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a semantic query and return the results.
+
+        Raise SemanticQueryRejectedError for deliberate input rejection.
+        Leave operational and unexpected failures unclassified.
         """
 
     @abstractmethod
     def get_row_count(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a query and return the number of rows the result would have.
+
+        Raise SemanticQueryRejectedError for deliberate input rejection.
         """
 
     @abstractmethod
