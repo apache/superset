@@ -901,6 +901,52 @@ def test_preview_is_authorized_as_a_write() -> None:
     )
 
 
+def test_preview_refuses_a_caller_who_cannot_edit_the_dataset(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The real editorship gate, not the autouse mock.
+
+    Its sibling above asserts only the permission-map entry, so deleting the
+    route's ``raise_for_editorship(dataset)`` call left the whole suite green:
+    every other test in this file runs with ``allow_editorship`` patching the
+    gate out, and `full_api_access` makes the caller pass ``@protect()``. This
+    puts the real method back and denies it the two ways out it has -- admin,
+    and editorship of this dataset -- so a caller with ``can_write`` who does
+    not own the dataset gets a 403.
+
+    The probe is booby-trapped as well as the status asserted: a 403 that still
+    ran the warehouse query would have leaked the transform's result through
+    timing even without a body to read it from.
+    """
+    from functools import partial
+
+    from superset import security_manager
+    from superset.security import SupersetSecurityManager
+
+    real_gate = SupersetSecurityManager.raise_for_editorship
+
+    with (
+        patch(
+            "superset.datasets.api.security_manager.raise_for_editorship",
+            new=partial(real_gate, security_manager),
+        ),
+        patch("superset.datasets.api.security_manager.is_admin", return_value=False),
+        patch("superset.datasets.api.security_manager.is_editor", return_value=False),
+        patch(PROBE, side_effect=AssertionError("probe must not run")),
+    ):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "date(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 403
+
+
 def test_preview_coerces_a_sample_the_way_a_chart_filter_is_coerced(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:

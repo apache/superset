@@ -33,6 +33,7 @@ from superset.connectors.sqla.models import (
     TableColumn,
 )
 from superset.connectors.sqla.partition_mapping import (
+    drop_unmapped_value_transforms,
     FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
 )
 from superset.constants import EPOCH_FORMATS
@@ -474,6 +475,42 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # correctly, since the owner typed it.
         if item is not None and touches_mapping:
             cls.clear_unmapped_partition_transforms(item)
+            # The same invariant against what the request *carries*, which the
+            # pair of model-level passes cannot answer for: they are gated on
+            # the feature flag, correctly -- they discard stored configuration
+            # -- so with the flag off a payload could put a transform on a
+            # non-mapped column and have `update_columns` write it. Nothing
+            # reads it while the flag is off, and then the flag goes on and the
+            # mapping resolves onto it. See `drop_unmapped_value_transforms`.
+            #
+            # Harmless with the flag on, where the pass above has already
+            # cleared the same columns on the model and the pass below answers
+            # for the resolution this request leaves behind.
+            #
+            # Each name falls back to the model, because the mapping is
+            # `partition_mapped_column or main_dttm_col` and a request may
+            # change one of the three without mentioning the others.
+            requested = attributes or {}
+            if cleared := drop_unmapped_value_transforms(
+                requested.get("columns"),
+                partition_column=requested.get(
+                    "partition_column", item.partition_column
+                ),
+                partition_mapped_column=requested.get(
+                    "partition_mapped_column", item.partition_mapped_column
+                ),
+                main_dttm_col=requested.get("main_dttm_col", item.main_dttm_col),
+                # `_upsert_columns` identifies an existing column by its
+                # primary key and lets `column_name` be omitted, which is what
+                # the dataset editor's own PUT sends.
+                names_by_id={column.id: column.column_name for column in item.columns},
+            ):
+                logger.info(
+                    "Dataset %s: dropped an incoming partition value transform "
+                    "from %s, which the mapping does not mirror",
+                    item.id,
+                    ", ".join(cleared),
+                )
 
         if item and delete_metric_ids:
             for metric in item.metrics:

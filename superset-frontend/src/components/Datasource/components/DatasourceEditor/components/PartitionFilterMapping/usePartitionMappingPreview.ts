@@ -125,8 +125,18 @@ export function usePartitionMappingPreview({
         const clientError = await getClientErrorObject(error);
         setPreview({
           valid: false,
+          // `message` first only when it really is a string. A marshmallow
+          // rejection -- a transform past the 1,024-character bound, say --
+          // answers 400 with an object-valued `message`
+          // (`{value_transform: [...]}`), which `getClientErrorObject` leaves
+          // as it found it while putting the normalized text in `error`.
+          // Preferring `message` unconditionally handed that object to
+          // `Alert description`, and React threw "Objects are not valid as a
+          // React child" instead of showing the owner the validation error.
           error:
-            clientError.message ||
+            (typeof clientError.message === 'string'
+              ? clientError.message
+              : undefined) ||
             clientError.error ||
             t('The preview could not be loaded.'),
         });

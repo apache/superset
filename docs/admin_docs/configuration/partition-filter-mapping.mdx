@@ -47,8 +47,12 @@ FEATURE_FLAGS = {
 }
 ```
 
-Configure it as a **static boolean**. `FEATURE_FLAGS` also accepts per-request callables,
-but a flag that resolves differently per user or tenant would let a user with the feature
+Configure it as a **static boolean**. A callable placed in `FEATURE_FLAGS` is *not*
+evaluated: `FeatureFlagManager` stores the configured values unchanged, so
+`"PARTITION_FILTER_MAPPING": lambda: False` resolves to a truthy function object and turns
+the feature **on**. Per-request resolution comes only from `GET_FEATURE_FLAGS_FUNC` and
+`IS_FEATURE_ENABLED_FUNC`, and for this flag both must return the same answer for every
+user: a flag that resolves differently per user or tenant would let a user with the feature
 off read a cached chart result that was produced from pruned SQL by a user with it on.
 
 ## Configuring a mapping
@@ -176,6 +180,10 @@ Known gaps, all of which are out of scope rather than bugs:
   predicate shape from translated values, so there is no operator/value pair to mirror.
 - Dashboard native filters and cross-filters *do* mirror — they arrive as ordinary filters —
   they just carry no visual indicator in the filter bar.
+- **The Explore glyph is advisory.** It is computed from the dataset's mapping, which knows
+  nothing about any one chart's SQL. A virtual dataset whose SQL consumes a filter through
+  `get_filters(..., remove_filter=True)` gets neither that filter nor its mirror — the
+  query path skips both — yet the glyph still shows. **View query** is the authority.
 
 ## The assumption this rests on
 
@@ -257,6 +265,14 @@ refused when you save:
   probe's own query.
 - More than 1,024 characters. A transform is one hand-written expression, and the stored
   value is parsed on every Explore load.
+- Anything that changes data — `nextval(:value)`, a call to a stored procedure, a
+  PostgreSQL large-object writer. The transform is evaluated against the engine to check
+  that it mirrors, and that evaluation is cached and repeated, so it has to be a read.
+
+Only the mapped column may carry a transform. Setting one on any other column through the
+API, or in an import bundle, has no effect: Superset drops it on write, because a value parked on a column the
+mapping does not mirror is invisible in the editor and would go live the moment the mapped
+column resolved back to it.
 
 ## Related configuration
 

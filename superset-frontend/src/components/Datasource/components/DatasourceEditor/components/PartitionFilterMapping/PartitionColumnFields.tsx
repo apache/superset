@@ -110,17 +110,29 @@ export default function PartitionColumnFields({
 
   const mappedColumn = resolveMappedColumn(datasource);
   const isImplicit = mappedColumnIsImplicit(datasource);
+  const liveTransform =
+    allColumns.find(column => column.column_name === mappedColumn)
+      ?.partition_value_transform ?? null;
+  // The stored refusal, but only while the box still holds the expression it
+  // was about. It is a verdict on one transform, and it outlived it: reopen a
+  // dataset whose stored `no_such_fn(:value)` failed its last probe, replace it
+  // with something that works, watch the row's own preview come back valid --
+  // and the banner still said nothing would mirror, because this read a summary
+  // computed when the editor opened.
+  const storedVerdictApplies =
+    liveTransform === datasource.partition_filter_mapping?.evaluated_transform;
   // The static checks are necessary, not sufficient: an unparseable expression
   // or a function the database does not have needs the engine to spot, and the
   // mapped column's row already asks it. Deferring to that answer where there
   // is one is what keeps this banner and that panel from contradicting each
-  // other. A stored transform whose last probe failed says the same thing
-  // through the datasource's own summary, which is what an owner sees on
-  // reopening the editor.
+  // other.
   const isActive =
     mappingIsActive(datasource, allColumns) &&
     previewMirrors !== false &&
-    datasource.partition_filter_mapping?.evaluable !== false;
+    !(
+      storedVerdictApplies &&
+      datasource.partition_filter_mapping?.evaluable === false
+    );
   const { partition_column: partitionColumn } = datasource;
 
   // `field` is what the issues carry it for: a message about the partition
@@ -264,10 +276,17 @@ export default function PartitionColumnFields({
                 <Alert
                   type="warning"
                   showIcon
-                  message={t(
-                    'No value transform is set on %(mapped)s, so nothing is mirrored yet and queries will scan every partition.',
-                    { mapped: mappedColumn },
-                  )}
+                  message={
+                    liveTransform
+                      ? t(
+                          'The value transform on %(mapped)s is not mirroring filters, so queries will scan every partition.',
+                          { mapped: mappedColumn },
+                        )
+                      : t(
+                          'No value transform is set on %(mapped)s, so nothing is mirrored yet and queries will scan every partition.',
+                          { mapped: mappedColumn },
+                        )
+                  }
                 />
               )}
             </>
@@ -306,7 +325,7 @@ export default function PartitionColumnFields({
                 type="warning"
                 showIcon
                 message={t(
-                  '%(partition)s is hidden from Explore, but no filter is mirrored onto it — queries will scan every partition until a column is mapped.',
+                  'No filter is mirrored onto %(partition)s — queries will scan every partition until a column is mapped.',
                   { partition: partitionColumn },
                 )}
               />

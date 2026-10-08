@@ -230,10 +230,22 @@ export function partitionMappingErrors(
 
   const mappedColumnName = resolveMappedColumn(datasource);
   if (mappedColumnName === partitionColumn) {
-    // No transform check can follow: the transform is a property of the mapped
-    // column, and there is no coherent mapped column to read it from.
+    // Only the *explicit* self-mapping blocks the save, matching
+    // `validate_partition_mapping`: an override naming the partition column is
+    // something the owner asked for and can take back, so it is Tier 1 there.
+    //
+    // The implicit one -- no override, and `main_dttm_col` happens to equal the
+    // partition column -- is Tier 2 on purpose. Blocking it here disabled Save
+    // on a dataset already in that state (metadata sync used to be able to
+    // produce one) even for a description-only edit, which is exactly the
+    // unsaveable dataset the backend comment says it avoids. The owner gets the
+    // same message, as a warning they can save through.
+    //
+    // No transform check can follow either way: the transform is a property of
+    // the mapped column, and there is no coherent mapped column to read it from.
     issues.push({
       field: 'partition_column',
+      blocking: Boolean(datasource.partition_mapped_column),
       message: t(
         'The partition column cannot be mapped onto itself. %(name)s is both the partition column and the mapped column.',
         { name: partitionColumn },
@@ -402,24 +414,108 @@ function withMappingOn<T extends PartitionMappingColumn>(
 }
 
 /**
+ * Every column with the mapping held by the column it is actually mapped to.
+ *
+ * The client half of `DatasetDAO.clear_unmapped_partition_transforms`. The
+ * editor is not the only writer -- a PUT, an `override_columns=true` metadata
+ * sync and an import all reach the columns directly -- so a dataset can arrive
+ * holding a transform on a column the mapping does not mirror, and the editor
+ * must not be the thing that arms it. See `clearMappingTransforms` for why one
+ * parked anywhere else is not dormant.
+ *
+ * Takes the datasource rather than a column name so the resolution is
+ * `resolveMappedColumn`'s and cannot drift from the one the rest of the panel
+ * reads. Hands back the array it was given when nothing had to change, like
+ * `clearMappingTransforms`.
+ */
+export function clearUnmappedTransforms<T extends PartitionMappingColumn>(
+  datasource: PartitionMappingDatasource,
+  columns: T[],
+): T[] {
+  const mappedColumn = resolveMappedColumn(datasource);
+  const stray = (column: T) =>
+    column.column_name !== mappedColumn && holdsMapping(column);
+  if (!columns.some(stray)) {
+    return columns;
+  }
+  return columns.map(column =>
+    stray(column)
+      ? {
+          ...column,
+          partition_value_transform: null,
+          partition_transform_is_monotonic: false,
+        }
+      : column,
+  );
+}
+
+/**
+ * `clearUnmappedTransforms` for a change that *moves* which column is mapped.
+ *
+ * One pass can only ever answer for one resolution, and the bug lives between
+ * them. Run only against the mapping the change leaves behind, the pass finds
+ * the newly-mapped column effective and skips it -- so a transform parked
+ * there, which nobody in this edit asked to activate, goes live. A column sync
+ * that drops the mapped column is exactly that shape: the override is repaired
+ * to null, the mapping falls back to the default datetime column, and whatever
+ * was stranded on it starts mirroring. The row counts go quietly short while
+ * the pruning indicator still reports a healthy mapping.
+ *
+ * So a transform survives only where its column is the mapped one on *both*
+ * sides. `DatasetDAO.update` does the same thing for the same reason, running
+ * `clear_unmapped_partition_transforms` before and after it applies a request;
+ * the difference there is that a transform the request itself supplies lands
+ * between the two passes and survives, because the owner typed it. A sync
+ * supplies nothing -- `updateColumns` passes an unchanged column through
+ * verbatim -- so there is nothing here for the gap between the passes to keep.
+ */
+export function clearUnmappedTransformsAcrossMove<
+  T extends PartitionMappingColumn,
+>(
+  before: PartitionMappingDatasource,
+  after: PartitionMappingDatasource,
+  columns: T[],
+): T[] {
+  return clearUnmappedTransforms(
+    after,
+    clearUnmappedTransforms(before, columns),
+  );
+}
+
+/**
  * Columns updated for a mapping moving to `nextColumnName`.
  *
- * A transform the column already had wins over the engine's default: the owner
- * wrote it for this column, and offering to overwrite it is not what picking it
- * up again means. Every other column is cleared, for the reason
- * `clearMappingTransforms` gives.
+ * A transform already on the column is picked back up only when that column is
+ * the one already mapped -- re-selecting where the mapping sits is not a move,
+ * and overwriting what the owner wrote there is not what it should mean.
+ *
+ * Moving the mapping *elsewhere* installs `nextTransform` and nothing else,
+ * even when the target column appears to be holding something. Under the
+ * invariant it cannot be: the mapping has one mirrored column, so a transform
+ * on any other one is a leftover some writer stranded there, not an expression
+ * written about this column. Picking it up turned a click with no typing into a
+ * live mapping emitting predicates nobody authored -- the move arrives inert
+ * instead, which is a state the panel's own warning describes and the owner can
+ * fix deliberately. `partition_transform_is_monotonic` does not carry over for
+ * the same reason; it is a claim about a transform that is no longer there.
+ *
+ * Every other column is cleared, for the reason `clearMappingTransforms` gives.
  */
 export function applyMappingMove<T extends PartitionMappingColumn>(
+  datasource: PartitionMappingDatasource,
   columns: T[],
   nextColumnName: string,
   nextTransform: string,
 ): T[] {
   const next = columns.find(column => column.column_name === nextColumnName);
+  const isAlreadyMapped = resolveMappedColumn(datasource) === nextColumnName;
   return withMappingOn(
     columns,
     nextColumnName,
-    next?.partition_value_transform || nextTransform || null,
-    Boolean(next?.partition_transform_is_monotonic),
+    (isAlreadyMapped && next?.partition_value_transform) ||
+      nextTransform ||
+      null,
+    Boolean(isAlreadyMapped && next?.partition_transform_is_monotonic),
   );
 }
 

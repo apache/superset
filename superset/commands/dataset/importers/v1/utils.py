@@ -49,6 +49,7 @@ from superset.commands.importers.v1.utils import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.partition_mapping import (
+    drop_unmapped_value_transforms,
     FEATURE_FLAG as PARTITION_FILTER_MAPPING,
     is_unfinished,
     stored_expression_error,
@@ -613,6 +614,39 @@ def import_dataset(  # noqa: C901
                     attributes["extra"] = None
 
     drop_unusable_partition_transforms(config)
+    # And the mapping's one-transform invariant, against the columns this bundle
+    # writes. `DatasetDAO.clear_unmapped_partition_transforms` runs on both
+    # sides of the import below, but it is gated on the feature flag -- it
+    # discards stored configuration -- so a bundle imported during a flag-off
+    # window could park a transform on a column the mapping does not mirror and
+    # have it stored. Nothing reads it while the flag is off, and then the flag
+    # goes on and the mapping resolves onto it. Dropped rather than refused, the
+    # same bargain the sanitizer above strikes and for the same reason: a bundle
+    # is imported whole.
+    #
+    # Each reference falls back to the stored dataset, because an overwrite
+    # keeps whatever the bundle omits -- so a bundle that says nothing about
+    # `partition_column` is still mapping onto the stored one.
+    if cleared := drop_unmapped_value_transforms(
+        config.get("columns"),
+        partition_column=config.get(
+            "partition_column", getattr(existing, "partition_column", None)
+        ),
+        partition_mapped_column=config.get(
+            "partition_mapped_column",
+            getattr(existing, "partition_mapped_column", None),
+        ),
+        main_dttm_col=config.get(
+            "main_dttm_col", getattr(existing, "main_dttm_col", None)
+        ),
+    ):
+        logger.warning(
+            "Dropping the partition value transform on %s.%s (dataset %s) "
+            "during import: the mapping does not mirror those columns",
+            config.get("table_name"),
+            ", ".join(cleared),
+            config.get("uuid"),
+        )
 
     # should we delete columns and metrics not present in the current import?
     # Restore-via-import of a soft-deleted dataset is implicitly a clean
