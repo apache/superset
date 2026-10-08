@@ -226,10 +226,20 @@ def _append_columns(
     assign method, which overwrites the original column in `base_df` if the column
     already exists, and appends the column if the name is not defined.
 
-    A mapping may do both at once, so the two halves are handled separately: an
-    entry whose source and target names match overwrites in place, and one that
-    renames is appended. Treating a mixed mapping as a whole would append the
-    column that was meant to be overwritten, leaving a duplicate label behind.
+    A mapping may do both at once, so the two halves are handled separately.
+    An entry is appended only when its target names a column the result does not
+    already have, which means the target differs from the source *and* is not
+    already in `base_df`. Everything else is written in place. Treating a mixed
+    mapping as a whole would append the column that was meant to be overwritten,
+    leaving a duplicate label behind.
+
+    Both parts of that condition are needed. `{'y': 'z'}` against a frame that
+    already has a `z` renames onto an existing label, so appending it duplicates
+    `z`. `{'latitude': 'latitude'}` names a target that is not in `base_df` at
+    all, which `geodetic_parse` does whenever the caller keeps the default
+    column name, and that must keep being written in place: appending it would
+    concatenate, and `pd.concat` unions the index rather than aligning to
+    `base_df`.
 
     Note that! this is a memory-intensive operation.
 
@@ -248,14 +258,24 @@ def _append_columns(
         # caller which mutates the result does not reach `base_df`.
         return base_df.copy()
 
-    overwritten = {key: value for key, value in columns.items() if key == value}
-    appended = {key: value for key, value in columns.items() if key != value}
+    appended = {
+        key: value
+        for key, value in columns.items()
+        if value != key and value not in base_df.columns
+    }
+    overwritten = {key: value for key, value in columns.items() if key not in appended}
 
     _base_df = base_df
     if overwritten:
         # make sure to return a new DataFrame instead of changing the `base_df`.
         _base_df = base_df.copy()
-        _base_df.loc[:, overwritten.keys()] = append_df
+        # Select before renaming, as below, and because once the source name may
+        # differ from the target, it is the target that says which column to
+        # write.
+        overwritten_df = append_df.loc[:, overwritten.keys()].rename(
+            columns=overwritten
+        )
+        _base_df.loc[:, overwritten_df.columns] = overwritten_df
     if not appended:
         return _base_df
     # Select before renaming: `append_df` may carry columns the mapping does not

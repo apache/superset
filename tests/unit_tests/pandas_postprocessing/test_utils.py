@@ -84,6 +84,69 @@ def test_append_columns_with_mixed_mapping():
     assert series_to_list(mixed["z2"]) == [30.0, 40.0]
 
 
+def test_append_columns_overwrites_a_target_already_in_base_df():
+    """
+    A rename whose target is already a column must overwrite, not append.
+
+    `{"y": "z"}` against a frame that already has a `z` renames onto an existing
+    label, so appending it leaves two columns called `z` and `df["z"]` returns a
+    DataFrame where callers expect a Series. The source and target names differ,
+    so a split keyed on them matching sends this down the append path.
+    """
+    base_df = DataFrame({"y": [1.0, 2.0], "z": [3.0, 4.0]})
+    append_df = DataFrame({"y": [10.0, 20.0]})
+
+    post_df = _append_columns(base_df, append_df, {"y": "z"})
+
+    assert post_df.columns.tolist() == ["y", "z"]
+    assert not post_df.columns.duplicated().any()
+    assert series_to_list(post_df["y"]) == [1.0, 2.0]
+    assert series_to_list(post_df["z"]) == [10.0, 20.0]
+    # The overwrite must not reach the caller's frame.
+    assert series_to_list(base_df["z"]) == [3.0, 4.0]
+
+
+def test_append_columns_splits_a_mapping_by_whether_the_target_exists():
+    """
+    One mapping may overwrite an existing target and append a new one.
+
+    Both halves are renames, so neither is recognizable by its source and target
+    matching; only the presence of the target separates them.
+    """
+    base_df = DataFrame({"y": [1.0, 2.0], "z": [3.0, 4.0]})
+    append_df = DataFrame({"y": [10.0, 20.0], "z": [30.0, 40.0]})
+
+    post_df = _append_columns(base_df, append_df, {"y": "z", "z": "w"})
+
+    assert post_df.columns.tolist() == ["y", "z", "w"]
+    assert not post_df.columns.duplicated().any()
+    assert series_to_list(post_df["y"]) == [1.0, 2.0]
+    assert series_to_list(post_df["z"]) == [10.0, 20.0]
+    assert series_to_list(post_df["w"]) == [30.0, 40.0]
+
+
+def test_append_columns_writes_in_place_when_the_target_names_the_source():
+    """
+    A target that names its own source is written in place, not appended.
+
+    The target need not be a column of `base_df` for this: `geodetic_parse`
+    passes `{"latitude": "latitude"}` whenever the caller keeps the default
+    column name, and `latitude` is a column of `append_df` only. Appending it
+    would go through `pd.concat`, which unions the index instead of aligning to
+    `base_df`, so a frame that does not have a 0-based index would gain a row per
+    parsed row. Testing only whether the target is already present would miss
+    this, since it is not.
+    """
+    base_df = DataFrame({"city": ["New York City", "Sydney"]}, index=[5, 6])
+    append_df = DataFrame({"latitude": [40.7, -33.8]})
+
+    post_df = _append_columns(base_df, append_df, {"latitude": "latitude"})
+
+    assert post_df.columns.tolist() == ["city", "latitude"]
+    assert post_df.index.tolist() == [5, 6]
+    assert len(post_df) == len(base_df)
+
+
 def test_append_columns_ignores_unmapped_columns():
     """
     Only the columns the mapping asks for may reach the result.
