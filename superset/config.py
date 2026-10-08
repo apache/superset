@@ -920,6 +920,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "EMBEDDABLE_CHARTS": True,
+    # Allow a database connection to carry a username and password used only for
+    # embedded guest requests, while logged-in users continue to authenticate per-user
+    # via OAuth2. Requires EMBEDDED_SUPERSET.
+    # @lifecycle: testing
+    # @category: security
+    "EMBEDDED_CREDENTIAL_FALLBACK": False,
     # Enable embedded Superset functionality
     # @lifecycle: stable
     # @category: runtime_config

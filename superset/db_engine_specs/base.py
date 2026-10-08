@@ -738,6 +738,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
+
+    # Can a connection on this engine carry a username/password used only for embedded
+    # guest requests? Opting in requires the engine's impersonation to be a no-op for
+    # the fallback path, so that the stored credential -- rather than a per-user OAuth2
+    # token the guest does not have -- authenticates the connection.
+    supports_embedded_credential_fallback = False
     oauth2_scope = ""
     oauth2_authorization_request_uri: str | None = None  # pylint: disable=invalid-name
     oauth2_token_request_uri: str | None = None
@@ -858,6 +864,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         # Prevent circular import.
         from superset.daos.key_value import KeyValueDAO
 
+        # Every caller is expected to have gone through `needs_oauth2`, which refuses
+        # the dance for principals that cannot complete it. This is the backstop: the
+        # state below needs a user id, and an embedded `GuestUser` has none, so without
+        # it a caller that skipped the check gets an `AttributeError` and a 500 rather
+        # than something a reader can act on.
+        user_id = getattr(getattr(g, "user", None), "id", None)
+        if user_id is None:
+            raise OAuth2Error(
+                "OAuth2 requires an authenticated user with an id; "
+                "the current principal has none"
+            )
+
         tab_id = str(uuid4())
         default_redirect_uri = get_oauth2_redirect_uri()
 
@@ -885,7 +903,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         state: OAuth2State = {
             # Database ID and user ID are the primary key associated with the token.
             "database_id": database.id,
-            "user_id": g.user.id,
+            "user_id": user_id,
             # In multi-instance deployments there might be a single proxy handling
             # redirects, with a custom `DATABASE_OAUTH2_REDIRECT_URI`. Since the OAuth2
             # application requires every redirect URL to be registered a priori, this
@@ -2602,7 +2620,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Check if the exception is one that indicates OAuth2 is needed.
         """
-        return g and hasattr(g, "user") and isinstance(ex, cls.oauth2_exception)
+        # The cheap type check comes first so that the common case -- an error that
+        # has nothing to do with OAuth2 -- never reaches the import or the feature
+        # flag lookup below.
+        if not isinstance(ex, cls.oauth2_exception):
+            return False
+
+        if not (g and hasattr(g, "user")):
+            return False
+
+        # Prevent circular import.
+        from superset import security_manager
+
+        # An embedded viewer authenticates with a guest token rather than a Superset
+        # account, so there is no per-user token to resolve for them and no route by
+        # which they could authorize one. Starting the dance would raise instead of
+        # helping; let the driver's own error reach the user.
+        return not security_manager.is_guest_user(g.user)
 
     @classmethod
     def make_label_compatible(cls, label: str) -> str | quoted_name:
@@ -2824,6 +2858,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return
         try:
             encrypted_extra = json.loads(database.encrypted_extra)
+            # `embedded_credentials` is read by `Database._get_sqla_engine`, not by any
+            # driver. Splatting it in here would make it a `create_engine` kwarg and
+            # raise `TypeError` on every engine that inherits this method, so it is
+            # dropped regardless of whether the engine opted into the feature.
+            encrypted_extra.pop("embedded_credentials", None)
             params.update(encrypted_extra)
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)

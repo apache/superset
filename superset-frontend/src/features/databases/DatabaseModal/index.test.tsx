@@ -315,6 +315,55 @@ describe('DatabaseModal', () => {
           sqlalchemy_uri_placeholder:
             'databricks+connector://token:{access_token}@{host}:{port}/{database_name}',
         },
+        {
+          available_drivers: ['snowflake'],
+          default_driver: 'snowflake',
+          engine: 'snowflake',
+          name: 'Snowflake',
+          parameters: {
+            properties: {
+              account: {
+                type: 'string',
+              },
+              database: {
+                type: 'string',
+              },
+              password: {
+                type: 'string',
+              },
+              role: {
+                type: 'string',
+              },
+              username: {
+                type: 'string',
+              },
+              warehouse: {
+                type: 'string',
+              },
+              oauth2_client_info: {
+                description: 'OAuth2 client information',
+                type: 'string',
+                'x-encrypted-extra': true,
+              },
+            },
+            required: [
+              'account',
+              'database',
+              'password',
+              'role',
+              'username',
+              'warehouse',
+            ],
+            type: 'object',
+          },
+          preferred: false,
+          sqlalchemy_uri_placeholder: 'snowflake://',
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+            supports_oauth2: true,
+          },
+        },
       ],
     });
     fetchMock.post(

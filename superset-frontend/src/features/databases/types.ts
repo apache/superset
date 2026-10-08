@@ -62,6 +62,8 @@ export type DatabaseParameters = {
   account?: string;
   ssh?: boolean;
   project_id?: string;
+  oauth2_client_info?: Record<string, string>;
+  embedded_credentials?: Record<string, string>;
 };
 
 export type DatabaseObject = {

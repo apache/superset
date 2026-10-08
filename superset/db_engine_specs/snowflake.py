@@ -36,9 +36,14 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import DatabaseError as SqlalchemyDatabaseError
 from sqlalchemy.sql import quoted_name
 from sqlalchemy.sql.elements import ColumnElement
+from typing_extensions import NotRequired
 
 from superset import is_feature_enabled
 from superset.constants import TimeGrain
+from superset.databases.schemas import (
+    encrypted_field_properties,
+    EncryptedString,
+)
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
@@ -125,6 +130,30 @@ class SnowflakeParametersSchema(Schema):
     database = fields.Str(required=True)
     role = fields.Str(required=True)
     warehouse = fields.Str(required=True)
+    # Unlike GSheets, the endpoints cannot be defaulted: they live on the customer's
+    # own Snowflake account (`https://<account>.snowflakecomputing.com/oauth/...`),
+    # so there is no URI that would be right for every deployment. `scope` can be,
+    # since a refresh token is what makes an OAuth2 connection usable beyond the
+    # first hour.
+    oauth2_client_info = EncryptedString(
+        required=False,
+        metadata={
+            "description": "OAuth2 client information",
+            "default": {"scope": "refresh_token"},
+        },
+        allow_none=True,
+    )
+    embedded_credentials = EncryptedString(
+        required=False,
+        metadata={
+            "description": (
+                "Credentials used only for embedded guest requests. Every embedded "
+                "viewer of this connection queries as this one Snowflake user; "
+                "logged-in users are unaffected and continue to use OAuth2."
+            ),
+        },
+        allow_none=True,
+    )
 
 
 class SnowflakeParametersType(TypedDict):
@@ -134,6 +163,8 @@ class SnowflakeParametersType(TypedDict):
     database: str
     role: str
     warehouse: str
+    oauth2_client_info: NotRequired[dict[str, Any] | None]
+    embedded_credentials: NotRequired[dict[str, Any] | None]
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
@@ -236,6 +267,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         "$.auth_params.privatekey_body": "Private Key Body",
         "$.auth_params.privatekey_pass": "Private Key Password",
         "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+        # The username is deliberately left visible: an admin needs to be able to see
+        # which Snowflake user embedded queries run as without having to re-enter it.
+        "$.embedded_credentials.password": "Embedded Fallback Password",
     }
 
     _time_grain_expressions = {
@@ -276,6 +310,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     # OAuth 2.0 support
     supports_oauth2: bool = True
+
+    # Snowflake's `impersonate_user` below sets `authenticator=oauth` whether or not a
+    # token exists, so the fallback path in `Database._get_sqla_engine` -- which skips
+    # impersonation entirely -- is what lets a stored username/password authenticate.
+    supports_embedded_credential_fallback: bool = True
     # `CustomSnowflakeAuthError` is only matched via `isinstance()` (see the
     # metaclass docstring above), so it's paired with `OAuth2TokenRefreshError`
     # (a real subclass) to keep `refresh_oauth2_token`'s `except` clause working.
@@ -639,8 +678,25 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             plugins=[ma_plugin],
         )
 
+        # `APISpec` has already run `init_spec` for the plugin passed above, so the
+        # converter exists by now. This is what tags `EncryptedField` parameters with
+        # `x-encrypted-extra`, which is the signal the connection dialog uses both to
+        # render the field and to move its value into `masked_encrypted_extra` rather
+        # than posting it as a plain parameter.
+        ma_plugin.converter.add_attribute_function(encrypted_field_properties)
+
         spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        return spec.to_dict()["components"]["schemas"][cls.__name__]
+        schema = spec.to_dict()["components"]["schemas"][cls.__name__]
+
+        # This payload is the sole source of the fields the connection dialog renders,
+        # so dropping the property here is all it takes to hide the sub-form -- no
+        # feature-flag plumbing is needed on the frontend. Note that this only stops
+        # the credential being *offered*: one already stored is left untouched, so
+        # turning the flag off is reversible rather than destructive.
+        if not is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK"):
+            schema["properties"].pop("embedded_credentials", None)
+
+        return schema
 
     @staticmethod
     def update_params_from_encrypted_extra(
@@ -657,6 +713,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         # settings are not loaded, and the connection is established using OAuth only.
         connect_args: dict[str, Any] = params.get("connect_args") or {}
         if connect_args.get("authenticator") == "oauth":
+            return
+
+        # The embedded fallback path skips impersonation, so `authenticator` is unset
+        # and this method still runs. A connection that also carries key-pair auth
+        # would otherwise attach its private key alongside the fallback credential,
+        # giving the driver two ways to authenticate and making which one wins a
+        # driver detail. The explicitly configured guest credential takes precedence.
+        if database.get_embedded_fallback_credentials():
             return
 
         if not database.encrypted_extra:

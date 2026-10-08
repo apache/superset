@@ -746,7 +746,24 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
-        if self.impersonate_user:
+        if embedded_credentials := self.get_embedded_fallback_credentials():
+            # Deliberately *instead of* impersonation, not alongside it, and this is
+            # load-bearing twice over. First, an engine spec that opts in sets its
+            # OAuth2 authenticator during impersonation whether or not a token exists,
+            # so skipping it is what lets the stored credential authenticate at all.
+            # Second, `effective_username` above resolves to `g.user.username`, and a
+            # `GuestUser` carries whatever username the guest token claims -- so going
+            # through impersonation would let whoever mints the token choose the
+            # connection identity.
+            #
+            # The credential goes on the URL rather than into `connect_args` so that
+            # the engine cache key below -- which has no user component -- differs
+            # from the one a logged-in user produces.
+            sqlalchemy_url = sqlalchemy_url.set(
+                username=embedded_credentials["username"],
+                password=embedded_credentials["password"],
+            )
+        elif self.impersonate_user:
             sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
                 self,
                 effective_username,
@@ -1606,6 +1623,57 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             sqla_col = sqla_col.label(label)
         sqla_col.key = label_expected
         return sqla_col
+
+    def get_embedded_fallback_credentials(self) -> dict[str, str] | None:
+        """
+        Credentials to authenticate an embedded guest's queries, if any.
+
+        An embedded viewer signs in with a guest token rather than a Superset account,
+        so there is no per-user OAuth2 token to resolve for them -- and an external
+        viewer may have no identity on the analytical database at all. This lets one
+        connection carry a credential used *only* for those requests, while logged-in
+        users continue to authenticate per-user via OAuth2.
+
+        Returns the credential only when all five conditions hold, so that there is no
+        route by which a logged-in user can reach it:
+
+        1. the deployment opted in via ``EMBEDDED_CREDENTIAL_FALLBACK``;
+        2. the engine opted in via ``supports_embedded_credential_fallback``;
+        3. the connection stores a *complete* credential -- a half-filled one is
+           ignored rather than half-applied;
+        4. the current principal is an embedded guest, and embedding is enabled;
+        5. the connection actually uses OAuth2, so that this stays a fallback for the
+           per-user flow rather than a second identity on an ordinary connection.
+        """
+        if not is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK"):
+            return None
+
+        if not self.db_engine_spec.supports_embedded_credential_fallback:
+            return None
+
+        # `get_current_guest_user_if_guest` is a bare isinstance check with no feature
+        # flag behind it. A `GuestUser` can only reach `g` via the guest-token request
+        # loader, which is itself gated -- but a security boundary should not rest on
+        # that implication, so the flag is checked explicitly.
+        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+            return None
+
+        if security_manager.get_current_guest_user_if_guest() is None:
+            return None
+
+        if not self.is_oauth2_enabled():
+            return None
+
+        credentials = self.get_encrypted_extra().get("embedded_credentials") or {}
+        if not isinstance(credentials, dict):
+            return None
+
+        username = credentials.get("username")
+        password = credentials.get("password")
+        if not username or not password:
+            return None
+
+        return {"username": username, "password": password}
 
     def is_oauth2_enabled(self) -> bool:
         """
