@@ -1022,11 +1022,12 @@ MCP_NATIVE_TOOL_LIST_CONFIG = {
 }
 ```
 
-Descriptions are bounded with the same rule tool search applies to its
-results: whole paragraphs first, then whole sentences, never a partial
-heading, `IMPORTANT` block, or list. Calling instructions authored on a tool's
-`request` parameter stay untruncated in the input schema and their length is
-deducted from the budget. Names, input and output schemas (including nullable
+Descriptions keep whole paragraphs first, then whole sentences. Once a whole
+paragraph fits the budget, a following heading, `IMPORTANT` block, or list is
+not partly advertised. An overlong first paragraph can be cut at a sentence
+boundary, even if it is structured. Calling instructions authored on a tool's
+`request` parameter stay untruncated in the input schema and are not deducted
+from the native prose budget. Names, input and output schemas (including nullable
 unions, constraints, and definitions), and annotations are unchanged, and calls
 are validated against the same server-side models, so only the listed prose
 differs. Chart tools point to `get_chart_type_schema`, which returns each chart

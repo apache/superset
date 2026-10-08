@@ -549,10 +549,10 @@ MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
 # = False), where tools/list advertises every tool the caller may use.
 #
 # compact=True bounds each listed description to max_description_length with
-# the same rule tool search applies to its results: whole paragraphs first,
-# then whole sentences, never a partial heading, IMPORTANT block or list, and
-# request-parameter instructions (kept untruncated in the input schema) are
-# deducted from the budget. Names, input and output schemas ($defs, nullable
+# whole paragraphs first, then whole sentences. After a whole paragraph fits,
+# a following heading, IMPORTANT block or list is not partly advertised.
+# Request-parameter instructions stay untruncated in the input schema and are
+# not deducted from the native prose budget. Names and schemas ($defs, nullable
 # unions, constraints), and annotations are served unchanged, and tools/call
 # validates against the same server-side models, so only the listed prose
 # changes. Detailed chart guidance remains available from get_chart_type_schema.

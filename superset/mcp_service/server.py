@@ -347,7 +347,7 @@ def _truncate_description(text: str, max_length: int) -> str:
         kept, rest = text[: match.start()].strip(), text[match.end() :]
     kept = _drop_trailing_lead_in(kept)
     following = _PARAGRAPH_BREAK.split(rest, maxsplit=1)[0]
-    # Do not leave a heading, IMPORTANT block or list workflow partly advertised.
+    # After a whole paragraph fits, do not partly advertise a structured block.
     if kept and _STRUCTURED_PARAGRAPH.search(following):
         return kept
     separator = "\n\n" if kept else ""
@@ -361,7 +361,7 @@ def _request_instructions(tool: Any) -> str:
     Only ``Field(description=...)`` on the parameter itself counts. Schema
     dereferencing also copies the request model's docstring onto the served
     ``request`` property; that is model documentation, not calling instructions,
-    and must not be advertised or deducted from the prose budget.
+    and must not be advertised or deducted from the search prose budget.
     """
     try:
         signature = inspect.signature(tool.fn)
@@ -384,9 +384,8 @@ def _bounded_description(tool: Any, description: str, max_length: int) -> str:
     """Bound a tool's description, reserving room for its request instructions.
 
     Request-parameter instructions stay untruncated in the input schema, so
-    their length is deducted from the prose budget. This is the single
-    description-bounding rule shared by tool-search results and the compact
-    native ``tools/list``.
+    their length is deducted from the search prose budget. Native listings
+    use the full prose budget because they serve the input schema unchanged.
     """
     instructions = _request_instructions(tool)
     return _truncate_description(description, max(0, max_length - len(instructions)))
@@ -841,8 +840,10 @@ def _apply_compact_tool_list_transform(
     """Bound tool descriptions in the native ``tools/list`` when configured.
 
     Opt-in via ``MCP_NATIVE_TOOL_LIST_CONFIG["compact"]``. Listed descriptions
-    are bounded with :func:`_bounded_description`, the rule tool search applies
-    to its results. Only the listing changes: names, input and output schemas,
+    are bounded with :func:`_truncate_description`. Unlike search results,
+    native listings do not deduct request instructions from the prose budget:
+    those instructions already ship in the unchanged input schema. Only the
+    listing changes: names, input and output schemas,
     and annotations are served unchanged, and ``tools/call`` resolves the
     registered tool, so validation and execution do not depend on this setting.
     """
@@ -864,9 +865,7 @@ def _apply_compact_tool_list_transform(
             return [
                 tool.model_copy(
                     update={
-                        "description": _bounded_description(
-                            tool, tool.description, max_desc
-                        )
+                        "description": _truncate_description(tool.description, max_desc)
                     }
                 )
                 if tool.description

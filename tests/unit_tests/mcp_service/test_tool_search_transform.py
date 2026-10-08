@@ -477,6 +477,14 @@ def test_truncate_description_long_first_paragraph_keeps_sentences() -> None:
     assert _truncate_description(text, 40) == "Purpose line. More detail here."
 
 
+def test_truncate_description_structured_first_paragraph_keeps_sentences() -> None:
+    """Without a kept paragraph, a structured first paragraph can be cut."""
+    text = "USAGE NOTES:\n- do a. do b. do c. do d. do e."
+    assert _truncate_description(text, 40) == (
+        "USAGE NOTES:\n- do a. do b. do c. do d."
+    )
+
+
 # -- _create_search_result_serializer tests --
 
 

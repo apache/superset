@@ -72,7 +72,7 @@ from superset.mcp_service.mcp_config import (
 from superset.mcp_service.server import (
     _apply_compact_tool_list_transform,
     _apply_tool_search_transform,
-    _bounded_description,
+    _truncate_description,
     build_middleware_list,
 )
 from superset.utils import json
@@ -126,7 +126,11 @@ async def canonical_tools() -> list[Tool]:
 
 
 async def build_server(
-    *, structured_output_enabled: bool, compatibility: bool, compact: bool = False
+    *,
+    structured_output_enabled: bool,
+    compatibility: bool,
+    compact: bool = False,
+    max_description_length: int = COMPACT_MAX_DESCRIPTION,
 ) -> FastMCP:
     """Assemble a server from the registered tools as ``run_server`` does."""
     server = FastMCP(
@@ -141,18 +145,24 @@ async def build_server(
         _apply_tool_search_transform(server, dict(MCP_TOOL_SEARCH_CONFIG))
     else:
         native_config = COMPACT_CONFIG if compact else MCP_NATIVE_TOOL_LIST_CONFIG
-        _apply_compact_tool_list_transform(server, dict(native_config))
+        _apply_compact_tool_list_transform(
+            server, {**native_config, "max_description_length": max_description_length}
+        )
     return server
 
 
 async def list_native(
-    structured_output_enabled: bool, *, compact: bool = False
+    structured_output_enabled: bool,
+    *,
+    compact: bool = False,
+    max_description_length: int = COMPACT_MAX_DESCRIPTION,
 ) -> mt.ListToolsResult:
     """List the native catalog over the MCP protocol."""
     server = await build_server(
         structured_output_enabled=structured_output_enabled,
         compatibility=False,
         compact=compact,
+        max_description_length=max_description_length,
     )
     async with Client(server) as client:
         return await client.list_tools_mcp()
@@ -756,12 +766,18 @@ def test_compact_listing_is_off_by_default() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mode", OUTPUT_MODES)
-async def test_compact_listing_only_bounds_descriptions(mode: str) -> None:
+@pytest.mark.parametrize("max_description_length", [150, 250, 300])
+async def test_compact_listing_only_bounds_descriptions(
+    mode: str, max_description_length: int
+) -> None:
     """Every field except the description is served exactly as by default."""
     structured_output_enabled = OUTPUT_MODES[mode]
-    registered = {tool.name: tool for tool in await canonical_tools()}
     default = await list_native(structured_output_enabled)
-    compact = await list_native(structured_output_enabled, compact=True)
+    compact = await list_native(
+        structured_output_enabled,
+        compact=True,
+        max_description_length=max_description_length,
+    )
 
     assert compact.nextCursor is None
     assert [tool.name for tool in compact.tools] == [
@@ -773,14 +789,19 @@ async def test_compact_listing_only_bounds_descriptions(mode: str) -> None:
         full_description = full_entry.pop("description", "")
         description = bounded_entry.pop("description", "")
         assert bounded_entry == full_entry, full.name
-        # The same bounding rule as tool-search results, from the full prose.
-        assert description == _bounded_description(
-            registered[full.name], full_description, COMPACT_MAX_DESCRIPTION
+        # Native mode budgets prose alone; request instructions stay in the schema.
+        assert description == _truncate_description(
+            full_description, max_description_length
         )
         assert description, full.name
+        assert len(description) <= max_description_length, full.name
         assert inspect.cleandoc(full_description).startswith(description), full.name
         if description != full_description:
             shortened.add(full.name)
+    datasets = next(tool for tool in compact.tools if tool.name == "list_datasets")
+    assert "For semantic views, use list_metrics for discovery and get_table" in (
+        datasets.description or ""
+    )
     assert {"generate_chart", "update_chart", "list_datasets"} <= shortened
     assert compact_bytes([wire_entry(tool) for tool in compact.tools]) < (
         compact_bytes([wire_entry(tool) for tool in default.tools])
@@ -905,3 +926,11 @@ async def test_compact_listing_keeps_chart_guidance_reachable() -> None:
             assert payload["chart_type"] == chart_type
             assert payload["schema"].get("required"), chart_type
             assert payload["examples"], chart_type
+            if chart_type == "box_plot":
+                assert {"metrics", "distribute_across"} <= set(
+                    payload["schema"]["required"]
+                )
+                assert "distribute_across" in payload["schema"]["properties"]
+                assert all(
+                    example["distribute_across"] for example in payload["examples"]
+                )
