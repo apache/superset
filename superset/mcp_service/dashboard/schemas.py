@@ -674,7 +674,28 @@ class AddChartToDashboardRequest(BaseModel):
     )
 
 
-class AddChartToDashboardResponse(BaseModel):
+class DashboardMutationErrorFields(BaseModel):
+    """Shared error and permission fields for governance mutations."""
+
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the user lacks edit rights on the target dashboard. "
+            "Remediation: ask the user to grant access; do not retry as-is."
+        ),
+    )
+    managed_externally: bool = Field(
+        default=False,
+        description=(
+            "True when the mutation was refused because the dashboard is "
+            "managed externally. This is not an access denial: permissions "
+            "and retries cannot change it; its source of truth is external."
+        ),
+    )
+
+
+class AddChartToDashboardResponse(DashboardMutationErrorFields):
     """Response schema for adding chart to dashboard."""
 
     dashboard: DashboardInfo | None = Field(
@@ -686,7 +707,6 @@ class AddChartToDashboardResponse(BaseModel):
     position: dict[str, Any] | None = Field(
         None, description="Position information for the added chart"
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -709,7 +729,7 @@ class RemoveChartFromDashboardRequest(BaseModel):
     )
 
 
-class RemoveChartFromDashboardResponse(BaseModel):
+class RemoveChartFromDashboardResponse(DashboardMutationErrorFields):
     """Response schema for removing a chart from a dashboard."""
 
     dashboard: DashboardInfo | None = Field(
@@ -726,7 +746,6 @@ class RemoveChartFromDashboardResponse(BaseModel):
             "became empty as a result)."
         ),
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -1058,7 +1077,7 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
         return normalized
 
 
-class UpdateDashboardResponse(BaseModel):
+class UpdateDashboardResponse(DashboardMutationErrorFields):
     """Response schema for ``update_dashboard``.
 
     Distinct from ``GenerateDashboardResponse`` because the semantics
@@ -1070,7 +1089,6 @@ class UpdateDashboardResponse(BaseModel):
         None, description="The updated dashboard info, if successful"
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
-    error: str | None = Field(None, description="Error message, if update failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -1164,28 +1182,6 @@ class ManageDashboardOwnersRequest(BaseModel):
                 f"remove_owner_ids: {overlap}."
             )
         return self
-
-
-class DashboardMutationErrorFields(BaseModel):
-    """Shared error and permission fields for governance mutations."""
-
-    error: str | None = Field(None, description="Error message, if operation failed")
-    permission_denied: bool = Field(
-        default=False,
-        description=(
-            "True when the user lacks edit rights on the target dashboard. "
-            "Remediation: ask the user to grant access; do not retry as-is."
-        ),
-    )
-    managed_externally: bool = Field(
-        default=False,
-        description=(
-            "True when the mutation was refused because the dashboard is "
-            "managed externally. Structural, not an access denial: granting "
-            "permissions cannot resolve it and the call should not be "
-            "retried — the entity's source of truth lives outside Superset."
-        ),
-    )
 
 
 class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
@@ -2265,7 +2261,7 @@ class DeleteDashboardRequest(BaseModel):
         return value
 
 
-class DeleteDashboardResponse(BaseModel):
+class DeleteDashboardResponse(DashboardMutationErrorFields):
     """Result of a delete_dashboard operation."""
 
     success: bool = Field(description="Whether the dashboard was deleted")
@@ -2280,7 +2276,6 @@ class DeleteDashboardResponse(BaseModel):
         ),
     )
     message: str | None = Field(None, description="Human-readable outcome message")
-    error: str | None = Field(None, description="Error message if the delete failed")
     error_type: str | None = Field(None, description="Type of error if failed")
     permission_denied: bool = Field(
         False,
@@ -2596,7 +2591,7 @@ class ManageNativeFiltersRequest(BaseModel):
         return self
 
 
-class ManageNativeFiltersResponse(BaseModel):
+class ManageNativeFiltersResponse(DashboardMutationErrorFields):
     """Response schema for the manage_native_filters tool."""
 
     dashboard_id: int | None = Field(None, description="ID of the dashboard")
@@ -2619,7 +2614,6 @@ class ManageNativeFiltersResponse(BaseModel):
         default_factory=list,
         description="Final native filter configuration after the operation, in order",
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -3431,7 +3425,7 @@ class RestoreDashboardRequest(BaseModel):
         return value
 
 
-class RestoreDashboardResponse(BaseModel):
+class RestoreDashboardResponse(DashboardMutationErrorFields):
     """Result of a restore_dashboard operation."""
 
     success: bool = Field(description="Whether the dashboard was restored from trash")
@@ -3440,7 +3434,6 @@ class RestoreDashboardResponse(BaseModel):
         None, description="Title of the restored dashboard"
     )
     message: str | None = Field(None, description="Human-readable outcome message")
-    error: str | None = Field(None, description="Error message if the restore failed")
     error_type: str | None = Field(None, description="Type of error if failed")
     permission_denied: bool = Field(
         False,
