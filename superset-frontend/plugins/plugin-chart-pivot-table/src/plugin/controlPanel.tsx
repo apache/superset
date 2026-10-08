@@ -121,7 +121,16 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
-        ['series_limit'],
+        [
+          {
+            name: 'series_limit',
+            config: {
+              ...sharedControls.series_limit,
+              visibility: ({ form_data }) =>
+                !form_data.datasource?.endsWith('__semantic_view'),
+            },
+          },
+        ],
         [
           {
             name: 'row_limit',
