@@ -45,6 +45,7 @@ def _schedule(
 
 def _stub_daos(mocker: MockerFixture, *, effective: dict[str, Any] | None = None):
     effective = effective or {}
+    mocker.patch(f"{MODULE}.ReportConfigDAO.lock_for_update")
     mocker.patch(
         f"{MODULE}.ReportConfigDAO.get_effective_value",
         side_effect=lambda key: effective.get(key),
@@ -80,6 +81,31 @@ def test_no_conflicts_upserts_and_returns_effective_config(
 
     upsert.assert_called_once_with(payload)
     assert result == {"saved": True}
+
+
+def test_config_row_is_locked_before_validation_and_merge(
+    mocker: MockerFixture,
+) -> None:
+    """A concurrent save cannot interleave between policy validation and merge."""
+    _stub_daos(mocker)
+    steps: list[str] = []
+    mocker.patch(
+        f"{MODULE}.ReportConfigDAO.lock_for_update",
+        side_effect=lambda: steps.append("lock"),
+    )
+    mocker.patch.object(
+        UpdateReportConfigCommand,
+        "validate",
+        side_effect=lambda: steps.append("validate"),
+    )
+    mocker.patch(
+        f"{MODULE}.ReportConfigDAO.upsert",
+        side_effect=lambda _: steps.append("merge"),
+    )
+
+    UpdateReportConfigCommand({ReportConfigKey.ALERTS_ATTACH_REPORTS: False}).run()
+
+    assert steps == ["lock", "validate", "merge"]
 
 
 def test_recipient_conflicts_list_impacted_schedules(mocker: MockerFixture) -> None:

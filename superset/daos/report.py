@@ -445,6 +445,15 @@ class ReportConfigDAO:
     VERSION: Literal[1] = 1
 
     @staticmethod
+    def lock_for_update() -> None:
+        """Serialize configuration validation and merging within a transaction."""
+        KeyValueDAO.get_entry(
+            KeyValueResource.ALERT_REPORT_CONFIG,
+            FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+            for_update=True,
+        )
+
+    @staticmethod
     def get_stored_values() -> dict[str, Any]:
         """
         Return explicitly saved settings from the versioned document.

@@ -67,6 +67,13 @@ assists people when migrating to a new version.
   Reports always require content. Downgrading past this migration changes attachment-free
   alerts with a saved chart or dashboard to PNG and deletes attachment-free alerts with
   no saved asset. Back up the metadata database before downgrading if those alerts must be retained (or update them to set a valid attachment).
+- **Behavior change for existing Text alerts:** Before this upgrade, a chart alert with
+  `report_format: "TEXT"` embedded its data table in the notification even when
+  `ALERTS_ATTACH_REPORTS` was off. After this upgrade, when the global **Enable
+  attachments for alerts** setting is off, the alert notification is still sent but
+  **the embedded table is omitted**. This applies even if `ALERT_REPORT_DYNAMIC_EXECUTOR`
+  remains off. Disabling attachments now fully bypass data collection, to ensure notification
+  will be sent right away.
 - Behind the new `ALERT_REPORT_DYNAMIC_EXECUTOR` feature flag (off by default), alerts and
   reports record the user they execute as (`run_as`, plus `run_alert_query_as` for the
   alert condition query). Non-admins can only set themselves. `ALERT_REPORTS_EXECUTORS` is

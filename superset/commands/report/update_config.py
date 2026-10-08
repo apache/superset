@@ -53,6 +53,7 @@ class UpdateReportConfigCommand(BaseCommand):
 
     @transaction(on_error=partial(on_error, reraise=ReportConfigUpdateFailedError))
     def run(self) -> dict[str, Any]:
+        ReportConfigDAO.lock_for_update()
         self.validate()
         ReportConfigDAO.upsert(self._properties)
         return ReportConfigDAO.get_effective_config()

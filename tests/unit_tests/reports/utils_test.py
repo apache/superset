@@ -128,8 +128,8 @@ def test_get_dynamic_executor_disabled(mocker: MockerFixture) -> None:
     schedule = Mock(
         run_as=Mock(),
         run_alert_query_as=Mock(),
-        run_as_type=None,
-        run_alert_query_as_type=None,
+        run_as_type="fixed_user",
+        run_alert_query_as_type="fixed_user",
     )
     assert get_dynamic_executor(schedule) is None
     assert get_dynamic_executor(schedule, alert_query=True) is None

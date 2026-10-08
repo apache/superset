@@ -31,6 +31,20 @@ from superset.subjects.models import Subject
 logger = logging.getLogger(__name__)
 
 
+def _clear_preserved_config_audit_fields() -> None:
+    """Detach the retained configuration row from user audit references."""
+    db.session.query(KeyValueEntry).filter(
+        KeyValueEntry.resource == KeyValueResource.ALERT_REPORT_CONFIG.value,
+        KeyValueEntry.uuid == FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+    ).update(
+        {
+            KeyValueEntry.created_by_fk: None,
+            KeyValueEntry.changed_by_fk: None,
+        },
+        synchronize_session=False,
+    )
+
+
 class ResetSupersetCommand(BaseCommand):
     def __init__(
         self,
@@ -67,6 +81,8 @@ class ResetSupersetCommand(BaseCommand):
         db.session.query(KeyValueEntry).filter(
             KeyValueEntry.uuid.is_(None) | (KeyValueEntry.uuid != config_uuid)
         ).delete()
+        # Non-admins will be deleted, so clean up ``created_by_fk`` and ``changed_by_fk`
+        _clear_preserved_config_audit_fields()
         db.session.query(Log).delete()
         db.session.query(FavStar).delete()
 

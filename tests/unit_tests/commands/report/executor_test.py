@@ -132,6 +132,7 @@ def test_get_executor_user_ignores_run_as_when_feature_disabled(
     )
     model = ReportSchedule()
     model.run_as = _user("explicit")
+    model.run_as_type = "fixed_user"
 
     assert get_executor_user(model) == (legacy, "legacy")
 

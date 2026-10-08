@@ -4420,6 +4420,33 @@ def test_get_notification_content_text_format(mock_ff, mocker: MockerFixture) ->
     assert list(content.embedded_data.columns) == ["a"]
 
 
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_text_alert_skips_embedded_table_with_attachments_disabled(
+    mock_ff, mocker: MockerFixture
+) -> None:
+    """A condition-only alert does not fetch chart data for an inline TEXT table."""
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker,
+        report_format=ReportDataFormat.TEXT,
+        schedule_type=ReportScheduleType.ALERT,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
+        return_value=False,
+    )
+    get_embedded_data = mocker.patch.object(state, "_get_embedded_data")
+    resolve_executor = mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user"
+    )
+
+    content = state._get_notification_content()
+
+    get_embedded_data.assert_not_called()
+    resolve_executor.assert_not_called()
+    assert content.embedded_data is None
+
+
 @pytest.mark.parametrize(
     "email_subject,has_chart,expected_name",
     [

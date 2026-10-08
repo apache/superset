@@ -26,7 +26,7 @@ When scheduling an alert or report, you can choose the format used to deliver th
 
 Dashboard reports and alerts are limited to the PDF and PNG formats; the CSV, XLSX, and Text options are only available when scheduling a report or alert for an individual chart.
 
-For alerts (not scheduled reports), PNG/PDF screenshots and chart CSV/XLSX data are only generated when **Enable attachments for alerts** is on in the [Alerts & Reports configuration](#alerts--reports-configuration) (it defaults to the `ALERTS_ATTACH_REPORTS` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags), which is enabled by default). With it off, an alert notification is still sent, but without the attachment. Individual alerts also have an **Include attachment** toggle at the top of their Content section.
+For alerts (not scheduled reports), PNG/PDF screenshots, chart CSV/XLSX data, and embedded Text tables are only generated when **Enable attachments for alerts** is on in the [Alerts & Reports configuration](#alerts--reports-configuration) (it defaults to the `ALERTS_ATTACH_REPORTS` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags), which is enabled by default). With it off, an alert notification is still sent, but without rendered chart or dashboard content. Individual alerts also have an **Include attachment** toggle at the top of their Content section.
 
 ## Requirements
 
@@ -486,7 +486,7 @@ was never saved falls back to the corresponding `superset_config.py` value or fe
 
 | Setting | Fallback | Description |
 | --- | --- | --- |
-| Enable attachments for alerts | `ALERTS_ATTACH_REPORTS` FF | Whether alerts deliver their attachment. |
+| Enable attachments for alerts | `ALERTS_ATTACH_REPORTS` FF | Whether alerts deliver rendered chart or dashboard content, including embedded Text tables. |
 | Format dates in email subjects | `DATE_FORMAT_IN_EMAIL_SUBJECT` FF | Render date code placeholders in alert and report email subjects using the UTC date at delivery. |
 | Alert minimum interval | `ALERT_MINIMUM_INTERVAL` config | Minimum interval between two executions of an alert. |
 | Report minimum interval | `REPORT_MINIMUM_INTERVAL` config | Minimum interval between two executions of a report. |
