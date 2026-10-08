@@ -861,10 +861,10 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
                 "scope": {
                     "rootPath": ["ROOT_ID"],
                     "excluded": [c2.id],
-                    "selectedLayers": {
-                        f"chart-{c2.id}-layer-0": True,
-                        f"chart-{c3.id}-layer-1": False,
-                    },
+                    "selectedLayers": [
+                        f"chart-{c2.id}-layer-0",
+                        f"chart-{c3.id}-layer-1",
+                    ],
                 },
                 "chartsInScope": [c1.id, c2.id, c3.id],
             },
@@ -877,9 +877,17 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
         "chart_customization_config": [
             {
                 "id": "CUSTOMIZATION-gate",
-                "scope": {"rootPath": ["ROOT_ID"], "excluded": [c1.id]},
+                "scope": {
+                    "rootPath": ["ROOT_ID"],
+                    "excluded": [c1.id],
+                    "selectedLayers": [f"chart-{c1.id}-layer-custom"],
+                },
                 "chartsInScope": [c2.id],
-            }
+            },
+            {
+                "id": "CUSTOMIZATION-divider",
+                "type": "CHART_CUSTOMIZATION_DIVIDER",
+            },
         ],
         "global_chart_configuration": {
             "scope": {"rootPath": ["ROOT_ID"], "excluded": [c3.id]},
@@ -924,10 +932,10 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
     # 2. Native filter remapping
     gate_filter = copied_metadata["native_filter_configuration"][0]
     assert gate_filter["scope"]["excluded"] == [copied_slice_map["gate_c2"]]
-    assert gate_filter["scope"]["selectedLayers"] == {
-        f"chart-{copied_slice_map['gate_c2']}-layer-0": True,
-        f"chart-{copied_slice_map['gate_c3']}-layer-1": False,
-    }
+    assert gate_filter["scope"]["selectedLayers"] == [
+        f"chart-{copied_slice_map['gate_c2']}-layer-0",
+        f"chart-{copied_slice_map['gate_c3']}-layer-1",
+    ]
     assert gate_filter["chartsInScope"] == [
         copied_slice_map["gate_c1"],
         copied_slice_map["gate_c2"],
@@ -944,7 +952,15 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
     custom_cfg = copied_metadata["chart_customization_config"][0]
     assert custom_cfg["id"] == "CUSTOMIZATION-gate"
     assert custom_cfg["scope"]["excluded"] == [copied_slice_map["gate_c1"]]
+    assert custom_cfg["scope"]["selectedLayers"] == [
+        f"chart-{copied_slice_map['gate_c1']}-layer-custom"
+    ]
     assert custom_cfg["chartsInScope"] == [copied_slice_map["gate_c2"]]
+
+    custom_divider = copied_metadata["chart_customization_config"][1]
+    assert custom_divider["id"] == "CUSTOMIZATION-divider"
+    assert custom_divider["type"] == "CHART_CUSTOMIZATION_DIVIDER"
+    assert "scope" not in custom_divider
 
     # 4. Global chart configuration remapping
     global_cfg = copied_metadata["global_chart_configuration"]
@@ -971,19 +987,35 @@ def test_issue_44983_consolidated_evidence_gate(session: Session) -> None:
 
 def test_remap_selected_layers_edge_cases() -> None:
     old_to_new = {10: 100, 20: 200}
-    layers = {
+    # Test dictionary format
+    layers_dict = {
         "chart-10-layer-0": True,
         "chart-20-layer-sub1": False,
         "chart-30-layer-0": "unmapped",
         "custom-key": 123,
     }
-    remapped = DashboardDAO._remap_selected_layers(layers, old_to_new)
-    assert remapped == {
+    remapped_dict = DashboardDAO._remap_selected_layers(layers_dict, old_to_new)
+    assert remapped_dict == {
         "chart-100-layer-0": True,
         "chart-200-layer-sub1": False,
         "chart-30-layer-0": "unmapped",
         "custom-key": 123,
     }
+
+    # Test list format (Superset frontend string[] standard)
+    layers_list = [
+        "chart-10-layer-0",
+        "chart-20-layer-sub1",
+        "chart-30-layer-0",
+        "custom-key",
+    ]
+    remapped_list = DashboardDAO._remap_selected_layers(layers_list, old_to_new)
+    assert remapped_list == [
+        "chart-100-layer-0",
+        "chart-200-layer-sub1",
+        "chart-30-layer-0",
+        "custom-key",
+    ]
 
 
 def test_remap_slice_id_list_edge_cases() -> None:
@@ -996,3 +1028,58 @@ def test_remap_slice_id_list_edge_cases() -> None:
         "invalid",
         None,
     ]
+
+
+def test_copy_dashboard_does_not_double_remap_overlapping_ids(
+    session: Session,
+) -> None:
+    dashboard, (c1, c2) = _make_dashboard_with_slices(session)
+    # Simulate overlapping IDs where old_to_new_slice_ids has old ID matching new ID
+    metadata = {
+        "positions": {
+            "CHART-1": {"type": "CHART", "meta": {"chartId": c1.id}},
+            "CHART-2": {"type": "CHART", "meta": {"chartId": c2.id}},
+        },
+        "native_filter_configuration": [
+            {
+                "id": "NATIVE_FILTER-overlap",
+                "scope": {
+                    "rootPath": ["ROOT_ID"],
+                    "excluded": [c1.id],
+                    "selectedLayers": [f"chart-{c1.id}-layer-0"],
+                },
+                "chartsInScope": [c1.id, c2.id],
+            }
+        ],
+    }
+    dashboard.json_metadata = json.dumps(metadata)
+    dashboard.params = json.dumps(metadata)
+    session.commit()
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch("superset.daos.dashboard.g") as mock_g,
+    ):
+        mock_g.user = None
+        copied_dash = DashboardDAO.copy_dashboard(
+            dashboard,
+            {
+                "dashboard_title": "Copied Dash",
+                "json_metadata": json.dumps(metadata),
+                "duplicate_slices": True,
+            },
+        )
+    copied_meta = json.loads(copied_dash.json_metadata)
+    copied_filter = copied_meta["native_filter_configuration"][0]
+    # Each cloned slice must have a distinct new id; remapped exactly once
+    new_slice_ids = [s.id for s in copied_dash.slices]
+    assert len(new_slice_ids) == 2
+    assert len(set(copied_filter["chartsInScope"])) == 2
+    assert set(copied_filter["chartsInScope"]) == set(new_slice_ids)
+    copied_c1_id = next(
+        s.id for s in copied_dash.slices if s.slice_name == c1.slice_name
+    )
+    assert copied_filter["scope"]["selectedLayers"] == [
+        f"chart-{copied_c1_id}-layer-0"
+    ]
+

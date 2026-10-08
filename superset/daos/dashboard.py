@@ -551,21 +551,39 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return remapped
 
     @staticmethod
+    def _remap_layer_key(layer_key: Any, old_to_new_slice_ids: dict[int, int]) -> Any:
+        if not isinstance(layer_key, str):
+            return layer_key
+        match = re.match(r"^chart-(\d+)(.*)$", layer_key)
+        if match:
+            old_id = int(match.group(1))
+            suffix = match.group(2)
+            new_id = old_to_new_slice_ids.get(old_id, old_id)
+            return f"chart-{new_id}{suffix}"
+        return layer_key
+
+    @classmethod
     def _remap_selected_layers(
-        selected_layers: dict[str, Any],
+        cls,
+        selected_layers: Any,
         old_to_new_slice_ids: dict[int, int],
-    ) -> dict[str, Any]:
-        remapped: dict[str, Any] = {}
-        for layer_key, layer_val in selected_layers.items():
-            match = re.match(r"^chart-(\d+)(.*)$", str(layer_key))
-            if match:
-                old_id = int(match.group(1))
-                suffix = match.group(2)
-                new_id = old_to_new_slice_ids.get(old_id, old_id)
-                remapped[f"chart-{new_id}{suffix}"] = layer_val
-            else:
-                remapped[layer_key] = layer_val
-        return remapped
+    ) -> Any:
+        if isinstance(selected_layers, list):
+            return [
+                cls._remap_layer_key(k, old_to_new_slice_ids)
+                for k in selected_layers
+            ]
+        if isinstance(selected_layers, dict):
+            return {
+                cls._remap_layer_key(k, old_to_new_slice_ids): v
+                for k, v in selected_layers.items()
+            }
+        if isinstance(selected_layers, set):
+            return {
+                cls._remap_layer_key(k, old_to_new_slice_ids)
+                for k in selected_layers
+            }
+        return selected_layers
 
     @staticmethod
     def _remap_filter_scope(
@@ -576,9 +594,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
         if not isinstance(container, dict):
             return
 
-        if container.get("type") == "DIVIDER" or str(
+        if container.get("type") in ("DIVIDER", "CHART_CUSTOMIZATION_DIVIDER") or str(
             container.get("id", "")
-        ).startswith(("NATIVE_FILTER_DIVIDER", "DIVIDER")):
+        ).startswith(
+            ("NATIVE_FILTER_DIVIDER", "DIVIDER", "CHART_CUSTOMIZATION_DIVIDER")
+        ):
             return
 
         scope = container.get("scope")
@@ -587,7 +607,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 scope["excluded"] = DashboardDAO._remap_slice_id_list(
                     scope["excluded"], old_to_new_slice_ids
                 )
-            if isinstance(scope.get("selectedLayers"), dict):
+            if isinstance(scope.get("selectedLayers"), (list, dict, set)):
                 scope["selectedLayers"] = DashboardDAO._remap_selected_layers(
                     scope["selectedLayers"], old_to_new_slice_ids
                 )
@@ -695,8 +715,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     old_id = value["meta"]["chartId"]
                     new_id = old_to_new_slice_ids.get(old_id)
                     value["meta"]["chartId"] = new_id
-
-            cls._remap_filter_scopes(metadata, old_to_new_slice_ids)
         else:
             dash.slices = original_dash.slices
 
