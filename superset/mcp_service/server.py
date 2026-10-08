@@ -39,6 +39,7 @@ from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
+    MCP_NATIVE_TOOL_LIST_CONFIG,
     MCP_STATELESS_HTTP,
     MCP_STORE_CONFIG,
     MCP_STRUCTURED_OUTPUT_ENABLED,
@@ -379,6 +380,18 @@ def _request_instructions(tool: Any) -> str:
     )
 
 
+def _bounded_description(tool: Any, description: str, max_length: int) -> str:
+    """Bound a tool's description, reserving room for its request instructions.
+
+    Request-parameter instructions stay untruncated in the input schema, so
+    their length is deducted from the prose budget. This is the single
+    description-bounding rule shared by tool-search results and the compact
+    native ``tools/list``.
+    """
+    instructions = _request_instructions(tool)
+    return _truncate_description(description, max(0, max_length - len(instructions)))
+
+
 def _extract_parameter_names(input_schema: dict[str, Any]) -> str:
     """Extract top-level parameter names from a JSON Schema as a hint string.
 
@@ -439,9 +452,7 @@ def _build_summary_serializer(max_desc: int) -> Any:
                         f"{hint}: {instructions}" if instructions else hint
                     )
             if max_desc and (desc := data.get("description")):
-                data["description"] = _truncate_description(
-                    desc, max(0, max_desc - len(instructions))
-                )
+                data["description"] = _bounded_description(tool, desc, max_desc)
             results.append(data)
         return results
 
@@ -549,10 +560,7 @@ def _create_search_result_serializer(
         results = _serialize_tools_without_output_schema(tools)
         for tool, data in zip(tools, results, strict=True):
             if desc := data.get("description"):
-                instructions = _request_instructions(tool)
-                data["description"] = _truncate_description(
-                    desc, max(0, max_desc - len(instructions))
-                )
+                data["description"] = _bounded_description(tool, desc, max_desc)
         return results
 
     return _serializer
@@ -827,6 +835,51 @@ def _create_search_transform(  # noqa: C901
     return _FixedBM25SearchTransform(**kwargs)
 
 
+def _apply_compact_tool_list_transform(
+    mcp_instance: Any, config: dict[str, Any]
+) -> None:
+    """Bound tool descriptions in the native ``tools/list`` when configured.
+
+    Opt-in via ``MCP_NATIVE_TOOL_LIST_CONFIG["compact"]``. Listed descriptions
+    are bounded with :func:`_bounded_description`, the rule tool search applies
+    to its results. Only the listing changes: names, input and output schemas,
+    and annotations are served unchanged, and ``tools/call`` resolves the
+    registered tool, so validation and execution do not depend on this setting.
+    """
+    if not config.get("compact", False):
+        return
+    max_desc = config.get("max_description_length", 300)
+    if not max_desc:
+        return
+
+    from fastmcp.server.transforms import Transform
+
+    class _CompactToolListTransform(Transform):
+        """List tools with bounded descriptions; lookups pass through unchanged."""
+
+        def __repr__(self) -> str:
+            return f"{self.__class__.__name__}(max_description_length={max_desc})"
+
+        async def list_tools(self, tools: Sequence[Any]) -> Sequence[Any]:
+            return [
+                tool.model_copy(
+                    update={
+                        "description": _bounded_description(
+                            tool, tool.description, max_desc
+                        )
+                    }
+                )
+                if tool.description
+                else tool
+                for tool in tools
+            ]
+
+    mcp_instance.add_transform(_CompactToolListTransform())
+    logger.info(
+        "Compact native tool list enabled (max_description_length=%d)", max_desc
+    )
+
+
 def _create_auth_provider(flask_app: Any) -> Any | None:
     """Create an auth provider from Flask app config.
 
@@ -1075,6 +1128,13 @@ def run_server(
         tool_search_config = MCP_TOOL_SEARCH_CONFIG
         if tool_search_config.get("enabled", False):
             _apply_tool_search_transform(mcp_instance, tool_search_config)
+        else:
+            _apply_compact_tool_list_transform(
+                mcp_instance,
+                factory_flask_app.config.get(
+                    "MCP_NATIVE_TOOL_LIST_CONFIG", MCP_NATIVE_TOOL_LIST_CONFIG
+                ),
+            )
     else:
         # Use default initialization with auth from Flask config
         logging.info("Creating MCP app with default configuration...")
@@ -1112,6 +1172,13 @@ def run_server(
             if size_guard_middleware:
                 search_name = tool_search_config.get("search_tool_name", "search_tools")
                 size_guard_middleware.excluded_tools.add(search_name)
+        else:
+            _apply_compact_tool_list_transform(
+                mcp_instance,
+                flask_app.config.get(
+                    "MCP_NATIVE_TOOL_LIST_CONFIG", MCP_NATIVE_TOOL_LIST_CONFIG
+                ),
+            )
 
     _register_health_endpoint(mcp_instance)
 

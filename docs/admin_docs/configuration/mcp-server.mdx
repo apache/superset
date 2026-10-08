@@ -1010,6 +1010,32 @@ until such clients have migrated, and in multi-pod deployments switch every pod
 together (or keep each client session on pods in one mode) so that a session
 started in compatibility mode is not routed to a pod in native mode.
 
+#### Compact native listing
+
+Native mode can optionally bound each listed tool description, which shrinks
+the `tools/list` response without changing what clients can call:
+
+```python
+MCP_NATIVE_TOOL_LIST_CONFIG = {
+    "compact": True,  # default: False
+    "max_description_length": 300,  # prose budget per tool
+}
+```
+
+Descriptions are bounded with the same rule tool search applies to its
+results: whole paragraphs first, then whole sentences, never a partial
+heading, `IMPORTANT` block, or list. Calling instructions authored on a tool's
+`request` parameter stay untruncated in the input schema and their length is
+deducted from the budget. Names, input and output schemas (including nullable
+unions, constraints, and definitions), and annotations are unchanged, and calls
+are validated against the same server-side models, so only the listed prose
+differs. Chart tools point to `get_chart_type_schema`, which returns each chart
+type's fields, required fields, and examples. The setting has no effect in
+compatibility mode, whose search results are bounded by
+`MCP_TOOL_SEARCH_CONFIG["max_description_length"]`.
+
+The recorded inventory includes catalog totals for both listings.
+
 Compatibility mode remains supported. Any change to its default will be listed
 in `UPDATING.md`, and setting `enabled` explicitly keeps the chosen mode
 regardless of the default.

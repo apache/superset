@@ -541,6 +541,30 @@ MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
 }
 
 
+# =============================================================================
+# MCP Native Tool List Configuration
+# =============================================================================
+#
+# Applies only when tool search is disabled (MCP_TOOL_SEARCH_CONFIG["enabled"]
+# = False), where tools/list advertises every tool the caller may use.
+#
+# compact=True bounds each listed description to max_description_length with
+# the same rule tool search applies to its results: whole paragraphs first,
+# then whole sentences, never a partial heading, IMPORTANT block or list, and
+# request-parameter instructions (kept untruncated in the input schema) are
+# deducted from the budget. Names, input and output schemas ($defs, nullable
+# unions, constraints), and annotations are served unchanged, and tools/call
+# validates against the same server-side models, so only the listed prose
+# changes. Detailed chart guidance remains available from get_chart_type_schema.
+#
+# Disabled by default: the native listing serves full descriptions.
+# =============================================================================
+MCP_NATIVE_TOOL_LIST_CONFIG: dict[str, Any] = {
+    "compact": False,  # Bound tools/list descriptions (native mode only)
+    "max_description_length": 300,  # Prose budget per tool when compact
+}
+
+
 def get_mcp_api_key_enabled(app: Flask, *, startup_warning: bool = False) -> bool:
     """Return whether API key auth is enabled for the MCP transport.
 

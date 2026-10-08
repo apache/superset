@@ -684,12 +684,7 @@ def serialize_chart_object(
 
 
 class ChartFilter(ColumnOperator):
-    """
-    Filter object for chart listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
+    """Filter object for chart listing."""
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "slice_name",
@@ -3922,11 +3917,8 @@ class ListChartsRequest(
                 "trashed charts, 'include' returns live and trashed charts "
                 "together. Omit for live charts only (default). Trashed rows "
                 "carry a non-null deleted_at and are limited to charts the "
-                "caller can edit (the same audience that can restore them, "
-                "not merely the ones they own; admins see all). This omits "
-                "EXTRA_EDITORS_RESOLVER-granted and guest role-derived "
-                "editorship, so some restorable charts may be under-"
-                "enumerated. Requires the SOFT_DELETE feature flag to have "
+                "caller can edit (admins see all); some restorable charts may "
+                "be missing. Requires the SOFT_DELETE feature flag to have "
                 "produced trashed rows."
             ),
         ),

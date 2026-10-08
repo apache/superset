@@ -595,3 +595,59 @@ def test_factory_server_respects_structured_output_setting(enabled: bool) -> Non
         assert middleware == [*core_middleware, custom_middleware]
     finally:
         os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+@pytest.mark.parametrize(
+    ("flask_config", "expected"),
+    [
+        # Compatibility mode (the default) serves search results instead.
+        ({}, None),
+        (
+            {"MCP_NATIVE_TOOL_LIST_CONFIG": {"compact": True}},
+            None,
+        ),
+        # Native mode passes the configured listing settings through.
+        (
+            {"MCP_TOOL_SEARCH_CONFIG": {"enabled": False}},
+            {"compact": False, "max_description_length": 300},
+        ),
+        (
+            {
+                "MCP_TOOL_SEARCH_CONFIG": {"enabled": False},
+                "MCP_NATIVE_TOOL_LIST_CONFIG": {
+                    "compact": True,
+                    "max_description_length": 500,
+                },
+            },
+            {"compact": True, "max_description_length": 500},
+        ),
+    ],
+)
+def test_run_server_applies_native_list_config_only_in_native_mode(
+    flask_config: dict[str, Any], expected: dict[str, Any] | None
+) -> None:
+    """The compact listing setting reaches the native server only."""
+    from superset.mcp_service import server
+    from superset.mcp_service.server import run_server
+
+    port = 59905
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    try:
+        with (
+            _run_server_dependencies(flask_config=flask_config) as (
+                mcp_instance,
+                _mock_build_middleware_list,
+            ),
+            patch.object(server, "_apply_tool_search_transform") as search,
+            patch.object(server, "_apply_compact_tool_list_transform") as compact,
+        ):
+            run_server(host="127.0.0.1", port=port)
+
+        if expected is None:
+            search.assert_called_once()
+            compact.assert_not_called()
+        else:
+            search.assert_not_called()
+            compact.assert_called_once_with(mcp_instance, expected)
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)

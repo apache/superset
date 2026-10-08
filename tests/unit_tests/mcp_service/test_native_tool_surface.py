@@ -34,17 +34,21 @@ both expose the same tools, schemas, results, errors, and authorization
 decisions.
 
 ``native_tool_inventory.json`` records the measured native catalog: each
-tool's annotations, description length, schema sizes, and complete
-``tools/list`` entry size with structured output disabled and enabled, plus
-catalog totals. Sizes may shrink freely but must not grow beyond a small
-headroom. To accept an intentional change, regenerate the report with::
+tool's annotations, description length (full and compact), schema sizes, and
+complete ``tools/list`` entry size with structured output disabled and
+enabled, plus catalog totals for the default and the opt-in compact listing
+(``MCP_NATIVE_TOOL_LIST_CONFIG`` with ``compact=True``). Sizes may shrink
+freely but must not grow beyond a small headroom. To accept an intentional
+change, regenerate the report with::
 
     SUPERSET_MCP_UPDATE_TOOL_INVENTORY=1 pytest \\
         tests/unit_tests/mcp_service/test_native_tool_surface.py
 """
 
+import inspect
 import math
 import os
+from collections import Counter
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -60,9 +64,15 @@ from jsonschema import Draft202012Validator
 
 from superset.mcp_service.app import ALLOWED_UNPROTECTED, mcp
 from superset.mcp_service.chart.schemas import CHART_TYPE_VALUES
-from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+from superset.mcp_service.chart.tool.get_chart_type_schema import VALID_CHART_TYPES
+from superset.mcp_service.mcp_config import (
+    MCP_NATIVE_TOOL_LIST_CONFIG,
+    MCP_TOOL_SEARCH_CONFIG,
+)
 from superset.mcp_service.server import (
+    _apply_compact_tool_list_transform,
     _apply_tool_search_transform,
+    _bounded_description,
     build_middleware_list,
 )
 from superset.utils import json
@@ -73,6 +83,10 @@ UPDATE_INVENTORY_ENV = "SUPERSET_MCP_UPDATE_TOOL_INVENTORY"
 SEARCH_TOOL = MCP_TOOL_SEARCH_CONFIG["search_tool_name"]
 CALL_TOOL = MCP_TOOL_SEARCH_CONFIG["call_tool_name"]
 PINNED_TOOLS = set(MCP_TOOL_SEARCH_CONFIG["always_visible"])
+
+# The opt-in compact listing, at its configured default description budget.
+COMPACT_CONFIG = {**MCP_NATIVE_TOOL_LIST_CONFIG, "compact": True}
+COMPACT_MAX_DESCRIPTION = COMPACT_CONFIG["max_description_length"]
 
 # Output modes of MCP_STRUCTURED_OUTPUT_ENABLED, keyed as in the inventory.
 OUTPUT_MODES = {"text_only": False, "structured": True}
@@ -112,7 +126,7 @@ async def canonical_tools() -> list[Tool]:
 
 
 async def build_server(
-    *, structured_output_enabled: bool, compatibility: bool
+    *, structured_output_enabled: bool, compatibility: bool, compact: bool = False
 ) -> FastMCP:
     """Assemble a server from the registered tools as ``run_server`` does."""
     server = FastMCP(
@@ -125,13 +139,20 @@ async def build_server(
         server.add_tool(tool)
     if compatibility:
         _apply_tool_search_transform(server, dict(MCP_TOOL_SEARCH_CONFIG))
+    else:
+        native_config = COMPACT_CONFIG if compact else MCP_NATIVE_TOOL_LIST_CONFIG
+        _apply_compact_tool_list_transform(server, dict(native_config))
     return server
 
 
-async def list_native(structured_output_enabled: bool) -> mt.ListToolsResult:
+async def list_native(
+    structured_output_enabled: bool, *, compact: bool = False
+) -> mt.ListToolsResult:
     """List the native catalog over the MCP protocol."""
     server = await build_server(
-        structured_output_enabled=structured_output_enabled, compatibility=False
+        structured_output_enabled=structured_output_enabled,
+        compatibility=False,
+        compact=compact,
     )
     async with Client(server) as client:
         return await client.list_tools_mcp()
@@ -170,7 +191,12 @@ async def measure_inventory() -> dict[str, Any]:
     listings = {
         mode: await list_native(enabled) for mode, enabled in OUTPUT_MODES.items()
     }
+    compact_listings = {
+        mode: await list_native(enabled, compact=True)
+        for mode, enabled in OUTPUT_MODES.items()
+    }
     structured = {tool.name: tool for tool in listings["structured"].tools}
+    compact = {tool.name: tool for tool in compact_listings["text_only"].tools}
     tools: dict[str, Any] = {}
     for tool in listings["text_only"].tools:
         annotations = tool.annotations.model_dump() if tool.annotations else {}
@@ -178,6 +204,7 @@ async def measure_inventory() -> dict[str, Any]:
         tools[tool.name] = {
             "annotations": {key: annotations.get(key) for key in ANNOTATION_KEYS},
             "description_chars": len(tool.description or ""),
+            "compact_description_chars": len(compact[tool.name].description or ""),
             "input_schema_bytes": compact_bytes(tool.inputSchema),
             "output_schema_bytes": compact_bytes(output_schema) if output_schema else 0,
             "entry_bytes": {
@@ -186,6 +213,10 @@ async def measure_inventory() -> dict[str, Any]:
             },
         }
     totals: dict[str, Any] = {"tool_count": len(tools), "catalog_bytes": {}}
+    totals["compact_catalog_bytes"] = {
+        mode: compact_bytes([wire_entry(tool) for tool in listing.tools])
+        for mode, listing in compact_listings.items()
+    }
     totals["largest_entry"] = {}
     for mode, listing in listings.items():
         entries = {tool.name: wire_entry(tool) for tool in listing.tools}
@@ -213,7 +244,12 @@ async def test_native_inventory_report_matches_registered_tools() -> None:
     for name, entry in measured["tools"].items():
         expected = recorded["tools"][name]
         assert entry["annotations"] == expected["annotations"], name
-        for key in ("description_chars", "input_schema_bytes", "output_schema_bytes"):
+        for key in (
+            "description_chars",
+            "compact_description_chars",
+            "input_schema_bytes",
+            "output_schema_bytes",
+        ):
             if entry[key] > size_budget(expected[key]):
                 grown[f"{name}.{key}"] = (entry[key], expected[key])
         for mode in OUTPUT_MODES:
@@ -224,10 +260,11 @@ async def test_native_inventory_report_matches_registered_tools() -> None:
                     expected["entry_bytes"][mode],
                 )
     for mode in OUTPUT_MODES:
-        actual = measured["totals"]["catalog_bytes"][mode]
-        expected_total = recorded["totals"]["catalog_bytes"][mode]
-        if actual > size_budget(expected_total):
-            grown[f"catalog_bytes.{mode}"] = (actual, expected_total)
+        for total in ("catalog_bytes", "compact_catalog_bytes"):
+            actual = measured["totals"][total][mode]
+            expected_total = recorded["totals"][total][mode]
+            if actual > size_budget(expected_total):
+                grown[f"{total}.{mode}"] = (actual, expected_total)
     assert not grown, (
         f"Native tool definitions grew beyond the recorded inventory; review the "
         f"growth and rerun with {UPDATE_INVENTORY_ENV}=1: {grown}"
@@ -660,3 +697,211 @@ async def test_unregistered_tool_is_unreachable_on_every_path() -> None:
     async with Client(compatibility) as client:
         names = await search_all(client)
     assert not {"execute_sql", "list_dashboards"} & names
+
+
+# Compact native listing (MCP_NATIVE_TOOL_LIST_CONFIG["compact"] = True).
+#
+# Only listed descriptions change, bounded by the rule tool search applies to
+# its results. Schemas, annotations, and server-side validation are identical
+# to the default listing, and full guidance stays reachable.
+
+# Schema keywords whose preservation the compact listing must not affect.
+SCHEMA_KEYWORDS = (
+    "$defs",
+    "$ref",
+    "enum",
+    "const",
+    "minimum",
+    "maximum",
+    "exclusiveMinimum",
+    "minLength",
+    "maxLength",
+    "minItems",
+    "maxItems",
+)
+
+
+def schema_keywords(schema: Any) -> Counter[str]:
+    """Count validation keywords and nullable unions anywhere in a schema."""
+    counts: Counter[str] = Counter()
+
+    def walk(node: Any) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in SCHEMA_KEYWORDS:
+                    counts[key] += 1
+                if key == "anyOf" and {"type": "null"} in value:
+                    counts["nullable"] += 1
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(schema)
+    return counts
+
+
+def test_compact_listing_is_off_by_default() -> None:
+    """The default configuration leaves the native listing untouched."""
+    assert MCP_NATIVE_TOOL_LIST_CONFIG["compact"] is False
+    for config in (
+        MCP_NATIVE_TOOL_LIST_CONFIG,
+        {},
+        {"compact": True, "max_description_length": 0},
+    ):
+        server = MagicMock()
+        _apply_compact_tool_list_transform(server, dict(config))
+        server.add_transform.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", OUTPUT_MODES)
+async def test_compact_listing_only_bounds_descriptions(mode: str) -> None:
+    """Every field except the description is served exactly as by default."""
+    structured_output_enabled = OUTPUT_MODES[mode]
+    registered = {tool.name: tool for tool in await canonical_tools()}
+    default = await list_native(structured_output_enabled)
+    compact = await list_native(structured_output_enabled, compact=True)
+
+    assert compact.nextCursor is None
+    assert [tool.name for tool in compact.tools] == [
+        tool.name for tool in default.tools
+    ]
+    shortened = set()
+    for full, bounded in zip(default.tools, compact.tools, strict=True):
+        full_entry, bounded_entry = wire_entry(full), wire_entry(bounded)
+        full_description = full_entry.pop("description", "")
+        description = bounded_entry.pop("description", "")
+        assert bounded_entry == full_entry, full.name
+        # The same bounding rule as tool-search results, from the full prose.
+        assert description == _bounded_description(
+            registered[full.name], full_description, COMPACT_MAX_DESCRIPTION
+        )
+        assert description, full.name
+        assert inspect.cleandoc(full_description).startswith(description), full.name
+        if description != full_description:
+            shortened.add(full.name)
+    assert {"generate_chart", "update_chart", "list_datasets"} <= shortened
+    assert compact_bytes([wire_entry(tool) for tool in compact.tools]) < (
+        compact_bytes([wire_entry(tool) for tool in default.tools])
+    )
+
+
+@pytest.mark.asyncio
+async def test_compact_schemas_keep_nullability_constraints_and_definitions() -> None:
+    """Nullable unions, constraints, and definitions are served unchanged."""
+    default = await list_native(structured_output_enabled=True)
+    compact = await list_native(structured_output_enabled=True, compact=True)
+    totals: Counter[str] = Counter()
+    for full, bounded in zip(default.tools, compact.tools, strict=True):
+        for kind in ("inputSchema", "outputSchema"):
+            expected = getattr(full, kind)
+            actual = getattr(bounded, kind)
+            assert actual == expected, (full.name, kind)
+            assert schema_keywords(actual) == schema_keywords(expected)
+            totals += schema_keywords(actual)
+    for keyword in ("nullable", "enum", "minimum", "maximum", "maxLength"):
+        assert totals[keyword] > 0, keyword
+
+
+@pytest.mark.asyncio
+async def test_compact_listing_keeps_full_definitions_for_calls() -> None:
+    """Calls resolve the registered tool with its full description."""
+    registered = {tool.name: tool for tool in await canonical_tools()}
+    server = await build_server(
+        structured_output_enabled=False, compatibility=False, compact=True
+    )
+    for name, tool in registered.items():
+        resolved = await server.get_tool(name)
+        assert resolved is not None, name
+        assert resolved.description == tool.description, name
+        assert resolved.parameters == tool.parameters, name
+
+
+VALIDATION_CASES = {
+    # Constraint violations: page_size is bounded to 1..100.
+    "page_size_above_maximum": ("list_charts", {"request": {"page_size": 101}}),
+    "page_size_not_positive": ("list_datasets", {"request": {"page_size": 0}}),
+    # Wrong types and missing required arguments.
+    "wrong_type": ("get_chart_type_schema", {"include_examples": "x"}),
+    "missing_required": ("generate_chart", {"request": {"dataset_id": 1}}),
+    # Nullable fields accept null and reach the authorization gate.
+    "nullable_null": ("list_dashboards", {"request": {"search": None}}),
+    "nullable_order": ("list_charts", {"request": {"order_column": None}}),
+}
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("unprivileged_user")
+async def test_compact_listing_validates_calls_identically(
+    restricted_policy: dict[str, frozenset[str]],
+) -> None:
+    """Server-side validation gives identical results with either listing.
+
+    The caller is a restricted principal with an empty allow-list, so valid
+    arguments end at the authorization gate and invalid ones at validation,
+    without running a tool body.
+    """
+    restricted_policy["allowed"] = frozenset()
+    default = await build_server(structured_output_enabled=False, compatibility=False)
+    compact = await build_server(
+        structured_output_enabled=False, compatibility=False, compact=True
+    )
+    outcomes: dict[str, str] = {}
+    for case, (name, arguments) in VALIDATION_CASES.items():
+        results = {}
+        for label, server in (("default", default), ("compact", compact)):
+            async with Client(server) as client:
+                results[label] = await client.call_tool(
+                    name, arguments, raise_on_error=False
+                )
+        assert comparable(results["compact"]) == comparable(results["default"]), case
+        assert results["default"].is_error is True, case
+        text = results["default"].content[0]
+        assert isinstance(text, mt.TextContent)
+        outcomes[case] = "denied" if "denied" in text.text.lower() else "validation"
+    assert outcomes == {
+        "page_size_above_maximum": "validation",
+        "page_size_not_positive": "validation",
+        "wrong_type": "validation",
+        "missing_required": "validation",
+        "nullable_null": "denied",
+        "nullable_order": "denied",
+    }
+
+
+def listed_text(tool: mt.Tool) -> str:
+    """Everything a client reads for one listed tool."""
+    return f"{tool.description} {json.dumps(tool.inputSchema)}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("unprivileged_user")
+async def test_compact_listing_keeps_chart_guidance_reachable() -> None:
+    """Chart tools point to get_chart_type_schema, which serves the details.
+
+    The per-type fields, required fields, and examples that a bounded
+    description omits are returned by get_chart_type_schema on the same
+    compact server.
+    """
+    compact = await list_native(structured_output_enabled=False, compact=True)
+    listed = {tool.name: tool for tool in compact.tools}
+    for name in ("generate_chart", "update_chart", "update_chart_preview"):
+        assert "get_chart_type_schema" in listed_text(listed[name]), name
+    assert "get_chart_type_schema" in listed
+
+    server = await build_server(
+        structured_output_enabled=False, compatibility=False, compact=True
+    )
+    core_types = [name for name in VALID_CHART_TYPES if name != "interactive_pivot"]
+    async with Client(server) as client:
+        for chart_type in core_types:
+            result = await client.call_tool(
+                "get_chart_type_schema", {"chart_type": chart_type}
+            )
+            text = result.content[0]
+            assert isinstance(text, mt.TextContent)
+            payload = json.loads(text.text)
+            assert payload["chart_type"] == chart_type
+            assert payload["schema"].get("required"), chart_type
+            assert payload["examples"], chart_type
