@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset_core.widgets import Widget, WidgetBehavior, WidgetUi
+
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.validation import normalize_definition
 from tests.unit_tests.canvas.fixtures import (
@@ -21,6 +23,7 @@ from tests.unit_tests.canvas.fixtures import (
     canvas_widget_types,
     FakeResolver,
     node,
+    Props,
 )
 
 
@@ -59,3 +62,73 @@ def test_placements_include_auto_placed_nodes_and_grid_containers() -> None:
         "c": "chart",
     }
     assert context["gridColumns"] == {"g": 12}
+
+
+def test_layout_constraints_carry_declared_span_limits() -> None:
+    """Only the limits a widget actually declares reach the client."""
+    rules, resolver = canvas_widget_types(), FakeResolver()
+    rules["sized"] = type(
+        "SizedWidget",
+        (Widget,),
+        {
+            "widget_type": "sized",
+            "name": "Sized",
+            "controls_class": Props,
+            "behavior": WidgetBehavior(),
+            "ui": WidgetUi(default_size=(6, 4), min_col_span=4, max_row_span=8),
+        },
+    )
+    definition = normalize_definition(
+        canvas(
+            {
+                "tile": node("sized-1", layout={"colSpan": 6}),
+                # The same widget, placed inside a grid container.
+                "g": node("group", layout={"colSpan": 24}, children=["inner"]),
+                "inner": node("sized-2", layout={"colSpan": 6}),
+                # A widget that declares nothing is left out entirely.
+                "plain": node("chart-1", layout={"colSpan": 4}),
+            },
+            children=["tile", "g", "plain"],
+        ),
+        rules,
+        resolver,
+    )
+
+    context = render_context(definition, rules, resolver)
+
+    assert context["layoutConstraints"] == {
+        "tile": {"minColSpan": 4, "maxRowSpan": 8},
+        "inner": {"minColSpan": 4, "maxRowSpan": 8},
+    }
+
+
+def test_layout_constraints_skip_nodes_that_are_not_on_a_grid() -> None:
+    """A child of a container with its own layout model can't be dragged."""
+    rules, resolver = canvas_widget_types(), FakeResolver()
+    rules["sized"] = type(
+        "SizedWidget",
+        (Widget,),
+        {
+            "widget_type": "sized",
+            "name": "Sized",
+            "controls_class": Props,
+            "behavior": WidgetBehavior(),
+            "ui": WidgetUi(min_col_span=4),
+        },
+    )
+    definition = normalize_definition(
+        canvas(
+            {
+                "b": node("board", layout={"colSpan": 24}, children=["card"]),
+                "card": node("sized-1", layout={"lane": "todo"}),
+            },
+            children=["b"],
+        ),
+        rules,
+        resolver,
+    )
+
+    context = render_context(definition, rules, resolver)
+
+    assert "card" not in context["placements"]
+    assert "card" not in context["layoutConstraints"]

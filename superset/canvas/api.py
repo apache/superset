@@ -33,7 +33,7 @@ from pydantic import TypeAdapter, ValidationError as PydanticValidationError
 from superset_core.canvas import GridPlacement
 from superset_core.widgets import Widget
 
-from superset import is_feature_enabled
+from superset import is_feature_enabled, security_manager
 from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
@@ -71,6 +71,7 @@ from superset.commands.canvas.exceptions import (
 from superset.commands.canvas.update import UpdateCanvasCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.canvas import CanvasDAO
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
 from superset.models.canvas import Canvas
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
@@ -147,6 +148,21 @@ def describe_widget(widget: type[Widget]) -> dict[str, Any]:
         "colSpan": {"min": ui.min_col_span, "max": ui.max_col_span},
         "rowSpan": {"min": ui.min_row_span, "max": ui.max_row_span},
     }
+
+
+def _can_edit(canvas: Canvas) -> bool:
+    """
+    Whether the current user may change ``canvas``.
+
+    Asks the same check the write path enforces
+    (``ApplyCanvasOperationsCommand.validate``), so a client that hides its
+    editing affordances hides exactly what the server would refuse.
+    """
+    try:
+        security_manager.raise_for_editorship(canvas)
+    except SupersetSecurityException:
+        return False
+    return True
 
 
 def _get_canvas(id_or_uuid: str) -> Canvas:
@@ -511,6 +527,16 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                           gridColumns:
                             type: object
                             description: The column count of each grid container
+                          layoutConstraints:
+                            type: object
+                            description: >-
+                              The span limits each node's widget declares, for
+                              a client that lets the user resize
+                          canEdit:
+                            type: boolean
+                            description: >-
+                              Whether the current user may apply operations to
+                              this canvas
             401:
               $ref: '#/components/responses/401'
             404:
@@ -524,6 +550,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 "version": canvas.definition_version,
                 "revision": canvas.revision,
                 "definition": definition,
+                "canEdit": _can_edit(canvas),
                 **resolve_scopes(definition),
                 **render_context(definition),
             },

@@ -21,6 +21,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { canvas } from 'src/core';
 import CanvasGrid, { emptyScopeValues, ScopeValues } from './CanvasGrid';
 import { CanvasDefinitionResult, CanvasSettings } from './types';
+import type { CanvasLayout } from './useCanvasLayout';
 
 const settings: CanvasSettings = {
   refresh: { interval: 0, stagger: 0, exempt: [] },
@@ -73,6 +74,8 @@ const result: CanvasDefinitionResult = {
     unknown: 'test.unknown',
   },
   gridColumns: { g: 12 },
+  layoutConstraints: { c1: { minColSpan: 2 } },
+  canEdit: false,
 };
 
 const Chart = ({
@@ -110,10 +113,20 @@ const registrations = [
   canvas.registerWidgetRenderer('test.odd', CrossSource),
 ];
 
+const layoutOf = (
+  gridResult: CanvasDefinitionResult,
+  place = jest.fn(),
+): CanvasLayout => ({
+  placements: gridResult.placements,
+  place,
+  dismissError: jest.fn(),
+});
+
 const renderGrid = (
   values: ScopeValues = emptyScopeValues(),
   onValueChange = jest.fn(),
   gridResult: CanvasDefinitionResult = result,
+  place = jest.fn(),
 ) =>
   render(
     <CanvasGrid
@@ -122,6 +135,7 @@ const renderGrid = (
       values={values}
       onValueChange={onValueChange}
       refreshKeys={{ c1: 2 }}
+      layout={layoutOf(gridResult, place)}
     />,
   );
 afterAll(() => registrations.forEach(registration => registration.dispose()));
@@ -189,4 +203,28 @@ test('setting a cross-filter does nothing while cross-filters are off', () => {
   screen.getByRole('button', { name: 'cross filter' }).click();
 
   expect(onValueChange).not.toHaveBeenCalled();
+});
+
+test('a user without edit permission gets no drag or resize handles', () => {
+  renderGrid();
+
+  expect(
+    screen.queryByRole('button', { name: 'Move widget' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Resize widget' }),
+  ).not.toBeInTheDocument();
+});
+
+test('a user with edit permission gets a handle per placed widget', () => {
+  renderGrid(emptyScopeValues(), jest.fn(), { ...result, canEdit: true });
+
+  // Every node with a resolved placement, on the root grid and inside the
+  // nested group, is draggable and resizable.
+  expect(screen.getAllByRole('button', { name: 'Move widget' })).toHaveLength(
+    Object.keys(result.placements).length,
+  );
+  expect(screen.getAllByRole('button', { name: 'Resize widget' })).toHaveLength(
+    Object.keys(result.placements).length,
+  );
 });

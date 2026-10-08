@@ -63,6 +63,8 @@ const result: CanvasDefinitionResult = {
     kpis: 'group',
   },
   gridColumns: { emea: 24, apac: 24, kpis: 12 },
+  layoutConstraints: {},
+  canEdit: false,
 };
 
 test('renders core containers and markdown without extensions', () => {
@@ -73,6 +75,11 @@ test('renders core containers and markdown without extensions', () => {
       result={result}
       values={emptyScopeValues()}
       onValueChange={jest.fn()}
+      layout={{
+        placements: result.placements,
+        place: jest.fn(),
+        dismissError: jest.fn(),
+      }}
     />,
   );
 

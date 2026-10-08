@@ -26,6 +26,7 @@ import {
   EmptyState,
   Loading,
 } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
 import { chat, setActiveCanvas, useChat } from 'src/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
@@ -35,11 +36,15 @@ import CanvasGrid, {
   emptyScopeValues,
   ScopeValues,
 } from 'src/features/canvas/CanvasGrid';
-import { CanvasMetadata } from 'src/features/canvas/types';
+import {
+  CanvasDefinitionResult,
+  CanvasMetadata,
+} from 'src/features/canvas/types';
 import { useCanvasDefinition } from 'src/features/canvas/useCanvasDefinition';
 import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
+import { useCanvasLayout } from 'src/features/canvas/useCanvasLayout';
 
 registerBuiltinRenderers();
 
@@ -99,9 +104,60 @@ const notFound = (
   />
 );
 
+interface CanvasBodyProps {
+  canvasId: number;
+  result: CanvasDefinitionResult;
+  reload: () => void;
+  values: ScopeValues;
+  onValueChange: (
+    kind: canvasApi.ScopeKind,
+    nodeId: string,
+    value: unknown,
+  ) => void;
+  refreshKeys: Record<string, number>;
+}
+
+/**
+ * The canvas itself, once its definition has loaded. Drag and resize persist
+ * from here; a write that doesn't land says so and leaves the layout where the
+ * server still has it.
+ */
+function CanvasBody({
+  canvasId,
+  result,
+  reload,
+  values,
+  onValueChange,
+  refreshKeys,
+}: CanvasBodyProps) {
+  const layout = useCanvasLayout(canvasId, result, reload);
+  return (
+    <>
+      {layout.error && (
+        <Alert
+          type="warning"
+          closable
+          showIcon
+          message={layout.error}
+          onClose={layout.dismissError}
+          data-test="canvas-layout-error"
+        />
+      )}
+      <CanvasGrid
+        canvasId={canvasId}
+        result={result}
+        values={values}
+        onValueChange={onValueChange}
+        refreshKeys={refreshKeys}
+        layout={layout}
+      />
+    </>
+  );
+}
+
 function CanvasContent({ id }: { id: number }) {
   const metadata = useApiV1Resource<CanvasMetadata>(`/api/v1/canvas/${id}`);
-  const { state } = useCanvasDefinition(id);
+  const { state, reload } = useCanvasDefinition(id);
   const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
   const refreshKeys = useCanvasRefresh(
     state.status === 'complete' ? state.result.definition : undefined,
@@ -175,9 +231,10 @@ function CanvasContent({ id }: { id: number }) {
             description={t('Ask the chat to add widgets to it.')}
           />
         ) : (
-          <CanvasGrid
+          <CanvasBody
             canvasId={id}
             result={state.result}
+            reload={reload}
             values={values}
             onValueChange={onValueChange}
             refreshKeys={refreshKeys}

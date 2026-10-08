@@ -22,7 +22,9 @@ import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { useWidgetRenderers } from 'src/core';
-import { CanvasDefinitionResult, GridPlacement } from './types';
+import CanvasGridSurface from './CanvasGridSurface';
+import type { CanvasLayout } from './useCanvasLayout';
+import { CanvasDefinitionResult } from './types';
 
 /** Current values set by nodes, per scope kind, by node id. */
 export type ScopeValues = Record<canvasApi.ScopeKind, Record<string, unknown>>;
@@ -52,30 +54,6 @@ function valuesByNode(
   });
   return byNode;
 }
-
-interface GridMetrics {
-  columns: number;
-  gap: number;
-  rowUnit: number;
-}
-
-const Grid = styled.div<GridMetrics>`
-  display: grid;
-  grid-template-columns: repeat(${({ columns }) => columns}, minmax(0, 1fr));
-  grid-auto-rows: ${({ rowUnit }) => rowUnit}px;
-  gap: ${({ gap }) => gap}px;
-`;
-
-const GridItem = styled.div<{ placement?: GridPlacement }>`
-  min-width: 0;
-  min-height: 0;
-  ${({ placement }) =>
-    placement &&
-    css`
-      grid-column: ${placement.col} / span ${placement.colSpan};
-      grid-row: ${placement.row} / span ${placement.rowSpan};
-    `}
-`;
 
 const Stack = styled.div`
   ${({ theme }) => css`
@@ -112,6 +90,8 @@ export interface CanvasGridProps {
   ) => void;
   /** Per node, how many automatic refreshes have reached it. */
   refreshKeys?: Record<string, number>;
+  /** Placements to render and the write path drag and resize commit through. */
+  layout: CanvasLayout;
 }
 
 /**
@@ -125,17 +105,20 @@ export default function CanvasGrid({
   values,
   onValueChange,
   refreshKeys = {},
+  layout,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
   const {
     definition,
-    placements,
     widgetTypes,
     gridColumns,
+    layoutConstraints,
+    canEdit,
     filterScopes,
     crossFilterScopes,
     customizationScopes,
   } = result;
+  const { placements, place } = layout;
   const { gap, rowUnit, columns } = definition.root.layout;
   const { colors, display, crossFilters } = definition.settings;
   const sharedColors = useMemo<canvasApi.CanvasColors>(
@@ -161,18 +144,17 @@ export default function CanvasGrid({
     gridColumnCount: number,
     render: (nodeId: string) => ReactNode,
   ) => (
-    <Grid columns={gridColumnCount} gap={gap} rowUnit={rowUnit}>
-      {childIds.map(childId => (
-        <GridItem
-          key={childId}
-          placement={placements[childId]}
-          data-test="canvas-node"
-          data-node-id={childId}
-        >
-          {render(childId)}
-        </GridItem>
-      ))}
-    </Grid>
+    <CanvasGridSurface
+      childIds={childIds}
+      columns={gridColumnCount}
+      gap={gap}
+      rowUnit={rowUnit}
+      placements={placements}
+      constraints={layoutConstraints}
+      editable={canEdit}
+      onPlace={place}
+      renderNode={render}
+    />
   );
 
   function renderNode(nodeId: string): ReactNode {
