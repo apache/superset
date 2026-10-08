@@ -73,7 +73,7 @@
     "react-table": "^7.8.0",
     "remark-import-partial": "^0.0.2",
     "storybook": "^10.6.1",
-    "swagger-ui-react": "^5.33.0",
+    "swagger-ui-react": "^5.33.1",
     "swc-loader": "^0.2.7",
     "tinycolor2": "^1.6.0",
     "unist-util-visit": "^5.1.0"
