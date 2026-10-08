@@ -23,7 +23,10 @@ from pytest_mock import MockerFixture
 from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
 
-from superset.commands.semantic_layer.delete import DeleteSemanticLayerCommand
+from superset.commands.semantic_layer.delete import (
+    _semantic_target_matches,
+    DeleteSemanticLayerCommand,
+)
 from superset.commands.semantic_layer.exceptions import (
     SemanticDeleteDependentsError,
     SemanticLayerForbiddenError,
@@ -260,8 +263,9 @@ def test_bulk_delete_semantic_views_refuses_all_on_one_dependency(
     dao.delete.assert_not_called()
 
 
+@pytest.mark.parametrize("orm_execution", [False, True])
 def test_semantic_delete_lists_live_dependents_only(
-    session: Session, mocker: MockerFixture
+    session: Session, mocker: MockerFixture, orm_execution: bool
 ) -> None:
     """Charts, dashboard membership and active schedules form the dependency set."""
     from datetime import datetime
@@ -272,7 +276,9 @@ def test_semantic_delete_lists_live_dependents_only(
     from superset.reports.models import ReportSchedule
 
     Slice.metadata.create_all(session.get_bind())  # pylint: disable=no-member
-    connection: Connection = session.get_bind().connect()
+    connection: Connection = (
+        session.connection() if orm_execution else session.get_bind().connect()
+    )
     connection.execute(
         Slice.__table__.insert().values(  # pylint: disable=no-member
             id=711,
@@ -338,14 +344,18 @@ def test_semantic_delete_lists_live_dependents_only(
             },
         ],
     )
-    mocker.patch("superset.db.session.scalar", side_effect=connection.scalar)
-    mocker.patch("superset.db.session.execute", side_effect=connection.execute)
+    if not orm_execution:
+        mocker.patch("superset.db.session.scalar", side_effect=connection.scalar)
+        mocker.patch("superset.db.session.execute", side_effect=connection.execute)
     mocker.patch("superset.security_manager.can_access", return_value=True)
     mocker.patch(
         "superset.security_manager.can_access_all_datasources", return_value=True
     )
     mocker.patch("superset.security_manager.is_admin", return_value=True)
 
+    total: int
+    dependents: list[dict[str, str | int]]
+    inaccessible_count: int
     total, dependents, inaccessible_count = _dependent_assets(sa.select(sa.literal(42)))
 
     assert total == 5
@@ -364,23 +374,31 @@ def test_semantic_delete_lists_live_dependents_only(
         "report",
     }
     mocker.patch("superset.commands.semantic_layer.delete._DEPENDENT_LIMIT", 2)
+    capped_total: int
+    capped_dependents: list[dict[str, str | int]]
+    capped_inaccessible_count: int
     capped_total, capped_dependents, capped_inaccessible_count = _dependent_assets(
         sa.select(sa.literal(42))
     )
     assert capped_total == 5
     assert len(capped_dependents) == 2
+    assert [item["type"] for item in capped_dependents] == ["chart", "chart"]
     assert capped_inaccessible_count == 0
     mocker.patch(
         "superset.commands.semantic_layer.delete.ChartFilter.apply",
         return_value=session.query(Slice.id).filter(sa.false()),
     )
+    hidden_total: int
+    hidden_dependents: list[dict[str, str | int]]
+    hidden_count: int
     hidden_total, hidden_dependents, hidden_count = _dependent_assets(
         sa.select(sa.literal(42))
     )
     assert hidden_total == 5
     assert hidden_count == 2
     assert all(dependent["type"] != "chart" for dependent in hidden_dependents)
-    connection.close()
+    if not orm_execution:
+        connection.close()
 
 
 def test_semantic_delete_finds_native_filter_dashboards(
@@ -516,6 +534,9 @@ def test_semantic_delete_finds_native_filter_dashboards(
         )
         mocker.patch("superset.security_manager.is_admin", return_value=True)
 
+        total: int
+        dependents: list[dict[str, str | int]]
+        inaccessible_count: int
         total, dependents, inaccessible_count = _dependent_assets(
             sa.select(SemanticView.id).where(SemanticView.id == 42)
         )
@@ -544,6 +565,9 @@ def test_semantic_delete_finds_native_filter_dashboards(
             "superset.commands.semantic_layer.delete.DashboardAccessFilter.apply",
             return_value=session.query(Dashboard.id).filter(sa.false()),
         )
+        hidden_total: int
+        hidden_dependents: list[dict[str, str | int]]
+        hidden_count: int
         hidden_total, hidden_dependents, hidden_count = _dependent_assets(
             sa.select(SemanticView.id).where(SemanticView.id == 42)
         )
@@ -619,6 +643,7 @@ def test_semantic_layer_delete_finds_dashboard_target(
             return_value=True,
         )
 
+        exc_info: pytest.ExceptionInfo[SemanticDeleteDependentsError]
         with pytest.raises(SemanticDeleteDependentsError) as exc_info:
             DeleteSemanticLayerCommand(str(layer_uuid)).run()
         assert exc_info.value.total == 1
@@ -639,6 +664,15 @@ def test_semantic_delete_skips_json_recursion_error(mocker: MockerFixture) -> No
         side_effect=RecursionError,
     )
     assert not _dashboard_targets_view('"semantic_view"', {42}, 741)
+
+
+@pytest.mark.parametrize(
+    "raw_id", [True, pytest.param("1" * 4301, id="oversized"), "x", "٤٢"]
+)
+def test_semantic_target_rejects_non_ids(raw_id: object) -> None:
+    """Reject boolean, malformed, oversized and non-ASCII string identifiers."""
+    target: dict[str, object] = {"datasourceType": "semantic_view", "datasetId": raw_id}
+    assert not _semantic_target_matches(target, {1, 42})
 
 
 def test_semantic_delete_hides_unreadable_dependent(
@@ -717,6 +751,9 @@ def test_semantic_delete_counts_use_one_snapshot(
     rows.return_value.all.return_value = []
     mocker.patch("superset.security_manager.can_access", return_value=False)
 
+    total: int
+    dependents: list[dict[str, str | int]]
+    inaccessible_count: int
     total, dependents, inaccessible_count = _dependent_assets(sa.select(sa.literal(42)))
 
     assert (total, dependents, inaccessible_count) == (1, [], 1)

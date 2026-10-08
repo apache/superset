@@ -4060,6 +4060,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr ""
 
@@ -12055,8 +12059,11 @@ msgstr ""
 msgid "Semantic layer updated"
 msgstr ""
 
-msgid "Semantic source has dependent assets and cannot be deleted."
-msgstr ""
+#, python-format
+msgid "Semantic source is used by %(count)s dependent asset and cannot be deleted."
+msgid_plural "Semantic source is used by %(count)s dependent assets and cannot be deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Semantic view could not be created."
 msgstr ""

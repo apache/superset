@@ -59,7 +59,8 @@ def _semantic_target_matches(target: object, view_ids: set[int]) -> bool:
         return False
     raw_id: object = target.get("datasetId")
     if isinstance(raw_id, bool) or not (
-        isinstance(raw_id, int) or (isinstance(raw_id, str) and raw_id.isdecimal())
+        isinstance(raw_id, int)
+        or (isinstance(raw_id, str) and raw_id.isascii() and raw_id.isdecimal())
     ):
         return False
     try:
@@ -228,7 +229,15 @@ def _dependent_assets(
         list[tuple[str, int, str]],
         db.session.execute(
             sa.select(visible.c.type, visible.c.id, visible.c.name)
-            .order_by(visible.c.type, visible.c.id)
+            .order_by(
+                sa.case(
+                    (visible.c.type == "chart", 0),
+                    (visible.c.type == "dashboard", 1),
+                    else_=2,
+                ),
+                visible.c.type,
+                visible.c.id,
+            )
             .limit(_DEPENDENT_LIMIT)
         ).all(),
     )
@@ -244,6 +253,9 @@ def _dependent_assets(
 
 def _raise_for_dependents(view_ids: sa.Select) -> None:
     """Best-effort guard; a concurrent chart write can still orphan a view."""
+    total: int
+    dependents: list[dict[str, str | int]]
+    inaccessible_count: int
     total, dependents, inaccessible_count = _dependent_assets(view_ids)
     if total:
         raise SemanticDeleteDependentsError(total, dependents, inaccessible_count)

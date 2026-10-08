@@ -977,6 +977,9 @@ def test_semantic_delete_reports_dependents_as_conflict(
     assert response.json["total"] == 25
     assert response.json["dependents"] == [dependent]
     assert response.json["inaccessible_count"] == 24
+    assert response.json["message"] == (
+        "Semantic source is used by 25 dependent assets and cannot be deleted."
+    )
 
 
 @pytest.mark.parametrize(
