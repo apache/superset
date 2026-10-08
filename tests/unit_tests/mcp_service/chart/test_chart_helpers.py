@@ -3411,6 +3411,53 @@ def test_xy_preview_renders_all_post_processed_series(
     assert spec["encoding"]["x"]["field"] == "event_date"
 
 
+def test_xy_preview_renders_series_for_metric_label_with_separator(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unescaped chart-data columns still match a metric label with a comma."""
+    from superset.mcp_service.chart.preview_utils import (
+        _generate_vega_lite_preview_from_data,
+    )
+    from superset.mcp_service.chart.schemas import VegaLitePreview
+    from superset.utils.pandas_postprocessing.utils import unescape_separator
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "event_date",
+        "metrics": ["Revenue, net"],
+        "groupby": ["region"],
+    }
+    query = _query_objects(form_data)[0]
+    frame = query.exec_post_processing(
+        pd.DataFrame(
+            {
+                "event_date": ["2026-10-01", "2026-10-01", "2026-10-02", "2026-10-02"],
+                "region": ["EU", "US", "EU", "US"],
+                "Revenue, net": [10, 20, 30, 40],
+            }
+        )
+    )
+    # The query context processor unescapes flattened names before returning.
+    frame.columns = [unescape_separator(column) for column in frame.columns]
+    rows = frame.to_dict(orient="records")
+    fields = ["Revenue, net, EU", "Revenue, net, US"]
+    assert set(rows[0]) == {"event_date", *fields}
+
+    preview = _generate_vega_lite_preview_from_data(rows, form_data)
+
+    assert isinstance(preview, VegaLitePreview)
+    spec = preview.specification
+    assert spec["transform"] == [
+        {"fold": fields, "as": ["__mcp_xy_series", "__mcp_xy_value"]}
+    ]
+    assert spec["encoding"]["color"]["field"] == "__mcp_xy_series"
+    assert spec["encoding"]["y"]["title"] == "Revenue, net"
+
+
 def test_xy_preview_renders_truncated_metric_series(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

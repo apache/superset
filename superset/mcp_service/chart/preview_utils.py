@@ -2442,18 +2442,25 @@ def generate_xy_pivot_vega_lite_preview(
     if x_axis not in data[0]:
         return None
     metric_labels = [
-        escape_separator(label)
+        label
         for metric in _as_list(form_data.get("metrics"))
         if (label := metric_result_label(metric))
     ]
+    # Chart-data results unescape the flattened column names, while raw
+    # post-processing output keeps escaped separators; match either spelling.
+    prefixes = {
+        spelling
+        for label in metric_labels
+        for spelling in (label, escape_separator(label))
+    }
     fields = [
         field
         for field in data[0]
         if field != x_axis
         and any(
-            field.startswith(label + FLAT_COLUMN_SEPARATOR)
-            or field.startswith(label + "__")
-            for label in metric_labels
+            field.startswith(prefix + FLAT_COLUMN_SEPARATOR)
+            or field.startswith(prefix + "__")
+            for prefix in prefixes
         )
     ]
     if not fields and len(metric_labels) == 1 and form_data.get("truncate_metric"):
