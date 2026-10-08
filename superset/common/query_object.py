@@ -445,6 +445,16 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                             "datasource metadata or MCP list_metrics."
                         )
                     ) from ex
+                if self.filter:
+                    # Validate before result-cache access, including old entries
+                    # computed while non-dimension predicates were discarded.
+                    # avoid circular import: mapper imports QueryObject.
+                    from superset.semantic_layers.mapper import validate_filter_columns
+
+                    dimension_names: set[str] = {
+                        dimension.name for dimension in implementation.get_dimensions()
+                    }
+                    validate_filter_columns(self.filter, dimension_names)
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
             self._validate_time_offsets()

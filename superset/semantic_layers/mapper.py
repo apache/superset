@@ -25,6 +25,7 @@ single dataframe.
 """
 
 import logging
+from collections.abc import Collection
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
@@ -33,6 +34,7 @@ from zoneinfo import ZoneInfo
 import isodate
 import numpy as np
 import pyarrow as pa
+from flask_babel import gettext as _
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
@@ -59,9 +61,10 @@ from superset.common.utils.time_range_utils import (
 )
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, Column
 from superset.utils.core import (
     FilterOperator,
     QueryObjectFilterClause,
@@ -696,6 +699,7 @@ def _convert_query_object_filter(
     # Handle simple column filters
     col = filter_.get("col")
     if col not in all_dimensions:
+        validate_filter_columns([filter_], all_dimensions)
         return None
 
     dimension = all_dimensions[col]
@@ -1168,6 +1172,23 @@ def _validate_dimensions(query_object: ValidatedQueryObject) -> None:
         raise ValueError("All dimensions must be defined in the Semantic View.")
 
 
+def validate_filter_columns(
+    filters: Sequence[QueryObjectFilterClause | ValidatedQueryObjectFilterClause],
+    dimension_names: Collection[str],
+) -> None:
+    """Reject named filters that cannot become dimension predicates."""
+    for filter_ in filters:
+        column: Column = filter_["col"]
+        if isinstance(column, str) and column not in dimension_names:
+            raise QueryObjectValidationError(
+                _(
+                    "Filter column '%(column)s' is not a dimension in this semantic "
+                    "view. Metric filters are not supported.",
+                    column=column,
+                )
+            )
+
+
 def _validate_filters(query_object: ValidatedQueryObject) -> None:
     """
     Make sure all filters are valid.
@@ -1179,6 +1200,12 @@ def _validate_filters(query_object: ValidatedQueryObject) -> None:
             )
         if not filter_.get("op"):
             raise ValueError("All filters must have an operator defined.")
+    if query_object.filter:
+        dimension_names: set[str] = {
+            dimension.name
+            for dimension in query_object.datasource.implementation.get_dimensions()
+        }
+        validate_filter_columns(query_object.filter, dimension_names)
 
 
 def _validate_granularity(query_object: ValidatedQueryObject) -> None:

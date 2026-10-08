@@ -45,6 +45,7 @@ from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
@@ -402,9 +403,7 @@ def test_get_time_filter_with_granularity(mock_datasource: MagicMock) -> None:
 
 
 def test_convert_query_object_filter_temporal_range() -> None:
-    """
-    Test that TEMPORAL_RANGE filters are skipped.
-    """
+    """Temporal filters cannot silently discard an unknown dimension."""
     all_dimensions: dict[str, Dimension] = {}
     filter_: ValidatedQueryObjectFilterClause = {
         "op": FilterOperator.TEMPORAL_RANGE.value,
@@ -412,9 +411,8 @@ def test_convert_query_object_filter_temporal_range() -> None:
         "val": "Last 7 days",
     }
 
-    result = _convert_query_object_filter(filter_, all_dimensions)
-
-    assert result is None
+    with pytest.raises(QueryObjectValidationError, match="order_date"):
+        _convert_query_object_filter(filter_, all_dimensions)
 
 
 def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
@@ -3422,11 +3420,11 @@ def test_get_filters_from_query_object_filter_returns_none(
     query_object.datasource = mocker.Mock()
     query_object.datasource.fetch_values_predicate = None
     query_object.filter = [
-        # Filter with unknown column - returns None from _convert_query_object_filter
+        # A known dimension with no time constraint legitimately returns None.
         {
-            "op": FilterOperator.EQUALS.value,
-            "col": "unknown_column",
-            "val": "test",
+            "op": FilterOperator.TEMPORAL_RANGE.value,
+            "col": "category",
+            "val": "No filter",
         },
         # Valid filter - will be converted
         {
@@ -3438,7 +3436,7 @@ def test_get_filters_from_query_object_filter_returns_none(
 
     result = _get_filters_from_query_object(query_object, None, all_dimensions)
 
-    # Should have filters (time filters + category, but not unknown_column)
+    # Only the time bounds and nontrivial category predicate remain.
     assert isinstance(result, set)
     # Check that we have a category filter
     category_filters = [
@@ -3474,11 +3472,11 @@ def test_get_group_limit_filters_filter_returns_none(
     query_object.datasource = mocker.Mock()
     query_object.datasource.fetch_values_predicate = None
     query_object.filter = [
-        # Filter with unknown column - returns None from _convert_query_object_filter
+        # A known dimension with no time constraint legitimately returns None.
         {
-            "op": FilterOperator.EQUALS.value,
-            "col": "unknown_column",
-            "val": "test",
+            "op": FilterOperator.TEMPORAL_RANGE.value,
+            "col": "category",
+            "val": "No filter",
         },
         # Valid filter - will be converted
         {
@@ -3511,7 +3509,11 @@ def test_validate_filters_with_valid_filters(mocker: MockerFixture) -> None:
     This covers the branch where the loop completes without raising.
     """
 
-    query_object = mocker.Mock()
+    query_object: MagicMock = mocker.MagicMock()
+    query_object.datasource.implementation.get_dimensions.return_value = {
+        Dimension("category", "category", pa.string()),
+        Dimension("region", "region", pa.string()),
+    }
     query_object.filter = [
         {
             "op": FilterOperator.EQUALS.value,

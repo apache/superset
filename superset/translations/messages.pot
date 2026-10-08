@@ -6717,6 +6717,10 @@ msgstr ""
 msgid "Filter charts"
 msgstr ""
 
+#, python-format
+msgid "Filter column '%(column)s' is not a dimension in this semantic view. Metric filters are not supported."
+msgstr ""
+
 msgid "Filter has default value"
 msgstr ""
 
