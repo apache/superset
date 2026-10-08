@@ -988,6 +988,11 @@ msgstr ""
 msgid "A rule with this name already exists."
 msgstr ""
 
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
 msgid "A set of parameters that become available in the query using Jinja templating syntax"
 msgstr ""
 
@@ -9190,6 +9195,9 @@ msgstr ""
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr ""
 
@@ -13846,6 +13854,9 @@ msgstr ""
 msgid "The provided table was not found in the provided database"
 msgstr ""
 
+msgid "The provider query will be available after the chart runs."
+msgstr ""
+
 msgid "The query associated with the results was deleted."
 msgstr ""
 
@@ -14467,6 +14478,12 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid "This chart version can't be restored because the dataset it used has been permanently deleted. Restore a version that uses an existing dataset, or recreate the chart."
+msgstr ""
+
+msgid "This chart version can't be restored because the semantic view it used has been permanently deleted. Restore a version that uses an existing semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"

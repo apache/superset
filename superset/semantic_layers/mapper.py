@@ -24,6 +24,7 @@ single dataframe.
 
 """
 
+import logging
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
@@ -58,6 +59,7 @@ from superset.common.utils.time_range_utils import (
 )
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.superset_typing import AdhocColumn
@@ -67,6 +69,8 @@ from superset.utils.core import (
     TIME_COMPARISON,
 )
 from superset.utils.date_parser import get_past_or_future
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 OPERATOR_MAP = {
     FilterOperator.EQUALS.value: Operator.EQUALS,
@@ -926,6 +930,13 @@ def _get_group_limit_from_query_object(
     all_metrics: dict[str, Metric],
     all_dimensions: dict[str, Dimension],
 ) -> GroupLimit | None:
+    if query_object.series_limit > 0 and not query_object.series_columns:
+        logger.debug(
+            "Treating semantic series_limit=%s as 0 without series columns",
+            query_object.series_limit,
+        )
+        return None
+
     # no limit
     if query_object.series_limit == 0 or not query_object.columns:
         return None
@@ -1200,7 +1211,7 @@ def _validate_granularity(query_object: ValidatedQueryObject) -> None:
             if dimension.name == time_column and dimension.grain
         }
         if _convert_time_grain(time_grain) not in supported_time_grains:
-            raise ValueError(
+            raise QueryObjectValidationError(
                 "The time grain is not supported for the time column in the "
                 "Semantic View."
             )
@@ -1214,6 +1225,9 @@ def _validate_group_limit(query_object: ValidatedQueryObject) -> None:
 
     # no limit
     if query_object.series_limit == 0:
+        return
+
+    if query_object.series_limit > 0 and not query_object.series_columns:
         return
 
     if (
