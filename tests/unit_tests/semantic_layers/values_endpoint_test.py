@@ -155,6 +155,70 @@ def test_completeness_failure_returns_safe_error_without_cache_write(
     cache.set.assert_not_called()
 
 
+@pytest.mark.parametrize("is_guest", [False, True])
+def test_validation_error_message_is_sanitized_for_guests(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    is_guest: bool,
+) -> None:
+    """Guests get generic text; other users keep the specific 400 message."""
+    from superset.exceptions import QueryObjectValidationError
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        return_value=is_guest,
+    )
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+    detail: str = "Fetch values predicate failed SQL validation: secret_schema.t"
+    mocker.patch.object(
+        SemanticView,
+        "values_for_column",
+        side_effect=QueryObjectValidationError(detail),
+    )
+
+    response: Any = _get(client, "category/values/")
+
+    assert response.status_code == 400
+    expected: str = str(GENERIC_ERROR_MESSAGE) if is_guest else detail
+    assert response.json["message"] == expected
+    cache.set.assert_not_called()
+
+
+@pytest.mark.parametrize("is_guest", [False, True])
+def test_completeness_error_message_follows_guest_sanitization(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    is_guest: bool,
+) -> None:
+    """The completeness 400 survives, with guidance redacted only for guests."""
+    from superset.exceptions import SemanticResultCompletenessError
+    from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        return_value=is_guest,
+    )
+    mocker.patch(
+        "superset.datasource.api.cache_manager"
+    ).data_cache.get.return_value = None
+    error: SemanticResultCompletenessError = SemanticResultCompletenessError(
+        "incomplete"
+    )
+    mocker.patch.object(SemanticView, "values_for_column", side_effect=error)
+
+    response: Any = _get(client, "category/values/")
+
+    assert response.status_code == 400
+    expected: str = str(GENERIC_ERROR_MESSAGE) if is_guest else str(error)
+    assert response.json["message"] == expected
+
+
 def test_values_cache_excludes_legacy_generation(
     client: Any,
     full_api_access: None,

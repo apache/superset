@@ -56,6 +56,7 @@ from superset.utils.core import (
     parse_boolean_string,
     SqlExpressionType,
 )
+from superset.utils.error_sanitization import sanitize_error_message
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -291,7 +292,9 @@ class DatasourceRestApi(BaseSupersetApi):
                 search=search,
             )
         except QueryObjectValidationError as ex:
-            return self.response(400, message=str(ex))
+            # Validation errors can quote dataset SQL; embedded guests get the
+            # same generic text as the chart-data API.
+            return self.response(400, message=sanitize_error_message(str(ex)))
         except KeyError:
             return self.response(
                 400, message=f"Column name {column_name} does not exist"
