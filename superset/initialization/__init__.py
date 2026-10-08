@@ -892,6 +892,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         register_baseline_listener()
         register_change_record_listener()
 
+        from superset.versioning.savepoints import register_savepoint_listeners
+
+        register_savepoint_listeners()
+
         # Retention is time-based and runs out-of-band as a Celery beat
         # task — see ``superset/tasks/version_history_retention.py``
         # and the ``version_history.prune_old_versions`` entry in
