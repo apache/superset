@@ -46,8 +46,9 @@ assists people when migrating to a new version.
 
 ### Alerts & Reports: runtime configuration and per-schedule "Run As" executor (SIP-209)
 
-- A new `report_config` table with UUID primary keys stores the global Alerts & Reports settings that admins can
-  now manage from the **Configuration** button on the Alerts & Reports list page (or
+- The migration creates an empty versioned document in the existing `key_value` table
+  for the global Alerts & Reports settings that admins can now manage from the
+  **Configuration** button on the Alerts & Reports list page (or
   `GET`/`PUT /api/v1/report/configuration/`). `ALERTS_ATTACH_REPORTS`,
   `ALERT_MINIMUM_INTERVAL` and `REPORT_MINIMUM_INTERVAL` are deprecated: they keep working
   as fallbacks until the corresponding setting is saved in the UI, at which point the saved
@@ -58,7 +59,9 @@ assists people when migrating to a new version.
   when off. Attachment-free alerts need no chart/dashboard; asset-less notifications omit
   the asset link. An alert with an attachment format must have a chart/dashboard even
   when global alert attachments are disabled. Saved attachment settings are retained.
-  Reports always require content.
+  Reports always require content. Downgrading past this migration changes attachment-free
+  alerts with a saved chart or dashboard to PNG and deletes attachment-free alerts with
+  no saved asset. Back up the metadata database before downgrading if those alerts must be retained (or update them to set a valid attachment).
 - Behind the new `ALERT_REPORT_DYNAMIC_EXECUTOR` feature flag (off by default), alerts and
   reports record the user they execute as (`run_as`, plus `run_alert_query_as` for the
   alert condition query). Non-admins can only set themselves. `ALERT_REPORTS_EXECUTORS` is

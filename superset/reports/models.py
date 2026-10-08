@@ -18,7 +18,6 @@
 
 import logging
 from typing import Any, Optional
-from uuid import UUID, uuid4
 
 import rison
 from flask_appbuilder import Model
@@ -98,11 +97,11 @@ class ReportDataFormat(StrEnum):
 
 class ReportConfigKey(StrEnum):
     """
-    Keys of the global Alerts & Reports configuration stored in ``report_config``.
+    Keys of the global Alerts & Reports configuration stored in ``key_value``.
 
-    Each key maps to a JSON-encoded value. A missing row means "not configured",
-    in which case the effective value falls back to the corresponding application
-    config or feature flag (see ``ReportConfigDAO.get_effective_config``).
+    A missing key in the stored settings document means "not configured",
+    in which case the effective value falls back to the application config or
+    feature flag (see ``ReportConfigDAO.get_effective_config``).
     """
 
     # Migrated from the ``ALERTS_ATTACH_REPORTS`` FF.
@@ -500,21 +499,3 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
         Index("ix_report_execution_log_report_schedule_id", report_schedule_id),
         Index("ix_report_execution_log_start_dttm", start_dttm),
     )
-
-
-class ReportConfig(AuditMixinNullable, Model):  # pylint: disable=too-few-public-methods
-    """
-    Global Alerts & Reports configuration, stored as key-value rows so admins
-    can manage it at runtime through the UI without redeploying.
-
-    ``key`` is one of ``ReportConfigKey``; ``value`` is JSON-encoded.
-    """
-
-    __tablename__ = "report_config"
-
-    id: Column[UUID] = Column(UUIDType(binary=True), primary_key=True, default=uuid4)
-    key = Column(String(255), nullable=False, unique=True)
-    value = Column(Text, nullable=True)
-
-    def __repr__(self) -> str:
-        return f"ReportConfig<{self.key}>"

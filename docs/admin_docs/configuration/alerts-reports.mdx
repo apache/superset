@@ -480,9 +480,9 @@ feature graduates from the flag.
 
 Admins can manage the global Alerts & Reports settings at runtime from the **Configuration**
 button on the Alerts & Reports list page (also available through
-`GET`/`PUT /api/v1/report/configuration/`). Values are stored in the `report_config` table;
-a setting that was never saved falls back to the corresponding `superset_config.py` value or
-feature flag.
+`GET`/`PUT /api/v1/report/configuration/`). Values are stored as a versioned document in the
+metadata database's `key_value` table (which survives the factory reset command); a setting that
+was never saved falls back to the corresponding `superset_config.py` value or feature flag.
 
 | Setting | Fallback | Description |
 | --- | --- | --- |

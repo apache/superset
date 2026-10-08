@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add Run As columns to report_schedule and create the report_config table
+"""Add Run As columns to report_schedule
 
 Part of SIP-209 (Improved Alerts & Reports).
 
@@ -23,10 +23,9 @@ nullable foreign keys to ``ab_user``. They are intentionally left NULL so the
 existing ``ALERT_REPORTS_EXECUTORS`` resolution keeps being used until a value
 is set.
 
-``report_config`` is a key-value table holding the global Alerts & Reports
-configuration (attachments for alerts, minimum intervals and recipient
-restrictions). It starts empty: every setting falls back to the corresponding
-application config or feature flag until an admin saves a value.
+The global Alerts & Reports configuration is stored in the existing key-value
+table. An empty document leaves every setting on its application config or
+feature-flag fallback until an admin saves a value.
 
 Revision ID: e4a7c2b9d1f3
 Revises: 00fab727cd0a
@@ -34,16 +33,28 @@ Create Date: 2026-10-05 12:00:00.000000
 
 """
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from uuid import UUID
+
+from alembic import op
+from sqlalchemy import (
+    Column,
+    column,
+    delete,
+    insert,
+    Integer,
+    LargeBinary,
+    select,
+    String,
+    table,
+    update,
+)
 from sqlalchemy_utils import UUIDType
 
 from superset.migrations.shared.utils import (
     add_columns,
     create_fks_for_table,
-    create_table,
     drop_columns,
     drop_fks_for_table,
-    drop_table,
     table_has_column,
 )
 
@@ -52,10 +63,17 @@ revision = "e4a7c2b9d1f3"
 down_revision = "00fab727cd0a"
 
 REPORT_SCHEDULE_TABLE = "report_schedule"
-REPORT_CONFIG_TABLE = "report_config"
 
 RUN_AS_FK_NAME = "fk_report_schedule_run_as_fk_ab_user"
 RUN_ALERT_QUERY_AS_FK_NAME = "fk_report_schedule_run_alert_query_as_fk_ab_user"
+CONFIG_UUID = UUID("d4f7d2f0-bbd7-4d03-b1da-09c70f5705ec")
+CONFIG_RESOURCE = "alert_report_config"
+CONFIG_TABLE = table(
+    "key_value",
+    column("resource", String),
+    column("uuid", UUIDType(binary=True)),
+    column("value", LargeBinary),
+)
 
 
 def upgrade() -> None:
@@ -87,37 +105,61 @@ def upgrade() -> None:
         remote_cols=["id"],
         ondelete="SET NULL",
     )
-
-    create_table(
-        REPORT_CONFIG_TABLE,
-        Column("id", UUIDType(binary=True), primary_key=True),
-        Column("key", String(255), nullable=False, unique=True),
-        Column("value", Text, nullable=True),
-        Column("created_on", DateTime, nullable=True),
-        Column("changed_on", DateTime, nullable=True),
-        Column("created_by_fk", Integer, nullable=True),
-        Column("changed_by_fk", Integer, nullable=True),
-    )
-    create_fks_for_table(
-        foreign_key_name="fk_report_config_created_by_fk_ab_user",
-        table_name=REPORT_CONFIG_TABLE,
-        referenced_table="ab_user",
-        local_cols=["created_by_fk"],
-        remote_cols=["id"],
-        ondelete="SET NULL",
-    )
-    create_fks_for_table(
-        foreign_key_name="fk_report_config_changed_by_fk_ab_user",
-        table_name=REPORT_CONFIG_TABLE,
-        referenced_table="ab_user",
-        local_cols=["changed_by_fk"],
-        remote_cols=["id"],
-        ondelete="SET NULL",
-    )
+    bind = op.get_bind()
+    if (
+        bind.execute(
+            select(CONFIG_TABLE.c.uuid).where(CONFIG_TABLE.c.uuid == CONFIG_UUID)
+        ).first()
+        is None
+    ):
+        bind.execute(
+            insert(CONFIG_TABLE).values(
+                resource=CONFIG_RESOURCE,
+                uuid=CONFIG_UUID,
+                value=b'{"version": 1, "settings": {}}',
+            )
+        )
 
 
 def downgrade() -> None:
-    drop_table(REPORT_CONFIG_TABLE)
+    op.get_bind().execute(
+        delete(CONFIG_TABLE).where(CONFIG_TABLE.c.uuid == CONFIG_UUID)
+    )
+
+    # This feature allow users to create alerts with report_format == "NONE"
+    # and optionally no ``chart_id`` / ``dashboard_id``. For the downgrade,
+    # we'll revert the format to ``PNG`` to the ones that have an ID, and
+    # delete the ones with no ID.
+    schedules = table(
+        REPORT_SCHEDULE_TABLE,
+        column("id", Integer),
+        column("type", String),
+        column("report_format", String),
+        column("chart_id", Integer),
+        column("dashboard_id", Integer),
+    )
+    attachment_free_alert = (schedules.c.type == "Alert") & (
+        schedules.c.report_format == "NONE"
+    )
+    without_asset = (
+        attachment_free_alert
+        & schedules.c.chart_id.is_(None)
+        & (schedules.c.dashboard_id.is_(None))
+    )
+    deleted_ids = select(schedules.c.id).where(without_asset)
+    bind = op.get_bind()
+    for name in (
+        "report_recipient",
+        "report_execution_log",
+    ):
+        dependent = table(name, column("report_schedule_id", Integer))
+        bind.execute(
+            delete(dependent).where(dependent.c.report_schedule_id.in_(deleted_ids))
+        )
+    bind.execute(delete(schedules).where(without_asset))
+    bind.execute(
+        update(schedules).where(attachment_free_alert).values(report_format="PNG")
+    )
 
     if table_has_column(REPORT_SCHEDULE_TABLE, "run_as_fk") or table_has_column(
         REPORT_SCHEDULE_TABLE, "run_alert_query_as_fk"

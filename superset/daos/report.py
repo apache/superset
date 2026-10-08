@@ -18,17 +18,22 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, cast, Literal
 
 from flask import current_app
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
+from superset.daos.key_value import KeyValueDAO
 from superset.extensions import db, feature_flag_manager
+from superset.key_value.types import (
+    FIXED_RESOURCE_KEYS,
+    JsonKeyValueCodec,
+    KeyValueResource,
+)
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
-    ReportConfig,
     ReportConfigKey,
     ReportExecutionLog,
     ReportRecipients,
@@ -37,6 +42,7 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportState,
 )
+from superset.reports.types import ReportConfigDocument, ReportConfigSettings
 from superset.reports.utils import find_disallowed_addresses
 from superset.utils import json
 from superset.utils.core import get_user_id
@@ -430,27 +436,29 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
 class ReportConfigDAO:
     """
-    Access to the global Alerts & Reports configuration (``report_config``).
+    Access to the global Alerts & Reports configuration in ``key_value``.
 
-    Values are stored as JSON-encoded key-value rows. A key without a row is
-    "not configured" and resolves to the legacy application config or feature
-    flag through ``get_effective_value``, which keeps deployments that never
-    open the configuration UI behaving exactly as before.
+    One versioned document stores only settings explicitly saved by an admin.
+    Missing settings resolve to legacy application config or feature flag values.
     """
+
+    VERSION: Literal[1] = 1
 
     @staticmethod
     def get_stored_values() -> dict[str, Any]:
         """
-        Return the raw stored configuration, keyed by ``ReportConfigKey``.
+        Return explicitly saved settings from the versioned document.
 
-        Read and decoding failures propagate: unavailable policy is not an
-        unrestricted policy. A stored null remains distinct from a missing row.
+        A stored null is distinct from a missing setting key.
         """
-        rows = db.session.query(ReportConfig).all()
-        return {
-            row.key: json.loads(row.value) if row.value is not None else None
-            for row in rows
-        }
+        document: ReportConfigDocument | None = KeyValueDAO.get_value(
+            KeyValueResource.ALERT_REPORT_CONFIG,
+            FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+            JsonKeyValueCodec(),
+        )
+        if document is None:
+            return {}
+        return dict(document["settings"])
 
     @staticmethod
     def get_fallback_value(key: ReportConfigKey) -> Any:
@@ -500,17 +508,22 @@ class ReportConfigDAO:
     @staticmethod
     def upsert(values: dict[str, Any]) -> None:
         """
-        Store values, retaining an explicit null as a configured value.
-        Only keys without a row inherit application configuration. Does not commit.
+        Merge submitted settings into the shared document without committing.
+        Only absent keys inherit application configuration; null stays explicit.
         """
-        rows = {row.key: row for row in db.session.query(ReportConfig).all()}
+        stored = ReportConfigDAO.get_stored_values()
         for key, value in values.items():
-            key = str(ReportConfigKey(key))
-            row = rows.get(key)
-            if row is None:
-                row = ReportConfig(key=key)
-                db.session.add(row)
-            row.value = json.dumps(value)
+            stored[key] = value
+        document: ReportConfigDocument = {
+            "version": ReportConfigDAO.VERSION,
+            "settings": cast(ReportConfigSettings, stored),
+        }
+        KeyValueDAO.update_entry(
+            KeyValueResource.ALERT_REPORT_CONFIG,
+            document,
+            JsonKeyValueCodec(),
+            FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+        )
 
     @staticmethod
     def get_known_user_emails(addresses: list[str]) -> set[str]:

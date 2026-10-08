@@ -22,6 +22,7 @@ from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.key_value.models import KeyValueEntry
+from superset.key_value.types import FIXED_RESOURCE_KEYS, KeyValueResource
 from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -62,7 +63,10 @@ class ResetSupersetCommand(BaseCommand):
             db.session.delete(database)
         db.session.query(Dashboard).delete()
         db.session.query(Slice).delete()
-        db.session.query(KeyValueEntry).delete()
+        config_uuid = FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG]
+        db.session.query(KeyValueEntry).filter(
+            KeyValueEntry.uuid.is_(None) | (KeyValueEntry.uuid != config_uuid)
+        ).delete()
         db.session.query(Log).delete()
         db.session.query(FavStar).delete()
 

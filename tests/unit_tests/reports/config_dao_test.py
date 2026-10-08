@@ -19,7 +19,7 @@ from uuid import UUID
 import pytest
 from flask import current_app
 from pytest_mock import MockerFixture
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
 
 from tests.unit_tests.conftest import with_feature_flags
@@ -27,9 +27,18 @@ from tests.unit_tests.conftest import with_feature_flags
 
 @pytest.fixture
 def session_with_tables(session: Session) -> Session:
-    from superset.reports.models import ReportConfig
+    from superset.key_value.models import KeyValueEntry
+    from superset.key_value.types import FIXED_RESOURCE_KEYS, KeyValueResource
 
-    ReportConfig.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    KeyValueEntry.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    session.add(
+        KeyValueEntry(
+            resource=KeyValueResource.ALERT_REPORT_CONFIG.value,
+            uuid=FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+            value=b'{"version": 1, "settings": {}}',
+        )
+    )
+    session.flush()
     return session
 
 
@@ -120,7 +129,13 @@ def test_email_subject_date_format_uses_saved_value_over_feature_flag(
 
 def test_upsert_stores_updates_and_reverts(session_with_tables: Session) -> None:
     from superset.daos.report import ReportConfigDAO
-    from superset.reports.models import ReportConfig, ReportConfigKey
+    from superset.key_value.models import KeyValueEntry
+    from superset.key_value.types import (
+        FIXED_RESOURCE_KEYS,
+        JsonKeyValueCodec,
+        KeyValueResource,
+    )
+    from superset.reports.models import ReportConfigKey
 
     ReportConfigDAO.upsert(
         {
@@ -134,9 +149,22 @@ def test_upsert_stores_updates_and_reverts(session_with_tables: Session) -> None
         "alert_minimum_interval": 300,
     }
 
-    ids = {row.key: row.id for row in session_with_tables.query(ReportConfig).all()}
-    assert all(isinstance(value, UUID) for value in ids.values())
-    assert len(set(ids.values())) == 2
+    row = (
+        session_with_tables.query(KeyValueEntry)
+        .filter_by(resource=KeyValueResource.ALERT_REPORT_CONFIG.value)
+        .one()
+    )
+    assert isinstance(row.uuid, UUID)
+    assert row.uuid == FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG]
+    assert row.expires_on is None
+    assert JsonKeyValueCodec().decode(row.value) == {
+        "version": 1,
+        "settings": {
+            "allowed_email_domains": ["example.com"],
+            "alert_minimum_interval": 300,
+        },
+    }
+    stored_uuid = row.uuid
 
     # Explicitly clearing a value retains the row and does not restore fallback.
     ReportConfigDAO.upsert(
@@ -151,9 +179,13 @@ def test_upsert_stores_updates_and_reverts(session_with_tables: Session) -> None
         "alert_minimum_interval": None,
     }
     session_with_tables.expire_all()
-    assert {
-        row.key: row.id for row in session_with_tables.query(ReportConfig).all()
-    } == ids
+    assert (
+        session_with_tables.query(KeyValueEntry)
+        .filter_by(resource=KeyValueResource.ALERT_REPORT_CONFIG.value)
+        .one()
+        .uuid
+        == stored_uuid
+    )
     assert (
         ReportConfigDAO.get_effective_value(ReportConfigKey.ALERT_MINIMUM_INTERVAL)
         is None
@@ -167,8 +199,8 @@ def test_upsert_stores_updates_and_reverts(session_with_tables: Session) -> None
 def test_missing_table_propagates_read_failure(session: Session) -> None:
     from superset.daos.report import ReportConfigDAO
 
-    # No create_all: the report_config table does not exist.
-    with pytest.raises(OperationalError):
+    # No create_all: the key_value table does not exist.
+    with pytest.raises(SQLAlchemyError):
         ReportConfigDAO.get_stored_values()
 
 
@@ -239,13 +271,36 @@ def test_stored_value_never_calls_legacy_fallback(
 
 def test_invalid_stored_json_propagates(session_with_tables: Session) -> None:
     from superset.daos.report import ReportConfigDAO
-    from superset.reports.models import ReportConfig
-    from superset.utils import json
+    from superset.key_value.models import KeyValueEntry
+    from superset.key_value.types import FIXED_RESOURCE_KEYS, KeyValueResource
 
-    session_with_tables.add(ReportConfig(key="allowed_email_domains", value="broken"))
+    entry = (
+        session_with_tables.query(KeyValueEntry)
+        .filter_by(
+            resource=KeyValueResource.ALERT_REPORT_CONFIG.value,
+            uuid=FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+        )
+        .one()
+    )
+    entry.value = b"broken"
     session_with_tables.flush()
-    with pytest.raises(json.JSONDecodeError):
+    with pytest.raises(ValueError, match="Expecting value"):
         ReportConfigDAO.get_effective_config()
+
+
+def test_missing_config_row_uses_application_fallback(
+    session_with_tables: Session,
+) -> None:
+    from superset.daos.key_value import KeyValueDAO
+    from superset.daos.report import ReportConfigDAO
+    from superset.key_value.types import FIXED_RESOURCE_KEYS, KeyValueResource
+
+    KeyValueDAO.delete_entry(
+        KeyValueResource.ALERT_REPORT_CONFIG,
+        FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+    )
+    session_with_tables.flush()
+    assert ReportConfigDAO.get_stored_values() == {}
 
 
 def test_known_users_are_looked_up_in_bounded_batches(
