@@ -1873,6 +1873,59 @@ def _positive_int(value: Any) -> int:
     return coerced if coerced > 0 else 0
 
 
+# Table buildQuery treats only recognized duration grains as dormant; legacy
+# date formats and anchored week intervals are not semantic-layer durations.
+_TABLE_DURATION_GRAINS = frozenset(
+    {
+        "PT1S",
+        "PT1M",
+        "PT5M",
+        "PT10M",
+        "PT15M",
+        "PT30M",
+        "PT1H",
+        "P1D",
+        "P1W",
+        "P1M",
+        "P3M",
+        "P1Y",
+    }
+)
+
+
+def _omit_dormant_table_grain(
+    query: dict[str, Any], temporal_columns: Any
+) -> dict[str, Any]:
+    """Mirror Table ``omitDormantGrain`` for semantic-view aggregate queries.
+
+    A cached duration grain with no temporal column to apply it to is dropped,
+    because the semantic layer rejects a time grain without a time column.
+    """
+    extras = query.get("extras")
+    grain = extras.get("time_grain_sqla") if isinstance(extras, dict) else None
+    columns = query.get("columns")
+    if (
+        not isinstance(grain, str)
+        or grain not in _TABLE_DURATION_GRAINS
+        or query.get("granularity")
+        or query.get("is_timeseries")
+        or not isinstance(columns, list)
+        or not all(
+            isinstance(column, str)
+            and isinstance(temporal_columns, dict)
+            and temporal_columns.get(column) is False
+            for column in columns
+        )
+    ):
+        return query
+    return {
+        **query,
+        "extras": {
+            key: value for key, value in extras.items() if key != "time_grain_sqla"
+        },
+    }
+
+
 def build_table_query_dicts(  # noqa: C901
     form_data: dict[str, Any],
     *,
@@ -2009,17 +2062,26 @@ def build_table_query_dicts(  # noqa: C901
         totals.pop("orderby", None)
         totals.pop("order_desc", None)
         extra_queries.append(totals)
+    queries = [query]
     if form_data.get("server_pagination"):
-        rowcount = {
-            **query,
-            "time_offsets": [],
-            "row_limit": configured_limit or 0,
-            "row_offset": 0,
-            "post_processing": [],
-            "is_rowcount": True,
-        }
-        return [query, rowcount, *extra_queries]
-    return [query, *extra_queries]
+        queries.append(
+            {
+                **query,
+                "time_offsets": [],
+                "row_limit": configured_limit or 0,
+                "row_offset": 0,
+                "post_processing": [],
+                "is_rowcount": True,
+            }
+        )
+    queries.extend(extra_queries)
+    if not raw_mode and str(form_data.get("datasource", "")).endswith(
+        "__semantic_view"
+    ):
+        # Classify each final query, including derived ones, like buildQuery.
+        lookup = form_data.get("temporal_columns_lookup")
+        queries = [_omit_dormant_table_grain(item, lookup) for item in queries]
+    return queries
 
 
 def build_gantt_query_dicts(

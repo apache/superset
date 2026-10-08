@@ -3164,6 +3164,47 @@ def test_table_buckets_only_first_temporal_axis(
         assert _normalize_column(query["columns"][0], {"created_at"}) == "created_at"
 
 
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
+def test_semantic_table_aggregate_omits_dormant_time_grain(
+    monkeypatch: pytest.MonkeyPatch, datasource_type: str
+) -> None:
+    """A cached grain without a temporal column is dropped for semantic views."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data = {
+        "viz_type": "table",
+        "datasource": f"1__{datasource_type}",
+        "query_mode": "aggregate",
+        "groupby": ["country"],
+        "metrics": ["sales"],
+        "show_totals": True,
+        "time_grain_sqla": "P1D",
+        "temporal_columns_lookup": {"country": False},
+    }
+    queries = build_query_dicts_from_form_data(form_data, 1, datasource_type)
+
+    assert len(queries) == 2
+    grains = [query.get("extras", {}).get("time_grain_sqla") for query in queries]
+    if datasource_type == "semantic_view":
+        assert grains == [None, None]
+    else:
+        assert grains == ["P1D", "P1D"]
+
+    # A temporal groupby keeps the grain on its BASE_AXIS column and extras.
+    temporal = build_query_dicts_from_form_data(
+        {
+            **form_data,
+            "groupby": ["created_at"],
+            "temporal_columns_lookup": {"created_at": True},
+        },
+        1,
+        datasource_type,
+    )[0]
+    assert temporal["extras"]["time_grain_sqla"] == "P1D"
+
+
 @pytest.mark.parametrize("override", [False, True])
 def test_mixed_secondary_retains_shared_series_controls(
     monkeypatch: pytest.MonkeyPatch, override: bool
