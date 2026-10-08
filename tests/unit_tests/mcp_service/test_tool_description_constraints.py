@@ -98,7 +98,9 @@ async def test_search_list_datasets_keeps_semantic_view_steer(
         "For semantic views, use list_metrics for discovery and get_table"
         in (entry["description"])
     )
-    assert entry["description"] == _truncate_description(tool.description, max_desc)
+    assert entry["description"] == _truncate_description(
+        tool.description or "", max_desc
+    )
     instructions = _request_instructions(tool)
     assert instructions
     if include_schemas:
@@ -131,7 +133,9 @@ async def test_oversized_registered_description_keeps_calling_constraints(
     tool = await mcp.get_tool(name)
     assert tool is not None
     oversized = tool.model_copy(
-        update={"description": "Long introduction. " * 10_000 + tool.description}
+        update={
+            "description": "Long introduction. " * 10_000 + (tool.description or "")
+        }
     )
     entry = _create_search_result_serializer({"include_schemas": include_schemas})(
         [oversized]

@@ -81,7 +81,8 @@ TOOL_BUDGETS = {
     "get_compatible_metrics": 1_500,
     "get_dashboard_data": 2_400,
     "get_dashboard_datasets": 1_100,
-    "get_dashboard_info": 3_100,
+    # Independent prose/instruction budgets: 3,178 bytes plus snapshot headroom.
+    "get_dashboard_info": 3_300,
     "get_dashboard_layout": 1_600,
     "get_database_info": 1_400,
     "get_dataset_info": 2_400,
@@ -136,7 +137,8 @@ TOOL_BUDGETS = {
     "restore_dataset": 1_100,
     "save_sql_query": 1_600,
     "update_chart": 4_100,
-    "update_chart_preview": 2_000,
+    # Independent prose/instruction budgets: 2,003 bytes plus snapshot headroom.
+    "update_chart_preview": 2_200,
     "update_dashboard": 4_200,
     "update_dataset": 2_300,
     "update_dataset_metric": 3_100,
@@ -173,12 +175,9 @@ async def test_sql_dataset_inventory_routes_semantic_view_callers(name: str) -> 
     assert "semantic view" in tool.description
     assert "list_metrics" in tool.description
     assert "get_table" in tool.description
-    # The list tool reserves most of its compact prose budget for mandatory
-    # request-wrapper and candidate-selection instructions.
-    if name != "list_datasets":
-        assert "semantic view" in description
-        assert "list_metrics" in description
-        assert "get_table" in description
+    assert "semantic view" in description
+    assert "list_metrics" in description
+    assert "get_table" in description
 
 
 @pytest.mark.asyncio

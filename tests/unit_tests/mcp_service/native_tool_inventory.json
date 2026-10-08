@@ -234,11 +234,11 @@
       "compact_description_chars": 250,
       "description_chars": 3142,
       "entry_bytes": {
-        "structured": 24304,
+        "structured": 24339,
         "text_only": 5099
       },
       "input_schema_bytes": 1547,
-      "output_schema_bytes": 19189
+      "output_schema_bytes": 19224
     },
     "generate_dashboard": {
       "annotations": {
@@ -346,11 +346,11 @@
       "compact_description_chars": 241,
       "description_chars": 434,
       "entry_bytes": {
-        "structured": 8575,
+        "structured": 8610,
         "text_only": 3359
       },
       "input_schema_bytes": 2679,
-      "output_schema_bytes": 5200
+      "output_schema_bytes": 5235
     },
     "get_chart_sql": {
       "annotations": {
@@ -1194,11 +1194,11 @@
       "compact_description_chars": 45,
       "description_chars": 1916,
       "entry_bytes": {
-        "structured": 24793,
+        "structured": 24828,
         "text_only": 5588
       },
       "input_schema_bytes": 3320,
-      "output_schema_bytes": 19189
+      "output_schema_bytes": 19224
     },
     "update_chart_preview": {
       "annotations": {
@@ -1267,16 +1267,16 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 518746,
+      "structured": 518851,
       "text_only": 211521
     },
     "compact_catalog_bytes": {
-      "structured": 467345,
+      "structured": 467450,
       "text_only": 160120
     },
     "largest_entry": {
       "structured": {
-        "bytes": 24793,
+        "bytes": 24828,
         "name": "update_chart"
       },
       "text_only": {
