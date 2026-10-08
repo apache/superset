@@ -1171,6 +1171,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -11151,6 +11156,9 @@ msgstr "Cap registre coincident trobat"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Cap filtre està afegit actualment a aquest dashboard."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Cap registre trobat"
 
@@ -17073,6 +17081,9 @@ msgstr "La mètrica primària s'usa per definir les mides dels segments d'arc"
 
 msgid "The provided table was not found in the provided database"
 msgstr "La taula proporcionada no s'ha trobat a la base de dades proporcionada"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "La consulta associada amb els resultats va ser eliminada."

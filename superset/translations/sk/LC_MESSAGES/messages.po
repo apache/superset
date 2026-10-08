@@ -1170,6 +1170,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -10782,6 +10787,9 @@ msgstr "Žiadne zodpovedajúci výsledky"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Na tejto nástenke nesú v současné dobe pridanýy žiadne filtre."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nebyly nalezeny žiadne záznamy"
 
@@ -16504,6 +16512,9 @@ msgstr "Primární metrika sa používa k definovanie veľkostí segmentů oblou
 
 msgid "The provided table was not found in the provided database"
 msgstr "Zadaná tabuľka nebyla nalezena v zadané databázy"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Dotaz spojený s výsledky bol zmazaný."

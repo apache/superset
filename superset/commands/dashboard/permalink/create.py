@@ -17,7 +17,7 @@
 import logging
 from functools import partial
 
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from superset import db
 from superset.commands.dashboard.permalink.base import BaseDashboardPermalinkCommand
@@ -97,14 +97,32 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
             assert entry.id  # for type checks
             return encode_permalink_key(key=entry.id, salt=self.salt)
 
-        # Create new entry with current algorithm
-        entry = KeyValueDAO.create_entry(
-            resource=self.resource,
-            key=uuid_key,
-            value=value,
-            codec=self.codec,
-        )
-        db.session.flush()
+        # Create new entry with current algorithm.
+        #
+        # The uuid is deterministic, so concurrent identical requests (same user,
+        # dashboard and state) all try to insert the same uuid. The lookup above and
+        # this insert are not atomic, so the unique index is the ultimate arbiter:
+        # the insert runs inside a SAVEPOINT and, if a concurrent request won the
+        # race, we join the winner's entry instead of failing the request.
+        try:
+            with db.session.begin_nested():
+                entry = KeyValueDAO.create_entry(
+                    resource=self.resource,
+                    key=uuid_key,
+                    value=value,
+                    codec=self.codec,
+                )
+                db.session.flush()
+        except IntegrityError:
+            # The SAVEPOINT is rolled back and the session is still usable. The
+            # winner's row is committed by now, so re-read it. Use a locking read:
+            # under REPEATABLE READ (e.g. MySQL's default) a plain SELECT keeps
+            # using the snapshot taken by the lookup above and would not see the
+            # row the winner just committed. If nothing is found, this was not the
+            # expected duplicate, so re-raise.
+            entry = KeyValueDAO.get_entry(self.resource, uuid_key, for_update=True)
+            if entry is None:
+                raise
         assert entry.id  # for type checks
         return encode_permalink_key(key=entry.id, salt=self.salt)
 

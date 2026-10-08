@@ -1220,6 +1220,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -11641,6 +11646,9 @@ msgstr "Nie znaleziono pasujących rekordów"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Do tego dashboardu nie dodano żadnych filtrów."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nie znaleziono rekordów"
 
@@ -17891,6 +17899,9 @@ msgstr "Główna metryka jest używana do określenia rozmiarów segmentów łuk
 #, fuzzy
 msgid "The provided table was not found in the provided database"
 msgstr "Podana tabela nie została znaleziona w podanej bazie danych."
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Zapytanie powiązane z wynikami zostało usunięte."
