@@ -707,14 +707,10 @@ class BaseReportState:
         """
         Get the url for this report schedule: chart or dashboard
         """
-        # An attachment-free alert only needs its query executor. Without
-        # a content executor, no asset link can be created safely.
-        if (
+        attachment_free_alert = (
             self._report_schedule.type == ReportScheduleType.ALERT
             and not self._attachments_enabled()
-            and get_executor_user(self._report_schedule)[0] is None
-        ):
-            return ""
+        )
         chart = self._report_schedule.chart
         dashboard = self._report_schedule.dashboard
 
@@ -730,11 +726,7 @@ class BaseReportState:
         # _get_embedded_data, _get_notification_content) funnels through this
         # method, so this is the single choke point.
         if chart is None and dashboard is None:
-            if (
-                user_friendly
-                and self._report_schedule.type == ReportScheduleType.ALERT
-                and not self._attachments_enabled()
-            ):
+            if user_friendly and attachment_free_alert:
                 return ""
             if self._report_schedule.chart_id is not None:
                 raise ReportScheduleTargetChartDeletedError()
@@ -780,8 +772,10 @@ class BaseReportState:
             )
         # If we need to render dashboard in a specific state, use stateful permalink
         if (
-            dashboard_state := self._report_schedule.extra.get("dashboard")
-        ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
+            not (user_friendly and attachment_free_alert)
+            and (dashboard_state := self._report_schedule.extra.get("dashboard"))
+            and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS")
+        ):
             return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
 
         dashboard_id_or_slug = (
@@ -2705,12 +2699,14 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 # for the same deterministic UUID and returns the
                 # already-committed row without a second INSERT.
                 if self._model.dashboard_id and user is not None:
-                    BaseReportState(
+                    state = BaseReportState(
                         self._model,
                         self._scheduled_dttm,
                         self._execution_id,
                         report_execution_context,
-                    ).get_dashboard_urls()
+                    )
+                    if state._attachments_enabled():
+                        state.get_dashboard_urls()
                 execution_claim = None
                 if self._model.last_state != ReportState.WORKING:
                     execution_claim = claim_execution(

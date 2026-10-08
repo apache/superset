@@ -38,7 +38,12 @@ from superset.commands.report.execute import (
     get_executor_user,
     resolve_executor_user,
 )
-from superset.reports.models import ReportConfigKey, ReportSchedule
+from superset.reports.models import (
+    ReportConfigKey,
+    ReportRecipients,
+    ReportRecipientType,
+    ReportSchedule,
+)
 from superset.tasks.exceptions import ExecutorNotFoundError
 
 
@@ -223,18 +228,24 @@ def test_send_refuses_disallowed_recipients(mocker: MockerFixture) -> None:
         "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
         side_effect=_policy(["example.com"], False),
     )
-    mocker.patch(
-        "superset.commands.report.execute.ReportConfigDAO.find_disallowed_addresses",
-        return_value=["x@other.org"],
-    )
     schedule = Mock(spec=ReportSchedule)
-    schedule.recipients = []
+    schedule.recipients = [
+        ReportRecipients(
+            type=ReportRecipientType.EMAIL,
+            recipient_config_json=(
+                '{"target": "internal@example.com", '
+                '"bccTarget": "external@outside.org"}'
+            ),
+        )
+    ]
     schedule.working_timeout = None
     state = BaseReportState(schedule, datetime.utcnow(), uuid4())
     get_content = mocker.patch.object(state, "_get_notification_content")
     send = mocker.patch.object(state, "_send")
 
-    with pytest.raises(ReportScheduleRecipientsNotAllowedError, match="x@other.org"):
+    with pytest.raises(
+        ReportScheduleRecipientsNotAllowedError, match="external@outside.org"
+    ):
         state.send()
 
     get_content.assert_not_called()
@@ -521,7 +532,7 @@ def test_attachment_free_alert_without_asset_builds_message(
     assert not content.screenshots
 
 
-def test_attachment_free_alert_without_content_user_omits_dashboard_link(
+def test_attachment_free_alert_without_content_user_uses_plain_dashboard_link(
     mocker: MockerFixture,
 ) -> None:
     schedule = mocker.Mock(spec=ReportSchedule)
@@ -529,7 +540,11 @@ def test_attachment_free_alert_without_content_user_omits_dashboard_link(
     schedule.report_format = "PNG"
     schedule.dashboard = mocker.Mock()
     schedule.dashboard.dashboard_title = "Dashboard"
+    schedule.dashboard.uuid = None
+    schedule.dashboard.id = 12
+    schedule.dashboard_id = 12
     schedule.chart = None
+    schedule.extra = {"dashboard": {"anchor": "TAB-1"}}
     schedule.name = "Condition met"
     schedule.description = "Alert message"
     schedule.email_subject = None
@@ -546,9 +561,52 @@ def test_attachment_free_alert_without_content_user_omits_dashboard_link(
     )
     mocker.patch.object(state, "_get_log_data", return_value={})
     permalink = mocker.patch.object(state, "_get_tab_url")
+    get_url_path = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/dashboard/12/",
+    )
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
 
     content = state._get_notification_content()
 
-    assert content.url == ""
-    assert not content.include_cta
+    assert content.url == "/dashboard/12/"
+    assert content.include_cta
     permalink.assert_not_called()
+    assert get_url_path.call_args.args[0] == "Superset.dashboard"
+
+
+def test_attachment_free_alert_without_content_user_uses_plain_chart_link(
+    mocker: MockerFixture,
+) -> None:
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.type = "Alert"
+    schedule.report_format = "NONE"
+    schedule.chart = mocker.Mock()
+    schedule.chart.slice_name = "Chart"
+    schedule.chart_id = 4
+    schedule.dashboard = None
+    schedule.name = "Condition met"
+    schedule.description = None
+    schedule.email_subject = None
+    schedule.include_cta = True
+    schedule.working_timeout = None
+    state = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    mocker.patch.object(state, "_get_log_data", return_value={})
+    get_url_path = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/explore/?slice_id=4",
+    )
+    get_executor_user = mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, "inactive"),
+    )
+
+    content = state._get_notification_content()
+
+    assert content.url == "/explore/?slice_id=4"
+    assert content.include_cta
+    assert get_url_path.call_args.args[0] == "ExploreView.root"
+    get_executor_user.assert_not_called()

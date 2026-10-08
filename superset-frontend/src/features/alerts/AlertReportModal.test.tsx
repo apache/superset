@@ -1735,6 +1735,49 @@ test('submit includes include_cta false after unchecking the checkbox', async ()
   fetchMock.removeRoute('put-include-cta');
 }, 45000);
 
+test('keeps the link choice when an existing alert turns attachments off', async () => {
+  fetchMock.put(
+    'glob:*/api/v1/report/1',
+    { id: 1, result: {} },
+    { name: 'put-attachment-free-link' },
+  );
+
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  await waitFor(() => {
+    expect(
+      screen.queryAllByRole('img', { name: /check-circle/i }),
+    ).toHaveLength(5);
+  });
+  await userEvent.click(screen.getByTestId('contents-panel'));
+
+  const checkbox = await screen.findByRole('checkbox', {
+    name: /include a link back to superset/i,
+  });
+  await userEvent.click(checkbox);
+  await userEvent.click(
+    screen.getByRole('switch', { name: 'Include attachment' }),
+  );
+  expect(checkbox).toBeInTheDocument();
+  expect(checkbox).not.toBeChecked();
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls('put-attachment-free-link'),
+    ).toHaveLength(1);
+  });
+  const [call] = fetchMock.callHistory.calls('put-attachment-free-link');
+  const body = JSON.parse(call.options.body as string);
+  expect(body.report_format).toBe('NONE');
+  expect(body.include_cta).toBe(false);
+  expect(body).not.toHaveProperty('chart');
+  expect(body).not.toHaveProperty('dashboard');
+
+  fetchMock.removeRoute('put-attachment-free-link');
+}, 45000);
+
 test('edit mode submit uses PUT and excludes read-only fields', async () => {
   // Mock payload returns id:1, so updateResource PUTs to /api/v1/report/1
   fetchMock.put(
@@ -3477,6 +3520,11 @@ test('global attachment policy hides both the alert toggle and attachment contro
     expect(
       screen.queryByRole('combobox', { name: 'Select content type' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', {
+        name: /include a link back to superset/i,
+      }),
+    ).toBeInTheDocument();
   } finally {
     fetchMock.removeRoute(configurationEndpoint);
     fetchMock.get(

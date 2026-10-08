@@ -68,7 +68,7 @@ RUN_AS_FK_NAME = "fk_report_schedule_run_as_fk_ab_user"
 RUN_ALERT_QUERY_AS_FK_NAME = "fk_report_schedule_run_alert_query_as_fk_ab_user"
 CONFIG_UUID = UUID("d4f7d2f0-bbd7-4d03-b1da-09c70f5705ec")
 CONFIG_RESOURCE = "alert_report_config"
-CONFIG_TABLE = table(
+KEY_VALUE_TABLE = table(
     "key_value",
     column("resource", String),
     column("uuid", UUIDType(binary=True)),
@@ -108,12 +108,12 @@ def upgrade() -> None:
     bind = op.get_bind()
     if (
         bind.execute(
-            select(CONFIG_TABLE.c.uuid).where(CONFIG_TABLE.c.uuid == CONFIG_UUID)
+            select(KEY_VALUE_TABLE.c.uuid).where(KEY_VALUE_TABLE.c.uuid == CONFIG_UUID)
         ).first()
         is None
     ):
         bind.execute(
-            insert(CONFIG_TABLE).values(
+            insert(KEY_VALUE_TABLE).values(
                 resource=CONFIG_RESOURCE,
                 uuid=CONFIG_UUID,
                 value=b'{"version": 1, "settings": {}}',
@@ -123,7 +123,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.get_bind().execute(
-        delete(CONFIG_TABLE).where(CONFIG_TABLE.c.uuid == CONFIG_UUID)
+        delete(KEY_VALUE_TABLE).where(KEY_VALUE_TABLE.c.uuid == CONFIG_UUID)
     )
 
     # This feature allow users to create alerts with report_format == "NONE"
@@ -151,6 +151,7 @@ def downgrade() -> None:
     for name in (
         "report_recipient",
         "report_execution_log",
+        "report_schedule_editors",
     ):
         dependent = table(name, column("report_schedule_id", Integer))
         bind.execute(

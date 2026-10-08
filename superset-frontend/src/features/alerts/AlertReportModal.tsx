@@ -1082,7 +1082,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       delete data.extra;
       delete data.custom_width;
       delete data.force_screenshot;
-      delete data.include_cta;
     }
 
     if (data.recipients && !data.recipients.length) {
@@ -3052,24 +3051,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             </Checkbox>
                           </div>
                         )}
-                      <div className="inline-container">
-                        <Checkbox
-                          data-test="include-cta"
-                          checked={currentAlert?.include_cta !== false}
-                          onChange={(e: CheckboxChangeEvent) =>
-                            updateAlertState('include_cta', e.target.checked)
-                          }
-                        >
-                          {t('Include a link back to Superset')}
-                        </Checkbox>
-                        <InfoTooltip
-                          tooltip={t(
-                            'When unchecked, the "Explore in Superset" link is omitted from the delivered notifications.',
-                          )}
-                        />
-                      </div>
                     </>
                   )}
+                  <div className="inline-container">
+                    <Checkbox
+                      data-test="include-cta"
+                      checked={currentAlert?.include_cta !== false}
+                      onChange={(e: CheckboxChangeEvent) =>
+                        updateAlertState('include_cta', e.target.checked)
+                      }
+                    >
+                      {t('Include a link back to Superset')}
+                    </Checkbox>
+                    <InfoTooltip
+                      tooltip={t(
+                        'When unchecked, the "Explore in Superset" link is omitted from the delivered notifications.',
+                      )}
+                    />
+                  </div>
                 </>
               ),
             },

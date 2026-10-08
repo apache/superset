@@ -31,10 +31,18 @@ from parameterized import parameterized
 from sqlalchemy.sql import func
 
 from superset import db, security_manager
+from superset.daos.key_value import KeyValueDAO
+from superset.daos.report import ReportConfigDAO
+from superset.key_value.types import (
+    FIXED_RESOURCE_KEYS,
+    JsonKeyValueCodec,
+    KeyValueResource,
+)
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.models.dashboard import Dashboard
 from superset.reports.models import (
+    ReportConfigKey,
     ReportDataFormat,
     ReportSchedule,
     ReportCreationMethod,
@@ -130,10 +138,19 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert created.status_code == 201, created.json
 
         query = rison.dumps(
-            {"filters": [{"col": "id", "opr": "eq", "value": created.json["id"]}]}
+            {
+                "filters": [
+                    {
+                        "col": "name",
+                        "opr": "ct",
+                        "value": "sip209_api_subscription_executor",
+                    }
+                ]
+            }
         )
         response = self.client.get(f"/api/v1/report/?q={query}")
         assert response.status_code == 200, response.json
+        assert response.json["result"][0]["id"] == created.json["id"]
         assert response.json["result"][0]["run_as_type"] == "fixed_user"
         assert response.json["result"][0]["run_as"]["id"] == admin.id
 
@@ -220,7 +237,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.logout()
         self.login("alpha")
         metadata = self.client.put(uri, json={"name": "sip209_api_shared_renamed"})
-        assert metadata.status_code == 200, metadata.json
+        assert metadata.status_code == 200, ("metadata", metadata.json)
         db.session.refresh(schedule)
         original_format = schedule.report_format
         changed_format = (
@@ -247,7 +264,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "recipients": recipients,
             },
         )
-        assert allowed.status_code == 200, allowed.json
+        assert allowed.status_code == 200, ("takeover", allowed.json)
         db.session.refresh(schedule)
         assert schedule.run_as_fk == alpha.id
         assert len(schedule.recipients) == 1
@@ -255,7 +272,10 @@ class TestReportSchedulesApi(SupersetTestCase):
         format_after_takeover = self.client.put(
             uri, json={"report_format": changed_format}
         )
-        assert format_after_takeover.status_code == 200, format_after_takeover.json
+        assert format_after_takeover.status_code == 200, (
+            "format_after_takeover",
+            format_after_takeover.json,
+        )
         db.session.refresh(schedule)
         assert schedule.report_format == changed_format
 
@@ -636,6 +656,8 @@ class TestReportSchedulesApi(SupersetTestCase):
             "retry_notify_owners",
             "retry_notify_recipients",
             "retry_on_failure",
+            "run_as",
+            "run_as_type",
             "send_failed_reports",
             "timezone",
             "type",
@@ -1868,6 +1890,61 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"]["include_cta"] is False
+
+    @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_rejects_disallowed_recipient(self) -> None:
+        """A PUT cannot replace recipients with an address outside the saved policy."""
+        schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name2")
+            .one()
+        )
+        original_recipients = [
+            (recipient.type, recipient.recipient_config_json)
+            for recipient in schedule.recipients
+        ]
+        resource = KeyValueResource.ALERT_REPORT_CONFIG
+        key = FIXED_RESOURCE_KEYS[resource]
+        original_document = KeyValueDAO.get_value(resource, key, JsonKeyValueCodec())
+
+        try:
+            ReportConfigDAO.upsert(
+                {
+                    ReportConfigKey.ALLOWED_EMAIL_DOMAINS: ["example.com"],
+                    ReportConfigKey.LIMIT_RECIPIENTS_TO_USERS: False,
+                }
+            )
+            db.session.commit()
+            self.login(ADMIN_USERNAME)
+
+            response = self.client.put(
+                f"/api/v1/report/{schedule.id}",
+                json={
+                    "recipients": [
+                        {
+                            "type": ReportRecipientType.EMAIL,
+                            "recipient_config_json": {"target": "external@outside.org"},
+                        }
+                    ]
+                },
+            )
+
+            assert response.status_code == 422, response.json
+            assert "recipients" in response.json["message"]
+            db.session.expire(schedule)
+            assert [
+                (recipient.type, recipient.recipient_config_json)
+                for recipient in schedule.recipients
+            ] == original_recipients
+        finally:
+            db.session.rollback()
+            if original_document is None:
+                KeyValueDAO.delete_entry(resource, key)
+            else:
+                KeyValueDAO.update_entry(
+                    resource, original_document, JsonKeyValueCodec(), key
+                )
+            db.session.commit()
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_update_report_schedule_clear_recipients(self):

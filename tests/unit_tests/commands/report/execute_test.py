@@ -373,10 +373,11 @@ def test_old_retry_is_discarded_before_state_machine(
     machine.assert_not_called()
 
 
-def test_attachment_free_alert_without_content_user_skips_permalink_precommit(
-    mocker: MockerFixture, app_context: None
+@pytest.mark.parametrize("content_user_present", [False, True])
+def test_attachment_free_alert_skips_permalink_precommit(
+    mocker: MockerFixture, app_context: None, content_user_present: bool
 ) -> None:
-    """A missing content identity must not block the alert condition query."""
+    """An alert query must not depend on its optional dashboard permalink."""
     from superset.commands.report.execution_claim import ExecutionClaim
 
     command = AsyncExecuteReportScheduleCommand(str(uuid4()), 11, datetime.utcnow())
@@ -395,7 +396,7 @@ def test_attachment_free_alert_without_content_user_skips_permalink_precommit(
     )
     mocker.patch(
         "superset.commands.report.execute.get_executor_user",
-        return_value=(None, "inactive"),
+        return_value=(mocker.Mock() if content_user_present else None, "executor"),
     )
     permalink = mocker.patch.object(BaseReportState, "get_dashboard_urls")
     claim = mocker.patch(

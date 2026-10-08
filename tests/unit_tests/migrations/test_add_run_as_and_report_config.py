@@ -137,7 +137,7 @@ def test_upgrade_adds_executor_columns(engine: Engine) -> None:
     } <= columns
     assert not inspect(engine).has_table("report_config")
     with engine.begin() as conn:
-        rows = conn.execute(select(migration.CONFIG_TABLE)).fetchall()
+        rows = conn.execute(select(migration.KEY_VALUE_TABLE)).fetchall()
         assert len(rows) == 1
         assert rows[0].resource == migration.CONFIG_RESOURCE
         assert rows[0].uuid == migration.CONFIG_UUID
@@ -154,7 +154,7 @@ def test_upgrade_adds_executor_columns(engine: Engine) -> None:
     # Idempotent: a second run is a no-op.
     _run(engine, migration.upgrade)
     with engine.begin() as conn:
-        assert len(conn.execute(select(migration.CONFIG_TABLE)).fetchall()) == 1
+        assert len(conn.execute(select(migration.KEY_VALUE_TABLE)).fetchall()) == 1
 
 
 def test_downgrade_reverts(engine: Engine) -> None:
@@ -163,7 +163,7 @@ def test_downgrade_reverts(engine: Engine) -> None:
 
     assert not inspect(engine).has_table("report_config")
     with engine.begin() as conn:
-        assert conn.execute(select(migration.CONFIG_TABLE)).fetchall() == []
+        assert conn.execute(select(migration.KEY_VALUE_TABLE)).fetchall() == []
     columns = _columns(engine, migration.REPORT_SCHEDULE_TABLE)
     assert "run_as_fk" not in columns
     assert "run_alert_query_as_fk" not in columns
@@ -172,11 +172,18 @@ def test_downgrade_reverts(engine: Engine) -> None:
         assert len(conn.execute(select(table)).fetchall()) == 1
 
 
-def test_downgrade_converts_or_deletes_attachment_free_alerts(engine: Engine) -> None:
+@pytest.mark.parametrize("enforce_foreign_keys", [False, True])
+def test_downgrade_converts_or_deletes_attachment_free_alerts(
+    engine: Engine, enforce_foreign_keys: bool
+) -> None:
     _run(engine, migration.upgrade)
     with engine.begin() as conn:
-        conn.exec_driver_sql("PRAGMA foreign_keys=ON")
-        assert conn.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
+        conn.exec_driver_sql(
+            f"PRAGMA foreign_keys={'ON' if enforce_foreign_keys else 'OFF'}"
+        )
+        assert conn.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == int(
+            enforce_foreign_keys
+        )
         schedules = Table(
             migration.REPORT_SCHEDULE_TABLE, MetaData(), autoload_with=conn
         )

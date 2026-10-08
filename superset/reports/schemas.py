@@ -815,7 +815,9 @@ class ReportConfigurationSchema(Schema):
     )
 
     @pre_load
-    def normalize_domains(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    def normalize_domains(self, data: Any, **kwargs: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
         domains = data.get("allowed_email_domains")
         if isinstance(domains, list):
             normalized: list[str] = []
