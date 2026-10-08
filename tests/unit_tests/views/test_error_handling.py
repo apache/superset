@@ -612,15 +612,19 @@ class TestErrorHandlerNeverTurnsErrorsInto500s:
         assert response.status_code == 504
         assert json.loads(response.data)["error"] == "upstream took too long"
 
-    def test_unexpected_exception_returns_json_body_when_500_html_is_absent(
-        self,
+    @pytest.mark.parametrize(
+        "send_file_error",
+        [FileNotFoundError, PermissionError, NotADirectoryError, IsADirectoryError],
+    )
+    def test_unexpected_exception_returns_json_body_when_500_html_is_unreadable(
+        self, send_file_error: type[OSError]
     ) -> None:
         """
         The last-resort ``show_unexpected_exception`` handler serves ``500.html``
         for HTML clients, but that webpack artifact is absent in API-only/unbuilt
-        deployments. Like its siblings it must fall back to a SIP-40 JSON body
-        rather than let ``send_file`` raise ``FileNotFoundError`` and collapse the
-        response to a bare 500 with no body.
+        deployments and may be unreadable. It must fall back to a SIP-40 JSON body
+        rather than let ``send_file`` raise and collapse the response to a bare
+        500 with no body.
         """
         test_app = self._build_app_with_handlers()
 
@@ -631,7 +635,7 @@ class TestErrorHandlerNeverTurnsErrorsInto500s:
         client = test_app.test_client()
         with patch(
             "superset.views.error_handling.send_file",
-            side_effect=FileNotFoundError,
+            side_effect=send_file_error,
         ):
             response = client.get("/boom", headers={"Accept": "text/html"})
 
