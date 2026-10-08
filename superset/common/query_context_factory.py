@@ -80,9 +80,12 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             and datasource_model_instance is not None
             and DatasourceType(datasource["type"]) == DatasourceType.SEMANTIC_VIEW
         ):
-            # Guest dashboard and payload checks need the completed query context;
-            # keep their authorization path and timing unchanged.
-            if not security_manager.is_guest_user():
+            # Guest dashboard and payload checks need the completed query context,
+            # and an operator EXTRA_RAISE_FOR_ACCESS_BYPASS hook may read the
+            # request's queries; keep their authorization path and timing unchanged.
+            if not security_manager.is_guest_user() and not current_app.config.get(
+                "EXTRA_RAISE_FOR_ACCESS_BYPASS"
+            ):
                 QueryContext(
                     datasource=datasource_model_instance,
                     queries=[],

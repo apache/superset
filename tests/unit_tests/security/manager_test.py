@@ -5625,3 +5625,39 @@ def test_reset_password_self_service_commits_cleared_flag(
     mock_clear.assert_called_once_with(5)
     # One commit for the session-invalidation stamp, one for the cleared flag.
     assert mock_commit.call_count == 2
+
+
+@pytest.mark.parametrize("granted", [True, False])
+def test_raise_for_access_never_reads_queries_for_non_guest(
+    mocker: MockerFixture,
+    app_context: None,
+    granted: bool,
+) -> None:
+    """
+    Pin the invariant the chart-data semantic preflight relies on: for a
+    non-guest caller, ``raise_for_access`` decides from the datasource and form
+    data alone and never reads ``query_context.queries``.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=granted)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+
+    query_context = mocker.MagicMock()
+    # A consistent saved chart, so a payload comparison would reach the queries
+    # rather than stopping at a slice mismatch.
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {}
+    query_context.form_data = {"slice_id": 42}
+    type(query_context).queries = mocker.PropertyMock(
+        side_effect=AssertionError("raise_for_access read query_context.queries")
+    )
+
+    if granted:
+        sm.raise_for_access(query_context=query_context)
+    else:
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(query_context=query_context)

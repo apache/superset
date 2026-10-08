@@ -138,5 +138,7 @@ class Api(BaseSupersetView):
             # pylint: disable=import-outside-toplevel
             from superset.common.query_context_factory import QueryContextFactory
 
-            self.query_context_factory = QueryContextFactory()
+            self.query_context_factory = QueryContextFactory(
+                authorize_semantic_before_metadata=True
+            )
         return self.query_context_factory

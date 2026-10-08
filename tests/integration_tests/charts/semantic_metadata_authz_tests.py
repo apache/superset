@@ -74,6 +74,48 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
+    def test_denied_legacy_query_api_skips_provider_metadata(self) -> None:
+        """The legacy ``/api/v1/query/`` route also denies before metadata."""
+        self.login("gamma")
+        layer: SemanticLayer = SemanticLayer(name="legacy-metadata-layer", type="test")
+        view: SemanticView = SemanticView(
+            name="legacy-metadata-view", semantic_layer=layer
+        )
+        db.session.add(view)
+        db.session.commit()
+        provider: Mock = Mock()
+        provider.get_dimensions.return_value = set()
+        provider.get_metrics.return_value = set()
+        try:
+            with patch.object(
+                SemanticView,
+                "implementation",
+                new_callable=PropertyMock,
+                return_value=provider,
+            ):
+                response: Response = self.client.post(
+                    "/api/v1/query/",
+                    data={
+                        "query_context": json.dumps(
+                            {
+                                "datasource": {
+                                    "id": view.id,
+                                    "type": "semantic_view",
+                                },
+                                "queries": [{"columns": [], "metrics": []}],
+                            }
+                        )
+                    },
+                )
+            assert response.status_code == 403, response.json
+            provider.get_dimensions.assert_not_called()
+            provider.get_metrics.assert_not_called()
+        finally:
+            db.session.rollback()
+            db.session.delete(view)
+            db.session.delete(layer)
+            db.session.commit()
+
     def test_allowed_chart_data_uses_provider_metadata(self) -> None:
         """An entitled role still builds and validates a semantic query."""
         self.login("gamma")
@@ -114,6 +156,51 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 )
             assert response.status_code == 200, response.json
             provider.get_dimensions.assert_called()
+        finally:
+            db.session.rollback()
+            db.session.delete(view)
+            db.session.delete(layer)
+            db.session.commit()
+
+    def test_payload_based_access_bypass_still_sees_queries(self) -> None:
+        """An operator bypass hook keeps receiving the request's real queries."""
+        self.login("gamma")
+        layer: SemanticLayer = SemanticLayer(name="bypass-metadata-layer", type="test")
+        view: SemanticView = SemanticView(
+            name="bypass-metadata-view", semantic_layer=layer
+        )
+        db.session.add(view)
+        db.session.commit()
+        provider: Mock = Mock()
+        provider.get_dimensions.return_value = set()
+        provider.get_metrics.return_value = set()
+
+        def bypass(**kwargs: object) -> bool:
+            """Grant only when the request's queries are visible to the hook."""
+            query_context: object = kwargs["query_context"]
+            return bool(getattr(query_context, "queries", None))
+
+        try:
+            with (
+                patch.dict(
+                    current_app.config, {"EXTRA_RAISE_FOR_ACCESS_BYPASS": bypass}
+                ),
+                patch.object(
+                    SemanticView,
+                    "implementation",
+                    new_callable=PropertyMock,
+                    return_value=provider,
+                ),
+            ):
+                response: Response = self.client.post(
+                    "/api/v1/chart/data",
+                    json={
+                        "datasource": {"id": view.id, "type": "semantic_view"},
+                        "queries": [{"columns": [], "metrics": []}],
+                        "result_type": "query",
+                    },
+                )
+            assert response.status_code == 200, response.json
         finally:
             db.session.rollback()
             db.session.delete(view)
