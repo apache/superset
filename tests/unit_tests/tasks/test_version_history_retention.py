@@ -735,6 +735,56 @@ def test_prune_does_not_retry_an_uncertain_commit(
     stats.incr.assert_not_called()
 
 
+def test_prune_cap_limits_every_shadow_delete_to_capped_ids() -> None:
+    """Every shadow category and transaction delete uses the same capped IDs."""
+    parent: sa.Table = sa.table("parent")
+    child: sa.Table = sa.table("child")
+    m2m: sa.Table = sa.table("m2m")
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[parent],
+            child=[child],
+            m2m=m2m,
+            transaction=sa.table("version_transaction", sa.column("id")),
+        )
+    )
+    window: version_history_retention._PruneWindow = (
+        version_history_retention._PruneWindow(
+            prunable=[1, 2, 3], candidate_count=3, max_candidate_id=3
+        )
+    )
+    engine: MagicMock = MagicMock()
+    connection_context: MagicMock = (
+        engine.connect.return_value.execution_options.return_value
+    )
+    connection: MagicMock = connection_context.__enter__.return_value
+    connection.execute.return_value.rowcount = 0
+    delete: MagicMock
+    mock_db: MagicMock
+    with (
+        patch.object(version_history_retention, "db") as mock_db,
+        patch.object(
+            version_history_retention, "_resolve_prune_window", return_value=window
+        ),
+        patch.object(
+            version_history_retention, "_delete_for_transactions", return_value=0
+        ) as delete,
+    ):
+        mock_db.engine = engine
+        result: dict[str, Any] = version_history_retention._run_prune_pass(
+            datetime(2026, 1, 1), tables, after_id=0, max_prune=2
+        )
+
+    assert delete.call_args_list == [
+        call(connection, [parent], [1, 2]),
+        call(connection, [child], [1, 2]),
+        call(connection, [m2m], [1, 2]),
+    ]
+    transaction_delete: sa.sql.dml.Delete = connection.execute.call_args.args[0]
+    assert transaction_delete.compile().params == {"id_1": [1, 2]}
+    assert result["pruned_transactions"] == 0
+
+
 def test_prune_retries_definitive_db_commit_failure(stats: MagicMock) -> None:
     """An acknowledged transaction rejection may retry the same capped window."""
     tables: version_history_retention.ShadowTables = (

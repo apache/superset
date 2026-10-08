@@ -723,6 +723,51 @@ def test_uncertain_purge_commit_preserves_pending_audit(
     audit_confirm.assert_not_called()
 
 
+def test_failed_commit_rollback_stops_remaining_purge_roots(
+    app_context: None,
+) -> None:
+    """An unconfirmed rollback leaves audit pending and stops later roots."""
+    import superset.tasks.deletion_retention as task
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
+    from superset.models.slice import Slice
+
+    entity: MagicMock = MagicMock(id=1)
+    cascade_result: CascadeResult = CascadeResult(
+        purged=True, entity_type="chart", entity_uuid="uncertain"
+    )
+    audit_fail: MagicMock
+    audit_confirm: MagicMock
+    with (
+        patch.object(task, "_iter_eligible_ids", return_value=[[1, 2]]),
+        patch.object(task, "skip_visibility_filter"),
+        patch.object(task, "entity_uuid", return_value="uuid-1"),
+        patch.object(task, "dashboard_slice_count", return_value=0),
+        patch.object(task, "suppress_purge_association_versions"),
+        patch.object(task, "cascade_hard_delete", return_value=cascade_result),
+        patch.object(task.db, "session") as session,
+        patch.object(task.audit, "write_ahead", return_value=uuid4()),
+        patch.object(task.audit, "fail") as audit_fail,
+        patch.object(task.audit, "confirm") as audit_confirm,
+    ):
+        session.get.return_value = entity
+        session.commit.side_effect = OperationalError(
+            "COMMIT", {}, Exception("transaction rejected")
+        )
+        session.rollback.side_effect = [None, RuntimeError("rollback failed")]
+        result: task._PurgeModelResult = task._purge_model(
+            Slice, datetime.now(), dry_run=False, max_per_run=2
+        )
+
+    assert result.commit_uncertain is True
+    assert result.failures == 0
+    assert result.purged == 0
+    assert session.get.call_count == 2
+    assert session.commit.call_count == 1
+    assert session.rollback.call_count == 2
+    audit_fail.assert_not_called()
+    audit_confirm.assert_not_called()
+
+
 @pytest.mark.parametrize("failure_stage", ["flush", "commit"])
 def test_definitive_purge_db_failure_finalizes_audit(
     app_context: None, failure_stage: str
