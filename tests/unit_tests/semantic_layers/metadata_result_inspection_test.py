@@ -259,7 +259,10 @@ def test_result_inspection_does_not_refill_after_concurrent_invalidation(
         resolve_provider.assert_not_called()
 
 
-def test_result_capture_is_disabled_without_http_operation(app: Flask) -> None:
+def test_result_capture_is_disabled_without_http_operation(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Workers cannot retain HTTP identities even when refresh is enabled."""
     from superset.semantic_layers.result_inspection import (
         capture_result_identity,
         captured_result_key,
@@ -269,9 +272,19 @@ def test_result_capture_is_disabled_without_http_operation(app: Flask) -> None:
     context: QueryContext
     query: QueryObject
     context, query = context_for(view)
-    with app.app_context():
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    fingerprint: Mock
+    with (
+        app.app_context(),
+        patch(
+            "superset.semantic_layers.metadata_binding.is_feature_enabled",
+            return_value=True,
+        ),
+        patch("superset.semantic_layers.result_inspection._fingerprint") as fingerprint,
+    ):
         capture_result_identity(context, query, "already-computed-key")
         assert captured_result_key(context, query) is None
+        fingerprint.assert_not_called()
 
 
 @pytest.mark.parametrize(

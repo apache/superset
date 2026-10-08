@@ -448,6 +448,7 @@ class ScopedMetadataStore:
                 self._generation_key, uuid4().hex, self._snapshot_ttl_seconds
             ).decode()
         except RedisError:
+            self._remaining()
             raise MetadataRefreshError("unavailable") from None
 
     def peek_compatibility_generation(self) -> str | None:
@@ -457,6 +458,7 @@ class ScopedMetadataStore:
             raw: bytes | None = self._backend.get(self._generation_key)
             return raw.decode() if raw is not None else None
         except (RedisError, UnicodeError):
+            self._remaining()
             raise MetadataRefreshError("unavailable") from None
 
     def invalidate_compatibility(self) -> None:

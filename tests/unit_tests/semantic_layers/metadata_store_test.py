@@ -694,3 +694,32 @@ def test_provider_soft_time_limit_stops_metadata_acquisition(operation: str) -> 
     assert error.value is cancellation
     fetch.assert_called_once_with(deadline)
     assert backend.entries == {}
+
+
+@pytest.mark.parametrize("peek", [False, True])
+@pytest.mark.parametrize("elapsed,category", [(1, "unavailable"), (6, "deadline")])
+def test_generation_redis_failure_preserves_expired_budget(
+    peek: bool, elapsed: float, category: str
+) -> None:
+    """A command consuming the budget is a deadline failure, not an outage."""
+    from redis.exceptions import TimeoutError as RedisTimeoutError
+
+    clock: Clock = Clock()
+    backend: Mock = Mock()
+    backend.with_deadline.return_value = backend
+    store: ScopedMetadataStore = ScopedMetadataStore(
+        backend, "scope", deadline=105, clock=clock
+    )
+
+    def stalled(*_: Any) -> None:
+        """Model Redis returning a timeout after consuming command time."""
+        clock.advance(elapsed)
+        raise RedisTimeoutError("transport timeout")
+
+    backend.get.side_effect = stalled
+    backend.get_or_create.side_effect = stalled
+    generation: Callable[[], str | None] = (
+        store.peek_compatibility_generation if peek else store.compatibility_generation
+    )
+    with pytest.raises(MetadataRefreshError, match=category):
+        generation()

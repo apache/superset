@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any, Literal
 from unittest.mock import Mock, patch
 
 import pytest
@@ -139,3 +140,57 @@ def test_cache_backend_decode_error_is_unsupported(app: Flask) -> None:
             inspect_data_cache(cache, "owned-entry", "query_result").state
             == "unsupported"
         )
+
+
+@pytest.mark.parametrize("kind", ["compatibility", "query_result"])
+def test_inspection_factory_selects_data_cache_over_coordination_without_service(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    kind: Literal["compatibility", "query_result"],
+) -> None:
+    """The production factory selects the data DB and prefix with no Redis service."""
+    from superset import cache_manager
+    from superset.commands.semantic_layer.refresh_metadata import inspect_derived_entry
+    from superset.coordination.deadline_backend import DeadlineRedisBackend
+    from superset.semantic_layers.metadata_binding import request_metadata_budget
+
+    data_config: dict[str, Any] = {
+        "CACHE_TYPE": "RedisCache",
+        "CACHE_REDIS_DB": 2,
+        "CACHE_KEY_PREFIX": "data:",
+    }
+    coordination_config: dict[str, Any] = {
+        "CACHE_TYPE": "RedisCache",
+        "CACHE_REDIS_DB": 1,
+        "CACHE_KEY_PREFIX": "coord:",
+    }
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_METADATA_REFRESH_ENABLED", True)
+    monkeypatch.setitem(app.config, "DATA_CACHE_CONFIG", data_config)
+    monkeypatch.setitem(
+        app.config, "DISTRIBUTED_COORDINATION_CONFIG", coordination_config
+    )
+    cache: Cache = Cache(app, config=data_config)
+    monkeypatch.setattr(cache_manager, "_data_cache", cache)
+    entries: dict[int, tuple[bytes, int]] = {
+        2: (cache.cache.serializer.dumps({"dttm": "2026-10-07T12:00:00"}), 60000),
+        1: (cache.cache.serializer.dumps({"dttm": "2026-10-06T12:00:00"}), 120000),
+    }
+    reads: list[tuple[int, str]] = []
+
+    def read(backend: DeadlineRedisBackend, key: str) -> tuple[bytes, int]:
+        """Model separate databases at the transport boundary only."""
+        database: int = backend._config["CACHE_REDIS_DB"]
+        reads.append((database, key))
+        return entries[database]
+
+    with (
+        app.test_request_context(),
+        patch.object(
+            DeadlineRedisBackend, "get_with_ttl", autospec=True, side_effect=read
+        ),
+    ):
+        request_metadata_budget()
+        info: CacheEntryInfo = inspect_derived_entry("entry", kind)
+    assert info.created_at == datetime(2026, 10, 7, 12, tzinfo=timezone.utc)
+    assert info.remaining_ttl_seconds == 60
+    assert reads == [(2, "data:entry")]
