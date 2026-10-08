@@ -26,12 +26,13 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql, postgresql, sqlite
 from sqlalchemy.orm import Query, Session
+from werkzeug.test import TestResponse
 
 from superset import security_manager
 from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.semantic_layers.models import SemanticLayer
 
-SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
+SEMANTIC_LAYERS_APP: pytest.MarkDecorator = pytest.mark.parametrize(
     "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
 )
 
@@ -93,16 +94,18 @@ def test_layer_list_matches_layer_access(
     expected: list[str],
 ) -> None:
     """List, connections and detail agree on which layers a caller can see."""
+    allowed: SemanticLayer
+    denied: SemanticLayer
     allowed, denied = _layers(session)
     _grant(mocker, grant, {allowed.perm} if grant == "one_layer" else set())
 
-    response = client.get("/api/v1/semantic_layer/")
+    response: TestResponse = client.get("/api/v1/semantic_layer/")
     assert response.status_code == 200
     names: list[str] = sorted(row["name"] for row in response.json["result"])
     assert names == expected
     assert len(response.json["result"]) == len(expected)
 
-    connections = client.get(
+    connections: TestResponse = client.get(
         "/api/v1/semantic_layer/connections/"
         "?q=(filters:!((col:source_type,opr:eq,value:semantic_layer)))"
     )
@@ -113,7 +116,7 @@ def test_layer_list_matches_layer_access(
     )
 
     for layer in (allowed, denied):
-        detail = client.get(f"/api/v1/semantic_layer/{layer.uuid}")
+        detail: TestResponse = client.get(f"/api/v1/semantic_layer/{layer.uuid}")
         assert detail.status_code == (200 if layer.name in expected else 403)
 
 
@@ -128,7 +131,7 @@ def test_layer_without_permission_name_listed_only_for_full_access(
     expected: list[str],
 ) -> None:
     """A layer whose permission name is unset is listed only for full access."""
-    allowed, _ = _layers(session)
+    allowed: SemanticLayer = _layers(session)[0]
     perm: str = allowed.get_perm()
     allowed.perm = None
     session.flush()
@@ -181,6 +184,8 @@ def test_layer_list_and_detail_agree_for_real_role_grants(
     from superset.exceptions import SupersetSecurityException
 
     User.metadata.create_all(session.get_bind())
+    allowed: SemanticLayer
+    denied: SemanticLayer
     allowed, denied = _layers(session)
     grant: PermissionView | None = (
         session.query(PermissionView)
