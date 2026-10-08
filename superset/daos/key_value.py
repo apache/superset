@@ -43,6 +43,7 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
         resource: KeyValueResource,
         key: Key,
         for_update: bool = False,
+        for_share: bool = False,
     ) -> KeyValueEntry | None:
         filter_ = get_filter(resource, key)
         query = db.session.query(KeyValueEntry).filter_by(**filter_)
@@ -51,6 +52,14 @@ class KeyValueDAO(BaseDAO[KeyValueEntry]):
             # ownership-checked delete (see the distributed-lock release) can't race
             # a concurrent expire+re-acquire between the read and the delete.
             query = query.with_for_update()
+        elif for_share:
+            # Take a shared (S) row lock for the rest of the transaction
+            # (``FOR SHARE`` / ``LOCK IN SHARE MODE``). A locking read also returns
+            # the latest committed row under REPEATABLE READ, where a plain SELECT
+            # would keep using the transaction's earlier snapshot. Shared locks are
+            # compatible with each other, so concurrent readers don't block one
+            # another the way exclusive ``FOR UPDATE`` locks would.
+            query = query.with_for_update(read=True)
         return query.first()
 
     @classmethod

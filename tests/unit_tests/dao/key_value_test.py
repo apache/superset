@@ -20,6 +20,7 @@ from __future__ import annotations
 import pickle
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 from uuid import UUID
 
 import pytest
@@ -185,6 +186,46 @@ def test_get_uuid_entry(
     found_entry = KeyValueDAO.get_entry(resource=RESOURCE, key=key_value_entry.uuid)
     assert found_entry is not None
     assert JSON_CODEC.decode(found_entry.value) == JSON_VALUE
+
+
+def test_get_entry_for_share(
+    app_context: AppContext,
+    key_value_entry: KeyValueEntry,  # noqa: F811
+    after_each: None,  # noqa: F811
+) -> None:
+    """
+    ``for_share`` must request a shared lock, not an exclusive one: exclusive
+    re-reads from several concurrent permalink requests deadlock on InnoDB.
+    """
+    from sqlalchemy.dialects import mysql, postgresql
+    from sqlalchemy.orm import Query
+
+    from superset.daos.key_value import KeyValueDAO
+
+    queries: list[Query] = []
+    original_first = Query.first
+
+    def capture_first(self: Query) -> KeyValueEntry | None:
+        queries.append(self)
+        return original_first(self)
+
+    with patch.object(Query, "first", capture_first):
+        found_entry = KeyValueDAO.get_entry(
+            resource=RESOURCE,
+            key=key_value_entry.uuid,
+            for_share=True,
+        )
+
+    assert found_entry is not None
+    assert found_entry.id == key_value_entry.id
+
+    (query,) = queries
+    mysql_sql = str(query.statement.compile(dialect=mysql.dialect()))
+    postgresql_sql = str(query.statement.compile(dialect=postgresql.dialect()))
+    assert "LOCK IN SHARE MODE" in mysql_sql or "FOR SHARE" in mysql_sql
+    assert "FOR UPDATE" not in mysql_sql
+    assert "FOR SHARE" in postgresql_sql
+    assert "FOR UPDATE" not in postgresql_sql
 
 
 def test_get_id_entry_missing(
