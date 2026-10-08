@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-05 19:03+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -6742,6 +6742,10 @@ msgid "Filter value (case sensitive)"
 msgstr ""
 
 msgid "Filter value is required"
+msgstr ""
+
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
 msgstr ""
 
 msgid "Filter value list cannot be empty"

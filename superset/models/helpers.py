@@ -5398,7 +5398,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # CONTAINS_ANY/CONTAINS_ALL also produce a list ``eq`` (they
                     # are in ``is_list_target``), but are element-level array ops
                     # handled by their own branch below — not IN.
-                    assert isinstance(eq, (tuple, list))
+                    if not isinstance(eq, (tuple, list)):
+                        # A missing or null value (``val`` absent or ``None``)
+                        # leaves ``eq`` as ``None``. Reject it rather than
+                        # dropping the filter, which would widen the results.
+                        raise QueryObjectValidationError(
+                            _(
+                                "Filter value is required for the IN / NOT IN "
+                                "operator on column %(column)s",
+                                column=get_column_name(flt_col),
+                            )
+                        )
                     if len(eq) == 0:
                         raise QueryObjectValidationError(
                             _("Filter value list cannot be empty")
