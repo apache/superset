@@ -2272,6 +2272,21 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         ("SELECT nextval('public.my_seq')", True),
         # currval() only reads the session's last value, so it is not mutating.
         ("SELECT currval('public.my_seq')", False),
+        # dblink functions that open remote connections or dispatch async writes.
+        ("SELECT dblink_exec('host=h dbname=d', 'DELETE FROM t')", True),
+        ("SELECT dblink_connect('myconn', 'host=h dbname=d')", True),
+        ("SELECT dblink_connect_u('myconn', 'host=h dbname=d')", True),
+        ("SELECT dblink_send_query('myconn', 'DELETE FROM t')", True),
+        ("SELECT * FROM dblink('host=h dbname=d', 'SELECT 1') AS t(c int)", True),
+        # pg_* state-mutating functions callable via SELECT.
+        ("SELECT pg_cancel_backend(1234)", True),
+        ("SELECT pg_reload_conf()", True),
+        ("SELECT pg_stat_reset()", True),
+        ("SELECT pg_switch_wal()", True),
+        ("SELECT pg_logical_emit_message(true, 'channel', 'msg')", True),
+        ("SELECT pg_create_restore_point('rp1')", True),
+        ("SELECT pg_drop_replication_slot('slot1')", True),
+        ("SELECT pg_rotate_logfile()", True),
         # Read-side large-object functions are intentionally NOT classified
         # as mutating here. They are still blocked via the function denylist
         # (see DISALLOWED_SQL_FUNCTIONS) but they do not write state.

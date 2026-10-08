@@ -1033,6 +1033,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # so writes persist even when the outer transaction is read-only.
             "DBLINK",
             "DBLINK_EXEC",
+            "DBLINK_CONNECT",
+            "DBLINK_CONNECT_U",
+            "DBLINK_SEND_QUERY",
             # PostgreSQL state-mutating functions callable via SELECT
             "PG_CANCEL_BACKEND",
             "PG_RELOAD_CONF",

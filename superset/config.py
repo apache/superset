@@ -2486,6 +2486,8 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "dblink",
         "dblink_exec",
         "dblink_connect",
+        "dblink_connect_u",
+        "dblink_send_query",
         # State-mutating functions callable via SELECT
         "pg_cancel_backend",
         "pg_reload_conf",
