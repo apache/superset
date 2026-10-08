@@ -557,10 +557,13 @@ def test_semantic_delete_finds_native_filter_dashboards(
         connection.close()
 
 
-def test_semantic_layer_delete_finds_native_filter_dashboard(
-    session: Session, mocker: MockerFixture
+@pytest.mark.parametrize(
+    "config_key", ["native_filter_configuration", "chart_customization_config"]
+)
+def test_semantic_layer_delete_finds_dashboard_target(
+    session: Session, mocker: MockerFixture, config_key: str
 ) -> None:
-    """A filter-only dashboard blocks its owning layer's hard delete."""
+    """A filter-only or display-control-only dashboard blocks layer deletion."""
     import uuid
 
     from superset.models.dashboard import Dashboard
@@ -588,7 +591,7 @@ def test_semantic_layer_delete_finds_native_filter_dashboard(
                 dashboard_title="Filter-only",
                 json_metadata=json.dumps(
                     {
-                        "native_filter_configuration": [
+                        config_key: [
                             {
                                 "targets": [
                                     {"datasetId": 42, "datasourceType": "semantic_view"}
@@ -625,6 +628,17 @@ def test_semantic_layer_delete_finds_native_filter_dashboard(
         dao.delete.assert_not_called()
     finally:
         connection.close()
+
+
+def test_semantic_delete_skips_json_recursion_error(mocker: MockerFixture) -> None:
+    """Invalid stored metadata must not turn a protected delete into a 500."""
+    from superset.commands.semantic_layer.delete import _dashboard_targets_view
+
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.json.loads",
+        side_effect=RecursionError,
+    )
+    assert not _dashboard_targets_view('"semantic_view"', {42}, 741)
 
 
 def test_semantic_delete_hides_unreadable_dependent(
