@@ -1132,6 +1132,27 @@ def test_purge_cap_counts_committed_roots_across_batches(app_context: None) -> N
     scan.assert_called_once()
 
 
+def test_scheduled_purge_forwards_positive_cap(app_config: Config) -> None:
+    """The scheduled entrypoint preserves the operator's positive purge budget."""
+    from superset.tasks import deletion_retention as task
+
+    app_config["SOFT_DELETE_PURGE_MAX_PER_RUN"] = 2
+    app_config["SOFT_DELETE_RETENTION_DAYS"] = 30
+    app_config["SOFT_DELETE_PURGE_DRY_RUN"] = False
+    purge: MagicMock
+    with (
+        patch.object(task, "_purge_impl", return_value={"purged": 2}) as purge,
+        patch.object(task, "resolve_retention_window", return_value=30),
+        patch.object(
+            task.feature_flag_manager, "is_feature_enabled", return_value=True
+        ),
+    ):
+        result: dict[str, Any] = task.purge_soft_deleted.run()
+
+    purge.assert_called_once_with(30, False, max_per_run=2)
+    assert result == {"purged": 2}
+
+
 def test_scheduled_purge_rejects_invalid_cap_before_work(app_config: Config) -> None:
     """Malformed scheduled budgets fail closed instead of removing everything."""
     from superset.tasks import deletion_retention as task
