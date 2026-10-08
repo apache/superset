@@ -350,3 +350,38 @@ test('preserves previously entered custom value when switching between preset an
   expect(input).not.toBeDisabled();
   expect(input).toHaveValue(120);
 });
+
+test('clamps custom draft below minimum interval when switching preset to custom', async () => {
+  const ControlledWrapper = () => {
+    const [value, setValue] = useState(0);
+    return <RefreshFrequencySelect value={value} onChange={setValue} />;
+  };
+
+  render(<ControlledWrapper />, {
+    useRedux: true,
+    initialState: createInitialState(mockConfiguredIntervals),
+  });
+
+  const customRadio = screen.getByRole('radio', { name: /Custom/i });
+  const presetRadio = screen.getByRole('radio', { name: '45 seconds' });
+
+  // Select custom
+  await userEvent.click(customRadio);
+  const input = screen.getByPlaceholderText('1+');
+
+  // Type invalid draft -5
+  fireEvent.change(input, { target: { value: '-5' } });
+  expect(input).toHaveValue(-5);
+
+  // Switch to preset 45 seconds
+  await userEvent.click(presetRadio);
+  expect(presetRadio).toBeChecked();
+  expect(input).toBeDisabled();
+
+  // Switch back to custom: draft must be clamped to MINIMUM_REFRESH_INTERVAL (1)
+  await userEvent.click(customRadio);
+  expect(customRadio).toBeChecked();
+  expect(input).not.toBeDisabled();
+  expect(input).toHaveValue(1);
+});
+

@@ -218,11 +218,15 @@ export const RefreshFrequencySelect = ({
     setRadioSelection(selectedValue);
 
     if (selectedValue === -1) {
-      // Custom selected - use current custom value or minimum
-      const numValue = parseInt(customValue, 10) || MINIMUM_REFRESH_INTERVAL;
+      // Custom selected - use current custom value if >= minimum, otherwise fallback to minimum
+      const parsed = parseInt(customValue, 10);
+      const numValue =
+        !Number.isNaN(parsed) && parsed >= MINIMUM_REFRESH_INTERVAL
+          ? parsed
+          : MINIMUM_REFRESH_INTERVAL;
       lastEmittedCustomValueRef.current = numValue;
       onChange(numValue);
-      if (!customValue) {
+      if (Number.isNaN(parsed) || parsed < MINIMUM_REFRESH_INTERVAL) {
         setCustomValue(MINIMUM_REFRESH_INTERVAL.toString());
       }
     } else {
