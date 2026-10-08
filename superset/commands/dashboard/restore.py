@@ -34,14 +34,53 @@ from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
 
+def _parse_restore_metadata(raw_metadata: str | None) -> dict[str, Any] | None:
+    """Only clean up metadata whose control structure can be walked safely."""
+    try:
+        metadata: Any = json.loads(raw_metadata or "{}")
+    except ValueError:
+        return None
+    if not isinstance(metadata, dict):
+        return None
+    for key in ("native_filter_configuration", "chart_customization_config"):
+        controls: Any = metadata.get(key)
+        if controls is None:
+            continue
+        if not isinstance(controls, list):
+            return None
+        for control in controls:
+            if not isinstance(control, dict) or (
+                "id" in control and not isinstance(control["id"], str)
+            ):
+                return None
+            targets: Any = control.get("targets")
+            if targets is not None and (
+                not isinstance(targets, list)
+                or any(not isinstance(target, dict) for target in targets)
+            ):
+                return None
+            parents: Any = control.get("cascadeParentIds")
+            if parents is not None and (
+                not isinstance(parents, list)
+                or any(not isinstance(parent, str) for parent in parents)
+            ):
+                return None
+    return metadata
+
+
 def _semantic_target_id(target: dict[str, Any]) -> int | None:
     """Read a stored datasource ID without treating booleans as integer IDs."""
     raw_id: Any = target.get("datasetId")
     if isinstance(raw_id, bool) or not (
-        isinstance(raw_id, int) or (isinstance(raw_id, str) and raw_id.isdecimal())
+        isinstance(raw_id, int)
+        or (isinstance(raw_id, str) and raw_id.isascii() and raw_id.isdecimal())
     ):
         return None
-    value: int = int(raw_id)
+    try:
+        value: int = int(raw_id)
+    except ValueError:
+        # Oversized decimal strings can exceed Python's integer conversion limit.
+        return None
     return value if 0 < value <= 2**63 - 1 else None
 
 
@@ -69,7 +108,13 @@ class RestoreDashboardCommand(BaseRestoreCommand[Dashboard]):
         Do not confuse unavailable providers or lost datasource grants with deletion:
         only metadata existence matters after dashboard editorship was validated.
         """
-        metadata: dict[str, Any] = json.loads(model.json_metadata or "{}")
+        metadata: dict[str, Any] | None = _parse_restore_metadata(model.json_metadata)
+        if metadata is None:
+            self.warnings.append(
+                "Warning: dashboard filter cleanup was skipped because its metadata "
+                "is malformed. Review the dashboard filters before using its results."
+            )
+            return
         keys: tuple[str, str] = (
             "native_filter_configuration",
             "chart_customization_config",
@@ -126,7 +171,8 @@ class RestoreDashboardCommand(BaseRestoreCommand[Dashboard]):
         model.json_metadata = json.dumps(metadata)
         self.warnings.append(
             f"Warning: removed {len(removed)} dashboard filter(s) or display "
-            "control(s) referencing a missing semantic view. Review the dashboard "
+            "control(s) referencing a missing semantic view or an invalid semantic "
+            "view ID. Review the dashboard "
             "filters before using its results."
         )
 

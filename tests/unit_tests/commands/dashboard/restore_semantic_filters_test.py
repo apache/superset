@@ -72,9 +72,114 @@ def archived_dashboard(session: Session, metadata: dict[str, Any]) -> Dashboard:
 
 
 @pytest.mark.parametrize(
+    "raw_metadata",
+    [
+        "{invalid",
+        "null",
+        "[]",
+        pytest.param('{"value": ' + "9" * 5000 + "}", id="oversized-json-integer"),
+        '{"native_filter_configuration": {"id": "bad"}}',
+        '{"native_filter_configuration": ["bad"]}',
+        '{"chart_customization_config": "bad"}',
+        '{"chart_customization_config": [null]}',
+        '{"native_filter_configuration": [{"targets": {"datasetId": 17}}]}',
+        '{"native_filter_configuration": [{"targets": ["bad"]}]}',
+        '{"native_filter_configuration": [{"id": [], "targets": '
+        '[{"datasourceType": "semantic_view", "datasetId": 17}]}]}',
+        '{"native_filter_configuration": [{"cascadeParentIds": {"bad": true}}]}',
+        '{"native_filter_configuration": [{"cascadeParentIds": [[]]}]}',
+        '{"native_filter_configuration": [{"id": "missing", "targets": '
+        '[{"datasetId": 17, "datasourceType": "semantic_view"}]}], '
+        '"chart_customization_config": ["bad"]}',
+    ],
+)
+def test_restore_preserves_malformed_metadata_and_warns(
+    restore_session: Session,
+    raw_metadata: str,
+) -> None:
+    """Bad legacy JSON must not prevent recovery or allow partial metadata cleanup."""
+    dashboard: Dashboard = archived_dashboard(restore_session, {})
+    dashboard.json_metadata = raw_metadata
+    restore_session.commit()
+    command: RestoreDashboardCommand = RestoreDashboardCommand(str(dashboard.uuid))
+    with patch("superset.commands.restore.security_manager.raise_for_editorship"):
+        command.run()
+    restore_session.refresh(dashboard)
+    assert dashboard.deleted_at is None
+    assert dashboard.json_metadata == raw_metadata
+    assert len(command.warnings) == 1
+    assert "cleanup was skipped" in command.warnings[0]
+
+
+@pytest.mark.parametrize(
+    "raw_metadata", [None, "", "{}", '{"native_filter_configuration": null}']
+)
+def test_restore_preserves_empty_metadata_without_warning(
+    restore_session: Session,
+    raw_metadata: str | None,
+) -> None:
+    """Absent optional fields are not malformed and do not require cleanup."""
+    dashboard: Dashboard = archived_dashboard(restore_session, {})
+    dashboard.json_metadata = raw_metadata
+    restore_session.commit()
+    command: RestoreDashboardCommand = RestoreDashboardCommand(str(dashboard.uuid))
+    with patch("superset.commands.restore.security_manager.raise_for_editorship"):
+        command.run()
+    restore_session.refresh(dashboard)
+    assert dashboard.deleted_at is None
+    assert dashboard.json_metadata == raw_metadata
+    assert command.warnings == []
+
+
+def test_restore_rejects_unicode_id_even_when_ascii_view_exists(
+    restore_session: Session,
+) -> None:
+    """Identity parsing agrees with deletion checks instead of aliasing Unicode IDs."""
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), name="layer", type="test", configuration="{}"
+    )
+    view: SemanticView = SemanticView(
+        name="view", semantic_layer=layer, configuration="{}"
+    )
+    restore_session.add(view)
+    restore_session.commit()
+    fullwidth_id: str = "".join(chr(ord(digit) + 0xFEE0) for digit in str(view.id))
+    dashboard: Dashboard = archived_dashboard(
+        restore_session,
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "invalid",
+                    "targets": [
+                        {"datasetId": fullwidth_id, "datasourceType": "semantic_view"}
+                    ],
+                }
+            ],
+        },
+    )
+    command: RestoreDashboardCommand = RestoreDashboardCommand(str(dashboard.uuid))
+    with patch("superset.commands.restore.security_manager.raise_for_editorship"):
+        command.run()
+    restore_session.refresh(dashboard)
+    assert json.loads(dashboard.json_metadata)["native_filter_configuration"] == []
+    assert "invalid" in command.warnings[0]
+
+
+@pytest.mark.parametrize(
     "key", ["native_filter_configuration", "chart_customization_config"]
 )
-@pytest.mark.parametrize("target_id", [17, "17", True, None, "invalid", 2**64])
+@pytest.mark.parametrize(
+    "target_id",
+    [
+        17,
+        "17",
+        True,
+        None,
+        "invalid",
+        2**64,
+        pytest.param("9" * 5000, id="oversized-decimal"),
+    ],
+)
 def test_restore_drops_deleted_semantic_control_and_warns(
     restore_session: Session,
     key: str,

@@ -75,6 +75,10 @@ remaining filters before relying on the restored dashboard's results. A disabled
 provider or missing datasource permission alone does not remove a control whose
 semantic view still exists.
 
+Controls with invalid semantic view IDs are also removed. If the stored metadata
+is malformed, recovery still succeeds but leaves the metadata unchanged and skips
+filter cleanup; the response warns that the dashboard's filters need review.
+
 ## Deleting an object permanently
 
 Use the **Delete permanently** action on a row to remove an object for good.
