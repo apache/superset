@@ -350,7 +350,11 @@ class QueryContextProcessor:
         # (shareable) dataframe above was a hit or a miss — rather than forcing
         # every viewer of the same chart onto their own full dataframe copy.
         annotation_data: dict[str, Any] = {}
-        if query_obj and annotation_key and cache.status != QueryStatus.FAILED:
+        if (
+            query_obj
+            and query_obj.annotation_layers
+            and cache.status != QueryStatus.FAILED
+        ):
             try:
                 annotation_data = self._get_annotation_data_cached(
                     query_obj=query_obj,
@@ -484,7 +488,9 @@ class QueryContextProcessor:
     def annotation_cache_key(self, query_obj: QueryObject) -> str | None:
         """
         Cache key for this query's annotation-layer payload, or ``None`` when
-        the query has no annotation layers.
+        the query has no annotation layers or when some layer's access scope
+        could not be resolved (the payload is then never cached, see
+        :meth:`_annotation_source_scope`).
 
         Annotation payloads are fetched under the requesting user's access
         scope, which is a stricter security requirement than the dataframe
@@ -495,11 +501,13 @@ class QueryContextProcessor:
         """
         if not query_obj or not query_obj.annotation_layers:
             return None
-        return self.query_cache_key(
-            query_obj, annotation_context=self._annotation_cache_context(query_obj)
-        )
+        if (annotation_context := self._annotation_cache_context(query_obj)) is None:
+            return None
+        return self.query_cache_key(query_obj, annotation_context=annotation_context)
 
-    def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
+    def _annotation_cache_context(
+        self, query_obj: QueryObject
+    ) -> dict[str, Any] | None:
         """
         Cache-key material binding annotation data to its security *scope* so
         users with the same access share a cache entry and users with a
@@ -508,7 +516,12 @@ class QueryContextProcessor:
         * NATIVE layers: the ``can_read`` permission on ``Annotation``, the
           only user-dependent dimension of these global records.
         * Chart-backed (``line``/``table``) layers: see
-          :meth:`_annotation_source_scope`.
+          :meth:`_annotation_source_scope`, recorded per *layer* (not per
+          referenced chart) since two layers can reference the same chart
+          with different overrides, and so different scopes.
+
+        Returns ``None`` when any layer's scope cannot be resolved, meaning
+        the payload must not be cached at all.
         """
         context: dict[str, Any] = {}
 
@@ -519,24 +532,31 @@ class QueryContextProcessor:
                 "can_read", "Annotation"
             )
 
-        source_scope: dict[str, Any] = {}
+        source_scope: list[dict[str, Any]] = []
         for layer in query_obj.annotation_layers:
             if (
                 layer.get("sourceType")
                 not in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
             ):
                 continue
-            layer_value = layer.get("value")
-            source_scope[str(layer_value)] = self._annotation_source_scope(layer)
+            if (scope := self._annotation_source_scope(layer)) is None:
+                return None
+            source_scope.append({"value": str(layer.get("value")), **scope})
         if source_scope:
             context["source_scope"] = source_scope
 
         return context
 
-    def _annotation_source_scope(self, layer: dict[str, Any]) -> dict[str, Any]:
+    def _annotation_source_scope(self, layer: dict[str, Any]) -> dict[str, Any] | None:
         """
         Access and data-identity cache-key material for one chart-backed
-        annotation layer.
+        annotation layer, or ``None`` when it cannot be resolved.
+
+        ``None`` means "do not cache": a missing chart, a chart with neither
+        a saved query context nor a resolvable datasource, or any error while
+        deriving the scope would otherwise collapse an authorized and a
+        denied requester onto one shared identity, letting the latter read
+        the former's warmed payload. The caller fetches live instead.
 
         ``access`` keeps a user denied the referenced chart's datasource from
         reading an authorized user's cached payload. When the chart has a
@@ -559,20 +579,18 @@ class QueryContextProcessor:
         any future correctness fixes made there.
         """
         layer_value = layer.get("value")
-        datasource = None
         try:
             chart = (
                 ChartDAO.find_by_id(layer_value) if layer_value is not None else None
             )
-            # resolved_datasource, not datasource: the latter is pinned to
-            # table-backed datasources and resolves to None for a
-            # semantic-view-backed chart, which would otherwise collapse
-            # every requester onto the same {access: None, data_key: None}
-            # scope below regardless of their actual access.
-            datasource = chart.resolved_datasource if chart else None
-            if chart is None or datasource is None:
-                return {"access": None, "data_key": None}
+            if chart is None:
+                return None
 
+            # The saved query context is what the live fetch executes and
+            # authorizes against, so it is consulted first, independent of
+            # the chart's own datasource pointer: a chart can have its
+            # ``datasource_id`` cleared while its saved query context still
+            # targets a valid dataset, and the live fetch would still work.
             annotation_query_context = chart.get_query_context()
             if annotation_query_context is not None:
                 self._apply_annotation_overrides(annotation_query_context, layer)
@@ -587,7 +605,13 @@ class QueryContextProcessor:
                 ]
             else:
                 # Fall back to the RLS-clause identity when the chart has no
-                # saved query context to key on.
+                # saved query context to key on. resolved_datasource, not
+                # datasource: the latter is pinned to table-backed
+                # datasources and resolves to None for a semantic-view-backed
+                # chart.
+                datasource = chart.resolved_datasource
+                if datasource is None:
+                    return None
                 access = security_manager.can_access_datasource(datasource)
                 data_key = security_manager.get_rls_cache_key(datasource)
         except Exception:  # noqa: BLE001  pylint: disable=broad-except
@@ -596,32 +620,23 @@ class QueryContextProcessor:
             # queries, and the RLS lookup / a virtual dataset's
             # get_extra_cache_keys() renders Jinja, either of which can raise
             # a driver/template error. None of that should ever 500 the whole
-            # chart-data request; fail closed instead so this scope can't
-            # silently dedupe onto a successfully-derived one.
+            # chart-data request; fail closed instead. A fallback scope
+            # shared by every requester whose derivation failed would still
+            # be a shared identity, so the answer is "no caching", not a
+            # substitute key.
             logger.warning(
                 "Could not derive annotation cache key for chart %s; "
-                "falling back to a fail-closed scope",
+                "annotation data for this request will not be cached",
                 layer_value,
                 exc_info=True,
             )
-            try:
-                fallback_data_key = (
-                    security_manager.get_rls_cache_key(datasource)
-                    if datasource is not None
-                    else None
-                )
-            except Exception:  # noqa: BLE001  pylint: disable=broad-except
-                # The fallback's own lookup can fail the same way (e.g. the
-                # same DB outage that failed the primary derivation) -- don't
-                # let that escape either.
-                fallback_data_key = None
-            return {"access": False, "data_key": fallback_data_key}
+            return None
         return {"access": access, "data_key": data_key}
 
     def _get_annotation_data_cached(
         self,
         query_obj: QueryObject,
-        cache_key: str,
+        cache_key: str | None,
         force_query: bool,
         force_cached: bool | None,
         timeout: int | None,
@@ -630,7 +645,18 @@ class QueryContextProcessor:
         """
         Fetch this query's annotation-layer payload, cached under its own
         (user/RLS-scoped) entry, separate from the shared dataframe cache.
+
+        A ``None`` ``cache_key`` means some layer's access scope could not be
+        resolved (see :meth:`_annotation_source_scope`), so there is no key
+        under which a cached payload could be safely shared: an unresolved
+        scope looks the same for an authorized and a denied requester. The
+        payload is then fetched live and never cached. That holds under
+        ``force_cached`` too: computing here beats failing the read-back of
+        an otherwise successful async task.
         """
+        if cache_key is None:
+            return self.get_annotation_data(query_obj)
+
         if not force_query:
             try:
                 cached_value = cache_manager.data_cache.get(cache_key)
@@ -1108,6 +1134,15 @@ class QueryContextProcessor:
             for query_object in query_context.queries:
                 query_object.from_dttm = from_dttm
                 query_object.to_dttm = to_dttm
+                # Keep the logical range alongside the resolved bounds:
+                # ``QueryObject.cache_key`` keys on ``time_range`` when set
+                # (dropping the bounds), so a relative override such as
+                # "Last week" keeps one key as time passes instead of
+                # contributing freshly resolved timestamps on every request
+                # (which would defeat cache and force-nonce reuse), and an
+                # override on a saved query without a range of its own is
+                # still told apart from a different override.
+                query_object.time_range = time_range
 
     @staticmethod
     def get_viz_annotation_data(  # noqa: C901

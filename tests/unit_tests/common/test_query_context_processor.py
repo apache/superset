@@ -214,6 +214,8 @@ def test_annotation_source_scope_binds_datasource_access(
         security_manager.get_rls_cache_key.return_value = []
         scope_a = processor._annotation_source_scope({"value": 1})
         scope_b = processor._annotation_source_scope({"value": 1})
+    assert scope_a is not None
+    assert scope_b is not None
     assert scope_a != scope_b
     assert scope_a["access"] is True
     assert scope_b["access"] is False
@@ -269,6 +271,8 @@ def test_annotation_source_scope_uses_live_fetch_authorization(
         ]
         scope_a = processor._annotation_source_scope({"value": 1})
         scope_b = processor._annotation_source_scope({"value": 1})
+    assert scope_a is not None
+    assert scope_b is not None
     assert scope_a["access"] is True
     assert scope_b["access"] is False
     assert scope_a != scope_b
@@ -301,6 +305,10 @@ def test_annotation_source_scope_applies_overrides_before_keying(
     assert mock_query_object.extras["time_grain_sqla"] == "P1D"
     assert mock_query_object.from_dttm is not None
     assert mock_query_object.to_dttm is not None
+    # The logical range rides along so ``QueryObject.cache_key`` keys on it
+    # rather than on the freshly resolved bounds (which would change on every
+    # request for a relative range and defeat cache/nonce reuse).
+    assert mock_query_object.time_range == "Last week"
 
 
 def test_annotation_source_scope_fails_closed_on_any_derivation_error(
@@ -310,7 +318,10 @@ def test_annotation_source_scope_fails_closed_on_any_derivation_error(
     successfully-derived scope -- and not just for SupersetException: the RLS
     lookup is a real DB query and get_extra_cache_keys() renders Jinja for
     virtual datasets, so a driver or template error is just as likely as a
-    SupersetException here, and must not 500 the whole chart-data request."""
+    SupersetException here, and must not 500 the whole chart-data request.
+    "Closed" means no scope at all (no caching): a substitute key shared by
+    every requester whose derivation failed would itself be a shared identity
+    an authorized requester could warm for a denied one."""
     mock_annotation_chart.get_query_context.side_effect = RuntimeError("db boom")
     with patch(
         "superset.common.query_context_processor.security_manager",
@@ -319,23 +330,8 @@ def test_annotation_source_scope_fails_closed_on_any_derivation_error(
         security_manager.can_access_datasource.return_value = True
         security_manager.get_rls_cache_key.return_value = []
         scope = processor._annotation_source_scope({"value": 1})
-    assert scope == {"access": False, "data_key": []}
-
-
-def test_annotation_source_scope_fallback_lookup_also_fails_closed(
-    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
-) -> None:
-    """If the fallback's own RLS lookup fails too (e.g. the same DB outage
-    that failed the primary derivation), that must not escape either."""
-    mock_annotation_chart.get_query_context.side_effect = RuntimeError("db boom")
-    with patch(
-        "superset.common.query_context_processor.security_manager",
-        new_callable=MagicMock,
-    ) as security_manager:
-        security_manager.can_access_datasource.return_value = True
-        security_manager.get_rls_cache_key.side_effect = RuntimeError("still down")
-        scope = processor._annotation_source_scope({"value": 1})
-    assert scope == {"access": False, "data_key": None}
+    assert scope is None
+    security_manager.get_rls_cache_key.assert_not_called()
 
 
 def test_annotation_source_scope_none_when_chart_missing(processor) -> None:
@@ -344,7 +340,104 @@ def test_annotation_source_scope_none_when_chart_missing(processor) -> None:
         return_value=None,
     ):
         scope = processor._annotation_source_scope({"value": 999})
-    assert scope == {"access": None, "data_key": None}
+    assert scope is None
+
+
+def test_annotation_source_scope_uses_saved_query_context_without_datasource(
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
+) -> None:
+    """A chart whose ``datasource_id`` was cleared can still carry a saved
+    query context targeting a valid dataset, which is exactly what the live
+    fetch executes. Scope must then come from that context's own
+    authorization rather than collapsing allowed and denied requesters onto
+    one unscoped identity because the chart's datasource pointer is gone."""
+    mock_annotation_chart.resolved_datasource = None
+    mock_query_object: MagicMock = MagicMock()
+    mock_query_context: MagicMock = MagicMock()
+    mock_query_context.queries = [mock_query_object]
+    mock_query_context.query_cache_key.return_value = "referenced-chart-key"
+    mock_query_context.raise_for_access.side_effect = [
+        None,
+        SupersetSecurityException(MagicMock()),
+    ]
+    mock_annotation_chart.get_query_context.return_value = mock_query_context
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ):
+        scope_a = processor._annotation_source_scope({"value": 1})
+        scope_b = processor._annotation_source_scope({"value": 1})
+    assert scope_a == {"access": True, "data_key": ["referenced-chart-key"]}
+    assert scope_b == {"access": False, "data_key": ["referenced-chart-key"]}
+
+
+def test_annotation_source_scope_none_without_query_context_or_datasource(
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
+) -> None:
+    """With neither a saved query context nor a resolvable datasource there
+    is nothing to scope on, so the layer is uncacheable rather than keyed on
+    a shared placeholder."""
+    mock_annotation_chart.resolved_datasource = None
+    mock_annotation_chart.get_query_context.return_value = None
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security_manager:
+        scope = processor._annotation_source_scope({"value": 1})
+    assert scope is None
+    security_manager.can_access_datasource.assert_not_called()
+
+
+def test_annotation_cache_context_keeps_every_layer_scope(
+    processor: QueryContextProcessor,
+) -> None:
+    """Two layers can reference the same chart with different overrides, and
+    an override can change the referenced query's per-user material, so the
+    context must carry each layer's scope rather than one entry per chart ID
+    (where the later layer would silently overwrite the earlier one)."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [
+        {
+            "sourceType": "line",
+            "name": "monthly",
+            "value": 1,
+            "overrides": {"time_grain_sqla": "P1M"},
+        },
+        {
+            "sourceType": "line",
+            "name": "daily",
+            "value": 1,
+            "overrides": {"time_grain_sqla": "P1D"},
+        },
+    ]
+    scopes = [
+        {"access": True, "data_key": ["monthly-key"]},
+        {"access": True, "data_key": ["daily-key"]},
+    ]
+    with patch.object(processor, "_annotation_source_scope", side_effect=scopes):
+        context = processor._annotation_cache_context(query_obj)
+    assert context is not None
+    assert context["source_scope"] == [
+        {"value": "1", "access": True, "data_key": ["monthly-key"]},
+        {"value": "1", "access": True, "data_key": ["daily-key"]},
+    ]
+
+
+def test_annotation_cache_key_none_when_any_layer_scope_unresolved(
+    processor: QueryContextProcessor,
+) -> None:
+    """One unresolvable layer makes the whole annotation payload uncacheable:
+    no key is derived at all, so nothing can be read from or written to the
+    cache under a shared identity."""
+    query_obj = MagicMock()
+    query_obj.annotation_layers = [
+        {"sourceType": "line", "name": "ok", "value": 1},
+        {"sourceType": "line", "name": "gone", "value": 2},
+    ]
+    scopes = [{"access": True, "data_key": ["k"]}, None]
+    with patch.object(processor, "_annotation_source_scope", side_effect=scopes):
+        assert processor.annotation_cache_key(query_obj) is None
+    query_obj.cache_key.assert_not_called()
 
 
 def test_annotation_source_scope_uses_resolved_datasource_for_semantic_views(
@@ -2560,6 +2653,76 @@ def test_get_df_payload_result_decouples_annotation_cache_from_dataframe_cache()
     # The payload serves the freshly-resolved annotation data, not whatever
     # (stale) value happened to sit on the dataframe's cache object.
     assert result["annotation_data"] == {"a": [1, 2]}
+
+
+def test_get_df_payload_result_fetches_annotations_live_when_scope_unresolved() -> None:
+    """
+    When no annotation cache key can be derived for a query that *does* have
+    annotation layers (some layer's access scope is unresolvable), the
+    payload must still carry annotation data -- fetched live, bypassing the
+    cached path entirely so nothing is read or written under a shared key.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+        annotation_layers=[
+            {
+                "annotationType": "EVENT",
+                "sourceType": "line",
+                "name": "a",
+                "value": 1,
+            }
+        ],
+    )
+
+    mock_cache = MagicMock()
+    mock_cache.is_loaded = True
+    mock_cache.applied_filter_columns = ["col1"]
+    mock_cache.df = pd.DataFrame({"col1": [1, 2, 3]})
+    mock_cache.query = ""
+    mock_cache.status = "success"
+    mock_cache.error_message = None
+    mock_cache.is_cached = True
+    mock_cache.applied_template_filters = []
+    mock_cache.rejected_filter_columns = []
+    mock_cache.bq_memory_limited = False
+    mock_cache.result_persisted = False
+
+    with (
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(query_obj, "validate", return_value=None),
+        patch.object(processor, "query_cache_key", return_value="df-key"),
+        patch.object(processor, "annotation_cache_key", return_value=None),
+        patch(
+            "superset.common.query_context_processor.cache_manager"
+        ) as mock_data_cache_manager,
+        patch(
+            "superset.common.query_context_processor.set_and_log_cache"
+        ) as mock_set_and_log_cache,
+        patch.object(
+            processor, "get_annotation_data", return_value={"a": [1]}
+        ) as mock_live,
+        patch.object(processor, "get_cache_timeout", return_value=3600),
+    ):
+        mock_cache_manager.get.return_value = mock_cache
+        result = processor.get_df_payload(query_obj, force_cached=True)
+
+    mock_live.assert_called_once_with(query_obj)
+    mock_data_cache_manager.data_cache.get.assert_not_called()
+    mock_set_and_log_cache.assert_not_called()
+    assert result["annotation_data"] == {"a": [1]}
 
 
 def test_get_df_payload_result_annotation_refresh_independent_of_df_marker() -> None:
