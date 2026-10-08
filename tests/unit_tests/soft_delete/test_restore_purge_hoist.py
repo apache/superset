@@ -175,6 +175,7 @@ def test_command_response_mapping(
     api.response_422 = MagicMock()
     api.soft_delete_logger = MagicMock()
     command: MagicMock = MagicMock()
+    command.return_value.warnings = []
     exceptions: ModuleType = import_module(f"superset.commands.{entity}.exceptions")
     failure_kind: str = "Restore" if action == "restore" else "Delete"
     error_types: dict[str, type[Exception]] = {
@@ -219,6 +220,18 @@ def test_command_response_mapping(
         )
     else:
         api.soft_delete_logger.error.assert_not_called()
+
+
+def test_restore_returns_cleanup_warning(api_classes: dict[str, type[Any]]) -> None:
+    """REST callers receive dependency cleanup warnings in the response message."""
+    api: Any = object.__new__(api_classes["dashboard"])
+    api.response = MagicMock()
+    with patch.object(type(api), "restore_command_cls") as command:
+        command.return_value.warnings = ["Warning: missing semantic view."]
+        inspect.unwrap(type(api).restore)(api, "entity-uuid")
+    api.response.assert_called_once_with(
+        200, message="OK Warning: missing semantic view."
+    )
 
 
 @pytest.mark.parametrize("entity", ["dashboard", "dataset"])
