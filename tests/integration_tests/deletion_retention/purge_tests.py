@@ -397,12 +397,13 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
                 attribute.welcome_dashboard_id = previous_dashboard_id
             db.session.commit()
 
-    def test_purging_dataset_leaves_referencing_chart_dangling(self) -> None:
+    def test_purging_dataset_detaches_referencing_chart(self) -> None:
         """A soft-deleted dataset is purged without a dependent guard even
-        with a live chart referencing it; the chart is left
-        dangling (unchanged), not blocked or rewritten."""
+        with a live chart referencing it; the chart is kept, not blocked,
+        with its datasource id and permission fields cleared (sc-119912)."""
         chart = self.make_chart("dangling", dataset=self.dataset)
         chart_id, ds_id = chart.id, self.dataset.id
+        assert chart.perm is not None
         self.soft_delete(self.dataset, days_ago=90)
 
         _purge(window=30)
@@ -410,7 +411,8 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
         assert not self.exists(SqlaTable, ds_id)
         assert self.exists(Slice, chart_id)
         kept = db.session.query(Slice).filter(Slice.id == chart_id).one()
-        assert kept.datasource_id == ds_id  # dangling, unmodified
+        assert kept.datasource_id is None
+        assert (kept.perm, kept.schema_perm, kept.catalog_perm) == (None, None, None)
 
     def test_tags_removed_on_purge(self) -> None:
         """The entity's tagged_object rows are removed (the
