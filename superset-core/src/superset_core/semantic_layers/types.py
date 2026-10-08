@@ -52,7 +52,41 @@ class Grain:
 
 
 class Grains:
-    """Pre-defined common grains and factory for custom ones."""
+    """
+    Pre-defined common grains and factory for custom ones.
+
+    **Grain-variant selection.** A view may expose several :class:`Dimension`
+    variants that share one ``name``, one per supported grain, optionally
+    alongside a raw variant whose ``grain`` is ``None``. When a selection does
+    not name an explicit, supported grouping grain, one variant has to be
+    chosen, and the rule is a single default preference:
+
+    1. the raw variant (``grain is None``);
+    2. then, finest known grain first: second, minute, hour, day, week, month,
+       quarter, year;
+    3. then any remaining grain representation, in lexical order.
+
+    That preference governs column metadata, filters and the grouping fallback.
+    An explicit supported grouping grain is always honored. Filters and time
+    bounds use the default preference **independently of grouping**: grouping by
+    month with a lower bound of January 15 still filters the raw time dimension
+    from January 15 rather than testing month buckets against that bound.
+    Sorting and series limits use the selected grouping grain.
+
+    Resolving every host lookup through this one preference is the work of
+    apache/superset#44454; until it lands, some host call sites still choose a
+    variant their own way, so a provider should not rely on which variant a
+    given lookup picks today.
+
+    Do not order grains by ``Grain.name``: alphabetically "Day" precedes "Hour"
+    and "Quarter" precedes "Week", which is the opposite of grain fineness. Use
+    the preference above, keyed on ``representation``.
+
+    Providers must expose at most one dimension ID per ``(name, grain)``.
+    Conflicting IDs, types, definitions or descriptions for the same name and
+    grain make the catalog ambiguous; that is a provider defect to fix rather
+    than a tie for the host to break by picking a variant.
+    """
 
     SECOND = Grain("Second", "PT1S")
     MINUTE = Grain("Minute", "PT1M")
@@ -84,6 +118,40 @@ class Grains:
 
 @dataclass(frozen=True)
 class Dimension:
+    """
+    A groupable or filterable member of a semantic view.
+
+    Member identity (the same rule applies to :class:`Metric`):
+
+    - ``name`` is the **stable selection key**. Saved charts, API payloads and
+      compatibility selections reference a member by ``name``, so it must stay
+      stable across catalog reloads and provider upgrades. A provider that
+      changes what ``name`` means must declare a new
+      ``SemanticView.selection_identity_version`` so the host can ask the user
+      to reselect instead of failing with a generic "must be defined" error.
+    - ``verbose_name`` is **display only**, and is excluded from equality.
+    - ``id`` is **provider-private**. The host does not read it; do not expect a
+      selection, filter or order entry to round-trip through it.
+
+    A view may expose several variants sharing one ``name``, one per supported
+    ``grain`` (see :class:`Grains` for how the host chooses between them), but
+    at most one per ``(name, grain)`` pair: two dimensions sharing a name and
+    grain are a provider defect, not a tie for the host to break silently.
+    Metric names are unique on their own, and must not collide with a dimension
+    name. A query selects at most one variant per name, so a result carries one
+    column per selected member name.
+
+    Attributes:
+        id: Provider-private identifier; not part of the host contract.
+        name: Stable selection key, unique per ``(name, grain)``.
+        type: Arrow type of the values this dimension yields.
+        definition: Provider-specific expression, for display and debugging.
+        description: Optional human-readable description.
+        grain: Time grain of this variant, or ``None`` for the raw variant.
+        verbose_name: Display label; ignored for equality.
+        metadata: Free-form provider metadata; ignored for equality.
+    """
+
     id: str
     name: str
     type: pa.DataType
@@ -117,6 +185,28 @@ class AggregationType(str, enum.Enum):
 
 @dataclass(frozen=True)
 class Metric:
+    """
+    An aggregated member of a semantic view.
+
+    Member identity follows the same rule as :class:`Dimension`: ``name`` is the
+    stable selection key, ``verbose_name`` is display only, and ``id`` is
+    provider-private. Metric names must be unique within a view, and must not
+    collide with dimension names, because the host resolves a selection against
+    both member sets by ``name``.
+
+    Attributes:
+        id: Provider-private identifier; not part of the host contract.
+        name: Stable selection key, unique within the view.
+        type: Arrow type of the aggregated values.
+        definition: Provider-specific expression, for display and debugging.
+        description: Optional human-readable description.
+        aggregation: Aggregation this metric applies, when the provider can
+            declare it; ``None`` means "unspecified", not "none applied".
+        verbose_name: Display label; ignored for equality.
+        d3format: Optional display format hint; ignored for equality.
+        metadata: Free-form provider metadata; ignored for equality.
+    """
+
     id: str
     name: str
     type: pa.DataType
@@ -136,6 +226,24 @@ class AdhocExpression:
 
 
 class Operator(str, enum.Enum):
+    """
+    Comparison applied by a :class:`Filter`.
+
+    **NULL semantics.** ``None`` is not a valid operand for a comparison
+    operator. In SQL, ``= NULL``, ``!= NULL``, ``IN (NULL)`` and
+    ``NOT IN (NULL)`` are never true, so a provider that renders or binds
+    ``None`` through one of them silently drops every row the user asked for,
+    with no error. Nullness is expressed with :attr:`IS_NULL` and
+    :attr:`IS_NOT_NULL`, which take no operand. An empty collection for
+    :attr:`IN` or :attr:`NOT_IN` has no well-defined rendering either.
+
+    Splitting a ``None`` operand out into those predicates is the host's
+    responsibility, so that every provider sees the same already-normalized
+    filter set instead of reimplementing the rewrite. That normalization is
+    being added to the host mapper separately; until it ships, a provider that
+    already handles ``None`` correctly should keep doing so.
+    """
+
     EQUALS = "="
     NOT_EQUALS = "!="
     GREATER_THAN = ">"
@@ -227,6 +335,27 @@ class SemanticResult:
 class SemanticQuery:
     """
     Represents a semantic query.
+
+    **Ordering applies before limit and offset.** A provider must sort the full
+    result set by ``order`` and only then apply ``offset`` and ``limit``.
+    Truncating first and sorting the truncated page returns a different, and
+    wrong, answer. ``order`` entries are ``(member, direction)`` pairs whose
+    member must be defined by the view; an adhoc expression is only a valid
+    order key for a view declaring ``ADHOC_EXPRESSIONS_IN_ORDERBY``.
+
+    ``group_limit`` is a separate ranking, with its own metric, direction and
+    optional filters.
+
+    Attributes:
+        metrics: Selected metrics, resolved by ``name``.
+        dimensions: Selected dimensions, one variant per name.
+        filters: Predicate set; see :class:`Operator` for NULL handling.
+        order: Sort keys applied before ``offset``/``limit``.
+        limit: Maximum rows to return after ordering, or ``None`` for no limit.
+        offset: Rows to skip after ordering, before ``limit``.
+        group_limit: Optional top/bottom-N restriction over dimension groups.
+        selection_identity_version: Identity format of the saved selection this
+            query was built from, validated against the view.
     """
 
     metrics: list[Metric]

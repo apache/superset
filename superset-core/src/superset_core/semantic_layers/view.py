@@ -44,6 +44,31 @@ class SemanticViewFeature(enum.Enum):
 class SemanticView(ABC):
     """
     Abstract base class for semantic views.
+
+    Implementations own translation and execution; the rules the host relies on
+    are fixed here so every provider agrees on them:
+
+    - **Member identity.** ``Metric.name`` and ``Dimension.name`` are the stable
+      selection keys; ``verbose_name`` is display only and ``id`` is
+      provider-private. See :class:`~superset_core.semantic_layers.types.Metric`.
+      A provider that changes what ``name`` means declares a new
+      :attr:`selection_identity_version`.
+    - **Grain variants.** Several dimension variants may share one ``name``, at
+      most one per ``(name, grain)``. See
+      :class:`~superset_core.semantic_layers.types.Grains` for the preference
+      the host applies, and for why grains must not be ordered by name.
+    - **NULL in filters.** ``None`` is never a comparison operand; splitting
+      nullness into ``IS_NULL``/``IS_NOT_NULL`` is the host's responsibility.
+      See :class:`~superset_core.semantic_layers.types.Operator`.
+    - **Ordering before limit.** ``order`` is applied to the full result set
+      before ``offset`` and ``limit``. See
+      :class:`~superset_core.semantic_layers.types.SemanticQuery`.
+
+    Uniqueness works at two levels. In the **catalog**, dimensions are unique
+    per ``(name, grain)`` -- so several grain variants of one name are expected
+    -- while metric names are unique on their own and must not collide with a
+    dimension name. In a **query**, at most one variant per name is selected, so
+    a result carries one column per selected member name.
     """
 
     # Defaults to no optional features: providers opt in by overriding, and
@@ -113,6 +138,10 @@ class SemanticView(ABC):
     def get_table(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a semantic query and return the results.
+
+        Sort by ``query.order`` before applying ``query.offset`` and
+        ``query.limit``; truncating before sorting returns the wrong rows. Name
+        each result column after the member that produced it.
         """
 
     @abstractmethod
