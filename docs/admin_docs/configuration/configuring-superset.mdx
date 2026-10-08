@@ -754,6 +754,16 @@ pending when result fetching begins, the additional polling wait is bounded by
 a timeout. Configure the driver's network timeout separately to bound individual
 RPC calls.
 
+## SQL Lab dataset match
+
+SQL Lab query execution requires `datasource_access` on a registered dataset for every referenced table. `schema_access` and `catalog_access` do not authorize execution while this is on, which is the default:
+
+```python
+SQLLAB_REQUIRE_DATASET_MATCH = True
+```
+
+Set it to `False` to authorize SQL Lab from `schema_access` or `catalog_access` alone. `schema_access` covers every table in that schema. `catalog_access` covers every table in the catalog, across schemas. Either grant includes tables that are not registered as datasets. Result fetch, export, cost estimates, SQL formatting, and the MCP `execute_sql` tool follow the same flag. Chart and Explore access already honor schema and catalog grants and are unaffected.
+
 ## SQL Lab Query History Pruning
 
 SQL Lab query history is stored in the metadata database and is **not** pruned by default. To trim older rows, enable the `prune_query` Celery beat task by uncommenting it in `CELERY_BEAT_SCHEDULE` and choosing a retention window:

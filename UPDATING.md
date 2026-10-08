@@ -24,6 +24,26 @@ assists people when migrating to a new version.
 
 ## Next
 
+### SQL Lab schema and catalog grants
+
+`SQLLAB_REQUIRE_DATASET_MATCH` defaults to `True`. SQL Lab execution, result
+fetch, CSV and streaming export, cost estimates, SQL formatting, and the MCP
+`execute_sql` tool still require `datasource_access` on a registered dataset
+for every referenced table. A denial on that path names the dataset
+requirement, so a role that already holds `schema_access` or `catalog_access`
+is not told those grants are missing.
+
+Set `SQLLAB_REQUIRE_DATASET_MATCH = False` to authorize those paths from
+`schema_access` or `catalog_access` alone. `schema_access` covers every
+table in that schema. `catalog_access` covers every table in the catalog,
+across schemas. Either grant includes tables that are not registered as
+datasets. Scripts that rebind schema resolution (`USE`, `SET SCHEMA`, or a
+`search_path` change) stay denied either way: the access check would
+otherwise qualify unqualified names against the selected schema while the
+shared cursor reads the schema the script switched to. Chart and Explore
+checks are unchanged. Reports, alerts, MetaDB, and SQL validation keep
+requiring a dataset match.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.

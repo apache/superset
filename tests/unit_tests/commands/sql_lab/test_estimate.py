@@ -155,6 +155,7 @@ def test_raise_for_access_called_with_correct_database(
 
 @patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
 @patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+@pytest.mark.usefixtures("app_context")
 def test_validate_authorizes_the_sql_to_be_estimated(
     mock_dao: MagicMock,
     mock_security_manager: MagicMock,
@@ -179,6 +180,62 @@ def test_validate_authorizes_the_sql_to_be_estimated(
         template_params={},
         force_dataset_match=True,
     )
+
+
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+@pytest.mark.usefixtures("app_context")
+def test_validate_skips_dataset_match_when_disabled(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+) -> None:
+    """``SQLLAB_REQUIRE_DATASET_MATCH = False`` restores schema-grant checks."""
+    from flask import current_app
+
+    mock_database = MagicMock()
+    mock_dao.find_by_id.return_value = mock_database
+
+    command = QueryEstimationCommand(
+        _make_params(sql="SELECT * FROM secret_table", schema="main")
+    )
+    with patch.dict(current_app.config, {"SQLLAB_REQUIRE_DATASET_MATCH": False}):
+        command.validate()
+
+    assert (
+        mock_security_manager.raise_for_access.call_args.kwargs["force_dataset_match"]
+        is False
+    )
+
+
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_authorizes_rendered_sql_before_estimating(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+) -> None:
+    """A second render can name a table the pre-render check never saw."""
+    mock_database = MagicMock()
+    mock_dao.find_by_id.return_value = mock_database
+    mock_get_template_processor.return_value.process_template.return_value = (
+        "SELECT * FROM secret_table"
+    )
+    mock_security_manager.raise_for_access.side_effect = [None, _security_exception()]
+
+    command = QueryEstimationCommand(
+        _make_params(
+            sql="SELECT * FROM {{ table_name }}",
+            template_params={"table_name": "secret_table"},
+        )
+    )
+    with pytest.raises(SupersetSecurityException):
+        command.run()
+
+    rendered_check = mock_security_manager.raise_for_access.call_args_list[1].kwargs
+    assert rendered_check["sql"] == "SELECT * FROM secret_table"
+    assert rendered_check["template_params"] is None
+    mock_database.db_engine_spec.estimate_query_cost.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

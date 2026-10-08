@@ -18045,6 +18045,14 @@ msgid ""
 "'all_database_access' or 'all_datasource_access' permission"
 msgstr "以下のテーブルへのアクセス権、または「all_database_access」か「all_datasource_access」権限が必要です：%(tables)s"
 
+#, python-format
+msgid ""
+"You need datasource_access on a registered dataset for each of the "
+"following tables: %(tables)s. schema_access and catalog_access do not "
+"authorize this query. Alternatively, grant 'all_database_access' or "
+"'all_datasource_access'."
+msgstr ""
+
 msgid "You need to"
 msgstr "次のことを行う必要があります"
 

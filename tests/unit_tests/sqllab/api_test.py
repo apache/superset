@@ -108,7 +108,46 @@ def test_format_sql_checks_access_before_rendering(
 
     assert response.status_code == 403
     raise_for_access.assert_called_once()
+    assert raise_for_access.call_args.kwargs["force_dataset_match"] is True
     get_template_processor.assert_not_called()
+
+
+def test_format_sql_skips_dataset_match_when_disabled(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """SQL formatting follows ``SQLLAB_REQUIRE_DATASET_MATCH``."""
+    from flask import current_app
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "presto"
+    mocker.patch(
+        "superset.sqllab.api.DatabaseDAO.find_by_id",
+        return_value=database,
+    )
+    processor = mocker.MagicMock()
+    processor.process_template.side_effect = lambda sql, **_kwargs: sql
+    mocker.patch(
+        "superset.sqllab.api.get_template_processor",
+        return_value=processor,
+    )
+    raise_for_access = mocker.patch(
+        "superset.sqllab.api.security_manager.raise_for_access",
+    )
+
+    with patch.dict(current_app.config, {"SQLLAB_REQUIRE_DATASET_MATCH": False}):
+        response = client.post(
+            "/api/v1/sqllab/format_sql/",
+            json={
+                "sql": "SELECT 1",
+                "database_id": 1,
+                "template_params": '{"foo": "bar"}',
+            },
+        )
+
+    assert response.status_code == 200
+    assert raise_for_access.call_args.kwargs["force_dataset_match"] is False
 
 
 @pytest.mark.parametrize(

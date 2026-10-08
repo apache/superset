@@ -4115,8 +4115,52 @@ def test_raise_for_access_catalog_self_reference_does_not_weaken_sqllab_strict_m
         side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
     )
 
-    with pytest.raises(SupersetSecurityException):
+    with pytest.raises(SupersetSecurityException) as excinfo:
         sm.raise_for_access(query=query, force_dataset_match=True)
+    message = str(excinfo.value)
+    assert "datasource_access" in message
+    assert "schema_access" in message
+    assert "catalog_access" in message
+
+
+def test_raise_for_access_rejects_schema_rebind_when_dataset_match_off(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    ``USE`` rebinds the shared cursor even when dataset matching is off.
+
+    A grant on ``tenant_a`` must not authorize ``USE tenant_b; SELECT * FROM
+    orders``: the access check would qualify ``orders`` as ``tenant_a.orders``
+    while execution reads ``tenant_b.orders``.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=True)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.database_name = "warehouse"
+    database.db_engine_spec.engine = "mysql"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "tenant_a"
+    query = mocker.MagicMock(
+        database=database,
+        schema="tenant_a",
+        catalog=None,
+        sql="SELECT * FROM orders",
+    )
+
+    sm.raise_for_access(query=query, force_dataset_match=False)
+
+    query.sql = "USE tenant_b; SELECT * FROM orders"
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query=query, force_dataset_match=False)
+    assert "changes the schema" in str(excinfo.value)
 
 
 def test_get_datasources_accessible_by_user_schema_access(
