@@ -75,7 +75,10 @@ def test_dashboard_omits_disabled_semantic_metadata() -> None:
     """Both dashboard serializers omit semantic entries before discovery."""
     metadata: MagicMock
     serialize: MagicMock
-    from superset.mcp_service.dashboard.schemas import dashboard_datasets_serializer
+    from superset.mcp_service.dashboard.schemas import (
+        dashboard_datasets_serializer,
+        DashboardDatasets,
+    )
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.semantic_layers.models import SemanticView
@@ -93,7 +96,9 @@ def test_dashboard_omits_disabled_semantic_metadata() -> None:
         ) as serialize,
     ):
         assert dashboard.datasets_trimmed_for_slices() == []
-        assert dashboard_datasets_serializer(dashboard).datasets == []
+        result: DashboardDatasets = dashboard_datasets_serializer(dashboard)
+        assert result.datasets == []
+        assert result.inaccessible_dataset_count == 0
     metadata.assert_not_called()
     serialize.assert_not_called()
 

@@ -74,7 +74,8 @@ are unavailable, while chart listings mark affected charts with an
 import/export retains its existing feature-off rejection.
 
 Background queries evaluate availability when the worker executes them. Browser
-controls reflect the bootstrap flag on the next full page load; stale pages
+controls reflect the bootstrap flag on a full page load once the cached bootstrap
+payload expires (up to 60 seconds with a configured `CACHE_CONFIG`); stale pages
 still encounter server-side refusal. Providers must already be loaded through
 `ENABLE_EXTENSIONS`, which remains a startup setting. During a rolling upgrade,
 wait until every web and worker process has the runtime guards before enabling
