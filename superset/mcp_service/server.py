@@ -361,7 +361,7 @@ def _request_instructions(tool: Any) -> str:
     Only ``Field(description=...)`` on the parameter itself counts. Schema
     dereferencing also copies the request model's docstring onto the served
     ``request`` property; that is model documentation, not calling instructions,
-    and must not be advertised or deducted from the search prose budget.
+    and must not be advertised as calling instructions.
     """
     try:
         signature = inspect.signature(tool.fn)
@@ -378,17 +378,6 @@ def _request_instructions(tool: Any) -> str:
         ),
         "",
     )
-
-
-def _bounded_description(tool: Any, description: str, max_length: int) -> str:
-    """Bound a tool's description, reserving room for its request instructions.
-
-    Request-parameter instructions stay untruncated in the input schema, so
-    their length is deducted from the search prose budget. Native listings
-    use the full prose budget because they serve the input schema unchanged.
-    """
-    instructions = _request_instructions(tool)
-    return _truncate_description(description, max(0, max_length - len(instructions)))
 
 
 def _extract_parameter_names(input_schema: dict[str, Any]) -> str:
@@ -432,7 +421,7 @@ def _build_summary_serializer(max_desc: int) -> Any:
     Returns a callable that serializes each tool to ``name``,
     ``description`` (optionally truncated), and a ``parameters_hint``
     string listing top-level parameter names and unabridged request instructions.
-    Instruction length is reserved from the prose budget. ``inputSchema`` and
+    Instructions do not consume the prose budget. ``inputSchema`` and
     ``outputSchema`` are stripped entirely.
     """
 
@@ -451,7 +440,7 @@ def _build_summary_serializer(max_desc: int) -> Any:
                         f"{hint}: {instructions}" if instructions else hint
                     )
             if max_desc and (desc := data.get("description")):
-                data["description"] = _bounded_description(tool, desc, max_desc)
+                data["description"] = _truncate_description(desc, max_desc)
             results.append(data)
         return results
 
@@ -538,8 +527,8 @@ def _create_search_result_serializer(
 
     Titles and output schemas are stripped by the base serializer. The legacy
     ``compact_schemas`` setting only selects the default description limit;
-    ``max_description_length`` budgets prose plus request-wrapper instructions.
-    Instructions stay in the schema even when they exceed a small prose limit.
+    ``max_description_length`` budgets prose alone. Request-wrapper instructions
+    stay in the schema even when they exceed a small prose limit.
     """
     include_schemas = config.get("include_schemas", False)
 
@@ -557,9 +546,9 @@ def _create_search_result_serializer(
 
     def _serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
         results = _serialize_tools_without_output_schema(tools)
-        for tool, data in zip(tools, results, strict=True):
+        for data in results:
             if desc := data.get("description"):
-                data["description"] = _bounded_description(tool, desc, max_desc)
+                data["description"] = _truncate_description(desc, max_desc)
         return results
 
     return _serializer

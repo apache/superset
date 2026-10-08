@@ -502,8 +502,8 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 # The legacy compact_schemas setting only selects the default description limit
 # (300 when True, 0 when False) if max_description_length is omitted.
 # Field descriptions on a tool's request parameter carry untruncated calling
-# instructions. Their length is deducted from the prose budget; small limits
-# omit prose instead. Request-model docstrings are not deducted.
+# instructions in inputSchema or parameters_hint. These instructions do not
+# consume the description prose budget.
 #
 # Rollback:
 # ---------

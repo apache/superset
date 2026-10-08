@@ -405,7 +405,7 @@ def test_truncate_description_empty():
 
 
 def test_truncate_description_zero_max() -> None:
-    """No prose remains when schema instructions consume the entire budget."""
+    """A zero prose budget omits the description."""
     text = "Some text"
     result = _truncate_description(text, 0)
     assert result == ""
