@@ -147,10 +147,7 @@ export default function dashboardInfoReducer(
         isRefreshStart,
         expectedGeneration,
       } = action as DashboardInfoAction;
-      if (
-        dashboardId === undefined ||
-        (state.id !== undefined && dashboardId !== state.id)
-      ) {
+      if (dashboardId === undefined || dashboardId !== state.id) {
         return state;
       }
       if (isRefreshStart && !requestId) return state;
@@ -359,11 +356,8 @@ export default function dashboardInfoReducer(
           state.semanticDatasets?.dashboardId === action.data.dashboardInfo.id
             ? state.semanticDatasetsRequestId
             : undefined,
-        semanticDatasetRequests:
-          state.id === action.data.dashboardInfo.id ||
-          state.semanticDatasets?.dashboardId === action.data.dashboardInfo.id
-            ? state.semanticDatasetRequests
-            : {},
+        // A remount's page load supersedes add requests from the previous mount.
+        semanticDatasetRequests: {},
         semanticDatasetOverrides:
           state.id === action.data.dashboardInfo.id ||
           state.semanticDatasets?.dashboardId === action.data.dashboardInfo.id

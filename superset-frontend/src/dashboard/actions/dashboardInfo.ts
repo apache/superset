@@ -59,13 +59,17 @@ type SemanticDataset = NonNullable<
   DashboardInfo['semanticDatasets']
 >['datasets'][number];
 
+const SEMANTIC_SOURCE_KEY_RE = new RegExp(
+  `^([1-9]\\d*)__${DatasourceType.SemanticView}$`,
+);
+
 export function provenSemanticDataset(
   value: unknown,
   sourceKey: string,
 ): SemanticDataset | null {
   if (!value || typeof value !== 'object') return null;
   const candidate = value as Partial<SemanticDataset> & { id?: number };
-  const sourceId = /^([1-9]\d*)__semantic_view$/.exec(sourceKey)?.[1];
+  const sourceId = SEMANTIC_SOURCE_KEY_RE.exec(sourceKey)?.[1];
   if (
     !sourceId ||
     candidate.type !== DatasourceType.SemanticView ||

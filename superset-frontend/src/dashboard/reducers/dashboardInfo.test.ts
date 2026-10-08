@@ -99,6 +99,66 @@ test('hydration keeps a matching page-load metadata response', () => {
   expect(result.semanticDatasets?.datasets).toEqual([semanticSource]);
 });
 
+test.each(['page first', 'add first'])(
+  'same-dashboard hydration rejects a pre-remount add response: %s',
+  order => {
+    const pendingAdd = dashboardInfoReducer(
+      { id: 1 },
+      {
+        type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+        dashboardId: 1,
+        sourceKey: semanticSource.uid,
+        dataset: null,
+        requestId: 'before-remount',
+        isRefreshStart: true,
+      },
+    );
+    const hydrated = dashboardInfoReducer(pendingAdd, {
+      type: 'HYDRATE_DASHBOARD',
+      data: { dashboardInfo: { id: 1, metadata: {} } },
+    } as unknown as Parameters<typeof dashboardInfoReducer>[1]);
+    const freshSource = {
+      ...semanticSource,
+      columns: [{ column_name: 'event_time', is_dttm: true }],
+    };
+    const page = {
+      type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+      dashboardId: 1,
+      datasets: [freshSource],
+      expectedGeneration: pendingAdd.semanticDatasetsGeneration,
+    };
+    const staleAdd = {
+      type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+      dashboardId: 1,
+      sourceKey: semanticSource.uid,
+      dataset: semanticSource,
+      requestId: 'before-remount',
+    };
+    const actions =
+      order === 'page first' ? [page, staleAdd] : [staleAdd, page];
+    const result = actions.reduce<ReturnType<typeof dashboardInfoReducer>>(
+      dashboardInfoReducer,
+      hydrated,
+    );
+    expect(result.semanticDatasets?.datasets).toEqual([freshSource]);
+    expect(hydrated.semanticDatasetRequests).toEqual({});
+    expect(pendingAdd.semanticDatasetRequests).toEqual({
+      [semanticSource.uid]: 'before-remount',
+    });
+  },
+);
+
+test('page metadata cannot publish before dashboard hydration', () => {
+  const initial = {};
+  expect(
+    dashboardInfoReducer(initial, {
+      type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+      dashboardId: 1,
+      datasets: [semanticSource],
+    }),
+  ).toBe(initial);
+});
+
 test('a late add response cannot revive metadata invalidated by a newer save', () => {
   const initial = { id: 1 } as Partial<DashboardInfo>;
   const pendingAdd = dashboardInfoReducer(initial, {
