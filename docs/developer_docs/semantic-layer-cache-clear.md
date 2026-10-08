@@ -73,12 +73,12 @@ or credential is exposed in the token.
 Providers with process-local metadata caches must include the supplied token
 alongside existing endpoint, credential, role and view scope **before**
 any dictionary lookup or eager discovery. Their returned SDK views echo the
-token they were discovered under through `metadata_cache_token`; never relabel previously
-cached members with a later token. Runtime schema helpers receiving the layer's
-configuration must preserve its operation identity too. Keep existing expiries
-and prune retired dictionary generations to bound memory. Providers without local
-metadata caches may carry the token onward; this does not clear vendor or
-warehouse server caches.
+token they were discovered under through `metadata_cache_token`; never relabel
+previously cached members with a later token. Runtime schema helpers receiving
+the layer's configuration must preserve its operation identity too. Keep
+existing expiries and prune retired dictionary generations to bound memory.
+Providers without local metadata caches may carry the token onward; this does
+not clear vendor or warehouse server caches.
 Until a provider honours this hook in its caches, it cannot promise complete
 metadata reload support. Provider adoption must accompany host deployment for
 complete invalidation.
@@ -87,11 +87,11 @@ Host result, annotation-source, compatibility and value-suggestion cache keys
 include the captured generation (`SemanticView.metadata_generation` on the host
 ORM view) while preserving their other key dimensions. The SDK view's
 `metadata_cache_token` is only the provider's echo and never keys host caches.
-Containment caches must likewise key on the host generation, optionally alongside
-the provider token; the host ORM view also exposes it as `metadata_cache_token`
-for that integration. A legacy SDK
-view may return `None`; that must not disable host invalidation. Provider tokens
-keep their existing `str | None` contract. The containment integration is tracked
+Containment caches must likewise key on the host generation, optionally
+alongside the provider token; the host ORM view also exposes it as
+`metadata_cache_token` for that integration. A legacy SDK view may return
+`None`; that must not disable host invalidation. Provider tokens keep their
+existing `str | None` contract. The containment integration is tracked
 in [#42760](https://github.com/apache/superset/pull/42760).
 
 Old entries expire normally. A page reload clears browser structure promises and

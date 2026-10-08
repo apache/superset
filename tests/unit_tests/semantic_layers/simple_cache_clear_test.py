@@ -103,7 +103,7 @@ def test_failed_save_rolls_back_configuration_and_version(
     assert layer.cache_version == 0
 
 
-def test_version_token_is_captured_and_namespaced(
+def test_metadata_generation_is_captured_and_namespaced(
     app: Flask,
     session: Session,
     layer: SemanticLayer,
@@ -122,7 +122,7 @@ def test_version_token_is_captured_and_namespaced(
         app.config.pop("SEMANTIC_LAYER_CACHE_NAMESPACE")
 
 
-def test_token_binding_precedes_provider_construction(
+def test_generation_binding_precedes_provider_construction(
     app: Flask,
     session: Session,
     layer: SemanticLayer,
@@ -245,7 +245,7 @@ def test_clear_route_requires_empty_object(
 
 
 @pytest.mark.parametrize("route", ["compatible", "column/category/values/"])
-def test_suggestion_cache_rotates_with_layer_version(
+def test_suggestion_cache_rotates_with_metadata_generation(
     client: Any,
     full_api_access: None,
     route: str,
@@ -256,7 +256,7 @@ def test_suggestion_cache_rotates_with_layer_version(
     view.cache_timeout = 60
     view.changed_on = None
     view.type = "semantic_view"
-    view.metadata_generation = "generation-zero"  # noqa: S105
+    view.metadata_generation = "generation-zero"
     view.implementation.selection_identity_version = None
     view.get_compatible_metrics.return_value = []
     view.get_compatible_dimensions.return_value = []
@@ -286,7 +286,7 @@ def test_suggestion_cache_rotates_with_layer_version(
 
         assert request().status_code == 200
         first: str = cache.data_cache.get.call_args.args[0]
-        view.metadata_generation = "generation-one"  # noqa: S105
+        view.metadata_generation = "generation-one"
         assert request().status_code == 200
         assert cache.data_cache.get.call_args.args[0] != first
 

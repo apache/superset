@@ -213,7 +213,7 @@ class _MetadataGenerations:
         return self.generations[layer.uuid]
 
     def forget(self, layer_uuid: uuid.UUID) -> None:
-        """Permit a fresh capture after an authorized generation increment."""
+        """Permit a fresh capture after an authorized ``cache_version`` increment."""
         self.generations.pop(layer_uuid, None)
 
 
@@ -835,8 +835,10 @@ class SemanticView(AuditMixinNullable, Model):
 
     @property
     def metadata_cache_token(self) -> str:
-        """Alias of ``metadata_generation`` for the containment cache (#42760).
+        """Deprecated alias of ``metadata_generation``, the host generation.
 
+        Kept only while the containment result cache reads the host generation
+        under this name; remove it once that reads ``metadata_generation``.
         Not the SDK view's provider-echoed ``metadata_cache_token``.
         """
         return self.metadata_generation
