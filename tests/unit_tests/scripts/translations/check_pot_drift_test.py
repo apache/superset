@@ -158,19 +158,44 @@ def test_main_exits_one_and_lists_drift_when_out_of_sync(
     assert "babel_update.sh" in out
 
 
-def _context_drift(tmp_path: Path, committed_text: str, fresh_text: str) -> set[str]:
-    """Run ``diff`` on two templates with the same msgids; return comment drift."""
+def _drift(
+    tmp_path: Path, committed_text: str, fresh_text: str
+) -> tuple[set[str], set[str], set[str]]:
+    """Run ``diff`` with ``fresh_text`` standing in for a fresh extraction.
+
+    Returns the missing, stale and comment-changed msgids. Stubs
+    ``extract_fresh`` itself, so no git snapshot of the repository runs; the
+    extraction path has its own tests above.
+    """
     committed = tmp_path / "messages.pot"
     committed.write_text(_HEADER + committed_text, encoding="utf-8")
-    with patch.object(
-        check_pot_drift.subprocess,
-        "run",
-        side_effect=_fake_extract_text(_HEADER + fresh_text),
-    ):
+
+    def write_fresh(path: Path) -> None:
+        path.write_text(_HEADER + fresh_text, encoding="utf-8")
+
+    with patch.object(check_pot_drift, "extract_fresh", side_effect=write_fresh):
         result = check_pot_drift.diff(committed)
-    assert result.missing == set()
-    assert result.stale == set()
-    return result.context_changed
+    return result.missing, result.stale, result.context_changed
+
+
+def _context_drift(tmp_path: Path, committed_text: str, fresh_text: str) -> set[str]:
+    """Run ``diff`` on two templates with the same msgids; return comment drift."""
+    missing, stale, context_changed = _drift(tmp_path, committed_text, fresh_text)
+    assert missing == set()
+    assert stale == set()
+    return context_changed
+
+
+def test_diff_reports_a_new_noted_string_as_missing_only(tmp_path: Path) -> None:
+    """A noted string absent from the template is missing, not comment drift."""
+    missing, _stale, context_changed = _drift(
+        tmp_path,
+        'msgid "Host"\nmsgstr ""\n',
+        'msgid "Host"\nmsgstr ""\n\n'
+        '#. i18n: a URL identifier\nmsgid "Slug"\nmsgstr ""\n',
+    )
+    assert missing == {"Slug"}
+    assert context_changed == set()
 
 
 def test_diff_reports_a_reworded_i18n_comment(tmp_path: Path) -> None:

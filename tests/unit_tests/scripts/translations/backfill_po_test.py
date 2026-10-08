@@ -512,6 +512,7 @@ def test_is_do_not_translate_allows_normal_entry() -> None:
         "i18n: translate Slug as a URL identifier; do not translate as an animal",
         "i18n: don't translate as a server tier",
         "i18n: a URL identifier,\ndo not translate it as the animal",
+        "i18n: a product term, not on the do-not-translate list",
     ],
 )
 def test_is_do_not_translate_ignores_prose_in_an_i18n_note(comment: str) -> None:
@@ -712,9 +713,17 @@ def test_pybabel_update_carries_the_note_into_catalogs(
 def test_build_batch_items_carries_the_note_only_when_present() -> None:
     noted = polib.POEntry(msgid="Slug", msgstr="", comment="i18n: a URL identifier")
     plain = polib.POEntry(msgid="Save", msgstr="")
-    items = backfill_po._build_batch_items([noted, plain], index={}, lang="de")
+    plural = polib.POEntry(
+        msgid="%(n)s chart",
+        msgid_plural="%(n)s charts",
+        msgstr_plural={0: "", 1: ""},
+        comment="i18n: saved charts, not a chart type",
+    )
+    items = backfill_po._build_batch_items([noted, plain, plural], index={}, lang="de")
     assert items[0]["developer_note"] == "a URL identifier"
     assert "developer_note" not in items[1]
+    assert items[2]["is_plural"]
+    assert items[2]["developer_note"] == "saved charts, not a chart type"
 
 
 def test_build_prompt_puts_the_note_above_reference_translations() -> None:
@@ -733,7 +742,7 @@ def test_build_prompt_puts_the_note_above_reference_translations() -> None:
     assert entry.index("Developer note:") < entry.index("German:")
 
 
-def test_build_prompt_is_unchanged_without_notes() -> None:
+def test_build_prompt_has_no_note_section_without_notes() -> None:
     batch = [{"msgid": "Save", "index_key": "Save"}]
     prompt = backfill_po.build_prompt("es", batch, index={})
     assert "Developer note" not in prompt
