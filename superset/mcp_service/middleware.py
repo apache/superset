@@ -1129,7 +1129,16 @@ class ToolResultCompatibilityMiddleware(Middleware):
             except Exception:  # noqa: BLE001
                 sanitized_message = type(e).__name__
             error_text = f"Error: {sanitized_message}"
-            if not isinstance(e, ToolError) and not _is_user_error_for_reporting(e):
+            # Classification inspects attributes of an arbitrary exception
+            # (e.g. an unhashable ``error_type`` or a non-int ``status``) and
+            # can itself raise. Treat a classification failure as
+            # system-class so the hook still fires and this catch never
+            # propagates.
+            try:
+                is_user_error = _is_user_error_for_reporting(e)
+            except Exception:  # noqa: BLE001
+                is_user_error = False
+            if not isinstance(e, ToolError) and not is_user_error:
                 # GlobalErrorHandlerMiddleware converts every exception it
                 # sees into ToolError (and already invokes MCP_ERROR_HOOK
                 # for system-class errors there). A non-ToolError reaching

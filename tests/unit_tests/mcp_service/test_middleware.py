@@ -2875,6 +2875,40 @@ class TestToolResultCompatibilityErrorHook:
         assert result.content[0].text == "Error: HostileStrError"
 
     @pytest.mark.asyncio
+    async def test_classification_failure_does_not_escape_last_resort_handler(
+        self,
+    ) -> None:
+        """Classifying the error for reporting inspects attributes of an
+        arbitrary exception and can itself raise (an unhashable
+        ``error_type`` makes the datasource membership check throw
+        TypeError). The last-resort handler must still return an is_error
+        result rather than propagate, and treat the error as system-class
+        so the hook fires."""
+
+        class UnhashableErrorTypeError(Exception):
+            error_type: dict[str, str] = {}
+
+        middleware = ToolResultCompatibilityMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        error = UnhashableErrorTypeError("boom")
+        call_next = AsyncMock(side_effect=error)
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is True
+        assert result.content[0].text.startswith("Error:")
+        mock_hook.assert_called_once()
+        assert mock_hook.call_args[0][0] is error
+
+    @pytest.mark.asyncio
     async def test_client_facing_text_is_sanitized(self) -> None:
         """An exception bypassing GlobalErrorHandlerMiddleware must not
         leak raw internals to the client — the last-resort response text
