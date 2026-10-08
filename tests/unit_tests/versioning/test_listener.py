@@ -322,7 +322,7 @@ def test_capture_retains_the_first_pre_flush_state(
     listener._capture_initial_states(lifecycle_session, (Slice,))
     listener._capture_initial_states(lifecycle_session, (Slice,))
 
-    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+    assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {
         ("chart", 7): (entity, initial)
     }
     assert captures == [entity]
@@ -364,7 +364,7 @@ def test_terminal_event_clears_transaction_state(
         {
             listener.ACTION_KIND_KEY: "restore",
             listener.ACTION_META_KEY: {"headline": "restored"},
-            listener._INITIAL_STATES_KEY: {("chart", 7): object()},
+            listener.INITIAL_STATES_KEY: {("chart", 7): object()},
             listener._FINALIZING_KEY: True,
             listener.NORMALIZATION_CONTEXT_KEY: {"pending": True},
             "unrelated": "preserved",
@@ -569,7 +569,7 @@ def test_capture_latency_metric_fires_once_on_the_versioned_write_path(
         listener, "reconcile_parent_snapshots"
     )
     # A retained pre-flush state for one versioned entity -> non-empty buffer.
-    lifecycle_session.info[listener._INITIAL_STATES_KEY] = {
+    lifecycle_session.info[listener.INITIAL_STATES_KEY] = {
         ("chart", 7): (object(), {"slice_name": "initial"})
     }
 
@@ -655,7 +655,7 @@ def test_capture_initial_states_stage_is_timed_only_when_a_read_is_attempted(
     listener._capture_initial_states(lifecycle_session, (Slice,))
     assert len(timing_calls()) == 1
     assert timing_calls()[0].args[1] >= 0
-    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+    assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {
         ("chart", 7): (entity, {"slice_name": "x"})
     }
 
@@ -705,7 +705,7 @@ def test_initial_state_identity_failure_does_not_skip_later_entities(
     listener._capture_initial_states(lifecycle_session, (Slice,))
 
     assert attempts == [1, 3]
-    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+    assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {
         ("chart", 1): (entities[0], {"slice_name": "1"}),
         ("chart", 3): (entities[2], {"slice_name": "3"}),
     }
@@ -747,7 +747,7 @@ def test_initial_state_capture_isolates_each_entity(
     listener._capture_initial_states(lifecycle_session, (Slice,))
 
     assert attempts == [1, 2, 3]
-    assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+    assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {
         ("chart", 1): (entities[0], {"slice_name": "1"}),
         ("chart", 3): (entities[2], {"slice_name": "3"}),
     }
@@ -802,11 +802,11 @@ def test_initial_state_read_attempts_emit_one_timing_sample(
         "superset.versioning.capture.capture_initial_states.latency", 125.0
     )
     if outcome == "mixed":
-        assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {
+        assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {
             ("chart", 1): (entities[0], {"slice_name": "first"})
         }
     else:
-        assert lifecycle_session.info[listener._INITIAL_STATES_KEY] == {}
+        assert lifecycle_session.info[listener.INITIAL_STATES_KEY] == {}
 
 
 def test_initial_state_ineligible_entities_emit_no_timing(
@@ -886,4 +886,4 @@ def test_initial_state_capture_failure_does_not_break_the_flush(
     listener._capture_initial_states(lifecycle_session, (Slice,))  # must not raise
 
     error_spy.assert_called_once_with("capture_initial_states")
-    assert lifecycle_session.info.get(listener._INITIAL_STATES_KEY, {}) == {}
+    assert lifecycle_session.info.get(listener.INITIAL_STATES_KEY, {}) == {}
