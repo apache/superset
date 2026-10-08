@@ -15231,10 +15231,10 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr ""
 
-#, python-format
 msgid "Unable to clear metadata cache"
 msgstr ""
 
+#, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr ""
 

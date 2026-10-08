@@ -20,14 +20,13 @@
 from __future__ import annotations
 
 import hashlib
-import hmac
 import logging
 import math
 import uuid
 from collections.abc import Callable, Hashable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Any, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 import pandas as pd
 import pyarrow as pa
@@ -37,7 +36,7 @@ from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import Mapped, relationship
+from sqlalchemy.orm import Mapped, object_session, relationship, Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy_utils import UUIDType
 from sqlalchemy_utils.types.json import JSONType
@@ -169,6 +168,55 @@ class ColumnMetadata:
     extra: str | None = None
 
 
+_METADATA_IDENTITY_KEY: str = "semantic_layer_cache_identity"
+
+
+@dataclass
+class _MetadataCacheIdentity:
+    """Session-local identities, captured before discovery and forgotten on Save."""
+
+    tokens: dict[uuid.UUID, str] = field(default_factory=dict)
+
+    @classmethod
+    def for_session(cls, session: Session) -> _MetadataCacheIdentity:
+        """Keep the memo's storage convention in one place."""
+        if _METADATA_IDENTITY_KEY not in session.info:
+            session.info[_METADATA_IDENTITY_KEY] = cls()
+        return cast(_MetadataCacheIdentity, session.info[_METADATA_IDENTITY_KEY])
+
+    def capture(self, layer: SemanticLayer, session: Session) -> str:
+        """Web, task and MCP operations share a credential-independent identity."""
+        if layer.uuid not in self.tokens:
+            namespace: str | Callable[[], str] = current_app.config.get(
+                "SEMANTIC_LAYER_CACHE_NAMESPACE", ""
+            )
+            if callable(namespace):
+                namespace = namespace()
+            if not isinstance(namespace, str):
+                raise TypeError(
+                    "SEMANTIC_LAYER_CACHE_NAMESPACE must resolve to a string"
+                )
+            url: sa.engine.URL = session.get_bind(mapper=SemanticLayer).engine.url
+            driver: str = url.drivername.split("+", 1)[0]
+            identity: list[str | int | None] = (
+                ["namespace", namespace]
+                if namespace
+                else [
+                    driver,
+                    url.host,
+                    url.port,
+                    url.database,
+                ]
+            )
+            scope: str = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
+            self.tokens[layer.uuid] = f"{scope}:{layer.uuid}:{layer.cache_version}"
+        return self.tokens[layer.uuid]
+
+    def forget(self, layer_uuid: uuid.UUID) -> None:
+        """Permit a fresh capture after an authorized generation increment."""
+        self.tokens.pop(layer_uuid, None)
+
+
 class SemanticLayer(AuditMixinNullable, Model):
     """
     Semantic layer model.
@@ -274,55 +322,30 @@ class SemanticLayer(AuditMixinNullable, Model):
     @property
     def metadata_cache_token(self) -> str:
         """Capture the database-scoped generation once per metadata session."""
-        namespace: str | Callable[[], str] = current_app.config.get(
-            "SEMANTIC_LAYER_CACHE_NAMESPACE", ""
-        )
-        if callable(namespace):
-            namespace = namespace()
-        scope: str = hmac.new(
-            current_app.config["SECRET_KEY"].encode(),
-            json.dumps(
-                [
-                    db.session.get_bind(
-                        mapper=SemanticLayer
-                    ).engine.url.render_as_string(hide_password=False),
-                    namespace,
-                ]
-            ).encode(),
-            hashlib.sha256,
-        ).hexdigest()
-        key: tuple[str, str, str] = ("semantic_cache", scope, str(self.uuid))
-        if key not in db.session.info:
-            db.session.info[key] = f"{scope}:{self.uuid}:{self.cache_version}"
-        return db.session.info[key]
+        session: Session = object_session(self) or db.session
+        return _MetadataCacheIdentity.for_session(session).capture(self, session)
 
     def clear_metadata_cache(self) -> None:
         """Rotate atomically in the caller's transaction without provider I/O."""
-        db.session.execute(
+        session: Session = object_session(self) or db.session
+        session.execute(
             sa.update(SemanticLayer)
             .where(SemanticLayer.uuid == self.uuid)
             .values(cache_version=SemanticLayer.cache_version + 1)
             .execution_options(synchronize_session=False)
         )
-        db.session.expire(self, ["cache_version"])
+        session.expire(self, ["cache_version"])
         self.__dict__.pop("implementation", None)
-        key: object
-        for key in list(db.session.info):
-            if (
-                isinstance(key, tuple)
-                and len(key) == 3
-                and key[0] == "semantic_cache"
-                and key[2] == str(self.uuid)
-            ):
-                del db.session.info[key]
+        _MetadataCacheIdentity.for_session(session).forget(self.uuid)
         instance: object
-        for instance in db.session.identity_map.values():
-            if (
-                isinstance(instance, SemanticView)
-                and instance.semantic_layer_uuid == self.uuid
-            ):
-                instance.__dict__.pop("implementation", None)
-                instance.__dict__.pop("metadata_cache_token", None)
+        for instance in session.identity_map.values():
+            if isinstance(instance, SemanticView):
+                # Unknown/expired ownership is safe to forget, without a SELECT.
+                if (
+                    sa.inspect(instance).dict.get("semantic_layer_uuid", self.uuid)
+                    == self.uuid
+                ):
+                    instance.forget_metadata()
 
     @cached_property
     def implementation(
@@ -429,9 +452,8 @@ class SemanticView(AuditMixinNullable, Model):
         """
         Return semantic view implementation.
         """
-        self.__dict__.setdefault(
-            "metadata_cache_token", self.semantic_layer.metadata_cache_token
-        )
+        # Pin before the provider can discover any members.
+        self._capture_metadata_token()
         return self.semantic_layer.implementation.get_semantic_view(
             self.name,
             json.loads(self.configuration),
@@ -784,10 +806,24 @@ class SemanticView(AuditMixinNullable, Model):
     def data_for_slices(self, slices: list[Any]) -> ExplorableData:
         return self.data
 
-    @cached_property
+    _metadata_token: str | None = None
+
+    def _capture_metadata_token(self) -> None:
+        """Bind this view to the layer generation used by its implementation."""
+        if self._metadata_token is None:
+            self._metadata_token = self.semantic_layer.metadata_cache_token
+
+    def forget_metadata(self) -> None:
+        """Discard this view's implementation and captured host identity together."""
+        self.__dict__.pop("implementation", None)
+        self._metadata_token = None
+
+    @property
     def metadata_cache_token(self) -> str:
-        """Retain the layer identity used for this view's discovery."""
-        return self.semantic_layer.metadata_cache_token
+        """Host generation, independent of a provider's optional observation token."""
+        self._capture_metadata_token()
+        assert self._metadata_token is not None
+        return self._metadata_token
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         return [self.metadata_cache_token]

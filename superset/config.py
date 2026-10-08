@@ -106,8 +106,9 @@ if "SUPERSET_HOME" in os.environ:
 else:
     DATA_DIR = os.path.expanduser("~/.superset")
 
-# Additional workspace scope when tenants share one metadata database URL.
-# A callable may return the active tenant's stable namespace per operation.
+# Optional globally unique workspace identity, overriding database address scope.
+# Web, Celery and MCP must resolve the same value for the same workspace.
+# A callable may return the active tenant's stable namespace per session.
 SEMANTIC_LAYER_CACHE_NAMESPACE: str | Callable[[], str] = ""
 
 # ---------------------------------------------------------

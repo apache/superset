@@ -304,7 +304,7 @@ def test_annotation_result_key_uses_saved_source_generation(
         first: dict[str, Any] = processor._annotation_cache_context(query)
         layer.cache_version = 1
         session.info.clear()
-        view.__dict__.pop("metadata_cache_token", None)
+        view.forget_metadata()
         assert processor._annotation_cache_context(query) != first
 
 
@@ -314,17 +314,14 @@ def test_stale_writers_each_increment_the_database_version(
     layer: SemanticLayer,
 ) -> None:
     """Two writers that read zero must commit two increments, not overwrite one."""
-    from superset.extensions import db
-
     other: Session
     with Session(session.get_bind()) as other:
         stale: SemanticLayer = other.get(SemanticLayer, layer.uuid)
         assert stale.cache_version == layer.cache_version == 0
         layer.clear_metadata_cache()
         session.commit()
-        with patch.object(db, "session", other):
-            stale.clear_metadata_cache()
-            other.commit()
+        stale.clear_metadata_cache()
+        other.commit()
         session.expire_all()
         assert layer.cache_version == 2
 
@@ -443,6 +440,7 @@ def test_workspace_namespace_can_follow_the_active_tenant(
     monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", lambda: scope[0])
     first: str = layer.metadata_cache_token
     scope[0] = "second"
+    session.info.clear()
     assert layer.metadata_cache_token != first
     session.info["unrelated"] = 1
     layer.clear_metadata_cache()
@@ -478,3 +476,95 @@ def test_clear_route_protects_write_permission(
         )
         access.assert_called_with("can_write", "SemanticLayer")
         assert command.return_value.run.call_count == allowed
+
+
+@pytest.mark.parametrize("namespace", ["", "workspace"])
+def test_web_and_task_share_metadata_keys_despite_local_credentials(
+    session: Session,
+    layer: SemanticLayer,
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    namespace: str,
+) -> None:
+    """Credential, driver, query-option and secret rotation cannot strand async hits."""
+    from sqlalchemy.engine import make_url
+
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", namespace)
+    bind: Mock = Mock()
+    bind.engine.url = make_url(
+        "postgresql+psycopg2://web:old@metadata:5432/superset?application_name=web"
+    )
+    view: SemanticView = SemanticView(semantic_layer=layer)
+    with patch.object(session, "get_bind", return_value=bind):
+        web_key: list[object] = view.get_extra_cache_keys({})
+        session.info.clear()
+        bind.engine.url = make_url(
+            "postgresql://worker:new@metadata:5432/superset?application_name=celery"
+        )
+        monkeypatch.setitem(app.config, "SECRET_KEY", "rotated-for-task")
+        task_view: SemanticView = SemanticView(semantic_layer=layer)
+        assert task_view.get_extra_cache_keys({}) == web_key
+
+
+def test_namespace_is_validated_and_captured_once(
+    app: Flask,
+    session: Session,
+    layer: SemanticLayer,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reject misconfigured identity and evaluate a tenant resolver only once."""
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", 17)
+    with pytest.raises(TypeError, match="must resolve to a string"):
+        assert layer.metadata_cache_token
+    namespace: Mock = Mock(return_value="workspace")
+    monkeypatch.setitem(app.config, "SEMANTIC_LAYER_CACHE_NAMESPACE", namespace)
+    first: str = layer.metadata_cache_token
+    assert layer.metadata_cache_token == first
+    namespace.assert_called_once_with()
+
+
+def test_legacy_provider_keeps_host_invalidation(
+    session: Session,
+    layer: SemanticLayer,
+) -> None:
+    """A None SDK token never opts a legacy provider out of host cache rotation."""
+    from tests.unit_tests.semantic_layers.metadata_contract_test import LegacyLayer
+
+    view: SemanticView = SemanticView(name="legacy", semantic_layer=layer)
+    session.add(view)
+    session.commit()
+    with patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer}):
+        assert view.implementation.metadata_cache_token is None
+        before: list[object] = view.get_extra_cache_keys({})
+        layer.clear_metadata_cache()
+        session.commit()
+        assert view.implementation.metadata_cache_token is None
+        assert view.get_extra_cache_keys({}) != before
+
+
+def test_clear_preserves_loaded_views_of_other_layers(
+    session: Session,
+    layer: SemanticLayer,
+) -> None:
+    """Invalidating one connection cannot discard another connection's discovery."""
+    session.execute(
+        SemanticLayer.__table__.insert().values(
+            uuid=uuid4(),
+            name="other",
+            type="test",
+            configuration="{}",
+        )
+    )
+    other: SemanticLayer = session.scalars(
+        select(SemanticLayer).where(SemanticLayer.name == "other")
+    ).one()
+    view: SemanticView = SemanticView(name="view", semantic_layer=other)
+    session.add(view)
+    session.commit()
+    assert view.semantic_layer_uuid == other.uuid
+    implementation: Mock = Mock()
+    view.__dict__["implementation"] = implementation
+    before: str = view.metadata_cache_token
+    layer.clear_metadata_cache()
+    assert view.implementation is implementation
+    assert view.metadata_cache_token == before

@@ -243,7 +243,8 @@ export default function SemanticLayerModal({
   );
 
   const handleReloadMetadata = async () => {
-    if (!semanticLayerUuid || dirty || saving || clearing) return;
+    if (!semanticLayerUuid || dirty || saving || clearing || refreshingSchema)
+      return;
     clearRequestRef.current += 1;
     const request = clearRequestRef.current;
     setClearing(true);
@@ -254,7 +255,7 @@ export default function SemanticLayerModal({
       });
       if (request !== clearRequestRef.current) return;
       addSuccessToast(t('Cache cleared; reload to fetch metadata'));
-      window.location.reload();
+      onHide();
     } catch (error) {
       const clientError = await getClientErrorObject(error);
       if (request === clearRequestRef.current) {

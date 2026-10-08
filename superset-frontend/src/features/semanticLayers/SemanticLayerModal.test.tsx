@@ -232,35 +232,21 @@ test('cancels pending schema refresh when dependencies become unsatisfied', asyn
   expect(mockedPost).toHaveBeenCalledTimes(1);
 });
 
-test('Reload metadata clears saved configuration and explicitly reloads the page', async () => {
+test('Reload metadata confirms and closes without navigating away from the toast', async () => {
   mockJsonFormsChangeTriggered = true;
-  const reload = jest.fn();
-  const { location } = window;
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: { ...location, reload },
+  props.onHide.mockClear();
+  render(<SemanticLayerModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Reload metadata' });
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.click(button);
+  await waitFor(() => expect(props.onHide).toHaveBeenCalledTimes(1));
+  expect(mockedPost).toHaveBeenCalledWith({
+    endpoint: `/api/v1/semantic_layer/${props.semanticLayerUuid}/clear_cache`,
+    jsonPayload: {},
   });
-  try {
-    render(<SemanticLayerModal {...props} />);
-    const button = await screen.findByRole('button', {
-      name: 'Reload metadata',
-    });
-    await waitFor(() => expect(button).toBeEnabled());
-    fireEvent.click(button);
-    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
-    expect(mockedPost).toHaveBeenCalledWith({
-      endpoint: `/api/v1/semantic_layer/${props.semanticLayerUuid}/clear_cache`,
-      jsonPayload: {},
-    });
-    expect(props.addSuccessToast).toHaveBeenCalledWith(
-      'Cache cleared; reload to fetch metadata',
-    );
-  } finally {
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: location,
-    });
-  }
+  expect(props.addSuccessToast).toHaveBeenCalledWith(
+    'Cache cleared; reload to fetch metadata',
+  );
 });
 
 test('Reload metadata is disabled for unsaved configuration and name edits', async () => {
