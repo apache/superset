@@ -3470,11 +3470,11 @@ def test_get_group_limit_filters_filter_returns_none(
     query_object.datasource = mocker.Mock()
     query_object.datasource.fetch_values_predicate = None
     query_object.filter = [
-        # A known dimension with no time constraint legitimately returns None.
+        # An unknown column reaches conversion and returns None, even with time bounds.
         {
-            "op": FilterOperator.TEMPORAL_RANGE.value,
-            "col": "category",
-            "val": "No filter",
+            "op": FilterOperator.EQUALS.value,
+            "col": "unknown_column",
+            "val": "test",
         },
         # Valid filter - will be converted
         {
