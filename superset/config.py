@@ -2481,6 +2481,20 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         # Other potentially dangerous functions
         "pg_sleep",
         "pg_terminate_backend",
+        # dblink functions can open separate connections and auto-commit
+        # writes, bypassing the read-only gate entirely
+        "dblink",
+        "dblink_exec",
+        "dblink_connect",
+        # State-mutating functions callable via SELECT
+        "pg_cancel_backend",
+        "pg_reload_conf",
+        "pg_rotate_logfile",
+        "pg_stat_reset",
+        "pg_switch_wal",
+        "pg_logical_emit_message",
+        "pg_create_restore_point",
+        "pg_drop_replication_slot",
     },
     # MySQL functions and variables that could reveal sensitive information
     "mysql": {
