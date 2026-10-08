@@ -3132,13 +3132,13 @@ msgid "Center"
 msgstr "中央"
 
 msgid "Center value"
-msgstr "中央値"
+msgstr "中心値"
 
 msgid "Center value should be greater than min bound"
-msgstr "中央値は最小境界より大きい必要があります"
+msgstr "中心値は最小境界より大きい必要があります"
 
 msgid "Center value should be smaller than max bound"
-msgstr "中央値は最大境界より小さい必要があります"
+msgstr "中心値は最大境界より小さい必要があります"
 
 msgid "Centroid (Longitude and Latitude): "
 msgstr "重心 (経度および緯度): "
@@ -5357,7 +5357,7 @@ msgstr "項目を削除"
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
 "Recently archived and select Delete permanently."
-msgstr "アクティブなデータセットを削除または移動します。アーカイブされたデータセットを削除するには、「最近のアーカイブ」を開き、「完全に削除」を選択してください。"
+msgstr "アクティブなデータセットを削除または移動します。アーカイブされたデータセットを削除するには、「アーカイブ」を開き、「完全に削除」を選択してください。"
 
 msgid "Delete permanently"
 msgstr "完全に削除"
