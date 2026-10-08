@@ -32,9 +32,11 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 import {
+  findControlItem,
   getControlStateFromControlConfig,
   getFormDataFromControls,
 } from 'src/explore/controlUtils';
+import tableControlPanel from '../../../plugins/plugin-chart-table/src/controlPanel';
 import exploreReducer, { ExploreState } from './exploreReducer';
 import {
   setCompatibility,
@@ -369,7 +371,6 @@ test('SET_FIELD_VALUE raises a dependent control error when the changed control 
       )!,
     },
   };
-
   // An empty start date is fine until the shift becomes "custom".
   expect(initialState.controls.start_date_offset.validationErrors).toEqual([]);
 
@@ -430,4 +431,73 @@ test('explicit semantic reset removes stale fields and stash and persists only n
     getFormDataFromControls(reset.controls).semantic_selection_version,
   ).toBe('cube-member-id-v1');
   getChartControlPanelRegistry().remove('identity-test');
+});
+
+test('SET_FIELD_VALUE refreshes semantic ordering choices and removes stale sorts', () => {
+  const allColumnsConfig = (
+    findControlItem(
+      tableControlPanel.controlPanelSections,
+      'all_columns',
+    ) as CustomControlItem | null
+  )?.config;
+  const orderingConfig = (
+    findControlItem(
+      tableControlPanel.controlPanelSections,
+      'order_by_cols',
+    ) as CustomControlItem | null
+  )?.config;
+  const form_data = {
+    datasource: '1__semantic_view',
+    viz_type: 'table',
+    all_columns: ['song_name', 'artist_name'],
+    order_by_cols: ['["song_name",true]', '["artist_name",false]'],
+  } as QueryFormData;
+  const datasource = {
+    type: DatasourceType.SemanticView,
+    columns: [
+      { column_name: 'song_name' },
+      { column_name: 'artist_name' },
+      { column_name: 'played_at' },
+    ],
+  } as ExploreState['datasource'];
+  const allColumns = getControlStateFromControlConfig(
+    allColumnsConfig ?? null,
+    { controls: {}, form_data, datasource },
+    form_data.all_columns,
+  );
+  const initialState: ExploreState = {
+    form_data,
+    datasource,
+    controls: {
+      all_columns: allColumns!,
+      order_by_cols: getControlStateFromControlConfig(
+        orderingConfig ?? null,
+        { controls: { all_columns: allColumns! }, form_data, datasource },
+        form_data.order_by_cols,
+      )!,
+    },
+  };
+
+  expect(initialState.controls.order_by_cols.value).toEqual([
+    '["song_name",true]',
+    '["artist_name",false]',
+  ]);
+
+  const afterChange = exploreReducer(
+    initialState,
+    setControlValue('all_columns', ['song_name', 'played_at']) as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+
+  expect(afterChange.controls.order_by_cols.choices).toEqual([
+    ['["song_name",true]', 'song_name [asc]'],
+    ['["song_name",false]', 'song_name [desc]'],
+    ['["played_at",true]', 'played_at [asc]'],
+    ['["played_at",false]', 'played_at [desc]'],
+  ]);
+  expect(afterChange.controls.order_by_cols.value).toEqual([
+    '["song_name",true]',
+  ]);
+  expect(afterChange.form_data.order_by_cols).toEqual(['["song_name",true]']);
 });

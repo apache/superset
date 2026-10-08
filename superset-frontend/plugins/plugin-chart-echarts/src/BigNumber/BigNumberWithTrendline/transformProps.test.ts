@@ -113,6 +113,7 @@ describe('BigNumberWithTrendline transformProps', () => {
     compareSuffix: 'WoW',
     colorPicker: { r: 0, g: 0, b: 0 },
     currencyFormat: { symbol: '$', symbolPosition: 'prefix' },
+    headerAlignment: 'right',
   };
 
   const baseDatasource = {
@@ -141,6 +142,7 @@ describe('BigNumberWithTrendline transformProps', () => {
     );
     expect(result.bigNumber).toBeNull();
     expect(result.subtitle).toBe('subtitle message');
+    expect(result.headerAlignment).toBe('right');
   });
 
   test('should calculate subheader as percent change with suffix', () => {

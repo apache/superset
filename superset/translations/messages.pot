@@ -420,6 +420,12 @@ msgid "%s items could not be tagged because you don’t have edit permissions to
 msgstr ""
 
 #, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
 msgstr[0] ""
@@ -982,6 +988,11 @@ msgstr ""
 msgid "A rule with this name already exists."
 msgstr ""
 
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
 msgid "A set of parameters that become available in the query using Jinja templating syntax"
 msgstr ""
 
@@ -1166,6 +1177,9 @@ msgid "Add alert"
 msgstr ""
 
 msgid "Add an annotation layer"
+msgstr ""
+
+msgid "Add an arrow on the left of collapsed JSON. A click on the arrow expands the value in the row. The icon on the right opens it in a dialog."
 msgstr ""
 
 msgid "Add an item"
@@ -1532,6 +1546,9 @@ msgid "Alerts & Reports"
 msgstr ""
 
 msgid "Alerts & reports"
+msgstr ""
+
+msgid "Alignment"
 msgstr ""
 
 msgid "Align +/-"
@@ -3462,10 +3479,17 @@ msgstr ""
 msgid "Collapse"
 msgstr ""
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr ""
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -3475,6 +3499,9 @@ msgid "Collapse data panel"
 msgstr ""
 
 msgid "Collapse row"
+msgstr ""
+
+msgid "Collapse rows by default"
 msgstr ""
 
 msgid "Collapse settings"
@@ -3940,6 +3967,9 @@ msgstr ""
 
 #, python-format
 msgid "Converted %s @import rule(s) to inline CSS. Review the result before saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -6204,7 +6234,14 @@ msgstr ""
 msgid "Expand"
 msgstr ""
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
+msgstr ""
+
+msgid "Expand JSON"
 msgstr ""
 
 msgid "Expand all"
@@ -7211,6 +7248,9 @@ msgstr ""
 msgid "Horizontal alignment"
 msgstr ""
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr ""
 
@@ -7724,6 +7764,9 @@ msgid "JSON Configuration"
 msgstr ""
 
 msgid "JSON Metadata"
+msgstr ""
+
+msgid "JSON in cell"
 msgstr ""
 
 msgid "JSON metadata"
@@ -9152,6 +9195,9 @@ msgstr ""
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr ""
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr ""
 
@@ -9564,6 +9610,9 @@ msgid "Open"
 msgstr ""
 
 msgid "Open Datasource tab"
+msgstr ""
+
+msgid "Open JSON"
 msgstr ""
 
 msgid "Open SQL Lab in a new tab"
@@ -10227,7 +10276,7 @@ msgid "Prefix or suffix"
 msgstr ""
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -11218,6 +11267,9 @@ msgstr ""
 msgid "SQL Query"
 msgstr ""
 
+msgid "SQL WHERE/HAVING expressions are not supported for semantic views. Remove the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 msgid "SQL expression"
 msgstr ""
 
@@ -12024,6 +12076,9 @@ msgstr ""
 msgid "Semantic views"
 msgstr ""
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -12408,6 +12463,9 @@ msgid "Show summary"
 msgstr ""
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 msgid "Show total"
@@ -12811,6 +12869,9 @@ msgid "Start field selection using current member IDs. This clears any existing 
 msgstr ""
 
 msgid "Start field selection using current member IDs. This clears any existing query and formatting settings. Saved display titles cannot be safely mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid "Start with row groups collapsed when row subtotals are shown. Each group can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -13790,6 +13851,9 @@ msgstr ""
 msgid "The provided table was not found in the provided database"
 msgstr ""
 
+msgid "The provider query will be available after the chart runs."
+msgstr ""
+
 msgid "The query associated with the results was deleted."
 msgstr ""
 
@@ -14411,6 +14475,12 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid "This chart version can't be restored because the dataset it used has been permanently deleted. Restore a version that uses an existing dataset, or recreate the chart."
+msgstr ""
+
+msgid "This chart version can't be restored because the semantic view it used has been permanently deleted. Restore a version that uses an existing semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -15615,6 +15685,9 @@ msgid "Value Format"
 msgstr ""
 
 msgid "Value and Percentage"
+msgstr ""
+
+msgid "Value axis labels"
 msgstr ""
 
 msgid "Value bounds"
