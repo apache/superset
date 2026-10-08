@@ -28,6 +28,10 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import get_template_processor
 from superset.utils.core import override_user
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
 
 
 def test_process_template(app_context: AppContext) -> None:
@@ -232,6 +236,7 @@ def test_custom_template_processors_ignored(app_context: AppContext) -> None:
     assert tp.process_template(template) == template
 
 
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_dataset_macro_access_filters(app_context: AppContext) -> None:
     """Test that the dataset macro properly enforces datasource access security
     by successfully resolving for a granted user and throwing an access
@@ -248,6 +253,11 @@ def test_dataset_macro_access_filters(app_context: AppContext) -> None:
     # Grant granted_user on birth_names dataset
     security_manager.add_permission_role(role, perm)
     granted_user.roles.append(role)
+
+    # Deny denied_user
+    original_roles = list(denied_user.roles)
+    denied_user.roles = []
+
     db.session.commit()
 
     try:
@@ -256,7 +266,7 @@ def test_dataset_macro_access_filters(app_context: AppContext) -> None:
             "get_query_str_extended",
             return_value=mock.Mock(sql="SELECT * FROM mocked_birth_names"),
         ) as get_query:
-            query = "SELECT * FROM {{ dataset('birth_names') }}"
+            query = "SELECT * FROM {{ dataset(dataset_name='birth_names') }}"
 
             with override_user(granted_user):  # Granted user
                 processor = get_template_processor(database=database)
@@ -271,6 +281,11 @@ def test_dataset_macro_access_filters(app_context: AppContext) -> None:
                     processor.process_template(query)
                 assert get_query.called is False
     finally:
-        granted_user.roles.remove(role)
+        # Restore previous state
+        if role in granted_user.roles:
+            granted_user.roles.remove(role)
         db.session.delete(role)
+
+        denied_user.roles = original_roles
+
         db.session.commit()
