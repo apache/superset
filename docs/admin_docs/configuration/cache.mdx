@@ -30,6 +30,12 @@ Pruning removes invalid descriptors after rechecking the current pair and leaves
 payloads to their configured TTL. Preserve the validation hold until the
 split-store process-pause scenario and provider-result comparisons pass.
 
+Filtering and rollup preserve nullable integer, decimal and timestamp values;
+unsupported conversions or overflowing aggregates fall back to the provider.
+A view's nonempty `metadata_cache_token` participates in containment identity.
+Views without a token retain their legacy identity; no metadata-refresh adapter
+is required.
+
 To roll back, disable `SEMANTIC_LAYER_CONTAINMENT_CACHE`, restart every process,
 and confirm `semantic_cache.containment.enabled` is zero and provider queries
 continue. This best-effort cache's fallback behavior does not change the other

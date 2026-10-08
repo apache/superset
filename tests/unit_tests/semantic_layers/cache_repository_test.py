@@ -127,7 +127,12 @@ class _FencedRedis:
         return self.values.pop(key, None) is not None
 
     def eval(self, script: str, numkeys: int, *args: Any) -> int:
+        lease: str
+        owner: str
         if numkeys == 2:
+            key: str
+            value: bytes | str
+            timeout: int
             lease, key, owner, value, timeout = args
             if self.before_set is not None:
                 callback: Callable[[], None] = self.before_set
@@ -137,6 +142,7 @@ class _FencedRedis:
                 self.rejected += 1
                 return 0
             return int(self.set(key, value, ex=timeout if timeout > 0 else None))
+        rest: list[int]
         lease, owner, *rest = args
         if self.get(lease) != owner.encode():
             return 0

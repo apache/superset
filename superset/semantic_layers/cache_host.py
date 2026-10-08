@@ -31,7 +31,6 @@ from superset_core.semantic_layers.layer import (
     SemanticCacheResponsibility,
     SemanticCacheScope,
 )
-from superset_core.semantic_layers.metadata import MetadataRefreshAdapter
 
 from superset import security_manager
 from superset.connectors.sqla.models import BaseDatasource
@@ -161,17 +160,13 @@ def build_cache_configuration(
         else str(changed_on),
     }
     # A metadata refresh changes the view's metadata cache token, not its
-    # ``changed_on``, so the token must key containment entries. A layer that
-    # opts in to metadata refresh (returns an adapter) must supply one; core
-    # cannot tell whether the adapter is bound, so treat opting in as bound
-    # and bypass rather than fall back to the legacy identity.
+    # ``changed_on``, so the token must key containment entries. Providers
+    # without a token retain their existing legacy identity.
     token: str | None = _metadata_cache_token(datasource)
     if token is not None:
         # Keyed as the observation it identifies; it is not a secret, and
         # "token" in a key would trip the secret-material guard.
         definition_material["metadata_observation"] = token
-    elif isinstance(getattr(layer, "metadata_refresh", None), MetadataRefreshAdapter):
-        return None
     meta: ViewMeta | None = _view_meta(
         datasource, definition_material, provider_material, scope_material, timeout
     )

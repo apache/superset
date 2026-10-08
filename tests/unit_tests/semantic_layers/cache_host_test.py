@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pytest
 from flask import Flask, g
@@ -27,7 +27,6 @@ from superset_core.semantic_layers.layer import (
     SemanticCacheResponsibility,
     SemanticCacheScope,
 )
-from superset_core.semantic_layers.metadata import MetadataRefreshAdapter
 
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.semantic_layers.cache_host import (
@@ -127,7 +126,6 @@ def _datasource() -> MagicMock:
     layer.get_semantic_cache_provider_identity.return_value = (
         SemanticCacheIdentityMaterial({"provider": "fixture"})
     )
-    layer.metadata_refresh = None
     datasource: MagicMock = MagicMock()
     datasource.semantic_layer.implementation = layer
     datasource.implementation.metadata_cache_token = None
@@ -293,17 +291,26 @@ def test_views_without_a_metadata_cache_token_keep_legacy_identity() -> None:
     assert configuration[0].definition_identity == _definition_identity(None)
 
 
-@pytest.mark.parametrize("token", [None, "", 42], ids=["missing", "empty", "non-str"])
-def test_bound_metadata_store_without_a_token_bypasses_containment(
+@pytest.mark.parametrize("token", [None, "", 42, OBSERVATION])
+def test_cache_identity_does_not_consult_removed_metadata_adapter(
     token: object,
+    mocker: MockerFixture,
 ) -> None:
-    """A provider bound to a metadata store must supply a token; without one
-    the host bypasses containment instead of falling back to legacy keys."""
+    """Only the view token governs identity; the removed adapter is irrelevant."""
     datasource: MagicMock = _datasource()
-    datasource.semantic_layer.implementation.metadata_refresh = MagicMock(
-        spec=MetadataRefreshAdapter
+    layer: MagicMock = datasource.semantic_layer.implementation
+    mocker.patch.object(
+        type(layer),
+        "metadata_refresh",
+        new_callable=PropertyMock,
+        side_effect=AssertionError("removed adapter accessed"),
+        create=True,
     )
     datasource.implementation.metadata_cache_token = token
-    assert build_cache_configuration(datasource) is None
-    datasource.implementation.metadata_cache_token = OBSERVATION
-    assert build_cache_configuration(datasource) is not None
+    configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
+        build_cache_configuration(datasource)
+    )
+    assert configuration is not None
+    assert configuration[0].definition_identity == _definition_identity(
+        token if isinstance(token, str) and token else None
+    )

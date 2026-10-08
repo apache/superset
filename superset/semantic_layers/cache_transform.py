@@ -18,6 +18,7 @@
 """In-memory transformations for proven-compatible semantic cache results."""
 
 from collections.abc import Callable
+from decimal import Context, localcontext
 
 import pandas as pd
 import pyarrow as pa
@@ -40,12 +41,30 @@ from superset.semantic_layers.cache_types import (
 
 
 def _sql_sum(series: pd.Series) -> object:
+    """Sum exact numeric values without fixed-width overflow or decimal rounding."""
+    if series.count() == 0:
+        return None
+    if isinstance(series.dtype, pd.ArrowDtype) and (
+        pa.types.is_integer(series.dtype.pyarrow_dtype)
+        or pa.types.is_decimal(series.dtype.pyarrow_dtype)
+    ):
+        context: Context
+        with localcontext() as context:
+            # Decimal256 inputs have at most 76 digits; summing N values can
+            # require ceil(log10(N)) additional digits before the safe cast.
+            context.prec = 76 + len(str(len(series))) + 1
+            return sum(series.dropna().tolist())
     return series.sum(min_count=1)
+
+
+def _count_sum(series: pd.Series) -> object:
+    """Combine provider counts while preserving the empty-count value."""
+    return 0 if series.count() == 0 else _sql_sum(series)
 
 
 _ROLLUP_AGGREGATIONS: dict[AggregationType, str | Callable[[pd.Series], object]] = {
     AggregationType.SUM: _sql_sum,
-    AggregationType.COUNT: "sum",
+    AggregationType.COUNT: _count_sum,
     AggregationType.MIN: "min",
     AggregationType.MAX: "max",
 }
@@ -168,7 +187,14 @@ def _rollup(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
         return frame.groupby(
             dimension_names, as_index=False, dropna=False, observed=True
         ).agg(aggregations)
-    return frame.agg(aggregations).to_frame().T
+    # Transposing a mixed numeric Series can coerce exact integers to floats.
+    # Build each column independently with its original Arrow-backed dtype.
+    return pd.DataFrame(
+        {
+            name: pd.Series([frame[name].agg(aggregation)], dtype=frame[name].dtype)
+            for name, aggregation in aggregations.items()
+        }
+    )
 
 
 def _project(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
@@ -183,6 +209,11 @@ def _slice(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
     offset: int = query.offset or 0
     stop: int | None = offset + query.limit if query.limit is not None else None
     return frame.iloc[offset:stop].reset_index(drop=True)
+
+
+def _pandas_dtype(arrow_type: pa.DataType) -> pd.ArrowDtype | None:
+    """Keep categorical grouping observed-only and all other Arrow types exact."""
+    return None if pa.types.is_dictionary(arrow_type) else pd.ArrowDtype(arrow_type)
 
 
 def transform_result(
@@ -203,7 +234,7 @@ def transform_result(
             table: pa.Table = result.results.select(columns).slice(offset, length)
             return SemanticResult(requests=result.requests, results=table)
 
-        frame: pd.DataFrame = result.results.to_pandas()
+        frame: pd.DataFrame = result.results.to_pandas(types_mapper=_pandas_dtype)
         frame = _apply_leftovers(frame, decision.leftover_filters, capabilities)
         if decision.mode is ReuseMode.ROLLUP:
             frame = _rollup(frame, query)
@@ -211,9 +242,24 @@ def transform_result(
         frame = _slice(frame, query)
         return SemanticResult(
             requests=result.requests,
-            results=pa.Table.from_pandas(frame, preserve_index=False),
+            results=pa.Table.from_pandas(
+                frame,
+                schema=pa.schema(
+                    [result.results.schema.field(name) for name in columns]
+                ),
+                preserve_index=False,
+                safe=True,
+            ),
         )
-    except (AttributeError, KeyError, TypeError, ValueError, pa.ArrowException) as ex:
+    except (
+        AttributeError,
+        KeyError,
+        TypeError,
+        ValueError,
+        OverflowError,
+        NotImplementedError,
+        pa.ArrowException,
+    ) as ex:
         # AttributeError covers entries stored before results were normalized
         # (``results is None``); treating them as incompatible turns a stale
         # poisoned entry into a graceful miss instead of a request failure.
