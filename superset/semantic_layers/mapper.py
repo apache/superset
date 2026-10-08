@@ -714,6 +714,8 @@ def _convert_query_object_filter(
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
         if not isinstance(raw_value, str) or raw_value == NO_TIME_RANGE:
             return None
+        start: datetime | None
+        end: datetime | None
         start, end = get_since_until_from_time_range(time_range=raw_value)
         filters: set[FilterExpression] = set()
         if start is not None:
@@ -736,7 +738,7 @@ def _convert_query_object_filter(
             )
         return filters or None
 
-    operator = OPERATOR_MAP.get(operator_str)
+    operator: Operator | None = OPERATOR_MAP.get(operator_str)
     if not operator:
         # Unknown operator - raise error to prevent unauthorized access
         raise ValueError(f"Unsupported filter operator: {operator_str}")

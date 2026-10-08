@@ -27,6 +27,8 @@ DEFAULT_USER_AGENT = "Apache Superset"
 NULL_STRING = "<NULL>"
 EMPTY_STRING = "<empty string>"
 
+SEMANTIC_FILTER_CACHE_VERSION: str = "semantic-null-filters-v1"
+
 CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"  # noqa: S105
 CHANGE_ME_GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
 CHANGE_ME_WEBSOCKET_JWT_SECRET = "test-ws-secret-change-me"  # noqa: S105
