@@ -1518,8 +1518,9 @@ The shared query-result validator also enforces **non-configurable hard limits**
 
 These limits apply before rendering or exporting in `get_chart_data`,
 `get_chart_preview`, chart generation/update compile checks, `query_dataset`,
-and semantic-layer `get_table`. They include inline/table responses and MCP
-CSV, Excel, and Parquet export paths; exports do not bypass source validation.
+and semantic-layer `get_table`. They include inline/table responses and the
+`get_chart_data` CSV and Excel export formats; exports do not bypass source
+validation.
 Exceeding any limit returns `MalformedQueryResult` rather than truncating a
 cell or partially exporting a result. Generation/update compile checks surface
 the same malformed-result reason as a chart compile error.

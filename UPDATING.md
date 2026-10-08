@@ -38,8 +38,8 @@ assists people when migrating to a new version.
   scalar columns exceed the value budget (2,550,000 including row objects),
   even below the byte caps.
   Oversized results fail with `MalformedQueryResult` (or a chart compile error for
-  generation/update checks), including one-row results and MCP CSV/Excel/Parquet
-  exports. The caps apply to chart data/previews and
+  generation/update checks), including one-row results and `get_chart_data`
+  CSV/Excel exports. The caps apply to chart data/previews and
   generation/update compile checks, `query_dataset`, and semantic-layer
   `get_table`, independently of the configurable response-size guard. Reduce
   selected rows/columns or large cell values, or use non-MCP query/export paths.
