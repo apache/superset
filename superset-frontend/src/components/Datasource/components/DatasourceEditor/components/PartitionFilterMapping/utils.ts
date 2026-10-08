@@ -450,6 +450,39 @@ export function clearUnmappedTransforms<T extends PartitionMappingColumn>(
 }
 
 /**
+ * `clearUnmappedTransforms` for a change that *moves* which column is mapped.
+ *
+ * One pass can only ever answer for one resolution, and the bug lives between
+ * them. Run only against the mapping the change leaves behind, the pass finds
+ * the newly-mapped column effective and skips it -- so a transform parked
+ * there, which nobody in this edit asked to activate, goes live. A column sync
+ * that drops the mapped column is exactly that shape: the override is repaired
+ * to null, the mapping falls back to the default datetime column, and whatever
+ * was stranded on it starts mirroring. The row counts go quietly short while
+ * the pruning indicator still reports a healthy mapping.
+ *
+ * So a transform survives only where its column is the mapped one on *both*
+ * sides. `DatasetDAO.update` does the same thing for the same reason, running
+ * `clear_unmapped_partition_transforms` before and after it applies a request;
+ * the difference there is that a transform the request itself supplies lands
+ * between the two passes and survives, because the owner typed it. A sync
+ * supplies nothing -- `updateColumns` passes an unchanged column through
+ * verbatim -- so there is nothing here for the gap between the passes to keep.
+ */
+export function clearUnmappedTransformsAcrossMove<
+  T extends PartitionMappingColumn,
+>(
+  before: PartitionMappingDatasource,
+  after: PartitionMappingDatasource,
+  columns: T[],
+): T[] {
+  return clearUnmappedTransforms(
+    after,
+    clearUnmappedTransforms(before, columns),
+  );
+}
+
+/**
  * Columns updated for a mapping moving to `nextColumnName`.
  *
  * A transform already on the column is picked back up only when that column is

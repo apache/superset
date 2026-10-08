@@ -422,13 +422,14 @@ test('DatasourceEditor source pins the sync to the mapping it leaves behind', ()
   // behaviour of the helper it pins is covered directly in
   // `components/PartitionFilterMapping/utils.test.ts`.
   //
-  // What this locks is the *order*. A sync that drops the mapped column makes
-  // `clearDanglingPartitionMapping` null the override, which moves the
-  // effective mapped column onto the default datetime column -- and a
-  // transform some other writer parked there arrives live, from a sync nobody
-  // typed into (NEW-R11-01). So the repair has to be resolved into
-  // `syncedDatasource` *before* the columns are set, and the invariant enforced
-  // against that, not against the mapping as it stood before the sync.
+  // What this locks is that the invariant is asked on *both sides* of the
+  // move. A sync that drops the mapped column makes
+  // `clearDanglingPartitionMapping` null the override, which re-points the
+  // mapping at the default datetime column -- so asked only against the
+  // repaired mapping, that column reads as the mapped one and a transform some
+  // earlier writer stranded on it is kept, and goes live from a sync nobody
+  // typed into (NEW-R11-01, then NEW-R12-01 when the first fix answered for the
+  // repaired side alone).
   // eslint-disable-next-line global-require
   const { readFileSync } = require('fs');
   // eslint-disable-next-line global-require
@@ -438,19 +439,22 @@ test('DatasourceEditor source pins the sync to the mapping it leaves behind', ()
     'utf8',
   );
 
-  // The repair is resolved onto the datasource the invariant is read from.
+  // The repair is resolved into the mapping the move lands on.
   expect(src).toMatch(
-    /const syncedDatasource = \{ \.\.\.datasource, \.\.\.\(clearedMapping \?\? \{\}\) \};/,
+    /const syncedDatasource = \{ \.\.\.datasource, \.\.\.clearedMapping \};/,
   );
-  // And it is that datasource the columns are cleared against, before they are
-  // set -- `clearUnmappedTransforms` appears ahead of the `setColumns` call.
+  // Both sides are passed, in that order, and before the columns are set.
   expect(src).toMatch(
-    /clearUnmappedTransforms\(\s*syncedDatasource,\s*columnChanges\.finalColumns,?\s*\)[\s\S]{0,400}?setColumns\(\{/,
+    /clearUnmappedTransformsAcrossMove\(\s*datasource,\s*syncedDatasource,\s*columnChanges\.finalColumns,?\s*\)[\s\S]{0,400}?setColumns\(\{/,
+  );
+  // Never the repaired side alone, which is the shape NEW-R12-01 was.
+  expect(src).not.toMatch(
+    /clearUnmappedTransforms\(\s*syncedDatasource,\s*columnChanges\.finalColumns/,
   );
   // Calculated columns too: the default datetime column can be one, and the
   // sync does not carry them.
   expect(src).toMatch(
-    /setCalculatedColumns\(prev =>\s*clearUnmappedTransforms\(syncedDatasource, prev\),\s*\);/,
+    /setCalculatedColumns\(prev =>\s*clearUnmappedTransformsAcrossMove\(datasource, syncedDatasource, prev\),\s*\);/,
   );
 });
 

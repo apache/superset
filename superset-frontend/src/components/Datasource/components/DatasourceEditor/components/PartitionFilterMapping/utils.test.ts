@@ -21,6 +21,7 @@ import {
   applyMappingMove,
   clearMappingTransforms,
   clearUnmappedTransforms,
+  clearUnmappedTransformsAcrossMove,
   defaultTransformFor,
   mappedColumnIsImplicit,
   mappingIsActive,
@@ -359,6 +360,78 @@ test('with no mapping at all, no column may hold a transform', () => {
     clearUnmappedTransforms({ main_dttm_col: 'event_time' }, columns)[0]
       .partition_value_transform,
   ).toBeNull();
+});
+
+test('a sync that re-points the mapping cannot arm what the new column holds', () => {
+  // NEW-R12-01. The mapping sits explicitly on `country`; `event_time` is the
+  // default datetime column and is holding a transform some earlier writer
+  // stranded there. A column sync drops `country`, so the override is repaired
+  // to null and the mapping falls back to `event_time`.
+  //
+  // Asked only about the mapping the repair leaves behind, the invariant reads
+  // `event_time` as the mapped column and keeps its transform -- which then
+  // goes live from a sync nobody typed into: 181 rows instead of 183, 0 instead
+  // of 1 for an equality, and the pruning indicator still green. It has to be
+  // asked on both sides of the move.
+  const before = {
+    main_dttm_col: 'event_time',
+    partition_column: 'dt_epoch',
+    partition_mapped_column: 'country',
+  };
+  const after = { ...before, partition_mapped_column: null };
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    },
+  ];
+
+  // The bug, stated as the single-sided answer this replaced.
+  expect(clearUnmappedTransforms(after, columns)[0]).toMatchObject({
+    partition_value_transform: 'unix_timestamp(:value)',
+  });
+
+  expect(
+    clearUnmappedTransformsAcrossMove(before, after, columns)[0],
+  ).toMatchObject({
+    partition_value_transform: null,
+    partition_transform_is_monotonic: false,
+  });
+});
+
+test('a sync that moves nothing leaves the mapped transform alone', () => {
+  // The limit of the rule above: with both sides agreeing on the mapped column
+  // there is no move, and a sync must not cost the owner the transform they
+  // wrote. Only a transform parked elsewhere goes.
+  const datasource = {
+    main_dttm_col: 'event_time',
+    partition_column: 'dt_epoch',
+    partition_mapped_column: null,
+  };
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    },
+    {
+      column_name: 'other_time',
+      partition_value_transform: 'to_unixtime(:value)',
+    },
+  ];
+
+  const kept = clearUnmappedTransformsAcrossMove(
+    datasource,
+    datasource,
+    columns,
+  );
+
+  expect(kept[0]).toMatchObject({
+    partition_value_transform: 'unix_timestamp(:value)',
+    partition_transform_is_monotonic: true,
+  });
+  expect(kept[1].partition_value_transform).toBeNull();
 });
 
 test('clearing strays when there are none hands back the same columns', () => {

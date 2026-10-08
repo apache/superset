@@ -2481,7 +2481,7 @@ def test_a_column_the_payload_says_nothing_about_is_left_alone() -> None:
     feature flag -- adding a null here would discard stored configuration from a
     request that never asked to.
     """
-    columns = [
+    columns: list[dict[str, Any]] = [
         {"column_name": "event_time"},
         {"column_name": "other_time", "partition_transform_is_monotonic": False},
     ]

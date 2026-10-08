@@ -108,7 +108,7 @@ import {
   applyImplicitMappingMove,
   applyMappingMove,
   clearMappingTransforms,
-  clearUnmappedTransforms,
+  clearUnmappedTransformsAcrossMove,
   defaultTransformFor,
   nextMappedColumnOverride,
   partitionMappingErrors,
@@ -1656,21 +1656,26 @@ function DatasourceEditor({
         datasource,
         columnChanges.finalColumns,
       );
-      // The mapping *after* that repair is what decides which column may hold a
-      // transform, so the repair has to be resolved before the columns are set
-      // rather than after. Dropping the override moves the effective mapped
-      // column onto the default datetime column, and a transform some other
-      // writer parked there would arrive live: a sync nobody typed into,
-      // emitting predicates nobody authored, with the row counts quietly short.
-      // `updateColumns` passes an unchanged column through verbatim, so without
-      // this the leftover survives the sync and `buildPayload` then sends it as
-      // if the owner had written it.
-      const syncedDatasource = { ...datasource, ...(clearedMapping ?? {}) };
+      // A sync can move which column the mapping mirrors, so the one-transform
+      // invariant has to be enforced against the mapping on *both* sides of it
+      // -- see `clearUnmappedTransformsAcrossMove`. Against the repaired
+      // mapping alone, dropping the mapped column re-points the mapping at the
+      // default datetime column, that column then reads as the mapped one, and
+      // a transform some earlier writer stranded on it is kept and goes live:
+      // a sync nobody typed into, emitting predicates nobody authored, with the
+      // row counts quietly short. `updateColumns` passes an unchanged column
+      // through verbatim and `buildPayload` then sends it as if the owner had
+      // written it, so the server cannot tell the difference either.
+      const syncedDatasource = { ...datasource, ...clearedMapping };
       const enforceMapping = isFeatureEnabled(
         FeatureFlag.PartitionFilterMapping,
       );
       const finalColumns = enforceMapping
-        ? clearUnmappedTransforms(syncedDatasource, columnChanges.finalColumns)
+        ? clearUnmappedTransformsAcrossMove(
+            datasource,
+            syncedDatasource,
+            columnChanges.finalColumns,
+          )
         : columnChanges.finalColumns;
       setColumns({
         databaseColumns: finalColumns.filter(
@@ -1681,7 +1686,7 @@ function DatasourceEditor({
         // The default datetime column can be a calculated one, which the sync
         // does not touch and `finalColumns` does not carry.
         setCalculatedColumns(prev =>
-          clearUnmappedTransforms(syncedDatasource, prev),
+          clearUnmappedTransformsAcrossMove(datasource, syncedDatasource, prev),
         );
       }
       if (clearedMapping) {

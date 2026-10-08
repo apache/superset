@@ -1878,7 +1878,9 @@ def drop_unmapped_value_transforms(
     for column in columns or []:
         name = column.get("column_name")
         if name is None and names_by_id is not None:
-            name = names_by_id.get(column.get("id"))
+            column_id = column.get("id")
+            if column_id is not None:
+                name = names_by_id.get(column_id)
         if name is None or name == mapped_column:
             continue
         if column.get("partition_value_transform") or column.get(
