@@ -758,8 +758,9 @@ def test_data_export_ignores_blank_query_context_image(
     )
     if report_format == ReportDataFormat.TEXT:
         expected = pd.DataFrame({"value": [42]})
+        mocker.patch.object(state, "_post_chart_data", return_value=b"chart data")
         mocker.patch(
-            "superset.commands.report.execute.get_chart_dataframe",
+            "superset.commands.report.execute.chart_data_to_dataframe",
             return_value=expected,
         )
         assert state._get_embedded_data() is expected
@@ -4983,7 +4984,9 @@ def test_unlimited_alert_data_transport(
                 else ChartDataResultFormat.CSV
             )
             assert state._get_data(result_format) == payload
-        assert requests == ["POST" if route.endswith("post") else "GET"]
+        assert requests == [
+            "POST" if route.endswith("post") or route == "text" else "GET"
+        ]
     finally:
         server.shutdown()
         server.server_close()
@@ -5978,3 +5981,137 @@ def test_chart_data_http_failure_does_not_expose_request(
     opener.open.assert_called_once()
     assert "SECRET" not in caplog.text + str(exc.value)
     assert "SECRET" not in "".join(traceback.format_exception(exc.value))
+
+
+@pytest.mark.parametrize("row_limit", [100, 0, None])
+@pytest.mark.parametrize("server_pagination", [True, False])
+@pytest.mark.parametrize("stored_form_data", ["current", "missing", "stale"])
+def test_embedded_data_uses_export_pagination(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    row_limit: int | None,
+    server_pagination: bool,
+    stored_form_data: str,
+) -> None:
+    """Embedded tables request all configured rows, not the saved page."""
+    from urllib.parse import parse_qs
+    from urllib.request import Request
+
+    import pandas as pd
+
+    schedule: ReportSchedule = create_report_schedule(mocker)
+    schedule.force_screenshot = True
+    schedule.chart.query_context = json.dumps(
+        {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [
+                {"row_limit": 20, "row_offset": 20},
+                {"is_rowcount": True},
+            ],
+            "form_data": {
+                "viz_type": "table",
+                "server_pagination": server_pagination,
+                "row_limit": row_limit,
+            },
+        }
+    )
+    context: dict[str, Any] = json.loads(schedule.chart.query_context)
+    schedule.chart.params = json.dumps(context["form_data"])
+    if stored_form_data == "missing":
+        context.pop("form_data")
+    elif stored_form_data == "stale":
+        context["form_data"] = {"viz_type": "pie", "server_pagination": False}
+    schedule.chart.query_context = json.dumps(context)
+    saved_context: str = schedule.chart.query_context
+    state: BaseReportState = BaseReportState(schedule, datetime.utcnow(), uuid4())
+    mocker.patch.object(
+        state, "_get_url", return_value="https://example.com/chart/1/data"
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="https://example.com/api/v1/chart/data",
+    )
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    provider: MagicMock = mocker.patch(
+        "superset.commands.report.execute.machine_auth_provider_factory"
+    )
+    provider.instance.get_auth_cookies.return_value = {"session": "executor-cookie"}
+    requested: list[Request | str] = []
+
+    def serve(request: Request | str, timeout: float | None) -> MagicMock:
+        """Model the chart endpoint returning the requested limit and offset."""
+        requested.append(request)
+        query: dict[str, Any] = {"row_limit": 20, "row_offset": 20}
+        if isinstance(request, Request):
+            assert isinstance(request.data, bytes)
+            payload: dict[str, Any] = json.loads(
+                parse_qs(request.data.decode())["form_data"][0]
+            )
+            query = payload["queries"][0]
+        count: int = query["row_limit"] or 50
+        offset: int = query["row_offset"]
+        response: MagicMock = mocker.MagicMock()
+        response.getcode.return_value = 200
+        response.read.return_value = json.dumps(
+            {
+                "result": [
+                    {
+                        "data": [{"value": i} for i in range(offset, offset + count)],
+                        "coltypes": [0],
+                        "colnames": ["value"],
+                        "indexnames": list(range(count)),
+                    }
+                ]
+            }
+        ).encode()
+        assert timeout == app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"]
+        return response
+
+    mocker.patch("urllib.request.build_opener").return_value.open.side_effect = serve
+    frame: pd.DataFrame = state._get_embedded_data()
+    assert len(frame) == ((row_limit or 50) if server_pagination else 20)
+    assert frame.iloc[0, 0] == (0 if server_pagination else 20)
+    assert len(requested) == 1
+    request: Request | str = requested[0]
+    assert isinstance(request, Request)
+    assert request.get_method() == "POST"
+    assert request.get_header("Cookie") == "session=executor-cookie"
+    assert isinstance(request.data, bytes)
+    payload: dict[str, Any] = json.loads(
+        parse_qs(request.data.decode())["form_data"][0]
+    )
+    assert payload["queries"] == (
+        [{"row_limit": row_limit or 0, "row_offset": 0}]
+        if server_pagination
+        else [{"row_limit": 20, "row_offset": 20}, {"is_rowcount": True}]
+    )
+    assert payload["form_data"]["viz_type"] == "table"
+    assert payload["form_data"]["server_pagination"] is server_pagination
+    assert payload["result_format"] == "json"
+    assert payload["result_type"] == "post_processed"
+    assert payload["force"] is True
+    assert payload["datasource"] == {"id": 1, "type": "table"}
+    assert schedule.chart.query_context == saved_context
+
+
+def test_embedded_data_keeps_get_fallback_without_saved_context(
+    mocker: MockerFixture,
+) -> None:
+    """A chart still missing context after bootstrap keeps the legacy GET path."""
+    import pandas as pd
+
+    state: BaseReportState = BaseReportState(
+        create_report_schedule(mocker), datetime.utcnow(), uuid4()
+    )
+    _mock_xlsx_chart_data_dependencies(mocker, state)
+    expected: pd.DataFrame = pd.DataFrame({"value": [42]})
+    get_frame: MagicMock = mocker.patch(
+        "superset.commands.report.execute.get_chart_dataframe", return_value=expected
+    )
+    post: MagicMock = mocker.patch.object(state, "_post_chart_data")
+    assert state._get_embedded_data() is expected
+    get_frame.assert_called_once()
+    post.assert_not_called()

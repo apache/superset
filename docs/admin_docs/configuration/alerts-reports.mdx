@@ -28,6 +28,11 @@ Dashboard reports and alerts are limited to the PDF and PNG formats; the CSV, XL
 
 For alerts (not scheduled reports), PNG/PDF screenshots and chart CSV/XLSX data are only generated when the `ALERTS_ATTACH_REPORTS` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags) is enabled (the default); with it disabled, an alert notification is still sent, but without the attachment.
 
+Embedded text tables use the chart's configured row limit, rather than its saved
+server-pagination page size. The export resets the page offset and omits the
+row-count query, matching CSV/Excel report attachments. Non-paginated charts keep
+their saved query limits.
+
 ## Requirements
 
 ### Commons

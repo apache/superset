@@ -102,7 +102,11 @@ from superset.subjects.types import SubjectType
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import HeaderDataType, override_user
-from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
+from superset.utils.csv import (
+    chart_data_to_dataframe,
+    get_chart_csv_data,
+    get_chart_dataframe,
+)
 from superset.utils.decorators import (
     logs_context,
     transaction,
@@ -1130,11 +1134,14 @@ class BaseReportState:
     def _get_chart_data_request_payload(
         self,
         result_format: ChartDataResultFormat,
+        *,
+        form_data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Build the POST payload used for chart data exports.
 
         :param result_format: Desired table-like chart data format.
+        :param form_data: Optional current chart settings for embedded-table parity.
         :return: Query context updated with export result format/type and pagination.
         :raises ReportScheduleExecuteUnexpectedError: If the chart query context is
             missing or invalid.
@@ -1150,6 +1157,9 @@ class BaseReportState:
             raise ReportScheduleExecuteUnexpectedError(
                 "Chart has no valid query context saved."
             )
+
+        if form_data is not None:
+            query_context["form_data"] = dict(form_data)
 
         result_type = ChartDataResultType.POST_PROCESSED.value
         force = bool(self._report_schedule.force_screenshot)
@@ -1361,28 +1371,49 @@ class BaseReportState:
         """
         start_time: datetime = datetime.now(timezone.utc).replace(tzinfo=None)
 
-        url = self._get_url(result_format=ChartDataResultFormat.JSON)
+        url: str = self._get_url(result_format=ChartDataResultFormat.JSON)
         user, username = resolve_executor_user(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
+            db.session.refresh(self._report_schedule.chart)
 
         try:
-            dataframe = get_chart_dataframe(
-                url,
-                auth_cookies,
-                timeout=self._phase_timeout(
-                    "dataframe_generation",
-                    requested_seconds=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
-                    reserve_seconds=(
-                        self._report_execution_context.post_capture_reserve_seconds
-                        if self._report_execution_context
-                        else 0.0
-                    ),
+            timeout: float | None = self._phase_timeout(
+                "dataframe_generation",
+                requested_seconds=app.config["ALERT_REPORTS_CSV_REQUEST_TIMEOUT"],
+                reserve_seconds=(
+                    self._report_execution_context.post_capture_reserve_seconds
+                    if self._report_execution_context
+                    else 0.0
                 ),
             )
+            dataframe: pd.DataFrame | None
+            if self._report_schedule.chart.query_context is None:
+                dataframe = get_chart_dataframe(url, auth_cookies, timeout=timeout)
+            else:
+                # Match the GET endpoint's current chart settings for client processing.
+                form_data: dict[str, Any]
+                try:
+                    form_data = json.loads(self._report_schedule.chart.params)
+                except (TypeError, json.JSONDecodeError):
+                    form_data = {}
+                if not isinstance(form_data, dict):
+                    form_data = {}
+                request_payload: dict[str, Any] = self._get_chart_data_request_payload(
+                    ChartDataResultFormat.JSON, form_data=form_data
+                )
+                url = get_url_path("ChartDataRestApi.data")
+                dataframe = chart_data_to_dataframe(
+                    self._post_chart_data(
+                        chart_url=url,
+                        auth_cookies=auth_cookies,
+                        request_payload=request_payload,
+                        timeout=timeout,
+                    )
+                )
             elapsed_seconds: float = (
                 datetime.now(timezone.utc).replace(tzinfo=None) - start_time
             ).total_seconds()
