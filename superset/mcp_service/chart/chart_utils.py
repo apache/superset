@@ -2336,9 +2336,7 @@ def overlay_update_form_data(
         filters = _merge_preserved_adhoc_filters(
             existing_form_data,
             new_form_data,
-            drop_existing_temporal=bool(
-                {"temporal_column", "time_grain", "time_range"} & fields_set
-            ),
+            drop_existing_temporal=bool({"temporal_column", "time_range"} & fields_set),
         )
         if filters is not None:
             merged["adhoc_filters"] = filters

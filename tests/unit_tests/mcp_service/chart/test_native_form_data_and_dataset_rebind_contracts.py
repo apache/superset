@@ -1284,3 +1284,43 @@ def test_mixed_secondary_filters_validate_and_normalize(
         queries = build_query_dicts_from_form_data(mapped, 7, "table")
     assert {"col": "region", "op": "==", "val": "EMEA"} in queries[1]["filters"]
     assert not any(f.get("col") == "region" for f in queries[0]["filters"])
+
+
+@pytest.mark.parametrize("grain", ["P1M", None])
+def test_xy_grain_only_update_keeps_saved_temporal_range(grain: str | None) -> None:
+    """Changing or clearing aggregation grain must not widen the saved range."""
+    from superset.mcp_service.chart.schemas import XYChartConfig
+
+    config = XYChartConfig(
+        x={"name": "ds"},
+        y=[{"name": "revenue", "saved_metric": True}],
+        kind="line",
+        time_grain=grain,
+    )
+    saved_filter = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "subject": "ds",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "Last year",
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    saved = {
+        "viz_type": mapped["viz_type"],
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "time_grain_sqla": "P1D",
+        "adhoc_filters": [saved_filter],
+    }
+    merged = merge_form_data_for_update(saved, deepcopy(mapped), config)
+    assert merged["adhoc_filters"] == [saved_filter]
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        query = build_query_dicts_from_form_data(merged, 7, "table")[0]
+    assert {"col": "ds", "op": "TEMPORAL_RANGE", "val": "Last year"} in query["filters"]

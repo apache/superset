@@ -5637,3 +5637,60 @@ class TestBigNumberHeadline:
             assert headline is not None
             assert headline["value"] == expected_value
             assert headline["aggregation"] == expected_aggregation
+
+
+@pytest.mark.parametrize("engine", ["csv", "openpyxl", "xlsxwriter"])
+def test_gauge_exports_and_docs_describe_nonfinite_as_blank(engine: str) -> None:
+    """Document the lossy non-finite normalization shared by all exporters."""
+    import base64
+    import csv
+    from io import BytesIO, StringIO
+    from pathlib import Path
+
+    from openpyxl import load_workbook
+
+    from superset.mcp_service.chart.query_result import validate_query_result_envelope
+    from superset.mcp_service.chart.tool.get_chart_data import (
+        _create_excel_with_openpyxl,
+        _create_excel_with_xlsxwriter,
+    )
+
+    result = chart_data_command_result(
+        [
+            {"team": "Null", "score": None},
+            {"team": "NaN", "score": float("nan")},
+            {"team": "Infinity", "score": float("inf")},
+            {"team": "Negative infinity", "score": -float("inf")},
+            {"team": "Finite", "score": 42},
+        ]
+    )
+    assert validate_query_result_envelope(result) is None
+    rows = result["queries"][0]["data"]
+    assert [row["score"] for row in rows] == [None, None, None, None, 42]
+    chart = MagicMock(slice_name="Gauge", id=7, viz_type="gauge_chart")
+    if engine == "csv":
+        exported = _export_data_as_csv(
+            chart,
+            rows,
+            ["team", "score"],
+            None,
+            PerformanceMetadata(query_duration_ms=0, cache_status="miss"),
+        )
+        assert isinstance(exported, ChartData)
+        cells = list(csv.reader(StringIO(exported.csv_data)))[1:]
+        assert [row[1] for row in cells] == ["", "", "", "", "42.0"]
+    else:
+        writer = (
+            _create_excel_with_openpyxl
+            if engine == "openpyxl"
+            else _create_excel_with_xlsxwriter
+        )
+        content = writer(chart, rows, ["team", "score"])
+        cells = list(load_workbook(BytesIO(base64.b64decode(content))).active.values)[
+            1:
+        ]
+        assert [row[1] for row in cells] == [None, None, None, None, 42]
+    guide = Path("docs/admin_docs/configuration/mcp-server.mdx").read_text()
+    assert "non-finite floats to null before export" in guide
+    assert "indistinguishable from SQL NULL" in guide
+    assert "matching CSV and distinguishing them from blank NULL cells" not in guide

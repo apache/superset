@@ -954,3 +954,61 @@ def test_sunburst_metric_slot_typo_gets_saved_metric_hint(slot: str) -> None:
     assert result.tier == "validation"
     assert result.error_obj is not None
     _assert_saved_metric_hint(result.error_obj)
+
+
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_sample_skips_rolling_and_forecast(
+    mock_factory: Mock, mock_command: Mock, mock_seed: Mock
+) -> None:
+    """A two-row compile sample cannot validate seven-period analytics."""
+    from copy import deepcopy
+
+    from superset.utils import pandas_postprocessing as pp
+
+    form_data = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "time_grain_sqla": "P1D",
+        "rolling_type": "mean",
+        "rolling_periods": 7,
+        "min_periods": 7,
+        "forecastEnabled": True,
+        "forecastPeriods": 10,
+        "forecastInterval": 0.8,
+    }
+    original = deepcopy(form_data)
+
+    def run_sample() -> dict[str, Any]:
+        """Execute the real query operators against the bounded sample."""
+        query = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+        assert query["row_limit"] == 2
+        frame = pd.DataFrame(
+            {"ds": pd.date_range("2026-01-01", periods=2), "revenue": [1.0, 2.0]}
+        )
+        for step in query["post_processing"]:
+            frame = getattr(pp, step["operation"])(frame, **step.get("options", {}))
+        return chart_data_command_result(frame.to_dict("records"))
+
+    mock_command.return_value.run.side_effect = run_sample
+    result = _compile_chart(form_data, 7)
+    assert result.success, result.error
+    assert result.row_count == 2
+    assert form_data == original
+    sampled = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+    assert not {"rolling", "prophet"} & {
+        step["operation"] for step in sampled["post_processing"]
+    }
+
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+
+    full = build_query_dicts_from_form_data(
+        {**form_data, "datasource": "7__table"}, 7, "table"
+    )[0]
+    assert {"rolling", "prophet"} <= {
+        step["operation"] for step in full["post_processing"]
+    }

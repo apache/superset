@@ -86,12 +86,14 @@ def _compile_chart(  # noqa: C901
     form_data: Dict[str, Any],
     dataset_id: int,
 ) -> CompileResult:
-    """Execute the chart's query to verify it renders without errors.
+    """Execute a bounded chart query to verify its base query and result contract.
 
     Builds a ``QueryContext`` from *form_data* and runs it through
     ``ChartDataCommand``.  A small ``row_limit`` is used so the check is
     fast — we only need to know the query compiles and returns data, not
-    fetch the full result set.
+    fetch the full result set. Rolling windows and forecasts are skipped because
+    their history requirements cannot be met by this sample; full data and
+    preview queries retain those analytics.
 
     Returns a :class:`CompileResult` with ``success=True`` when the
     query executes cleanly.
@@ -128,6 +130,10 @@ def _compile_chart(  # noqa: C901
             datasource_id=dataset_id,
         )
         query_form_data["datasource"] = f"{dataset_id}__table"
+        # Rolling windows and forecasts require history the bounded compile
+        # sample cannot supply. Keep the saved controls intact for full queries.
+        for key in ("rolling_type", "rolling_type_b", "forecastEnabled"):
+            query_form_data.pop(key, None)
         query_context = build_query_context_from_form_data(
             query_form_data,
             row_limit=plugin.compile_row_limit(form_data) if plugin else 2,
