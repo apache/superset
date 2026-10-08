@@ -17735,10 +17735,6 @@ msgstr ""
 msgid "Metadata sync timed out. Try again later."
 msgstr ""
 
-#: superset/semantic_layers/metadata_errors.py:68
-msgid "Shared metadata storage is unavailable. Try again later."
-msgstr ""
-
 #: superset/semantic_layers/metadata_errors.py:74
 msgid "Metadata sync could not be confirmed. Reload fields before trying again."
 msgstr ""
