@@ -65,10 +65,9 @@ class SemanticView(ABC):
                 "automatically mapped to member IDs."
             )
 
-    # Implementations must expose a display name for the view.
-    # Declared here as a type annotation (not abstract) so that existing
-    # implementations are not required to add a formal @abstractmethod.
-    name: str
+    # Optional display name. Hosts may supply their own label when it is empty;
+    # identity always comes from uid(), never from this presentation field.
+    name: str = ""
 
     @property
     def metadata_cache_token(self) -> str | None:
