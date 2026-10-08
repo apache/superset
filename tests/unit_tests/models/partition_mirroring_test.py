@@ -168,6 +168,81 @@ def test_equality_filter_mirrors_onto_the_partition_column(app: Flask) -> None:
     assert "country = 'US'" in sql
 
 
+def _with_date_partition_column(table: SqlaTable) -> SqlaTable:
+    """Re-point the mapping's partition column at a ``DATE`` column."""
+    table.columns.append(
+        TableColumn(column_name="part_date", is_dttm=True, type="DATE")
+    )
+    table.partition_column = "part_date"
+    return table
+
+
+def test_ordinary_text_does_not_mirror_onto_a_temporal_partition_column(
+    app: Flask,
+) -> None:
+    """
+    `lower(:value)` on a `VARCHAR` mapped column answers with text, and a
+    temporal partition column admits text -- a day key is legitimately text.
+    But it admitted *any* text: `country = 'US'` probed to `'us'` and emitted
+    `part_date = 'us'`, which PostgreSQL refuses as a date. By then the mirror
+    is in the statement, so a chart that worked before the mapping returned an
+    error rather than losing its pruning. The preview called it valid.
+    """
+    table = _with_date_partition_column(
+        _table(
+            transform="lower(:value)",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+        )
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us"]):
+            sql = _query(
+                table,
+                filter=[
+                    {"col": "country", "op": FilterOperator.EQUALS.value, "val": "US"}
+                ],
+            )
+
+    assert "part_date" not in sql
+    assert "country = 'US'" in sql
+
+
+def test_a_day_key_still_mirrors_onto_a_temporal_partition_column(
+    app: Flask,
+) -> None:
+    """
+    The narrowing above must not cost the case the text admission exists for:
+    `to_char(:value, 'YYYYMMDD')` answers with a day key, and Postgres, Trino
+    and BigQuery all read that as a date.
+
+    Its sibling `test_a_day_key_still_mirrors_onto_a_text_partition_column`
+    covers the same transform onto a *text* key, which is the other axis --
+    that one is about `GenericDataType.STRING` and never reached this gate.
+    """
+    table = _with_date_partition_column(
+        _table(
+            transform="to_char(:value, 'YYYYMMDD')",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+        )
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["20260101"]):
+            sql = _query(
+                table,
+                filter=[
+                    {"col": "country", "op": FilterOperator.EQUALS.value, "val": "US"}
+                ],
+            )
+
+    assert "part_date = '20260101'" in sql
+
+
 def test_in_filter_mirrors_element_wise(app: Flask) -> None:
     table = _table(
         transform="lower(:value)",
@@ -778,7 +853,53 @@ def test_the_probe_honours_a_per_column_date_format_from_db_extra(
 ) -> None:
     """
     `dttm_sql_literal` falls back to ``python_date_format_by_column_name`` in
-    the database's extra, so the probe has to read the same fallback.
+    the database's extra, so the probe has to read the same fallback -- on a
+    column where that fallback is actually reached. `event_epoch` is a BIGINT,
+    so SQLite's `convert_dttm` answers nothing and the format decides the
+    literal.
+
+    Its sibling below is the same configuration on a column where the engine
+    *does* answer, which is the case this test used to assert by accident.
+    """
+    table = _table(mapped_column="event_epoch", main_dttm_col="event_epoch")
+    table.columns.append(
+        TableColumn(column_name="event_epoch", is_dttm=True, type="BIGINT")
+    )
+    table.columns[-1].partition_value_transform = "to_date(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+    table.database.extra = json.dumps(
+        {"python_date_format_by_column_name": {"event_epoch": "%Y%m%d"}}
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]) as probe:
+            _query(
+                table,
+                granularity="event_epoch",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    assert probe.call_args.args[-1] == ["20260101", "20260201"]
+
+
+def test_a_date_format_the_engine_literal_preempts_is_not_probed(
+    app: Flask,
+) -> None:
+    """
+    `dttm_sql_literal` asks `convert_dttm` first and reaches the format only if
+    the engine answers nothing. `event_time` is a TIMESTAMP, so SQLite answers
+    `'2026-01-01 00:00:00'` and the `%Y%m%d` format never applies to the real
+    predicate -- but the probe applied it anyway.
+
+    The mirror therefore described a different bound from the filter it stands
+    in for: `event_time >= '2026-01-01 00:00:00'` became
+    `dt_epoch >= '20260101'`, and a January 15 row keyed `2026-01-15` sorts
+    below that string, so the chart dropped a row the filter keeps.
+
+    The `datetime` goes to the probe unchanged, which is what already happens
+    for every temporal column carrying no format -- `_engine_literal_resolution`
+    then widens the bound for whatever the engine's own literal throws away.
     """
     table = _table()
     table.database.extra = json.dumps(
@@ -794,7 +915,7 @@ def test_the_probe_honours_a_per_column_date_format_from_db_extra(
                 to_dttm=datetime(2026, 2, 1),
             )
 
-    assert probe.call_args.args[-1] == ["20260101", "20260201"]
+    assert probe.call_args.args[-1] == [datetime(2026, 1, 1), datetime(2026, 2, 1)]
 
 
 def test_the_probe_rounds_outward_when_the_engine_drops_subseconds(

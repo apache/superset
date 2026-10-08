@@ -33,11 +33,17 @@ from sqlalchemy.dialects import mysql, postgresql
 from superset.config import DISALLOWED_SQL_FUNCTIONS
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.connectors.sqla.partition_mapping import (
+    _mirror_verdict_cache_key,
+    _placeholder_is_bindable,
     _probe_cache_key,
+    _reads_as_temporal,
     _render_literal,
+    build_mirrored_predicates,
     build_probe_sql,
+    contains_executable_comment,
     contains_jinja,
     contains_value_placeholder,
+    drop_unmapped_value_transforms,
     equality_mirrors_safely,
     evaluate_transform,
     find_non_deterministic_functions,
@@ -67,7 +73,8 @@ from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.oracle import OracleEngineSpec
 from superset.models.core import Database
-from superset.utils.core import FilterOperator
+from superset.sql.parse import SQLStatement
+from superset.utils.core import FilterOperator, override_user
 
 
 @pytest.fixture(autouse=True)
@@ -641,6 +648,23 @@ def test_contains_jinja(transform: str, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
+    ("transform", "expected"),
+    [
+        ("lower(:value)", False),
+        ("lower(:value) /* an ordinary comment */", False),
+        ("lower(:value) -- a line comment", False),
+        (":value /*!50000 + 1 */", True),
+        (":value /*M!50000 + 1 */", True),
+        (":value /*! + 1 */", True),
+        ("", False),
+        (None, False),
+    ],
+)
+def test_contains_executable_comment(transform: str | None, expected: bool) -> None:
+    assert contains_executable_comment(transform) is expected
+
+
+@pytest.mark.parametrize(
     "transform",
     [
         "unix_timestamp(:value)",
@@ -689,6 +713,14 @@ def test_niladic_unix_timestamp_is_rejected_but_the_unary_form_is_not() -> None:
 # ---------------------------------------------------------------------------
 # §4.2 — probe evaluation
 # ---------------------------------------------------------------------------
+
+
+def _user(username: str) -> Any:
+    """A stand-in for `override_user`, which only needs `.username` here."""
+    user = MagicMock()
+    user.username = username
+    user.is_anonymous = False
+    return user
 
 
 def _database_returning(values: list[Any]) -> Database:
@@ -760,6 +792,74 @@ def test_evaluate_transform_binds_values_rather_than_interpolating(
     assert "O''Brien" in sql
 
 
+@pytest.mark.parametrize(
+    ("transform", "expected"),
+    [
+        ("lower(:value)", True),
+        ("CAST(:value AS BIGINT)", True),
+        ("date_format(:value, '%Y%m%d')", True),
+        # The cast shorthand: a trailing colon stops SQLAlchemy's bind scan.
+        (":value::bigint", False),
+        ("(:value::date)::text", False),
+    ],
+)
+def test_a_postgres_cast_shorthand_is_not_bindable(
+    transform: str, expected: bool
+) -> None:
+    """
+    `VALUE_PLACEHOLDER_RE` is `:value\b`, which matches inside `:value::bigint`.
+    SQLAlchemy's own scan ends with `(?![:\\w$])`, so the following colon stops
+    it: `text(":value::bigint")` reports a parameter named `valu`, and asking it
+    to bind `value` raises.
+
+    Pinned because the two regexes disagreeing is the whole bug: every
+    write-side gate accepted the transform and the probe then died on an
+    `ArgumentError` that `_probe` swallows.
+    """
+    assert _placeholder_is_bindable(transform) is expected
+
+
+def test_a_cast_shorthand_transform_still_probes(app: Flask) -> None:
+    """
+    The transform is valid SQL, passes every gate, and used to prune nothing:
+    `build_probe_sql` raised, `_probe` swallowed it, and the only symptom was a
+    mapping that silently never mirrored -- with the preview reporting an engine
+    failure for SQL that was never sent.
+    """
+    database = _database_returning([20260115])
+
+    with app.app_context():
+        result = evaluate_transform(
+            database, None, None, ":value::bigint", ["20260115"]
+        )
+
+    assert result == [20260115]
+    assert _probe(database).call_count == 1
+    assert "::bigint" in _probe(database).call_args.kwargs["sql"]
+
+
+def test_a_cast_shorthand_value_is_still_escaped_by_the_dialect(
+    app: Flask,
+) -> None:
+    """
+    The fallback substitutes where the bind path binds, so it has to earn the
+    same guarantee its sibling above pins: the value is rendered by the
+    dialect's literal processor, not pasted in.
+
+    Binding was only ever the vehicle for reaching that processor --
+    `_compile_literal` inlines the result either way -- so this renders first
+    and substitutes second. Same string, different order.
+    """
+    database = _database_returning(["x"])
+
+    with app.app_context():
+        evaluate_transform(database, None, None, ":value::text", ["O'Brien"])
+
+    sql = _probe(database).call_args.kwargs["sql"]
+    assert "O'Brien" not in sql
+    assert "O''Brien" in sql
+
+
 def test_evaluate_transform_dedupes_repeated_values(app: Flask) -> None:
     """Three inputs, two distinct: the probe evaluates the transform twice."""
     database = _database_returning(["us", "us"])
@@ -791,17 +891,28 @@ def test_evaluate_transform_fails_open_on_a_wide_result_row(app: Flask) -> None:
     Too many columns is the dangerous direction. A transform whose select list
     holds two expressions returns 2N columns for N inputs, and reading the first
     N interleaves the expressions instead of taking one per value -- a predicate
-    built from the wrong values rather than one that is merely short. Here
-    `lower('US'), 'x', lower('CA'), 'x'` would have yielded `('us', 'x')` and
-    dropped every CA row.
+    built from the wrong values rather than one that is merely short. A frame of
+    `('us', 'x', 'ca', 'x')` read as the first two columns would have yielded
+    `('us', 'x')` and dropped every CA row.
+
+    The transform is a perfectly ordinary `lower(:value)` and the width comes
+    from the stubbed frame, which is the only way to reach the guard: a
+    transform that really does carry two expressions -- `lower(:value), 'x'` --
+    is refused by `stored_expression_error` for not being a single expression,
+    so `get_df` is never called and `None` comes back for an unrelated reason.
+    Asserting the probe *ran* is what separates the two, and it is what makes
+    relaxing the guard from `!=` to `<` fail here rather than pass: four columns
+    for two inputs is not fewer than two.
     """
     database = _database_returning(["us", "x", "ca", "x"])
 
     with app.app_context():
         assert (
-            evaluate_transform(database, None, None, "lower(:value), 'x'", ["US", "CA"])
+            evaluate_transform(database, None, None, "lower(:value)", ["US", "CA"])
             is None
         )
+
+    assert _probe(database).call_count == 1
 
 
 def test_the_probe_select_carries_the_engine_s_from_clause(app: Flask) -> None:
@@ -1074,6 +1185,79 @@ def test_a_subquery_transform_is_refused_even_with_adhoc_subquery_enabled(
 
     assert reason is not None
     assert "sub-query" in reason
+
+
+@pytest.mark.parametrize(
+    "comment",
+    ["/*!50000 + (SELECT secret FROM vault LIMIT 1) */", "/*M!50000 + 1 */"],
+)
+def test_an_executable_comment_is_refused_by_every_gate(
+    app: Flask, comment: str
+) -> None:
+    """
+    The one construct that made the shape gates describe a statement the engine
+    would not run.
+
+    sqlglot reads a MySQL executable comment as comment data: the pinned parse
+    below reports no sub-query and no clause, so `stored_expression_error` and
+    `probe_sql_is_evaluable` both passed it, while MySQL and MariaDB execute
+    what is inside. An owner with dataset write and no SQL Lab could put one in
+    a transform, call the preview and read a table back out of
+    `emitted_predicate`, with no RLS on the hidden query.
+
+    Refused on every engine, not only the two that honour it -- hence SQLite
+    here. There is no legitimate transform carrying one, and a per-engine gate
+    would store on Postgres what detonates after the dataset is re-pointed.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    transform = f"(:value {comment})"
+
+    # The premise: no parse-tree gate can see it.
+    statement = SQLStatement(f"SELECT (1 {comment}) AS v0", "mysql")
+    assert statement.has_subquery() is False
+    assert statement.get_clause_names() == set()
+
+    with app.app_context():
+        assert stored_expression_error(database, None, None, transform) is not None
+
+    blocking = [
+        issue for issue in validate_transform(transform, "mysql") if issue.blocking
+    ]
+    assert len(blocking) == 1
+    assert "executable comment" in str(blocking[0].message)
+
+
+def test_an_executable_comment_stops_the_probe_before_the_engine(app: Flask) -> None:
+    """
+    The gate above is the save path. This is the row an earlier release stored:
+    `_probe` consults `stored_expression_error` on every call, so a transform
+    already in the metadata database never reaches `get_df`.
+    """
+    database = _database_returning(["x"])
+    transform = "(:value /*!50000 + (SELECT secret FROM vault LIMIT 1) */)"
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, transform, ["US"]) is None
+
+    assert _probe(database).call_count == 0
+
+
+def test_a_plain_comment_is_still_allowed_through_the_shape_gates(
+    app: Flask,
+) -> None:
+    """
+    Only the executable form is refused. An ordinary comment is inert on every
+    engine, so rejecting it would cost an owner a transform that works -- and
+    the placeholder gate already covers the case that matters, a `:value` the
+    comment swallows.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    with app.app_context():
+        assert (
+            stored_expression_error(database, None, None, "lower(:value) /* ok */")
+            is None
+        )
 
 
 def test_a_transform_calling_a_disallowed_function_is_refused(app: Flask) -> None:
@@ -1574,9 +1758,162 @@ def test_probe_cache_key_tracks_the_connection(app: Flask) -> None:
     assert after_uri != after_extra
 
 
+def test_the_probe_cache_ignores_the_caller_without_a_per_user_connection(
+    app: Flask,
+) -> None:
+    """
+    The common case keeps its hit rate.
+
+    The cache exists to keep a synchronous warehouse round trip off the
+    chart-query path, so keying it on the username everywhere would cost every
+    deployment the sharing that makes it worth having -- to fix the two hooks
+    that actually make the connection per-user.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+
+    with app.app_context():
+        with override_user(_user("alice")):
+            as_alice = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+        with override_user(_user("bob")):
+            as_bob = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+
+    assert as_alice == as_bob
+
+
+def test_an_impersonating_connection_keys_the_probe_cache_per_caller(
+    app: Flask,
+) -> None:
+    """
+    With impersonation the warehouse runs the probe as the Superset user, so the
+    values the transform returns are computed under *that* user's grants.
+    Shared, the cache handed user B what the transform saw as user A, and the
+    preview echoed it in `emitted_predicate` -- a cross-user read for a
+    transform wrapping any read-capable function the denylist does not name.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+    database.impersonate_user = True
+
+    with app.app_context():
+        with override_user(_user("alice")):
+            as_alice = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+            alice_verdict = _mirror_verdict_cache_key(
+                database, None, None, "lower(:value)"
+            )
+        with override_user(_user("bob")):
+            as_bob = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+            bob_verdict = _mirror_verdict_cache_key(
+                database, None, None, "lower(:value)"
+            )
+
+    assert as_alice != as_bob
+    # The verdict too: a function one account may call can be refused to
+    # another, so "this transform evaluates" is not a shared answer either.
+    assert alice_verdict != bob_verdict
+
+
+def test_a_connection_mutator_keys_the_probe_cache_per_caller(app: Flask) -> None:
+    """
+    `DB_CONNECTION_MUTATOR` receives the effective username and may return an
+    entirely different account's URL, so it makes the connection per-user even
+    with `impersonate_user` off -- which is why the gate checks both.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+
+    with app.app_context():
+        app.config["DB_CONNECTION_MUTATOR"] = lambda *args: args[:2]
+        try:
+            with override_user(_user("alice")):
+                as_alice = _probe_cache_key(
+                    database, None, None, "lower(:value)", ["US"]
+                )
+            with override_user(_user("bob")):
+                as_bob = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+        finally:
+            app.config["DB_CONNECTION_MUTATOR"] = None
+
+    assert as_alice != as_bob
+
+
 # ---------------------------------------------------------------------------
 # A probe result the partition column cannot hold
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        # ISO, which `datetime.fromisoformat` covers including the basic form.
+        ("2026-01-01", True),
+        ("2026-01-01 00:00:00", True),
+        ("2026-01-01T10:08:11", True),
+        ("20260101", True),
+        ("20260706100811", True),
+        # Ordinary text, which is the whole point.
+        ("us", False),
+        ("US", False),
+        ("", False),
+        ("x20260101", False),
+        # A month key is not a date any engine reads, so it declines -- on a
+        # *text* partition column it never reaches this gate.
+        ("202601", False),
+    ],
+)
+def test_only_text_an_engine_reads_as_an_instant_suits_a_temporal_key(
+    value: str, expected: bool
+) -> None:
+    """
+    `_PROBE_RESULT_TYPES` admits `str` for a temporal partition column so a day
+    key keeps working. It admitted every string, so `lower(:value)` answering
+    `'us'` passed and the chart failed at the database instead.
+    """
+    assert _reads_as_temporal(value) is expected
+
+
+def test_a_type_mismatch_does_not_poison_the_shared_transform_verdict(
+    app: Flask,
+) -> None:
+    """
+    The decline is about *this* dataset's partition column, and
+    `_mirror_verdict_cache_key` holds no partition column -- only database,
+    catalog, schema and transform.
+
+    Recorded there, a dataset-specific outcome answered for every other dataset
+    sharing the transform: `cast(:value as text)` mirroring happily onto a text
+    key in dataset A was reported `evaluable: false`, and its pruning indicator
+    hidden, because an owner previewed the same transform against a numeric key
+    in dataset B. A probe cache hit on A never rewrites the verdict, so A
+    stayed wrong until the entry expired.
+
+    `evaluate_transform` is patched out here, so it records no verdict of its
+    own and anything left in the cache can only have come from the branch under
+    test. `real_probe_cache` is autouse in this module, so `None` is a real
+    reading rather than what a null cache returns for everything.
+    """
+    table = _mapped_table(transform="cast(:value as text)")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["2026-01-01 00:00:00"],
+        ):
+            predicates = build_mirrored_predicates(
+                table, mapping, [(FilterOperator.EQUALS, "2026-01-01")]
+            )
+
+        # `dt_epoch` is a BIGINT and the transform answered with text, so the
+        # mirror is declined -- that part is `probed_value_type_error`'s job.
+        assert predicates == []
+        # And nothing was written to the verdict every other dataset reads.
+        # Before this, the branch above recorded `mirrors=False` here.
+        assert (
+            known_mirror_verdict(table.database, None, None, "cast(:value as text)")
+            is None
+        )
 
 
 def _partition_column(column_type: str, **kwargs: Any) -> TableColumn:
@@ -1973,3 +2310,205 @@ def test_the_probe_backstop_accepts_only_a_plain_projection_per_value(
     and `_probe` hands the same constant to the builder and to this gate.
     """
     assert probe_sql_is_evaluable(sql, "sqlite", expected, suffix) is evaluable
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        # Advances a sequence. One function call, no clause, no sub-query, and
+        # absent from the shipped `DISALLOWED_SQL_FUNCTIONS` -- so every other
+        # gate in `stored_expression_error` passes it.
+        "nextval(:value)",
+        "setval('s', :value)",
+        # Also caught by the shipped denylist, which is config an operator can
+        # replace; this gate is not.
+        "lo_export(:value, '/tmp/x')",
+    ],
+)
+def test_a_transform_that_changes_data_is_refused(app: Flask, transform: str) -> None:
+    """
+    Shape is not effect. The gates around this one ask what the transform
+    *selects*; a bare scalar expression can still write, and the probe then
+    runs it -- on a cache schedule, so the write repeats every time the entry
+    expires, with no SQL Lab access needed and nothing on screen to say so.
+
+    `is_mutating` is the question SQL Lab and the chart executor already ask
+    before letting SQL run, so the transform is held to the bar the rest of
+    Superset sets rather than to one invented here.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://")
+
+    with app.app_context():
+        original = app.config["DISALLOWED_SQL_FUNCTIONS"]
+        try:
+            # Emptied so the verdict is this gate's and not the denylist's --
+            # `lo_export` is on both, and the point is that it does not need to
+            # be.
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = {}
+            reason = stored_expression_error(database, None, None, transform)
+        finally:
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = original
+
+    assert reason is not None
+    assert "cannot change data" in reason
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "unix_timestamp(:value)",
+        ":value::bigint",
+        "lower(:value)",
+        "to_char(:value, 'YYYYMMDD')",
+    ],
+)
+def test_an_ordinary_transform_still_reads(app: Flask, transform: str) -> None:
+    """The read-only gate must not cost the canonical mappings."""
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://")
+
+    with app.app_context():
+        assert stored_expression_error(database, None, None, transform) is None
+
+
+def test_a_transform_that_changes_data_stops_the_probe_before_the_engine(
+    app: Flask,
+) -> None:
+    """
+    The gate above is the save path. This is the row an earlier release stored,
+    or one an operator's own denylist let through: `_probe` consults
+    `stored_expression_error` on every call, so it never reaches `get_df`.
+    """
+    # PostgreSQL rather than the sibling helper's SQLite, because
+    # `is_mutating`'s function-name walk is dialect-gated -- the same names are
+    # read-only on other engines. `get_df` is stubbed, so nothing connects.
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        return_value=pd.DataFrame([["x"]], columns=["v0"])
+    )
+
+    with app.app_context():
+        assert (
+            evaluate_transform(database, None, None, "nextval(:value)", ["US"]) is None
+        )
+
+    assert _probe(database).call_count == 0
+
+
+def test_an_incoming_transform_on_a_non_mapped_column_is_dropped() -> None:
+    """
+    NEW-R11-01. The mapping mirrors one column, so only that column may carry a
+    transform; one parked anywhere else is invisible -- no row but the mapped
+    one renders a transform -- and goes live the moment the mapped column
+    resolves back to it.
+
+    `DatasetDAO.clear_unmapped_partition_transforms` answers for the model, but
+    it is gated on the feature flag because it discards stored configuration.
+    This answers for the payload, which is how the leftover arrives.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": True,
+        },
+        {
+            "column_name": "other_time",
+            "partition_value_transform": "to_unixtime(:value)",
+            "partition_transform_is_monotonic": True,
+        },
+    ]
+
+    cleared = drop_unmapped_value_transforms(
+        columns,
+        partition_column="dt_epoch",
+        partition_mapped_column=None,
+        main_dttm_col="event_time",
+    )
+
+    assert cleared == ["other_time"]
+    # The mapped column keeps what the owner wrote for it.
+    assert columns[0]["partition_value_transform"] == "unix_timestamp(:value)"
+    assert columns[0]["partition_transform_is_monotonic"] is True
+    assert columns[1]["partition_value_transform"] is None
+    assert columns[1]["partition_transform_is_monotonic"] is False
+
+
+def test_an_override_decides_which_incoming_transform_survives() -> None:
+    """
+    The mapped column is `partition_mapped_column or main_dttm_col`, so the
+    override moves which column may hold one -- and both can be part of the same
+    request, which is why the caller passes all three rather than a resolved
+    name.
+    """
+    columns = [
+        {"column_name": "event_time", "partition_value_transform": "a(:value)"},
+        {"column_name": "country", "partition_value_transform": "lower(:value)"},
+    ]
+
+    assert drop_unmapped_value_transforms(
+        columns,
+        partition_column="region_key",
+        partition_mapped_column="country",
+        main_dttm_col="event_time",
+    ) == ["event_time"]
+    assert columns[1]["partition_value_transform"] == "lower(:value)"
+
+
+def test_without_a_partition_column_no_incoming_transform_survives() -> None:
+    """
+    No partition column means nothing is mirrored, so no column is the mapped
+    one -- which is how the model-level pass resolves it too. A transform stored
+    here would be waiting for a partition column nobody has chosen yet.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+        }
+    ]
+
+    assert drop_unmapped_value_transforms(
+        columns,
+        partition_column=None,
+        partition_mapped_column=None,
+        main_dttm_col="event_time",
+    ) == ["event_time"]
+    assert columns[0]["partition_value_transform"] is None
+
+
+def test_a_column_the_payload_says_nothing_about_is_left_alone() -> None:
+    """
+    "Incoming" is the whole scope. A transform already in storage on a column
+    this request does not mention belongs to the model-level pass, under its own
+    feature flag -- adding a null here would discard stored configuration from a
+    request that never asked to.
+    """
+    columns: list[dict[str, Any]] = [
+        {"column_name": "event_time"},
+        {"column_name": "other_time", "partition_transform_is_monotonic": False},
+    ]
+
+    assert (
+        drop_unmapped_value_transforms(
+            columns,
+            partition_column="dt_epoch",
+            partition_mapped_column=None,
+            main_dttm_col="event_time",
+        )
+        == []
+    )
+    assert "partition_value_transform" not in columns[0]
+    assert "partition_value_transform" not in columns[1]
+
+
+def test_dropping_incoming_transforms_tolerates_no_columns() -> None:
+    """A request can carry no columns payload at all; both callers pass `.get`."""
+    assert (
+        drop_unmapped_value_transforms(
+            None,
+            partition_column="dt_epoch",
+            partition_mapped_column=None,
+            main_dttm_col="event_time",
+        )
+        == []
+    )

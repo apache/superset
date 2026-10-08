@@ -54,6 +54,21 @@ class RefreshDatasetCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model
+        # Before the metadata lands as well as after, the way `DatasetDAO.update`
+        # does it -- and for the reason spelled out on
+        # `clear_unmapped_partition_transforms`: it reads the mapping as it
+        # stands, so one call can only enforce the invariant against one of the
+        # two resolutions a mapping change has.
+        #
+        # `fetch_metadata` can *move* the effective mapped column, by dropping
+        # the column `partition_mapped_column` names (the mapping then falls
+        # back to `main_dttm_col`) or by setting `main_dttm_col` itself. Run only
+        # afterwards, the cleanup resolved the *new* mapping, found the newly
+        # mapped column effective and skipped it -- so a transform parked there,
+        # which nobody asked to activate, went live and started adding its own
+        # predicate to every filter, while the previously mapped column's real
+        # transform was the one erased.
+        DatasetDAO.clear_unmapped_partition_transforms(self._model)
         try:
             self._model.fetch_metadata()
             self.metadata_refreshed = True
@@ -86,6 +101,8 @@ class RefreshDatasetCommand(BaseCommand):
         DatasetDAO.clear_dangling_partition_mapping(
             self._model, {column.column_name for column in self._model.columns}
         )
+        # The second of the two calls; see the first, above `fetch_metadata`.
+        # This one answers for the mapping the refresh leaves behind.
         DatasetDAO.clear_unmapped_partition_transforms(self._model)
 
         # Detect datetime formats if feature is enabled

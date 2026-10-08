@@ -771,9 +771,12 @@ def _park_transform(table: Any, column_name: str, transform: str) -> None:
     Write a transform straight onto a column, around `DatasetDAO.update`.
 
     The shape of data this feature has to cope with but cannot have produced:
-    rows stored before the cleanup existed, and rows written while the feature
-    flag was off, when the cleanup deliberately stands down. Going through the
-    DAO instead would let the cleanup run and there would be nothing parked.
+    rows stored before the cleanup existed. The flag-off window used to be a
+    second source, until `drop_unmapped_value_transforms` closed it -- a
+    partial payload that says nothing about a column's transform still leaves
+    the stored one alone, which is the state this stands in for. Going through
+    the DAO instead would let the cleanup run and there would be nothing
+    parked.
     """
     from superset import db
 
@@ -928,12 +931,25 @@ def test_repointing_the_default_datetime_column_leaves_nothing_behind(
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=False)
-def test_transforms_are_left_alone_while_the_feature_is_off(
+def test_an_incoming_transform_is_refused_its_parking_space_with_the_flag_off(
     session: Session,
 ) -> None:
     """
-    Nothing mirrors with the flag off, so there is no stale mapping to disarm --
-    only an operator's stored configuration to lose if this ran anyway.
+    NEW-R11-01's second writer.
+
+    The two model-level passes stand down with the flag off, and rightly: they
+    discard *stored* configuration, and with nothing mirroring that is pure
+    loss. What that left behind was a way to park a transform on a column the
+    mapping does not mirror -- unreadable while the flag was off, and then the
+    flag went on, the mapping resolved onto that column, and filters started
+    mirroring an expression nobody authored. QA reached it from the editor
+    afterwards with two clicks and no typing: a range filter returned 181 rows
+    instead of 183, with the pruning indicator still green.
+
+    A value this request is asking to write is a different question from one
+    already in storage, and only the second is the flag's business -- see the
+    test below for that half. `event_time2` holds the mapping here, so
+    `event_time` may not hold a transform whatever the flag says.
     """
     from superset import db
 
@@ -955,7 +971,43 @@ def test_transforms_are_left_alone_while_the_feature_is_off(
     )
     db.session.flush()
 
-    assert _transforms(table)["event_time"] == ("unix_timestamp(:value)", False)
+    assert _transforms(table)["event_time"] == (None, False)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_a_stored_transform_the_request_omits_survives_the_flag_being_off(
+    session: Session,
+) -> None:
+    """
+    The boundary of the correction above, and why the model-level passes keep
+    their feature-flag gate rather than losing it.
+
+    "Incoming" is the whole scope. A column this request names without saying
+    anything about its transform keeps the one it has: dropping that would mean
+    a client which GETs the dataset and PUTs back a partial payload silently
+    discarding an operator's configuration on a deployment that never turned
+    the feature on. It stays inert until a request that can move the mapping
+    arrives with the feature on, which is what the pair of passes is for.
+    """
+    from superset import db
+
+    table = _mapped_dataset(session, "pfm_api4b")
+    ids = {c.column_name: c.id for c in table.columns}
+    _park_transform(table, "event_time", "unix_timestamp(:value)")
+
+    DatasetDAO.update(
+        table,
+        {
+            "columns": [
+                {"id": ids["event_time"]},
+                {"id": ids["event_time2"]},
+                {"id": ids["dt_epoch"]},
+            ]
+        },
+    )
+    db.session.flush()
+
+    assert _transforms(table)["event_time"] == ("unix_timestamp(:value)", True)
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)

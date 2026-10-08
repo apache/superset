@@ -40,7 +40,11 @@ export interface PartitionMappingDatasource {
    * here, and only to stop the banner claiming a mirror the last probe of the
    * stored transform refused -- the rest of the summary is Explore's.
    */
-  partition_filter_mapping?: { evaluable?: boolean | null } | null;
+  partition_filter_mapping?: {
+    evaluable?: boolean | null;
+    /** The transform `evaluable` is a verdict about. */
+    evaluated_transform?: string | null;
+  } | null;
 }
 
 /** Response shape of `POST /api/v1/dataset/<pk>/partition_mapping/preview/`. */
@@ -89,4 +93,11 @@ export interface PartitionMappingIssue {
     | 'partition_mapped_column'
     | 'partition_value_transform';
   message: string;
+  /**
+   * Whether this issue stops the save. Absent means it does -- every issue did
+   * before one of them needed not to, and defaulting the other way would have
+   * silently un-blocked the rest. Mirrors `validate_partition_mapping`'s two
+   * tiers; see the self-mapping branch in `partitionMappingErrors`.
+   */
+  blocking?: boolean;
 }

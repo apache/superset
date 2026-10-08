@@ -108,6 +108,7 @@ import {
   applyImplicitMappingMove,
   applyMappingMove,
   clearMappingTransforms,
+  clearUnmappedTransformsAcrossMove,
   defaultTransformFor,
   nextMappedColumnOverride,
   partitionMappingErrors,
@@ -1246,7 +1247,13 @@ function DatasourceEditor({
           partitionMappingErrors(datasource, [
             ...databaseColumns,
             ...calculatedColumns,
-          ]).map(issue => issue.message),
+          ])
+            // Only the blocking tier disables Save. The implicit self-mapping
+            // is reported as a warning at the field instead -- blocking it left
+            // a dataset already in that state unsaveable even for a
+            // description-only edit.
+            .filter(issue => issue.blocking !== false)
+            .map(issue => issue.message),
         );
       }
 
@@ -1393,21 +1400,49 @@ function DatasourceEditor({
 
   const handlePartitionColumnChange = useCallback(
     (columnName: string | null) => {
-      setDatasource(prev => ({
-        ...prev,
+      const next = {
+        ...datasource,
         partition_column: columnName,
         partition_mapped_column: nextMappedColumnOverride(
-          prev.partition_mapped_column,
+          datasource.partition_mapped_column,
           columnName,
         ),
+      };
+      setDatasource(prev => ({
+        ...prev,
+        partition_column: next.partition_column,
+        partition_mapped_column: next.partition_mapped_column,
       }));
+      // Choosing or clearing the partition column moves which column the
+      // mapping mirrors, so the one-transform invariant is enforced on both
+      // sides of it -- the same reason the column sync does, and the same
+      // reason `DatasetDAO.update` runs its own pass twice. Designating a
+      // partition column where there was none makes the default datetime
+      // column the mapped one, and a transform stranded there by an earlier
+      // writer would otherwise arrive live from a single select. Clearing the
+      // partition column leaves no mapped column at all, so no column may hold
+      // a transform -- which is what the server does too.
+      //
+      // A transform on a column that is mapped on both sides is untouched, so
+      // re-pointing the partition column does not cost the owner what they
+      // wrote.
+      setDatabaseColumns(prev =>
+        clearUnmappedTransformsAcrossMove(datasource, next, prev),
+      );
+      setCalculatedColumns(prev =>
+        clearUnmappedTransformsAcrossMove(datasource, next, prev),
+      );
       // Deliberately nothing else. Designating a partition column must not
       // touch that column's own `filterable`/`groupby` flags: hiding it from
       // Explore is a per-column decision the owner makes, not a side effect of
       // the mapping, and forcing it here silently changed behaviour for a
       // dataset that already exposes its partition column.
+      //
+      // No feature-flag gate, unlike `handleMainDttmColChange`: the select that
+      // calls this only renders inside `PartitionColumnFields`, which mounts
+      // only when the flag is on.
     },
-    [],
+    [datasource],
   );
 
   const handleNavigateToColumn = useCallback((columnName: string) => {
@@ -1426,6 +1461,7 @@ function DatasourceEditor({
     (columnName: string) => {
       setDatabaseColumns(prev =>
         applyMappingMove(
+          datasource,
           prev,
           columnName,
           defaultTransformFor(
@@ -1434,6 +1470,10 @@ function DatasourceEditor({
           ),
         ),
       );
+      // A calculated column can be the default datetime column, and so can be
+      // holding the transform the mapping is being moved off. `applyMappingMove`
+      // only sees the physical list.
+      setCalculatedColumns(prev => clearMappingTransforms(prev));
       // Always explicit from here: the owner picked this column, so the mapping
       // must not drift back the next time the default datetime column moves.
       setDatasource(prev => ({ ...prev, partition_mapped_column: columnName }));
@@ -1450,8 +1490,10 @@ function DatasourceEditor({
     setDatabaseColumns(prev => clearMappingTransforms(prev));
     setCalculatedColumns(prev => clearMappingTransforms(prev));
     // The partition column stays designated; only the mapping goes away, which
-    // is the 1g state -- hidden from Explore, nothing mirrored onto it, and the
-    // panel's warning saying so.
+    // is the 1g state -- nothing mirrored onto it, and the panel's warning
+    // saying so. The column's own `filterable`/`groupby` flags are untouched:
+    // designating a partition column has never hidden it from Explore (see
+    // `handlePartitionColumnChange`).
     setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
   }, []);
 
@@ -1635,12 +1677,6 @@ function DatasourceEditor({
         newCols,
         addSuccessToast,
       );
-      setColumns({
-        databaseColumns: columnChanges.finalColumns.filter(
-          col => !col.expression,
-        ) as Column[],
-      });
-
       // A sync can remove the partition column at the source. Leave the editor
       // showing a mapping that points at a column the table no longer has and
       // the owner has no way to tell why pruning stopped.
@@ -1648,6 +1684,39 @@ function DatasourceEditor({
         datasource,
         columnChanges.finalColumns,
       );
+      // A sync can move which column the mapping mirrors, so the one-transform
+      // invariant has to be enforced against the mapping on *both* sides of it
+      // -- see `clearUnmappedTransformsAcrossMove`. Against the repaired
+      // mapping alone, dropping the mapped column re-points the mapping at the
+      // default datetime column, that column then reads as the mapped one, and
+      // a transform some earlier writer stranded on it is kept and goes live:
+      // a sync nobody typed into, emitting predicates nobody authored, with the
+      // row counts quietly short. `updateColumns` passes an unchanged column
+      // through verbatim and `buildPayload` then sends it as if the owner had
+      // written it, so the server cannot tell the difference either.
+      const syncedDatasource = { ...datasource, ...clearedMapping };
+      const enforceMapping = isFeatureEnabled(
+        FeatureFlag.PartitionFilterMapping,
+      );
+      const finalColumns = enforceMapping
+        ? clearUnmappedTransformsAcrossMove(
+            datasource,
+            syncedDatasource,
+            columnChanges.finalColumns,
+          )
+        : columnChanges.finalColumns;
+      setColumns({
+        databaseColumns: finalColumns.filter(
+          col => !col.expression,
+        ) as Column[],
+      });
+      if (enforceMapping) {
+        // The default datetime column can be a calculated one, which the sync
+        // does not touch and `finalColumns` does not carry.
+        setCalculatedColumns(prev =>
+          clearUnmappedTransformsAcrossMove(datasource, syncedDatasource, prev),
+        );
+      }
       if (clearedMapping) {
         onDatasourcePropChange(
           'partition_column',
@@ -3115,7 +3184,14 @@ function DatasourceEditor({
         id="table-tabs"
         data-test="edit-dataset-tabs"
         onChange={handleTabSelect}
-        defaultActiveKey={activeTabKey}
+        // Controlled, not `defaultActiveKey`: antd ignores that after mount, so
+        // `handleNavigateToColumn` setting `activeTabKey` moved nothing.
+        // Clicking *Customize the value transform* from the Calculated columns
+        // tab left the owner on that tab while the hidden Columns table's
+        // search and reveal state changed underneath them. `handleTabSelect`
+        // above already writes the state back on a click, so this only adds the
+        // missing direction: state -> tab.
+        activeKey={activeTabKey}
         items={tabItems}
       />
     </DatasourceContainer>

@@ -2808,6 +2808,76 @@ def test_load_data_bounds_gzip_download_before_decompression(
     # ...and the decompressed output is bounded again before parsing.
 
 
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_import_with_the_flag_off_drops_a_transform_it_cannot_mirror(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The flag-off half of its sibling above, and the window the leftover
+    actually arrives through.
+
+    `DatasetDAO.clear_unmapped_partition_transforms` runs on both sides of the
+    import, but it is gated on the feature flag -- rightly, since it discards
+    stored configuration and with the feature off that is pure loss. So a
+    bundle imported while the flag was off parked its transform in the metadata
+    database fully armed, waiting for an operator to turn the flag on, and then
+    a filter on the newly-resolved mapped column started mirroring an
+    expression nobody authored.
+
+    What is dropped here is a value this bundle is asking to write, which is a
+    different question from the flag's.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_import_off_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config: dict[str, Any] = {
+        "table_name": "pfm_import_off_table",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": None,
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": "unix_timestamp(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {
+                "column_name": "event_time2",
+                "is_dttm": True,
+                "partition_value_transform": "to_unixtime(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(config)
+    db.session.flush()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    # The mapped column is `main_dttm_col`, there being no override, so
+    # `event_time` keeps what the bundle wrote for it and `event_time2` -- one
+    # re-pointing of the default datetime column away from being live -- does
+    # not.
+    assert transforms == {
+        "event_time": "unix_timestamp(:value)",
+        "event_time2": None,
+        "dt_epoch": None,
+    }
+
+
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
 def test_overwrite_import_disarms_a_transform_parked_on_the_old_mapping(
     mocker: MockerFixture,

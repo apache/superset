@@ -145,7 +145,12 @@ test('the banner also defers to the stored mapping the engine refused', () => {
       datasource={{
         main_dttm_col: 'event_time',
         partition_column: 'dt_epoch',
-        partition_filter_mapping: { evaluable: false },
+        // Naming the transform the verdict was about is what makes it apply:
+        // it is a statement about one expression, and the box still holds it.
+        partition_filter_mapping: {
+          evaluable: false,
+          evaluated_transform: 'unix_timestamp(:value)',
+        },
       }}
       columns={MAPPED_COLUMNS}
       allColumns={MAPPED_COLUMNS}
@@ -340,6 +345,121 @@ test('a failed preview shows the error instead of a predicate', async () => {
   expect(
     screen.queryByTestId('partition-mapping-preview'),
   ).not.toBeInTheDocument();
+});
+
+test('only the mapped row publishes a preview verdict', async () => {
+  // Every expanded column renders this component and they all report to the
+  // same `onPreviewVerdict`, but only the mapped one previews anything
+  // (`enabled: state === 'mapped'`) -- so the others reported a permanent
+  // `null`. Expanding any other column after the mapped row's preview had
+  // failed therefore reset the dataset banner to claiming filters would mirror,
+  // while the mapped row went on showing the failure.
+  const onPreviewVerdict = jest.fn();
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'country' }}
+      value={null}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+      onPreviewVerdict={onPreviewVerdict}
+    />,
+  );
+
+  // The row renders -- it offers to take the mapping over -- and stays silent.
+  expect(
+    await screen.findByText('Move mapping to this column →'),
+  ).toBeInTheDocument();
+  expect(onPreviewVerdict).not.toHaveBeenCalled();
+});
+
+test('a validation error with an object-valued message still renders', async () => {
+  // The preview schema rejects a transform past the 1,024-character bound with
+  // HTTP 400 and an *object* `message` (`{value_transform: [...]}`).
+  // `getClientErrorObject` leaves that as it found it and puts the normalized
+  // text in `error`, so preferring `message` handed an object to
+  // `Alert description` and React threw "Objects are not valid as a React
+  // child" -- the owner saw a blank panel instead of the reason.
+  fetchMock.post(PREVIEW_URL, {
+    status: 400,
+    body: {
+      message: { value_transform: ['Longer than maximum length 1024.'] },
+    },
+  });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value={`lower(${' '.repeat(1100)}:value)`}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(await screen.findByRole('alert')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('partition-mapping-preview'),
+  ).not.toBeInTheDocument();
+});
+
+test('a stored refusal stops applying once the transform changes', () => {
+  // The stored verdict is a statement about one expression, and it outlived it:
+  // reopen a dataset whose `no_such_fn(:value)` failed its last probe, replace
+  // it with something that works, and the banner still said nothing would
+  // mirror -- because it read a summary computed when the editor opened.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        partition_filter_mapping: {
+          evaluable: false,
+          evaluated_transform: 'no_such_fn(:value)',
+        },
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  // `MAPPED_COLUMNS` holds `unix_timestamp(:value)`, not the refused text.
+  expect(
+    screen.getByText(/will automatically apply an equivalent filter to/),
+  ).toBeInTheDocument();
+});
+
+test('designating a partition column does not claim it is hidden from Explore', () => {
+  // `handlePartitionColumnChange` deliberately leaves `filterable`/`groupby`
+  // alone, so the warning telling the owner the column was hidden from Explore
+  // described something that had stopped happening.
+  render(
+    <PartitionColumnFields
+      datasource={{ main_dttm_col: null, partition_column: 'dt_epoch' }}
+      columns={COLUMNS}
+      allColumns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByText(/No filter is mirrored onto dt_epoch/),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/hidden from Explore/)).not.toBeInTheDocument();
 });
 
 test('the ordering checkbox reports back which column it belongs to', async () => {
@@ -795,7 +915,15 @@ test('an unparseable-but-nonblank transform is not announced as mirroring', () =
   expect(
     screen.queryByText(/will automatically apply an equivalent filter/),
   ).not.toBeInTheDocument();
-  expect(screen.getByText(/No value transform is set/)).toBeInTheDocument();
+  // A transform *is* set -- `unix_timestamp(event_time)` -- it just names the
+  // column where `:value` belongs, so nothing mirrors. The banner used to read
+  // "No value transform is set", which sent the owner looking for an empty box.
+  expect(
+    screen.getByText(/The value transform on event_time is not mirroring/),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/No value transform is set/),
+  ).not.toBeInTheDocument();
 });
 
 test('the spinner stops when the transform stops being previewable', async () => {
