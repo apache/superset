@@ -44,11 +44,15 @@ exception. It never publishes a success cache key for that failure. Explore
 reads the reason through the existing authorized task-detail endpoint; realtime
 and polling status notifications carry no error text. The client uses fixed
 translated guidance only when every failed task has the same recognized reason.
-Mixed or unknown failures, inaccessible details, and a five-second lookup timeout
-keep the generic failure message. Raw task/provider error text is never rendered
-by this path. Cancellation and client reinitialization discard late guidance.
-Old workers without the marker retain generic failure behavior, so coordinated
-host, worker and frontend rollout is required for actionable async guidance.
+Mixed completeness reasons or a completeness failure combined with another
+failure keep the generic message. When no failed task has a recognized
+completeness reason, the client may use the sanitized ordinary query error from
+the authorized task-status endpoint; it never displays raw task-detail text.
+Unavailable status details fall back to generic guidance. The status lookup and
+subsequent completeness lookup are each bounded to five seconds. Cancellation
+and client reinitialization discard late guidance. Old workers without the marker
+use ordinary failure guidance, so coordinated host, worker and frontend rollout
+is required for structured completeness guidance.
 
 When changing a provider's result guarantee, declare a stable class-level
 `result_cache_version: ClassVar[str | None]`. The default is `None`, preserving

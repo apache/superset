@@ -61,6 +61,7 @@ const fetchCompletenessReason = async (
 export const getAsyncQueryError = async (
   taskIds: string[],
   signal?: AbortSignal,
+  failureMessage?: string,
 ): Promise<Error> => {
   const controller = new AbortController();
   let abort!: () => void;
@@ -98,6 +99,15 @@ export const getAsyncQueryError = async (
           'The semantic layer could not verify that this query result is complete. Retry the query; if it continues, ask an administrator to check the semantic-layer connection.',
         ),
       );
+    }
+    // The status endpoint supplies sanitized ordinary query errors. Do not use
+    // that fallback when any task has a recognized completeness failure.
+    if (
+      reasons?.length &&
+      reasons.every(reason => reason === null) &&
+      failureMessage
+    ) {
+      return new Error(failureMessage);
     }
     return new Error(t('One or more chart-data queries failed'));
   } finally {

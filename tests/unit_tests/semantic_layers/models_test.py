@@ -19,12 +19,18 @@
 
 from __future__ import annotations
 
+import os
 import uuid
-from typing import Any
-from unittest.mock import MagicMock, patch
+from pathlib import Path
+from typing import Any, cast
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
+from flask.testing import FlaskClient
+from pytest_mock import MockerFixture
+from sqlalchemy import inspect, select
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Session
 from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
@@ -37,6 +43,7 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 from superset_core.semantic_layers.view import SemanticViewFeature
+from werkzeug.test import TestResponse
 
 from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.models import (
@@ -413,10 +420,69 @@ def test_semantic_view_query_language() -> None:
 
 
 def test_semantic_view_get_query_str() -> None:
-    """Test SemanticView get_query_str method."""
-    view = SemanticView()
-    result = view.get_query_str({})
-    assert result == "Not implemented for semantic layers"
+    """Reject query previews that cannot provide a semantic provider request."""
+    view: SemanticView = SemanticView()
+    with pytest.raises(
+        QueryObjectValidationError, match="produced when the chart runs"
+    ):
+        view.get_query_str({})
+
+
+def test_semantic_query_placeholder_is_absent() -> None:
+    """Keep the retired placeholder out of backend and frontend source."""
+    root: Path = Path(__file__).resolve().parents[3]
+    directory: Path
+    current: str
+    directories: list[str]
+    filenames: list[str]
+    filename: str
+    for directory in (root / "superset", root / "superset-frontend" / "src"):
+        for current, directories, filenames in os.walk(directory):
+            directories[:] = sorted(set(directories) - {"static", "__pycache__"})
+            for filename in filenames:
+                source: Path = Path(current) / filename
+                if source.suffix in {".py", ".ts", ".tsx", ".js", ".jsx"}:
+                    assert (
+                        b"Not implemented for semantic layers"
+                        not in source.read_bytes()
+                    ), str(source)
+
+
+def test_semantic_view_query_endpoint_returns_error(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Return a semantic query validation error in the chart-data envelope."""
+    view: SemanticView = SemanticView(id=1)
+    implementation: MagicMock = MagicMock()
+    implementation.get_dimensions.return_value = []
+    implementation.get_metrics.return_value = []
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=implementation,
+    )
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+    )
+    mocker.patch.object(SemanticView, "raise_for_access")
+
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 1, "type": "semantic_view"},
+            "queries": [{}],
+            "result_type": "query",
+            "result_format": "json",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"][0]["error"]
+    assert response.json["result"][0]["language"] is None
+    assert "query" not in response.json["result"][0]
 
 
 def test_semantic_view_get_extra_cache_keys() -> None:
@@ -1229,6 +1295,55 @@ def test_semantic_view_get_compatible_dimensions(
 # =============================================================================
 # SemanticLayer.get_perm tests
 # =============================================================================
+
+
+def test_semantic_layer_loads_all_semantic_views(session: Session) -> None:
+    """A reloaded layer exposes every stored view as a collection."""
+    assert inspect(SemanticLayer).relationships.semantic_views.uselist is True
+    SemanticView.metadata.create_all(session.get_bind())
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Orders", type="test", configuration="{}"
+    )
+    views: list[SemanticView] = [
+        SemanticView(name=name, semantic_layer=layer, configuration="{}")
+        for name in ("Daily", "Monthly")
+    ]
+    session.add_all([layer, *views])
+    session.flush()
+    session.expire(layer, ["semantic_views"])
+
+    assert isinstance(layer.semantic_views, list)
+    assert {view.name for view in layer.semantic_views} == {"Daily", "Monthly"}
+
+
+@pytest.mark.parametrize("load_before_delete", [True, False])
+def test_semantic_layer_delete_removes_multiple_views(
+    session: Session, load_before_delete: bool
+) -> None:
+    """Loaded and unloaded relationships delete all persisted child rows."""
+    engine: Engine = cast(Engine, session.get_bind())
+    connection: Connection
+    with engine.connect() as connection:
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+    SemanticView.metadata.create_all(engine)
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Orders", type="test", configuration="{}"
+    )
+    views: list[SemanticView] = [
+        SemanticView(name=name, semantic_layer=layer, configuration="{}")
+        for name in ("Daily", "Monthly")
+    ]
+    session.add_all([layer, *views])
+    session.flush()
+    view_ids: set[int] = {view.id for view in views}
+    session.expire(layer, ["semantic_views"])
+    if load_before_delete:
+        assert {view.id for view in layer.semantic_views} == view_ids
+
+    session.delete(layer)
+    session.flush()
+
+    assert session.scalars(select(SemanticView.id)).all() == []
 
 
 def test_semantic_view_compatible_dimensions_collapse_grains(
@@ -2580,7 +2695,6 @@ def test_layer_delete_removes_child_view_permissions(
 def test_layer_delete_batches_permission_ownership_queries(session: Any) -> None:
     """The unloaded layer hook batches child permission ownership checks."""
     from sqlalchemy import event, inspect
-    from sqlalchemy.engine import Connection
 
     from superset import security_manager
 

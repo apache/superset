@@ -1183,6 +1183,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr ""
@@ -11375,6 +11380,9 @@ msgstr "Geen overeenkomende records gevonden"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Er zijn momenteel geen filters toegevoegd aan dit dashboard."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Geen gegevens gevonden"
 
@@ -17404,6 +17412,9 @@ msgstr "De primaire metriek wordt gebruikt om de boogsegmentformaten te definië
 
 msgid "The provided table was not found in the provided database"
 msgstr "De opgegeven tabel is niet gevonden in de opgegeven database"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "De query die is gekoppeld aan de resultaten is verwijderd."

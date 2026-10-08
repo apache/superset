@@ -74,9 +74,16 @@ jest.mock('src/utils/getBootstrapData', () => ({
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const STATUS_CHANGES_ENDPOINT = 'glob:*/api/v1/task/status_changes*';
+const TASK_STATUS_ENDPOINT = 'glob:*/api/v1/task/task-1/status';
 const CANCEL_ENDPOINT = 'glob:*/api/v1/task/*/cancel';
 
 const config = { GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20 };
+const wsConfig = {
+  WEBSOCKET_ENABLE: true,
+  WEBSOCKET_URL: 'ws://localhost:8080/',
+  GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20,
+  GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 600_000,
+};
 
 // Queue of status_changes responses the polling loop drains in order. The first
 // is an empty no-progress poll, then each poll consumes the next.
@@ -95,6 +102,8 @@ const queueStatuses = (
 };
 
 beforeEach(() => {
+  // Unspecified task detail routes are unavailable, without transport retries.
+  fetchMock.catch(404);
   mockedIsFeatureEnabled.mockImplementation(
     featureFlag => featureFlag === 'GLOBAL_ASYNC_QUERIES',
   );
@@ -175,6 +184,25 @@ test('rejects and does not re-issue when a task fails', async () => {
   ).rejects.toThrow();
   expect(refetch).not.toHaveBeenCalled();
 });
+
+test.each(['failure', 'aborted', 'timed_out'])(
+  'polling shows the task failure detail for %s',
+  async status => {
+    queueStatuses({ 'task-1': { status } });
+    fetchMock.get(TASK_STATUS_ENDPOINT, {
+      status: 200,
+      body: { status, error_message: 'A time column must be specified.' },
+    });
+    asyncEvent.init(config);
+
+    const refetch = jest.fn();
+    await expect(
+      asyncEvent.waitForAsyncData({ task_ids: ['task-1'] }, refetch),
+    ).rejects.toMatchObject({ error: 'A time column must be specified.' });
+    expect(fetchMock.callHistory.calls(TASK_STATUS_ENDPOINT)).toHaveLength(1);
+    expect(refetch).not.toHaveBeenCalled();
+  },
+);
 
 test('resolves immediately for an empty task list', async () => {
   queueStatuses();
@@ -502,6 +530,148 @@ test('a realtime failure message rejects the waiting chart', async () => {
   expect(refetch).not.toHaveBeenCalled();
 });
 
+test.each(['failure', 'aborted', 'timed_out'])(
+  'websocket completion shows the task failure detail for %s',
+  async status => {
+    queueStatuses();
+    fetchMock.get(TASK_STATUS_ENDPOINT, {
+      status: 200,
+      body: { status, error_message: 'A time column must be specified.' },
+    });
+    asyncEvent.init(wsConfig);
+
+    const refetch = jest.fn();
+    const promise = asyncEvent.waitForAsyncData(
+      { task_ids: ['task-1'] },
+      refetch,
+    );
+    asyncEvent.handleTaskStatus(taskStatusPayload('task-1', status));
+
+    await expect(promise).rejects.toMatchObject({
+      error: 'A time column must be specified.',
+    });
+    expect(fetchMock.callHistory.calls(TASK_STATUS_ENDPOINT)).toHaveLength(1);
+    expect(refetch).not.toHaveBeenCalled();
+  },
+);
+
+test('duplicate terminal events share one in-flight detail lookup', async () => {
+  queueStatuses();
+  let releaseStatus: () => void = () => {};
+  const statusInFlight = new Promise<void>(resolve => {
+    releaseStatus = resolve;
+  });
+  fetchMock.get(TASK_STATUS_ENDPOINT, () =>
+    statusInFlight.then(() => ({
+      status: 200,
+      body: { status: 'failure', error_message: 'Task failed.' },
+    })),
+  );
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  const onReject = jest.fn();
+  promise.then(undefined, onReject);
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fetchMock.callHistory.calls(TASK_STATUS_ENDPOINT)).toHaveLength(1);
+  releaseStatus();
+  await expect(promise).rejects.toMatchObject({ error: 'Task failed.' });
+  expect(onReject).toHaveBeenCalledTimes(1);
+  expect(refetch).not.toHaveBeenCalled();
+});
+
+test('a stale detail lookup cannot settle a waiter created after init', async () => {
+  queueStatuses();
+  let releaseStatus: () => void = () => {};
+  const statusInFlight = new Promise<void>(resolve => {
+    releaseStatus = resolve;
+  });
+  fetchMock.get(TASK_STATUS_ENDPOINT, () =>
+    statusInFlight.then(() => ({
+      status: 200,
+      body: { status: 'failure', error_message: 'Old failure.' },
+    })),
+  );
+  asyncEvent.init(wsConfig);
+
+  const oldController = new AbortController();
+  const oldPromise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn(),
+    oldController.signal,
+  );
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fetchMock.callHistory.calls(TASK_STATUS_ENDPOINT)).toHaveLength(1);
+
+  asyncEvent.init(wsConfig);
+  const refetch = jest.fn().mockResolvedValue([{ rows: 1 }]);
+  const freshPromise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  const onFreshSettle = jest.fn();
+  freshPromise.then(onFreshSettle, onFreshSettle);
+
+  releaseStatus();
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+  expect(onFreshSettle).not.toHaveBeenCalled();
+  expect(refetch).not.toHaveBeenCalled();
+
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'success'));
+  await expect(freshPromise).resolves.toEqual([{ rows: 1 }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+  oldController.abort();
+  await expect(oldPromise).rejects.toThrow('Aborted');
+});
+
+test.each([null, 42, { detail: 'private' }])(
+  'non-string failure detail %j falls back to the generic chart error',
+  async errorMessage => {
+    queueStatuses();
+    fetchMock.get(TASK_STATUS_ENDPOINT, {
+      status: 200,
+      body: { status: 'failure', error_message: errorMessage },
+    });
+    asyncEvent.init(wsConfig);
+
+    const promise = asyncEvent.waitForAsyncData(
+      { task_ids: ['task-1'] },
+      jest.fn(),
+    );
+    asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+
+    await expect(promise).rejects.toMatchObject({
+      error: 'One or more chart-data queries failed',
+    });
+  },
+);
+
+test('falls back to a generic chart error when task detail is unavailable', async () => {
+  queueStatuses();
+  fetchMock.get(TASK_STATUS_ENDPOINT, { status: 404 });
+  asyncEvent.init(wsConfig);
+
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    jest.fn(),
+  );
+  asyncEvent.handleTaskStatus(taskStatusPayload('task-1', 'failure'));
+
+  await expect(promise).rejects.toMatchObject({
+    error: 'One or more chart-data queries failed',
+  });
+});
+
 test('ignores a payload without task_id/status', async () => {
   queueStatuses();
   asyncEvent.init(config);
@@ -535,13 +705,6 @@ test('a realtime message is a no-op when async queries are disabled', () => {
 });
 
 // --- WebSocket mode: no interval polling; catch-up on registration/reconnect ---
-
-const wsConfig = {
-  WEBSOCKET_ENABLE: true,
-  WEBSOCKET_URL: 'ws://localhost:8080/',
-  GLOBAL_ASYNC_QUERIES_POLLING_DELAY: 20,
-  GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT: 600_000,
-};
 
 test('WEBSOCKET_ENABLE without a URL keeps polling (never disables the poll)', async () => {
   // A socket can never open without a URL, so the transport must not be treated
@@ -856,6 +1019,9 @@ test.each([
   'shows safe %s guidance from authorized task details',
   async (reason, message) => {
     fetchMock.get('glob:*/api/v1/task/task-1', taskFailure(reason));
+    fetchMock.get(TASK_STATUS_ENDPOINT, {
+      error_message: 'Sanitized task failure fallback',
+    });
     queueStatuses({ 'task-1': { status: 'failure' } });
     asyncEvent.init(config);
     const refetch = jest.fn();
@@ -890,6 +1056,9 @@ test.each([
   async (_name, first, second) => {
     fetchMock.get('glob:*/api/v1/task/task-1', first);
     fetchMock.get('glob:*/api/v1/task/task-2', second);
+    fetchMock.get(TASK_STATUS_ENDPOINT, {
+      error_message: 'Sanitized task failure fallback',
+    });
     queueStatuses({
       'task-1': { status: 'failure' },
       'task-2': { status: 'failure' },
@@ -980,6 +1149,7 @@ test.each([
   'combines completeness failure with %s status safely',
   async (status, message, detailCalls) => {
     fetchMock.get('glob:*/api/v1/task/task-1', taskFailure('incomplete'));
+    fetchMock.get(TASK_STATUS_ENDPOINT, { error_message: incompleteGuidance });
     queueStatuses({
       'task-1': { status: 'failure' },
       'task-2': { status },
@@ -995,3 +1165,29 @@ test.each([
     expect(refetch).not.toHaveBeenCalled();
   },
 );
+
+test('a stalled status detail does not prevent completeness guidance', async () => {
+  jest.useFakeTimers();
+  fetchMock.get(
+    TASK_STATUS_ENDPOINT,
+    { error_message: 'Late failure' },
+    {
+      delay: 60_000,
+    },
+  );
+  fetchMock.get('glob:*/api/v1/task/task-1', taskFailure('incomplete'));
+  queueStatuses({ 'task-1': { status: 'failure' } });
+  asyncEvent.init(config);
+  const refetch = jest.fn();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  const rejection = expect(promise).rejects.toMatchObject({
+    message: incompleteGuidance,
+    error: incompleteGuidance,
+  });
+  await jest.advanceTimersByTimeAsync(5100);
+  await rejection;
+  expect(refetch).not.toHaveBeenCalled();
+});
