@@ -1291,25 +1291,27 @@ def get_template_processor(
 
 
 def dataset_macro(
-    dataset_id: int | str,
+    dataset_id: int | None = None,
     include_metrics: bool = False,
     columns: list[str] | None = None,
     schema: str | _Unset | None = _UNSET,
     catalog: str | _Unset | None = _UNSET,
-    database_id: int | str | _Unset | None = _UNSET,
+    database_id: int | None = None,
     alias: str | None = None,
+    *,
+    dataset_name: str | None = None,
+    database_name: str | None = None,
 ) -> str:
     """
     Given a dataset ID or name, return the SQL that represents it.
 
-    If ``dataset_id`` is an integer, it is treated as the unique dataset ID and
-    the optional ``schema``, ``catalog`` and ``database_id`` parameters are
-    ignored.
+    If ``dataset_id`` is provided, the optional ``schema``, ``catalog`` and
+    either ``database_id`` or ``database_name`` parameters are ignored.
 
-    If ``dataset_id`` is a string, it is treated as a dataset name. The optional
-    ``schema``, ``catalog`` and ``database_id`` parameters are used to narrow
-    down the search when provided. If multiple datasets match the provided
-    criteria, an error is raised because the dataset name is ambiguous.
+    If ``dataset_name`` is provided, the optional ``schema``, ``catalog`` and
+    either ``database_id`` or ``database_name`` parameters are used to narrow down
+    the search when provided. If multiple datasets match the provided criteria, an
+    error is raised because the dataset name is ambiguous.
 
     The generated SQL includes all columns (including computed) by default. Optionally
     the user can also request metrics to be included, and columns to group by.
@@ -1322,49 +1324,44 @@ def dataset_macro(
 
     from superset.daos.dataset import DatasetDAO
 
-    filters: dict[str, Any] = {}
+    if (dataset_id is None) == (dataset_name is None):
+        raise SupersetTemplateException(
+            "You must provide either 'dataset_id' or 'dataset_name', but not both."
+        )
 
-    if database_id not in (_UNSET, None):
-        filters["database_id"] = database_id
-    if catalog is not _UNSET:
-        filters["catalog"] = catalog
-    if schema is not _UNSET:
-        filters["schema"] = schema
+    if dataset_name is not None:
+        filters: dict[str, Any] = {}
+        if database_id is not None:
+            filters["database_id"] = database_id
+        if database_name is not None:
+            filters["database_name"] = database_name
+        if catalog is not _UNSET:
+            filters["catalog"] = catalog
+        if schema is not _UNSET:
+            filters["schema"] = schema
 
-    if isinstance(dataset_id, str):
+        criteria = [
+            f"{dataset_name!r}",
+            *[f"{key}={value!r}" for key, value in filters.items()],
+        ]
+
         try:
             dataset = DatasetDAO.get_table_by_catalog_schema_and_name(
-                table_name=dataset_id,
+                table_name=dataset_name,
                 **filters,
             )
         except MultipleResultsFound as ex:
             raise DatasetInvalidError(
-                f"Multiple datasets named '{dataset_id}' match the provided criteria. "
-                "Please specify additional qualifiers such as schema, catalog, "
-                "or database_id to identify a unique dataset."
+                f"Multiple datasets named '{dataset_name}' match the provided criteria."
+                " Please specify additional qualifiers such as schema, catalog,"
+                " or database_id to identify a unique dataset."
             ) from ex
     else:
-        if filters:
-            logger.warning(
-                "Ignoring parameters %s when resolving dataset_id=%r by ID.",
-                ", ".join(filters.keys()),
-                dataset_id,
-                extra={
-                    "macro": "dataset",
-                    "dataset_id": dataset_id,
-                    "ignored_parameters": list(filters.keys()),
-                    "warning_type": "JINJA_MACRO_IGNORED_PARAMETERS",
-                },
-            )
+        criteria = [f"{dataset_id!r}"]
 
-        dataset = DatasetDAO.find_by_id(dataset_id)
+        dataset = DatasetDAO.find_by_id(cast(int, dataset_id))
 
     if not dataset:
-        criteria: list[str] = [
-            f"{dataset_id!r}",
-            *[f"{key}={value!r}" for key, value in filters.items()],
-        ]
-
         raise DatasetNotFoundError(f"Dataset {', '.join(criteria)} not found!")
 
     columns = columns or [column.column_name for column in dataset.columns]
@@ -1379,7 +1376,13 @@ def dataset_macro(
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
-    return f"(\n{sql}\n) AS {alias or f'dataset_{dataset.id}'}"
+
+    if alias:
+        safe_alias = dataset.database.quote_identifier(alias)
+    else:
+        safe_alias = f"dataset_{dataset.id}"
+
+    return f"(\n{sql}\n) AS {safe_alias}"
 
 
 def get_dataset_id_from_context(metric_key: str) -> int:
