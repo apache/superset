@@ -27,16 +27,13 @@ from contextlib import contextmanager
 from contextvars import ContextVar, Token
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, TYPE_CHECKING
+from typing import Any, NoReturn, TYPE_CHECKING
 
 from flask import current_app, has_app_context, has_request_context, request
-from sqlalchemy import event, select
-from sqlalchemy.engine import Connection, Engine, ExecutionContext, RowMapping
+from sqlalchemy import func, select
+from sqlalchemy.engine import Connection, NestedTransaction, RowMapping
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.sql import ClauseElement, operators, Select, visitors
-from sqlalchemy.sql.dml import UpdateBase
-from sqlalchemy.sql.elements import ColumnClause, TextClause
-from sqlalchemy.sql.functions import FunctionElement
+from sqlalchemy.sql.elements import ColumnElement
 from superset_core.semantic_layers.layer import SemanticLayer as LayerABC
 from superset_core.semantic_layers.metadata import (
     CatalogSnapshot,
@@ -170,48 +167,30 @@ def metadata_refresh_enabled() -> bool:
     )
 
 
-# Connection.info survives pool check-in; only a new outer begin resets this flag.
-_TRANSACTION_WRITES: str = "superset.semantic_metadata.transaction_writes"
+def _revalidation_unavailable(reason: str) -> NoReturn:
+    """Explain a metadata DB constraint without exposing configuration or SQL."""
+    logger.warning("Metadata database revalidation unavailable: %s", reason)
+    raise MetadataRefreshError("unavailable")
 
 
-@event.listens_for(Engine, "begin")
-def _track_metadata_transaction(connection: Connection) -> None:
-    """Record provenance before any statement; late/disabled tracking is uncertain."""
-    connection.info.pop(_TRANSACTION_WRITES, None)
-    # Dynamic feature callbacks may themselves query the DB. This low-level
-    # observer consults only static operator configuration, never user callbacks.
-    if (
-        has_app_context()
-        and current_app.config.get("SEMANTIC_LAYER_METADATA_REFRESH_ENABLED") is True
-    ):
-        connection.info[_TRANSACTION_WRITES] = False
-
-
-@event.listens_for(Engine, "before_cursor_execute")
-def _track_metadata_writes(
-    connection: Connection,
-    cursor: object,
-    statement: str,
-    parameters: object,
-    context: ExecutionContext,
-    executemany: bool,
-) -> None:
-    """Keep writes/unknown SQL sticky through flushes and SAVEPOINT rollback."""
-    if connection.info.get(_TRANSACTION_WRITES) is not False:
-        return
-    query: ClauseElement | None = (
-        context.compiled.statement if context.compiled is not None else None
-    )
-    # Text, write CTEs and SQL functions can hide writes inside a SELECT. Only
-    # ordinary compiled reads establish that the caller has no private writes.
-    if not isinstance(query, Select) or any(
-        isinstance(node, (UpdateBase, TextClause, FunctionElement))
-        or (isinstance(node, ColumnClause) and node.is_literal)
-        or not type(node).__module__.startswith("sqlalchemy.")
-        or isinstance(getattr(node, "operator", None), operators.custom_op)
-        for node in visitors.iterate(query)
-    ):
-        connection.info[_TRANSACTION_WRITES] = True
+@contextmanager
+def _revalidation_savepoint(connection: Connection) -> Iterator[None]:
+    """Contain statement failures without flushing or ending the caller's work."""
+    savepoint: NestedTransaction = connection.begin_nested()
+    try:
+        yield
+        # End only this SAVEPOINT; @transaction would end the caller's work.
+        savepoint.commit()  # pylint: disable=consider-using-transaction
+    except BaseException:
+        try:
+            savepoint.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            # A lost connection may prevent recovery. Preserve the original
+            # failure, especially worker cancellation, rather than masking it.
+            logger.warning(
+                "Metadata revalidation savepoint recovery failed", exc_info=True
+            )
+        raise
 
 
 def _configuration(raw: str) -> dict[str, Any]:
@@ -258,6 +237,56 @@ def connection_metadata_scope(layer: SemanticLayer) -> str:
     return metadata_scope(secret, namespace, str(layer.uuid), configuration)
 
 
+def _revalidate_layer(layer: SemanticLayer, scope: str) -> None:
+    """Require a fresh committed scope without borrowing another connection."""
+    # Avoid app-init regression: binding loads before encrypted model fields.
+    from superset.semantic_layers.models import SemanticLayer
+
+    if not participates(layer):
+        raise MetadataRefreshError("configuration_changed")
+    if db.session.new or db.session.dirty or db.session.deleted:
+        _revalidation_unavailable("pending ORM changes")
+    try:
+        connection: Connection = db.session.connection(
+            bind_arguments={"mapper": SemanticLayer}
+        )
+        version: tuple[int, ...] | None = connection.dialect.server_version_info
+        if connection.dialect.name != "postgresql" or not version or version < (10,):
+            _revalidation_unavailable("own writes cannot be verified on this database")
+        with _revalidation_savepoint(connection):
+            if connection.get_isolation_level() != "READ COMMITTED":
+                _revalidation_unavailable("isolation level is not READ COMMITTED")
+            # Unlike SQL-shape heuristics, this accepts permission SELECTs
+            # while detecting flushed/Core/DBAPI and rolled-back child writes.
+            no_writes: ColumnElement[bool] = (
+                func.pg_catalog.pg_current_xact_id_if_assigned().is_(None)
+                if version >= (13,)
+                else func.pg_catalog.txid_current_if_assigned().is_(None)
+            )
+            if connection.scalar(select(no_writes)) is not True:
+                _revalidation_unavailable("uncertain own writes in caller transaction")
+            # Core bypasses the identity map and autoflush. The savepoint
+            # protects the caller's outer transaction if the SELECT fails.
+            row: RowMapping | None = (
+                connection.execute(
+                    select(
+                        SemanticLayer.uuid,
+                        SemanticLayer.type,
+                        SemanticLayer.configuration,
+                    ).where(SemanticLayer.uuid == layer.uuid)
+                )
+                .mappings()
+                .one_or_none()
+            )
+            if row is None or connection_metadata_scope(SemanticLayer(**row)) != scope:
+                raise MetadataRefreshError("configuration_changed")
+    except NotImplementedError:
+        _revalidation_unavailable("isolation level could not be determined")
+    except SQLAlchemyError:
+        logger.warning("Metadata layer revalidation failed", exc_info=True)
+        raise MetadataRefreshError("unavailable") from None
+
+
 def connection_store(layer: SemanticLayer) -> ScopedMetadataStore:
     """Resolve only stored, server-owned scope and recheck it before publication."""
     state: MetadataOperation = _operation(require_budget=False)
@@ -276,42 +305,8 @@ def connection_store(layer: SemanticLayer) -> ScopedMetadataStore:
         raise MetadataRefreshError("configuration") from None
 
     def revalidate() -> None:
-        # Avoid app-init regression: binding loads before encrypted model fields.
-        from superset.semantic_layers.models import SemanticLayer
-
-        if not participates(layer):
-            raise MetadataRefreshError("configuration_changed")
-        try:
-            connection: Connection = db.session.connection(
-                bind_arguments={"mapper": SemanticLayer}
-            )
-            if (
-                connection.get_isolation_level() != "READ COMMITTED"
-                or connection.info.get(_TRANSACTION_WRITES) is not False
-                or db.session.new
-                or db.session.dirty
-                or db.session.deleted
-            ):
-                raise MetadataRefreshError("unavailable")
-            # Core bypasses the identity map and autoflush without owning or
-            # closing the caller's transaction. READ COMMITTED gives this
-            # statement a fresh snapshot only when the caller has no own writes.
-            row: RowMapping | None = (
-                connection.execute(
-                    select(
-                        SemanticLayer.uuid,
-                        SemanticLayer.type,
-                        SemanticLayer.configuration,
-                    ).where(SemanticLayer.uuid == layer.uuid)
-                )
-                .mappings()
-                .one_or_none()
-            )
-            if row is None or connection_metadata_scope(SemanticLayer(**row)) != scope:
-                raise MetadataRefreshError("configuration_changed")
-        except (SQLAlchemyError, NotImplementedError):
-            logger.warning("Metadata layer revalidation failed", exc_info=True)
-            raise MetadataRefreshError("unavailable") from None
+        """Recheck the captured scope immediately before publication."""
+        _revalidate_layer(layer, scope)
 
     store: ScopedMetadataStore = ScopedMetadataStore(
         backend,
