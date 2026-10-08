@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from datetime import date
 from typing import Any
 from unittest.mock import MagicMock
@@ -89,6 +90,7 @@ def test_provider_execution_error_http(
     full_api_access: None,
     date_view: MagicMock,
     mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
     guest: bool,
     failure: str,
     status: int,
@@ -135,6 +137,17 @@ def test_provider_execution_error_http(
                 "Check its operator and values, then try again."
             )
         )
+    if failure == "fault":
+        records: list[logging.LogRecord] = [
+            record
+            for record in caplog.records
+            if record.name == "superset.semantic_layers.exceptions"
+            and record.levelno == logging.ERROR
+        ]
+        assert len(records) == 1
+        assert records[0].getMessage() == "Semantic provider query execution failed"
+        assert records[0].exc_info is not None
+        assert records[0].exc_info[1] is date_view.get_table.side_effect
     date_view.get_table.assert_called_once()
 
 
@@ -401,3 +414,66 @@ def test_async_completeness_does_not_publish_success(
         execute_chart_query.func(serialize_query(context, 0), user_id=7)
     task_context.update_task.assert_not_called()
     date_view.get_table.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "code,expected",
+    [
+        (
+            "UNSUPPORTED_QUERY",
+            (
+                "This semantic provider does not support this query. "
+                "Remove unsupported filters or grouping and try again."
+            ),
+        ),
+        (
+            "UNSUPPORTED_OFFSET",
+            (
+                "This semantic provider cannot apply the requested offset. "
+                "Turn off pagination or use a supported limit and offset."
+            ),
+        ),
+        (
+            "INVALID_FILTER",
+            (
+                "A semantic query filter is invalid. "
+                "Check its operator and values, then try again."
+            ),
+        ),
+        (
+            "INVALID_QUERY",
+            (
+                "The semantic query is invalid. "
+                "Check its fields and options, then try again."
+            ),
+        ),
+        (
+            "private-unknown-code",
+            (
+                "The semantic query is invalid. "
+                "Check its fields and options, then try again."
+            ),
+        ),
+    ],
+)
+def test_provider_rejection_uses_host_guidance(
+    app_context: None, code: str, expected: str
+) -> None:
+    """Every SDK code selects host-owned text; unknown input cannot be echoed."""
+    from superset_core.semantic_layers.types import SemanticQuery
+
+    from superset.semantic_layers.exceptions import (
+        execute_semantic_query,
+        SemanticLayerQueryRejectedError,
+    )
+
+    dispatcher: MagicMock = MagicMock(side_effect=SemanticQueryRejectedError(code))
+    captured: pytest.ExceptionInfo[SemanticLayerQueryRejectedError]
+    with pytest.raises(SemanticLayerQueryRejectedError) as captured:
+        execute_semantic_query(
+            dispatcher, SemanticQuery(dimensions=set(), metrics=set())
+        )
+    assert captured.value.message == expected
+    assert captured.value.status == 400
+    assert "private" not in str(captured.value.to_dict())
+    dispatcher.assert_called_once()
