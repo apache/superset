@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -31,21 +30,26 @@ from superset.commands.semantic_layer.delete import (
 )
 from superset.commands.semantic_layer.exceptions import SemanticViewForbiddenError
 from superset.commands.semantic_layer.update import UpdateSemanticViewCommand
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 GRANTED_PERM: str = "[Layer].[granted_view](id:1)"
 OTHER_PERM: str = "[Layer].[other_view](id:2)"
+LAYER_PERM: str = "[Layer](id:abc)"
 
 
-def _view(view_id: int, perm: str) -> SemanticView:
-    # No parent layer, so only the view's own grant can authorize it.
+def _view(view_id: int, perm: str, layer: SemanticLayer | None = None) -> SemanticView:
+    """A view authorized by its own grant, or by its parent layer's grant."""
     return SemanticView(
-        id=view_id, name=f"view_{view_id}", configuration="{}", perm=perm
+        id=view_id,
+        name=f"view_{view_id}",
+        configuration="{}",
+        perm=perm,
+        semantic_layer=layer,
     )
 
 
 @pytest.fixture
-def access(app: Any) -> Iterator[Callable[[bool, set[str]], None]]:
+def access() -> Iterator[Callable[[bool, set[str]], None]]:
     """Stub the security manager's datasource grants for the current user."""
     from superset import security_manager
 
@@ -96,9 +100,15 @@ def _execute(command: str, models: list[SemanticView]) -> None:
     [
         (False, set(), False),
         (False, {GRANTED_PERM}, True),
+        (False, {LAYER_PERM}, True),
         (True, set(), True),
     ],
-    ids=["editor_without_access", "editor_with_access", "admin"],
+    ids=[
+        "editor_without_access",
+        "editor_with_access",
+        "editor_with_layer_access",
+        "admin",
+    ],
 )
 def test_view_edit_requires_data_access(
     command: str,
@@ -111,7 +121,8 @@ def test_view_edit_requires_data_access(
     """An editor needs data access to the view; admin access is unchanged."""
     access(is_admin, perms)
     mocker.patch("superset.commands.utils.security_manager.raise_for_editorship")
-    models: list[SemanticView] = [_view(1, GRANTED_PERM)]
+    layer: SemanticLayer = SemanticLayer(name="Layer", perm=LAYER_PERM)
+    models: list[SemanticView] = [_view(1, GRANTED_PERM, layer)]
     dao: MagicMock = _patch_dao(command, models, mocker)
     write: MagicMock = dao.update if command == "update" else dao.delete
     if allowed:
