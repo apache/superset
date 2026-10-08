@@ -2707,6 +2707,9 @@ msgstr ""
 msgid "Cache Timeout (seconds)"
 msgstr ""
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid "Cache data separately for each user based on their data access roles and permissions. When disabled, a single cache will be used for all users."
 msgstr ""
 
@@ -10658,6 +10661,9 @@ msgstr ""
 msgid "Reload SQL Lab"
 msgstr ""
 
+msgid "Reload metadata"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -15226,6 +15232,9 @@ msgid "Unable to calculate such a date delta"
 msgstr ""
 
 #, python-format
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr ""
 

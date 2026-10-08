@@ -17,7 +17,13 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { act, render, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 import SemanticLayerModal from './SemanticLayerModal';
 
@@ -224,4 +230,88 @@ test('cancels pending schema refresh when dependencies become unsatisfied', asyn
 
   // No additional POST should have fired; the cancelled timer must not land.
   expect(mockedPost).toHaveBeenCalledTimes(1);
+});
+
+test('Reload metadata clears saved configuration and explicitly reloads the page', async () => {
+  mockJsonFormsChangeTriggered = true;
+  const reload = jest.fn();
+  const { location } = window;
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: { ...location, reload },
+  });
+  try {
+    render(<SemanticLayerModal {...props} />);
+    const button = await screen.findByRole('button', {
+      name: 'Reload metadata',
+    });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
+    expect(mockedPost).toHaveBeenCalledWith({
+      endpoint: `/api/v1/semantic_layer/${props.semanticLayerUuid}/clear_cache`,
+      jsonPayload: {},
+    });
+    expect(props.addSuccessToast).toHaveBeenCalledWith(
+      'Cache cleared; reload to fetch metadata',
+    );
+  } finally {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: location,
+    });
+  }
+});
+
+test('Reload metadata is disabled for unsaved configuration and name edits', async () => {
+  render(<SemanticLayerModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Reload metadata' });
+  expect(button).toBeDisabled();
+  act(() => capturedOnChange?.({ data: { warehouse: 'wh0' }, errors: [] }));
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.change(screen.getByPlaceholderText('Name of the semantic layer'), {
+    target: { value: 'Unsaved name' },
+  });
+  expect(button).toBeDisabled();
+});
+
+test('Reload metadata reports failure without reloading or closing the editor', async () => {
+  mockJsonFormsChangeTriggered = true;
+  props.addDangerToast.mockClear();
+  props.onHide.mockClear();
+  render(<SemanticLayerModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Reload metadata' });
+  await waitFor(() => expect(button).toBeEnabled());
+  mockedPost.mockRejectedValueOnce(new Error('clear failed'));
+  fireEvent.click(button);
+  await waitFor(() =>
+    expect(props.addDangerToast).toHaveBeenCalledWith(
+      'Unable to clear metadata cache',
+    ),
+  );
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(button).toBeEnabled();
+});
+
+test('A pending clear prevents edits and a closed editor ignores its late response', async () => {
+  mockJsonFormsChangeTriggered = true;
+  props.addSuccessToast.mockClear();
+  const { rerender } = render(<SemanticLayerModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Reload metadata' });
+  await waitFor(() => expect(button).toBeEnabled());
+  let finish: (value: { json: object }) => void = () => {};
+  mockedPost.mockReturnValueOnce(
+    new Promise(resolve => {
+      finish = resolve;
+    }),
+  );
+  fireEvent.click(button);
+  expect(button).toBeDisabled();
+  expect(
+    screen.getByPlaceholderText('Name of the semantic layer'),
+  ).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  rerender(<SemanticLayerModal {...props} show={false} />);
+  await act(async () => finish({ json: {} }));
+  expect(props.addSuccessToast).not.toHaveBeenCalled();
 });

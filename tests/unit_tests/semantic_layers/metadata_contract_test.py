@@ -160,3 +160,15 @@ def test_views_retain_their_captured_cache_identity() -> None:
     new_view: CapturedView = CapturedView("scope:2")
     assert old_view.metadata_cache_token == "scope:1"  # noqa: S105
     assert new_view.metadata_cache_token == "scope:2"  # noqa: S105
+
+
+def test_legacy_factory_accepts_optional_host_identity() -> None:
+    """Existing providers need not implement the cache-aware factory hook."""
+    layer: SemanticLayer[BaseModel, LegacyView] = (
+        LegacyLayer.from_configuration_with_cache_token(
+            {},
+            cache_token="host-generation",  # noqa: S106
+        )
+    )
+    assert isinstance(layer, LegacyLayer)
+    assert layer.get_semantic_view("legacy", {}).metadata_cache_token is None

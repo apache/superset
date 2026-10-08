@@ -46,6 +46,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import (
@@ -192,8 +193,6 @@ class DatasourceRestApi(BaseSupersetApi):
         # This route cannot prove the provenance of saved dimension names.
         # Gate before cache access as well as provider execution.
         if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
-            from superset.semantic_layers.models import SemanticView
-
             if (
                 cast(SemanticView, datasource).implementation.selection_identity_version
                 is not None
@@ -242,6 +241,11 @@ class DatasourceRestApi(BaseSupersetApi):
                 json.dumps(
                     {
                         "uid": datasource.uid,
+                        "metadata_version": (
+                            datasource.metadata_cache_token
+                            if isinstance(datasource, SemanticView)
+                            else None
+                        ),
                         "col": column_name,
                         "limit": row_limit,
                         "denorm": denormalize_column,
@@ -583,6 +587,11 @@ class DatasourceRestApi(BaseSupersetApi):
                 json.dumps(
                     {
                         "uid": datasource.uid,
+                        "metadata_version": (
+                            datasource.metadata_cache_token
+                            if isinstance(datasource, SemanticView)
+                            else None
+                        ),
                         "m": sorted(selected_metrics),
                         "d": sorted(selected_dimensions),
                     },

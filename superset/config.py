@@ -106,6 +106,10 @@ if "SUPERSET_HOME" in os.environ:
 else:
     DATA_DIR = os.path.expanduser("~/.superset")
 
+# Additional workspace scope when tenants share one metadata database URL.
+# A callable may return the active tenant's stable namespace per operation.
+SEMANTIC_LAYER_CACHE_NAMESPACE: str | Callable[[], str] = ""
+
 # ---------------------------------------------------------
 # Superset specific config
 # ---------------------------------------------------------

@@ -34,7 +34,7 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 
 @pytest.fixture
@@ -49,7 +49,7 @@ def semantic_view_datasource(mocker: MockerFixture) -> SemanticView:
         requests=[SemanticRequest(type="SQL", definition="values query")],
         results=pa.table({"category": pa.array(["Books", "Clothing"])}),
     )
-    view = SemanticView()
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer())
     view.id = 1
     view.cache_timeout = None
     mocker.patch.object(

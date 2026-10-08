@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import isEqual from 'lodash/isEqual';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { Input, Select, Button } from '@superset-ui/core/components';
@@ -82,6 +83,16 @@ export default function SemanticLayerModal({
   );
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [saving, setSaving] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [savedForm, setSavedForm] = useState<{
+    name: string;
+    configuration: Record<string, unknown>;
+  } | null>(null);
+  const clearRequestRef = useRef(0);
+  const dirty =
+    !savedForm ||
+    name !== savedForm.name ||
+    !isEqual(formData, savedForm.configuration);
   const [hasErrors, setHasErrors] = useState(true);
   const [refreshingSchema, setRefreshingSchema] = useState(false);
   const [validationMode, setValidationMode] =
@@ -167,6 +178,10 @@ export default function SemanticLayerModal({
         setName(layer.name ?? '');
         setSelectedType(layer.type);
         setFormData(layer.configuration ?? {});
+        setSavedForm({
+          name: layer.name ?? '',
+          configuration: layer.configuration ?? {},
+        });
         setHasErrors(false);
         // In edit mode, fetch the enriched schema using the full saved
         // configuration so that dynamic dropdowns (account, project,
@@ -207,6 +222,8 @@ export default function SemanticLayerModal({
       setConfigSchema(null);
       setUiSchema(undefined);
       setFormData({});
+      setSavedForm(null);
+      setClearing(false);
       setHasErrors(true);
       setRefreshingSchema(false);
       setValidationMode('ValidateAndHide');
@@ -217,6 +234,38 @@ export default function SemanticLayerModal({
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     }
   }, [show, fetchTypes, isEditMode, semanticLayerUuid, fetchExistingLayer]);
+
+  useEffect(
+    () => () => {
+      clearRequestRef.current += 1;
+    },
+    [show, semanticLayerUuid],
+  );
+
+  const handleReloadMetadata = async () => {
+    if (!semanticLayerUuid || dirty || saving || clearing) return;
+    clearRequestRef.current += 1;
+    const request = clearRequestRef.current;
+    setClearing(true);
+    try {
+      await SupersetClient.post({
+        endpoint: `/api/v1/semantic_layer/${semanticLayerUuid}/clear_cache`,
+        jsonPayload: {},
+      });
+      if (request !== clearRequestRef.current) return;
+      addSuccessToast(t('Cache cleared; reload to fetch metadata'));
+      window.location.reload();
+    } catch (error) {
+      const clientError = await getClientErrorObject(error);
+      if (request === clearRequestRef.current) {
+        addDangerToast(
+          clientError.error || t('Unable to clear metadata cache'),
+        );
+      }
+    } finally {
+      if (request === clearRequestRef.current) setClearing(false);
+    }
+  };
 
   const handleStepAdvance = () => {
     if (selectedType) {
@@ -388,7 +437,9 @@ export default function SemanticLayerModal({
       icon={isEditMode ? <Icons.EditOutlined /> : <Icons.PlusOutlined />}
       width={isTypeStep ? MODAL_STANDARD_WIDTH : MODAL_MEDIUM_WIDTH}
       saveDisabled={
-        isTypeStep ? !selectedType : saving || !name.trim() || hasErrors
+        isTypeStep
+          ? !selectedType
+          : saving || clearing || !name.trim() || hasErrors
       }
       saveText={isTypeStep ? undefined : isEditMode ? t('Save') : t('Create')}
       saveLoading={saving}
@@ -411,6 +462,15 @@ export default function SemanticLayerModal({
           </ModalFormField>
         ) : (
           <>
+            {isEditMode && (
+              <Button
+                disabled={dirty || saving || clearing || refreshingSchema}
+                loading={clearing}
+                onClick={handleReloadMetadata}
+              >
+                {t('Reload metadata')}
+              </Button>
+            )}
             {!isEditMode && (
               <Button
                 buttonStyle="link"
@@ -422,6 +482,7 @@ export default function SemanticLayerModal({
             )}
             <ModalFormField label={t('Name')} required>
               <Input
+                disabled={clearing}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder={t('Name of the semantic layer')}
@@ -437,6 +498,7 @@ export default function SemanticLayerModal({
                 onSubmit={e => e.preventDefault()}
               >
                 <JsonForms
+                  readonly={clearing}
                   schema={configSchema}
                   uischema={uiSchema}
                   data={formData}

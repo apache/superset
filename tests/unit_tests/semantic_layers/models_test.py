@@ -254,7 +254,7 @@ def test_semantic_layer_implementation() -> None:
 
     mock_class = MagicMock()
     mock_impl = MagicMock()
-    mock_class.from_configuration.return_value = mock_impl
+    mock_class.from_configuration_with_cache_token.return_value = mock_impl
 
     with patch.dict(
         "superset.semantic_layers.models.registry",
@@ -266,7 +266,9 @@ def test_semantic_layer_implementation() -> None:
 
         result = layer.implementation
 
-    mock_class.from_configuration.assert_called_once_with({"key": "value"})
+    mock_class.from_configuration_with_cache_token.assert_called_once_with(
+        {"key": "value"}, cache_token=layer.metadata_cache_token
+    )
     assert result == mock_impl
 
 
@@ -486,9 +488,9 @@ def test_semantic_view_query_endpoint_returns_error(
 
 def test_semantic_view_get_extra_cache_keys() -> None:
     """Test SemanticView get_extra_cache_keys method."""
-    view = SemanticView()
-    result = view.get_extra_cache_keys({})
-    assert result == []
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer())
+    result: list[Any] = view.get_extra_cache_keys({})
+    assert result == [view.metadata_cache_token]
 
 
 def test_semantic_view_perm() -> None:
