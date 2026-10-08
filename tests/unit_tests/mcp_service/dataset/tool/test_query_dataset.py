@@ -1592,6 +1592,10 @@ async def test_query_dataset_reexecutes_across_rollover(
         )
         return {"queries": [payload]}
 
+    def query_cache_key(query_obj: QueryObject, **_: Any) -> str:
+        """Hash query identity without processor-only parent cache context."""
+        return query_obj.cache_key()
+
     with (
         patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
         patch.object(
@@ -1601,7 +1605,7 @@ async def test_query_dataset_reexecutes_across_rollover(
             "superset.common.utils.query_cache_manager._cache",
             {CacheRegion.DATA: cache},
         ),
-        patch.object(processor, "query_cache_key", side_effect=QueryObject.cache_key),
+        patch.object(processor, "query_cache_key", side_effect=query_cache_key),
         patch.object(processor, "get_cache_timeout", return_value=300),
         patch.object(processor, "get_annotation_data", return_value={}),
         patch.object(
