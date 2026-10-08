@@ -117,3 +117,118 @@ def test_chart_data_preserves_nullable_integer_precision(
         assert f'"{value}"' in response.get_data(as_text=True)
         if with_offset:
             assert f'"{-value}"' in response.get_data(as_text=True)
+
+
+@pytest.mark.parametrize(
+    ("post_processing", "time_offsets", "expected"),
+    [
+        (
+            [
+                {
+                    "operation": "contribution",
+                    "options": {"orientation": "column", "columns": ["amount"]},
+                }
+            ],
+            [],
+            {"amount": [0.25, 0.0, 0.75]},
+        ),
+        (
+            [
+                {
+                    "operation": "diff",
+                    "options": {"columns": {"amount": "amount"}, "periods": 1},
+                }
+            ],
+            [],
+            {"amount": [None, None, None]},
+        ),
+        (
+            [
+                {
+                    "operation": "contribution",
+                    "options": {
+                        "orientation": "column",
+                        "columns": ["amount__1 week ago"],
+                    },
+                }
+            ],
+            ["1 week ago"],
+            {"amount__1 week ago": [0.2, 0.0, 0.8]},
+        ),
+    ],
+    ids=["contribution", "diff", "contribution-offset"],
+)
+def test_post_processing_receives_numeric_nullable_integer_metrics(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    post_processing: list[dict[str, object]],
+    time_offsets: list[str],
+    expected: dict[str, list[float | None]],
+) -> None:
+    """Metric calculations see numbers, as for SQL datasets, not object integers."""
+    provider: MagicMock = MagicMock(spec=ProviderView)
+    provider.features = frozenset()
+    provider.selection_identity_version = None
+    provider.uid.return_value = "integer-precision-view"
+    provider.get_dimensions.return_value = {
+        Dimension("category", "category", pa.string()),
+    }
+    provider.get_metrics.return_value = {
+        Metric("amount", "amount", pa.int64(), "SUM(amount)"),
+    }
+    provider.get_table.side_effect = [
+        SemanticResult(
+            results=pa.table(
+                {
+                    "category": ["A", "B", "C"],
+                    "amount": pa.array([5, None, 15], type=pa.int64()),
+                }
+            ),
+            requests=[],
+        ),
+        SemanticResult(
+            results=pa.table(
+                {
+                    "category": ["A", "B", "C"],
+                    "amount": pa.array([2, None, 8], type=pa.int64()),
+                }
+            ),
+            requests=[],
+        ),
+    ]
+    view: SemanticView = SemanticView(id=7, name="Amounts", configuration="{}")
+    view.__dict__["implementation"] = provider
+    mocker.patch(
+        "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+        return_value=view,
+    )
+    mocker.patch("superset.common.query_context.QueryContext.raise_for_access")
+    mocker.patch("superset.security_manager.raise_for_unsupported_guest_rls")
+    mocker.patch(
+        "superset.common.query_context_processor.QueryContextProcessor.get_cache_timeout",
+        return_value=-1,
+    )
+
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["category"],
+                    "metrics": ["amount"],
+                    "time_offsets": time_offsets,
+                    "post_processing": post_processing,
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+
+    assert response.status_code == 200, response.get_data(as_text=True)
+    data: list[dict[str, object]] = response.get_json()["result"][0]["data"]
+    for column, values in expected.items():
+        assert [row[column] for row in data] == values

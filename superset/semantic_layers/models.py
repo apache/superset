@@ -51,6 +51,7 @@ from superset_core.semantic_layers.view import (
 )
 
 from superset.common.query_object import QueryObject
+from superset.common.utils.dataframe_utils import df_columns_to_num
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,
@@ -62,7 +63,7 @@ from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, TIME_COMPARISON
 
 if TYPE_CHECKING:
     from superset.superset_typing import ExplorableData, QueryObjectDict
@@ -386,6 +387,20 @@ class SemanticView(AuditMixinNullable, Model):
         security_manager.raise_for_unsupported_guest_rls(self)
         result: QueryResult = get_results(query_object)
         if query_object.post_processing and not result.df.empty:
+            # Nullable integer metrics arrive as exact Python ints; calculations
+            # need numbers, as for SQL datasets. Plain chart data stays exact.
+            metric_names: list[str] = query_object.metric_names
+            df_columns_to_num(
+                result.df,
+                {
+                    *metric_names,
+                    *(
+                        TIME_COMPARISON.join([metric, offset])
+                        for metric in metric_names
+                        for offset in query_object.time_offsets
+                    ),
+                },
+            )
             try:
                 result.df = query_object.exec_post_processing(result.df)
             except InvalidPostProcessingError as ex:
