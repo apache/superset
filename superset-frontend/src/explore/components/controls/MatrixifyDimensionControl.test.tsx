@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
@@ -658,7 +652,7 @@ test('available suggestions do not allow manual member values', async () => {
     });
     expect(await screen.findByText('No results')).toBeInTheDocument();
     expect(screen.queryByTitle('not-a-suggestion')).not.toBeInTheDocument();
-    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 });
+    await userEvent.keyboard('{Enter}');
     expect(onChange).not.toHaveBeenCalled();
   } finally {
     jest.useRealTimers();

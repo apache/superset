@@ -582,7 +582,9 @@ test.each([undefined, 'old-title-version', 'cube-member-id-v1'])(
         }),
         { useDndKit: true, store },
       );
-      await userEvent.click(screen.getByText(/country/));
+      // The test wrapper's default DndContext starts dragging on pointer-down;
+      // Explore requires 5px of movement. Exercise the click without a drag.
+      fireEvent.click(screen.getByText(/country/));
       await userEvent.click(
         await screen.findByRole('combobox', { name: 'Comparator option' }),
       );
