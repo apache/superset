@@ -221,7 +221,7 @@ def get_columns_description(
                 result_set = SupersetResultSet(
                     result, cursor.description, db_engine_spec
                 )
-            return result_set.columns
+            return db_engine_spec.expand_nested_columns(cursor, result_set.columns)
     except (SupersetErrorException, SupersetDBAPIError):
         # Preserve exceptions that already carry specific, actionable typing
         # (e.g. OAuth2RedirectError, or a driver connection/timeout error

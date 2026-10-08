@@ -1114,6 +1114,69 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         ]
 
     @classmethod
+    def expand_nested_columns(
+        cls,
+        cursor: Any,
+        columns: list[ResultSetColumnType],
+    ) -> list[ResultSetColumnType]:
+        """
+        Add the STRUCT members that ``cursor.description`` drops as dotted
+        columns, matching what the inspector returns for physical tables.
+        """
+        schema = cls._get_cursor_schema(cursor)
+        if not schema or len(schema) != len(columns):
+            return columns
+        taken = {col["column_name"] for col in columns}
+        expanded: list[ResultSetColumnType] = []
+        for col, field in zip(columns, schema, strict=True):
+            expanded.append(col)
+            expanded.extend(cls._expand_schema_field(field, col["column_name"], taken))
+        return expanded
+
+    @staticmethod
+    def _get_cursor_schema(cursor: Any) -> list[Any] | None:
+        # The DB-API cursor keeps the RowIterator of the last execute(), whose
+        # schema still has the nested fields that cursor.description drops; the
+        # public query_job property would cost an extra API call
+        rows = getattr(cursor, "_query_rows", None)
+        schema = getattr(rows, "schema", None)
+        return list(schema) if schema else None
+
+    @classmethod
+    def _expand_schema_field(
+        cls,
+        field: Any,
+        prefix: str,
+        taken: set[str],
+    ) -> list[ResultSetColumnType]:
+        if field.field_type not in {"RECORD", "STRUCT"} or field.mode == "REPEATED":
+            return []
+        columns: list[ResultSetColumnType] = []
+        for child in field.fields:
+            name = f"{prefix}.{child.name}"
+            if name in taken:
+                continue
+            taken.add(name)
+            # the inspector types REPEATED members as ARRAY
+            repeated = child.mode == "REPEATED"
+            spec = None if repeated else cls.get_column_spec(child.field_type)
+            is_dttm = bool(spec and spec.is_dttm)
+            columns.append(
+                ResultSetColumnType(
+                    name=name,
+                    column_name=name,
+                    type="ARRAY" if repeated else child.field_type,
+                    type_generic=utils.GenericDataType.TEMPORAL
+                    if is_dttm
+                    else (spec.generic_type if spec else None),
+                    is_dttm=is_dttm,
+                    nested_field=True,
+                )
+            )
+            columns.extend(cls._expand_schema_field(child, name, taken))
+        return columns
+
+    @classmethod
     def parse_error_exception(cls, exception: Exception) -> Exception:
         try:
             return type(exception)(str(exception).splitlines()[0].strip())

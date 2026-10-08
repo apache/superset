@@ -2763,6 +2763,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return None
 
+    @classmethod
+    def expand_nested_columns(
+        cls,
+        cursor: Any,
+        columns: list[ResultSetColumnType],
+    ) -> list[ResultSetColumnType]:
+        """
+        Add one column per nested field (e.g. STRUCT members) to the columns
+        inferred from ``cursor.description`` by ``get_columns_description``, so
+        virtual datasets get the dotted columns the inspector returns for
+        physical tables. The default returns ``columns`` unchanged.
+        """
+        return columns
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
