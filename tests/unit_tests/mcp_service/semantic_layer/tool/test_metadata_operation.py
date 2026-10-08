@@ -32,7 +32,13 @@ from tests.unit_tests.mcp_service.semantic_layer.tool.test_get_table import _mak
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "tool", ["get_table", "get_compatible_metrics", "list_metrics"]
+    "tool",
+    [
+        "get_table",
+        "get_compatible_metrics",
+        "get_compatible_dimensions",
+        "list_metrics",
+    ],
 )
 async def test_view_tool_enters_metadata_operation(app: Flask, tool: str) -> None:
     """Implementation reads retain one finite budget throughout the tool call."""
@@ -47,6 +53,12 @@ async def test_view_tool_enters_metadata_operation(app: Flask, tool: str) -> Non
         observed.append(operation_deadline())
         return implementation
 
+    def dimensions(*_: Any) -> list[str]:
+        """Compatibility discovery needs the same operation as column access."""
+        observed.append(operation_deadline())
+        return []
+
+    view.get_compatible_dimensions.side_effect = dimensions
     with (
         app.app_context(),
         patch.dict(app.config, {"SEMANTIC_LAYER_METADATA_REFRESH_ENABLED": True}),

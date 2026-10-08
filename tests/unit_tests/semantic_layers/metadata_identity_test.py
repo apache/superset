@@ -27,7 +27,7 @@ from uuid import UUID
 
 import pyarrow as pa
 import pytest
-from flask import Flask
+from flask import Flask, Response
 from flask_caching import Cache
 from superset_core.semantic_layers.metadata import MetadataRefreshErrorCategory
 from superset_core.semantic_layers.types import Metric, SemanticQuery, SemanticResult
@@ -817,10 +817,26 @@ def test_annotation_cache_key_tracks_the_executed_datasource(
 
 
 @pytest.mark.parametrize("fallback", [False, True])
-def test_deleted_annotation_source_uses_relationship_fallback(fallback: bool) -> None:
+@pytest.mark.parametrize(
+    "saved_context",
+    [
+        '{"datasource":{"id":999,"type":"table"}}',
+        "null",
+        "{}",
+        '{"datasource":{"id":999,"type":"dataset"}}',
+        '{"datasource":{"id":999,"type":"druid"}}',
+        '{"datasource":null}',
+    ],
+)
+def test_deleted_annotation_source_uses_relationship_fallback(
+    fallback: bool, saved_context: str
+) -> None:
     """A missing saved source must not escape while building its parent's key."""
     from superset.connectors.sqla.models import SqlaTable
-    from superset.daos.exceptions import DatasourceNotFound
+    from superset.daos.exceptions import (
+        DatasourceNotFound,
+        DatasourceTypeNotSupportedError,
+    )
     from superset.models.slice import Slice
 
     source: SqlaTable | None = SqlaTable(id=12) if fallback else None
@@ -828,11 +844,13 @@ def test_deleted_annotation_source_uses_relationship_fallback(fallback: bool) ->
         datasource_type="table",
         datasource_id=12,
         table=source,
-        query_context='{"datasource":{"id":999,"type":"table"}}',
+        query_context=saved_context,
     )
     with patch(
         "superset.daos.datasource.DatasourceDAO.get_datasource",
-        side_effect=DatasourceNotFound(),
+        side_effect=DatasourceTypeNotSupportedError()
+        if '"dataset"' in saved_context
+        else DatasourceNotFound(),
     ):
         assert chart.get_query_context_datasource() is source
 
@@ -844,8 +862,9 @@ def test_corrupt_annotation_configuration_uses_safe_failure_boundary(
     operation: str,
 ) -> None:
     """Unparseable annotation configuration cannot escape as a raw host failure."""
+    from superset_core.semantic_layers.metadata import MetadataRefreshError
+
     from superset.common.query_context_processor import QueryContextProcessor
-    from superset.exceptions import QueryObjectValidationError
     from superset.semantic_layers.metadata_cache import annotation_cache_token
 
     source: SemanticView = view_for(ResultView("scope:captured", 17))
@@ -869,5 +888,78 @@ def test_corrupt_annotation_configuration_uses_safe_failure_boundary(
             assert token is not None
             assert token.startswith("uncaptured:")
         else:
-            with pytest.raises(QueryObjectValidationError, match="configuration"):
+            with pytest.raises(MetadataRefreshError, match="configuration"):
                 QueryContextProcessor(Mock())._capture_annotation_metadata(query)
+
+
+@pytest.mark.parametrize(
+    "category,status", [("unavailable", 503), ("deadline", 504), ("upstream", 502)]
+)
+def test_annotation_capture_error_reaches_chart_metadata_boundary(
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    category: MetadataRefreshErrorCategory,
+    status: int,
+) -> None:
+    """A cache-miss annotation outage keeps its typed HTTP retry category."""
+    from unittest.mock import PropertyMock
+
+    from flask_appbuilder.api import BaseApi
+    from superset_core.semantic_layers.metadata import MetadataRefreshError
+
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.semantic_layers.metadata_errors import metadata_api_errors
+    from superset.superset_typing import FlaskResponse
+
+    source: SemanticView = view_for(ResultView("scope:captured", 17))
+    annotation: Mock = Mock(datasource=source)
+    chart: Mock = Mock()
+    chart.get_query_context.return_value = annotation
+    monkeypatch.setattr(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        lambda value: chart,
+    )
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.metadata_refresh_enabled",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        "superset.semantic_layers.metadata_binding.participates", lambda layer: True
+    )
+    processor: QueryContextProcessor = QueryContextProcessor(
+        Mock(force=True, force_nonce=None)
+    )
+    query: QueryObject = QueryObject(
+        columns=[],
+        metrics=[],
+        annotation_layers=[
+            {"annotationType": "TIME_SERIES", "sourceType": "line", "value": 31}
+        ],
+    )
+    failure: MetadataRefreshError = MetadataRefreshError(category)
+
+    @metadata_api_errors
+    def endpoint(owner: BaseApi) -> FlaskResponse:
+        """Use the chart-data error adapter around real cache-miss acquisition."""
+        payload: dict[str, Any] = processor.get_df_payload(query)
+        return owner.response(400 if payload["status"] == "failed" else 200)
+
+    with (
+        app.test_request_context(),
+        patch.object(processor, "query_cache_key", return_value="chart-key"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager.get",
+            return_value=query_cache_manager.QueryCacheManager(),
+        ),
+        patch.object(
+            SemanticView,
+            "metadata_cache_token",
+            new_callable=PropertyMock,
+            side_effect=failure,
+        ),
+    ):
+        response: Response = app.make_response(endpoint(BaseApi()))
+    assert response.status_code == status
+    assert response.get_json()["error"] == category
+    annotation.raise_for_access.assert_called_once()

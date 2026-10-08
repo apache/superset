@@ -500,8 +500,6 @@ class QueryContextProcessor:
         """Capture authorized annotation views on a miss before a slow parent query."""
         if not query_obj.annotation_layers:
             return
-        from superset_core.semantic_layers.metadata import MetadataRefreshError
-
         from superset.semantic_layers.metadata_binding import (
             metadata_refresh_enabled,
             participates,
@@ -537,7 +535,7 @@ class QueryContextProcessor:
                 # Reuse the annotation command's canonical query authority.
                 # Later execution retains this view without renewing its budget.
                 _captured: str | None = source.metadata_cache_token
-            except (SupersetException, MetadataRefreshError) as ex:
+            except SupersetException as ex:
                 raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 
     def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:

@@ -21,6 +21,7 @@ Returns dimensions compatible with the current metric/dimension selection.
 """
 
 import logging
+from contextlib import nullcontext
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -38,6 +39,10 @@ from superset.mcp_service.semantic_layer.schemas import (
     SemanticLayerError,
 )
 from superset.mcp_service.utils.query_utils import validate_names
+from superset.semantic_layers.metadata_binding import (
+    metadata_operation,
+    metadata_refresh_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -184,59 +189,66 @@ async def get_compatible_dimensions(
         # ------------------------------------------------------------------
         # External semantic view path
         # ------------------------------------------------------------------
-        from superset.daos.semantic_layer import SemanticViewDAO
-        from superset.exceptions import SupersetSecurityException
-        from superset.semantic_layers.models import ColumnMetadata, SemanticView
+        with metadata_operation() if metadata_refresh_enabled() else nullcontext():
+            from superset.daos.semantic_layer import SemanticViewDAO
+            from superset.exceptions import SupersetSecurityException
+            from superset.semantic_layers.models import ColumnMetadata, SemanticView
 
-        view_id: int = request.view_id  # type: ignore[assignment]
-        with event_logger.log_context(action="mcp.get_compatible_dimensions.external"):
-            view: SemanticView | None = SemanticViewDAO.find_by_id(view_id)
+            view_id: int = request.view_id  # type: ignore[assignment]
+            with event_logger.log_context(
+                action="mcp.get_compatible_dimensions.external"
+            ):
+                view: SemanticView | None = SemanticViewDAO.find_by_id(view_id)
 
-        if view is None:
-            return SemanticLayerError.create(
-                error=f"No semantic view found with id: {view_id}.",
-                error_type="NotFound",
+            if view is None:
+                return SemanticLayerError.create(
+                    error=f"No semantic view found with id: {view_id}.",
+                    error_type="NotFound",
+                )
+
+            try:
+                view.raise_for_access()
+            except SupersetSecurityException as ex:
+                return SemanticLayerError.create(
+                    error=str(ex.error.message),
+                    error_type="AccessDenied",
+                )
+
+            compatible_names: list[str] = view.get_compatible_dimensions(
+                request.selected_metrics,
+                request.selected_dimensions,
             )
 
-        try:
-            view.raise_for_access()
-        except SupersetSecurityException as ex:
-            return SemanticLayerError.create(
-                error=str(ex.error.message),
-                error_type="AccessDenied",
+            # Enrich with full column metadata
+            all_cols: dict[str, ColumnMetadata] = {
+                col.column_name: col for col in view.columns
+            }
+            dims = [
+                DimensionInfo(
+                    name=name,
+                    verbose_name=all_cols[name].verbose_name
+                    if name in all_cols
+                    else None,
+                    description=all_cols[name].description
+                    if name in all_cols
+                    else None,
+                    type=all_cols[name].type if name in all_cols else None,
+                    is_dttm=all_cols[name].is_dttm if name in all_cols else False,
+                    groupby=all_cols[name].groupby if name in all_cols else True,
+                    filterable=all_cols[name].filterable if name in all_cols else True,
+                    source="external",
+                )
+                for name in compatible_names
+            ]
+
+            await ctx.info(
+                "Compatible dimensions (external view id=%d): count=%d"
+                % (view.id, len(dims))
             )
-
-        compatible_names: list[str] = view.get_compatible_dimensions(
-            request.selected_metrics,
-            request.selected_dimensions,
-        )
-
-        # Enrich with full column metadata
-        all_cols: dict[str, ColumnMetadata] = {
-            col.column_name: col for col in view.columns
-        }
-        dims = [
-            DimensionInfo(
-                name=name,
-                verbose_name=all_cols[name].verbose_name if name in all_cols else None,
-                description=all_cols[name].description if name in all_cols else None,
-                type=all_cols[name].type if name in all_cols else None,
-                is_dttm=all_cols[name].is_dttm if name in all_cols else False,
-                groupby=all_cols[name].groupby if name in all_cols else True,
-                filterable=all_cols[name].filterable if name in all_cols else True,
+            return CompatibleDimensionsResponse(
+                compatible_dimensions=dims,
                 source="external",
             )
-            for name in compatible_names
-        ]
-
-        await ctx.info(
-            "Compatible dimensions (external view id=%d): count=%d"
-            % (view.id, len(dims))
-        )
-        return CompatibleDimensionsResponse(
-            compatible_dimensions=dims,
-            source="external",
-        )
 
     except Exception as exc:
         logger.exception(
