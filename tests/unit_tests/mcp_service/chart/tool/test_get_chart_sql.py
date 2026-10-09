@@ -786,7 +786,7 @@ class TestBuildQueryContextFromFormData:
         queries = call_kwargs["queries"]
         assert len(queries) == 1
         filters = queries[0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
 
 class TestExtractXAxisCol:

@@ -431,10 +431,6 @@ def merge_extra_form_data_filters_into_query(
         datasource_type,
         extra_form_data,
     )
-    # Splitting adhoc filters rebuilds them as {col, op, val}; restore the
-    # dashboard provenance that semantic views use to report incompatible filters.
-    for filter_ in extra_query_form_data.get("filters") or []:
-        filter_["isExtra"] = True
     merge_form_data_filters_into_query(query, extra_query_form_data)
 
 

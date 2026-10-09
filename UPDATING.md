@@ -32,9 +32,9 @@ assists people when migrating to a new version.
   datasets. Valid dimension filters are reported as applied.
 
 - Dashboard-applied filters now carry `isExtra` in chart-data requests, including
-  MCP `get_chart_data` and `get_chart_sql` calls with `extra_form_data`. This
-  changes chart cache keys for dashboard-filtered queries once, so expect a cold
-  chart cache right after deploying.
+  MCP chart tools that accept `extra_form_data` (chart data, SQL and previews, for
+  saved and unsaved charts). This changes chart cache keys for dashboard-filtered
+  queries once, so expect a cold chart cache right after deploying.
 
 - MCP data-bearing tools enforce mandatory chart-query result limits before
   response serialization or CSV/XLSX export, independently of the configurable

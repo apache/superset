@@ -509,7 +509,9 @@ def test_mixed_secondary_receives_dashboard_extra_form_data() -> None:
             form_data, 7, "table", extra_form_data=extra_form_data
         )
     assert primary["filters"] == secondary["filters"]
-    assert secondary["filters"] == extra_form_data["filters"]
+    assert secondary["filters"] == [
+        {**filter_, "isExtra": True} for filter_ in extra_form_data["filters"]
+    ]
 
 
 def test_gantt_adapter_accepts_native_adhoc_axis_objects() -> None:
