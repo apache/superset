@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from typing import Any
-from unittest.mock import Mock, patch, PropertyMock
+from unittest.mock import call, Mock, patch, PropertyMock
 from uuid import uuid4
 
 import pytest
@@ -319,7 +319,7 @@ def test_annotation_result_key_uses_saved_source_generation(
         patch(
             "superset.daos.datasource.DatasourceDAO.get_datasource",
             return_value=view,
-        ),
+        ) as get_datasource,
         patch(
             "superset.common.query_context_processor.security_manager.get_rls_cache_key",
             return_value=[],
@@ -330,6 +330,8 @@ def test_annotation_result_key_uses_saved_source_generation(
         session.info.clear()
         view.forget_metadata()
         assert processor._annotation_cache_context(query) != first
+    # The saved query context's datasource, not the chart's own, is resolved.
+    assert get_datasource.call_args_list == [call("semantic_view", 17)] * 2
 
 
 def test_stale_writers_each_increment_the_database_version(
