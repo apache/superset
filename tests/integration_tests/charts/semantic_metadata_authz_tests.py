@@ -366,6 +366,89 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    def test_allowed_viewer_filter_forwards_form_data(self) -> None:
+        """A dashboard-only native filter grant survives the metadata preflight."""
+        self.login("gamma")
+        layer: SemanticLayer = SemanticLayer(
+            name="allowed-viewer-metadata-layer", type="test"
+        )
+        view: SemanticView = SemanticView(
+            name="allowed-viewer-metadata-view", semantic_layer=layer
+        )
+        db.session.add(view)
+        db.session.flush()
+        metadata: str = json.dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "filter-1",
+                        "targets": [
+                            {
+                                "datasetId": view.id,
+                                "datasourceType": "semantic_view",
+                            }
+                        ],
+                    }
+                ]
+            }
+        )
+        dashboard_id: int = db.session.execute(
+            sa.insert(Dashboard.__table__).values(
+                dashboard_title="allowed-viewer-metadata-dashboard",
+                published=True,
+                json_metadata=metadata,
+            )
+        ).inserted_primary_key[0]
+        db.session.commit()
+        provider: Mock = Mock()
+        provider.get_dimensions.return_value = set()
+        provider.get_metrics.return_value = set()
+        provider.features = frozenset()
+        provider.selection_identity_version = None
+        provider.uid.return_value = "allowed-viewer-metadata-view"
+        access_spy: Mock
+        try:
+            with (
+                patch.dict(current_app.config, {"VIEWER_PROMISCUOUS_MODE": True}),
+                patch.object(
+                    SemanticView,
+                    "implementation",
+                    new_callable=PropertyMock,
+                    return_value=provider,
+                ),
+                patch.object(security_manager, "is_viewer", return_value=True),
+                patch.object(
+                    security_manager,
+                    "raise_for_access",
+                    wraps=security_manager.raise_for_access,
+                ) as access_spy,
+            ):
+                response: Response = self.client.post(
+                    "/api/v1/chart/data",
+                    json={
+                        "datasource": {"id": view.id, "type": "semantic_view"},
+                        "queries": [{"columns": [], "metrics": []}],
+                        "result_type": "query",
+                        "form_data": {
+                            "dashboardId": dashboard_id,
+                            "type": "NATIVE_FILTER",
+                            "native_filter_id": "filter-1",
+                        },
+                    },
+                )
+            assert response.status_code == 200, response.json
+            provider.get_dimensions.assert_called()
+            assert _query_context_checks(access_spy) == 2
+        finally:
+            db.session.rollback()
+            db.session.execute(
+                sa.delete(Dashboard.__table__).where(Dashboard.id == dashboard_id)
+            )
+            db.session.delete(view)
+            db.session.delete(layer)
+            db.session.commit()
+
     @with_feature_flags(EMBEDDED_SUPERSET=True)
     def test_guest_dashboard_filter_access_is_unchanged(self) -> None:
         """A guest can still use a dashboard-scoped semantic native filter."""
