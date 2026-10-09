@@ -1903,6 +1903,9 @@ msgstr "Vse dimenzije"
 msgid "All filters"
 msgstr "Vsi filtri"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Vsi paneli"
 
@@ -4418,6 +4421,9 @@ msgstr "Stolpci za branje"
 
 msgid "Columns to show in the tooltip."
 msgstr "Stolpci, prikazani v opisu orodja."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Združuj mere"
@@ -8415,6 +8421,9 @@ msgstr "Ime skupine"
 msgid "Group remaining as \"Others\""
 msgstr "Skupina ostane kot »Drugi«"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "Združevanje v skupine"
 
@@ -9381,6 +9390,11 @@ msgid "Least recently modified"
 msgstr "Zadnje spremenjeno"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -10896,6 +10910,10 @@ msgstr "Ni najden"
 
 msgid "Not in"
 msgstr "Ne vsebuje (NOT IN)"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Ni null (IS NOT NULL)"
@@ -15837,6 +15855,11 @@ msgstr "Stolpec, ki bo uporabljen kot cilj povezave."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Stolpec je bil izbrisan ali preimenovan v podatkovni bazi."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

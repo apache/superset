@@ -1927,6 +1927,9 @@ msgstr "Todas as dimensões"
 msgid "All filters"
 msgstr "Todos os filtros"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Todos os painéis"
 
@@ -4649,6 +4652,9 @@ msgstr "Colunas para ler"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Colunas a serem mostradas na dica de ferramenta."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combinar métricas"
@@ -9001,6 +9007,9 @@ msgstr "Nome do grupo"
 msgid "Group remaining as \"Others\""
 msgstr "Grupo permanecendo como \"Outros\""
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "Agrupamento"
@@ -10098,6 +10107,11 @@ msgid "Least recently modified"
 msgstr "Modificação mais recente"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11719,6 +11733,10 @@ msgstr "Não encontrado"
 
 msgid "Not in"
 msgstr "Não está em"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Não nulo"
@@ -17121,6 +17139,11 @@ msgstr "A coluna a ser usada como alvo da ponte."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "A coluna foi excluída ou renomeada no banco de dados."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
