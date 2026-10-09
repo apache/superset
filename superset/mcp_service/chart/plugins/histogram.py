@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, ClassVar
+from typing import Any, cast, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
@@ -30,6 +30,7 @@ from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ColumnRef,
+    DEFAULT_HISTOGRAM_BINS,
     HistogramChartConfig,
     VegaLitePreview,
 )
@@ -43,6 +44,7 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class HistogramChartPlugin(BaseChartPlugin):
     """Plugin for histogram chart type."""
 
+    query_role_keys = BaseChartPlugin.query_role_keys | {"column"}
     chart_type = "histogram"
     allows_empty_result = True
     display_name = "Histogram"
@@ -112,13 +114,8 @@ class HistogramChartPlugin(BaseChartPlugin):
         if dataset_context is None:
             return None
 
-        col_info = next(
-            (
-                col
-                for col in dataset_context.available_columns
-                if col["name"].lower() == (config.column.name or "").lower()
-            ),
-            None,
+        col_info, _ambiguity = DatasetValidator._resolve_metadata_entry(
+            config.column.name or "", dataset_context.available_columns
         )
         if col_info is None:
             # Column existence is validated separately; don't double-report.
@@ -225,19 +222,52 @@ class HistogramChartPlugin(BaseChartPlugin):
         row_limit: int | None,
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
-        from superset.mcp_service.chart.chart_helpers import build_histogram_query_dicts
+        from superset.mcp_service.chart.chart_helpers import build_single_query_dict
+        from superset.mcp_service.chart.query_result import column_result_label
 
-        return build_histogram_query_dicts(
+        metrics, columns = cast(
+            tuple[list[Any], list[Any]],
+            self.resolve_query_fields(form_data, viz_type),
+        )
+        query = build_single_query_dict(
             form_data,
-            engine=engine,
+            columns,
+            metrics,
             row_limit=row_limit,
             order_desc=order_desc,
         )
+        if (
+            form_data.get("column")
+            and columns
+            and (column := column_result_label(columns[-1]))
+        ):
+            # Mirror histogramOperator so rows are the binned chart output.
+            try:
+                bins = int(float(form_data.get("bins", DEFAULT_HISTOGRAM_BINS)))
+            except (TypeError, ValueError, OverflowError):
+                bins = DEFAULT_HISTOGRAM_BINS
+            groupby = [
+                label
+                for value in columns[:-1]
+                if (label := column_result_label(value)) is not None
+            ]
+            query["post_processing"] = [
+                {
+                    "operation": "histogram",
+                    "options": {
+                        "column": column,
+                        "groupby": groupby,
+                        "bins": bins,
+                        "cumulative": bool(form_data.get("cumulative")),
+                        "normalize": bool(form_data.get("normalize")),
+                    },
+                }
+            ]
+        return [query]
 
     def vega_lite_preview(
         self, data: list[Any], form_data: dict[str, Any]
     ) -> VegaLitePreview | ChartError | None:
-        """Render the postprocessed histogram bins."""
         from superset.mcp_service.chart.preview_utils import (
             generate_histogram_vega_lite_preview,
         )

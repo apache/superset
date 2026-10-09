@@ -23,13 +23,18 @@ import ast
 import inspect
 from decimal import Decimal
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
+from wcwidth import wcswidth
 
 from superset.mcp_service.chart import preview_utils
+from superset.mcp_service.chart.preview_utils import _canonical_preview_value
+from superset.mcp_service.chart.query_result import MAX_RESULT_VALUE_DEPTH
 from superset.mcp_service.chart.schemas import ChartError, TablePreview
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+)
 
 
 def _imports_chart_data_command(node: ast.Import | ast.ImportFrom) -> bool:
@@ -65,6 +70,18 @@ def test_preview_utils_does_not_top_level_import_chart_data_command():
         {"ascii", "table", "vega_lite"}
     )
     assert not any(_imports_chart_data_command(node) for node in top_level_imports)
+
+
+def test_preview_projection_uses_the_validated_result_depth_limit() -> None:
+    value: object = "leaf"
+    for _ in range(MAX_RESULT_VALUE_DEPTH):
+        value = [value]
+
+    projected = _canonical_preview_value(value)
+    for _ in range(MAX_RESULT_VALUE_DEPTH):
+        assert isinstance(projected, list)
+        projected = projected[0]
+    assert projected == "leaf"
 
 
 class TestPreviewUtilsColumnBuilding:
@@ -155,41 +172,86 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     ) == ["country"]
 
 
-def test_generate_preview_seeds_form_data_before_query():
-    call_order: list[str] = []
+def test_generate_preview_seeds_form_data_before_query_execution() -> None:
+    """Unsaved previews expose fresh Jinja inputs before constructing the command."""
+    from types import SimpleNamespace
+
+    from flask import current_app, g
+
+    from superset.jinja_context import ExtraCache
+
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["count"],
+        "url_params": {"tenant": "acme"},
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+    }
+
+    def build_context(
+        query_form_data: dict[str, object], **kwargs: object
+    ) -> SimpleNamespace:
+        """Keep the builder boundary isolated but serialize real macro inputs."""
+        return SimpleNamespace(
+            form_data=query_form_data,
+            queries=[
+                SimpleNamespace(
+                    to_dict=lambda: {"columns": [], "metrics": ["count"]},
+                    filter=[{"col": "region", "op": "==", "val": "EMEA"}],
+                    time_range=None,
+                )
+            ],
+        )
+
+    def build_command(query_context: object) -> MagicMock:
+        """Inspect actual seeded macro values at command construction, before run."""
+        cache = ExtraCache()
+        assert cache.filter_values("region") == ["EMEA"]
+        assert cache.url_param("tenant", escape_result=False) == "acme"
+        assert g.form_data["datasource"] == {"id": 12, "type": "table"}
+        command = MagicMock()
+        command.run.return_value = chart_data_command_result(
+            rows=[{"count": 2}], columns=["count"]
+        )
+        return command
+
     with (
+        current_app.test_request_context(),
         patch(
-            "superset.charts.data.form_data.set_query_context_form_data"
-        ) as mock_set_form_data,
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            side_effect=build_command,
+        ),
         patch(
-            "superset.commands.chart.data.get_data_command.ChartDataCommand"
-        ) as mock_cmd_cls,
-        patch(
-            "superset.common.query_context_factory.QueryContextFactory"
-        ) as mock_factory,
+            "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+            side_effect=build_context,
+        ),
         patch("superset.extensions.db") as mock_db,
     ):
+        g.form_data = {"url_params": {"tenant": "stale"}, "adhoc_filters": []}
         mock_db.session.get.return_value = MagicMock(id=12)
-        query_context = MagicMock()
-        mock_factory.return_value.create.return_value = query_context
-        mock_set_form_data.side_effect = lambda *_args: call_order.append("seed")
-        mock_cmd_cls.return_value.run.side_effect = lambda: (
-            call_order.append("run") or {"queries": [{"data": []}]}
+        preview = preview_utils.generate_preview_from_form_data(
+            form_data=form_data,
+            dataset_id=12,
+            preview_format="table",
         )
-
-        preview_utils.generate_preview_from_form_data(
-            {"metrics": [{"label": "count"}]}, 12, "table"
-        )
-
-    mock_set_form_data.assert_called_once_with(query_context, 12, "table")
-    assert call_order == ["seed", "run"]
+        assert isinstance(preview, TablePreview)
+        assert preview.row_count == 1
+        assert "count" in preview.table_data
+        assert "2" in preview.table_data
 
 
 @pytest.mark.parametrize("time_grain", [None, "P1D", "P1M"])
 def test_unsaved_big_number_preview_uses_temporal_query_contract(
     time_grain: str | None,
 ) -> None:
-    """The shared preview mirrors the frontend's normalizeTimeColumn contract."""
+    """Native axes retain bucketing and the independently selected range column."""
     form_data = {
         "viz_type": "big_number",
         "x_axis": {"column_name": "recorded_at"},
@@ -228,129 +290,144 @@ def test_unsaved_big_number_preview_uses_temporal_query_contract(
 
     assert isinstance(result, TablePreview)
     query = factory.return_value.create.call_args.kwargs["queries"][0]
-    # normalizeTimeColumn rewrites a set x-axis into a BASE_AXIS adhoc column
-    # carrying the grain, drops is_timeseries, and leaves the common temporal
-    # controls (granularity, extras.time_grain_sqla) in place.
-    assert query["columns"] == [
-        {
-            "columnType": "BASE_AXIS",
-            "sqlExpression": "recorded_at",
-            "label": "recorded_at",
-            "expressionType": "SQL",
-            "isColumnReference": True,
-            **({"timeGrain": time_grain} if time_grain is not None else {}),
-        }
-    ]
+    assert query["columns"][0]["sqlExpression"] == "recorded_at"
+    assert query["columns"][0].get("timeGrain") == time_grain
     assert query["granularity"] == "event_time"
     assert query.get("extras", {}).get("time_grain_sqla") == time_grain
-    assert "is_timeseries" not in query
     assert query["metrics"] == ["count"]
     assert query["time_range"] == "Last week"
     assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
     assert query["row_limit"] == 100
 
 
-@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
-@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
-@patch("superset.extensions.db.session.get")
-def test_unsaved_gauge_preview_uses_shared_builder_and_preserves_ordering(
-    mock_find_dataset, mock_build_query_context, mock_command
-):
-    """Unsaved previews execute the same Gauge QueryObject path as Explore."""
-    mock_find_dataset.return_value = Mock(id=7)
-    # Shaped for the shared chart-data form-data seeding step.
-    mock_build_query_context.return_value = SimpleNamespace(form_data={}, queries=[])
-    mock_command.return_value.validate.return_value = None
-    mock_command.return_value.run.return_value = {
-        "queries": [{"data": [{"AVG(score)": 75}]}]
-    }
-    form_data = {
-        "viz_type": "gauge_chart",
-        "metric": {
-            "expressionType": "SIMPLE",
-            "aggregate": "AVG",
-            "column": {"column_name": "score"},
-            "label": "AVG(score)",
-        },
-        "groupby": [],
-        "sort_by_metric": True,
-        "row_limit": 4,
-        "intervals": "30,70,200",
-        "datasource_id": 99,
-        "datasource_type": "query",
-        "datasource": "99__query",
-    }
+def test_unsaved_previews_strictly_validate_secondary_query_results():
+    class HostileList(list):
+        def __iter__(self):
+            raise AssertionError("hostile secondary list hook executed")
 
-    result = preview_utils.generate_preview_from_form_data(
-        form_data, dataset_id=7, preview_format="ascii"
+    with (
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_cmd_cls,
+        patch("superset.common.query_context_factory.QueryContextFactory"),
+        patch("superset.extensions.db") as mock_db,
+    ):
+        mock_db.session.get.return_value = MagicMock(id=12)
+        mock_cmd_cls.return_value.run.return_value = {
+            "queries": [
+                {"data": [{"value": 1}]},
+                {"data": HostileList()},
+            ]
+        }
+
+        result = preview_utils.generate_preview_from_form_data(
+            form_data={"metrics": [{"label": "count"}]},
+            dataset_id=12,
+            preview_format="table",
+        )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"
+
+
+def test_unsaved_preview_rejects_hostile_enum_without_dispatching_hooks():
+    from enum import Enum
+
+    class HostileEnum(Enum):
+        VALUE = "hostile"
+
+        def __getattribute__(self, name):
+            if name == "value":
+                raise AssertionError("hostile enum value hook executed")
+            return object.__getattribute__(self, name)
+
+        def __str__(self):
+            raise AssertionError("hostile enum string hook executed")
+
+    with (
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_cmd_cls,
+        patch("superset.common.query_context_factory.QueryContextFactory"),
+        patch("superset.extensions.db") as mock_db,
+    ):
+        mock_db.session.get.return_value = MagicMock(id=12)
+        mock_cmd_cls.return_value.run.return_value = {
+            "queries": [{"data": [], "status": HostileEnum.VALUE}]
+        }
+
+        result = preview_utils.generate_preview_from_form_data(
+            form_data={"metrics": [{"label": "count"}]},
+            dataset_id=12,
+            preview_format="table",
+        )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"
+
+
+def test_ascii_preview_content_respects_requested_dimensions() -> None:
+    """Reported canvas dimensions also bound the rendered text."""
+    result = preview_utils._generate_ascii_preview_from_data(
+        [{"category": "a long category label", "value": 12}] * 10,
+        {"viz_type": "table"},
+        width=12,
+        height=3,
     )
+    assert not isinstance(result, ChartError)
+    assert result.width == 12
+    assert result.height == 3
+    assert len(result.ascii_content.splitlines()) == 3
+    assert all(len(line) <= 12 for line in result.ascii_content.splitlines())
 
-    assert result.ascii_content.startswith("Gauge Chart")
-    query_form_data = mock_build_query_context.call_args.args[0]
-    assert query_form_data["sort_by_metric"] is True
-    assert query_form_data["datasource"] == "7__table"
-    assert query_form_data["datasource_id"] == 7
-    assert query_form_data["datasource_type"] == "table"
-    from superset.mcp_service.chart.chart_helpers import resolve_form_data_datasource
 
-    assert resolve_form_data_datasource(query_form_data) == (7, "table")
-    assert form_data["datasource_id"] == 99
-    mock_build_query_context.assert_called_once_with(
-        query_form_data, row_limit=4, force=False
+@pytest.mark.parametrize("height", [1, 2, 3, 4, 20, 25])
+@pytest.mark.parametrize("row_count", [1, 18, 20, 30])
+def test_sunburst_ascii_reserves_truncation_notice(height: int, row_count: int) -> None:
+    """Every omitted hierarchy row is accounted for within the canvas."""
+    result = preview_utils._generate_ascii_preview_from_data(
+        [{"region": f"region-{index}", "value": index} for index in range(row_count)],
+        {"viz_type": "sunburst_v2", "columns": ["region"], "metric": "value"},
+        height=height,
     )
+    assert not isinstance(result, ChartError)
+    lines = result.ascii_content.splitlines()
+    assert len(lines) <= height
+    rendered = sum(line.startswith("region-") for line in lines)
+    if omitted := row_count - rendered:
+        assert lines[-1] == f"... {omitted} more rows"
+    else:
+        assert "more rows" not in result.ascii_content
 
 
-@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
-@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
-@patch("superset.extensions.db.session.get")
-def test_unsaved_gauge_preview_surfaces_query_error(
-    mock_find_dataset, mock_build_query_context, mock_command
-):
-    mock_find_dataset.return_value = Mock(id=7)
-    # Shaped for the shared chart-data form-data seeding step.
-    mock_build_query_context.return_value = SimpleNamespace(form_data={}, queries=[])
-    mock_command.return_value.validate.return_value = None
-    mock_command.return_value.run.return_value = {
-        "queries": [{"status": "failed", "error": "bad metric", "data": []}]
-    }
-    result = preview_utils.generate_preview_from_form_data(
-        {"viz_type": "gauge_chart", "metric": "saved_sla"},
-        dataset_id=7,
-        preview_format="vega_lite",
+@pytest.mark.parametrize("text", ["漢字" * 20, "😀" * 20, "e\u0301" * 40, "a" * 80])
+@pytest.mark.parametrize("width", [1, 2, 3, 12, 40])
+def test_ascii_width_uses_terminal_columns(text: str, width: int) -> None:
+    """Wide and combining characters fit, with a visible truncation marker."""
+    line = preview_utils._truncate_display_line(text, width)
+    assert 0 <= wcswidth(line) <= width
+    if wcswidth(text) > width:
+        assert line.endswith("." * min(3, width))
+    else:
+        assert line == text
+
+
+def test_sunburst_ascii_marks_width_truncation_and_keeps_footer() -> None:
+    """Long paths cannot consume the footer or inject additional rows."""
+    result = preview_utils._generate_ascii_preview_from_data(
+        [{"region": "漢字\n" * 30, "value": 1}] * 30,
+        {"viz_type": "sunburst_v2", "columns": ["region"], "metric": "value"},
+        width=20,
+        height=4,
     )
-    assert result.error_type == "QueryError"
-    assert "bad metric" in result.error
-
-
-@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
-@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
-@patch("superset.extensions.db.session.get")
-def test_unsaved_gauge_preview_skips_nonfinite_dial(
-    mock_find_dataset, mock_build_query_context, mock_command
-):
-    """A grouped Gauge renders its finite dials when one dial is non-finite."""
-    mock_find_dataset.return_value = Mock(id=7)
-    mock_build_query_context.return_value = SimpleNamespace(form_data={}, queries=[])
-    mock_command.return_value.validate.return_value = None
-    mock_command.return_value.run.return_value = {
-        "queries": [
-            {
-                "data": [
-                    {"team": "A", "score": float("inf")},
-                    {"team": "B", "score": 42},
-                ]
-            }
-        ]
-    }
-
-    result = preview_utils.generate_preview_from_form_data(
-        {"viz_type": "gauge_chart", "metric": "score", "groupby": ["team"]},
-        dataset_id=7,
-        preview_format="ascii",
-    )
-
-    assert not isinstance(result, ChartError), result
-    assert "42" in result.ascii_content
+    assert not isinstance(result, ChartError)
+    lines = result.ascii_content.splitlines()
+    assert len(lines) == 4
+    assert lines[2].endswith("...")
+    assert lines[-1] == "... 29 more rows"
+    assert all(0 <= wcswidth(line) <= 20 for line in lines)
 
 
 def test_histogram_preview_uses_postprocessed_bins() -> None:

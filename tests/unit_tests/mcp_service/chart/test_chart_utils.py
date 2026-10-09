@@ -40,6 +40,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_table_config,
     map_xy_config,
     merge_chart_form_data,
+    merge_form_data_for_update,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
     validate_chart_dataset,
@@ -885,8 +886,7 @@ class TestMapXYConfig:
         assert result["x_axis_format"] == "%Y-%m-%d"
         assert result["y_axis_title"] == "Revenue"
         assert result["y_axis_format"] == "$,.2f"
-        assert result["logAxis"] is True
-        assert "y_axis_scale" not in result
+        assert result["y_axis_scale"] == "log"
 
     def test_map_xy_config_with_legend(self) -> None:
         """Test XY config mapping with legend configuration"""
@@ -1837,6 +1837,55 @@ class TestIsColumnTrulyTemporal:
         result = is_column_truly_temporal("year", 123)
         assert result is False
 
+    @pytest.mark.parametrize("reverse", [False, True])
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_exact_temporal_case_twin_wins_regardless_orm_order(
+        self, mock_dao, reverse: bool
+    ) -> None:
+        """The exact ORM column, not the first folded twin, controls its type."""
+        temporal = MagicMock(
+            column_name="eventtime",
+            type="TIMESTAMP",
+            is_dttm=True,
+            python_date_format=None,
+        )
+        text = MagicMock(
+            column_name="EventTime",
+            type="VARCHAR",
+            is_dttm=False,
+            python_date_format=None,
+        )
+        columns = [temporal, text]
+        if reverse:
+            columns.reverse()
+        db_engine_spec = MagicMock()
+        db_engine_spec.get_column_spec.side_effect = lambda type_: ColumnSpec(
+            sqla_type=MagicMock(),
+            generic_type=(
+                GenericDataType.TEMPORAL
+                if type_ == "TIMESTAMP"
+                else GenericDataType.STRING
+            ),
+            is_dttm=False,
+        )
+        mock_dao.find_by_id_or_uuid.return_value = MagicMock(
+            columns=columns,
+            database=MagicMock(db_engine_spec=db_engine_spec),
+        )
+
+        assert is_column_truly_temporal("eventtime", 123) is True
+        assert is_column_truly_temporal("EventTime", 123) is False
+        assert is_column_truly_temporal("EVENTTIME", 123) is False
+
+    @patch("superset.daos.dataset.DatasetDAO")
+    def test_unicode_casefold_temporal_lookup(self, mock_dao) -> None:
+        mock_dataset = self._create_mock_dataset(
+            "Straße", "TIMESTAMP", GenericDataType.TEMPORAL
+        )
+        mock_dao.find_by_id_or_uuid.return_value = mock_dataset
+
+        assert is_column_truly_temporal("STRASSE", 123) is True
+
     @patch("superset.daos.dataset.DatasetDAO")
     def test_returns_true_on_value_error(self, mock_dao) -> None:
         """Test returns True (default) when ValueError occurs"""
@@ -2626,3 +2675,66 @@ class TestDatasetValidatorSkipsSqlMetrics:
         )
         assert normalized.y[0].sql_expression == _SQL_EXPR
         assert normalized.y[0].name is None
+
+
+@pytest.mark.parametrize(
+    "updates,expected",
+    [
+        ({}, {"series": "region", "row_limit": 42, "color_scheme": "lyftColors"}),
+        (
+            {
+                "series": {"name": "country"},
+                "row_limit": 200,
+                "color_scheme": "googleCategory10c",
+            },
+            {
+                "series": "country",
+                "row_limit": 200,
+                "color_scheme": "googleCategory10c",
+            },
+        ),
+        (
+            {"series": None, "color_scheme": None},
+            {"row_limit": 42, "color_scheme": "supersetColors"},
+        ),
+    ],
+)
+def test_bubble_update_preserves_omitted_controls_and_applies_clears(
+    updates: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    """The update tool's shared merge must distinguish omission from clearing."""
+    from superset.mcp_service.chart.chart_utils import map_bubble_config
+    from superset.mcp_service.chart.schemas import BubbleChartConfig
+
+    config = BubbleChartConfig.model_validate(
+        {
+            "chart_type": "bubble_v2",
+            "entity": {"name": "product"},
+            "x": {"name": "profit", "aggregate": "SUM"},
+            "y": {"name": "revenue", "aggregate": "AVG"},
+            "size": {"name": "revenue", "aggregate": "COUNT"},
+            **updates,
+        }
+    )
+    saved = {
+        "viz_type": "bubble_v2",
+        "entity": "product",
+        "series": "region",
+        "row_limit": 42,
+        "color_scheme": "lyftColors",
+    }
+    merged = merge_form_data_for_update(saved, map_bubble_config(config), config)
+    assert {key: merged[key] for key in expected} == expected
+    assert ("series" in merged) == ("series" in expected)
+    assert merged["x"]["column"]["column_name"] == "profit"
+
+    rebound = merge_form_data_for_update(
+        saved, map_bubble_config(config), config, dataset_rebind=True
+    )
+    if "series" not in updates:
+        assert "series" not in rebound
+    cross_viz = merge_form_data_for_update(
+        {**saved, "viz_type": "table"}, map_bubble_config(config), config
+    )
+    if "series" not in updates:
+        assert "series" not in cross_viz

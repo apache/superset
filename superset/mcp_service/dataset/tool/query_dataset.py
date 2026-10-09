@@ -39,10 +39,10 @@ from superset.common.tabular_query import (
 )
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.query_result import (
-    query_result_data,
-    response_json_failure,
-    safe_exception_message,
+from superset.mcp_service.chart.query_result import validate_query_result_envelope
+from superset.mcp_service.chart.response_preflight import (
+    bounded_exception_message,
+    finalize_query_dataset_response,
 )
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.dataset.dataset_utils import (
@@ -74,30 +74,7 @@ _NO_SAVED_METRICS_HINT = (
 )
 
 
-def _bounded_response(
-    response: QueryDatasetResponse,
-) -> QueryDatasetResponse | DatasetError:
-    """Reject an oversized complete response projection before serialization."""
-    if failure := response_json_failure(response):
-        return DatasetError.create(
-            error=failure.error,
-            error_type=failure.error_type,
-        )
-    return response
-
-
-@tool(
-    tags=["data"],
-    class_permission_name="Dataset",
-    annotations=ToolAnnotations(
-        title="Query dataset",
-        readOnlyHint=True,
-        destructiveHint=False,
-        openWorldHint=False,
-    ),
-)
-@requires_data_model_metadata_access
-async def query_dataset(  # noqa: C901
+async def _query_dataset(  # noqa: C901
     request: QueryDatasetRequest, ctx: Context
 ) -> QueryDatasetResponse | DatasetError:
     """Query SQL datasets only using saved metrics, dimensions and filters.
@@ -351,68 +328,47 @@ async def query_dataset(  # noqa: C901
                 cache_timeout=request.cache_timeout,
             )
 
-        queries_data, query_failure = query_result_data(result)
-        if query_failure is not None:
-            return DatasetError.create(
-                error=query_failure.error,
-                error_type=query_failure.error_type,
-            )
-        if queries_data is None or type(result) is not dict:
-            return DatasetError.create(
-                error="Malformed chart query result after validation",
-                error_type="MalformedQueryResult",
-            )
-        queries = dict.get(result, "queries")
-        if type(queries) is not list or not queries:
-            return DatasetError.create(
-                error="Malformed chart query result after validation",
-                error_type="MalformedQueryResult",
-            )
-        query_result = list.__getitem__(queries, 0)
-        if type(query_result) is not dict:
-            return DatasetError.create(
-                error="Malformed chart query result after validation",
-                error_type="MalformedQueryResult",
-            )
-        data = list.__getitem__(queries_data, 0)
-        raw_columns = dict.get(query_result, "colnames", [])
-        coltypes = dict.get(query_result, "coltypes", [])
-        if type(raw_columns) is not list or type(coltypes) is not list:
-            return DatasetError.create(
-                error="Malformed chart query metadata after validation",
-                error_type="MalformedQueryResult",
-            )
         query_duration_ms = int((time.time() - start_time) * 1000)
+
+        if result_error := validate_query_result_envelope(result):
+            await ctx.warning("Query returned an invalid result envelope")
+            return DatasetError.create(
+                error=result_error.error,
+                error_type=result_error.error_type,
+            )
 
         # ------------------------------------------------------------------
         # Step 6: Format response
         # ------------------------------------------------------------------
         await ctx.report_progress(5, 5, "Formatting results")
+        query_result = result["queries"][0]
+        data = query_result.get("data", [])
+        raw_columns = query_result.get("colnames", [])
+        coltypes = query_result.get("coltypes", [])
         columns_meta: list[DataColumn] = format_data_columns(
             data, raw_columns, coltypes
         )
+
         if not data:
-            return _bounded_response(
-                QueryDatasetResponse(
-                    from_dttm=query_result.get("from_dttm"),
-                    to_dttm=query_result.get("to_dttm"),
-                    dataset_id=dataset.id,
-                    dataset_name=dataset_name,
-                    columns=columns_meta,
-                    data=[],
-                    row_count=0,
-                    total_rows=0,
-                    summary=f"Query on '{dataset_name}' returned no data.",
-                    performance=PerformanceMetadata(
-                        query_duration_ms=query_duration_ms,
-                        cache_status="no_data",
-                    ),
-                    cache_status=get_cache_status_from_result(
-                        query_result, force_refresh=request.force_refresh
-                    ),
-                    applied_filters=effective_filters,
-                    warnings=warnings,
-                )
+            return QueryDatasetResponse(
+                from_dttm=query_result.get("from_dttm"),
+                to_dttm=query_result.get("to_dttm"),
+                dataset_id=dataset.id,
+                dataset_name=dataset_name,
+                columns=columns_meta,
+                data=[],
+                row_count=0,
+                total_rows=0,
+                summary=f"Query on '{dataset_name}' returned no data.",
+                performance=PerformanceMetadata(
+                    query_duration_ms=query_duration_ms,
+                    cache_status="no_data",
+                ),
+                cache_status=get_cache_status_from_result(
+                    query_result, force_refresh=request.force_refresh
+                ),
+                applied_filters=effective_filters,
+                warnings=warnings,
             )
 
         cache_status = get_cache_status_from_result(
@@ -430,25 +386,23 @@ async def query_dataset(  # noqa: C901
             % (len(data), len(raw_columns), query_duration_ms)
         )
 
-        return _bounded_response(
-            QueryDatasetResponse(
-                from_dttm=query_result.get("from_dttm"),
-                to_dttm=query_result.get("to_dttm"),
-                dataset_id=dataset.id,
-                dataset_name=dataset_name,
-                columns=columns_meta,
-                data=data,
-                row_count=len(data),
-                total_rows=query_result.get("rowcount"),
-                summary=summary,
-                performance=PerformanceMetadata(
-                    query_duration_ms=query_duration_ms,
-                    cache_status=cache_label,
-                ),
-                cache_status=cache_status,
-                applied_filters=effective_filters,
-                warnings=warnings,
-            )
+        return QueryDatasetResponse(
+            from_dttm=query_result.get("from_dttm"),
+            to_dttm=query_result.get("to_dttm"),
+            dataset_id=dataset.id,
+            dataset_name=dataset_name,
+            columns=columns_meta,
+            data=data,
+            row_count=len(data),
+            total_rows=query_result.get("rowcount"),
+            summary=summary,
+            performance=PerformanceMetadata(
+                query_duration_ms=query_duration_ms,
+                cache_status=cache_label,
+            ),
+            cache_status=cache_status,
+            applied_filters=effective_filters,
+            warnings=warnings,
         )
 
     except OAuth2RedirectError as exc:
@@ -460,7 +414,7 @@ async def query_dataset(  # noqa: C901
         )
 
     except OAuth2Error as exc:
-        error_text = safe_exception_message(exc)
+        error_text = bounded_exception_message(exc)
         await ctx.error("OAuth2 error: %s" % (error_text,))
         return DatasetError.create(
             error=f"OAuth2 authentication error: {error_text}",
@@ -468,7 +422,7 @@ async def query_dataset(  # noqa: C901
         )
 
     except (CommandException, SupersetException) as exc:
-        error_text = safe_exception_message(exc)
+        error_text = bounded_exception_message(exc)
         await ctx.error("Query failed: %s" % (error_text,))
         return DatasetError.create(
             error=f"Query execution failed: {error_text}",
@@ -476,8 +430,8 @@ async def query_dataset(  # noqa: C901
         )
 
     except SQLAlchemyError as exc:
-        error_text = safe_exception_message(exc)
-        logger.exception("Database error while querying dataset")
+        error_text = bounded_exception_message(exc)
+        logger.error("Database error while querying dataset")
         await ctx.error("Database error: %s" % (error_text,))
         return DatasetError.create(
             error=f"Database error: {error_text}",
@@ -489,21 +443,92 @@ async def query_dataset(  # noqa: C901
         # since > until raises "From date cannot be larger than to date" from
         # date_parser.get_since_until). Return an actionable ValidationError
         # without a full-traceback log — this is not a bug.
-        await ctx.error("Invalid request: %s" % (str(exc),))
+        error_text = str(exc)
+        await ctx.error("Invalid request: %s" % (error_text,))
         return DatasetError.create(
-            error=str(exc),
+            error=error_text,
             error_type="ValidationError",
         )
 
-    except Exception as exc:
-        error_text = safe_exception_message(exc)
-        logger.exception(
-            "Unexpected error while querying dataset: %s: %s",
-            type(exc).__name__,
-            error_text,
-        )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, error_text))
-        return DatasetError.create(
-            error="An unexpected error occurred while querying the dataset.",
-            error_type="UnexpectedError",
-        )
+
+def _dataset_internal_error() -> DatasetError:
+    """Build the static public fallback for unexpected dataset failures."""
+    return DatasetError.create(
+        error="An internal error occurred while querying the dataset.",
+        error_type="InternalError",
+    )
+
+
+def _log_dataset_failure(message: str) -> None:
+    """Write a fixed best-effort log record without exception formatting."""
+    try:
+        logger.exception(message, exc_info=False)
+    except Exception:  # noqa: S110 - containment logging is best effort
+        pass
+
+
+async def _finalized_query_dataset(
+    request: QueryDatasetRequest, ctx: Context
+) -> QueryDatasetResponse | DatasetError:
+    """Contain and preflight one dataset producer invocation."""
+    try:
+        response = await _query_dataset(request, ctx)
+    except Exception:
+        _log_dataset_failure("Unhandled exception while querying a dataset")
+        response = _dataset_internal_error()
+    try:
+        return finalize_query_dataset_response(response)
+    except Exception:
+        _log_dataset_failure("Unhandled exception while finalizing a dataset response")
+        return _dataset_internal_error()
+
+
+@tool(
+    tags=["data"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="Query dataset",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+    ),
+)
+@requires_data_model_metadata_access
+async def query_dataset(
+    request: QueryDatasetRequest, ctx: Context
+) -> QueryDatasetResponse | DatasetError:
+    """Query SQL datasets only using saved metrics, dimensions and filters.
+
+    For semantic views, use list_metrics for discovery and get_table for queries.
+
+    Preflight every public response branch.
+
+    Returns tabular data without requiring a saved chart. Use this when you want
+    to compute saved metrics, group by dimensions, or apply filters directly
+    against a SQL dataset's curated metrics and columns.
+
+    Metrics must be saved metric names from get_dataset_info; ad-hoc
+    expressions such as "SUM(col)" are not accepted. When the dataset has no
+    saved metric for the aggregate you need, use execute_sql instead.
+
+    When reporting results, state the returned from_dttm (inclusive) and
+    to_dttm (exclusive) primary bounds rather than guessing dates from the
+    relative expression. Additional filters can further constrain the range.
+
+    Workflow:
+    1. list_datasets -> find a dataset
+    2. get_dataset_info -> discover available columns and metrics
+    3. query_dataset -> query using metric names and column names
+
+    Example:
+    ```json
+    {
+        "dataset_id": 123,
+        "metrics": ["count", "avg_revenue"],
+        "columns": ["product_category"],
+        "time_range": "Last 7 days",
+        "row_limit": 100
+    }
+    ```
+    """
+    return await _finalized_query_dataset(request, ctx)

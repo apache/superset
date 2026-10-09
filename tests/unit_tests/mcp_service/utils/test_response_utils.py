@@ -22,6 +22,8 @@ Unit tests for MCP service response utilities.
 from decimal import Decimal
 from typing import Any
 
+import pytest
+
 from superset.mcp_service.utils.response_utils import (
     data_column_stats_row_limit,
     format_data_columns,
@@ -106,39 +108,46 @@ class TestFormatDataColumns:
         data: list[dict[str, Any]] = [
             {"amount": None, "enabled": None} for _ in range(10)
         ] + [
-            {"amount": Decimal("1.25"), "enabled": True},
-            {"amount": 2, "enabled": False},
-            {"amount": 3.0, "enabled": True},
-            {"amount": 4, "enabled": False},
+            {"amount": 1, "enabled": True},
+            {"amount": 2.0, "enabled": False},
+            {"amount": 3, "enabled": True},
         ]
 
         columns = format_data_columns(data, ["amount", "enabled"])
 
         assert columns[0].data_type == "numeric"
-        assert columns[0].sample_values == [Decimal("1.25"), 2, 3.0]
+        assert columns[0].sample_values == [1, 2.0, 3]
         assert columns[1].data_type == "boolean"
         assert columns[1].sample_values == [True, False, True]
 
-    def test_unique_count_uses_numeric_value_semantics_and_excludes_null(self) -> None:
+    def test_unique_count_uses_typed_numeric_identity_without_stringification(
+        self,
+    ) -> None:
+        class HostileValue:
+            def __str__(self) -> str:
+                raise AssertionError("value string hook executed")
+
+        hostile = HostileValue()
         data: list[dict[str, Any]] = [
             {"value": 1},
-            {"value": "1"},
             {"value": 1.0},
-            {"value": Decimal("1.00")},
-            {"value": None},
+            {"value": True},
+            {"value": "1"},
+            {"value": hostile},
+            {"value": hostile},
         ]
 
         column = format_data_columns(data, ["value"])[0]
 
-        assert column.null_count == 1
-        assert column.unique_count == 2
+        assert column.unique_count == 4
 
-    def test_unique_count_keeps_booleans_distinct_from_equal_integers(self) -> None:
-        data = [{"value": value} for value in (True, 1, False, 0)]
+    def test_unique_count_distinguishes_booleans_and_integers(self) -> None:
+        column = format_data_columns(
+            [{"value": value} for value in [True, 1, False, 0]],
+            ["value"],
+            [GenericDataType.STRING],
+        )[0]
 
-        column = format_data_columns(data, ["value"], [GenericDataType.BOOLEAN])[0]
-
-        assert column.data_type == "boolean"
         assert column.unique_count == 4
 
     def test_authoritative_coltypes_apply_to_empty_data(self) -> None:
@@ -196,8 +205,106 @@ class TestFormatDataColumns:
 
         assert [c.name for c in columns] == ["region", "revenue"]
 
+    def test_decimal_cardinality_uses_exact_cross_numeric_value_semantics(
+        self,
+    ) -> None:
+        """Equal/scale-equivalent Decimals share exact numeric identities."""
+        values = [
+            Decimal("1.00"),
+            Decimal("1.0"),
+            1,
+            1.0,
+            Decimal("0.5"),
+            0.5,
+            Decimal("0.1"),
+            0.1,
+            Decimal("2.000"),
+            Decimal("2"),
+        ]
+
+        column = format_data_columns([{"value": value} for value in values], ["value"])[
+            0
+        ]
+
+        # 1/1, 1/2 and 2/1 coalesce across exact builtin numeric types.
+        # Decimal 1/10 and the binary float 0.1 remain distinct exact values.
+        assert column.unique_count == 5
+        assert column.data_type == "numeric"
+
+    def test_boolean_and_integer_cardinality_remain_distinct(self) -> None:
+        column = format_data_columns(
+            [{"value": value} for value in [True, 1, False, 0]], ["value"]
+        )[0]
+
+        assert column.unique_count == 4
+
+    def test_json_object_cardinality_is_independent_of_key_order(self) -> None:
+        column = format_data_columns(
+            [
+                {"value": {"a": 1, "b": 2}},
+                {"value": {"b": 2, "a": 1}},
+            ],
+            ["value"],
+        )[0]
+
+        assert column.unique_count == 1
+
+    def test_json_object_sorting_does_not_compare_string_subclass_keys(self) -> None:
+        class HostileString(str):
+            comparisons = 0
+
+            def __lt__(self, other: object) -> bool:
+                type(self).comparisons += 1
+                raise AssertionError("string comparison hook executed")
+
+        hostile_key = HostileString("hostile")
+        column = format_data_columns(
+            [{"value": {hostile_key: 1, "safe": 2}}], ["value"]
+        )[0]
+
+        assert column.unique_count == 1
+        assert HostileString.comparisons == 0
+
+    def test_decimal_at_exponent_cap_matches_equivalent_oversized_int(self) -> None:
+        decimal_value = Decimal("1e4096")
+        integer_value = 10**4096
+
+        column = format_data_columns(
+            [{"value": decimal_value}, {"value": integer_value}], ["value"]
+        )[0]
+
+        assert column.unique_count == 1
+
+    @pytest.mark.parametrize(
+        "value",
+        [Decimal("1e4097"), Decimal("1" * 1025)],
+        ids=["extreme-exponent", "extreme-digits"],
+    )
+    def test_extreme_decimal_identity_stops_with_bounded_sampling(
+        self, value: Decimal
+    ) -> None:
+        column = format_data_columns([{"value": value}], ["value"])[0]
+
+        assert column.sample_values == []
+        assert column.unique_count == 0
+        assert column.statistics == {"sampled_rows": 0}
+
+    def test_decimal_subclass_hooks_are_not_executed(self) -> None:
+        class HostileDecimal(Decimal):
+            def __hash__(self) -> int:
+                raise AssertionError("Decimal hash hook executed")
+
+            def __eq__(self, other: object) -> bool:
+                raise AssertionError("Decimal equality hook executed")
+
+        values = [HostileDecimal("1"), HostileDecimal("1")]
+        column = format_data_columns([{"value": value} for value in values], ["value"])[
+            0
+        ]
+
+        assert column.unique_count == 2
+
     def test_wide_sparse_metadata_uses_shared_row_column_work_budget(self) -> None:
-        """50k sparse rows and 4096 columns must not trigger 204.8m scans."""
         row_count = 50_000
         column_count = 4096
         rows: list[dict[str, Any]] = [{} for _ in range(row_count)]
@@ -210,26 +317,63 @@ class TestFormatDataColumns:
         assert len(columns) == column_count
         assert columns[0].statistics == {"sampled_rows": sampled_rows}
         assert columns[-1].statistics == {"sampled_rows": sampled_rows}
+        assert columns[0].null_count == sampled_rows
+        assert columns[-1].null_count == sampled_rows
+        assert format_data_quality(columns, row_count) == {
+            "completeness": 0.0,
+            "completeness_is_approximate": True,
+            "sampled_rows": sampled_rows,
+        }
 
-    def test_sampled_all_null_completeness_uses_sample_denominator(self) -> None:
-        for row_count in (10_000, 50_000):
-            rows = [{"value": None} for _ in range(row_count)]
-            columns = format_data_columns(rows, ["value"], [GenericDataType.NUMERIC])
+    def test_shared_acyclic_nested_values_are_profiled_by_value(self) -> None:
+        shared = [1, {"nested": 2}]
+        columns = format_data_columns(
+            [{"left": shared, "right": shared}], ["left", "right"]
+        )
 
-            assert format_data_quality(columns, row_count) == {
-                "completeness": 0.0,
-                "completeness_is_approximate": True,
-                "sampled_rows": STATS_ROW_CAP,
-            }
+        assert columns[0].unique_count == 1
+        assert columns[1].unique_count == 1
+        assert columns[0].sample_values == columns[1].sample_values
 
-    def test_exact_mixed_and_empty_completeness(self) -> None:
+    def test_nested_identity_consumes_the_shared_iterative_budget(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(
+            "superset.mcp_service.utils.response_utils.STATS_TOTAL_WORK_CAP", 5
+        )
         rows: list[dict[str, Any]] = [
-            {"left": 1, "right": None},
-            {"left": None, "right": 2},
-            {"left": 3, "right": 4},
-            {"left": None, "right": None},
+            {"value": [1, 2, 3, 4]},
+            {"value": "unreached"},
         ]
-        columns = format_data_columns(rows, ["left", "right"])
 
-        assert format_data_quality(columns, len(rows)) == {"completeness": 0.5}
-        assert format_data_quality([], 0) == {"completeness": 1.0}
+        column = format_data_columns(rows, ["value"])[0]
+
+        assert column.sample_values == []
+        assert column.unique_count == 0
+        assert column.statistics == {"sampled_rows": 0}
+
+
+@pytest.mark.parametrize("value", [Decimal("1e4096"), Decimal("1e-4096")])
+def test_bounded_extreme_decimals_preserve_other_columns(value: Decimal) -> None:
+    """Both signs of bounded exponents retain complete metadata sampling."""
+    columns = format_data_columns(
+        [{"value": value, "group": "A"}, {"value": value, "group": "B"}],
+        ["value", "group"],
+    )
+    assert columns[0].unique_count == 1
+    assert columns[1].unique_count == 2
+    assert columns[0].sample_values == [value, value]
+    assert columns[1].sample_values == ["A", "B"]
+
+
+def test_extreme_fractions_keep_distinct_exact_identities() -> None:
+    """Equal bit lengths must not collapse distinct bounded Decimal fractions."""
+    first, second = Decimal("11e-4096"), Decimal("13e-4096")
+    first_ratio, second_ratio = first.as_integer_ratio(), second.as_integer_ratio()
+    assert tuple(value.bit_length() for value in first_ratio) == tuple(
+        value.bit_length() for value in second_ratio
+    )
+    column = format_data_columns(
+        [{"value": first}, {"value": second}, {"value": first}], ["value"]
+    )[0]
+    assert column.unique_count == 2

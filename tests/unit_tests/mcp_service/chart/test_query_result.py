@@ -15,16 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Adversarial tests for the shared chart query-result envelope contract."""
-
-import os
-import time as system_time
-from collections.abc import Callable
-from datetime import date, datetime, time as datetime_time, timedelta, timezone, tzinfo
+import copy
+from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from decimal import Decimal
 from enum import Enum
 from types import SimpleNamespace
 from typing import Any, cast
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -32,931 +29,941 @@ import numpy as np
 import pandas as pd
 import pytest
 import pytz
-from dateutil import tz as dateutil_tz
-from dateutil.zoneinfo import get_zonefile_instance
+from dateutil import tz as dateutil_tz, zoneinfo as dateutil_zoneinfo
 from pydantic import BaseModel
 
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
-from superset.mcp_service.chart import query_result as query_result_module
 from superset.mcp_service.chart.query_result import (
-    _json_string_size,
-    _truncate_utf8,
-    MAX_QUERY_RESULT_DECIMAL_DIGITS,
-    MAX_QUERY_RESULT_DECIMAL_EXPONENT,
-    MAX_QUERY_RESULT_INTEGER_BITS,
-    MAX_QUERY_RESULT_KEY_BYTES,
+    first_query_data,
+    MAX_QUERY_RESULT_COLUMNS,
     MAX_QUERY_RESULT_METADATA_BYTES,
-    MAX_QUERY_RESULT_ROWS,
-    MAX_QUERY_RESULT_STRING_BYTES,
-    MAX_QUERY_RESULT_TOTAL_ROWS,
+    MAX_QUERY_RESULT_ROWS_PER_QUERY,
     MAX_QUERY_RESULT_VALUE_BYTES,
-    query_result_data,
+    MAX_QUERY_RESULTS,
+    MAX_RESULT_STRING_LENGTH,
+    MAX_RESULT_VALUE_ITEMS,
     query_result_failure,
     response_json_failure,
-    safe_exception_message,
+    validate_query_result_envelope,
 )
+from superset.mcp_service.chart.schemas import (
+    ChartData,
+    ChartError,
+    PerformanceMetadata,
+)
+from superset.superset_typing import AdhocColumn
 from superset.utils import json
 from superset.utils.core import GenericDataType
-from superset.utils.dates import datetime_to_epoch
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    full_producer_command_result,
+)
 
 
-def _hostile_call(*_args: object, **_kwargs: object) -> Any:
-    raise AssertionError("hostile scalar method must not run")
+class UppercaseStatus(Enum):
+    FAILED = "FAILED"
 
 
-class _HostileStr(str):
-    __getitem__ = _hostile_call
-    __str__ = _hostile_call
+class HostileEnum(Enum):
+    VALUE = "hostile"
+
+    def __getattribute__(self, name):
+        if name == "value":
+            raise AssertionError("hostile enum value hook executed")
+        return object.__getattribute__(self, name)
+
+    def __str__(self):
+        raise AssertionError("hostile enum string hook executed")
 
 
-class _HostileInt(int):
-    __abs__ = _hostile_call
-    __eq__ = _hostile_call
-    __lt__ = _hostile_call
-    __str__ = _hostile_call
-    bit_length = _hostile_call
-
-
-class _HostileFloat(float):
-    __str__ = _hostile_call
-
-
-class _HostileBytes(bytes):
-    __bytes__ = _hostile_call
-    __getitem__ = _hostile_call
-    decode = _hostile_call
-
-
-class _HostileBytearray(bytearray):
-    __bytes__ = _hostile_call
-    __getitem__ = _hostile_call
-    decode = _hostile_call
-
-
-class _HostileBoolLike:
-    @property  # type: ignore[misc]
-    def __class__(self) -> type[object]:  # type: ignore[override]
-        """Reject ABC instance checks that consult a spoofed class."""
-        return _hostile_call()
-
-    __bool__ = _hostile_call
-    __repr__ = _hostile_call
-    __str__ = _hostile_call
-
-
-class _HostileBytesLike:
-    __bytes__ = _hostile_call
-    __getitem__ = _hostile_call
-    __len__ = _hostile_call
-    __repr__ = _hostile_call
-    __str__ = _hostile_call
-
-
-class _HostileEnumValue:
-    __repr__ = _hostile_call
-    __str__ = _hostile_call
-
-
-class _HostileStringEnum(str, Enum):
-    FAILED = "failed"
-
-    @property
-    def value(self) -> str:
-        """Reject the public descriptor while leaving Enum's stored value intact."""
-        return _hostile_call()
-
-    __getitem__ = _hostile_call
-    __str__ = _hostile_call
-
-
-class _TextEnum(Enum):
-    VALUE = "warehouse unavailable"
-
-
-class _IntegerEnum(Enum):
-    VALUE = 503
-
-
-class _FloatEnum(Enum):
-    VALUE = 1.25
-
-
-class _BooleanEnum(Enum):
-    VALUE = True
-
-
-class _BytesEnum(Enum):
-    VALUE = b"binary failure"
-
-
-class _UnsupportedEnum(Enum):
-    VALUE = _HostileEnumValue()
-
-
-class _ResultEnum(Enum):
-    TEXT = "value"
-    NUMBER = 7
-
-
-class _ProjectedResponse(BaseModel):
-    value: str
-
-
-class _UTCProjectedResponse(BaseModel):
-    timestamp: datetime
-    value: str
+def _chart_error_at_wire_size(size: int, timestamp: datetime) -> ChartError:
+    """Build an error whose computed ``message``/``error`` wire size is exact."""
+    empty = ChartError(message="", error_type="", timestamp=timestamp)
+    remaining = size - len(empty.model_dump_json().encode())
+    assert remaining >= 0
+    response = ChartError(
+        message="x" * (remaining // 2),
+        error_type="e" * (remaining % 2),
+        timestamp=timestamp,
+    )
+    assert len(response.model_dump_json().encode()) == size
+    return response
 
 
 @pytest.mark.parametrize(
-    "result",
+    "timestamp",
     [
-        {"queries": []},
-        {"queries": [{}]},
-        {"queries": [{"data": None}]},
-        {"queries": [{"data": {}}]},
-        {"queries": [{"data": []}, {}]},
+        datetime(2026, 9, 2, tzinfo=timezone.utc),
+        datetime(2026, 9, 2),
+        datetime(2024, 11, 3, 1, 30, tzinfo=ZoneInfo("America/New_York"), fold=0),
+        datetime(2024, 11, 3, 1, 30, tzinfo=ZoneInfo("America/New_York"), fold=1),
+    ],
+    ids=["utc-z", "naive", "fold-zero", "fold-one"],
+)
+def test_response_json_failure_matches_exact_chart_error_wire_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+    timestamp: datetime,
+) -> None:
+    """The timestamp matrix retains exact/+1 semantics at a small budget."""
+    test_limit = 4 * 1024
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        test_limit,
+    )
+    response = _chart_error_at_wire_size(test_limit, timestamp)
+
+    assert response_json_failure(response) is None
+
+    response.error_type += "e"
+    assert len(response.model_dump_json().encode()) == test_limit + 1
+    failure = response_json_failure(response)
+    assert failure is not None
+    assert failure.error_type == "InvalidQueryResult"
+
+
+def test_response_json_failure_real_16_mib_wire_boundary() -> None:
+    """Retain one real allocation proving the production byte boundary."""
+    response = _chart_error_at_wire_size(
+        MAX_QUERY_RESULT_VALUE_BYTES,
+        datetime(2026, 9, 2, tzinfo=timezone.utc),
+    )
+
+    assert response_json_failure(response) is None
+    response.error_type += "e"
+    assert len(response.model_dump_json().encode()) == (
+        MAX_QUERY_RESULT_VALUE_BYTES + 1
+    )
+    assert response_json_failure(response) is not None
+
+
+@pytest.mark.parametrize(
+    "timestamp",
+    [
+        datetime(2026, 9, 2, tzinfo=timezone.utc),
+        datetime(2024, 11, 3, 1, 30, tzinfo=ZoneInfo("America/New_York"), fold=0),
+        datetime(2024, 11, 3, 1, 30, tzinfo=ZoneInfo("America/New_York"), fold=1),
+    ],
+    ids=["utc-z", "fold-zero", "fold-one"],
+)
+def test_timestamped_chart_data_preflight_matches_wire_size(
+    monkeypatch: pytest.MonkeyPatch, timestamp: datetime
+) -> None:
+    """The other timestamped bounded response has exact JSON size parity."""
+    response = ChartData(
+        chart_id=1,
+        chart_name="chart",
+        chart_type="table",
+        columns=[],
+        data=[],
+        row_count=0,
+        total_rows=0,
+        data_freshness=timestamp,
+        summary="summary",
+        insights=[],
+        data_quality={},
+        recommended_visualizations=[],
+        performance=PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+    )
+    wire_size = len(response.model_dump_json().encode())
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        wire_size,
+    )
+    assert response_json_failure(response) is None
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        wire_size - 1,
+    )
+    assert response_json_failure(response) is not None
+
+
+def test_response_preflight_matches_pydantic_supported_scalar_projection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Temporal, Decimal, UUID, and short-exponent float sizes match the wire."""
+
+    class SupportedResponse(BaseModel):
+        values: list[Any]
+
+    response = SupportedResponse(
+        values=[
+            1e-7,
+            1e-6,
+            Decimal("0.10000000000000000001"),
+            date(2026, 9, 2),
+            time(12, 34, 56, 789),
+            timedelta(days=2, seconds=3, microseconds=4),
+            UUID("12345678-1234-5678-1234-567812345678"),
+            True,
+            1,
+            None,
+            'quoted"\\\n💥',
+        ]
+    )
+    wire_size = len(response.model_dump_json().encode())
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        wire_size,
+    )
+    assert response_json_failure(response) is None
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        wire_size - 1,
+    )
+    assert response_json_failure(response) is not None
+
+
+def test_response_json_failure_returns_bounded_fallback_for_bad_projection() -> None:
+    """JSON projection failures return the small fixed validation response."""
+
+    class ArbitraryResponse(BaseModel):
+        payload: Any
+
+    response = ArbitraryResponse(payload=object())
+    failure = response_json_failure(response)
+
+    assert failure is not None
+    assert failure.error_type == "InvalidQueryResult"
+    assert len(failure.model_dump_json().encode()) < 1_000
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"error": "top-level error", "queries": []},
+        {"error_message": "top-level error message", "queries": []},
+        {"status": "ERROR", "message": "top-level status failure"},
+        {"status": "timed out", "message": "top-level timeout"},
+        {"success": False, "message": "top-level unsuccessful payload"},
+        {"message": "standalone top-level failure"},
+        {"queries": [{"status": "Failed", "message": "query failed"}]},
+        {
+            "queries": [
+                {"status": "success", "data": [{"value": 1}]},
+                {"status": QueryStatus.FAILED, "error_message": "second failed"},
+            ]
+        },
     ],
 )
-def test_query_result_requires_nonempty_queries_with_present_list_data(
-    result: dict[str, Any],
-) -> None:
-    data, failure = query_result_data(result)
-    assert data is None
+def test_query_result_failure_detects_every_failure_envelope(payload):
+    failure = query_result_failure(payload)
+
     assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
+    assert failure.error_type == "QueryError"
 
 
-def test_query_result_accepts_one_legitimate_empty_dataset() -> None:
-    data, failure = query_result_data({"queries": [{"data": []}]})
-    assert data == [[]]
-    assert failure is None
+def test_query_result_failure_rejects_arbitrary_status_enum_without_hooks():
+    failure = query_result_failure(
+        {"queries": [{"status": HostileEnum.VALUE, "message": "enum failed"}]}
+    )
 
-
-def test_query_result_normalizes_enum_row_values_without_public_hooks() -> None:
-    row = {"text": _ResultEnum.TEXT, "number": _ResultEnum.NUMBER}
-
-    data, failure = query_result_data({"queries": [{"data": [row]}]})
-
-    assert failure is None
-    assert data == [[{"text": "value", "number": 7}]]
+    assert failure is not None
+    assert failure.error_type == "InvalidQueryResult"
 
 
 @pytest.mark.parametrize(
-    "chart_type", ["big_number", "waterfall", "echarts_timeseries", "mixed_timeseries"]
-)
-@pytest.mark.parametrize("is_cached", [False, True])
-def test_real_dataframe_chart_data_normalizes_trusted_temporal_scalars(
-    chart_type: str, is_cached: bool
-) -> None:
-    """The real DataFrame materializer leaves Timestamp/NaT values in records."""
-    from superset.commands.chart.data.get_data_command import ChartDataCommand
-    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-    from superset.common.query_context import QueryContext
-    from superset.common.query_context_processor import QueryContextProcessor
-
-    folded = pd.Timestamp(
-        datetime(
-            2024,
-            11,
-            3,
-            1,
-            30,
-            tzinfo=ZoneInfo("America/New_York"),
-            fold=1,
-        )
-    )
-    frame = pd.DataFrame(
+    "payload",
+    [
         {
-            "event_time": [folded, pd.NaT],
-            "fixed_time": [
-                pd.Timestamp(
-                    datetime(
-                        2024,
-                        1,
-                        1,
-                        12,
-                        tzinfo=dateutil_tz.tzoffset("east", 5 * 3600 + 30 * 60),
-                    )
-                ),
-                pd.Timestamp(datetime(2024, 1, 1, 12, tzinfo=pytz.FixedOffset(-450))),
-            ],
-            "duration": [np.timedelta64(5, "s"), np.timedelta64("NaT")],
-            "metric": [np.float64(1.25), np.float64(2.5)],
-            "enabled": [np.bool_(True), np.bool_(False)],
+            "status": "success",
+            "message": "served from cache",
+            "queries": [{"status": "success", "data": []}],
+        },
+        {
+            "queries": [
+                {"status": QueryStatus.SUCCESS, "message": "no rows", "data": []}
+            ]
+        },
+        {"queries": [{"status": "running", "message": "in progress", "data": []}]},
+        {"queries": [{"message": "informational", "data": []}]},
+        {"queries": [{"data": []}]},
+    ],
+)
+def test_query_result_failure_allows_valid_and_informational_envelopes(payload):
+    """Successful statuses may carry a message; ``message`` alone is no failure."""
+    assert query_result_failure(payload) is None
+
+
+def test_query_result_failure_rejects_envelope_without_any_query():
+    """Envelope shape is validated as strictly as embedded failures.
+
+    ``query_result_failure`` is a strict envelope validator, not only an
+    embedded-failure detector. Every caller reads data from at least one query,
+    so a success status carrying no query payload fails closed instead of being
+    reported as failure-free.
+    """
+    failure = query_result_failure(
+        {"status": "success", "message": "served from cache", "queries": []}
+    )
+
+    assert failure is not None
+    assert failure.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        None,
+        [],
+        {},
+        {"queries": []},
+        {"queries": [None]},
+        {"queries": [{}]},
+        {"queries": [{"data": None}]},
+        {"queries": [{"data": {"value": 1}}]},
+    ],
+)
+def test_first_query_data_rejects_malformed_envelopes(payload):
+    data, error = first_query_data(payload)
+
+    assert data is None
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_first_query_data_allows_legitimate_empty_result():
+    data, error = first_query_data(
+        {"status": "success", "queries": [{"status": "success", "data": []}]}
+    )
+
+    assert data == []
+    assert error is None
+
+
+def test_query_result_allows_duplicate_frontend_column_labels() -> None:
+    payload = {
+        "queries": [
+            {
+                "data": [{"Revenue": 1}],
+                "colnames": ["Revenue", "Revenue"],
+                "coltypes": [0, 0],
+            }
+        ]
+    }
+
+    assert validate_query_result_envelope(payload) is None
+
+
+class HostileList(list[object]):
+    def __iter__(self):
+        raise AssertionError("hostile list hook executed")
+
+    def __getitem__(self, key):
+        raise AssertionError("hostile list slicing hook executed")
+
+
+class HostileDict(dict[str, object]):
+    def get(self, key, default=None):
+        raise AssertionError("hostile mapping hook executed")
+
+    def items(self):
+        raise AssertionError("hostile mapping iteration executed")
+
+
+class HostileColumnType(int):
+    def __hash__(self):
+        raise AssertionError("hostile column type hash hook executed")
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"queries": [HostileDict(data=[])]},
+        {"queries": [{"data": HostileList()}]},
+        {"queries": [{"data": [HostileDict(value=1)]}]},
+        {"queries": [{"data": [{"value": 1}], "colnames": HostileList(["value"])}]},
+        {"queries": [{"data": [{"value": object()}], "colnames": ["value"]}]},
+    ],
+)
+def test_strict_result_validation_rejects_hostile_containers_without_hooks(
+    payload,
+):
+    error = validate_query_result_envelope(payload)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_strict_result_validation_rejects_oversized_multi_query_data(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_ROWS", 1
+    )
+    error = validate_query_result_envelope(
+        {
+            "queries": [
+                {
+                    "data": [{"value": 1}],
+                    "colnames": ["value"],
+                    "coltypes": [0],
+                },
+                {
+                    "data": [{"value": 2}, {"value": 3}],
+                    "colnames": ["value"],
+                    "coltypes": [0],
+                },
+            ]
         }
     )
-    processor_context = SimpleNamespace(
-        datasource=object(), result_format=ChartDataResultFormat.JSON
-    )
-    records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
-        frame,
-        [
-            GenericDataType.TEMPORAL,
-            GenericDataType.TEMPORAL,
-            GenericDataType.TEMPORAL,
-            GenericDataType.NUMERIC,
-            GenericDataType.BOOLEAN,
-        ],
-    )
-    assert type(records) is list
-    assert type(records[0]["event_time"]) is pd.Timestamp
 
-    class _Context:
-        result_type = ChartDataResultType.FULL
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+    assert "too many" in error.error
+    assert "rows" in error.error
 
-        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
-            return {
+
+def test_strict_result_validation_accepts_bounded_multi_query_data():
+    assert (
+        validate_query_result_envelope(
+            {
                 "queries": [
                     {
-                        "data": records,
-                        "colnames": list(frame.columns),
-                        "coltypes": [
-                            GenericDataType.TEMPORAL,
-                            GenericDataType.TEMPORAL,
-                            GenericDataType.TEMPORAL,
-                            GenericDataType.NUMERIC,
-                            GenericDataType.BOOLEAN,
+                        "data": [{"value": 1}],
+                        "colnames": ["value"],
+                        "coltypes": [0],
+                    },
+                    {
+                        "data": [{"total": 1}],
+                        "colnames": ["total"],
+                        "coltypes": [0],
+                    },
+                ]
+            }
+        )
+        is None
+    )
+
+
+def test_first_query_data_validates_secondary_queries_before_returning_rows():
+    data, error = first_query_data(
+        {
+            "queries": [
+                {"data": [{"value": 1}], "colnames": ["value"], "coltypes": [0]},
+                {"data": HostileList()},
+            ]
+        }
+    )
+
+    assert data is None
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_first_query_data_none_as_empty_still_validates_all_queries() -> None:
+    data, error = first_query_data(
+        {
+            "queries": [
+                {"data": None},
+                {"data": [{"value": object()}]},
+            ]
+        },
+        none_as_empty=True,
+    )
+
+    assert data is None
+    assert error is not None
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"colnames": ["value", "value"]},
+        {"colnames": [""]},
+        {"colnames": ["value"], "coltypes": []},
+        {"colnames": ["value"], "coltypes": [[0]]},
+        {"colnames": ["value"], "coltypes": [{"value": 0}]},
+        {"colnames": ["value"], "coltypes": [99]},
+        {"colnames": ["value"], "coltypes": [HostileColumnType(0)]},
+        {"coltypes": [0]},
+    ],
+)
+def test_strict_result_validation_rejects_malformed_column_metadata(metadata):
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [{"value": 1}], **metadata}]}
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_strict_result_validation_accepts_aligned_optional_column_metadata():
+    assert (
+        validate_query_result_envelope(
+            {
+                "queries": [
+                    {
+                        "data": [{"value": 1}],
+                        "colnames": ["value"],
+                        "coltypes": [0],
+                    },
+                    {
+                        "data": [{"secondary": "x"}],
+                        "colnames": ["secondary"],
+                        "coltypes": [1],
+                    },
+                ]
+            }
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"queries": [{"data": [{"value": HostileEnum.VALUE}]}]},
+        {"queries": [{"data": [], "status": HostileEnum.VALUE}]},
+        {"queries": [{"data": [], "metadata": HostileEnum.VALUE}]},
+        {"queries": [{"data": [], "rowcount": HostileEnum.VALUE}]},
+    ],
+)
+def test_strict_result_validation_rejects_hostile_enums_without_hooks(payload):
+    error = validate_query_result_envelope(payload)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_first_query_data_rejects_hostile_enum_without_hooks():
+    data, error = first_query_data(
+        {"queries": [{"data": [{"value": HostileEnum.VALUE}]}]}
+    )
+
+    assert data is None
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"coltypes": [0]},
+        {"colnames": ["value"]},
+        {"colnames": ["other"], "coltypes": [0]},
+        {"colnames": ["value", "other"], "coltypes": [0, 0]},
+    ],
+)
+def test_column_metadata_requires_alignment_with_every_row(metadata):
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [{"value": 1}], **metadata}]}
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+class IntSubclass(int):
+    pass
+
+
+class HostileScalarInt(int):
+    def __str__(self) -> str:
+        raise AssertionError("hostile scalar string hook executed")
+
+    def __hash__(self) -> int:
+        raise AssertionError("hostile scalar hash hook executed")
+
+
+@pytest.mark.parametrize(
+    "rowcount",
+    [True, False, -1, 1.0, float("inf"), {}, IntSubclass(1), 2**63],
+)
+def test_rowcount_is_exact_bounded_nonnegative_int_or_null(rowcount):
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [], "rowcount": rowcount}]}
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize("rowcount", [None, 0, 2**63 - 1])
+def test_rowcount_accepts_exact_bounded_values(rowcount):
+    assert (
+        validate_query_result_envelope(
+            {"queries": [{"data": [], "rowcount": rowcount}]}
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize("is_cached", [0, 1, {}, IntSubclass(1)])
+def test_is_cached_requires_exact_bool(is_cached):
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [], "is_cached": is_cached}]}
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_real_fresh_is_cached_null_is_canonicalized() -> None:
+    result: dict[str, Any] = {"queries": [{"data": [], "is_cached": None}]}
+
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0]["is_cached"] is False
+
+
+def test_cache_and_filter_metadata_exact_shapes_are_accepted():
+    assert (
+        validate_query_result_envelope(
+            {
+                "queries": [
+                    {
+                        "data": [],
+                        "cache_key": "key",
+                        "cache_dttm": "2026-09-02T00:00:00+00:00",
+                        "is_cached": False,
+                        "applied_filters": [{"column": "region"}],
+                        "rejected_filters": [
+                            {"column": "missing", "reason": "not_in_datasource"}
                         ],
-                        "rowcount": 2,
-                        "is_cached": is_cached,
-                        "cache_key": f"{chart_type}-cache" if is_cached else None,
+                        "rejected_filter_columns": ["missing"],
                     }
                 ]
             }
+        )
+        is None
+    )
 
-    result = ChartDataCommand(_Context()).run()  # type: ignore[arg-type]
-    data, failure = query_result_data(result)
 
-    assert failure is None
-    assert data is not None
-    assert data[0][0]["event_time"] == "2024-11-03T01:30:00-05:00"
-    assert data[0][1]["event_time"] is None
-    assert data[0][0]["fixed_time"] == "2024-01-01T12:00:00+05:30"
-    assert data[0][1]["fixed_time"] == "2024-01-01T12:00:00-07:30"
-    assert data[0][0]["duration"] == "P0DT0H0M5S"
-    assert data[0][1]["duration"] is None
-    assert type(data[0][0]["metric"]) is float
-    assert type(data[0][0]["enabled"]) is bool
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"cache_key": {}},
+        {"cache_dttm": {}},
+        {"applied_filters": {"column": "region"}},
+        {"applied_filters": [{"column": "region", "extra": True}]},
+        {"rejected_filters": [{"column": "missing"}]},
+        {"rejected_filter_columns": [{"column": "missing"}]},
+    ],
+)
+def test_cache_and_filter_metadata_rejects_non_wire_shapes(metadata):
+    error = validate_query_result_envelope({"queries": [{"data": [], **metadata}]})
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        10**5000,
+        Decimal("NaN"),
+        Decimal("Infinity"),
+        Decimal("1e5000"),
+        b"\xff" * (MAX_RESULT_STRING_LENGTH + 1),
+        bytearray(b"a" * (MAX_RESULT_STRING_LENGTH + 1)),
+        memoryview(b"\xff" * MAX_RESULT_STRING_LENGTH),
+        QueryStatus.SUCCESS,
+        HostileScalarInt(1),
+    ],
+    ids=[
+        "huge-int",
+        "decimal-nan",
+        "decimal-infinity",
+        "decimal-magnitude",
+        "oversized-bytes",
+        "oversized-bytearray",
+        "oversized-base64-memoryview",
+        "query-status",
+        "hostile-int-subclass",
+    ],
+)
+def test_row_scalars_are_exact_finite_bounded_primitives(value: Any) -> None:
+    error = validate_query_result_envelope(
+        {
+            "queries": [
+                {
+                    "data": [{"value": value}],
+                    "colnames": ["value"],
+                    "coltypes": [0],
+                }
+            ]
+        }
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
 
 
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
+        (b"\xff", "base64:/w=="),
+        (b"caf\xc3\xa9", "café"),
+        (bytearray(b"\x00\xff"), "base64:AP8="),
+        (memoryview(b"plain"), "plain"),
+    ],
+    ids=["bytes", "utf8-bytes", "bytearray", "memoryview"],
+)
+def test_binary_cells_use_the_response_serializer_encoding(
+    value: Any, expected: str
+) -> None:
+    """Binary cells become UTF-8 text or ``base64:`` text, not a failure."""
+    result = {
+        "queries": [
+            {"data": [{"value": value}], "colnames": ["value"], "coltypes": [1]}
+        ]
+    }
+
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0]["data"] == [{"value": expected}]
+
+
+def test_exact_known_status_enum_is_allowed_only_in_status_slot() -> None:
+    assert (
+        validate_query_result_envelope(
+            {"queries": [{"status": QueryStatus.SUCCESS, "data": []}]}
+        )
+        is None
+    )
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [], "metadata": QueryStatus.SUCCESS}]}
+    )
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_row_keys_must_match_declared_column_order() -> None:
+    error = validate_query_result_envelope(
+        {
+            "queries": [
+                {
+                    "data": [{"second": 2, "first": 1}],
+                    "colnames": ["first", "second"],
+                    "coltypes": [0, 0],
+                }
+            ]
+        }
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+    assert "column order" in error.error
+
+
+class StringSubclass(str):
+    pass
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"cached_dttm": "not-a-timestamp"},
+        {"cached_dttm": "2026-09-02T01:00:00+01:00"},
+        {"cached_dttm": "2" * 1000},
+        {"cached_dttm": StringSubclass("2026-09-02T00:00:00+00:00")},
+        {"queried_dttm": -1},
+        {"cache_timeout": -2},
+        {"cache_timeout": 2**31},
+        {"cache_timeout": IntSubclass(1)},
+        {"cache_key": StringSubclass("key")},
+    ],
+)
+def test_cache_timestamp_and_timeout_metadata_is_canonical(metadata: Any) -> None:
+    error = validate_query_result_envelope({"queries": [{"data": [], **metadata}]})
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_canonical_and_bounded_legacy_cache_metadata_are_accepted() -> None:
+    result = {
+        "queries": [
+            {
+                "data": [],
+                "cached_dttm": "2026-09-02T00:00:00+00:00",
+                "cache_dttm": "2026-09-01T00:00:00",
+                "queried_dttm": "2026-09-02T00:00:00Z",
+                "cache_timeout": 300,
+            }
+        ]
+    }
+
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0] == {
+        "data": [],
+        "cached_dttm": "2026-09-02T00:00:00+00:00",
+        "cache_dttm": "2026-09-01T00:00:00+00:00",
+        "queried_dttm": "2026-09-02T00:00:00+00:00",
+        "cache_timeout": 300,
+    }
+
+
+class FakeQueryContext:
+    """Minimal real ``ChartDataCommand.run`` producer for boundary tests."""
+
+    result_type = ChartDataResultType.FULL
+    result_format = ChartDataResultFormat.JSON
+
+    def __init__(self, query: dict[str, Any]) -> None:
+        self.query = query
+
+    def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+        return {"queries": [self.query]}
+
+
+def _producer_result(query: dict[str, Any]) -> dict[str, Any]:
+    return ChartDataCommand(FakeQueryContext(query)).run()  # type: ignore[arg-type]
+
+
+def test_actual_chart_data_command_envelope_is_canonicalized_by_both_consumers() -> (
+    None
+):
+    query = {
+        "data": [{"event_time": pd.Timestamp("2026-09-02T10:11:12Z"), "value": 7}],
+        "colnames": ["event_time", "value"],
+        "coltypes": [GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+        "status": QueryStatus.SUCCESS,
+        "result_format": ChartDataResultFormat.JSON,
+        "is_cached": None,
+        "cache_key": None,
+        "cached_dttm": None,
+        "queried_dttm": None,
+        "cache_timeout": 300,
+        "rowcount": 1,
+        "sql_rowcount": 1,
+        "from_dttm": datetime(2026, 9, 1, tzinfo=timezone.utc),
+        "to_dttm": datetime(2026, 9, 2, tzinfo=timezone.utc),
+        "label_map": {"value": ["value"]},
+        "applied_filters": [],
+        "rejected_filters": [],
+    }
+
+    validated = _producer_result(query.copy())
+    assert "query_context" in validated
+    sidecar = validated["query_context"]
+    assert validate_query_result_envelope(validated) is None
+    assert validated["query_context"] is sidecar
+    assert validated["queries"][0]["result_format"] == "json"
+    assert validated["queries"][0]["is_cached"] is False
+    assert validated["queries"][0]["data"] == [
+        {"event_time": "2026-09-02T10:11:12+00:00", "value": 7}
+    ]
+
+    consumed = _producer_result(query.copy())
+    data, error = first_query_data(consumed)
+    assert error is None
+    assert data == [{"event_time": "2026-09-02T10:11:12+00:00", "value": 7}]
+
+
+@pytest.mark.parametrize("metadata_key", ["query", "sql"])
+def test_actual_full_command_accepts_sql_above_source_cell_limit(
+    metadata_key: str,
+) -> None:
+    sql = 'SELECT "café"\n' + "x" * (MAX_RESULT_STRING_LENGTH + 1)
+    result = _producer_result({"data": [], metadata_key: sql, "rowcount": 0})
+
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0][metadata_key] == sql
+
+    consumed = _producer_result({"data": [], metadata_key: sql, "rowcount": 0})
+    data, error = first_query_data(consumed)
+    assert error is None
+    assert data == []
+
+
+def test_query_metadata_sql_has_independent_aggregate_byte_limit() -> None:
+    result = _producer_result(
+        {"data": [], "query": "x" * (MAX_QUERY_RESULT_METADATA_BYTES + 1)}
+    )
+
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_source_cell_string_keeps_independent_64_kib_limit() -> None:
+    oversized_cell = "x" * 65_537
+    assert len(oversized_cell.encode()) == MAX_RESULT_STRING_LENGTH + 1
+    result = _producer_result({"data": [{"value": oversized_cell}]})
+
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+    assert "invalid text data" in error.error
+
+
+def test_query_context_sidecar_is_exempt_without_hook_dispatch() -> None:
+    class HostileSidecar:
+        def __getattribute__(self, name: str) -> Any:
+            raise AssertionError(f"sidecar hook executed for {name}")
+
+    sidecar = HostileSidecar()
+    result = {"query_context": sidecar, "queries": [{"data": []}]}
+
+    assert validate_query_result_envelope(result) is None
+    assert dict.__getitem__(result, "query_context") is sidecar
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (
+            pd.Timestamp("2024-01-02T03:04:05.123456789"),
+            "2024-01-02T03:04:05.123456789",
+        ),
+        (pd.Timedelta("1 day 2 seconds"), "P1DT0H0M2S"),
+        (pd.Period("2026-09", freq="M"), "2026-09"),
+        (pd.Interval(1, 3, closed="right"), "(1, 3]"),
+        (pd.NaT, None),
+        (pd.NA, None),
+        (np.datetime64("2024-01-02T03:04:05"), "2024-01-02T03:04:05"),
+        (np.timedelta64(1500, "ms"), "P0DT0H0M1.5S"),
         (np.int64(7), 7),
         (np.uint64(8), 8),
         (np.float32(1.5), 1.5),
+        (float("nan"), None),
+        (np.float64("nan"), None),
         (np.bool_(True), True),
-        (np.str_("warehouse"), "warehouse"),
-        (np.datetime64("2024-01-01T02:03:04"), "2024-01-01T02:03:04"),
-        (np.timedelta64(1500, "ms"), "P0DT0H0M1.5S"),
-        (pd.NA, None),
-        (pd.NaT, None),
-    ],
-)
-def test_query_result_normalizes_exact_trusted_numpy_and_pandas_scalars(
-    value: object, expected: object
-) -> None:
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": value}], "rowcount": 1}]}
-    )
-
-    assert failure is None
-    assert data == [[{"value": expected}]]
-    assert type(data[0][0]["value"]) is type(expected)
-
-
-@pytest.mark.parametrize(
-    ("value", "expected"),
-    [
+        (Decimal("1.2300"), Decimal("1.2300")),
         (date(2024, 1, 2), "2024-01-02"),
-        (timedelta(days=1, seconds=2, microseconds=3), "P1DT2.000003S"),
-        (timedelta(days=-2, seconds=3), "-P1DT23H59M57S"),
+        (time(3, 4, 5), "03:04:05"),
+        (datetime(2024, 1, 2, 3, 4, 5), "2024-01-02T03:04:05"),
+        (timedelta(seconds=2), "P0DT0H0M2S"),
         (
             UUID("12345678-1234-5678-1234-567812345678"),
             "12345678-1234-5678-1234-567812345678",
         ),
     ],
 )
-def test_query_result_canonicalizes_exact_json_string_scalars(
-    value: object, expected: str
-) -> None:
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": value}], "rowcount": 1}]}
-    )
+def test_trusted_dataframe_scalars_are_json_safe(value: Any, expected: Any) -> None:
+    result = _producer_result({"data": [{"value": value}]})
 
-    assert failure is None
-    assert data == [[{"value": expected}]]
+    data, error = first_query_data(result)
 
+    assert error is None
+    assert data == [{"value": expected}]
+    assert type(data[0]["value"]) is type(expected)
 
-@pytest.mark.parametrize(
-    "value",
-    [
-        timedelta(0),
-        timedelta(microseconds=-1),
-        timedelta(days=1, seconds=2, microseconds=3),
-        timedelta.max,
-        timedelta.min,
-        pd.Timedelta(0),
-        pd.Timedelta(-1, unit="ns"),
-        pd.Timedelta(1, unit="ns"),
-        pd.Timedelta("1 days 00:00:02.000003004"),
-        pd.Timedelta.max,
-        pd.Timedelta.min,
-    ],
-)
-def test_bullet_duration_projection_matches_chart_data_json(value: object) -> None:
-    expected = json.loads(json.dumps(value, default=json.json_int_dttm_ser))
 
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": value}], "rowcount": 1}]},
-        temporal_json_numbers=True,
-    )
+def test_exact_decimal_keeps_numeric_identity_and_json_precision() -> None:
+    """Trusted Decimal stays numeric until Pydantic performs wire serialization."""
+    from pydantic import BaseModel
 
-    assert failure is None
-    assert data == [[{"value": expected}]]
+    class DecimalResponse(BaseModel):
+        data: list[dict[str, Any]]
 
+    value = Decimal("0.10000000000000000000000000000000000001")
+    result = _producer_result({"data": [{"value": value}]})
 
-@pytest.mark.parametrize(
-    "value",
-    [
-        np.timedelta64("NaT"),
-        np.timedelta64(0, "ns"),
-        np.timedelta64(-1, "ns"),
-        np.timedelta64(1, "D"),
-        np.timedelta64(123456789, "ns"),
-        np.timedelta64(np.iinfo("int64").max, "s"),
-        np.timedelta64(np.iinfo("int64").min + 1, "us"),
-    ],
-)
-def test_bullet_numpy_duration_matches_real_dataframe_producer(value: object) -> None:
-    from superset.dataframe import df_to_records
+    data, error = first_query_data(result)
 
-    produced = df_to_records(
-        pd.DataFrame({"value": pd.Series([value], dtype=object)}),
-        convert_big_integers=False,
-    )[0]["value"]
-    expected = (
-        None
-        if produced is None
-        else json.loads(json.dumps(produced, default=json.json_int_dttm_ser))
-    )
-
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": value}], "rowcount": 1}]},
-        temporal_json_numbers=True,
-    )
-
-    assert failure is None
-    assert data == [[{"value": expected}]]
-
-
-@pytest.mark.parametrize(
-    "value",
-    [
-        np.timedelta64(1, "Y"),
-        np.timedelta64(1, "ps"),
-        np.timedelta64(np.iinfo("int64").max, "D"),
-    ],
-)
-def test_bullet_numpy_duration_fails_closed_for_ambiguous_or_overflowing_value(
-    value: np.timedelta64,
-) -> None:
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": value}], "rowcount": 1}]},
-        temporal_json_numbers=True,
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "invalid NumPy duration" in failure.error
-
-
-def test_bullet_duration_subclasses_are_rejected_without_hooks() -> None:
-    class HostileTimedelta(timedelta):
-        calls = 0
-
-        def _call(self, *_args: object) -> Any:
-            type(self).calls += 1
-            raise AssertionError("hostile timedelta hook executed")
-
-        __abs__ = _call
-        __eq__ = _call
-        __lt__ = _call
-        __str__ = _call
-
-    class HostilePandasTimedelta(pd.Timedelta):
-        calls = 0
-
-        def _call(self, *_args: object) -> Any:
-            type(self).calls += 1
-            raise AssertionError("hostile pandas timedelta hook executed")
-
-        __abs__ = _call
-        __eq__ = _call
-        __lt__ = _call
-        __str__ = _call
-
-    for value in (HostileTimedelta(seconds=1), HostilePandasTimedelta("1s")):
-        data, failure = query_result_data(
-            {"queries": [{"data": [{"value": value}], "rowcount": 1}]},
-            temporal_json_numbers=True,
-        )
-        assert data is None
-        assert failure is not None
-        assert "unsupported or subclassed value" in failure.error
-    assert HostileTimedelta.calls == 0
-    assert HostilePandasTimedelta.calls == 0
-
-
-@pytest.mark.parametrize("timezone_name", ["US/Pacific", "dateutil/US/Pacific"])
-def test_query_result_canonicalizes_common_pandas_timezones_without_tz_hooks(
-    timezone_name: str,
-) -> None:
-    timestamp = pd.Timestamp("2024-11-03 01:30").tz_localize(
-        timezone_name, ambiguous=False
-    )
-
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": timestamp}], "rowcount": 1}]}
-    )
-
-    assert failure is None
-    assert data == [[{"value": "2024-11-03T01:30:00-08:00"}]]
-
-
-@pytest.mark.parametrize(
-    ("tzinfo_value", "expected_offset"),
-    [
-        (dateutil_tz.tzoffset("east", 5 * 3600 + 30 * 60), "+05:30"),
-        (dateutil_tz.tzoffset("west", -(7 * 3600 + 30 * 60)), "-07:30"),
-        (pytz.FixedOffset(330), "+05:30"),
-        (pytz.FixedOffset(-450), "-07:30"),
-        (dateutil_tz.UTC, "+00:00"),
-        (pytz.UTC, "+00:00"),
-    ],
-)
-def test_query_result_canonicalizes_fixed_offset_dataframe_timestamps(
-    tzinfo_value: tzinfo, expected_offset: str
-) -> None:
-    timestamp = pd.Timestamp(datetime(2024, 2, 3, 4, 5, tzinfo=tzinfo_value))
-    records = pd.DataFrame({"event_time": [timestamp]}).to_dict("records")
-
-    data, failure = query_result_data({"queries": [{"data": records, "rowcount": 1}]})
-
-    assert failure is None
-    assert data == [[{"event_time": f"2024-02-03T04:05:00{expected_offset}"}]]
-
-
-@pytest.mark.parametrize("timezone_name", ["US/Pacific", "dateutil/US/Pacific"])
-def test_query_result_preserves_named_zone_fold_after_dataframe_materialization(
-    timezone_name: str,
-) -> None:
-    folded = pd.Timestamp("2024-11-03 01:30").tz_localize(
-        timezone_name, ambiguous=False
-    )
-    records = pd.DataFrame({"event_time": [folded]}).to_dict("records")
-
-    data, failure = query_result_data({"queries": [{"data": records, "rowcount": 1}]})
-
-    assert failure is None
-    assert data == [[{"event_time": "2024-11-03T01:30:00-08:00"}]]
-
-
-def test_query_result_accepts_dateutil_packaged_zoneinfo_type() -> None:
-    tzinfo_value = get_zonefile_instance().get("America/Los_Angeles")
-    assert tzinfo_value is not None
-    timestamp = pd.Timestamp(datetime(2024, 1, 1, 12, tzinfo=tzinfo_value))
-
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": timestamp}], "rowcount": 1}]}
-    )
-
-    assert failure is None
-    assert data == [[{"value": "2024-01-01T12:00:00-08:00"}]]
-
-
-@pytest.mark.parametrize(
-    ("zone_name", "wall_time", "fold"),
-    [
-        ("Europe/Dublin", (2024, 10, 27, 1, 30, 0, 123456), 1),
-        ("America/New_York", (2024, 3, 10, 2, 30, 0, 123456), 0),
-        ("America/New_York", (2040, 7, 1, 12, 0, 0, 123456), 0),
-        ("America/New_York", (1969, 12, 31, 23, 59, 59, 999999), 0),
-    ],
-)
-def test_dateutil_named_datetime_matches_chart_data_wire_without_zone_rewrite(
-    zone_name: str,
-    wall_time: tuple[int, int, int, int, int, int, int],
-    fold: int,
-) -> None:
-    """Named dateutil wall-time choices remain the Chart Data source of truth."""
-    source_timezone = dateutil_tz.gettz(zone_name)
-    assert source_timezone is not None
-    value = datetime(*wall_time, tzinfo=source_timezone, fold=fold)
-    expected_epoch = datetime_to_epoch(value)
-    expected_text = value.isoformat()
-
-    projected, reason = query_result_module._chart_data_temporal_number(value)
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": value}], "rowcount": 1}]}
-    )
-
-    assert reason is None
-    assert projected == expected_epoch
-    assert failure is None
-    assert data == [[{"value": expected_text}]]
-
-
-def test_dateutil_named_datetime_projection_never_calls_timezone_hooks(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    dublin = dateutil_tz.gettz("Europe/Dublin")
-    new_york = dateutil_tz.gettz("America/New_York")
-    assert dublin is not None
-    assert new_york is not None
-    values = [
-        datetime(2024, 10, 27, 1, 30, tzinfo=dublin, fold=1),
-        datetime(2024, 3, 10, 2, 30, tzinfo=new_york),
-        datetime(2040, 7, 1, 12, tzinfo=new_york),
-    ]
-    expected_epochs = [datetime_to_epoch(value) for value in values]
-    expected_text = [value.isoformat() for value in values]
-    for timezone_type in {type(value.tzinfo) for value in values}:
-        for method_name in ("utcoffset", "dst", "tzname", "fromutc"):
-            monkeypatch.setattr(timezone_type, method_name, _hostile_call)
-
-    for value, epoch, text in zip(values, expected_epochs, expected_text, strict=True):
-        projected, reason = query_result_module._chart_data_temporal_number(value)
-        normalized, normalize_reason = query_result_module._trusted_datetime_text(value)
-
-        assert reason is None
-        assert projected == epoch
-        assert normalize_reason is None
-        assert normalized == text
-
-
-def test_dateutil_named_datetime_fails_closed_for_untrusted_transition_table() -> None:
-    import copy
-
-    class HostileTransition(int):
-        def __lt__(self, _other: object) -> bool:
-            raise AssertionError("hostile transition comparison executed")
-
-        def bit_length(self) -> int:
-            raise AssertionError("hostile transition bit_length executed")
-
-    source_timezone = dateutil_tz.gettz("America/New_York")
-    assert source_timezone is not None
-    mutated_timezone = copy.copy(source_timezone)
-    namespace = object.__getattribute__(mutated_timezone, "__dict__")
-    transition_info = dict.__getitem__(namespace, "_trans_idx")
-    dict.__setitem__(namespace, "_trans_list", (HostileTransition(0),))
-    dict.__setitem__(namespace, "_trans_idx", (transition_info[0],))
-    value = datetime(2024, 3, 10, 2, 30, tzinfo=mutated_timezone)
-
-    projected, reason = query_result_module._chart_data_temporal_number(value)
-
-    assert projected is None
-    assert reason == "contains a datetime with an unsupported timezone"
-
-
-@pytest.mark.parametrize("source", ["system", "packaged"])
-@pytest.mark.parametrize(
-    "zone_name",
-    [
-        "UTC",
-        "GMT",
-        "Universal",
-        "Zulu",
-        "EST",
-        "HST",
-        "MST",
-        "Etc/GMT+1",
-        "Etc/GMT-2",
-    ],
-)
-def test_transitionless_dateutil_named_zones_match_chart_data_wire(
-    source: str, zone_name: str
-) -> None:
-    timezone_value = (
-        dateutil_tz.gettz(zone_name)
-        if source == "system"
-        else get_zonefile_instance().get(zone_name)
-    )
-    assert timezone_value is not None
-    namespace = object.__getattribute__(timezone_value, "__dict__")
-    assert dict.__getitem__(namespace, "_trans_list") == ()
-    assert dict.__getitem__(namespace, "_ttinfo_before") is None
-    value = datetime(2040, 7, 1, 12, 34, 56, 123456, tzinfo=timezone_value)
-    expected_epoch = datetime_to_epoch(value)
-
-    projected, reason = query_result_module._chart_data_temporal_number(value)
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"zone": zone_name, "value": value}]}]},
-        temporal_json_numbers=True,
-    )
-
-    assert reason is None
-    assert projected == expected_epoch
-    assert failure is None
-    assert data == [[{"zone": zone_name, "value": expected_epoch}]]
-
-
-def test_transitionless_dateutil_named_zones_do_not_dispatch_hooks(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    values = []
-    for getter in (dateutil_tz.gettz, get_zonefile_instance().get):
-        timezone_value = getter("EST")
-        assert timezone_value is not None
-        values.append(datetime(2040, 7, 1, 12, tzinfo=timezone_value))
-    expected = [datetime_to_epoch(value) for value in values]
-    for timezone_type in {type(value.tzinfo) for value in values}:
-        for method_name in ("utcoffset", "dst", "tzname", "fromutc"):
-            monkeypatch.setattr(timezone_type, method_name, _hostile_call)
-
-    for value, expected_epoch in zip(values, expected, strict=True):
-        projected, reason = query_result_module._chart_data_temporal_number(value)
-        assert reason is None
-        assert projected == expected_epoch
-
-
-def test_transitionless_dateutil_named_zone_fails_closed_for_mutated_std() -> None:
-    import copy
-
-    class HostileStandard:
-        def __getattribute__(self, _name: str) -> Any:
-            raise AssertionError("hostile standard transition hook executed")
-
-    timezone_value = dateutil_tz.gettz("UTC")
-    assert timezone_value is not None
-    mutated_timezone = copy.copy(timezone_value)
-    namespace = object.__getattribute__(mutated_timezone, "__dict__")
-    dict.__setitem__(namespace, "_ttinfo_std", HostileStandard())
-    value = datetime(2040, 7, 1, 12, tzinfo=mutated_timezone)
-
-    projected, reason = query_result_module._chart_data_temporal_number(value)
-
-    assert projected is None
-    assert reason == "contains a datetime with an unsupported timezone"
-
-
-@pytest.mark.parametrize(
-    "tzinfo_value",
-    [dateutil_tz.tzoffset("east", 3600), pytz.FixedOffset(60)],
-)
-def test_fixed_offset_canonicalization_never_calls_source_timezone_hooks(
-    monkeypatch: pytest.MonkeyPatch, tzinfo_value: tzinfo
-) -> None:
-    timestamp = pd.Timestamp(datetime(2024, 1, 1, tzinfo=tzinfo_value))
-    source_type = type(tzinfo_value)
-    for method_name in ("utcoffset", "dst", "tzname"):
-        monkeypatch.setattr(source_type, method_name, _hostile_call, raising=False)
-
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": timestamp}], "rowcount": 1}]}
-    )
-
-    assert failure is None
-    assert data == [[{"value": "2024-01-01T00:00:00+01:00"}]]
-
-
-def test_object_dataframe_canonicalizes_python_temporals_and_tzlocal_timestamp() -> (
-    None
-):
-    pacific = dateutil_tz.gettz("US/Pacific")
-    packaged = get_zonefile_instance().get("America/Los_Angeles")
-    assert pacific is not None
-    assert packaged is not None
-    localized = pytz.timezone("US/Pacific").localize(
-        datetime(2024, 11, 3, 1, 30), is_dst=False
-    )
-    values = [
-        datetime(2024, 11, 3, 1, 30, tzinfo=pacific, fold=1),
-        datetime(2024, 1, 2, 3, 4, 5, tzinfo=packaged),
-        localized,
-        datetime(2024, 1, 2, 3, 4, 5, tzinfo=pytz.UTC),
-        datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzlocal()),
-        datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzoffset("east", 19_800)),
-        datetime(2024, 1, 2, 3, 4, 5, tzinfo=pytz.FixedOffset(-450)),
-        datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.UTC),
-    ]
-    clock_values = [
-        datetime_time(3, 4, 5, tzinfo=dateutil_tz.tzoffset("east", 19_800)),
-        datetime_time(3, 4, 5, tzinfo=pytz.FixedOffset(-450)),
-        datetime_time(3, 4, 5, tzinfo=pytz.UTC),
-        datetime_time(3, 4, 5, tzinfo=packaged),
-        datetime_time(3, 4, 5, tzinfo=dateutil_tz.tzlocal()),
-        datetime_time(3, 4, 5, tzinfo=pacific),
-        datetime_time(3, 4, 5, tzinfo=localized.tzinfo),
-        datetime_time(3, 4, 5, tzinfo=dateutil_tz.UTC),
-    ]
-    frame = pd.DataFrame(
-        {
-            "event_time": pd.Series(values, dtype=object),
-            "clock_time": pd.Series(clock_values, dtype=object),
-        }
-    )
-    records = frame.to_dict("records")
-    tzlocal_timestamp = pd.Timestamp(
-        datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzlocal())
-    )
-    records[0]["local_timestamp"] = tzlocal_timestamp
-
-    data, failure = query_result_data(
-        {"queries": [{"data": records, "rowcount": len(records)}]}
-    )
-
-    assert failure is None
+    assert error is None
     assert data is not None
-    assert [row["event_time"] for row in data[0]] == [
-        value.isoformat() for value in values
-    ]
-    assert [row["clock_time"] for row in data[0]] == [
-        value.isoformat() for value in clock_values
-    ]
-    assert data[0][0]["local_timestamp"] == tzlocal_timestamp.isoformat()
-
-
-@pytest.mark.parametrize("preserve_csv", [False, True])
-def test_python_and_timestamp_timezone_canonicalization_avoids_source_hooks(
-    monkeypatch: pytest.MonkeyPatch,
-    preserve_csv: bool,
-) -> None:
-    dateutil_named = dateutil_tz.gettz("US/Pacific")
-    assert dateutil_named is not None
-    pytz_named = (
-        pytz.timezone("US/Pacific")
-        .localize(datetime(2024, 11, 3, 1, 30), is_dst=False)
-        .tzinfo
-    )
-    local = dateutil_tz.tzlocal()
-    values: list[datetime | datetime_time | pd.Timestamp] = [
-        datetime(2024, 11, 3, 1, 30, tzinfo=dateutil_named, fold=1),
-        datetime(2024, 11, 3, 1, 30, tzinfo=pytz_named),
-        datetime(2024, 1, 2, 3, 4, 5, tzinfo=local),
-        datetime_time(3, 4, 5, tzinfo=dateutil_named),
-        datetime_time(3, 4, 5, tzinfo=pytz_named),
-        datetime_time(3, 4, 5, tzinfo=local),
-        pd.Timestamp(datetime(2024, 1, 2, 3, 4, 5, tzinfo=local)),
-    ]
-    expected = [str(value) if preserve_csv else value.isoformat() for value in values]
-    for timezone_type in {type(value.tzinfo) for value in values}:
-        for method_name in ("utcoffset", "dst", "tzname"):
-            monkeypatch.setattr(timezone_type, method_name, _hostile_call)
-
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {
-                    "data": [
-                        {f"value_{index}": value for index, value in enumerate(values)}
-                    ]
-                }
-            ]
-        },
-        preserve_csv_temporals=preserve_csv,
+    assert data[0]["value"] is value
+    response = DecimalResponse(data=data)
+    assert response.model_dump_json() == (
+        '{"data":[{"value":"0.10000000000000000000000000000000000001"}]}'
     )
 
-    assert failure is None
-    assert data == [[{f"value_{index}": value for index, value in enumerate(expected)}]]
 
-
-@pytest.mark.skipif(not hasattr(system_time, "tzset"), reason="requires POSIX tzset")
-def test_dateutil_local_datetime_preserves_ambiguous_fold_offsets() -> None:
-    original_timezone = os.environ.get("TZ")
-    try:
-        os.environ["TZ"] = "America/New_York"
-        system_time.tzset()
-        local = dateutil_tz.tzlocal()
-        values = [
-            datetime(2024, 11, 3, 1, 30, tzinfo=local, fold=fold) for fold in (0, 1)
-        ]
-        expected = [value.isoformat() for value in values]
-
-        data, failure = query_result_data(
-            {"queries": [{"data": [{"value": value} for value in values]}]}
-        )
-
-        assert failure is None
-        assert data == [[{"value": value} for value in expected]]
-        assert expected == [
-            "2024-11-03T01:30:00-04:00",
-            "2024-11-03T01:30:00-05:00",
-        ]
-    finally:
-        if original_timezone is None:
-            os.environ.pop("TZ", None)
-        else:
-            os.environ["TZ"] = original_timezone
-        system_time.tzset()
-
-
-def test_shared_dataframe_object_container_is_normalized_for_every_occurrence() -> None:
-    shared = [np.float64(1.5), pd.NA]
-    records = pd.DataFrame(
-        {
-            "left": pd.Series([shared], dtype=object),
-            "right": pd.Series([shared], dtype=object),
-        }
-    ).to_dict("records")
-    assert records[0]["left"] is records[0]["right"]
-
-    data, failure = query_result_data({"queries": [{"data": records, "rowcount": 1}]})
-
-    assert failure is None
-    assert data == [[{"left": [1.5, None], "right": [1.5, None]}]]
-    assert data[0][0]["left"] is data[0][0]["right"]
-
-
-def test_shared_row_and_metadata_containers_are_recharged_at_each_occurrence(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    shared_row_value = ["escaped\nvalue"]
-    shared_metadata = {"value": [1, 2, 3]}
-    result = {
-        "metadata": [shared_metadata, shared_metadata],
-        "queries": [
-            {
-                "data": [
-                    {"left": shared_row_value, "right": shared_row_value},
-                ],
-                "rowcount": 1,
-            }
-        ],
-    }
-    exact_size = len(json.dumps(result, separators=(",", ":")).encode())
-    monkeypatch.setattr(
-        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
-        exact_size,
-    )
-
-    data, failure = query_result_data(result)
-
-    assert failure is None
-    assert data is not None
-
-    monkeypatch.setattr(
-        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
-        exact_size - 1,
-    )
-    data, failure = query_result_data(result)
-
-    assert data is None
-    assert failure is not None
-    assert "total JSON-encoded byte limit" in failure.error
-
-
-@pytest.mark.parametrize("location", ["row", "metadata"])
-def test_query_result_rejects_genuine_container_cycles(location: str) -> None:
-    cycle: list[Any] = []
-    cycle.append(cycle)
-    result = (
-        {"queries": [{"data": [{"value": cycle}]}]}
-        if location == "row"
-        else {"metadata": cycle, "queries": [{"data": []}]}
-    )
-
-    data, failure = query_result_data(result)
-
-    assert data is None
-    assert failure is not None
-    assert "cyclic containers" in failure.error
-
-
-@pytest.mark.parametrize(
-    "value",
-    [float("inf"), Decimal("NaN"), Decimal("Infinity"), np.inf],
-)
-def test_query_result_rejects_non_finite_non_missing_numeric_values(
-    value: object,
-) -> None:
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": value}], "rowcount": 1}]}
-    )
-
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-
-
-@pytest.mark.parametrize(
-    "value",
-    [float("nan"), np.float16("nan"), np.float32("nan"), np.float64("nan")],
-)
-def test_query_result_canonicalizes_exact_numeric_missing_values(value: object) -> None:
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": value}], "rowcount": 1}]}
-    )
-
-    assert failure is None
-    assert data == [[{"value": None}]]
-
-
-def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() -> None:
-    """The producer emits strict JSON nulls while preserving finite Decimals."""
-    from superset.commands.chart.data.get_data_command import ChartDataCommand
-    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+def test_real_dataframe_processor_and_chart_command_normalize_nonfinite() -> None:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_processor import QueryContextProcessor
 
@@ -964,7 +971,7 @@ def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() 
         def is_finite(self) -> bool:
             raise AssertionError("hostile Decimal is_finite hook executed")
 
-        def __eq__(self, _other: object) -> bool:
+        def __eq__(self, other: object) -> bool:
             raise AssertionError("hostile Decimal equality hook executed")
 
         def __float__(self) -> float:
@@ -991,8 +998,7 @@ def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() 
         datasource=object(), result_format=ChartDataResultFormat.JSON
     )
     records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
-        frame,
-        [GenericDataType.NUMERIC] * len(frame.columns),
+        frame, [GenericDataType.NUMERIC] * len(frame.columns)
     )
     assert type(records) is list
     for column in (
@@ -1010,108 +1016,66 @@ def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() 
 
     safe_record = dict(records[0])
     del safe_record["hostile_decimal"]
-
-    class _Context:
-        result_type = ChartDataResultType.FULL
-
-        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
-            return {
-                "queries": [
-                    {
-                        "data": [safe_record],
-                        "colnames": list(safe_record),
-                        "coltypes": [GenericDataType.NUMERIC] * len(safe_record),
-                        "rowcount": 1,
-                    }
-                ]
-            }
-
-    result = ChartDataCommand(_Context()).run()  # type: ignore[arg-type]
-    data, failure = query_result_data(result)
-
-    assert failure is None
-    assert data is not None
-    assert data[0][0]["decimal_finite"] is finite
-    assert all(
-        data[0][0][column] is None
-        for column in safe_record
-        if column != "decimal_finite"
+    result = _producer_result(
+        {
+            "data": [safe_record],
+            "colnames": list(safe_record),
+            "coltypes": [GenericDataType.NUMERIC] * len(safe_record),
+            "rowcount": 1,
+        }
     )
-    wire = json.dumps({"queries": result["queries"]}, ignore_nan=False)
-    assert "NaN" not in wire
-    assert "Infinity" not in wire
-    wire_finite = json.loads(wire)["queries"][0]["data"][0]["decimal_finite"]
-    assert type(wire_finite) is float
-    assert wire_finite == float(finite)
+    data, error = first_query_data(result)
 
-    class _HostileContext:
-        result_type = ChartDataResultType.FULL
+    assert error is None
+    assert data is not None
+    assert data[0]["decimal_finite"] is finite
+    assert all(
+        data[0][column] is None for column in safe_record if column != "decimal_finite"
+    )
 
-        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
-            return {
-                "queries": [
-                    {
-                        "data": [{"hostile_decimal": hostile}],
-                        "colnames": ["hostile_decimal"],
-                        "coltypes": [GenericDataType.NUMERIC],
-                        "rowcount": 1,
-                    }
-                ]
-            }
-
-    hostile_result = ChartDataCommand(_HostileContext()).run()  # type: ignore[arg-type]
-    hostile_data, hostile_failure = query_result_data(hostile_result)
+    hostile_result = _producer_result(
+        {
+            "data": [{"hostile_decimal": hostile}],
+            "colnames": ["hostile_decimal"],
+            "coltypes": [GenericDataType.NUMERIC],
+            "rowcount": 1,
+        }
+    )
+    hostile_data, hostile_error = first_query_data(hostile_result)
     assert hostile_data is None
-    assert hostile_failure is not None
-    assert hostile_failure.error_type == "MalformedQueryResult"
+    assert hostile_error is not None
+    assert hostile_error.error_type == "InvalidQueryResult"
 
 
-def test_real_query_processor_does_not_compare_hostile_object_cells() -> None:
-    """Producer cleanup projects first and leaves validation to the consumer."""
-    from superset.common.chart_data import ChartDataResultFormat
+def test_real_dataframe_processor_normalizes_period_and_interval() -> None:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_processor import QueryContextProcessor
 
-    class HostileEquality:
-        def __eq__(self, _other: object) -> bool:
-            raise AssertionError("hostile object equality must not run")
-
-    hostile = HostileEquality()
     frame = pd.DataFrame(
         {
-            "hostile": pd.Series([hostile], dtype=object),
-            "infinite": [np.inf],
+            "period": pd.Series([pd.Period("2026-Q3", freq="Q")], dtype=object),
+            "interval": pd.Series([pd.Interval(1, 3, closed="both")], dtype=object),
         }
     )
     processor_context = SimpleNamespace(
         datasource=object(), result_format=ChartDataResultFormat.JSON
     )
-
     records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
-        frame,
-        [GenericDataType.STRING, GenericDataType.NUMERIC],
+        frame, [GenericDataType.STRING, GenericDataType.STRING]
     )
-
-    assert type(records) is list
-    assert records[0]["hostile"] is hostile
-    assert records[0]["infinite"] is None
-
-    data, failure = query_result_data(
+    result = _producer_result(
         {
-            "queries": [
-                {
-                    "data": records,
-                    "colnames": ["hostile", "infinite"],
-                    "coltypes": [GenericDataType.STRING, GenericDataType.NUMERIC],
-                    "rowcount": 1,
-                }
-            ]
+            "data": records,
+            "colnames": ["period", "interval"],
+            "coltypes": [GenericDataType.STRING, GenericDataType.STRING],
+            "rowcount": 1,
         }
     )
 
-    assert data is None
-    assert failure is not None
-    assert "unsupported or subclassed value" in failure.error
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"period": "2026Q3", "interval": "[1, 3]"}]
 
 
 @pytest.mark.parametrize(
@@ -1122,20 +1086,14 @@ def test_real_query_processor_does_not_compare_hostile_object_cells() -> None:
         ("difference", np.finfo(float).max, -np.finfo(float).max),
     ],
 )
-def test_real_postprocessing_nonfinite_is_canonicalized_at_materialization(
-    app_context: None,
-    compare_type: str,
-    source: float,
-    comparison: float,
+def test_real_postprocessing_nonfinite_is_null_at_materialization(
+    compare_type: str, source: float, comparison: float
 ) -> None:
-    """Built-in comparison overflow becomes null before ChartDataCommand output."""
-    from superset.commands.chart.data.get_data_command import ChartDataCommand
-    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
     from superset.common.query_context import QueryContext
     from superset.common.query_context_processor import QueryContextProcessor
     from superset.common.query_object import QueryObject
 
-    query = QueryObject(
+    processed = QueryObject(
         post_processing=[
             {
                 "operation": "compare",
@@ -1146,8 +1104,7 @@ def test_real_postprocessing_nonfinite_is_canonicalized_at_materialization(
                 },
             }
         ]
-    )
-    processed = query.exec_post_processing(
+    ).exec_post_processing(
         pd.DataFrame(
             {
                 "source": [source],
@@ -1164,1748 +1121,970 @@ def test_real_postprocessing_nonfinite_is_canonicalized_at_materialization(
     )
     assert np.isinf(processed[derived_column].iloc[0])
     dtypes = processed.dtypes.copy()
-
     processor_context = SimpleNamespace(
         datasource=object(), result_format=ChartDataResultFormat.JSON
     )
     records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
         processed, [GenericDataType.NUMERIC] * len(processed.columns)
     )
+
     assert type(records) is list
     assert records[0][derived_column] is None
     assert records[0]["finite"] == 3.5
     assert records[0]["finite_integer"] == str(2**53 + 1)
-    assert type(records[0]["finite_integer"]) is str
     pd.testing.assert_series_equal(processed.dtypes, dtypes)
     assert np.isinf(processed[derived_column].iloc[0])
 
-    class _Context:
-        result_type = ChartDataResultType.FULL
-
-        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
-            return {
-                "queries": [
-                    {
-                        "data": records,
-                        "colnames": list(processed.columns),
-                        "coltypes": [GenericDataType.NUMERIC] * len(processed.columns),
-                        "rowcount": 1,
-                    }
-                ]
-            }
-
-    result = ChartDataCommand(_Context()).run()  # type: ignore[arg-type]
-    data, failure = query_result_data(result)
-
-    assert failure is None
-    assert data is not None
-    assert data[0][0][derived_column] is None
-    assert data[0][0]["finite"] == 3.5
-    assert data[0][0]["finite_integer"] == str(2**53 + 1)
-
-
-def test_query_result_rejects_infinity_outside_the_producer_boundary() -> None:
-    """Superset replaces infinities with NaN; an injected infinity is malformed."""
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": float("-inf")}], "rowcount": 1}]}
+    result = _producer_result(
+        {
+            "data": records,
+            "colnames": list(processed.columns),
+            "coltypes": [GenericDataType.NUMERIC] * len(processed.columns),
+            "rowcount": 1,
+        }
     )
+    data, error = first_query_data(result)
+    assert error is None
+    assert data is not None
+    assert data[0][derived_column] is None
 
-    assert data is None
-    assert failure is not None
-    assert "non-finite" in failure.error
+
+def test_pandas_timestamp_preserves_fold_offset() -> None:
+    folded = pd.Timestamp(
+        datetime(
+            2024,
+            11,
+            3,
+            1,
+            30,
+            tzinfo=ZoneInfo("America/New_York"),
+            fold=1,
+        )
+    )
+    result = _producer_result({"data": [{"value": folded}]})
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"value": "2024-11-03T01:30:00-05:00"}]
 
 
 @pytest.mark.parametrize(
-    ("cell", "expected"),
+    ("timezone_value", "expected"),
     [
-        ([1.5, float("inf")], [1.5, None]),
-        (np.array([1.5, np.inf, -np.inf]), [1.5, None, None]),
-        ({"nested": [np.float32("-inf")]}, {"nested": [None]}),
+        (dateutil_tz.tzoffset("IST", 19_800), "2024-01-02T03:04:05+05:30"),
+        (pytz.FixedOffset(-240), "2024-01-02T03:04:05-04:00"),
+        (pytz.UTC, "2024-01-02T03:04:05+00:00"),
+        (pytz.timezone("US/Pacific"), "2024-01-02T03:04:05-08:00"),
+        (pytz.timezone("Etc/GMT-3"), "2024-01-02T03:04:05+03:00"),
+        (dateutil_tz.gettz("US/Pacific"), "2024-01-02T03:04:05-08:00"),
+        (
+            dateutil_zoneinfo.get_zonefile_instance().get("America/Los_Angeles"),
+            "2024-01-02T03:04:05-08:00",
+        ),
     ],
 )
-def test_query_result_nulls_infinity_nested_in_a_cell(cell: Any, expected: Any) -> None:
-    """A float8[] holding 'Infinity' cannot reject every row of the result."""
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": cell, "id": 1}], "rowcount": 1}]}
+def test_pandas_timestamp_accepts_safe_producer_timezones(
+    timezone_value: tzinfo, expected: str
+) -> None:
+    result = _producer_result(
+        {"data": [{"value": pd.Timestamp(2024, 1, 2, 3, 4, 5, tz=timezone_value)}]}
     )
 
-    assert failure is None
-    assert data is not None
-    assert data[0][0] == {"value": expected, "id": 1}
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"value": expected}]
 
 
 @pytest.mark.parametrize(
-    "row",
+    ("value", "expected"),
     [
-        {"value": "x" * (1024 * 1024)},
-        {"k" * (1024 * 1024): "value"},
-        {"value": 1 << 10_000},
+        (
+            datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzoffset("IST", 19_800)),
+            "2024-01-02T03:04:05+05:30",
+        ),
+        (
+            datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.gettz("US/Pacific")),
+            "2024-01-02T03:04:05-08:00",
+        ),
+        (
+            datetime(
+                2024,
+                1,
+                2,
+                3,
+                4,
+                5,
+                tzinfo=dateutil_zoneinfo.get_zonefile_instance().get(
+                    "America/Los_Angeles"
+                ),
+            ),
+            "2024-01-02T03:04:05-08:00",
+        ),
+        (
+            pytz.timezone("US/Pacific").localize(datetime(2024, 1, 2, 3, 4, 5)),
+            "2024-01-02T03:04:05-08:00",
+        ),
+        (
+            datetime(2024, 1, 2, 3, 4, 5, tzinfo=pytz.FixedOffset(-450)),
+            "2024-01-02T03:04:05-07:30",
+        ),
+        (
+            time(3, 4, 5, tzinfo=dateutil_tz.tzoffset("IST", 19_800)),
+            "03:04:05+05:30",
+        ),
+        (time(3, 4, 5, tzinfo=pytz.FixedOffset(-450)), "03:04:05-07:30"),
+        (
+            pd.Timestamp(datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzlocal())),
+            pd.Timestamp(
+                datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzlocal())
+            ).isoformat(),
+        ),
     ],
 )
-def test_query_result_rejects_adversarial_values_with_bounded_errors(
-    row: dict[str, Any],
+def test_exact_temporals_accept_packaged_safe_timezones(
+    value: Any, expected: str
 ) -> None:
-    data, failure = query_result_data({"queries": [{"data": [row], "rowcount": 1}]})
+    result = _producer_result({"data": [{"value": value}]})
 
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-    assert len(failure.error.encode()) < 500
+    data, error = first_query_data(result)
 
-
-@pytest.mark.parametrize("row_count", [5000, MAX_QUERY_RESULT_ROWS])
-@pytest.mark.parametrize("query_count", [1, 2])
-def test_query_result_accepts_row_shaped_indexnames(
-    row_count: int, query_count: int
-) -> None:
-    """Full Chart Data results carry one index entry per dataframe row."""
-    frame = pd.DataFrame({"value": range(row_count)})
-    rows = frame.to_dict(orient="records")
-    indexnames = list(frame.index)
-    result = {
-        "queries": [
-            {"data": rows, "indexnames": indexnames, "rowcount": row_count}
-            for _ in range(query_count)
-        ]
-    }
-
-    data, failure = query_result_data(result)
-
-    assert failure is None
-    assert data == [rows] * query_count
-    assert all(query["indexnames"] == indexnames for query in result["queries"])
-
-
-def test_query_result_bounds_indexnames_by_the_row_limit() -> None:
-    """The row-index exception still has a per-query cardinality limit."""
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {"data": [], "indexnames": list(range(MAX_QUERY_RESULT_ROWS + 1))}
-            ]
-        }
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "oversized array" in failure.error
-
-
-@pytest.mark.parametrize(
-    "result",
-    [
-        {"queries": [{"data": [], "metadata": list(range(5000))}]},
-        {"queries": [{"data": [], "indexnames": [list(range(5000))]}]},
-        {"indexnames": list(range(5000)), "queries": [{"data": []}]},
-    ],
-)
-def test_query_result_keeps_non_row_metadata_array_limits(
-    result: dict[str, Any],
-) -> None:
-    """Only a query's outer row-index array gets the larger cardinality cap."""
-    data, failure = query_result_data(result)
-
-    assert data is None
-    assert failure is not None
-    assert "oversized array" in failure.error
-
-
-@pytest.mark.parametrize(
-    "budget_name", ["MAX_QUERY_RESULT_VALUES", "MAX_QUERY_RESULT_WORK"]
-)
-def test_query_result_charges_indexnames_to_the_value_work_budget(
-    monkeypatch: pytest.MonkeyPatch, budget_name: str
-) -> None:
-    """Row indexes share the row-data work budget instead of bypassing it."""
-    row_count = 5000
-    # One index array, its entries, and one object/scalar pair per data row.
-    value_count = 1 + 3 * row_count
-    # The work limit also counts the envelope's three metadata keys.
-    if budget_name == "MAX_QUERY_RESULT_WORK":
-        value_count += 3
-    monkeypatch.setattr(query_result_module, budget_name, value_count)
-    result = {
-        "queries": [
-            {
-                "data": [{"value": index} for index in range(row_count)],
-                "indexnames": list(range(row_count)),
-            }
-        ]
-    }
-
-    data, failure = query_result_data(result)
-    assert failure is None
-    assert data is not None
-    assert len(data[0]) == row_count
-
-    monkeypatch.setattr(query_result_module, budget_name, value_count - 1)
-    data, failure = query_result_data(result)
-    assert data is None
-    assert failure is not None
-    assert (
-        "too many total values" in failure.error or "total work limit" in failure.error
-    )
-
-
-def test_query_result_keeps_indexnames_in_the_metadata_byte_budget() -> None:
-    """Larger row-index arrays retain the aggregate metadata byte cap."""
-    data, failure = query_result_data(
-        {"queries": [{"data": [], "indexnames": ["x" * 32] * MAX_QUERY_RESULT_ROWS}]}
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "metadata exceeds the total JSON-encoded byte limit" in failure.error
-
-
-def test_query_result_accepts_documented_row_and_scalar_boundaries() -> None:
-    rows: list[dict[str, Any]] = [{} for _ in range(MAX_QUERY_RESULT_ROWS)]
-    boundary_integer = 1 << (MAX_QUERY_RESULT_INTEGER_BITS - 1)
-    row = {
-        "k" * MAX_QUERY_RESULT_KEY_BYTES: "x" * MAX_QUERY_RESULT_STRING_BYTES,
-        "integer": boundary_integer,
-    }
-
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS},
-                {"data": [row], "rowcount": 1},
-            ]
-        }
-    )
-
-    assert failure is None
-    assert data == [rows, [row]]
-
-    data, failure = query_result_data({"queries": [{"data": [row], "rowcount": 1}]})
-    assert failure is None
-    assert data == [[row]]
-
-
-def test_query_result_keeps_source_cell_string_cap_at_64_kib() -> None:
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {
-                    "data": [{"value": "x" * (MAX_QUERY_RESULT_STRING_BYTES + 1)}],
-                    "rowcount": 1,
-                }
-            ]
-        }
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "oversized string" in failure.error
-
-
-@pytest.mark.parametrize("chart_shape", ["big_number_raw_trend", "mixed_timeseries"])
-def test_query_result_accepts_two_max_row_query_legs(chart_shape: str) -> None:
-    rows: list[dict[str, Any]] = [{} for _ in range(MAX_QUERY_RESULT_ROWS)]
-    result = {
-        "chart_shape": chart_shape,
-        "queries": [
-            {"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS},
-            {"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS},
-        ],
-    }
-
-    data, failure = query_result_data(result)
-
-    assert failure is None
-    assert data is not None
-    assert sum(len(query_rows) for query_rows in data) == MAX_QUERY_RESULT_TOTAL_ROWS
-
-
-def test_query_result_rejects_one_row_beyond_aggregate_multi_query_budget() -> None:
-    rows: list[dict[str, Any]] = [{} for _ in range(MAX_QUERY_RESULT_ROWS)]
-
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS},
-                {"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS},
-                {"data": [{}], "rowcount": 1},
-            ]
-        }
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "total row limit" in failure.error
-
-
-def test_complete_response_accepts_exact_aggregate_boundary_and_rejects_one_byte() -> (
-    None
-):
-    prefix = 'quote " newline\n slash\\ café'
-    prefix_response = _ProjectedResponse(value=prefix)
-    filler_size = MAX_QUERY_RESULT_VALUE_BYTES - len(
-        prefix_response.model_dump_json().encode()
-    )
-    boundary = _ProjectedResponse(value=prefix + "x" * filler_size)
-    oversized = _ProjectedResponse(value=boundary.value + "x")
-
-    assert len(boundary.model_dump_json().encode()) == MAX_QUERY_RESULT_VALUE_BYTES
-    assert response_json_failure(boundary) is None
-    failure = response_json_failure(oversized)
-    assert failure is not None
-    assert "response exceeds the total JSON-encoded byte limit" in failure.error
-
-
-def test_complete_response_counts_pydantic_utc_z_wire_spelling_exactly() -> None:
-    empty = _UTCProjectedResponse(
-        timestamp=datetime(2026, 9, 2, tzinfo=timezone.utc), value=""
-    )
-    assert '"timestamp":"2026-09-02T00:00:00Z"' in empty.model_dump_json()
-    filler = "x" * (
-        MAX_QUERY_RESULT_VALUE_BYTES - len(empty.model_dump_json().encode())
-    )
-    boundary = _UTCProjectedResponse(timestamp=empty.timestamp, value=filler)
-    oversized = _UTCProjectedResponse(timestamp=empty.timestamp, value=filler + "x")
-
-    assert len(boundary.model_dump_json().encode()) == MAX_QUERY_RESULT_VALUE_BYTES
-    assert response_json_failure(boundary) is None
-    assert response_json_failure(oversized) is not None
-
-
-def test_timedelta_envelope_uses_exact_json_boundary(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    expected = {
-        "queries": [
-            {
-                "data": [{"duration": "P1DT2.000003S"}],
-                "rowcount": 1,
-            }
-        ]
-    }
-    exact_bytes = len(
-        json.dumps(expected, ensure_ascii=False, separators=(",", ":")).encode()
-    )
-    monkeypatch.setattr(
-        query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_bytes
-    )
-
-    result = {
-        "queries": [
-            {
-                "data": [{"duration": timedelta(days=1, seconds=2, microseconds=3)}],
-                "rowcount": 1,
-            }
-        ]
-    }
-    data, failure = query_result_data(result)
-
-    assert failure is None
-    assert data == [[{"duration": "P1DT2.000003S"}]]
-    assert len(json.dumps(result, separators=(",", ":")).encode()) == exact_bytes
-
-    monkeypatch.setattr(
-        query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_bytes - 1
-    )
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {
-                    "data": [
-                        {"duration": timedelta(days=1, seconds=2, microseconds=3)}
-                    ],
-                    "rowcount": 1,
-                }
-            ]
-        }
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "total JSON-encoded byte limit" in failure.error
-
-
-def test_bullet_timedelta_envelope_uses_chart_data_wire_boundary(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    expected = {
-        "queries": [
-            {
-                "data": [{"duration": "1 day, 0:00:02.000003"}],
-                "rowcount": 1,
-            }
-        ]
-    }
-    exact_bytes = len(
-        json.dumps(expected, ensure_ascii=False, separators=(",", ":")).encode()
-    )
-    monkeypatch.setattr(
-        query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_bytes
-    )
-    result = {
-        "queries": [
-            {
-                "data": [{"duration": timedelta(days=1, seconds=2, microseconds=3)}],
-                "rowcount": 1,
-            }
-        ]
-    }
-
-    data, failure = query_result_data(result, temporal_json_numbers=True)
-
-    assert failure is None
-    assert data == [[{"duration": "1 day, 0:00:02.000003"}]]
-    assert len(json.dumps(result, separators=(",", ":")).encode()) == exact_bytes
-
-    monkeypatch.setattr(
-        query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_bytes - 1
-    )
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {
-                    "data": [
-                        {"duration": timedelta(days=1, seconds=2, microseconds=3)}
-                    ],
-                    "rowcount": 1,
-                }
-            ]
-        },
-        temporal_json_numbers=True,
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "total JSON-encoded byte limit" in failure.error
-
-
-def test_query_result_accepts_fifty_thousand_rows_with_twenty_columns() -> None:
-    row = {f"column_{index}": index for index in range(20)}
-    rows = [row] * MAX_QUERY_RESULT_ROWS
-
-    data, failure = query_result_data(
-        {"queries": [{"data": rows, "rowcount": MAX_QUERY_RESULT_ROWS}]}
-    )
-
-    assert failure is None
-    assert data == [rows]
-
-
-def test_query_result_rejects_one_row_beyond_documented_boundary() -> None:
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {
-                    "data": [{} for _ in range(MAX_QUERY_RESULT_ROWS + 1)],
-                    "rowcount": MAX_QUERY_RESULT_ROWS + 1,
-                }
-            ]
-        }
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "row limit" in failure.error
-
-
-def test_query_result_enforces_total_value_work_boundary(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    value_limit = 10_000
-    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUES", value_limit)
-    monkeypatch.setattr(
-        query_result_module,
-        "MAX_QUERY_RESULT_WORK",
-        value_limit + query_result_module.MAX_QUERY_RESULT_METADATA_ITEMS,
-    )
-    values_per_row = 4096
-    rows_needed = value_limit // (values_per_row + 2) + 1
-    shared_values = [None] * values_per_row
-    rows: list[dict[str, Any]] = [{"values": shared_values} for _ in range(rows_needed)]
-
-    data, failure = query_result_data(
-        {"queries": [{"data": rows, "rowcount": len(rows)}]}
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "total values" in failure.error or "total work" in failure.error
-
-
-def test_query_result_enforces_exact_json_encoded_data_byte_boundary() -> None:
-    full_chunks = 255
-    # Exact compact envelope syntax/keys plus the final string's quotes.
-    fixed_json_bytes = 306
-    remainder = (
-        MAX_QUERY_RESULT_VALUE_BYTES
-        - fixed_json_bytes
-        - full_chunks * (MAX_QUERY_RESULT_STRING_BYTES + 2)
-        - 2
-    )
-    values = ["x" * MAX_QUERY_RESULT_STRING_BYTES for _ in range(full_chunks)]
-    values.append("x" * remainder)
-    result = {"queries": [{"data": [{"values": values}], "rowcount": 1}]}
-
-    data, failure = query_result_data(result)
-    assert failure is None
-    assert data == [[{"values": values}]]
-
-    values[-1] += "x"
-    data, failure = query_result_data(result)
-    assert data is None
-    assert failure is not None
-    assert "total JSON-encoded byte limit" in failure.error
-
-
-def test_query_result_rejects_aggregate_huge_numeric_json_before_serialization() -> (
-    None
-):
-    huge_value = 10**999
-    rows = [{"value": huge_value}] * 17_000
-
-    data, failure = query_result_data(
-        {"queries": [{"data": rows, "rowcount": len(rows)}]}
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "total JSON-encoded byte limit" in failure.error
+    assert error is None
+    assert data == [{"value": expected}]
 
 
 @pytest.mark.parametrize(
     "value",
-    ['quote"slash\\control\n', "café 💥", "\x00\x1f"],
+    [
+        datetime(
+            2024,
+            10,
+            27,
+            1,
+            30,
+            0,
+            123456,
+            tzinfo=dateutil_tz.gettz("Europe/Dublin"),
+            fold=1,
+        ),
+        datetime(
+            2024,
+            3,
+            10,
+            2,
+            30,
+            tzinfo=dateutil_tz.gettz("America/New_York"),
+        ),
+        datetime(
+            2040,
+            7,
+            1,
+            12,
+            tzinfo=dateutil_tz.gettz("America/New_York"),
+        ),
+        datetime(
+            1880,
+            1,
+            1,
+            12,
+            tzinfo=dateutil_tz.gettz("America/New_York"),
+        ),
+        datetime(
+            1920,
+            1,
+            1,
+            12,
+            tzinfo=dateutil_tz.gettz("America/New_York"),
+        ),
+        datetime(
+            2024,
+            1,
+            1,
+            12,
+            tzinfo=dateutil_tz.gettz("Etc/GMT+3"),
+        ),
+        datetime(
+            2024,
+            3,
+            10,
+            2,
+            30,
+            tzinfo=dateutil_zoneinfo.get_zonefile_instance().get("America/New_York"),
+        ),
+        datetime(
+            2024,
+            1,
+            1,
+            12,
+            tzinfo=dateutil_zoneinfo.get_zonefile_instance().get("Etc/GMT+3"),
+        ),
+    ],
+    ids=[
+        "dublin-negative-dst-fold",
+        "new-york-spring-gap",
+        "new-york-post-final-transition",
+        "historical-before-first-transition",
+        "historical-transition-table",
+        "system-transitionless-zone",
+        "packaged-new-york-gap",
+        "packaged-transitionless-zone",
+    ],
 )
-def test_json_string_meter_matches_real_utf8_serialization(value: str) -> None:
-    encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode()
-
-    assert _json_string_size(value, MAX_QUERY_RESULT_STRING_BYTES) == len(encoded)
-
-
-def test_query_result_charges_escaped_non_ascii_keys_and_nested_syntax() -> None:
-    row = {'quoted"\\\n💥': {"nested": [None, True, 123, "café"]}}
-    result = {"queries": [{"data": [row], "rowcount": 1}]}
-
-    data, failure = query_result_data(result)
-
-    assert failure is None
-    assert data == [[row]]
-
-
-def test_query_result_enforces_total_metadata_byte_boundary() -> None:
-    # Compact JSON syntax/keys plus the final string's quotes are all charged.
-    fixed_json_bytes = 63
-    full_chunks = 15
-    remainder = (
-        MAX_QUERY_RESULT_METADATA_BYTES
-        - fixed_json_bytes
-        - full_chunks * (MAX_QUERY_RESULT_STRING_BYTES + 2)
-        - 2
-    )
-    at_limit = ["x" * MAX_QUERY_RESULT_STRING_BYTES for _ in range(full_chunks)]
-    at_limit.append("x" * remainder)
-
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {"data": [], "metadata": at_limit, "rowcount": 0},
-            ]
-        }
-    )
-    assert failure is None
-    assert data == [[]]
-
-    at_limit[-1] += "x"
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {"data": [], "metadata": at_limit, "rowcount": 0},
-            ]
-        }
-    )
-    assert data is None
-    assert failure is not None
-    assert "metadata exceeds the total JSON-encoded byte limit" in failure.error
-
-
-@pytest.mark.parametrize("metadata_key", ["query", "sql"])
-@pytest.mark.parametrize("sql_bytes", [MAX_QUERY_RESULT_STRING_BYTES + 1, 70 * 1024])
-def test_query_result_accepts_full_sql_above_source_cell_string_limit(
-    metadata_key: str, sql_bytes: int
+def test_dateutil_datetime_preserves_source_selected_transition_offset(
+    value: datetime,
 ) -> None:
-    from superset.commands.chart.data.get_data_command import ChartDataCommand
-    from superset.common.chart_data import ChartDataResultType
+    expected = datetime.isoformat(value)
+    result = _producer_result({"data": [{"value": value}]})
 
-    prefix = 'SELECT "café"\\n'
-    sql = prefix + "x" * (sql_bytes - len(prefix.encode()))
-    assert len(sql.encode()) == sql_bytes
+    data, error = first_query_data(result)
 
-    class _Context:
-        result_type = ChartDataResultType.FULL
-
-        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
-            return {"queries": [{"data": [], metadata_key: sql, "rowcount": 0}]}
-
-    result = ChartDataCommand(_Context()).run()  # type: ignore[arg-type]
-
-    data, failure = query_result_data(result)
-
-    assert failure is None
-    assert data == [[]]
+    assert error is None
+    assert data == [{"value": expected}]
+    assert datetime.fromisoformat(data[0]["value"]).timestamp() == value.timestamp()
 
 
-def test_query_result_enforces_exact_single_metadata_scalar_boundary() -> None:
-    prefix = 'SELECT "café"\\n'
-    # The query-only envelope charges 30 metadata bytes outside the SQL value:
-    # top/query object syntax and the compact JSON keys. Escaping/non-ASCII in
-    # the prefix is measured exactly by the shared JSON-string meter.
-    fixed_metadata_bytes = 30
-    prefix_bytes = _json_string_size(prefix, MAX_QUERY_RESULT_METADATA_BYTES)
-    assert prefix_bytes is not None
-    filler = MAX_QUERY_RESULT_METADATA_BYTES - fixed_metadata_bytes - prefix_bytes
-    sql = prefix + "x" * filler
-
-    data, failure = query_result_data({"queries": [{"data": [], "query": sql}]})
-    assert failure is None
-    assert data == [[]]
-
-    data, failure = query_result_data({"queries": [{"data": [], "query": sql + "x"}]})
-    assert data is None
-    assert failure is not None
-    assert "metadata exceeds the total JSON-encoded byte limit" in failure.error
-
-
-def test_metadata_scalar_is_also_charged_to_aggregate_json_budget() -> None:
-    sql = "SELECT 'café' -- " + "m" * (70 * 1024)
-    empty_result = {"queries": [{"data": [{"values": []}], "query": sql}]}
-    empty_size = len(
-        json.dumps(empty_result, ensure_ascii=False, separators=(",", ":")).encode()
+def test_dateutil_datetime_preserves_equivalent_instant_and_source_offset() -> None:
+    source_timezone = dateutil_tz.gettz("America/New_York")
+    assert source_timezone is not None
+    dateutil_value = datetime(2024, 1, 1, 7, tzinfo=source_timezone)
+    utc_value = datetime(2024, 1, 1, 12, tzinfo=timezone.utc)
+    assert dateutil_value.timestamp() == utc_value.timestamp()
+    result = _producer_result(
+        {"data": [{"dateutil": dateutil_value, "utc": utc_value}]}
     )
-    # Replacing [] with the first quoted string adds its bytes; every later
-    # string also adds one comma. Leave one partial value for the exact edge.
-    per_full_value = MAX_QUERY_RESULT_STRING_BYTES + 3
-    full_value_count = (MAX_QUERY_RESULT_VALUE_BYTES - empty_size) // per_full_value
-    values = ["x" * MAX_QUERY_RESULT_STRING_BYTES for _ in range(full_value_count)]
-    result = {"queries": [{"data": [{"values": values}], "query": sql}]}
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [
+        {
+            "dateutil": "2024-01-01T07:00:00-05:00",
+            "utc": "2024-01-01T12:00:00+00:00",
+        }
+    ]
+    assert datetime.fromisoformat(data[0]["dateutil"]).timestamp() == (
+        datetime.fromisoformat(data[0]["utc"]).timestamp()
+    )
+
+
+def test_dateutil_datetime_preserves_historical_transition_boundary() -> None:
+    source_timezone = dateutil_tz.gettz("America/New_York")
+    assert source_timezone is not None
+    namespace = object.__getattribute__(source_timezone, "__dict__")
+    transition = dict.__getitem__(namespace, "_trans_list")[1]
+    wall = datetime(1970, 1, 1) + timedelta(seconds=transition)
+    values = [
+        (wall - timedelta(seconds=1)).replace(tzinfo=source_timezone),
+        wall.replace(tzinfo=source_timezone),
+    ]
+    expected = [datetime.isoformat(value) for value in values]
+    result = _producer_result({"data": [{"value": value} for value in values]})
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"value": value} for value in expected]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "reversed-transitions",
+        "inconsistent-wall-transition",
+        "mismatched-index",
+        "invalid-offset",
+        "wrong-standard-record",
+    ],
+)
+def test_dateutil_datetime_rejects_mutated_transition_state(mutation: str) -> None:
+    zone = copy.deepcopy(dateutil_tz.gettz("America/New_York"))
+    namespace = object.__getattribute__(zone, "__dict__")
+    if mutation == "reversed-transitions":
+        namespace["_trans_list"] = tuple(reversed(namespace["_trans_list"]))
+    elif mutation == "inconsistent-wall-transition":
+        transitions = namespace["_trans_list"]
+        namespace["_trans_list"] = (transitions[0] + 1, *transitions[1:])
+    elif mutation == "mismatched-index":
+        namespace["_trans_idx"] = namespace["_trans_idx"][:-1]
+    elif mutation == "wrong-standard-record":
+        namespace["_ttinfo_std"] = next(
+            info
+            for info in namespace["_ttinfo_list"]
+            if info is not namespace["_ttinfo_std"]
+        )
+    else:
+        namespace["_ttinfo_std"].offset = 86_400
+    result = _producer_result(
+        {"data": [{"value": datetime(2024, 1, 1, 12, tzinfo=zone)}]}
+    )
+
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+class HostileTransition(int):
+    calls = 0
+
+    def __le__(self, _other: Any) -> bool:
+        type(self).calls += 1
+        raise AssertionError("hostile transition hook executed")
+
+    def __repr__(self) -> str:
+        type(self).calls += 1
+        raise AssertionError("hostile transition hook executed")
+
+
+def test_dateutil_datetime_rejects_hostile_transition_without_hooks() -> None:
+    zone = copy.deepcopy(dateutil_tz.gettz("America/New_York"))
+    namespace = object.__getattribute__(zone, "__dict__")
+    transitions = namespace["_trans_list"]
+    namespace["_trans_list"] = (HostileTransition(transitions[0]), *transitions[1:])
+    value = datetime(2024, 1, 1, 12, tzinfo=zone)
+    HostileTransition.calls = 0
+
+    error = validate_query_result_envelope(
+        _producer_result({"data": [{"value": value}]})
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+    assert HostileTransition.calls == 0
+
+
+def test_shared_acyclic_containers_are_normalized_for_every_occurrence() -> None:
+    shared = [np.float64(1.5), float("nan")]
+    metadata = {"nested": [np.int64(2)]}
+    result = _producer_result(
+        {
+            "data": [{"left": shared, "right": shared}],
+            "metadata": [metadata, metadata],
+        }
+    )
+
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0]["data"] == [{"left": [1.5, None], "right": [1.5, None]}]
+    assert result["queries"][0]["metadata"] == [
+        {"nested": [2]},
+        {"nested": [2]},
+    ]
+
+
+def test_shared_acyclic_containers_are_recharged_per_occurrence(monkeypatch) -> None:
+    shared = ["escaped\nvalue"]
+    result = {"queries": [{"data": [{"left": shared, "right": shared}]}]}
     encoded_size = len(
         json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode()
     )
-    remaining = MAX_QUERY_RESULT_VALUE_BYTES - encoded_size
-    assert 3 <= remaining <= MAX_QUERY_RESULT_STRING_BYTES + 3
-    # Appending the final array item costs its quotes and, because the array is
-    # nonempty, one comma in addition to its raw bytes.
-    values.append("x" * (remaining - 3))
-    assert (
-        len(json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode())
-        == MAX_QUERY_RESULT_VALUE_BYTES
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size - 1,
     )
 
-    data, failure = query_result_data(result)
-    assert failure is None
-    assert data == [[{"values": values}]]
+    error = validate_query_result_envelope(result)
 
-    values[-1] += "x"
-    data, failure = query_result_data(result)
-    assert data is None
-    assert failure is not None
-    assert "total JSON-encoded byte limit" in failure.error
+    assert error is not None
+    assert "JSON bytes" in error.error
 
 
-def test_query_result_bounds_arbitrary_top_level_metadata() -> None:
-    data, failure = query_result_data(
-        {
-            "producer_metadata": "x" * (MAX_QUERY_RESULT_METADATA_BYTES + 1),
-            "queries": [{"data": []}],
-        }
+def test_true_container_cycle_is_rejected() -> None:
+    cyclic: list[Any] = []
+    cyclic.append(cyclic)
+
+    error = validate_query_result_envelope({"queries": [{"data": [{"value": cyclic}]}]})
+
+    assert error is not None
+    assert "cyclic" in error.error
+
+
+class HostileTimezone(tzinfo):
+    def utcoffset(self, dt):
+        raise AssertionError("timezone hook executed")
+
+    def dst(self, dt):
+        raise AssertionError("timezone hook executed")
+
+    def tzname(self, dt):
+        raise AssertionError("timezone hook executed")
+
+
+def test_exact_datetime_rejects_untrusted_timezone_without_hooks() -> None:
+    result = _producer_result(
+        {"data": [{"value": datetime(2024, 1, 1, tzinfo=HostileTimezone())}]}
     )
 
-    assert data is None
-    assert failure is not None
-    assert "top-level result metadata" in failure.error
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
 
 
-def test_query_result_enforces_decimal_digit_and_exponent_boundaries() -> None:
-    at_digit_limit = Decimal("9" * MAX_QUERY_RESULT_DECIMAL_DIGITS)
-    at_exponent_limit = Decimal("1e4096")
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {
-                    "data": [{"digits": at_digit_limit, "exponent": at_exponent_limit}],
-                    "rowcount": 1,
-                }
-            ]
-        }
+def test_aggregate_rows_accept_boundary_and_reject_one_beyond(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_ROWS", 2
     )
-    assert failure is None
-    assert data is not None
+    boundary: dict[str, Any] = {"queries": [{"data": [{}]}, {"data": [{}]}]}
+    beyond: dict[str, Any] = {"queries": [{"data": [{}]}, {"data": [{}, {}]}]}
 
-    for value in (
-        Decimal("9" * (MAX_QUERY_RESULT_DECIMAL_DIGITS + 1)),
-        Decimal(f"1e{MAX_QUERY_RESULT_DECIMAL_EXPONENT + 1}"),
-    ):
-        data, failure = query_result_data(
-            {"queries": [{"data": [{"value": value}], "rowcount": 1}]}
-        )
-        assert data is None
-        assert failure is not None
+    assert validate_query_result_envelope(boundary) is None
+    error = validate_query_result_envelope(beyond)
+    assert error is not None
+    assert "aggregate rows" in error.error
 
 
-def test_query_result_requires_rowcount_to_cover_returned_data() -> None:
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": 1}], "rowcount": 0}]}
-    )
+def test_two_queries_accept_the_full_per_query_row_volume() -> None:
+    result: dict[str, Any] = {
+        "queries": [
+            {"data": [{} for _ in range(MAX_QUERY_RESULT_ROWS_PER_QUERY)]},
+            {"data": [{} for _ in range(MAX_QUERY_RESULT_ROWS_PER_QUERY)]},
+        ]
+    }
 
-    assert data is None
-    assert failure is not None
-    assert "rowcount is smaller than len(data)" in failure.error
+    assert validate_query_result_envelope(result) is None
 
 
-@pytest.mark.parametrize(
-    "query",
-    [
-        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": []},
-        {
-            "data": [{"a": 1}],
-            "colnames": ["a"],
-            "coltypes": [0, 1],
-        },
-        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": "numeric"},
-        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [None]},
-        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [[0]]},
-        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [True]},
-        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [1.0]},
-        {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [5]},
-        {"data": [{"a": 1}], "coltypes": [0]},
-    ],
-)
-def test_query_result_rejects_malformed_or_misaligned_coltypes(
-    query: dict[str, Any],
-) -> None:
-    data, failure = query_result_data({"queries": [query]})
-
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-
-
-@pytest.mark.parametrize(
-    "colnames",
-    [
-        ["a", "a"],
-        [""],
-        [1],
-        [_HostileStr("a")],
-        ["a" * 5000],
-    ],
-)
-def test_query_result_rejects_duplicate_or_malformed_colnames(
-    colnames: list[Any],
-) -> None:
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"a": 1}], "colnames": colnames}]}
-    )
-
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-
-
-@pytest.mark.parametrize(
-    "query",
-    [
-        {"data": [{"a": 1}]},
-        {"data": [{"a": 1}], "colnames": ["a"]},
-        {"data": [], "coltypes": []},
-        {
-            "data": [{"a": 1, "b": "x", "c": [1]}],
-            "colnames": ["a", "b", "c"],
-            "coltypes": [
-                GenericDataType.NUMERIC,
-                1,
-                GenericDataType.MULTI_VALUE,
-            ],
-        },
-    ],
-)
-def test_query_result_accepts_legitimate_optional_column_metadata(
-    query: dict[str, Any],
-) -> None:
-    data, failure = query_result_data({"queries": [query]})
-
-    assert data == [query["data"]]
-    assert failure is None
-
-
-def test_query_result_validates_column_metadata_on_every_query() -> None:
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {"data": [{"a": 1}], "colnames": ["a"], "coltypes": [0]},
-                {"data": [{"b": 2}], "colnames": ["b"], "coltypes": []},
-            ]
-        }
-    )
-
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-    assert "query 2" in failure.error
-
-
-def test_query_result_extracts_normal_nested_errors() -> None:
-    data, failure = query_result_data(
-        {"errors": [{"detail": "warehouse unavailable"}, "retry later"]}
-    )
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-    assert "warehouse unavailable; retry later" in failure.error
-
-
-def test_query_result_prefers_top_level_message_over_unrecognized_error_object() -> (
-    None
-):
-    data, failure = query_result_data(
-        {"error": {"code": 500}, "message": "warehouse unavailable"}
-    )
-
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-    assert "warehouse unavailable" in failure.error
-
-
-def test_query_result_rejects_unrecognized_error_object_without_message() -> None:
-    data, failure = query_result_data({"error": {"code": 500}})
-
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-
-
-@pytest.mark.parametrize("shape", ["deep", "wide", "cycle", "repeated"])
-def test_query_result_bounds_adversarial_error_containers(shape: str) -> None:
-    if shape == "deep":
-        payload: Any = "bottom"
-        for _index in range(1201):
-            payload = {"error": payload}
-    elif shape == "wide":
-        payload = [f"error {index}" for index in range(1000)]
-    elif shape == "cycle":
-        payload = []
-        payload.append(payload)
-    else:
-        shared = {"message": "same failure"}
-        payload = [shared, shared]
-
-    data, failure = query_result_data({"error": payload})
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-
-
-def test_query_result_safely_describes_huge_integer_error() -> None:
-    data, failure = query_result_data({"error": 10**10000})
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-    assert "integer with approximately" in failure.error
-    assert "decimal digits" in failure.error
-
-
-def test_query_result_truncates_error_text_deterministically_by_bytes() -> None:
-    result = {"error": "é" * 5000}
-    first = query_result_data(result)[1]
-    second = query_result_data(result)[1]
-    assert first is not None
-    assert second is not None
-    assert first.error == second.error
-    assert "[truncated]" in first.error
-    assert len(first.error.encode("utf-8")) <= 2100
-
-
-@pytest.mark.parametrize(
-    "payload",
-    [
-        b"warehouse unavailable" * 100_000,
-        bytearray(b"warehouse unavailable" * 100_000),
-        memoryview(b"warehouse unavailable" * 100_000),
-    ],
-)
-def test_query_result_bounds_binary_scalars_before_conversion(payload: object) -> None:
-    data, failure = query_result_data({"error": payload})
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-    assert "warehouse unavailable" in failure.error
-    assert "[truncated]" in failure.error
-    assert len(failure.error.encode("utf-8")) <= 2100
-
-
-def test_query_result_never_calls_custom_object_string_or_repr() -> None:
-    class HostileScalar:
-        def __str__(self) -> str:
-            raise AssertionError("unbounded custom __str__ must not run")
-
-        def __repr__(self) -> str:
-            raise AssertionError("unbounded custom __repr__ must not run")
-
-    data, failure = query_result_data({"error": HostileScalar()})
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-    assert "<HostileScalar object>" in failure.error
-
-
-@pytest.mark.parametrize(
-    ("payload_factory", "descriptor"),
-    [
-        (lambda: _HostileStr("x" * 1_000_000), "<_HostileStr object>"),
-        (lambda: _HostileInt(10**10000), "<_HostileInt object>"),
-        (lambda: _HostileFloat(1.25), "<_HostileFloat object>"),
-        (lambda: _HostileBytes(b"x" * 1_000_000), "<_HostileBytes object>"),
-        (
-            lambda: _HostileBytearray(b"x" * 1_000_000),
-            "<_HostileBytearray object>",
-        ),
-        (lambda: _HostileBoolLike(), "<_HostileBoolLike object>"),
-        (lambda: _HostileBytesLike(), "<_HostileBytesLike object>"),
-    ],
-)
-def test_query_result_describes_builtin_subclasses_without_invoking_them(
-    payload_factory: Callable[[], object], descriptor: str
-) -> None:
-    data, failure = query_result_data({"error": payload_factory()})
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-    assert descriptor in failure.error
-    assert len(failure.error.encode("utf-8")) <= 2100
-
-
-@pytest.mark.parametrize(
-    ("payload", "message"),
-    [
-        ("warehouse unavailable", "warehouse unavailable"),
-        (503, "503"),
-        (1.25, "1.25"),
-        (True, "True"),
-        (b"binary failure", "binary failure"),
-        (bytearray(b"binary failure"), "binary failure"),
-        (memoryview(b"binary failure"), "binary failure"),
-    ],
-)
-def test_query_result_retains_useful_exact_builtin_errors(
-    payload: object, message: str
-) -> None:
-    data, failure = query_result_data({"error": payload})
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-    assert message in failure.error
-
-
-@pytest.mark.parametrize(
-    ("payload", "message"),
-    [
-        (_HostileStringEnum.FAILED, "failed"),
-        (_TextEnum.VALUE, "warehouse unavailable"),
-        (_IntegerEnum.VALUE, "503"),
-        (_FloatEnum.VALUE, "1.25"),
-        (_BooleanEnum.VALUE, "True"),
-        (_BytesEnum.VALUE, "binary failure"),
-        (_UnsupportedEnum.VALUE, "<_UnsupportedEnum object>"),
-    ],
-)
-def test_query_result_safely_renders_supported_enum_values(
-    payload: object, message: str
-) -> None:
-    data, failure = query_result_data({"error": payload})
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-    assert message in failure.error
-
-
-def test_query_result_reads_enum_status_without_public_value_or_string_hooks() -> None:
-    data, failure = query_result_data(
-        {"status": _HostileStringEnum.FAILED, "message": "warehouse timeout"}
-    )
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-    assert "warehouse timeout" in failure.error
-
-
-def test_query_result_bounds_non_invoking_type_descriptors() -> None:
-    hostile_type = type("T" * 1_000_000, (), {"__str__": _hostile_call})
-    data, failure = query_result_data({"error": hostile_type()})
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-    assert "[truncated]" in failure.error
-    assert len(failure.error.encode("utf-8")) <= 2100
-
-
-class _HostileDict(dict[str, Any]):
-    __bool__ = _hostile_call
-    __contains__ = _hostile_call
-    __getitem__ = _hostile_call
-    __iter__ = _hostile_call
-    __len__ = _hostile_call
-    get = _hostile_call
-
-
-class _HostileList(list[Any]):
-    __bool__ = _hostile_call
-    __getitem__ = _hostile_call
-    __iter__ = _hostile_call
-    __len__ = _hostile_call
-
-
-class _HostileRowScalar(str):
-    __hash__ = _hostile_call
-    __repr__ = _hostile_call
-    __str__ = _hostile_call
-
-
-@pytest.mark.parametrize(
-    "result",
-    [
-        _HostileDict(queries=[]),
-        {"queries": _HostileList([{"data": []}])},
-        {"queries": [_HostileDict(data=[])]},
-        {"queries": [{"data": _HostileList()}]},
-    ],
-)
-def test_query_result_rejects_container_subclasses_without_invoking_them(
-    result: object,
-) -> None:
-    data, failure = query_result_data(result)
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-
-
-@pytest.mark.parametrize(
-    "row_factory",
-    [
-        lambda: 1,
-        lambda: "row",
-        object,
-        _HostileBoolLike,
-        lambda: _HostileDict(value=1),
-    ],
-)
-def test_query_result_requires_exact_dict_rows_without_conversion(
-    row_factory: Callable[[], Any],
-) -> None:
-    data, failure = query_result_data({"queries": [{"data": [row_factory()]}]})
-
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-    assert len(failure.error.encode()) <= 2000
-
-
-def test_query_result_rejects_scalar_subclasses_inside_exact_rows() -> None:
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": _HostileRowScalar("unsafe")}]}]}
-    )
-
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-
-
-def test_query_result_rejects_custom_metaclass_scalars_without_type_hooks() -> None:
-    class _HostileMeta(type):
-        __eq__ = _hostile_call
-        __hash__ = _hostile_call
-
-    class _HostileScalar(metaclass=_HostileMeta):
-        __repr__ = _hostile_call
-        __str__ = _hostile_call
-
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": _HostileScalar()}]}]}
-    )
-
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-
-
-@pytest.mark.parametrize("preserve_csv", [False, True])
-def test_query_result_rejects_custom_timezone_without_invoking_it(
-    preserve_csv: bool,
-) -> None:
-    class _HostileTimezone(tzinfo):
-        def utcoffset(self, _value: datetime | None) -> timedelta | None:
-            raise AssertionError("custom timezone hook must not run")
-
-        def dst(self, _value: datetime | None) -> timedelta | None:
-            raise AssertionError("custom timezone hook must not run")
-
-        def tzname(self, _value: datetime | None) -> str | None:
-            raise AssertionError("custom timezone hook must not run")
-
-    for value in (
-        datetime(2024, 1, 1, tzinfo=_HostileTimezone()),
-        datetime_time(12, tzinfo=_HostileTimezone()),
-    ):
-        data, failure = query_result_data(
-            {"queries": [{"data": [{"value": value}]}]},
-            preserve_csv_temporals=preserve_csv,
-        )
-
-        assert data is None
-        assert failure is not None
-        assert failure.error_type == "MalformedQueryResult"
-
-
-def test_bullet_temporal_mode_projects_timestamp_and_numpy_before_generic() -> None:
-    timestamp = pd.Timestamp("2024-01-02 03:04:05.123456789")
-    numpy_timestamp = np.datetime64("1969-12-31T23:59:59.999999999")
+def test_empty_rows_do_not_multiply_declared_column_validation_work() -> None:
+    columns = [f"column_{index}" for index in range(MAX_QUERY_RESULT_COLUMNS)]
     result = {
         "queries": [
             {
-                "data": [
-                    {
-                        "timestamp": timestamp,
-                        "numpy_timestamp": numpy_timestamp,
-                        "date": date(2024, 1, 2),
-                        "pandas_nat": pd.NaT,
-                        "numpy_nat": np.datetime64("NaT"),
-                    }
-                ]
+                "data": [{} for _ in range(MAX_QUERY_RESULT_ROWS_PER_QUERY)],
+                "colnames": columns,
+                "coltypes": [GenericDataType.STRING] * len(columns),
             }
         ]
     }
 
-    data, failure = query_result_data(result, temporal_json_numbers=True)
+    error = validate_query_result_envelope(result)
 
-    assert failure is None
-    assert data == [
-        [
-            {
-                "timestamp": 1704164645123.456,
-                "numpy_timestamp": -0.0010000000000287557,
-                "date": 1704153600000.0,
-                "pandas_nat": None,
-                "numpy_nat": None,
-            }
-        ]
-    ]
+    assert error is not None
+    assert "declared column order" in error.error
 
 
-def test_non_bullet_temporal_mode_retains_canonical_iso_projection() -> None:
+def test_per_query_row_limit_is_independent_of_aggregate_limit(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_ROWS_PER_QUERY", 1
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_ROWS", 3
+    )
+    boundary: dict[str, Any] = {"queries": [{"data": [{}]}, {"data": [{}]}]}
+    beyond: dict[str, Any] = {"queries": [{"data": [{}, {}]}]}
+
+    assert validate_query_result_envelope(boundary) is None
+    error = validate_query_result_envelope(beyond)
+    assert error is not None
+    assert "too many rows for query 1" in error.error
+
+
+def test_aggregate_nested_nodes_accept_boundary_and_reject_one_beyond(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUES", 10
+    )
+    boundary = {"queries": [{"data": [{"x": 1}]}, {"data": [{"x": 2}]}]}
+    beyond = {"queries": [{"data": [{"x": 1}]}, {"data": [{"x": [2]}]}]}
+
+    assert validate_query_result_envelope(boundary) is None
+    error = validate_query_result_envelope(beyond)
+    assert error is not None
+    assert "aggregate values" in error.error
+
+
+def test_aggregate_json_bytes_accept_boundary_and_reject_one_beyond(
+    monkeypatch,
+) -> None:
+    boundary = {"queries": [{"data": [{"x": "a"}]}, {"data": [{"x": "a"}]}]}
+    encoded_size = len(
+        json.dumps(boundary, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size,
+    )
+    beyond = {"queries": [{"data": [{"x": "a"}]}, {"data": [{"x": "aa"}]}]}
+
+    assert validate_query_result_envelope(boundary) is None
+    error = validate_query_result_envelope(beyond)
+    assert error is not None
+    assert "JSON bytes" in error.error
+
+
+def test_json_budget_charges_escaped_keys_scalars_and_nested_syntax(
+    monkeypatch,
+) -> None:
     result = {
         "queries": [
-            {
-                "data": [
-                    {
-                        "timestamp": pd.Timestamp("2024-01-02 03:04:05.123456789"),
-                        "numpy_timestamp": np.datetime64("2024-01-02", "D"),
-                    }
-                ]
-            }
+            {"data": [{'quoted"\\\n💥': {"nested": [None, True, 123, "café"]}}]}
         ]
     }
+    encoded_size = len(
+        json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size - 1,
+    )
 
-    data, failure = query_result_data(result)
+    error = validate_query_result_envelope(result)
+    assert error is not None
+    assert "JSON bytes" in error.error
 
-    assert failure is None
-    assert data == [
-        [
-            {
-                "timestamp": "2024-01-02T03:04:05.123456789",
-                "numpy_timestamp": "2024-01-02T00:00:00",
-            }
-        ]
-    ]
-
-
-@pytest.mark.parametrize(
-    ("key", "value"),
-    [
-        ("rowcount", -1),
-        ("rowcount", 1.5),
-        ("rowcount", float("nan")),
-        ("rowcount", float("inf")),
-        ("rowcount", True),
-        ("rowcount", 1 << 1000),
-        ("total_rows", -1),
-        ("total_rows", "1"),
-        ("cache_key", _HostileStr("key")),
-        ("cache_key", "x" * 5000),
-        ("cached_dttm", _HostileStr("2024-01-01")),
-        ("cached_dttm", "x" * 5000),
-        ("cache_dttm", _HostileStr("2024-01-01")),
-        ("cache_dttm", "x" * 5000),
-    ],
-)
-def test_query_result_rejects_unbounded_or_malformed_metadata(
-    key: str, value: Any
-) -> None:
-    data, failure = query_result_data({"queries": [{"data": [], key: value}]})
-
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size,
+    )
+    assert validate_query_result_envelope(result) is None
 
 
-def test_query_result_validates_top_level_and_every_query_metadata() -> None:
-    for result in (
-        {"rowcount": -1, "queries": [{"data": []}]},
-        {
-            "queries": [
-                {"data": [], "rowcount": 0},
-                {"data": [], "total_rows": 2.25},
-            ]
-        },
-    ):
-        data, failure = query_result_data(result)
-        assert data is None
-        assert failure is not None
-        assert failure.error_type == "MalformedQueryResult"
-
-
-def test_query_result_accepts_bounded_cache_metadata_and_integral_float_count() -> None:
-    data, failure = query_result_data(
-        {
-            "cache_key": "top",
-            "cached_dttm": datetime(2024, 1, 1, tzinfo=timezone.utc),
-            "rowcount": 1.0,
+def test_json_budget_charges_canonical_cache_metadata_expansion(monkeypatch) -> None:
+    def producer_result() -> dict[str, Any]:
+        return {
             "queries": [
                 {
                     "data": [],
-                    "cache_key": "query",
-                    "cached_dttm": "2024-01-01T00:00:00+00:00",
-                    "cache_dttm": "2024-01-01T00:00:00+00:00",
-                    "rowcount": 0.0,
-                    "total_rows": 0,
-                    "is_cached": False,
+                    "is_cached": None,
+                    "cached_dttm": "2026-09-02T00:00:00Z",
                 }
-            ],
+            ]
         }
+
+    canonical = {
+        "queries": [
+            {
+                "data": [],
+                "is_cached": False,
+                "cached_dttm": "2026-09-02T00:00:00+00:00",
+            }
+        ]
+    }
+    encoded_size = len(
+        json.dumps(canonical, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size - 1,
+    )
+    error = validate_query_result_envelope(producer_result())
+    assert error is not None
+    assert "JSON bytes" in error.error
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size,
+    )
+    assert validate_query_result_envelope(producer_result()) is None
+
+
+def test_aggregate_large_integers_are_rejected_by_json_byte_budget() -> None:
+    huge_value = 10**999
+    rows = [{"value": huge_value}] * 17_000
+
+    error = validate_query_result_envelope(
+        {"queries": [{"data": rows, "rowcount": len(rows)}]}
     )
 
-    assert failure is None
-    assert data == [[]]
+    assert error is not None
+    assert "JSON bytes" in error.error
 
 
-def test_query_result_cache_datetime_rejects_hostile_timezone_without_hooks() -> None:
-    class _HostileTimezone(tzinfo):
-        def utcoffset(self, _value: datetime | None) -> timedelta | None:
-            raise AssertionError("custom timezone hook must not run")
+def test_max_query_count_cannot_multiply_the_shared_nested_budget(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUES", 100
+    )
+    result = {
+        "queries": [
+            {"data": [{"value": [None, None]}]} for _ in range(MAX_QUERY_RESULTS)
+        ]
+    }
 
-        def dst(self, _value: datetime | None) -> timedelta | None:
-            raise AssertionError("custom timezone hook must not run")
+    error = validate_query_result_envelope(result)
 
-        def tzname(self, _value: datetime | None) -> str | None:
-            raise AssertionError("custom timezone hook must not run")
+    assert error is not None
+    assert "aggregate values" in error.error
 
-    data, failure = query_result_data(
+
+@pytest.mark.parametrize("timeout", [-1, 0, 300, 2**31 - 1, None])
+def test_producer_cache_timeout_preserves_disabled_and_bounded_values(
+    timeout: int | None,
+) -> None:
+    """The real command envelope accepts disabled caching without rewriting it."""
+    result = _producer_result({"data": [{"value": 1}], "cache_timeout": timeout})
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0]["cache_timeout"] == timeout
+
+
+@pytest.mark.parametrize("timeout", [-2, True, False, -1.0, "-1", IntSubclass(-1)])
+def test_cache_timeout_rejects_noncanonical_sentinel_lookalikes(timeout: Any) -> None:
+    """Only the exact integer sentinel bypasses the non-negative timeout range."""
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [], "cache_timeout": timeout}]}
+    )
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize("is_dst", [True, False])
+def test_pytz_timestamp_preserves_ambiguous_instant_and_nanoseconds(
+    is_dst: bool,
+) -> None:
+    """Pandas producer timestamps preserve either occurrence of a DST fold."""
+    source = pd.Timestamp(
+        pytz.timezone("America/New_York").localize(
+            datetime(2024, 11, 3, 1, 30), is_dst=is_dst
+        )
+    ) + pd.Timedelta(123, unit="ns")
+    data, error = first_query_data(_producer_result({"data": [{"value": source}]}))
+    assert error is None
+    assert data == [{"value": source.isoformat()}]
+
+
+def test_full_payload_index_metadata_uses_the_row_budget() -> None:
+    """A real FULL payload carries one ``indexnames`` entry per row."""
+    rows = MAX_RESULT_VALUE_ITEMS + 1
+    result = full_producer_command_result(pd.DataFrame({"value": range(rows)}))
+    query = result["queries"][0]
+    assert len(query["indexnames"]) == rows
+
+    assert validate_query_result_envelope(result) is None
+    assert query["indexnames"] == list(range(rows))
+    assert len(query["data"]) == rows
+
+
+def test_full_payload_index_metadata_stays_bounded_per_query() -> None:
+    error = validate_query_result_envelope(
         {
             "queries": [
                 {
                     "data": [],
-                    "cached_dttm": datetime(2024, 1, 1, tzinfo=_HostileTimezone()),
+                    "indexnames": [0] * (MAX_QUERY_RESULT_ROWS_PER_QUERY + 1),
                 }
             ]
         }
     )
 
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
 
 
-def test_query_result_rejects_hostile_error_containers_without_invoking_them() -> None:
-    data, failure = query_result_data({"error": _HostileDict(message="no")})
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
+def test_troubleshooting_guide_separates_mandatory_result_limits() -> None:
+    """The admin guide must not imply MCP_RESPONSE_SIZE_CONFIG lifts these caps."""
+    from pathlib import Path
 
-
-@pytest.mark.parametrize(
-    ("value", "expected"),
-    [
-        ("short\ud800text", "short?text"),
-        ("é\ud800中", "é?中"),
-        ("\ud800" * 5000, "[truncated]"),
-    ],
-)
-def test_utf8_truncation_replacement_sanitizes_surrogates(
-    value: str, expected: str
-) -> None:
-    result = _truncate_utf8(value, 2000)
-    assert expected in result
-    assert "\ud800" not in result
-    assert len(result.encode("utf-8")) <= 2000
-
-
-def test_safe_exception_message_bounds_assertions_without_string_conversion() -> None:
-    class HostileAssertionError(AssertionError):
-        __str__ = _hostile_call
-
-    message = safe_exception_message(HostileAssertionError("x" * 100_000 + "\ud800"))
-    assert "[truncated]" in message
-    assert "\ud800" not in message
-    assert len(message.encode("utf-8")) <= 2000
-
-
-class UppercaseStatus(Enum):
-    FAILED = "FAILED"
-
-
-@pytest.mark.parametrize(
-    "payload",
-    [
-        {"error": "top-level error", "queries": []},
-        {"error_message": "top-level error message", "queries": []},
-        {"status": "ERROR", "message": "top-level status failure"},
-        {"status": "timed out", "message": "top-level timeout"},
-        {"success": False, "message": "top-level unsuccessful payload"},
-        {"message": "standalone top-level failure"},
-        {"queries": [{"status": "Failed", "message": "query failed"}]},
-        {
-            "queries": [
-                {"status": "success", "data": [{"value": 1}]},
-                {"status": QueryStatus.FAILED, "error_message": "second failed"},
-            ]
-        },
-        {"queries": [{"status": UppercaseStatus.FAILED, "message": "enum failed"}]},
-    ],
-)
-def test_query_result_failure_detects_failure_envelopes(payload):
-    failure = query_result_failure(payload)
-
-    assert failure is not None
-    assert failure.error_type == "QueryError"
-
-
-@pytest.mark.parametrize(
-    "payload",
-    [
-        # A top-level informational message alongside a well-formed envelope.
-        {
-            "status": "success",
-            "message": "served from cache",
-            "queries": [{"data": []}],
-        },
-        {
-            "queries": [
-                {"status": QueryStatus.SUCCESS, "message": "no rows", "data": []}
-            ]
-        },
-        {"queries": [{"status": "running", "message": "in progress", "data": []}]},
-        {"queries": [{"message": "informational", "data": []}]},
-        {"queries": [{"data": []}]},
-    ],
-)
-def test_query_result_failure_allows_valid_and_informational_envelopes(payload):
-    assert query_result_failure(payload) is None
-
-
-def test_query_result_failure_rejects_envelope_without_a_query() -> None:
-    """An empty queries array is a malformed envelope, not a success."""
-    failure = query_result_failure(
-        {"status": "success", "message": "served from cache", "queries": []}
-    )
-
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-
-
-@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
-def test_raw_gauge_mode_preserves_builtin_float_markers(value: float) -> None:
-    """Raw exports retain float markers without changing strict default validation."""
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": value}]}]},
-        preserve_nonfinite_floats=True,
-    )
-    assert failure is None
-    assert data is not None
-    assert data[0][0]["value"] is value
-
-
-def test_raw_gauge_mode_still_rejects_scalar_subclasses() -> None:
-    """Raw export compatibility must not dispatch to arbitrary numeric hooks."""
-
-    class HostileFloat(float):
-        """A subclass that must be rejected without calling its conversion hook."""
-
-        def __float__(self) -> float:
-            raise AssertionError("float hook executed")
-
-    data, failure = query_result_data(
-        {"queries": [{"data": [{"value": HostileFloat("inf")}]}]},
-        preserve_nonfinite_floats=True,
-    )
-    assert data is None
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-
-
-def test_query_result_preserves_binary_column_contract() -> None:
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {
-                    "data": [
-                        {
-                            "text": b"abc",
-                            "blob": b"\xff\xfe\x00",
-                            "view": memoryview(b"\xff\x01"),
-                            "array": bytearray(b"hi"),
-                        }
-                    ],
-                    "rowcount": 1,
-                }
-            ]
-        }
-    )
-
-    assert failure is None
-    assert data is not None
-    assert data[0][0] == {
-        "text": "abc",
-        "blob": "base64://4A",
-        "view": "base64:/wE=",
-        "array": "hi",
-    }
-
-
-def test_query_result_rejects_oversized_binary_value() -> None:
-    data, failure = query_result_data(
-        {
-            "queries": [
-                {
-                    "data": [{"blob": b"\xff" * (MAX_QUERY_RESULT_STRING_BYTES + 1)}],
-                    "rowcount": 1,
-                }
-            ]
-        }
-    )
-
-    assert data is None
-    assert failure is not None
-    assert "oversized binary value" in failure.error
-
-
-@pytest.mark.parametrize("text", ["1.000000000000000001", "1e400"])
-def test_query_result_preserves_extended_numpy_float_precision(text: str) -> None:
-    """Trusted extended floats retain precision and range in the wire value."""
-    if np.finfo(np.longdouble).nmant <= np.finfo(np.float64).nmant:
-        pytest.skip("Platform longdouble has no extended precision")
-    from superset.dataframe import df_to_records
-
-    value = np.longdouble(text)
-    records = df_to_records(pd.DataFrame({"value": pd.Series([value], dtype=object)}))
-    assert type(records[0]["value"]) is np.longdouble
-    assert records[0]["value"] == value
-    data, failure = query_result_data({"queries": [{"data": records}]})
-    assert failure is None
-    assert data is not None
-    wire = data[0][0]["value"]
-    assert isinstance(wire, str)
-    assert np.longdouble(wire) == value
-    assert wire != "1.0"
-
-
-def test_query_result_normalizes_dataframe_tuple_cells() -> None:
-    """ClickHouse Tuple cells use bounded JSON arrays, including nested values."""
-    from superset.dataframe import df_to_records
-
-    records = df_to_records(
-        pd.DataFrame({"value": pd.Series([(np.int32(1), "a", (2,))], dtype=object)})
-    )
-    assert type(records[0]["value"]) is tuple
-    data, failure = query_result_data({"queries": [{"data": records}]})
-    assert failure is None
-    assert data == [[{"value": [1, "a", [2]]}]]
-
-
-def test_query_result_rejects_tuple_container_cycles_and_width() -> None:
-    """Tuple support retains cycle and array-width limits."""
-    from superset.mcp_service.chart.query_result import _MAX_ROW_CONTAINER_ITEMS
-
-    child: list[Any] = []
-    cyclic = (child,)
-    child.append(cyclic)
-    for value in [cyclic, (0,) * (_MAX_ROW_CONTAINER_ITEMS + 1)]:
-        data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
-        assert data is None
-        assert failure is not None
-        assert failure.error_type == "MalformedQueryResult"
-
-
-@pytest.mark.parametrize("viz_type", ["treemap_v2", "gauge_chart"])
-def test_extended_numpy_metric_survives_numeric_consumers(viz_type: str) -> None:
-    """Exact wire strings work in chart validation and render-only projection."""
-    from types import SimpleNamespace
-    from unittest.mock import patch
-
-    from superset.dataframe import df_to_records
-    from superset.mcp_service.chart.compile import _compile_chart
-    from superset.mcp_service.chart.preview_utils import (
-        generate_gauge_vega_lite_preview,
-    )
-    from superset.mcp_service.chart.query_result import normalize_chart_query_result
-    from superset.mcp_service.chart.schemas import ChartError
-    from superset.mcp_service.chart.treemap_preview import treemap_vega_lite
-
-    value = np.longdouble("1.000000000000000001")
-    records = df_to_records(
-        pd.DataFrame({"value": pd.Series([value], dtype=object), "Region": ["EU"]})
-    )
-    form_data = {"viz_type": viz_type, "metric": "value", "groupby": ["Region"]}
-    result = {"queries": [{"data": records}]}
-    data, failure = query_result_data(result)
-    assert failure is None
-    assert data is not None
-    wire = data[0][0]["value"]
-    assert isinstance(wire, str)
-    assert np.longdouble(wire) == value
-    checked = normalize_chart_query_result(result, form_data)
-    assert not isinstance(checked, ChartError), checked
-    renderer = (
-        treemap_vega_lite
-        if viz_type == "treemap_v2"
-        else generate_gauge_vega_lite_preview
-    )
-    preview = renderer(data[0], form_data)
-    assert not isinstance(preview, ChartError), preview
-    assert data[0][0]["value"] == wire
-
-    query = {"metrics": ["value"], "columns": ["Region"]}
-    context = SimpleNamespace(
-        form_data=form_data,
-        queries=[
-            SimpleNamespace(**query, filter=[], time_range=None, to_dict=lambda: query)
-        ],
-    )
-    with (
-        patch(
-            "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
-            return_value=context,
-        ),
-        patch(
-            "superset.commands.chart.data.get_data_command.ChartDataCommand"
-        ) as command,
-    ):
-        command.return_value.run.return_value = result
-        compiled = _compile_chart(form_data, 1)
-    assert compiled.success, compiled.error
-
-
-def test_query_result_accepts_multi_index_pivot_metadata() -> None:
-    """Real pivot index tuples survive result validation and JSON projection."""
-    from superset.utils import json
-
-    frame = pd.DataFrame(
-        {"country": ["US"], "region": ["East"], "value": [7]}
-    ).pivot_table(index=["country", "region"], values="value")
-    indexnames = list(frame.index)
-    assert indexnames == [("US", "East")]
-    payload = {
-        "queries": [{"data": frame.to_dict(orient="records"), "indexnames": indexnames}]
-    }
-    data, failure = query_result_data(payload)
-    assert failure is None
-    assert data == [[{"value": 7}]]
-    assert json.loads(json.dumps(payload))["queries"][0]["indexnames"] == [
-        ["US", "East"]
-    ]
-
-
-def test_query_result_bounds_tuple_metadata() -> None:
-    """Metadata tuples retain width, depth, cycle, and exact-type guards."""
     from superset.mcp_service.chart.query_result import (
-        _MAX_ROW_CONTAINER_DEPTH,
-        _MAX_ROW_CONTAINER_ITEMS,
+        MAX_QUERY_RESULT_COLUMNS,
+        MAX_QUERY_RESULT_ROWS,
+        MAX_QUERY_RESULT_VALUES,
     )
 
-    class TupleSubclass(tuple[Any, ...]):
-        """A tuple subclass is not a trusted builtin metadata container."""
+    guide = Path(__file__).parents[4] / "docs/admin_docs/configuration/mcp-server.mdx"
+    if not guide.exists():
+        pytest.skip("documentation sources are not available")
+    section = guide.read_text().split("### Response too large", 1)[1]
+    section = section.split("\n## ", 1)[0]
 
-    child: list[Any] = []
-    cyclic = (child,)
-    child.append(cyclic)
-    deep: Any = "leaf"
-    for _ in range(_MAX_ROW_CONTAINER_DEPTH + 1):
-        deep = (deep,)
-    for value in [
-        cyclic,
-        (0,) * (_MAX_ROW_CONTAINER_ITEMS + 1),
-        deep,
-        TupleSubclass(("US", "East")),
-    ]:
-        data, failure = query_result_data(
-            {"queries": [{"data": [], "indexnames": [value]}]}
-        )
-        assert data is None
-        assert failure is not None
-        assert failure.error_type == "MalformedQueryResult"
-
-
-@pytest.mark.parametrize("column", ["numbers", "nested"])
-def test_query_result_normalizes_arrow_list_dataframe_cells(column: str) -> None:
-    """Arrow lists materialize as exact ndarray cells before MCP validation."""
-    import pyarrow as pa
-
-    from superset.dataframe import df_to_records
-
-    expected = {"numbers": [1, 2], "nested": [[1, 2], [3]]}[column]
-    frame = pa.table({column: [expected]}).to_pandas()
-    records = df_to_records(frame)
-    assert type(records[0][column]) is np.ndarray
-    data, failure = query_result_data({"queries": [{"data": records}]})
-    assert failure is None
-    assert data == [[{column: expected}]]
-    assert json.loads(json.dumps(data)) == data
+    assert "not** affected by `MCP_RESPONSE_SIZE_CONFIG`" in section
+    assert "InvalidQueryResult" in section
+    for limit in (
+        MAX_QUERY_RESULT_ROWS_PER_QUERY,
+        MAX_QUERY_RESULT_ROWS,
+        MAX_QUERY_RESULT_COLUMNS,
+        MAX_QUERY_RESULT_VALUES,
+        MAX_RESULT_STRING_LENGTH,
+    ):
+        assert f"{limit:,}" in section
+    assert f"{MAX_QUERY_RESULT_VALUE_BYTES // (1024 * 1024)} MiB" in section
 
 
 @pytest.mark.parametrize(
-    ("value", "expected"),
+    "value, expected",
     [
+        ((1.0, 2.0), [1.0, 2.0]),
+        (np.array([1.0, 2.0]), [1.0, 2.0]),
+        ((np.array([1, 2]), {"nested": (3, 4)}), [[1, 2], {"nested": [3, 4]}]),
         (np.array([[1, 2], [3, 4]]), [[1, 2], [3, 4]]),
-        (np.array(7), 7),
-        (np.empty((2, 0)), [[], []]),
+    ],
+    ids=["tuple", "arrow-array", "nested", "multidimensional"],
+)
+def test_sequence_cells_are_canonical_json_arrays(value: Any, expected: Any) -> None:
+    """Tuple columns and Arrow-materialized arrays retain their JSON wire shape."""
+    result = {
+        "queries": [
+            {"data": [{"value": value}], "colnames": ["value"], "coltypes": [2]}
+        ]
+    }
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0]["data"] == [{"value": expected}]
+    assert json.loads(json.dumps(result))["queries"][0]["data"] == [{"value": expected}]
+
+
+@pytest.mark.parametrize("container", [tuple, np.array])
+def test_sequence_cells_use_existing_width_and_byte_limits(
+    container: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Sequence conversion must not bypass the aggregate or per-container bounds."""
+    error = validate_query_result_envelope(
+        {
+            "queries": [
+                {"data": [{"value": container([0] * (MAX_RESULT_VALUE_ITEMS + 1))}]}
+            ]
+        }
+    )
+    assert error is not None
+    assert "oversized array" in error.error
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES", 100
+    )
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [{"value": container(["x" * 100])}]}]}
+    )
+    assert error is not None
+    assert "JSON bytes" in error.error
+
+
+def test_cyclic_object_array_is_rejected() -> None:
+    """Track original ndarray identity, not only its newly allocated list."""
+    array = np.empty(1, dtype=object)
+    array[0] = array
+    error = validate_query_result_envelope({"queries": [{"data": [{"value": array}]}]})
+    assert error is not None
+    assert "cyclic" in error.error
+
+
+def test_sequence_subclasses_are_rejected_without_conversion_hooks() -> None:
+    class HookedTuple(tuple[Any, ...]):
+        """Tuple subclass whose conversion must not be invoked."""
+
+        def __iter__(self) -> Any:
+            """Fail if validation dispatches the producer's iteration hook."""
+            raise AssertionError("tuple hook called")
+
+    class HookedArray(np.ndarray):
+        """Array subclass whose conversion must not be invoked."""
+
+        def tolist(self) -> Any:
+            """Fail if validation dispatches the producer's conversion hook."""
+            raise AssertionError("array hook called")
+
+        def __getitem__(self, key: Any) -> Any:
+            """Fail if validation dispatches the producer's indexing hook."""
+            raise AssertionError("array indexing hook called")
+
+    for value in (HookedTuple((1, 2)), np.array([1, 2]).view(HookedArray)):
+        error = validate_query_result_envelope(
+            {"queries": [{"data": [{"value": value}]}]}
+        )
+        assert error is not None
+        assert "subclassed" in error.error
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ({1: "a"}, {"1": "a"}),
+        (
+            {True: "yes", None: "null", 1.5: "fraction"},
+            {"True": "yes", "None": "null", "1.5": "fraction"},
+        ),
+        ({1: "first", "1": "last"}, {"1": "last"}),
+        ([1.0, float("inf"), float("-inf"), float("nan")], [1.0, None, None, None]),
+        ([np.float32("inf"), np.float64("-inf")], [None, None]),
+        ({1: [float("inf"), {2: "nested"}]}, {"1": [None, {"2": "nested"}]}),
     ],
 )
-def test_query_result_normalizes_bounded_ndarray_shapes(
-    value: np.ndarray, expected: Any
+def test_nested_warehouse_values_keep_serializer_coercions(
+    value: Any, expected: Any
 ) -> None:
-    """Trusted arrays retain their JSON list shape and scalar normalization."""
-    data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
-    assert failure is None
-    assert data == [[{"value": expected}]]
-
-
-def test_query_result_ndarray_retains_container_guards(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Exact ndarray support retains width, depth, cycle and subclass guards."""
-
-    class HostileArray(np.ndarray):
-        """Reject conversion hooks on untrusted array subclasses."""
-
-        tolist = _hostile_call
-        __iter__ = _hostile_call
-        __getitem__ = _hostile_call
-
-    cycle = np.empty(1, dtype=object)
-    cycle[0] = cycle
-    scalar_cycle = np.empty((), dtype=object)
-    scalar_cycle[()] = scalar_cycle
-    values = [
-        cycle,
-        scalar_cycle,
-        np.broadcast_to(
-            np.array(0), (query_result_module._MAX_ROW_CONTAINER_ITEMS + 1,)
-        ),
-        np.array([1]).view(HostileArray),
-        np.array([_HostileInt(1)], dtype=object),
-    ]
-    for value in values:
-        data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
-        assert data is None
-        assert failure is not None
-        assert failure.error_type == "MalformedQueryResult"
-
-    # Keep the array below NumPy 1.x's 32-dimensional limit.
-    value = np.zeros((1, 1, 1))
-    data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
-    assert failure is None
-    assert data == [[{"value": [[[0.0]]]}]]
-    with monkeypatch.context() as limits:
-        limits.setattr(query_result_module, "_MAX_ROW_CONTAINER_DEPTH", 2)
-        data, failure = query_result_data({"queries": [{"data": [{"value": value}]}]})
-        assert data is None
-        assert failure is not None
-        assert failure.error_type == "MalformedQueryResult"
-        assert "nesting depth limit" in failure.error
-
-
-def test_query_result_ndarray_charges_work_and_wire_bytes(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Array normalization cannot escape cumulative work or JSON budgets."""
-    result = {"queries": [{"data": [{"value": np.array([1, 2])}]}]}
-    data, failure = query_result_data(result)
-    assert failure is None
-    assert data == [[{"value": [1, 2]}]]
-    with monkeypatch.context() as limits:
-        limits.setattr(query_result_module, "MAX_QUERY_RESULT_VALUES", 3)
-        for width in (2, 4):
-            _, failure = query_result_data(
-                {"queries": [{"data": [{"value": np.arange(width)}]}]}
-            )
-            assert failure is not None
-    expected = {"queries": [{"data": [{"value": ["x" * 50]}]}]}
-    exact_size = len(json.dumps(expected, separators=(",", ":")).encode())
-    with monkeypatch.context() as limits:
-        limits.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_size)
-        _, failure = query_result_data(
-            {"queries": [{"data": [{"value": np.array(["x" * 50])}]}]}
-        )
-        assert failure is None
-        limits.setattr(
-            query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_size - 1
-        )
-        _, failure = query_result_data(
-            {"queries": [{"data": [{"value": np.array(["x" * 50])}]}]}
-        )
-        assert failure is not None
-        assert "total JSON-encoded byte limit" in failure.error
-
-
-@pytest.mark.parametrize("as_array", [False, True])
-def test_query_result_detached_normalization_preserves_source_cells(
-    as_array: bool,
-) -> None:
-    """Validation copies nested containers without rewriting an export source."""
-    value = datetime(2026, 10, 5, 12)
-    nested = {"values": [value, (value,)]}
-    source = np.array([value], dtype=object) if as_array else [value]
-    row = {"at": value, "left": nested, "right": nested, "array": source}
-    result = {"queries": [{"data": [row]}]}
-    data, failure = query_result_data(result, normalize_in_place=False)
-    assert failure is None
-    assert data == [
-        [
-            {
-                "at": "2026-10-05T12:00:00",
-                "left": {"values": ["2026-10-05T12:00:00", ["2026-10-05T12:00:00"]]},
-                "right": {"values": ["2026-10-05T12:00:00", ["2026-10-05T12:00:00"]]},
-                "array": ["2026-10-05T12:00:00"],
-            }
+    """ClickHouse maps and arrays normalize without rejecting the whole result."""
+    payload = {
+        "queries": [
+            {"data": [{"payload": value}], "colnames": ["payload"], "coltypes": [1]}
         ]
+    }
+    assert validate_query_result_envelope(payload) is None
+    assert payload["queries"][0]["data"] == [{"payload": expected}]
+    assert json.loads(json.dumps(payload))["queries"][0]["data"] == [
+        {"payload": expected}
     ]
-    assert result["queries"][0]["data"][0] is row
-    assert row["at"] is value
-    assert row["left"] is row["right"] is nested
-    assert nested["values"][0] is value
-    assert nested["values"][1] == (value,)
-    assert row["array"] is source
-    assert source[0] is value
 
 
-@pytest.mark.parametrize("kind", ["cycle", "width", "unsupported"])
-def test_query_result_detached_normalization_keeps_validation_bounds(kind: str) -> None:
-    """Detached inspection rejects invalid values without partial source writes."""
-    value = datetime(2026, 10, 5, 12)
-    nested: list[Any] = [value]
-    if kind == "cycle":
-        nested.append(nested)
-    elif kind == "width":
-        nested.extend([None] * 4096)
+def test_nested_mapping_key_coercion_still_rejects_hostile_and_oversized_keys() -> None:
+    """Key conversion excludes subclasses and charges the existing key budgets."""
+
+    class HostileKey(int):
+        """Expose a conversion hook that the key normalizer must not invoke."""
+
+        def __str__(self) -> str:
+            raise AssertionError("key conversion hook executed")
+
+    for key in (HostileKey(1), 10**5000):
+        error = validate_query_result_envelope(
+            {"queries": [{"data": [{"payload": {key: "a"}}]}]}
+        )
+        assert error is not None
+        assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize("driver", ["psycopg2.extras", "psycopg.types.range"])
+@pytest.mark.parametrize(
+    "lower,upper,bounds,empty,expected",
+    [
+        (1, 10, "[)", False, "[1, 10)"),
+        (Decimal("1.25"), Decimal("2.50"), "(]", False, "(1.25, 2.50]"),
+        (date(2026, 1, 1), date(2026, 2, 1), "[)", False, "[2026-01-01, 2026-02-01)"),
+        (
+            datetime(2026, 1, 1, tzinfo=timezone.utc),
+            None,
+            "[)",
+            False,
+            "[2026-01-01 00:00:00+00:00, None)",
+        ),
+        (None, None, "()", False, "(None, None)"),
+        (None, None, "[)", True, "empty"),
+    ],
+)
+def test_postgres_ranges_normalize_within_nested_arrays(
+    driver: str, lower: Any, upper: Any, bounds: str, empty: bool, expected: str
+) -> None:
+    """Both drivers preserve bounded native range text in nullable array cells."""
+    module = pytest.importorskip(driver)
+    value = module.Range(lower, upper, bounds=bounds, empty=empty)
+    result = full_producer_command_result(pd.DataFrame({"bands": [None, [value]]}))
+    data, error = first_query_data(result)
+    assert error is None
+    assert data == [{"bands": None}, {"bands": [expected]}]
+
+
+@pytest.mark.parametrize("driver", ["psycopg2.extras", "psycopg.types.range"])
+def test_postgres_range_subclasses_and_hostile_bounds_are_rejected(driver: str) -> None:
+    """A trusted range must not make arbitrary endpoint string hooks trusted."""
+    module = pytest.importorskip(driver)
+
+    class HostileRange:
+        """Range subclass with an unsafe conversion hook."""
+
+        def __str__(self) -> str:
+            raise AssertionError("range string hook executed")
+
+    class HostileEndpoint:
+        """Endpoint whose conversion must not be called."""
+
+        def __str__(self) -> str:
+            raise AssertionError("endpoint string hook executed")
+
+    range_subclass = type("RangeSubclass", (HostileRange, module.Range), {})
+    for value in (
+        range_subclass(1, 10),
+        module.Range(HostileEndpoint(), 10),
+        module.Range(IntSubclass(1), 10),
+        module.Range(1 << 5000, 10),
+        module.Range(Decimal("1e5000"), 10),
+        module.Range("x" * (MAX_RESULT_STRING_LENGTH + 1), 10),
+    ):
+        data, error = first_query_data({"queries": [{"data": [{"bands": [value]}]}]})
+        assert data is None
+        assert error is not None
+        assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize("driver", ["psycopg2.extras", "psycopg.types.range"])
+def test_postgres_range_text_respects_cell_and_aggregate_byte_budgets(
+    driver: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Normalization charges rendered text to the existing result budgets."""
+    module = pytest.importorskip(driver)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_RESULT_STRING_LENGTH", 7
+    )
+    result = {"queries": [{"data": [{"bands": [module.Range(1, 10)]}]}]}
+    assert validate_query_result_envelope(result) is None
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_RESULT_STRING_LENGTH", 6
+    )
+    result = {"queries": [{"data": [{"bands": [module.Range(1, 10)]}]}]}
+    assert validate_query_result_envelope(result) is not None
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_RESULT_STRING_LENGTH", 100
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES", 12
+    )
+    result = {
+        "queries": [{"data": [{"bands": [module.Range(1, 10), module.Range(1, 10)]}]}]
+    }
+    assert validate_query_result_envelope(result) is not None
+
+
+@pytest.mark.parametrize(
+    "result_type", [ChartDataResultType.FULL, ChartDataResultType.QUERY]
+)
+@pytest.mark.parametrize("label", ["Removed column", None])
+def test_adhoc_rejected_filters_are_normalized_before_mcp_validation(
+    result_type: ChartDataResultType,
+    label: str | None,
+) -> None:
+    """Real query actions expose string names, not the datasource's adhoc dict."""
+    from superset.common import query_actions
+    from superset.mcp_service.chart.tool.get_chart_sql import _extract_sql_from_result
+    from superset.models.helpers import QueryStringExtended
+
+    adhoc_column: AdhocColumn = {"sqlExpression": "removed_column"}
+    if label is not None:
+        adhoc_column["label"] = label
+    expected_name = label or "removed_column"
+    query_context = MagicMock()
+    query_context.result_type = result_type
+    query_context.result_format = ChartDataResultFormat.JSON
+    query_context.get_data.return_value = [{"value": 7}]
+    query_obj = MagicMock()
+    query_obj.result_type = result_type
+    query_obj.applied_time_extras = {}
+    datasource = MagicMock()
+    datasource.query_language = "sql"
+    datasource.get_query_str_extended.return_value = QueryStringExtended(
+        applied_template_filters=[],
+        applied_filter_columns=[],
+        rejected_filter_columns=[adhoc_column],
+        labels_expected=[],
+        prequeries=[],
+        sql="SELECT 7 AS value",
+        sql_shifted_temporal_labels=set(),
+    )
+
+    with (
+        patch.object(query_actions, "_get_datasource", return_value=datasource),
+        patch.object(query_actions, "get_time_filter_status", return_value=([], [])),
+        patch.object(query_actions, "_detect_currency", return_value=None),
+    ):
+        if result_type == ChartDataResultType.QUERY:
+            query = query_actions._get_query(query_context, query_obj, False)
+        else:
+            query = query_actions._materialize_full_payload(
+                query_context,
+                query_obj,
+                {
+                    "df": pd.DataFrame([{"value": 7}]),
+                    "status": QueryStatus.SUCCESS,
+                    "applied_filter_columns": [],
+                    "rejected_filter_columns": [adhoc_column],
+                },
+            )
+
+    assert query["rejected_filter_columns"] == [expected_name]
+    assert query["rejected_filters"] == [
+        {"column": expected_name, "reason": "not_in_datasource"}
+    ]
+    result = _producer_result(query)
+    if result_type == ChartDataResultType.QUERY:
+        from superset.mcp_service.chart.schemas import ChartSql
+
+        response = _extract_sql_from_result(result, 1, "chart", "dataset")
+        assert isinstance(response, ChartSql)
+        assert response.sql == "SELECT 7 AS value;"
     else:
-        nested.append(object())
-    result = {"queries": [{"data": [{"nested": nested}]}]}
-    _data, failure = query_result_data(result, normalize_in_place=False)
-    assert failure is not None
-    assert failure.error_type == "MalformedQueryResult"
-    assert nested[0] is value
+        data, error = first_query_data(result)
+        assert error is None
+        assert data == [{"value": 7}]

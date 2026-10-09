@@ -36,6 +36,7 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class WaterfallChartPlugin(BaseChartPlugin):
     """Plugin for waterfall chart type."""
 
+    query_role_keys = BaseChartPlugin.query_role_keys | {"x_axis"}
     chart_type = "waterfall"
     display_name = "Waterfall Chart"
     native_viz_types: ClassVar[Mapping[str, str]] = {
@@ -89,7 +90,7 @@ class WaterfallChartPlugin(BaseChartPlugin):
     def to_form_data(
         self, config: Any, dataset_id: int | str | None = None
     ) -> dict[str, Any]:
-        return map_waterfall_config(config, dataset_id=dataset_id)
+        return map_waterfall_config(config)
 
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
         metric_name = config.metric.label or config.metric.name
@@ -194,11 +195,29 @@ class WaterfallChartPlugin(BaseChartPlugin):
         row_limit: int | None,
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
-        from superset.mcp_service.chart.chart_helpers import build_waterfall_query_dicts
-
-        return build_waterfall_query_dicts(
-            form_data,
-            engine=engine,
-            row_limit=row_limit,
-            order_desc=order_desc,
+        from superset.common.form_data_query_context import normalize_time_column
+        from superset.mcp_service.chart.chart_helpers import (
+            build_single_query_dict,
+            normalize_groupby,
+            resolve_shared_metrics,
         )
+
+        # Match Waterfall buildQuery: the x-axis category (or legacy time
+        # column) plus breakdown, ordered by those columns so the running total
+        # and grand total follow the axis.
+        axis = form_data.get("x_axis") or form_data.get("granularity_sqla")
+        columns = list(axis) if isinstance(axis, list) else [axis] if axis else []
+        columns.extend(normalize_groupby(form_data))
+        query = build_single_query_dict(
+            form_data, columns, resolve_shared_metrics(form_data), row_limit=row_limit
+        )
+        query["orderby"] = [[column, True] for column in columns]
+        # Bind the time grain to the SQL time column, as extractExtras does.
+        granularity = form_data.get("granularity", form_data.get("granularity_sqla"))
+        if granularity is not None:
+            query["granularity"] = granularity
+        if form_data.get("time_grain_sqla") is not None:
+            query.setdefault("extras", {})["time_grain_sqla"] = form_data[
+                "time_grain_sqla"
+            ]
+        return [normalize_time_column(form_data, query)]

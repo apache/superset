@@ -41,6 +41,7 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class TreemapChartPlugin(BaseChartPlugin):
     """Plugin for treemap chart type."""
 
+    owns_update_merge = True
     chart_type = "treemap_v2"
     allows_empty_result = True
     display_name = "Treemap"
@@ -52,7 +53,6 @@ class TreemapChartPlugin(BaseChartPlugin):
     requires_config_for_dataset_rebind = True
     unbound_form_data_is_rebind = True
     normalize_data_results = True
-    owns_update_merge = True
     invalid_result_error_code = "INVALID_TREEMAP_RESULT"
     invalid_result_message = "Treemap metric query returned invalid values"
 
@@ -197,21 +197,24 @@ class TreemapChartPlugin(BaseChartPlugin):
             tuple[list[Any], list[Any]],
             self.resolve_query_fields(form_data, viz_type),
         )
-        return [
-            build_single_query_dict(
-                form_data,
-                hierarchy,
-                metrics,
-                row_limit=row_limit,
-                order_desc=order_desc,
-                orderby=form_data.get("orderby"),
-                apply_chart_fields=lambda query, limit: apply_treemap_query_fields(
-                    query, form_data, hierarchy, limit
-                ),
-            )
-        ]
+        query = build_single_query_dict(
+            form_data,
+            hierarchy,
+            metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        apply_treemap_query_fields(
+            query,
+            form_data,
+            hierarchy,
+            row_limit if row_limit is not None else form_data.get("row_limit"),
+        )
+        return [query]
 
     def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:
+        """Validate and normalize Treemap query results."""
+        # Defer service helper imports to avoid plugin-loading cycles.
         from superset.mcp_service.chart.query_result import (
             normalize_treemap_query_result,
         )
@@ -232,7 +235,7 @@ class TreemapChartPlugin(BaseChartPlugin):
         return limit if 1 <= limit <= 10000 else 100
 
     def ascii_preview(
-        self, data: list[Any], form_data: dict[str, Any], width: int
+        self, data: list[Any], form_data: dict[str, Any], width: int, height: int = 20
     ) -> str | ChartError | None:
         """Render the hierarchy as an ASCII preview."""
         # Defer service helper imports to avoid plugin-loading cycles.

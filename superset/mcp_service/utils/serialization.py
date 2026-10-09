@@ -38,11 +38,6 @@ Row counts are a second failure source: a DBAPI cursor may report ``rowcount``
 as a ``float``, which fails validation of an ``int`` field before serialisation
 is even reached.
 
-Finite Decimals are preserved exactly and therefore render as JSON strings in
-Pydantic, uniformly even when a value is representable as a float. Converting
-``Decimal("0.10000000000000000001")`` to a float silently collapses its precision
-to ``0.1``. Non-finite Decimals (including signaling NaN) render as JSON ``null``.
-
 The annotated types exported here (:data:`JsonSafeRows`,
 :data:`JsonSafeValues`, :data:`JsonSafeMapping`, :data:`RowCount`,
 :data:`OptionalRowCount`) attach the coercion as a ``BeforeValidator``, so any
@@ -57,12 +52,13 @@ import math
 from collections.abc import Mapping
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+from functools import partial
 from typing import Annotated, Any
 from uuid import UUID
 
 import numpy as np
 import pandas as pd
-from pydantic import BeforeValidator
+from pydantic import BeforeValidator, PlainSerializer
 
 from superset.utils.json import base_json_conv
 
@@ -83,7 +79,7 @@ _PASSTHROUGH_TYPES = (datetime, date, time, timedelta, UUID)
 _UNHANDLED = object()
 
 
-def decode_binary(value: bytes | bytearray | memoryview) -> str:
+def _decode_binary(value: bytes | bytearray | memoryview) -> str:
     """Render binary column data as a JSON-safe string."""
     raw = bytes(value)
     try:
@@ -117,8 +113,6 @@ def is_missing_value(value: Any) -> bool:
     """
     if value is None:
         return True
-    if isinstance(value, Decimal):
-        return not Decimal.is_finite(value)
     if isinstance(value, (float, np.floating)):
         # NaN and the infinities, at every numpy width.
         return not math.isfinite(value)
@@ -143,36 +137,40 @@ def _sanitize_scalar(value: Any) -> Any:
     if isinstance(value, float):
         # Covers numpy.float64 (a float subclass) and NaN/Infinity.
         return float(value) if math.isfinite(value) else None
-    if isinstance(value, Decimal):
-        # Call the base descriptor, not subclass hooks or float conversion.
-        return value if Decimal.is_finite(value) else None
     if isinstance(value, (bytes, bytearray, memoryview)):
-        return decode_binary(value)
+        return _decode_binary(value)
     return _UNHANDLED
 
 
-def _sanitize_other(value: Any, depth: int) -> Any:
+def _sanitize_other(value: Any, depth: int, preserve_decimals: bool) -> Any:
     """Sanitize containers and the long tail of warehouse value types."""
     if isinstance(value, Mapping):
         return {
             _sanitize_str(key if isinstance(key, str) else str(key)): (
-                sanitize_json_value(item, depth + 1)
+                sanitize_json_value(
+                    item, depth + 1, preserve_decimals=preserve_decimals
+                )
             )
             for key, item in value.items()
         }
     if isinstance(value, (list, tuple, set, frozenset)):
-        return [sanitize_json_value(item, depth + 1) for item in value]
+        return [
+            sanitize_json_value(item, depth + 1, preserve_decimals=preserve_decimals)
+            for item in value
+        ]
     # ``pandas.NaT`` is a ``datetime`` subclass, so the missing-value check has
     # to run before the passthrough types.
     if is_missing_value(value):
         return None
     if isinstance(value, np.generic):
         # Every numpy scalar width, not just the few base_json_conv knows.
-        return sanitize_json_value(value.item(), depth + 1)
+        return sanitize_json_value(
+            value.item(), depth + 1, preserve_decimals=preserve_decimals
+        )
     if isinstance(value, _PASSTHROUGH_TYPES):
         return value
     try:
-        # Normalises ndarrays, sets and similar; the result may itself
+        # Normalises ndarrays, sets, Decimal and similar; the result may itself
         # be a container or string that needs another pass. Recursion is bounded
         # by MAX_DEPTH.
         converted = base_json_conv(value)
@@ -181,24 +179,30 @@ def _sanitize_other(value: Any, depth: int) -> Any:
         # FastMCP's ``fallback=str``, which the structured-content path
         # (``to_jsonable_python``) does not apply.
         return _sanitize_str(str(value))
-    return sanitize_json_value(converted, depth + 1)
+    return sanitize_json_value(
+        converted, depth + 1, preserve_decimals=preserve_decimals
+    )
 
 
-def sanitize_json_value(value: Any, depth: int = 0) -> Any:
+def sanitize_json_value(
+    value: Any, depth: int = 0, *, preserve_decimals: bool = False
+) -> Any:
     """Return ``value`` with anything ``pydantic_core.to_json`` cannot encode
     replaced by a JSON-safe equivalent."""
+    if preserve_decimals and type(value) is Decimal:
+        return value if Decimal.is_finite(value) else None
     if (sanitized := _sanitize_scalar(value)) is not _UNHANDLED:
         return sanitized
     if depth >= MAX_DEPTH:
         return _sanitize_str(str(value))
-    return _sanitize_other(value, depth)
+    return _sanitize_other(value, depth, preserve_decimals)
 
 
-def sanitize_mapping(value: Any) -> Any:
+def sanitize_mapping(value: Any, *, preserve_decimals: bool = False) -> Any:
     """Sanitize a mapping, leaving non-mapping input to pydantic."""
     if not isinstance(value, Mapping):
         return value
-    return sanitize_json_value(value)
+    return sanitize_json_value(value, preserve_decimals=preserve_decimals)
 
 
 def coerce_optional_int(value: Any) -> Any:
@@ -234,3 +238,19 @@ JsonSafeValues = list[Annotated[Any, BeforeValidator(sanitize_json_value)]]
 RowCount = Annotated[int, BeforeValidator(coerce_int)]
 #: A nullable row count reported by the query engine.
 OptionalRowCount = Annotated[int | None, BeforeValidator(coerce_optional_int)]
+
+# Keep exact finite Decimals for chart validation and exports, but retain the
+# established numeric JSON wire format at the format-specific projection.
+ExactJsonSafeMapping = Annotated[
+    dict[str, Any],
+    BeforeValidator(partial(sanitize_mapping, preserve_decimals=True)),
+    PlainSerializer(sanitize_mapping, when_used="json"),
+]
+ExactJsonSafeRows = list[ExactJsonSafeMapping]
+ExactJsonSafeValues = list[
+    Annotated[
+        Any,
+        BeforeValidator(partial(sanitize_json_value, preserve_decimals=True)),
+        PlainSerializer(sanitize_json_value, when_used="json"),
+    ]
+]

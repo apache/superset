@@ -32,7 +32,6 @@ from superset.mcp_service.chart.registry import (
     is_enabled,
     is_registered,
     register,
-    saved_chart_contract,
 )
 
 
@@ -234,34 +233,6 @@ def test_reconfigure_with_func_then_none_falls_back_to_deny_list():
     configure(disabled={"beta"}, enabled_func=None)
     assert get("alpha") is not None
     assert get("beta") is None
-
-
-# ---------------------------------------------------------------------------
-# saved_chart_contract(): saved charts keep their disabled plugin's contract
-# ---------------------------------------------------------------------------
-
-
-def test_saved_chart_contract_resolves_disabled_owner_only_in_scope():
-    configure(disabled={"alpha", "beta"})
-
-    with saved_chart_contract("alpha_viz") as plugin:
-        assert plugin is get("alpha")
-        assert plugin is not None
-        # Other disabled types stay hidden, and discovery is unchanged.
-        assert get("beta") is None
-        assert is_enabled("alpha") is False
-        assert all_types() == []
-
-    assert get("alpha") is None
-
-
-def test_saved_chart_contract_unknown_viz_type_changes_nothing():
-    configure(disabled={"alpha"})
-
-    with saved_chart_contract("unknown_viz") as plugin:
-        assert plugin is None
-        assert get("alpha") is None
-        assert get("beta") is not None
 
 
 def test_disabled_plugin_can_be_looked_up_for_updates() -> None:

@@ -15,97 +15,189 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Final wire-size gates for MCP chart responses."""
+"""Schema-preserving final wire-size gates for MCP chart responses."""
 
-from typing import Any, Literal, TypeVar
+from typing import Any, TypeVar
 
+from flask_babel.speaklater import LazyString
 from pydantic import BaseModel, RootModel
 
 from superset.mcp_service.chart.query_result import response_json_failure
 from superset.mcp_service.chart.schemas import (
+    ChartData,
     ChartError,
+    ChartInfo,
     GenerateChartResponse,
 )
+from superset.mcp_service.dataset.schemas import DatasetError, QueryDatasetResponse
+from superset.mcp_service.semantic_layer.schemas import (
+    GetTableResponse,
+    SemanticLayerError,
+)
 
-_ChartModel = TypeVar("_ChartModel", bound=BaseModel)
-
-
-def _wire_size_error(failure: ChartError, message: str) -> dict[str, Any]:
-    """Build the shared bounded error payload for chart response finalizers."""
-    return {
-        "error_type": failure.error_type,
-        "message": message,
-        "details": failure.error,
-        "suggestions": ["Request fewer preview formats or reduce result cardinality"],
-        "error_code": "CHART_RESPONSE_TOO_LARGE",
-    }
+_ResponseModel = TypeVar("_ResponseModel", bound=BaseModel)
+_MAX_EXCEPTION_PARTS = 3
+_MAX_EXCEPTION_TEXT_BYTES = 256
 
 
-def preflight_chart_response(
-    response: _ChartModel,
-) -> _ChartModel | ChartError:
-    """Return a chart model only when its complete wire projection is bounded."""
+class UpdateChartPreviewResponse(RootModel[dict[str, Any]]):
+    """Typed wire projection for the legacy dict-shaped preview response."""
+
+
+def bounded_exception_message(exception: BaseException) -> str:  # noqa: C901
+    """Extract bounded exception arguments, including lazy translations."""
+    try:
+        args = object.__getattribute__(exception, "args")
+    except Exception:  # pragma: no cover - BaseException provides args
+        args = ()
+    parts: list[str] = []
+    used = 0
+    if type(args) is tuple:
+        for index in range(min(tuple.__len__(args), _MAX_EXCEPTION_PARTS)):
+            value = tuple.__getitem__(args, index)
+            # Superset security exceptions carry Flask-Babel lazy translations.
+            # Resolve only the concrete library type, not arbitrary string hooks.
+            if type(value) is LazyString:
+                try:
+                    value = str(value)
+                except Exception:  # noqa: S112 - skip unresolvable translations
+                    continue
+            if type(value) is str:
+                text = value
+            elif type(value) is bool:
+                text = "True" if value else "False"
+            elif type(value) is int and int.bit_length(value) <= 4_096:
+                text = int.__str__(value)
+            elif type(value) is float:
+                text = float.__repr__(value)
+            elif value is None:
+                text = "None"
+            else:
+                continue
+            remaining = _MAX_EXCEPTION_TEXT_BYTES - used - (2 if parts else 0)
+            if remaining <= 0:
+                break
+            encoded = str.encode(text[:remaining], "utf-8", errors="replace")[
+                :remaining
+            ]
+            bounded = bytes.decode(encoded, "utf-8", errors="ignore")
+            if bounded:
+                parts.append(bounded)
+                used += bytes.__len__(encoded) + (2 if len(parts) > 1 else 0)
+    if parts:
+        return "; ".join(parts)
+    return "request failed"
+
+
+def finalize_chart_data_response(
+    response: ChartData | ChartError,
+) -> ChartData | ChartError:
+    """Preflight every chart-data result while preserving its public union."""
+    if response_json_failure(response) is None:
+        return response
+    return ChartError(
+        error="Chart data response could not be returned safely.",
+        error_type="InvalidQueryResult",
+        details="The complete response exceeded its serialization safety limits.",
+        suggestions=["Request fewer rows or use a narrower export."],
+        error_code="CHART_DATA_RESPONSE_TOO_LARGE",
+    )
+
+
+def finalize_query_dataset_response(
+    response: QueryDatasetResponse | DatasetError,
+) -> QueryDatasetResponse | DatasetError:
+    """Preflight every dataset-query result while preserving its public union."""
+    if response_json_failure(response) is None:
+        return response
+    return DatasetError.create(
+        error="Dataset response could not be returned safely.",
+        error_type="InvalidQueryResult",
+    )
+
+
+def finalize_get_table_response(
+    response: GetTableResponse | SemanticLayerError,
+) -> GetTableResponse | SemanticLayerError:
+    """Preflight every semantic-table result while preserving its public union."""
+    if response_json_failure(response) is None:
+        return response
+    return SemanticLayerError.create(
+        error="Semantic table response could not be returned safely.",
+        error_type="InvalidQueryResult",
+    )
+
+
+def finalize_chart_response(
+    response: _ResponseModel,
+) -> _ResponseModel | ChartError:
+    """Preserve a chart response schema or return a bounded structured error."""
     return response_json_failure(response) or response
 
 
-def preflight_generate_chart_response(
+def finalize_generate_chart_response(
     response: GenerateChartResponse,
-    *,
-    persisted_chart_id: int | None = None,
-    persisted_action: Literal["created", "updated"] = "created",
 ) -> GenerateChartResponse:
-    """Map a wire-size failure into the generate/update response error schema."""
+    """Preflight generate/update responses and preserve their response schema."""
     failure = response_json_failure(response)
     if failure is None:
         return response
-    if persisted_chart_id is not None:
-        return GenerateChartResponse.model_validate(
-            {
-                "chart": {"id": persisted_chart_id},
-                "success": False,
-                "error": {
-                    "error_type": failure.error_type,
-                    "message": (
-                        f"Chart was {persisted_action}, but its full response "
-                        "could not be returned safely"
-                    ),
-                    "details": (
-                        f"Chart {persisted_chart_id} was {persisted_action} "
-                        f"successfully. {failure.error}"
-                    ),
-                    "suggestions": [
-                        (
-                            "Do not retry creation; use the returned chart ID"
-                            if persisted_action == "created"
-                            else "Do not retry the update; use the returned chart ID"
-                        ),
-                        "Request fewer preview formats or reduce result cardinality",
-                    ],
-                    "error_code": "CHART_RESPONSE_TOO_LARGE",
-                },
-            }
+    chart = response.chart
+    if (
+        response.success
+        and chart is not None
+        and not chart.is_unsaved_state
+        and type(chart.id) is int
+        and 0 < chart.id <= 2**63 - 1
+    ):
+        # The write has committed. Drop optional response content, not the
+        # persisted identity or the successful mutation outcome.
+        return GenerateChartResponse(
+            chart=ChartInfo(id=chart.id),
+            success=True,
+            warnings=[
+                "Chart was saved, but its response content exceeded serialization "
+                "safety limits and was omitted. Do not retry the write; retrieve "
+                "the saved chart by its ID."
+            ],
         )
     return GenerateChartResponse.model_validate(
         {
             "chart": None,
             "success": False,
-            "error": _wire_size_error(
-                failure, "Chart response could not be returned safely"
-            ),
+            "error": {
+                "error_type": failure.error_type,
+                "message": "Chart response could not be returned safely",
+                "details": failure.error,
+                "suggestions": [
+                    "Request fewer preview formats or reduce result cardinality"
+                ],
+                "error_code": "CHART_RESPONSE_TOO_LARGE",
+            },
+            "schema_version": "2.0",
+            "api_version": "v1",
         }
     )
 
 
-def preflight_update_preview_response(response: dict[str, Any]) -> dict[str, Any]:
-    """Preflight the dict-shaped update-preview tool response via Pydantic."""
-    failure = response_json_failure(RootModel[dict[str, Any]](response))
+def finalize_update_chart_preview_response(
+    response: dict[str, Any],
+) -> dict[str, Any]:
+    """Preflight the complete dict-shaped update-preview response."""
+    failure = response_json_failure(UpdateChartPreviewResponse(response))
     if failure is None:
         return response
     return {
         "chart": None,
-        "error": _wire_size_error(
-            failure, "Chart preview response could not be returned safely"
-        ),
+        "error": {
+            "error_type": failure.error_type,
+            "message": "Chart preview response could not be returned safely",
+            "details": failure.error,
+            "suggestions": [
+                "Request fewer preview formats or reduce result cardinality"
+            ],
+            "error_code": "CHART_RESPONSE_TOO_LARGE",
+        },
         "success": False,
         "schema_version": "2.0",
         "api_version": "v1",

@@ -21,9 +21,6 @@ MCP tool: update_chart_preview
 
 import logging
 import time
-from collections.abc import Callable
-from contextlib import ExitStack
-from functools import wraps
 from typing import Annotated, Any, cast, Dict
 
 from fastmcp import Context
@@ -35,31 +32,31 @@ from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
-from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
+from superset.mcp_service.chart.chart_helpers import (
+    canonicalize_operation_form_data,
+    extract_form_data_key_from_url,
+    resolve_form_data_datasource,
+)
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
     generate_chart_name,
     generate_explore_link,
     map_config_to_form_data,
-    merge_chart_form_data,
+    merge_form_data_for_update,
+    merge_gantt_ui_config,
     merge_interactive_pivot_ui_config,
-    merge_same_viz_form_data,
     merge_table_column_config,
-    merge_update_form_data,
+    scrub_dataset_bound_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
 )
-from superset.mcp_service.chart.registry import (
-    get_registry,
-    plugin_for_viz_type,
-    saved_chart_contract,
-)
+from superset.mcp_service.chart.registry import get_registry, plugin_for_viz_type
 from superset.mcp_service.chart.response_preflight import (
-    preflight_update_preview_response,
+    finalize_update_chart_preview_response,
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -67,10 +64,6 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartPreviewRequest,
     UpdateChartPreviewResponse,
-)
-from superset.mcp_service.chart.tool.update_chart import (
-    _canonicalize_form_data_datasource,
-    _prune_inherited_query_state,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
     GanttSemanticNormalizationError,
@@ -83,6 +76,14 @@ from superset.utils import json as utils_json
 
 logger = logging.getLogger(__name__)
 
+
+def _finalize_response(response: Dict[str, Any]) -> UpdateChartPreviewResponse:
+    """Preflight every public update-preview response."""
+    return cast(
+        UpdateChartPreviewResponse, finalize_update_chart_preview_response(response)
+    )
+
+
 INVALID_FORM_DATA_KEY_WARNING = (
     "Previous cached chart state could not be loaded from the previous "
     "form_data_key. The preview was generated from the supplied "
@@ -91,8 +92,29 @@ INVALID_FORM_DATA_KEY_WARNING = (
 )
 
 
+def _validation_error_result(compile_result: Any) -> Dict[str, Any]:
+    """Build the structured response used for preview validation failures."""
+    if compile_result.error_obj is not None:
+        error_payload = compile_result.error_obj.model_dump()
+    else:
+        error_payload = {
+            "error_type": "validation_error",
+            "message": "Chart preview validation failed",
+            "details": compile_result.error or "",
+            "error_code": compile_result.error_code,
+            "suggestions": [],
+        }
+    return {
+        "chart": None,
+        "error": error_payload,
+        "success": False,
+        "schema_version": "2.0",
+        "api_version": "v1",
+    }
+
+
 def _find_dataset(dataset_id: int | str) -> Any | None:
-    """Look up a dataset by numeric ID or UUID and check access."""
+    """Look up a dataset by numeric ID or UUID."""
     from superset.daos.dataset import DatasetDAO
 
     if isinstance(dataset_id, int) or (
@@ -102,8 +124,6 @@ def _find_dataset(dataset_id: int | str) -> Any | None:
     else:
         dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
 
-    if dataset and not has_dataset_access(dataset):
-        return None
     return dataset
 
 
@@ -126,25 +146,6 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
     return None
 
 
-def _preflight_update_preview_result(
-    function: Callable[
-        [UpdateChartPreviewRequest, Context], UpdateChartPreviewResponse
-    ],
-) -> Callable[[UpdateChartPreviewRequest, Context], UpdateChartPreviewResponse]:
-    """Apply the final wire-size gate to every success and error return."""
-
-    @wraps(function)
-    def wrapped(
-        request: UpdateChartPreviewRequest, ctx: Context
-    ) -> UpdateChartPreviewResponse:
-        return cast(
-            UpdateChartPreviewResponse,
-            preflight_update_preview_response(dict(function(request, ctx))),
-        )
-
-    return wrapped
-
-
 @tool(
     tags=["mutate"],
     class_permission_name="Chart",
@@ -157,7 +158,6 @@ def _preflight_update_preview_result(
         openWorldHint=False,
     ),
 )
-@_preflight_update_preview_result
 def update_chart_preview(  # noqa: C901
     request: Annotated[
         UpdateChartPreviewRequest,
@@ -187,12 +187,15 @@ def update_chart_preview(  # noqa: C901
     - Iterating on chart design without creating permanent charts
     - Testing different configurations
 
+    Sunburst uses chart_type="sunburst" and the exact frontend viz_type
+    ``sunburst_v2``. Supply hierarchy plus metric; omitted cached presentation
+    and filter controls are preserved, while explicit false/None/[] values win.
+
     Returns new form_data_key, preview images, and explore URL. The explore_url
     scheme matches the configured instance URL (HTTPS in production/staging,
     HTTP in local development).
     """
     start_time = time.time()
-    contract_scope = ExitStack()
 
     try:
         # config is already a typed ChartConfig (validated by Pydantic)
@@ -202,36 +205,54 @@ def update_chart_preview(  # noqa: C901
         with event_logger.log_context(action="mcp.update_chart_preview.dataset_lookup"):
             dataset = _find_dataset(request.dataset_id)
 
+            if dataset is not None and not has_dataset_access(dataset):
+                return _finalize_response(
+                    {
+                        "chart": None,
+                        "error": {
+                            "error_type": "DatasetNotAccessible",
+                            "message": f"Dataset not found: {request.dataset_id}",
+                            "details": (
+                                f"Dataset {request.dataset_id} is missing or "
+                                "inaccessible."
+                            ),
+                        },
+                        "success": False,
+                        "schema_version": "2.0",
+                        "api_version": "v1",
+                    }
+                )
+
             if not dataset:
-                return {
-                    "chart": None,
-                    "error": {
-                        "error_type": "dataset_not_found",
-                        "message": (f"Dataset not found: {request.dataset_id}"),
-                        "details": (
-                            f"No accessible dataset found with identifier "
-                            f"'{request.dataset_id}'. This could "
-                            f"be an invalid ID/UUID or a "
-                            f"permissions issue."
-                        ),
-                        "suggestions": [
-                            "Verify the dataset ID or UUID",
-                            "Check dataset access permissions",
-                            "Use list_datasets to find available datasets",
-                        ],
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+                return _finalize_response(
+                    {
+                        "chart": None,
+                        "error": {
+                            "error_type": "dataset_not_found",
+                            "message": (f"Dataset not found: {request.dataset_id}"),
+                            "details": (
+                                f"No dataset found with identifier "
+                                f"'{request.dataset_id}'. This could "
+                                f"be an invalid ID/UUID or a "
+                                f"permissions issue."
+                            ),
+                            "suggestions": [
+                                "Verify the dataset ID or UUID",
+                                "Check dataset access permissions",
+                                "Use list_datasets to find available datasets",
+                            ],
+                        },
+                        "success": False,
+                        "schema_version": "2.0",
+                        "api_version": "v1",
+                    }
+                )
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
             from superset.mcp_service.chart.validation.dataset_validator import (
                 build_dataset_context_from_orm,
                 DatasetValidator,
             )
-
-            dataset_context = build_dataset_context_from_orm(dataset)
 
             warnings: list[str] = []
             previous_form_data: dict[str, Any] | None = None
@@ -245,27 +266,11 @@ def update_chart_preview(  # noqa: C901
                 or (previous_form_data or {}).get("datasource_id")
                 or ""
             ).split("__", 1)[0]
-            # The cached chart keeps its plugin's contract for the whole
-            # update, even when its chart type is disabled for new charts.
-            contract_scope.enter_context(
-                saved_chart_contract((previous_form_data or {}).get("viz_type"))
-            )
-            plugin = get_registry().get(config.chart_type)
+            plugin = get_registry().get(config.chart_type, include_disabled=True)
             dataset_rebind = previous_datasource != str(dataset.id) and (
                 bool(previous_datasource)
                 or bool(plugin and plugin.unbound_form_data_is_rebind)
             )
-            if (
-                dataset_rebind
-                and previous_form_data
-                and not (plugin is not None and plugin.strict_dataset_rebind)
-            ):
-                # Match saved-chart rebinds: retain only references that resolve
-                # against the replacement dataset before resolving omitted roles.
-                previous_form_data = _prune_inherited_query_state(
-                    previous_form_data, {}, config, dataset.id
-                )
-                dataset_rebind = False
             try:
                 if plugin is not None:
                     config = plugin.resolve_update_config(
@@ -288,134 +293,88 @@ def update_chart_preview(  # noqa: C901
                     "schema_version": "2.0",
                     "api_version": "v1",
                 }
-            try:
-                config = DatasetValidator.normalize_column_names(
-                    config,
-                    request.dataset_id,
-                    dataset_context=dataset_context,
-                )
-            except GanttSemanticNormalizationError:
-                # Gantt reports its own role conflict; the generic
-                # canonicalization message would lose that diagnosis.
-                raise
-            except (AttributeError, KeyError, TypeError, ValueError) as ex:
-                return {
-                    "chart": None,
-                    "error": {
-                        "error_type": "ambiguous_column_reference",
-                        "message": "Chart references could not be canonicalized",
-                        "details": str(ex),
-                        "suggestions": [
-                            "Use get_dataset_info and copy exact-case field names"
-                        ],
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+            dataset_context = build_dataset_context_from_orm(dataset)
+            config = DatasetValidator.normalize_column_names(
+                config,
+                dataset.id,
+                dataset_context=dataset_context,
+            )
+
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
                 config, dataset_id=request.dataset_id, include_disabled=True
             )
             new_form_data.pop("_mcp_warnings", None)
-
+            new_form_data = canonicalize_operation_form_data(
+                new_form_data,
+                datasource_id=dataset.id,
+            )
             if previous_form_data:
-                merge_table_column_config(previous_form_data, new_form_data)
-                merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
-                merge_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
-                if merge_plugin is not None and merge_plugin.owns_update_merge:
-                    # The plugin owns its temporal/rebind merge contract.
-                    # Generic merges would restore deliberately removed state.
-                    new_form_data = merge_chart_form_data(
+                previous_dataset_id, _ = resolve_form_data_datasource(
+                    previous_form_data
+                )
+                dataset_rebind = previous_dataset_id is None or str(
+                    previous_dataset_id
+                ) != str(dataset.id)
+                if dataset_rebind:
+                    # Cached roles have no usable provenance unless their
+                    # datasource identity matches the authorized target.
+                    previous_form_data = scrub_dataset_bound_form_data(
                         previous_form_data,
-                        new_form_data,
-                        config,
-                        dataset_rebind=dataset_rebind,
+                        target_viz_type=new_form_data.get("viz_type"),
                     )
                 else:
-                    new_form_data = merge_chart_form_data(
-                        previous_form_data,
-                        new_form_data,
-                        config,
-                        dataset_rebind=dataset_rebind,
-                    )
-                    merge_update_form_data(previous_form_data, new_form_data, config)
-                    merge_same_viz_form_data(previous_form_data, new_form_data, config)
-                    for config_field, form_data_field in (
-                        ("group_by", "groupby"),
-                        ("group_by_secondary", "groupby_b"),
-                        ("sort_by", "order_by_cols"),
-                    ):
-                        if (
-                            config_field in config.model_fields_set
-                            and getattr(config, config_field, None) == []
-                        ):
-                            new_form_data.pop(form_data_field, None)
-
-            _canonicalize_form_data_datasource(new_form_data, dataset.id)
-            merged_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
-            try:
-                merged_config = (
-                    merged_plugin.validate_merged_form_data(
-                        new_form_data,
-                        request.dataset_id,
-                        dataset_context=lambda: dataset_context,
-                        update_config=config,
-                    )
-                    if merged_plugin is not None
-                    else None
+                    merge_table_column_config(previous_form_data, new_form_data)
+                    merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                    merge_gantt_ui_config(previous_form_data, new_form_data)
+                new_form_data = merge_form_data_for_update(
+                    previous_form_data,
+                    new_form_data,
+                    config,
+                    dataset_rebind=dataset_rebind,
                 )
-            except GanttSemanticNormalizationError:
-                # Gantt reports its own role conflict to the tool handler.
-                raise
-            except (AttributeError, KeyError, TypeError, ValueError) as ex:
-                chart_type = merged_plugin.chart_type if merged_plugin else "chart"
-                display_name = merged_plugin.display_name if merged_plugin else "chart"
-                return {
-                    "chart": None,
-                    "error": {
-                        "error_type": f"invalid_merged_{chart_type}_state",
-                        "message": f"Merged {display_name} state is invalid",
-                        "details": str(ex),
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+
+            # This tool owns an unsaved cache entry, not a chart update target.
+            # Rebind datasource state to the authorized dataset and remove any
+            # native/cached chart identity before compile and recaching.
+            new_form_data = canonicalize_operation_form_data(
+                new_form_data,
+                datasource_id=dataset.id,
+            )
+
+            merged_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
+            merged_config = (
+                merged_plugin.validate_merged_form_data(
+                    new_form_data,
+                    request.dataset_id,
+                    dataset_context=lambda: dataset_context,
+                    update_config=config,
+                )
+                if merged_plugin is not None
+                else None
+            )
             if merged_config is not None:
                 # Compile the final cached state rather than the pre-merge
                 # request, so preserved native fields cannot bypass semantics.
                 config = merged_config
 
+            if merged_plugin is not None:
+                normalized_form_data = merged_plugin.normalize_saved_form_data(
+                    new_form_data, lambda: dataset_context
+                )
+                if normalized_form_data is not None:
+                    new_form_data = normalized_form_data
+
             compile_result = validate_and_compile(
-                config,
-                new_form_data,
-                dataset,
-                run_compile_check=True,
+                config, new_form_data, dataset, run_compile_check=True
             )
             if not compile_result.success:
                 logger.warning(
                     "update_chart_preview validation failed: %s",
                     compile_result.error,
                 )
-                if compile_result.error_obj is not None:
-                    error_payload = compile_result.error_obj.model_dump()
-                else:
-                    error_payload = {
-                        "error_type": "validation_error",
-                        "message": "Chart preview validation failed",
-                        "details": compile_result.error or "",
-                        "error_code": compile_result.error_code,
-                        "suggestions": [],
-                    }
-                return {
-                    "chart": None,
-                    "error": error_payload,
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+                return _finalize_response(_validation_error_result(compile_result))
 
             # Generate new explore link with updated form_data. This preview flow
             # extracts and re-caches the form_data_key, so force that URL shape.
@@ -426,17 +385,19 @@ def update_chart_preview(  # noqa: C901
         # Extract new form_data_key from the explore URL
         new_form_data_key = extract_form_data_key_from_url(explore_url)
         if not new_form_data_key:
-            return {
-                "chart": None,
-                "error": {
-                    "error_type": "PreviewError",
-                    "message": "Failed to generate preview: missing form_data_key",
-                    "details": "The explore URL did not contain a form_data_key",
-                },
-                "success": False,
-                "schema_version": "2.0",
-                "api_version": "v1",
-            }
+            return _finalize_response(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "PreviewError",
+                        "message": "Failed to generate preview: missing form_data_key",
+                        "details": "The explore URL did not contain a form_data_key",
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
 
         with event_logger.log_context(action="mcp.update_chart_preview.metadata"):
             # Generate semantic analysis
@@ -460,6 +421,7 @@ def update_chart_preview(  # noqa: C901
         )
 
         previews: Dict[str, Any] = {}
+        preview_errors: Dict[str, Any] = {}
         if request.generate_preview:
             try:
                 with event_logger.log_context(
@@ -478,6 +440,9 @@ def update_chart_preview(  # noqa: C901
                         )
 
                         if isinstance(preview_result, ChartError):
+                            preview_errors[format_type] = preview_result.model_dump(
+                                mode="json"
+                            )
                             logger.warning(
                                 "Preview '%s' failed: %s",
                                 format_type,
@@ -494,7 +459,7 @@ def update_chart_preview(  # noqa: C901
                 logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data
-        result: UpdateChartPreviewResponse = {
+        result: Dict[str, Any] = {
             "chart": {
                 "id": None,
                 "slice_name": chart_name,
@@ -507,6 +472,7 @@ def update_chart_preview(  # noqa: C901
             "error": None,
             # Enhanced fields for better LLM integration
             "previews": previews,
+            "preview_errors": preview_errors,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
@@ -521,55 +487,62 @@ def update_chart_preview(  # noqa: C901
             "schema_version": "2.0",
             "api_version": "v1",
         }
-        return result
+        return _finalize_response(result)
 
     except OAuth2RedirectError as ex:
         logger.warning(
             "Chart preview update requires OAuth authentication: form_data_key=%s",
             request.form_data_key,
         )
-        return {
-            "chart": None,
-            "error": build_oauth2_redirect_message(ex),
-            "success": False,
-            "schema_version": "2.0",
-            "api_version": "v1",
-        }
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": build_oauth2_redirect_message(ex),
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )
     except OAuth2Error:
         logger.warning(
             "OAuth2 configuration error: form_data_key=%s", request.form_data_key
         )
-        return {
-            "chart": None,
-            "error": OAUTH2_CONFIG_ERROR_MESSAGE,
-            "success": False,
-            "schema_version": "2.0",
-            "api_version": "v1",
-        }
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": OAUTH2_CONFIG_ERROR_MESSAGE,
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )
     except GanttSemanticNormalizationError as ex:
         execution_time = int((time.time() - start_time) * 1000)
-        return {
-            "chart": None,
-            "error": {
-                "error_type": "gantt_semantic_validation_error",
-                "message": "Gantt chart column roles are invalid",
-                "details": str(ex),
-                "suggestions": [
-                    "Use different physical columns for start_time and end_time",
-                    "Use different physical columns for category and series",
-                    "Use exact dataset column casing when names differ only by case",
-                ],
-                "error_code": "GANTT_SEMANTIC_VALIDATION_ERROR",
-            },
-            "performance": {
-                "query_duration_ms": execution_time,
-                "cache_status": "error",
-                "optimization_suggestions": [],
-            },
-            "success": False,
-            "schema_version": "2.0",
-            "api_version": "v1",
-        }
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": {
+                    "error_type": "gantt_semantic_validation_error",
+                    "message": "Gantt chart column roles are invalid",
+                    "details": str(ex),
+                    "suggestions": [
+                        "Use different physical columns for start_time and end_time",
+                        "Use different physical columns for category and series",
+                        "Use exact dataset column casing when names differ only "
+                        "by case",
+                    ],
+                    "error_code": "GANTT_SEMANTIC_VALIDATION_ERROR",
+                },
+                "performance": {
+                    "query_duration_ms": execution_time,
+                    "cache_status": "error",
+                    "optimization_suggestions": [],
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )
     except (
         SupersetException,
         CommandException,
@@ -580,17 +553,17 @@ def update_chart_preview(  # noqa: C901
         AttributeError,
     ) as e:
         execution_time = int((time.time() - start_time) * 1000)
-        return {
-            "chart": None,
-            "error": f"Chart preview update failed: {str(e)}",
-            "performance": {
-                "query_duration_ms": execution_time,
-                "cache_status": "error",
-                "optimization_suggestions": [],
-            },
-            "success": False,
-            "schema_version": "2.0",
-            "api_version": "v1",
-        }
-    finally:
-        contract_scope.close()
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": f"Chart preview update failed: {str(e)}",
+                "performance": {
+                    "query_duration_ms": execution_time,
+                    "cache_status": "error",
+                    "optimization_suggestions": [],
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )

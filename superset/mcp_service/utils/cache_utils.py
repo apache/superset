@@ -25,14 +25,10 @@ and implementing cache control in MCP tools.
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict
-from zoneinfo import ZoneInfo
 
 from superset.mcp_service.common.cache_schemas import CacheStatus
 
 logger = logging.getLogger(__name__)
-
-_MAX_CACHE_TIMESTAMP_LENGTH = 4096
-_TRUSTED_TZINFO_TYPES = (timezone, ZoneInfo)
 
 
 def get_cache_status_from_result(
@@ -48,42 +44,38 @@ def get_cache_status_from_result(
     Returns:
         CacheStatus object with cache usage information
     """
-    # Handle both the full result envelope and an individual query without
-    # invoking hooks on mapping/list subclasses. MCP chart callers validate the
-    # complete envelope before reaching this helper; these exact checks keep
-    # direct utility callers bounded as well.
-    query_result: dict[str, Any] = result if type(result) is dict else {}
-    queries = dict.get(query_result, "queries")
-    if type(queries) is list and list.__len__(queries) > 0:
-        first_query = list.__getitem__(queries, 0)
-        query_result = first_query if type(first_query) is dict else {}
+    # Handle different result structures
+    if "queries" in result and len(result["queries"]) > 0:
+        query_result = result["queries"][0]
+    else:
+        query_result = result
 
-    cache_hit = dict.get(query_result, "is_cached") is True
+    cache_hit = bool(query_result.get("is_cached", False))
 
-    # Convert cache age to seconds if available
+    # Prefer the canonical producer/schema key. A bounded legacy alias remains
+    # readable only when the canonical field is absent; it must never override
+    # an explicit canonical null.
     cache_age_seconds = None
-    cache_age = dict.get(query_result, "cached_dttm")
-    if cache_age is None:
-        cache_age = dict.get(query_result, "cache_dttm")
+    cache_age = (
+        query_result["cached_dttm"]
+        if "cached_dttm" in query_result
+        else query_result.get("cache_dttm")
+    )
     if cache_age is not None:
         try:
-            if type(cache_age) is str and len(cache_age) <= _MAX_CACHE_TIMESTAMP_LENGTH:
+            if type(cache_age) is str:
                 cache_dt = datetime.fromisoformat(cache_age.replace("Z", "+00:00"))
-                cache_age_seconds = int(
-                    (datetime.now(cache_dt.tzinfo) - cache_dt).total_seconds()
+            elif type(cache_age) is datetime:
+                cache_dt = cache_age
+            else:
+                cache_dt = None
+            if cache_dt is not None and cache_dt.tzinfo is not None:
+                cache_age_seconds = max(
+                    0,
+                    int((datetime.now(timezone.utc) - cache_dt).total_seconds()),
                 )
-            elif type(cache_age) is datetime and (
-                cache_age.tzinfo is None
-                or any(
-                    type(cache_age.tzinfo) is trusted
-                    for trusted in _TRUSTED_TZINFO_TYPES
-                )
-            ):
-                cache_age_seconds = int(
-                    (datetime.now(cache_age.tzinfo) - cache_age).total_seconds()
-                )
-        except (OverflowError, TypeError, ValueError):
-            logger.debug("Could not parse bounded cache timestamp")
+        except (OverflowError, TypeError, ValueError) as e:
+            logger.debug("Could not parse cache age: %s", e)
 
     return CacheStatus(
         cache_hit=cache_hit,

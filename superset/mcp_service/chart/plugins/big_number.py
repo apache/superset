@@ -278,17 +278,5 @@ class BigNumberChartPlugin(BaseChartPlugin):
         row_limit: int | None,
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
-        if viz_type not in self.native_viz_types:
-            # Period-over-period KPIs use the shared singular-metric query.
-            return None
-        from superset.mcp_service.chart.chart_helpers import (
-            build_big_number_query_dicts,
-        )
-
-        return build_big_number_query_dicts(
-            form_data,
-            trendline=viz_type == self.TRENDLINE_VIZ_TYPE,
-            engine=engine,
-            row_limit=row_limit,
-            order_desc=order_desc,
-        )
+        """Use the shared native builder for temporal and result operators."""
+        return None

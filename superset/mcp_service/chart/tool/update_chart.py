@@ -21,7 +21,6 @@ MCP tool: update_chart
 
 import logging
 import time
-from contextlib import ExitStack
 from typing import Annotated, Any
 
 from fastmcp import Context
@@ -34,6 +33,7 @@ from superset.common.form_data_query_context import is_raw_query_mode
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
+    canonicalize_operation_form_data,
     extract_form_data_key_from_url,
     find_chart_by_identifier,
 )
@@ -42,25 +42,19 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
-    MCP_DASHBOARD_TIME_FILTER_SUBJECT,
-    merge_chart_form_data,
+    merge_form_data_for_update,
+    merge_gantt_ui_config,
     merge_interactive_pivot_ui_config,
-    merge_same_viz_form_data,
     merge_table_column_config,
-    merge_update_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
-from superset.mcp_service.chart.registry import (
-    get_registry,
-    plugin_for_viz_type,
-    saved_chart_contract,
-)
+from superset.mcp_service.chart.registry import get_registry, plugin_for_viz_type
 from superset.mcp_service.chart.response_preflight import (
-    preflight_generate_chart_response,
+    finalize_generate_chart_response,
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
-    ChartConfig,
+    ChartError,
     ColumnRef,
     GenerateChartResponse,
     PerformanceMetadata,
@@ -80,14 +74,10 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def _bounded_update_response(
-    payload: object, *, persisted_chart_id: int | None = None
-) -> GenerateChartResponse:
-    """Validate and preflight one complete update-chart response."""
-    return preflight_generate_chart_response(
-        GenerateChartResponse.model_validate(payload),
-        persisted_chart_id=persisted_chart_id,
-        persisted_action="updated",
+def _finalize_response(payload: object) -> GenerateChartResponse:
+    """Validate and preflight every public update response."""
+    return finalize_generate_chart_response(
+        GenerateChartResponse.model_validate(payload)
     )
 
 
@@ -111,7 +101,7 @@ def _get_existing_form_data(chart: Any) -> dict[str, Any]:
 
 
 def _validation_error_response(message: str, details: str) -> GenerateChartResponse:
-    return _bounded_update_response(
+    return GenerateChartResponse.model_validate(
         {
             "chart": None,
             "error": {
@@ -146,17 +136,6 @@ def _wrapped_form_data_for_response(
     """Return form data without changing SQL metric strings."""
     payload = dict(new_form_data) if new_form_data is not None else {}
     return payload
-
-
-def _canonicalize_form_data_datasource(
-    form_data: dict[str, Any],
-    dataset_id: int | None,
-    datasource_type: str = "table",
-) -> None:
-    """Bind operation form data to the effective datasource after all merges."""
-    if dataset_id is not None:
-        form_data["datasource"] = f"{dataset_id}__{datasource_type}"
-        form_data.pop("datasource_id", None)
 
 
 def _entry_key(entry: Any) -> str:
@@ -244,12 +223,16 @@ def _append_table_columns(
 def _merge_replacement_config(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
-    parsed_config: ChartConfig,
+    parsed_config: Any,
     *,
     dataset_rebind: bool = False,
 ) -> dict[str, Any]:
-    """Delegate update semantics to the shared form-data merge helper."""
-    return merge_chart_form_data(
+    """Merge a replacement config through the plugin-aware update merge.
+
+    An explicit empty filter list clears saved filters; plugins that generate
+    their own time binding (Gantt) keep it through that clear.
+    """
+    return merge_form_data_for_update(
         existing_form_data,
         new_form_data,
         parsed_config,
@@ -257,249 +240,42 @@ def _merge_replacement_config(
     )
 
 
-def _valid_dataset_reference(
-    value: Any,
-    columns: set[str],
-    metrics: set[str],
-    *,
-    allow_metric: bool = False,
-) -> bool:
-    """Return whether a form_data reference resolves against a dataset."""
-    if not isinstance(value, str):
-        return True
-    normalized = value.casefold()
-    return normalized in columns or (allow_metric and normalized in metrics)
-
-
-def _inherited_metrics_match_dataset(
-    existing_form_data: dict[str, Any],
-    columns: set[str],
-    metrics: set[str],
-) -> bool:
-    for metric in existing_form_data.get("metrics") or []:
-        if isinstance(metric, str) and not _valid_dataset_reference(
-            metric, columns, metrics, allow_metric=True
-        ):
-            return False
-        if isinstance(metric, dict):
-            column = metric.get("column")
-            if isinstance(column, dict) and not _valid_dataset_reference(
-                column.get("column_name"), columns, metrics
-            ):
-                return False
-    return True
-
-
-def _inherited_sort_matches_dataset(
-    order_by_cols: Any, columns: set[str], metrics: set[str]
-) -> bool:
-    for order_by in order_by_cols or []:
-        try:
-            column = json.loads(order_by)[0]
-        except (TypeError, ValueError, IndexError):
-            return False
-        if not _valid_dataset_reference(column, columns, metrics, allow_metric=True):
-            return False
-    return True
-
-
-def _inherited_filters_match_dataset(
-    filters: Any, columns: set[str], metrics: set[str]
-) -> bool:
-    for filter_ in filters or []:
-        if not isinstance(filter_, dict):
-            return False
-        if filter_.get("expressionType") not in (None, "SIMPLE"):
-            return False
-        subject = filter_.get("subject") or filter_.get("col")
-        allow_metric = str(filter_.get("clause", "WHERE")).upper() == "HAVING"
-        if not _valid_dataset_reference(
-            subject, columns, metrics, allow_metric=allow_metric
-        ):
-            return False
-    return True
-
-
-#: form_data keys carrying query roles, mapped to the config field that
-#: sets them explicitly. An explicit field is the caller's stated intent,
-#: so it is never treated as inherited state.
-_INHERITED_QUERY_ROLE_FIELDS = {
-    "groupby": "group_by",
-    "groupby_b": "group_by_secondary",
-    "all_columns": None,
-    "columns": None,
-    "x_axis": None,
-    "granularity_sqla": None,
-    "metrics": None,
-    "order_by_cols": "sort_by",
-    "adhoc_filters": "filters",
-}
-
-_INHERITED_COLUMN_LIST_KEYS = frozenset(
-    {"groupby", "groupby_b", "all_columns", "columns"}
-)
-_INHERITED_COLUMN_SCALAR_KEYS = frozenset({"x_axis", "granularity_sqla"})
-
-
-def _ensure_reference_list(value: Any) -> list[Any]:
-    """Read a column role like frontend ``ensureIsArray``.
-
-    A scalar saved value (e.g. a Bullet ``groupby``) is a one-item list.
-    """
-    return list(value) if isinstance(value, (list, tuple)) else [value]
-
-
-def _inherited_state_invalid_keys(
-    existing_form_data: dict[str, Any],
-    new_form_data: dict[str, Any],
-    parsed_config: ChartConfig,
-    dataset_id: int,
-) -> set[str]:
-    """Return inherited query fields that are invalid for a new dataset.
-
-    A dataset rebind only has to discard the state that cannot resolve
-    against the replacement dataset; everything else stays valid and is
-    preserved so the update does not silently reset the chart.
-    """
-    fields_set = parsed_config.model_fields_set
-    # Omitted filters are inherited even when mapping proposed a neutral time
-    # binding for the replacement dataset; merge_update_form_data owns that choice.
-    inherited_keys = {
-        key
-        for key, config_field in _INHERITED_QUERY_ROLE_FIELDS.items()
-        if (key not in new_form_data or key == "adhoc_filters")
-        and config_field not in fields_set
-        and existing_form_data.get(key)
-    }
-    if not inherited_keys:
-        return set()
-
-    from superset.daos.dataset import DatasetDAO
-    from superset.mcp_service.chart.validation.dataset_validator import (
-        build_dataset_context_from_orm,
+def _is_dataset_rebind(request: UpdateChartRequest, chart: Any) -> bool:
+    """Return whether a request changes the chart's datasource identity."""
+    return request.dataset_id is not None and str(request.dataset_id) != str(
+        getattr(chart, "datasource_id", None)
     )
 
-    context = build_dataset_context_from_orm(DatasetDAO.find_by_id(dataset_id))
-    if context is None:
-        # The replacement dataset cannot be inspected, so no inherited
-        # reference can be shown to be safe.
-        return inherited_keys
-    columns = {column["name"].casefold() for column in context.available_columns}
-    metrics = {metric["name"].casefold() for metric in context.available_metrics}
 
-    invalid_keys: set[str] = set()
-    for key in inherited_keys & _INHERITED_COLUMN_LIST_KEYS:
-        if not all(
-            _valid_dataset_reference(value, columns, metrics)
-            for value in _ensure_reference_list(existing_form_data.get(key))
-        ):
-            invalid_keys.add(key)
-    for key in inherited_keys & _INHERITED_COLUMN_SCALAR_KEYS:
-        if not _valid_dataset_reference(existing_form_data.get(key), columns, metrics):
-            invalid_keys.add(key)
-    if "metrics" in inherited_keys and not _inherited_metrics_match_dataset(
-        existing_form_data, columns, metrics
-    ):
-        invalid_keys.add("metrics")
-    if "order_by_cols" in inherited_keys and not _inherited_sort_matches_dataset(
-        existing_form_data.get("order_by_cols"), columns, metrics
-    ):
-        invalid_keys.add("order_by_cols")
-    if "adhoc_filters" in inherited_keys and not _inherited_filters_match_dataset(
-        existing_form_data.get("adhoc_filters"), columns, metrics
-    ):
-        invalid_keys.add("adhoc_filters")
-    return invalid_keys
-
-
-def _prune_inherited_query_state(
-    existing_form_data: dict[str, Any],
-    new_form_data: dict[str, Any],
-    config: ChartConfig,
-    dataset_id: int,
-) -> dict[str, Any]:
-    """Discard incompatible inherited roles and their temporal provenance."""
-    invalid_keys = _inherited_state_invalid_keys(
-        existing_form_data, new_form_data, config, dataset_id
+def _add_columns_rebind_error() -> GenerateChartResponse:
+    """Require a complete replacement config when changing table datasets."""
+    return _validation_error_response(
+        message="Cannot combine 'add_columns' with a dataset rebind.",
+        details=(
+            "Dataset-bound roles from the previous dataset cannot be reused. "
+            "Provide 'config' with the complete table configuration for the "
+            "target dataset."
+        ),
     )
-    if "adhoc_filters" in invalid_keys:
-        invalid_keys.add(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
-    return {
-        key: value
-        for key, value in existing_form_data.items()
-        if key not in invalid_keys
-    }
 
 
-def _build_replacement_form_data(
-    existing_form_data: dict[str, Any],
-    parsed_config: ChartConfig,
-    effective_dataset_id: int | None,
-    replacement_dataset_id: int | None = None,
-) -> dict[str, Any]:
-    """Map and merge a replacement config for preview and save paths."""
-    existing_plugin = plugin_for_viz_type(existing_form_data.get("viz_type"))
-    include_disabled = bool(
-        existing_plugin and existing_plugin.chart_type == parsed_config.chart_type
+def _dataset_rebind_config_error(chart: Any) -> GenerateChartResponse:
+    """Require complete target roles rather than returning an empty query."""
+    plugin = plugin_for_viz_type(getattr(chart, "viz_type", None))
+    display_name = plugin.display_name if plugin is not None else "Chart"
+    return _validation_error_response(
+        message=(
+            f"{display_name} dataset rebind requires a complete {display_name} config."
+        ),
+        details=(
+            "Provide the chart type and complete roles valid on the target "
+            "dataset. This prevents stale metric, groupby, and filter roles "
+            "from the previous dataset from being retained."
+        ),
     )
-    new_form_data = map_config_to_form_data(
-        parsed_config,
-        dataset_id=effective_dataset_id,
-        include_disabled=include_disabled,
-    )
-    new_form_data.pop("_mcp_warnings", None)
-    dataset_rebind = replacement_dataset_id is not None
-    config_plugin = get_registry().get(
-        parsed_config.chart_type, include_disabled=include_disabled
-    )
-    if replacement_dataset_id is not None and not (
-        config_plugin is not None and config_plugin.strict_dataset_rebind
-    ):
-        # Drop only the inherited state the replacement dataset cannot
-        # resolve, then merge as a same-dataset update. Plugins with a strict
-        # rebind contract handle the rebind in merge_update_form_data.
-        existing_form_data = _prune_inherited_query_state(
-            existing_form_data, new_form_data, parsed_config, replacement_dataset_id
-        )
-        dataset_rebind = False
-    merge_table_column_config(existing_form_data, new_form_data)
-    merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-    merge_plugin = plugin_for_viz_type(new_form_data.get("viz_type"))
-    if merge_plugin is not None and merge_plugin.owns_update_merge:
-        # The plugin owns its complete merge contract, including temporal
-        # predicates and dataset rebinds. Generic update merges would restore
-        # inherited state that the contract deliberately removed.
-        merged = _merge_replacement_config(
-            existing_form_data,
-            new_form_data,
-            parsed_config,
-            dataset_rebind=dataset_rebind,
-        )
-    else:
-        merged = _merge_replacement_config(
-            existing_form_data,
-            new_form_data,
-            parsed_config,
-            dataset_rebind=dataset_rebind,
-        )
-        merge_update_form_data(existing_form_data, merged, parsed_config)
-        merge_same_viz_form_data(existing_form_data, merged, parsed_config)
-        for config_field, form_data_field in (
-            ("group_by", "groupby"),
-            ("group_by_secondary", "groupby_b"),
-            ("sort_by", "order_by_cols"),
-        ):
-            if (
-                config_field in parsed_config.model_fields_set
-                and getattr(parsed_config, config_field, None) == []
-            ):
-                merged.pop(form_data_field, None)
-    if replacement_dataset_id is not None:
-        merged["datasource"] = f"{replacement_dataset_id}__table"
-    return merged
 
 
-def _build_update_payload(
+def _build_update_payload(  # noqa: C901
     request: UpdateChartRequest,
     chart: Any,
     parsed_config: Any = None,
@@ -517,17 +293,35 @@ def _build_update_payload(
     )
 
     if parsed_config is not None:
-        new_form_data = _build_replacement_form_data(
-            _get_existing_form_data(chart),
-            parsed_config,
-            effective_dataset_id,
-            replacement_dataset_id=(
-                request.dataset_id
-                if request.dataset_id != getattr(chart, "datasource_id", None)
-                else None
-            ),
+        new_form_data = map_config_to_form_data(
+            parsed_config, dataset_id=effective_dataset_id, include_disabled=True
         )
-        _canonicalize_form_data_datasource(new_form_data, effective_dataset_id)
+        new_form_data.pop("_mcp_warnings", None)
+        existing_form_data = _get_existing_form_data(chart)
+        dataset_rebind = _is_dataset_rebind(request, chart)
+        if not dataset_rebind:
+            merge_table_column_config(existing_form_data, new_form_data)
+            merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
+            merge_gantt_ui_config(existing_form_data, new_form_data)
+        # Apply the same bounded registry used by preview updates. Cross-viz
+        # changes cannot inherit source query roles; same-viz Sunburst updates
+        # additionally preserve explicitly omitted native presentation state.
+        new_form_data = _merge_replacement_config(
+            existing_form_data,
+            new_form_data,
+            parsed_config,
+            dataset_rebind=dataset_rebind,
+        )
+        new_form_data = canonicalize_operation_form_data(
+            new_form_data,
+            datasource_id=effective_dataset_id,
+            datasource_type=(
+                "table"
+                if request.dataset_id is not None
+                else getattr(chart, "datasource_type", "table")
+            ),
+            chart_id=chart.id,
+        )
 
         chart_name = (
             request.chart_name
@@ -548,6 +342,8 @@ def _build_update_payload(
         return payload
 
     if request.add_columns is not None:
+        if _is_dataset_rebind(request, chart):
+            return _add_columns_rebind_error()
         try:
             existing_form_data = json.loads(chart.params) if chart.params else {}
         except (ValueError, TypeError):
@@ -555,7 +351,16 @@ def _build_update_payload(
         patched = _append_table_columns(existing_form_data, request.add_columns)
         if isinstance(patched, GenerateChartResponse):
             return patched
-        _canonicalize_form_data_datasource(patched, effective_dataset_id)
+        patched = canonicalize_operation_form_data(
+            patched,
+            datasource_id=effective_dataset_id,
+            datasource_type=(
+                "table"
+                if request.dataset_id is not None
+                else getattr(chart, "datasource_type", "table")
+            ),
+            chart_id=chart.id,
+        )
         chart_name = request.chart_name or chart.slice_name
         additive_payload: dict[str, Any] = {
             "slice_name": chart_name,
@@ -568,15 +373,15 @@ def _build_update_payload(
             additive_payload["datasource_type"] = "table"
         return additive_payload
 
-    # Dataset-only update: rebind chart to a different dataset without changing viz
+    # Dataset-only updates require a complete config when the datasource changes.
+    # Re-sending the existing dataset ID is an idempotent update and must not erase
+    # any saved dataset-bound configuration.
     if request.dataset_id is not None:
-        rebound_form_data = _get_existing_form_data(chart)
-        _canonicalize_form_data_datasource(rebound_form_data, request.dataset_id)
+        if _is_dataset_rebind(request, chart):
+            return _dataset_rebind_config_error(chart)
         payload = {
             "datasource_id": request.dataset_id,
-            "datasource_type": "table",
-            "params": json.dumps(rebound_form_data),
-            "query_context": None,
+            "datasource_type": getattr(chart, "datasource_type", "table"),
         }
         if request.chart_name:
             payload["slice_name"] = request.chart_name
@@ -588,7 +393,7 @@ def _build_update_payload(
     return {"slice_name": request.chart_name}
 
 
-def _build_preview_form_data(
+def _build_preview_form_data(  # noqa: C901
     request: UpdateChartRequest,
     chart: Any,
     parsed_config: Any = None,
@@ -609,17 +414,26 @@ def _build_preview_form_data(
     )
 
     if parsed_config is not None:
-        merged = _build_replacement_form_data(
+        new_form_data = map_config_to_form_data(
+            parsed_config, dataset_id=effective_dataset_id, include_disabled=True
+        )
+        new_form_data.pop("_mcp_warnings", None)
+        dataset_rebind = _is_dataset_rebind(request, chart)
+        if not dataset_rebind:
+            merge_table_column_config(existing_form_data, new_form_data)
+            merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
+            merge_gantt_ui_config(existing_form_data, new_form_data)
+        # In the preview, an explicit filters list, including [], replaces saved
+        # filters. An omitted filters field preserves them through the shallow merge.
+        merged = _merge_replacement_config(
             existing_form_data,
+            new_form_data,
             parsed_config,
-            effective_dataset_id,
-            replacement_dataset_id=(
-                request.dataset_id
-                if request.dataset_id != getattr(chart, "datasource_id", None)
-                else None
-            ),
+            dataset_rebind=dataset_rebind,
         )
     elif request.add_columns is not None:
+        if _is_dataset_rebind(request, chart):
+            return _add_columns_rebind_error()
         patched = _append_table_columns(existing_form_data, request.add_columns)
         if isinstance(patched, GenerateChartResponse):
             return patched
@@ -627,6 +441,8 @@ def _build_preview_form_data(
     else:
         if not request.chart_name and request.dataset_id is None:
             return _missing_config_or_name_error()
+        if _is_dataset_rebind(request, chart):
+            return _dataset_rebind_config_error(chart)
         merged = dict(existing_form_data)
 
     if request.chart_name:
@@ -635,12 +451,24 @@ def _build_preview_form_data(
         merged["slice_name"] = chart.slice_name
 
     merged["slice_id"] = chart.id
-    _canonicalize_form_data_datasource(merged, effective_dataset_id)
+    if effective_dataset_id:
+        merged["datasource"] = f"{effective_dataset_id}__table"
+
+    merged = canonicalize_operation_form_data(
+        merged,
+        datasource_id=effective_dataset_id,
+        datasource_type=(
+            "table"
+            if request.dataset_id is not None
+            else getattr(chart, "datasource_type", "table")
+        ),
+        chart_id=chart.id,
+    )
 
     return merged
 
 
-def _validate_update_against_dataset(
+def _validate_update_against_dataset(  # noqa: C901
     parsed_config: Any,
     form_data: dict[str, Any],
     chart: Any,
@@ -653,9 +481,8 @@ def _validate_update_against_dataset(
 
     When ``dataset_id`` is provided, validates against that dataset instead of
     the chart's existing datasource (used when rebinding to a new dataset).
-    ``parsed_config`` may be None for a native dataset-only rebind; in that
-    case the merged form data is validated through the canonical native query
-    contract before the same query is compiled against the target dataset.
+    Pass ``run_compile_check=False`` to skip the Tier 2 live-query check (used
+    for dataset-only rebinds where no new chart config is provided).
     """
     from superset.daos.dataset import DatasetDAO
     from superset.mcp_service.auth import has_dataset_access
@@ -678,7 +505,7 @@ def _validate_update_against_dataset(
             if dataset_id is not None
             else getattr(chart, "datasource_id", None)
         )
-        return _bounded_update_response(
+        return GenerateChartResponse.model_validate(
             {
                 "chart": None,
                 "error": {
@@ -692,8 +519,30 @@ def _validate_update_against_dataset(
             }
         )
 
-    merged_plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    canonical_form_data = canonicalize_operation_form_data(
+        form_data,
+        datasource_id=dataset.id,
+        datasource_type=getattr(dataset, "type", "table"),
+        chart_id=getattr(chart, "id", None),
+    )
+    form_data.clear()
+    form_data.update(canonical_form_data)
+
+    saved_state_plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if saved_state_plugin is not None:
+        from superset.mcp_service.chart.validation.dataset_validator import (
+            build_dataset_context_from_orm,
+        )
+
+        normalized_form_data = saved_state_plugin.normalize_saved_form_data(
+            form_data, lambda: build_dataset_context_from_orm(dataset)
+        )
+        if normalized_form_data is not None:
+            form_data.clear()
+            form_data.update(normalized_form_data)
+
     try:
+        merged_plugin = plugin_for_viz_type(form_data.get("viz_type"))
         merged_config = (
             merged_plugin.validate_merged_form_data(
                 form_data, dataset.id, update_config=parsed_config
@@ -706,10 +555,9 @@ def _validate_update_against_dataset(
             message="Gantt chart column roles are invalid",
             details=str(ex),
         )
-    except (TypeError, ValueError) as ex:
-        display_name = merged_plugin.display_name if merged_plugin else "chart"
+    except ValueError as ex:
         return _validation_error_response(
-            message=f"Merged {display_name} configuration is invalid.",
+            message="Chart configuration is invalid",
             details=str(ex),
         )
     if merged_config is not None:
@@ -739,7 +587,7 @@ def _validate_update_against_dataset(
             "error_code": compile_result.error_code,
             "suggestions": [],
         }
-    return _bounded_update_response(
+    return GenerateChartResponse.model_validate(
         {
             "chart": None,
             "error": error_payload,
@@ -787,6 +635,14 @@ def _create_preview_url(
         )
         return f"{base_url}/explore/?slice_id={chart.id}", None, [warning]
 
+    form_data = canonicalize_operation_form_data(
+        form_data,
+        datasource_id=effective_datasource_id,
+        datasource_type=(
+            "table" if datasource_id is not None else chart.datasource_type
+        ),
+        chart_id=chart.id,
+    )
     cmd_params = CommandParameters(
         datasource_type=DatasourceType.TABLE,
         datasource_id=effective_datasource_id,
@@ -868,6 +724,20 @@ async def update_chart(  # noqa: C901
     }
     ```
 
+    Update a Sunburst while preserving omitted saved presentation and filter
+    settings (pass filters=[] explicitly to clear filters):
+    ```json
+    {
+        "identifier": 123,
+        "config": {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "region"}, {"name": "country"}],
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "show_total": true
+        }
+    }
+    ```
+
     Add a table column while preserving existing columns and metrics:
     ```json
     {
@@ -916,7 +786,6 @@ async def update_chart(  # noqa: C901
     - Preview URL and explore URL for further editing
     """
     start_time = time.time()
-    contract_scope = ExitStack()
 
     try:
         with event_logger.log_context(action="mcp.update_chart.chart_lookup"):
@@ -928,7 +797,7 @@ async def update_chart(  # noqa: C901
                 f"No chart found with identifier: {display_id}."
                 " Use list_charts to get valid chart IDs."
             )
-            return _bounded_update_response(
+            return _finalize_response(
                 {
                     "chart": None,
                     "error": {
@@ -942,29 +811,10 @@ async def update_chart(  # noqa: C901
                 }
             )
 
-        # The saved chart keeps its plugin's contract for the whole update,
-        # even when its chart type is disabled for new charts.
-        saved_plugin = contract_scope.enter_context(
-            saved_chart_contract(getattr(chart, "viz_type", None))
-        )
-        if (
-            request.dataset_id is not None
-            and request.dataset_id != getattr(chart, "datasource_id", None)
-            and request.config is None
-            and saved_plugin is not None
-            and saved_plugin.requires_config_for_dataset_rebind
-        ):
-            return _validation_error_response(
-                message=(
-                    f"{saved_plugin.display_name} dataset rebind requires a "
-                    f"complete {saved_plugin.display_name} config."
-                ),
-                details=(
-                    "Provide the chart type and complete roles valid on the target "
-                    "dataset. This prevents stale metric, groupby, and filter roles "
-                    "from the previous dataset from being retained."
-                ),
-            )
+        if _is_dataset_rebind(request, chart) and request.config is None:
+            if request.add_columns is not None:
+                return _add_columns_rebind_error()
+            return _dataset_rebind_config_error(chart)
 
         # Validate dataset access before allowing update.
         # check_chart_data_access is the centralized data-level
@@ -975,7 +825,7 @@ async def update_chart(  # noqa: C901
         validation_result = check_chart_data_access(chart)
         if not validation_result.is_valid:
             error_msg = validation_result.error or "Chart's dataset is not accessible"
-            return _bounded_update_response(
+            return _finalize_response(
                 {
                     "chart": None,
                     "error": {
@@ -999,34 +849,16 @@ async def update_chart(  # noqa: C901
         # config is already a typed ChartConfig | None (validated by Pydantic)
         try:
             config_plugin = (
-                get_registry().get(request.config.chart_type)
+                get_registry().get(request.config.chart_type, include_disabled=True)
                 if request.config is not None
                 else None
             )
-            resolve_form_data = _get_existing_form_data(chart)
-            resolve_rebind = (
-                request.dataset_id is not None
-                and request.dataset_id != chart.datasource_id
-            )
-            if (
-                config_plugin is not None
-                and request.config is not None
-                and request.dataset_id is not None
-                and resolve_rebind
-                and not config_plugin.strict_dataset_rebind
-            ):
-                # Match the cached-preview path: retain only the saved roles
-                # that resolve against the replacement dataset, then resolve
-                # omitted roles as a same-dataset update.
-                resolve_form_data = _prune_inherited_query_state(
-                    resolve_form_data, {}, request.config, request.dataset_id
-                )
-                resolve_rebind = False
             parsed_config = (
                 config_plugin.resolve_update_config(
                     request.config,
-                    resolve_form_data,
-                    dataset_rebind=resolve_rebind,
+                    _get_existing_form_data(chart),
+                    dataset_rebind=request.dataset_id is not None
+                    and request.dataset_id != chart.datasource_id,
                 )
                 if config_plugin is not None
                 else request.config
@@ -1054,6 +886,7 @@ async def update_chart(  # noqa: C901
         if validation_config is not None and effective_norm_dataset_id is not None:
             from superset.mcp_service.chart.validation.dataset_validator import (
                 DatasetValidator,
+                NORMALIZATION_EXCEPTIONS,
             )
 
             try:
@@ -1071,12 +904,7 @@ async def update_chart(  # noqa: C901
                     message="Gantt chart column roles are invalid",
                     details=str(ex),
                 )
-            except ValueError as e:
-                return _validation_error_response(
-                    message="Chart references could not be canonicalized.",
-                    details=str(e),
-                )
-            except (ImportError, AttributeError, KeyError, TypeError) as e:
+            except NORMALIZATION_EXCEPTIONS as e:
                 logger.warning(
                     "Column normalization failed for chart %s: %s", chart.id, e
                 )
@@ -1086,7 +914,7 @@ async def update_chart(  # noqa: C901
 
             payload_or_error = _build_update_payload(request, chart, parsed_config)
             if isinstance(payload_or_error, GenerateChartResponse):
-                return payload_or_error
+                return _finalize_response(payload_or_error)
 
             # Extract form_data — present only for config updates, None for renames.
             if "params" in payload_or_error:
@@ -1105,19 +933,31 @@ async def update_chart(  # noqa: C901
                         dataset_id=request.dataset_id,
                     )
                 if validation_error is not None:
-                    return validation_error
+                    return _finalize_response(validation_error)
+                # Validation canonicalizes preserved native Sunburst references.
+                payload_or_error["params"] = json.dumps(new_form_data)
             elif request.dataset_id is not None:
-                # Dataset-only rebinds validate and compile the full native
-                # chart state against the target before persistence.
+                # Dataset-only updates still validate and compile the actual final
+                # state. For a true rebind this is the scrubbed target state; for an
+                # idempotent same-dataset update it is the preserved saved state.
+                final_form_data = (
+                    new_form_data
+                    if new_form_data is not None
+                    else _build_preview_form_data(request, chart, parsed_config)
+                )
+                if isinstance(final_form_data, GenerateChartResponse):
+                    return _finalize_response(final_form_data)
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
                         None,
-                        new_form_data or {},
+                        final_form_data,
                         chart,
                         dataset_id=request.dataset_id,
                     )
                 if validation_error is not None:
-                    return validation_error
+                    return _finalize_response(validation_error)
+                if "params" in payload_or_error:
+                    payload_or_error["params"] = json.dumps(final_form_data)
 
             with event_logger.log_context(action="mcp.update_chart.db_write"):
                 command = UpdateChartCommand(chart.id, payload_or_error)
@@ -1129,8 +969,7 @@ async def update_chart(  # noqa: C901
         else:
             preview_or_error = _build_preview_form_data(request, chart, parsed_config)
             if isinstance(preview_or_error, GenerateChartResponse):
-                return preview_or_error
-            new_form_data = preview_or_error
+                return _finalize_response(preview_or_error)
 
             # Validate before caching the form_data — same rationale as above.
             if validation_config is not None:
@@ -1142,10 +981,10 @@ async def update_chart(  # noqa: C901
                         dataset_id=request.dataset_id,
                     )
                 if validation_error is not None:
-                    return validation_error
+                    return _finalize_response(validation_error)
             elif request.dataset_id is not None:
-                # Preview-first rebinds use the same fail-closed native compile
-                # gate before the merged form data can enter the cache.
+                # Compile the exact state that will be cached, including preserved
+                # same-dataset roles or the scrubbed state for a true rebind.
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
                         None,
@@ -1154,15 +993,20 @@ async def update_chart(  # noqa: C901
                         dataset_id=request.dataset_id,
                     )
                 if validation_error is not None:
-                    return validation_error
+                    return _finalize_response(validation_error)
 
             with event_logger.log_context(action="mcp.update_chart.preview_link"):
                 explore_url, form_data_key, warnings = _create_preview_url(
                     chart, preview_or_error, datasource_id=request.dataset_id
                 )
+            new_form_data = preview_or_error
 
         chart_for_analysis = updated_chart if saved else chart
-        viz_type_for_analysis = getattr(chart_for_analysis, "viz_type", None)
+        viz_type_for_analysis = (
+            getattr(chart_for_analysis, "viz_type", None)
+            if saved
+            else (new_form_data or {}).get("viz_type")
+        )
         capabilities = analyze_chart_capabilities(viz_type_for_analysis, parsed_config)
         semantics = analyze_chart_semantics(viz_type_for_analysis, parsed_config)
 
@@ -1199,6 +1043,7 @@ async def update_chart(  # noqa: C901
         # Generate previews for saved charts only. Unsaved previews rely on
         # the explore URL for interactive viewing.
         previews: dict[str, Any] = {}
+        preview_errors: dict[str, ChartError] = {}
         if saved and updated_chart and request.preview_formats:
             try:
                 with event_logger.log_context(action="mcp.update_chart.preview"):
@@ -1216,7 +1061,9 @@ async def update_chart(  # noqa: C901
                             preview_request, ctx
                         )
 
-                        if hasattr(preview_result, "content"):
+                        if isinstance(preview_result, ChartError):
+                            preview_errors[format_type] = preview_result
+                        elif hasattr(preview_result, "content"):
                             previews[format_type] = preview_result.content
 
             except (
@@ -1241,7 +1088,11 @@ async def update_chart(  # noqa: C901
             if saved and updated_chart and updated_chart.uuid
             else (str(chart.uuid) if chart.uuid else None)
         )
-        viz_type = updated_chart.viz_type if saved and updated_chart else chart.viz_type
+        viz_type = (
+            updated_chart.viz_type
+            if saved and updated_chart
+            else (new_form_data or {}).get("viz_type", chart.viz_type)
+        )
 
         result = {
             "chart": {
@@ -1257,6 +1108,7 @@ async def update_chart(  # noqa: C901
             "warnings": warnings,
             "form_data": _wrapped_form_data_for_response(new_form_data),
             "previews": previews,
+            "preview_errors": preview_errors,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
@@ -1273,9 +1125,7 @@ async def update_chart(  # noqa: C901
             "schema_version": "2.0",
             "api_version": "v1",
         }
-        return _bounded_update_response(
-            result, persisted_chart_id=chart_id if saved else None
-        )
+        return _finalize_response(result)
 
     except GanttSemanticNormalizationError as ex:
         return _validation_error_response(
@@ -1287,7 +1137,7 @@ async def update_chart(  # noqa: C901
             "Chart update requires OAuth authentication: identifier=%s"
             % request.identifier
         )
-        return _bounded_update_response(
+        return _finalize_response(
             {
                 "chart": None,
                 "success": False,
@@ -1300,7 +1150,7 @@ async def update_chart(  # noqa: C901
         )
     except OAuth2Error:
         await ctx.error("OAuth2 configuration error: chart_id=%s" % request.identifier)
-        return _bounded_update_response(
+        return _finalize_response(
             {
                 "chart": None,
                 "success": False,
@@ -1327,7 +1177,7 @@ async def update_chart(  # noqa: C901
                 "Database rollback failed during error handling", exc_info=True
             )
         execution_time = int((time.time() - start_time) * 1000)
-        return _bounded_update_response(
+        return _finalize_response(
             {
                 "chart": None,
                 "error": {
@@ -1345,5 +1195,3 @@ async def update_chart(  # noqa: C901
                 "api_version": "v1",
             }
         )
-    finally:
-        contract_scope.close()

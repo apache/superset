@@ -24,30 +24,23 @@ assists people when migrating to a new version.
 
 ## Next
 
-- MCP query results enforce non-configurable hard limits of **50,000 rows per
-  query**, **100,000 total rows**, **2,500,000 values/containers**, **64 KiB**
-  (65,536 UTF-8 bytes) per row-cell string value and **16 MiB**
-  (16,777,216 JSON-encoded bytes) across all query data and metadata. All
-  metadata additionally shares a separate 1 MiB aggregate allowance; metadata
-  strings (including SQL text) are not subject to the row-cell string cap.
-  The total-row budget counts returned data rows across all queries, not
-  `rowcount`/`total_rows` metadata. The shared value budget counts each row
-  object, cell scalar (including null), nested container and its elements, plus
-  row-shaped `indexnames` and their entries. Repeated occurrences count again;
-  object keys contribute bytes, not values. For example, 50,000 rows with 50
-  scalar columns exceed the value budget (2,550,000 including row objects),
-  even below the byte caps.
-  Oversized results fail with `MalformedQueryResult` (or a chart compile error for
-  generation/update checks), including one-row results and `get_chart_data`
-  CSV/Excel exports. The caps apply to chart data/previews and
-  generation/update compile checks, `query_dataset`, and semantic-layer
-  `get_table`, independently of the configurable response-size guard. Reduce
-  selected rows/columns or large cell values, or use non-MCP query/export paths.
-  Binary cells must fit the cell cap both before and after text/base64 conversion.
-  NumPy extended-precision floats retain precision as decimal strings in MCP
-  responses and exports instead of being narrowed to binary64.
+- MCP data-bearing tools enforce mandatory chart-query result limits before
+  response serialization or CSV/XLSX export, independently of the configurable
+  response size guard (`MCP_RESPONSE_SIZE_CONFIG`). Results are limited to 32
+  queries, 50,000 rows per query, 100,000 rows in total, 4,096 columns per row,
+  2,500,000 values, 16 MiB of JSON, and 1 MiB of metadata. Nested cells
+  are limited to 4,096 items per container and 32 levels of nesting; text cells
+  are limited to 65,536 UTF-8 bytes. Increasing `SQL_MAX_ROW` or raising/disabling
+  the response size guard does not raise these fixed limits. Oversized results,
+  including saved Table exports, return `InvalidQueryResult`; lower row limits,
+  filter, select fewer/narrower columns, or aggregate before exporting.
   Bullet preview numeric format precision is limited to 20 digits; raw data
   reads do not validate presentation formats.
+
+- MCP `update_chart` requires a complete `config` when changing `dataset_id`
+  to a different dataset, for both preview and immediate-save requests. Re-sending
+  the existing dataset ID remains an idempotent update.
+
 - Semantic-layer providers may opt into `SemanticLayer.result_cache_version` to
   isolate chart, filter-value and chart-backed annotation results from older
   producer guarantees. The default `None` preserves existing cache keys. Providers
@@ -105,15 +98,6 @@ assists people when migrating to a new version.
   exports. Ordinary table bundles retain their existing format. The examples
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
-
-### Exact Decimal values in MCP data responses
-
-Finite Decimal values in MCP row data, column samples, and statistics are
-serialized as exact JSON strings instead of rounded JSON numbers, uniformly
-regardless of whether a particular value is representable as a float. This
-affects `get_chart_data`, `get_dashboard_data`, `query_dataset`, `get_table`, and
-`execute_sql`. Clients requiring numeric arithmetic should parse these strings
-with a decimal-aware type. Non-finite Decimal values remain JSON `null`.
 
 ### Alerts & Reports: runtime configuration and per-schedule "Run As" executor (SIP-209)
 

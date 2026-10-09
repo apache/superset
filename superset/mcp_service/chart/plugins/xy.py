@@ -52,12 +52,24 @@ class XYChartPlugin(BaseChartPlugin):
 
     chart_type = "xy"
     display_name = "Line / Bar / Area / Scatter Chart"
+    resizes_saved_preview = True
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "echarts_timeseries_line": "Line Chart",
         "echarts_timeseries_bar": "Bar Chart",
         "echarts_area": "Area Chart",
         "echarts_timeseries_scatter": "Scatter Plot",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys | {"x_axis"}
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        """Adapt flattened timeseries series into the XY preview encoding."""
+        from superset.mcp_service.chart.preview_utils import (
+            generate_xy_vega_lite_preview,
+        )
+
+        return generate_xy_vega_lite_preview(data, form_data)
 
     def pre_validate(
         self,
@@ -103,6 +115,9 @@ class XYChartPlugin(BaseChartPlugin):
         if config.x is not None:
             refs.append(config.x)
         refs.extend(config.y)
+        for metric in (config.series_limit_metric, config.timeseries_limit_metric):
+            if metric is not None:
+                refs.append(metric)
         if config.group_by:
             refs.extend(config.group_by)
         if config.filters:
@@ -124,7 +139,13 @@ class XYChartPlugin(BaseChartPlugin):
             config_dict["x"]["name"] = get_canonical(
                 config_dict["x"]["name"], dataset_context
             )
-        for y_col in config_dict.get("y") or []:
+        metrics = list(config_dict.get("y") or [])
+        metrics.extend(
+            config_dict[key]
+            for key in ("series_limit_metric", "timeseries_limit_metric")
+            if config_dict.get(key)
+        )
+        for y_col in metrics:
             if y_col.get("sql_expression"):
                 continue  # sql_expression metrics have no underlying column
             if y_col.get("saved_metric"):
@@ -205,39 +226,3 @@ class XYChartPlugin(BaseChartPlugin):
             ],
             error_code="XY_VALIDATION_ERROR",
         )
-
-    def build_query_dicts(
-        self,
-        form_data: dict[str, Any],
-        *,
-        viz_type: str,
-        engine: str,
-        row_limit: int | None,
-        order_desc: bool | None,
-    ) -> list[dict[str, Any]] | None:
-        from superset.mcp_service.chart.chart_helpers import (
-            build_timeseries_query_dicts,
-        )
-
-        return build_timeseries_query_dicts(
-            form_data,
-            engine=engine,
-            row_limit=row_limit,
-            order_desc=order_desc,
-        )
-
-    def vega_lite_preview(
-        self, data: list[Any], form_data: dict[str, Any]
-    ) -> VegaLitePreview | ChartError | None:
-        """Fold native pivot columns so grouped previews render every series."""
-        from superset.mcp_service.chart.preview_utils import (
-            generate_xy_pivot_vega_lite_preview,
-        )
-
-        mark = {
-            "echarts_timeseries_line": "line",
-            "echarts_timeseries_bar": "bar",
-            "echarts_area": "area",
-            "echarts_timeseries_scatter": "point",
-        }.get(form_data.get("viz_type") or "", "line")
-        return generate_xy_pivot_vega_lite_preview(data, form_data, mark=mark)

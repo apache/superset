@@ -124,24 +124,6 @@ def test_table_saved_empty_groupby_is_not_a_query_column(groupby: Any) -> None:
     assert query["metrics"] == ["revenue"]
 
 
-@pytest.mark.parametrize("role", ["groupby", "metrics", "all_columns"])
-def test_table_saved_scalar_roles_are_not_split(role: str) -> None:
-    """Saved scalar controls follow ensureIsArray instead of string iteration."""
-    form: dict[str, Any] = {
-        "viz_type": "table",
-        "query_mode": "aggregate",
-        "groupby": ["region"],
-        "metrics": ["revenue"],
-    }
-    if role == "all_columns":
-        form.update(query_mode="raw", all_columns="region")
-    else:
-        form[role] = "region" if role == "groupby" else "revenue"
-    query = build_query_dicts_from_form_data(form, 1, "table")[0]
-    assert query["columns"] == ["region"]
-    assert query["metrics"] == ([] if role == "all_columns" else ["revenue"])
-
-
 @pytest.mark.parametrize("viz_type", ["echarts_timeseries_line", "mixed_timeseries"])
 def test_timeseries_saved_singular_metric(viz_type: str) -> None:
     """The common metric alias remains usable for saved charts."""

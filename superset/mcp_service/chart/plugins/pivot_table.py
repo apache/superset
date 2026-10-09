@@ -41,6 +41,10 @@ class PivotTableChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "pivot_table_v2": "Pivot Table",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys | {
+        "groupbyColumns",
+        "groupbyRows",
+    }
 
     def pre_validate(
         self,
@@ -161,24 +165,4 @@ class PivotTableChartPlugin(BaseChartPlugin):
                 "'metrics': [{'name': 'revenue', 'aggregate': 'SUM'}]}",
             ],
             error_code="PIVOT_TABLE_VALIDATION_ERROR",
-        )
-
-    def build_query_dicts(
-        self,
-        form_data: dict[str, Any],
-        *,
-        viz_type: str,
-        engine: str,
-        row_limit: int | None,
-        order_desc: bool | None,
-    ) -> list[dict[str, Any]] | None:
-        from superset.mcp_service.chart.chart_helpers import (
-            build_pivot_table_query_dicts,
-        )
-
-        return build_pivot_table_query_dicts(
-            form_data,
-            engine=engine,
-            row_limit=row_limit,
-            order_desc=order_desc,
         )

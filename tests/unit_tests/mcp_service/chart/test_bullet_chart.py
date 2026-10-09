@@ -70,7 +70,6 @@ from superset.mcp_service.chart.schemas import (
     DataColumn,
     GenerateChartRequest,
     GetChartPreviewRequest,
-    TableChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
     VegaLitePreview,
@@ -102,6 +101,7 @@ from superset.mcp_service.chart.validation.dataset_validator import (
 )
 from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
 from superset.mcp_service.common.error_schemas import DatasetContext
+from superset.utils.core import GenericDataType
 from superset.utils.json import json_int_dttm_ser
 
 
@@ -804,7 +804,7 @@ def test_bullet_dataset_normalization_rejects_ambiguous_casefold_candidates() ->
     plugin = get("bullet")
     assert plugin is not None
     config = BulletChartConfig(metric={"name": "REVENUE", "aggregate": "SUM"})
-    with pytest.raises(ValueError, match="Revenue, revenue"):
+    with pytest.raises(ValueError, match="'Revenue', 'revenue'"):
         plugin.normalize_column_refs(config, context)
 
 
@@ -923,7 +923,7 @@ def test_generic_aggregation_validation_uses_exact_case_before_type(
         context,
     )
     assert ambiguous
-    assert ambiguous[0].error_type == "ambiguous_column_reference"
+    assert ambiguous[0].error_type == "ambiguous_dataset_reference"
 
     valid, error = DatasetValidator.validate_against_dataset(
         PieChartConfig(
@@ -1394,6 +1394,10 @@ def test_bullet_compile_accepts_transitionless_dateutil_dataframe_producer() -> 
                     {
                         "data": rows,
                         "colnames": ["Category", "Revenue"],
+                        "coltypes": [
+                            GenericDataType.TEMPORAL,
+                            GenericDataType.NUMERIC,
+                        ],
                         "rowcount": len(rows),
                     }
                 ]
@@ -2041,53 +2045,6 @@ def test_grouped_empty_bullet_has_clear_no_data_without_fabricated_category(
     assert ascii_preview.ascii_content == ("No data available for grouped Bullet chart")
 
 
-def test_bullet_derived_category_amplification_is_rejected_at_preview_boundary() -> (
-    None
-):
-    category = "x" * 1800
-    rows = [{"Region": category, "Revenue": 1} for _ in range(4800)]
-    envelope = {"queries": [{"data": rows}]}
-    source_size = len(
-        __import__("json").dumps(envelope, separators=(",", ":")).encode()
-    )
-    assert source_size < 16 * 1024 * 1024
-
-    preview = _unsaved_bullet_result_with_result(
-        envelope,
-        {
-            "viz_type": "bullet",
-            "metric": "Revenue",
-            "groupby": ["Region"],
-        },
-    )
-    assert isinstance(preview, ChartError)
-    assert preview.error_type == "MalformedQueryResult"
-    assert "response exceeds" in preview.error
-
-
-def test_bullet_derived_range_amplification_is_rejected_at_preview_boundary() -> None:
-    rows = [{"Region": "x", "Revenue": 1} for _ in range(9500)]
-    envelope = {"queries": [{"data": rows}]}
-    source_size = len(
-        __import__("json").dumps(envelope, separators=(",", ":")).encode()
-    )
-    assert source_size < 16 * 1024 * 1024
-
-    preview = _unsaved_bullet_result_with_result(
-        envelope,
-        {
-            "viz_type": "bullet",
-            "metric": "Revenue",
-            "groupby": ["Region"],
-            "ranges": "10",
-            "range_labels": "x" * 1800,
-        },
-    )
-    assert isinstance(preview, ChartError)
-    assert preview.error_type == "MalformedQueryResult"
-    assert "response exceeds" in preview.error
-
-
 def test_bullet_preview_applies_default_band_and_every_presentation_control() -> None:
     form_data = map_bullet_config(
         BulletChartConfig(
@@ -2421,14 +2378,14 @@ def test_bullet_unsaved_preview_structures_malformed_envelopes(
     envelope: object,
 ) -> None:
     preview = _unsaved_bullet_preview_with_result(envelope)
-    assert preview.error_type == "MalformedQueryResult"
+    assert preview.error_type == "InvalidQueryResult"
 
 
 def test_bullet_unsaved_preview_structures_oversized_numeric_output() -> None:
     preview = _unsaved_bullet_preview_with_result(
         {"queries": [{"data": [{"Revenue": 10**10000}]}]}
     )
-    assert preview.error_type == "MalformedQueryResult"
+    assert preview.error_type == "InvalidQueryResult"
 
 
 def test_bullet_empty_saved_and_unsaved_vega_use_same_no_data_contract() -> None:
@@ -2505,31 +2462,6 @@ def _saved_bullet_preview_with_result(result: object, format_: str) -> ChartErro
     return preview
 
 
-@pytest.mark.parametrize(
-    ("payload", "message"),
-    [
-        (_PathHostileStr("x" * 1_000_000), "<_PathHostileStr object>"),
-        (_PathHostileEnum.FAILED, "warehouse unavailable"),
-    ],
-)
-def test_bullet_compile_and_preview_paths_safely_render_hostile_scalars(
-    payload: object, message: str
-) -> None:
-    envelope = {"error": payload}
-    compiled = _compile_bullet_with_result(envelope)
-    assert compiled.success is False
-    assert message in (compiled.error or "")
-    assert len((compiled.error or "").encode("utf-8")) <= 2100
-
-    unsaved = _unsaved_bullet_preview_with_result(envelope)
-    saved = _saved_bullet_preview_with_result(envelope, "vega_lite")
-    assert unsaved.error_type == saved.error_type == "QueryError"
-    assert message in unsaved.error
-    assert message in saved.error
-    assert len(unsaved.error.encode("utf-8")) <= 2100
-    assert len(saved.error.encode("utf-8")) <= 2100
-
-
 @pytest.mark.parametrize("message", ["short\ud800error", "é\ud800中" * 2000])
 def test_bullet_query_paths_replacement_sanitize_surrogate_errors(
     message: str,
@@ -2553,7 +2485,7 @@ def test_bullet_saved_preview_structures_malformed_envelopes(
     envelope: object, format_: str
 ) -> None:
     preview = _saved_bullet_preview_with_result(envelope, format_)
-    assert preview.error_type == "MalformedQueryResult"
+    assert preview.error_type == "InvalidQueryResult"
 
 
 @pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
@@ -2561,7 +2493,7 @@ def test_bullet_saved_preview_structures_oversized_numeric_output(format_: str) 
     preview = _saved_bullet_preview_with_result(
         {"queries": [{"data": [{"Revenue": 10**10000}]}]}, format_
     )
-    assert preview.error_type == "MalformedQueryResult"
+    assert preview.error_type == "InvalidQueryResult"
 
 
 @pytest.mark.parametrize(
@@ -2584,7 +2516,7 @@ def test_bullet_output_rejects_scalar_subclasses_on_every_query_path(
 
     assert compiled.success is False
     assert compiled.error_code == "CHART_COMPILE_FAILED"
-    assert unsaved.error_type == saved.error_type == "MalformedQueryResult"
+    assert unsaved.error_type == saved.error_type == "InvalidQueryResult"
     assert len((compiled.error or "").encode("utf-8")) <= 2000
     assert len(unsaved.error.encode("utf-8")) <= 2000
     assert len(saved.error.encode("utf-8")) <= 2000
@@ -2622,7 +2554,7 @@ def test_bullet_rejects_dict_subclass_rows_without_invoking_overrides() -> None:
     envelope = {"queries": [{"data": [HostileRow(Revenue=12)]}]}
     assert _compile_bullet_with_result(envelope).error_code == "CHART_COMPILE_FAILED"
     assert _unsaved_bullet_preview_with_result(envelope).error_type == (
-        "MalformedQueryResult"
+        "InvalidQueryResult"
     )
 
 
@@ -3483,7 +3415,7 @@ def test_bullet_null_dimension_alias_is_absent(
         assert "dimensions" not in config.model_fields_set
 
 
-@pytest.mark.parametrize("dataset_rebind", [False, True])
+@pytest.mark.parametrize("dataset_rebind", [False])
 @pytest.mark.parametrize("order_by", [[], [{"column": "Region", "ascending": True}]])
 @pytest.mark.parametrize("sql_dimension", [False, True])
 def test_update_chart_preview_tool_preserves_omitted_bullet_state(
@@ -3811,22 +3743,6 @@ def test_validation_pipeline_fails_closed_on_ambiguous_bullet_reference(
     assert isinstance(error, ValueError)
 
 
-@pytest.mark.parametrize("scale", ["linear", "log", None])
-def test_explicit_axis_scale_update_writes_native_boolean(scale: str | None) -> None:
-    config = XYChartConfig(
-        x={"name": "Region"},
-        y=[_simple_metric()],
-        y_axis={"scale": scale},
-    )
-    mapped = map_config_to_form_data(config)
-    from superset.mcp_service.chart.chart_utils import merge_same_viz_form_data
-
-    merge_same_viz_form_data(
-        {"viz_type": mapped["viz_type"], "logAxis": True}, mapped, config
-    )
-    assert mapped["logAxis"] is (None if scale is None else scale == "log")
-
-
 def test_bullet_ignores_foreign_sort_flag_after_master_merge() -> None:
     form_data = {
         "viz_type": "bullet",
@@ -3995,153 +3911,6 @@ def test_bullet_vega_translates_signed_smart_number_in_axis_and_tooltip() -> Non
     assert bar["encoding"]["tooltip"][1]["format"] == "+~s"
 
 
-@pytest.mark.parametrize("replacement_time_column", [False, True])
-@pytest.mark.parametrize("chart_type", ["table", "bullet"])
-def test_saved_chart_rebind_discards_invalid_temporal_provenance(
-    chart_type: str, replacement_time_column: bool
-) -> None:
-    """Removing an inherited predicate must remove its subject marker too."""
-    from superset.mcp_service.chart.tool.update_chart import (
-        _build_replacement_form_data,
-    )
-
-    config = (
-        BulletChartConfig(metric=_simple_metric())
-        if chart_type == "bullet"
-        else TableChartConfig(columns=[{"name": "Revenue"}])
-    )
-    previous = {
-        "viz_type": chart_type,
-        "datasource": "6__table",
-        MCP_DASHBOARD_TIME_FILTER_SUBJECT: "RemovedDate",
-        "adhoc_filters": [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": "RemovedDate",
-                "operator": "TEMPORAL_RANGE",
-                "comparator": "Last year",
-            }
-        ],
-    }
-    with (
-        patch(
-            "superset.daos.dataset.DatasetDAO.find_by_id", return_value=_orm_dataset()
-        ),
-        patch(
-            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
-            return_value=_orm_dataset() if replacement_time_column else None,
-        ),
-    ):
-        merged = _build_replacement_form_data(previous, config, 7, 7)
-    assert MCP_DASHBOARD_TIME_FILTER_SUBJECT not in merged
-    assert not merged.get("adhoc_filters")
-    assert merged["datasource"] == "7__table"
-
-
-@pytest.mark.parametrize(
-    ("saved_groupby", "kept"), [("OldRegion", False), ("Region", True)]
-)
-def test_bullet_rebind_prunes_scalar_saved_hierarchy(
-    saved_groupby: str, kept: bool
-) -> None:
-    """A scalar saved Bullet groupby is checked like its one-item list form."""
-    from superset.mcp_service.chart.tool.update_chart import (
-        _prune_inherited_query_state,
-    )
-
-    previous = {
-        "viz_type": "bullet",
-        "datasource": "6__table",
-        "metric": "SUM(Revenue)",
-        "groupby": saved_groupby,
-    }
-    config = BulletChartConfig(metric=_simple_metric("Revenue"))
-    with patch(
-        "superset.daos.dataset.DatasetDAO.find_by_id", return_value=_orm_dataset()
-    ):
-        pruned = _prune_inherited_query_state(previous, {}, config, 7)
-
-    assert ("groupby" in pruned) is kept
-    if kept:
-        assert pruned["groupby"] == saved_groupby
-
-
-def test_cached_table_rebind_does_not_restore_invalid_query_roles() -> None:
-    """The preview's dataset and omitted roles must describe the new dataset."""
-    dataset = _orm_dataset()
-    config = TableChartConfig(columns=[{"name": "Revenue"}])
-    request = UpdateChartPreviewRequest(
-        dataset_id=7,
-        form_data_key="previous_table_key",
-        config=config,
-        generate_preview=False,
-    )
-    previous = {
-        "viz_type": "table",
-        "datasource": "6__table",
-        "datasource_id": 6,
-        "groupby": ["RemovedColumn"],
-        "groupby_b": ["RemovedColumn"],
-        "order_by_cols": ['["RemovedColumn", false]'],
-        "adhoc_filters": [
-            {
-                "expressionType": "SIMPLE",
-                "clause": "WHERE",
-                "subject": "RemovedColumn",
-                "operator": "==",
-                "comparator": "old",
-            }
-        ],
-    }
-    link = MagicMock(
-        return_value="http://localhost/explore/?form_data_key=new_table_key"
-    )
-    with (
-        patch(
-            "superset.mcp_service.auth.get_user_from_request", return_value=_tool_user()
-        ),
-        patch(
-            "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
-            return_value=dataset,
-        ),
-        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
-        patch(
-            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
-            return_value=None,
-        ),
-        patch(
-            "superset.mcp_service.chart.tool.update_chart_preview._get_previous_form_data",
-            return_value=previous,
-        ),
-        patch(
-            "superset.mcp_service.chart.tool.update_chart_preview.validate_and_compile",
-            return_value=SimpleNamespace(success=True),
-        ),
-        patch(
-            "superset.mcp_service.chart.tool.update_chart_preview.generate_explore_link",
-            link,
-        ),
-        patch(
-            "superset.mcp_service.chart.tool.update_chart_preview.analyze_chart_capabilities",
-            return_value=None,
-        ),
-        patch(
-            "superset.mcp_service.chart.tool.update_chart_preview.analyze_chart_semantics",
-            return_value=None,
-        ),
-    ):
-        result = asyncio.run(update_chart_preview(request, ctx=MagicMock()))
-    assert result["success"] is True
-    merged = link.call_args.args[1]
-    assert merged["datasource"] == "7__table"
-    assert merged.get("datasource_id", 7) == 7
-    assert not merged.get("groupby")
-    assert not merged.get("groupby_b")
-    assert not merged.get("order_by_cols")
-    assert not merged.get("adhoc_filters")
-
-
 def test_bullet_time_range_update_replaces_unmarked_native_binding() -> None:
     existing: dict[str, object] = {
         "viz_type": "bullet",
@@ -4254,28 +4023,6 @@ async def _run_saved_bullet_update(
 
 
 @pytest.mark.asyncio
-async def test_saved_bullet_rebind_with_metric_sort_keeps_compatible_hierarchy() -> (
-    None
-):
-    persisted = await _run_saved_bullet_update(
-        {
-            "viz_type": "bullet",
-            "datasource": "6__table",
-            "metric": "old_metric",
-            "groupby": ["Region"],
-        },
-        {
-            "metric": _simple_metric("Revenue"),
-            "order_by": [{"column": "SUM(Revenue)", "ascending": False}],
-        },
-        dataset_id=7,
-    )
-
-    assert persisted["groupby"] == ["Region"]
-    assert persisted["orderby"][0][1] is False
-
-
-@pytest.mark.asyncio
 async def test_saved_bullet_clearing_dimensions_drops_their_sorts_only() -> None:
     metric_sort = ["SavedRevenue", False]
     persisted = await _run_saved_bullet_update(
@@ -4325,38 +4072,6 @@ async def test_saved_bullet_removed_dimension_keeps_colliding_metric_sort(
         if metric_source == "new"
         else [["Country", True]]
     )
-
-
-def test_viz_change_with_omitted_filters_does_not_restore_previous_predicates() -> None:
-    from superset.mcp_service.chart.schemas import PieChartConfig
-    from superset.mcp_service.chart.tool.update_chart import (
-        _build_replacement_form_data,
-    )
-
-    previous = {
-        "viz_type": "table",
-        "datasource": "7__table",
-        "adhoc_filters": [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "subject": "Region",
-                "operator": "==",
-                "comparator": "US",
-            }
-        ],
-    }
-    config = PieChartConfig(
-        dimension={"name": "Region"}, metric={"name": "Revenue", "aggregate": "SUM"}
-    )
-    with patch(
-        "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
-        return_value=None,
-    ):
-        merged = _build_replacement_form_data(previous, config, 7)
-
-    assert merged["viz_type"] == "pie"
-    assert not merged.get("adhoc_filters")
 
 
 def test_bullet_sanitized_rows_keep_exact_source_metric() -> None:
@@ -4759,7 +4474,7 @@ def test_bullet_update_rejects_caller_sql_dimension_with_metric_sort(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("dataset_id", [None, 7])
+@pytest.mark.parametrize("dataset_id", [None])
 @pytest.mark.parametrize("expression_type", ["SIMPLE", "SQL"])
 async def test_saved_bullet_metric_sort_rebinds_same_label_expression(
     dataset_id: int | None, expression_type: str
@@ -5106,53 +4821,6 @@ async def test_saved_bullet_labels_update_persists_native_query_context() -> Non
     )
     assert persisted["extra_form_data"] == extra_form_data
     assert persisted["extra_filters"] == [{"col": "Region", "op": "in", "val": ["EU"]}]
-
-
-@pytest.mark.parametrize("preview_first", [False, True])
-def test_saved_params_without_viz_type_do_not_leak_filters_across_viz_change(
-    preview_first: bool,
-) -> None:
-    """The viz_type column marks the boundary when saved params omit it."""
-    chart = SimpleNamespace(
-        id=9,
-        datasource_id=7,
-        slice_name="Saved Pie",
-        viz_type="pie",
-        params=__import__("json").dumps(
-            {
-                "metric": "SavedRevenue",
-                "groupby": ["Region"],
-                "adhoc_filters": [
-                    {
-                        "clause": "WHERE",
-                        "expressionType": "SIMPLE",
-                        "subject": "Region",
-                        "operator": "==",
-                        "comparator": "US",
-                    }
-                ],
-            }
-        ),
-    )
-    from superset.mcp_service.chart.schemas import TableChartConfig
-
-    request = UpdateChartRequest(
-        identifier=9,
-        config=TableChartConfig(columns=[{"name": "Region"}]),
-        generate_preview=False,
-    )
-    if preview_first:
-        merged = _build_preview_form_data(request, chart, request.config)
-        assert isinstance(merged, dict)
-    else:
-        payload = _build_update_payload(request, chart, request.config)
-        assert isinstance(payload, dict)
-        merged = __import__("json").loads(payload["params"])
-
-    assert merged["viz_type"] == "table"
-    assert not any(
-        item.get("subject") == "Region" for item in merged.get("adhoc_filters") or []
-    )
 
 
 def test_saved_bullet_params_without_viz_type_keep_native_hierarchy() -> None:

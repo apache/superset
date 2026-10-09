@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import base64
+import math
 from collections import deque, UserDict
 from collections.abc import Callable
 from decimal import Decimal
@@ -31,8 +32,8 @@ import numpy as np
 import pandas as pd
 import pytest
 from fastmcp.tools.base import default_serializer
-from pydantic import BaseModel, TypeAdapter, ValidationError
-from pydantic_core import to_json, to_jsonable_python
+from pydantic import TypeAdapter, ValidationError
+from pydantic_core import to_jsonable_python
 
 from superset.mcp_service.utils.serialization import (
     BINARY_PREFIX,
@@ -131,64 +132,28 @@ def test_numpy_arrays_become_lists() -> None:
     assert sanitize_json_value(np.array([1, 2])) == [1, 2]
 
 
-@pytest.mark.parametrize("text", ["0.10000000000000000001", "0.1", "0.5", "19.99", "1"])
-def test_finite_decimal_is_preserved_as_an_exact_json_string(text: str) -> None:
-    """Every finite Decimal retains its digits and a uniform string wire type."""
+def test_decimal_becomes_float() -> None:
+    """A JSON number is more useful to the caller than a quoted string."""
+    sanitized = sanitize_json_value(Decimal("19.99"))
+    assert sanitized == 19.99
+    assert isinstance(sanitized, float)
 
-    class Response(BaseModel):
-        """Exercise each shared data-bearing response annotation."""
 
-        rows: JsonSafeRows
-        values: JsonSafeValues
-        statistics: JsonSafeMapping
+@pytest.mark.parametrize(
+    "value", [Decimal("0.10000000000000000001"), Decimal("1e4096"), Decimal("1e-4096")]
+)
+def test_chart_decimal_sanitization_preserves_nested_precision(value: Decimal) -> None:
+    """Exact chart numerics survive recursive sanitization without float rounding."""
+    from pydantic import TypeAdapter
 
-    value = Decimal(text)
-    response = Response(
-        rows=[{"amount": value}], values=[value], statistics={"amount": value}
+    from superset.mcp_service.utils.serialization import ExactJsonSafeRows
+
+    adapter = TypeAdapter(ExactJsonSafeRows)
+    rows = adapter.validate_python([{"nested": [value, b"\xff", pd.NaT]}])
+    assert rows[0]["nested"] == [value, "base64:/w==", None]
+    assert adapter.dump_python(rows, mode="json")[0]["nested"][0] == (
+        float(value) if math.isfinite(float(value)) else None
     )
-    assert sanitize_json_value(value) is value
-    assert response.rows[0]["amount"] is value
-    expected = {
-        "rows": [{"amount": text}],
-        "values": [text],
-        "statistics": {"amount": text},
-    }
-    assert json_loads(to_json(response)) == expected
-    assert json_loads(default_serializer(response)) == expected
-    assert to_jsonable_python(response) == expected
-
-
-@pytest.mark.parametrize("text", ["NaN", "sNaN", "Infinity", "-Infinity"])
-def test_non_finite_decimal_serializes_as_null(text: str) -> None:
-    """Decimal missing values agree with the float null representation."""
-    value = Decimal(text)
-    assert sanitize_json_value(value) is None
-    assert is_missing_value(value) is True
-    rows = TypeAdapter(JsonSafeRows).validate_python([{"amount": value}])
-    assert to_json(rows) == b'[{"amount":null}]'
-    assert to_jsonable_python(rows) == [{"amount": None}]
-
-
-@pytest.mark.parametrize("text", ["0.10000000000000000001", "NaN", "sNaN", "Infinity"])
-def test_decimal_subclass_hooks_are_not_called(text: str) -> None:
-    """Decimal detection must not dispatch to subclass comparison/conversion hooks."""
-
-    class HostileDecimal(Decimal):
-        """A Decimal whose overridable numeric operations must not be used."""
-
-        def __float__(self) -> float:
-            raise AssertionError("float hook executed")
-
-        def __eq__(self, other: object) -> bool:
-            raise AssertionError("equality hook executed")
-
-        def is_finite(self) -> bool:
-            raise AssertionError("is_finite hook executed")
-
-    value = HostileDecimal(text)
-    expected = value if text == "0.10000000000000000001" else None
-    assert sanitize_json_value(value) is expected
-    assert is_missing_value(value) is (expected is None)
 
 
 def test_unknown_types_are_stringified() -> None:
@@ -345,3 +310,53 @@ def test_string_missing_check_does_not_call_pandas() -> None:
         for value in ("", "NaN", "NaT", "None", "ordinary"):
             assert is_missing_value(value) is False
     isna.assert_not_called()
+
+
+@pytest.mark.parametrize("viz_type", ["table", "pie", "sunburst_v2"])
+def test_chart_decimal_wire_values_remain_numbers(viz_type: str) -> None:
+    """All chart response projections keep the existing numeric wire contract."""
+    from superset.mcp_service.chart.schemas import (
+        ChartData,
+        DataColumn,
+        PerformanceMetadata,
+    )
+    from superset.mcp_service.chart.tool.get_chart_data import _build_query_results
+
+    value = Decimal("12.50")
+    response = ChartData(
+        chart_id=1,
+        chart_name="Decimal chart",
+        chart_type=viz_type,
+        data=[{"value": value}],
+        columns=[
+            DataColumn(
+                name="value",
+                display_name="value",
+                data_type="NUMERIC",
+                sample_values=[value],
+                null_count=0,
+                unique_count=1,
+            )
+        ],
+        total_rows=1,
+        data_freshness=None,
+        summary="",
+        insights=[],
+        data_quality={},
+        recommended_visualizations=[],
+        performance=PerformanceMetadata(
+            query_duration_ms=0, cache_status="miss", rows_processed=1
+        ),
+        row_count=1,
+        query_results=_build_query_results(
+            [{"data": [{"value": value}], "colnames": ["value"], "coltypes": [0]}] * 2,
+            None,
+        ),
+    )
+    assert response.data[0]["value"] is value
+    wire = response.model_dump(mode="json")
+    assert wire["schema_version"] == "2.0"
+    assert wire["data"][0]["value"] == 12.5
+    assert wire["query_results"][0]["data"][0]["value"] == 12.5
+    assert wire["columns"][0]["sample_values"] == [12.5]
+    assert isinstance(wire["data"][0]["value"], float)

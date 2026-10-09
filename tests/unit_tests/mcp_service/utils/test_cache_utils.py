@@ -84,7 +84,7 @@ def test_get_cache_status_from_result_reflects_force_refresh_flag() -> None:
 
 
 def test_get_cache_status_from_result_parses_iso_string_cache_age() -> None:
-    """Compute age from the production ChartData ``cached_dttm`` key."""
+    """Should compute cache age from the producer's canonical timestamp key."""
     cache_dt: datetime = datetime.now(timezone.utc) - timedelta(seconds=120)
     result: dict[str, Any] = {
         "is_cached": True,
@@ -98,7 +98,7 @@ def test_get_cache_status_from_result_parses_iso_string_cache_age() -> None:
 
 
 def test_get_cache_status_from_result_parses_z_suffixed_string() -> None:
-    """The bounded legacy alias still handles a trailing UTC designator."""
+    """Should handle a trailing 'Z' UTC designator in the cache_dttm string."""
     result: dict[str, Any] = {
         "is_cached": True,
         "cache_dttm": "2020-01-01T00:00:00Z",
@@ -110,10 +110,38 @@ def test_get_cache_status_from_result_parses_z_suffixed_string() -> None:
     assert status.cache_age_seconds > 0
 
 
+def test_get_cache_status_canonical_timestamp_precedes_legacy_alias() -> None:
+    canonical = datetime.now(timezone.utc) - timedelta(seconds=30)
+    legacy = datetime.now(timezone.utc) - timedelta(days=3)
+
+    status = get_cache_status_from_result(
+        {
+            "is_cached": True,
+            "cached_dttm": canonical.isoformat(),
+            "cache_dttm": legacy.isoformat(),
+        }
+    )
+
+    assert status.cache_age_seconds is not None
+    assert 29 <= status.cache_age_seconds < 120
+
+
+def test_explicit_canonical_null_is_not_overridden_by_legacy_alias() -> None:
+    status = get_cache_status_from_result(
+        {
+            "is_cached": True,
+            "cached_dttm": None,
+            "cache_dttm": "2020-01-01T00:00:00Z",
+        }
+    )
+
+    assert status.cache_age_seconds is None
+
+
 def test_get_cache_status_from_result_parses_datetime_object_cache_age() -> None:
-    """Compute age when the canonical timestamp is already a datetime."""
+    """Should compute cache_age_seconds when cache_dttm is already a datetime."""
     cache_dt = datetime.now(timezone.utc) - timedelta(seconds=60)
-    result: dict[str, Any] = {"is_cached": True, "cached_dttm": cache_dt}
+    result: dict[str, Any] = {"is_cached": True, "cache_dttm": cache_dt}
 
     status = get_cache_status_from_result(result)
 
@@ -130,20 +158,6 @@ def test_get_cache_status_from_result_handles_unparseable_cache_dttm() -> None:
     assert status.cache_age_seconds is None
     # The rest of the status should still be populated correctly.
     assert status.cache_hit is True
-
-
-def test_get_cache_status_prefers_canonical_timestamp_over_legacy_alias() -> None:
-    canonical = datetime.now(timezone.utc) - timedelta(seconds=60)
-    result: dict[str, Any] = {
-        "is_cached": True,
-        "cached_dttm": canonical.isoformat(),
-        "cache_dttm": "2020-01-01T00:00:00Z",
-    }
-
-    status = get_cache_status_from_result(result)
-
-    assert status.cache_age_seconds is not None
-    assert 59 <= status.cache_age_seconds < 120
 
 
 def test_get_cache_status_from_result_no_cache_dttm_leaves_age_none() -> None:

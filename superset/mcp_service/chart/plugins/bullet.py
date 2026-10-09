@@ -34,6 +34,7 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     ColumnRef,
     resolve_bullet_order_target,
+    TablePreview,
     VegaLitePreview,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
@@ -74,13 +75,25 @@ def _render_model_error(rows: Any, form_data: Mapping[str, Any]) -> ChartError |
         BulletOutputError,
         resolve_bullet_render_model,
     )
-    from superset.mcp_service.chart.query_result import safe_exception_message
+    from superset.mcp_service.chart.response_preflight import (
+        bounded_exception_message,
+    )
 
     try:
         resolve_bullet_render_model(rows, dict(form_data), validate_format=False)
     except BulletOutputError as ex:
-        return ChartError(error=safe_exception_message(ex), error_type=ex.error_type)
+        return ChartError(error=bounded_exception_message(ex), error_type=ex.error_type)
     return None
+
+
+def _unsupported_table_preview() -> ChartError:
+    return ChartError(
+        error=(
+            "Table previews cannot represent Bullet ranges, markers, "
+            "labels, and legend semantics"
+        ),
+        error_type="UnsupportedFormat",
+    )
 
 
 class BulletChartPlugin(BaseChartPlugin):
@@ -96,14 +109,13 @@ class BulletChartPlugin(BaseChartPlugin):
     # The frontend renders an empty result (a zero measure when ungrouped).
     allows_empty_result = True
     allows_empty_data_result = True
+    # A null ``data`` array is a malformed producer result, not an empty chart.
+    null_data_is_empty = False
     # Updates merge filter provenance plus Bullet's bounded native controls;
     # no other saved control is carried into the typed Bullet state.
     owns_update_merge = True
     binds_time_range_to_temporal_filter = True
-    table_preview_unsupported_reason: ClassVar[str | None] = (
-        "Table previews cannot represent Bullet ranges, markers, "
-        "labels, and legend semantics"
-    )
+    validates_native_references = True
     invalid_result_error_code = "MALFORMED_BULLET_OUTPUT"
     invalid_result_message = (
         "Bullet query output does not contain a usable sizing measure."
@@ -329,14 +341,49 @@ class BulletChartPlugin(BaseChartPlugin):
             error_code="BULLET_VALIDATION_ERROR",
         )
 
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        """Mirror ``Bullet/buildQuery``: one metric over the groupby hierarchy.
+
+        The frontend keeps only explicitly saved ordering; it never applies
+        the legacy top-N metric ordering of unadapted visualizations.
+        """
+        from superset.common.form_data_query_context import (
+            build_query_objects_from_form_data,
+        )
+
+        queries = build_query_objects_from_form_data(
+            form_data,
+            viz_type=viz_type,
+            row_limit=row_limit,
+            order_desc=order_desc,
+            filters_prepared=True,
+        )
+        query = queries[0]
+        metric = form_data.get("metric")
+        query["columns"] = bullet_groupby_list(form_data.get("groupby"))
+        query["metrics"] = [metric] if metric else []
+        if not form_data.get("orderby") and not form_data.get("order_by_cols"):
+            query["orderby"] = []
+        return queries
+
     def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:
         """Reject results that cannot size a Bullet chart without guessing."""
-        from superset.mcp_service.chart.query_result import query_result_data
+        from superset.mcp_service.chart.query_result import first_query_data
 
-        data, failure = query_result_data(result, temporal_json_numbers=True)
+        rows, failure = first_query_data(
+            result, none_as_empty=False, temporal_json_numbers=True
+        )
         if failure is not None:
             return failure
-        rows = data[0] if data else []
+        assert rows is not None
         if (error := _render_model_error(rows, form_data)) is not None:
             return error
         return result
@@ -350,7 +397,9 @@ class BulletChartPlugin(BaseChartPlugin):
             BulletOutputError,
             resolve_bullet_render_model,
         )
-        from superset.mcp_service.chart.query_result import safe_exception_message
+        from superset.mcp_service.chart.response_preflight import (
+            bounded_exception_message,
+        )
 
         try:
             model = resolve_bullet_render_model(
@@ -358,7 +407,7 @@ class BulletChartPlugin(BaseChartPlugin):
             )
         except BulletOutputError as ex:
             return [], ChartError(
-                error=safe_exception_message(ex), error_type=ex.error_type
+                error=bounded_exception_message(ex), error_type=ex.error_type
             )
         if not data:
             # The strict model's zero-valued ungrouped row is a render-only
@@ -380,20 +429,36 @@ class BulletChartPlugin(BaseChartPlugin):
         return rows, None
 
     def ascii_preview(
-        self, data: list[Any], form_data: dict[str, Any], width: int
+        self,
+        data: list[Any],
+        form_data: dict[str, Any],
+        width: int,
+        height: int = 20,
     ) -> str | ChartError | None:
         from superset.mcp_service.chart.preview_utils import (
             _generate_ascii_bullet_chart,
             BulletOutputError,
         )
-        from superset.mcp_service.chart.query_result import safe_exception_message
+        from superset.mcp_service.chart.response_preflight import (
+            bounded_exception_message,
+        )
 
         try:
             return _generate_ascii_bullet_chart(data, form_data)
         except BulletOutputError as ex:
             return ChartError(
-                error=safe_exception_message(ex), error_type=ex.error_type
+                error=bounded_exception_message(ex), error_type=ex.error_type
             )
+
+    def table_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> TablePreview | ChartError | None:
+        return _unsupported_table_preview()
+
+    def unsupported_preview(self, preview_format: str) -> ChartError | None:
+        if preview_format == "table":
+            return _unsupported_table_preview()
+        return None
 
     def vega_lite_preview(
         self, data: list[Any], form_data: dict[str, Any]
@@ -402,13 +467,15 @@ class BulletChartPlugin(BaseChartPlugin):
             _generate_bullet_vega_lite_preview,
             BulletOutputError,
         )
-        from superset.mcp_service.chart.query_result import safe_exception_message
+        from superset.mcp_service.chart.response_preflight import (
+            bounded_exception_message,
+        )
 
         try:
             return _generate_bullet_vega_lite_preview(data, form_data)
         except BulletOutputError as ex:
             return ChartError(
-                error=safe_exception_message(ex), error_type=ex.error_type
+                error=bounded_exception_message(ex), error_type=ex.error_type
             )
 
     def resolve_update_config(
@@ -449,6 +516,15 @@ class BulletChartPlugin(BaseChartPlugin):
             merge_update_form_data,
         )
 
+        saved_form_data = existing_form_data
+        if "orderby" in new_form_data:
+            # An explicit ordering replaces every saved ordering alias, so a
+            # stale or malformed saved alias is never parsed or inherited.
+            existing_form_data = {
+                key: value
+                for key, value in existing_form_data.items()
+                if key not in {"orderby", "order_by_cols"}
+            }
         if existing_form_data.get("viz_type") == "bullet":
             existing_form_data = _normalize_bullet_query_aliases(existing_form_data)
         merged = dict(new_form_data)
@@ -460,6 +536,16 @@ class BulletChartPlugin(BaseChartPlugin):
         merge_bullet_form_data(existing_form_data, merged)
         if "row_limit" not in merged and "row_limit" in new_form_data:
             merged["row_limit"] = new_form_data["row_limit"]
+        # Like the shared overlay, unmodeled native presentation controls
+        # survive a same-viz update; query roles of other visualizations and
+        # legacy predicate aliases (already folded into adhoc filters) do not.
+        for key, value in saved_form_data.items():
+            if (
+                key not in merged
+                and key not in self.query_role_keys
+                and key not in {"where", "having", "filters"}
+            ):
+                merged[key] = value
         return merged
 
     def validate_merged_form_data(

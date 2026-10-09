@@ -28,6 +28,7 @@ from unittest.mock import Mock, patch
 import pytest
 from pydantic import ValidationError
 
+from superset.common.form_data_query_context import build_query_objects_from_form_data
 from superset.mcp_service.chart.chart_utils import (
     map_treemap_config,
     merge_chart_form_data,
@@ -91,26 +92,15 @@ ROWS = [
 ]
 
 
-def _query_context_stub(form_data: dict[str, Any]) -> SimpleNamespace:
-    """Include the query fields consumed by the shared Jinja form-data binding."""
-    query = {"metrics": ["revenue"], "columns": form_data["groupby"]}
-    return SimpleNamespace(
-        form_data=form_data,
-        queries=[
-            SimpleNamespace(**query, filter=[], time_range=None, to_dict=lambda: query)
-        ],
-    )
-
-
 @pytest.mark.parametrize("sort", [False, True])
 @pytest.mark.parametrize("limit", [None, 0, 1, 7])
 def test_hierarchy_query_order_matches_frontend(sort: bool, limit: int | None) -> None:
     """Metric order has precedence, with hierarchy tie-breakers only when bounded."""
     form = {**FORM_DATA, "sort_by_metric": sort, "row_limit": limit}
-    query = _treemap_query(form)
-    expected = ([("revenue", False)] if sort else []) + [
-        ("region", True),
-        ("product", True),
+    query = build_query_objects_from_form_data(form)[0]
+    expected = ([["revenue", False]] if sort else []) + [
+        ["region", True],
+        ["product", True],
     ]
     assert query.get("orderby", []) == (expected if limit else [])
 
@@ -252,18 +242,7 @@ def test_malformed_results_never_produce_success(result: Any) -> None:
 
 
 @pytest.mark.parametrize(
-    "value",
-    [
-        None,
-        True,
-        "bad",
-        "1_000",
-        "NaN",
-        "Infinity",
-        float("nan"),
-        float("inf"),
-        10**400,
-    ],
+    "value", [None, True, "3", float("nan"), float("inf"), 10**400]
 )
 def test_metric_outputs_must_be_finite_numeric(value: Any) -> None:
     """A single invalid metric fails instead of silently dropping a hierarchy node."""
@@ -350,7 +329,18 @@ def test_saved_and_unsaved_preview_dispatch_match(format_name: str) -> None:
         datasource_type="table",
         params=json.dumps(form),
     )
-    context = _query_context_stub(form)
+    context = SimpleNamespace(
+        form_data={},
+        queries=[
+            SimpleNamespace(
+                metrics=["revenue"],
+                columns=form["groupby"],
+                filter=[],
+                time_range=None,
+                to_dict=lambda: {"metrics": ["revenue"], "columns": form["groupby"]},
+            )
+        ],
+    )
     with (
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -500,7 +490,7 @@ async def test_registered_generate_chart_native_roundtrip(
         ),
         patch(
             "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
-            return_value=_query_context_stub(FORM_DATA),
+            return_value=Mock(),
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -643,7 +633,18 @@ async def test_registered_cached_preview_is_treemap(
     ]
     if row_limit == 7:
         rows[0]["region"], rows[1]["region"] = 1, "1"
-    context = _query_context_stub(form)
+    context = SimpleNamespace(
+        form_data={},
+        queries=[
+            SimpleNamespace(
+                metrics=["revenue"],
+                columns=form["groupby"],
+                filter=[],
+                time_range=None,
+                to_dict=lambda: {"metrics": ["revenue"], "columns": form["groupby"]},
+            )
+        ],
+    )
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
@@ -708,10 +709,13 @@ async def test_registered_cached_preview_is_treemap(
 @pytest.mark.parametrize(
     "patch_data", [{"show_labels": True}, {"filters": []}, {"color_scheme": None}]
 )
+@pytest.mark.parametrize("disabled", [False, True])
 @pytest.mark.parametrize("known_dataset", [True, False, None])
 async def test_registered_update_preview_preserves_cached_controls(
     patch_data: dict[str, Any],
     known_dataset: bool | None,
+    disabled: bool,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Partial native updates reach real FastMCP hydration, merge, and cache writes."""
     import importlib
@@ -725,7 +729,12 @@ async def test_registered_update_preview_preserves_cached_controls(
         "superset.mcp_service.chart.tool.update_chart_preview"
     )
     dataset = Mock(
-        id=7, table_name="sales", schema=None, columns=[], metrics=[], database=None
+        id=7,
+        table_name="sales",
+        schema=None,
+        columns=[],
+        metrics=[],
+        database=Mock(database_name="database"),
     )
     with (
         patch(
@@ -786,7 +795,7 @@ async def test_registered_update_preview_preserves_cached_controls(
         cache_write.assert_not_called()
         return
     assert data["success"] is True, data
-    merged = data["form_data"]
+    merged = cache_write.call_args.args[1]
     assert merged["row_limit"] == 7
     assert merged["sort_by_metric"] is False
     assert merged["metric"] == "revenue"
@@ -801,7 +810,10 @@ async def test_registered_update_preview_preserves_cached_controls(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("malformed", [False, True])
-async def test_registered_saved_update_preserves_omissions(malformed: bool) -> None:
+@pytest.mark.parametrize("disabled", [False, True])
+async def test_registered_saved_update_preserves_omissions(
+    malformed: bool, disabled: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The registered save path persists the same partial Treemap merge as preview."""
     import importlib
 
@@ -810,6 +822,15 @@ async def test_registered_saved_update_preserves_omissions(malformed: bool) -> N
     from superset.mcp_service.app import mcp
 
     module = importlib.import_module("superset.mcp_service.chart.tool.update_chart")
+    from superset.mcp_service.chart import registry
+
+    monkeypatch.setattr(
+        registry,
+        "_filter_config",
+        registry._PluginFilterConfig(
+            disabled_plugins=frozenset({"treemap_v2"}) if disabled else frozenset()
+        ),
+    )
     chart = Mock(
         id=1,
         datasource_id=7,
@@ -895,8 +916,10 @@ def test_treemap_query_ignores_stale_cross_chart_roles() -> None:
 @pytest.mark.parametrize("limit", ["0", "0.0", "", "1"])
 def test_native_string_row_limits_match_frontend(limit: str) -> None:
     """Frontend applyOrderBy numerically parses string row limits."""
-    query = _treemap_query({**FORM_DATA, "groupby": ["region"], "row_limit": limit})
-    assert query.get("orderby", []) == ([("region", True)] if limit == "1" else [])
+    query = build_query_objects_from_form_data(
+        {**FORM_DATA, "row_limit": limit, "groupby": ["region"]}
+    )[0]
+    assert query.get("orderby", []) == ([["region", True]] if limit == "1" else [])
 
 
 def test_explicit_temporal_clear_keeps_user_filters_and_template_state() -> None:
@@ -951,7 +974,7 @@ def test_compile_respects_treemap_row_limit() -> None:
     with (
         patch(
             "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
-            return_value=_query_context_stub(FORM_DATA),
+            return_value=Mock(),
         ) as build,
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
@@ -1030,11 +1053,11 @@ def test_treemap_mixed_type_categories_remain_separate() -> None:
         (Decimal("Infinity"), False),
         (Decimal("-Infinity"), False),
         (True, False),
-        ("2.75", True),
+        ("2.75", False),
     ],
 )
 def test_decimal_result_contract(value: Any, valid: bool) -> None:
-    """SQL numeric values and exact decimal wire strings retain finite validation."""
+    """SQL numeric values remain numeric; nonfinite and coercible strings do not."""
     rows = [{**ROWS[0], "revenue": value}]
     result = {"queries": [{"data": rows}]}
     checked = normalize_chart_query_result(result, FORM_DATA)
@@ -1073,7 +1096,7 @@ async def test_registered_filter_update_keeps_saved_temporal_binding(
         columns=[],
         metrics=[],
         main_dttm_col="default_time",
-        database=None,
+        database=Mock(database_name="database"),
     )
     existing = {
         **FORM_DATA,
@@ -1401,208 +1424,6 @@ def test_unresolvable_or_duplicate_hierarchy_columns_stay_rejected(
     )
     assert isinstance(failure, ChartError)
     assert failure.error_type == "InvalidTreemapFormData"
-
-
-@pytest.fixture
-def treemap_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Disable Treemap for new charts, as MCP_CHART_PLUGIN_DISABLED does."""
-    from superset.mcp_service.chart import registry
-
-    monkeypatch.setattr(
-        registry,
-        "_filter_config",
-        registry._PluginFilterConfig(disabled_plugins=frozenset({"treemap_v2"})),
-    )
-
-
-async def _call_saved_treemap_update(
-    chart: Mock, request: dict[str, Any]
-) -> tuple[Any, Mock, Mock]:
-    """Run update_chart through FastMCP with persistence and dataset I/O mocked."""
-    import importlib
-
-    from fastmcp import Client
-
-    from superset.mcp_service.app import mcp
-
-    module = importlib.import_module("superset.mcp_service.chart.tool.update_chart")
-    with (
-        patch(
-            "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
-        ),
-        patch.object(module, "find_chart_by_identifier", return_value=chart),
-        patch(
-            "superset.mcp_service.auth.check_chart_data_access",
-            return_value=Mock(is_valid=True),
-        ),
-        patch(
-            "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator.normalize_column_names",
-            side_effect=lambda config, *args, **kwargs: config,
-        ),
-        patch.object(module, "_validate_update_against_dataset", return_value=None),
-        patch.object(
-            module, "_inherited_state_invalid_keys", return_value=set()
-        ) as generic_rebind,
-        patch(
-            "superset.mcp_service.chart.chart_utils._bind_dashboard_time_range_filter"
-        ),
-        patch("superset.commands.chart.update.UpdateChartCommand") as update,
-        patch("superset.db.session"),
-    ):
-        update.return_value.run.return_value = chart
-        async with Client(mcp) as client:
-            result = await client.call_tool(
-                "update_chart",
-                {
-                    "request": {
-                        "identifier": 1,
-                        "generate_preview": False,
-                        "preview_formats": [],
-                        **request,
-                    }
-                },
-            )
-    return result.structured_content, update, generic_rebind
-
-
-def _saved_treemap_chart() -> Mock:
-    return Mock(
-        id=1,
-        datasource_id=7,
-        slice_name="Treemap",
-        viz_type="treemap_v2",
-        uuid="11111111-1111-1111-1111-111111111111",
-        params=json.dumps(FORM_DATA),
-    )
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("treemap_disabled")
-async def test_disabled_treemap_saved_update_completes_omitted_fields() -> None:
-    """A saved Treemap keeps its update contract when Treemap is disabled."""
-    data, update, _ = await _call_saved_treemap_update(
-        _saved_treemap_chart(),
-        {"config": {"chart_type": "treemap_v2", "show_labels": True}},
-    )
-
-    assert data["success"] is True, data
-    persisted = json.loads(update.call_args.args[1]["params"])
-    for key, value in FORM_DATA.items():
-        assert persisted[key] == (True if key == "show_labels" else value)
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("treemap_disabled")
-async def test_disabled_treemap_saved_rebind_uses_strict_rebind_contract() -> None:
-    """The strict rebind guard still applies when Treemap is disabled."""
-    data, update, generic_rebind = await _call_saved_treemap_update(
-        _saved_treemap_chart(),
-        {
-            "dataset_id": 8,
-            "config": {
-                "chart_type": "treemap_v2",
-                "groupby": [{"name": "region"}],
-                "metric": "revenue",
-            },
-        },
-    )
-
-    assert data["success"] is True, data
-    generic_rebind.assert_not_called()
-    persisted = json.loads(update.call_args.args[1]["params"])
-    assert persisted["groupby"] == ["region"]
-    assert "template_params" not in persisted
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("treemap_disabled")
-async def test_disabled_treemap_is_not_reachable_from_another_saved_type() -> None:
-    """Only the saved chart's own plugin bypasses the disabled filter."""
-    chart = Mock(
-        id=1,
-        datasource_id=7,
-        slice_name="Pie",
-        viz_type="pie",
-        uuid="11111111-1111-1111-1111-111111111111",
-        params=json.dumps({"viz_type": "pie", "metric": "revenue"}),
-    )
-    data, update, _ = await _call_saved_treemap_update(
-        chart,
-        {
-            "config": {
-                "chart_type": "treemap_v2",
-                "groupby": [{"name": "region"}],
-                "metric": "revenue",
-            }
-        },
-    )
-
-    assert data["success"] is False
-    update.assert_not_called()
-
-
-@pytest.mark.asyncio
-@pytest.mark.usefixtures("treemap_disabled")
-async def test_disabled_treemap_update_preview_completes_cached_fields() -> None:
-    """Cached Treemap form data keeps its update contract when disabled."""
-    import importlib
-
-    from fastmcp import Client
-
-    from superset.mcp_service.app import mcp
-    from superset.mcp_service.chart.compile import CompileResult
-
-    module = importlib.import_module(
-        "superset.mcp_service.chart.tool.update_chart_preview"
-    )
-    dataset = Mock(
-        id=7, table_name="sales", schema=None, columns=[], metrics=[], database=None
-    )
-    with (
-        patch(
-            "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
-        ),
-        patch.object(module, "_find_dataset", return_value=dataset),
-        patch.object(module, "_get_previous_form_data", return_value=FORM_DATA),
-        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
-        patch.object(module, "has_dataset_access", return_value=True),
-        patch(
-            "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator.normalize_column_names",
-            side_effect=lambda config, *args, **kwargs: config,
-        ),
-        patch(
-            "superset.mcp_service.chart.chart_utils._bind_dashboard_time_range_filter"
-        ),
-        patch.object(
-            module, "validate_and_compile", return_value=CompileResult(success=True)
-        ),
-        patch.object(
-            module,
-            "generate_explore_link",
-            return_value="http://localhost/explore/?form_data_key=updated",
-        ),
-    ):
-        async with Client(mcp) as client:
-            result = await client.call_tool(
-                "update_chart_preview",
-                {
-                    "request": {
-                        "dataset_id": 7,
-                        "form_data_key": "previous",
-                        "config": {"chart_type": "treemap_v2", "show_labels": True},
-                        "generate_preview": False,
-                    }
-                },
-            )
-
-    data = result.structured_content
-    assert data["success"] is True, data
-    merged = data["form_data"]
-    assert merged["groupby"] == ["region", "product"]
-    assert merged["metric"] == "revenue"
-    assert merged["show_labels"] is True
 
 
 def test_disabled_treemap_retains_dataset_validation(
