@@ -22,6 +22,7 @@ export interface PartitionMappingColumn {
   column_name: string;
   type?: string | null;
   is_dttm?: boolean;
+  python_date_format?: string | null;
   filterable?: boolean;
   groupby?: boolean;
   partition_value_transform?: string | null;
