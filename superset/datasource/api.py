@@ -46,6 +46,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import (
@@ -55,6 +56,7 @@ from superset.utils.core import (
     parse_boolean_string,
     SqlExpressionType,
 )
+from superset.utils.error_sanitization import sanitize_error_message
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -70,6 +72,26 @@ class _HttpError(Exception):
         super().__init__(message)
         self.status = status
         self.message = message
+
+
+def _column_values_cache_key(
+    datasource: BaseDatasource | SemanticView, query: dict[str, Any]
+) -> str:
+    """Bind a value query to its producer guarantee and existing security scope."""
+    material: dict[str, Any] = dict(query)
+    if isinstance(datasource, SemanticView):
+        discriminator: tuple[str, str] | None = datasource.result_cache_discriminator
+        if discriminator is not None:
+            material["semantic_result_version"] = discriminator
+    material.update(
+        uid=datasource.uid,
+        rls=security_manager.get_rls_cache_key(datasource),
+        changed_on=str(getattr(datasource, "changed_on", "")),
+    )
+    return (
+        "col_values:"
+        + hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
+    )
 
 
 class DatasourceRestApi(BaseSupersetApi):
@@ -235,39 +257,33 @@ class DatasourceRestApi(BaseSupersetApi):
         #   underlying SQL is edited.
         # - ``uid`` / ``col`` / ``limit`` / ``denorm`` — basic query-shape
         #   isolation so different inputs never collide.
+        # - ``semantic_result_version`` — opt-in producer guarantee, omitted
+        #   for SDK-default providers to preserve their legacy key bytes.
         force: bool = parse_boolean_string(request.args.get("force"))
-        cache_key: str = (
-            "col_values:"
-            + hashlib.sha256(
-                json.dumps(
-                    {
-                        "uid": datasource.uid,
-                        "col": column_name,
-                        "limit": row_limit,
-                        "denorm": denormalize_column,
-                        "elements": array_elements,
-                        "q": search,
-                        "rls": security_manager.get_rls_cache_key(datasource),
-                        "changed_on": str(getattr(datasource, "changed_on", "")),
-                    },
-                    sort_keys=True,
-                ).encode()
-            ).hexdigest()
-        )
-
         cached: list[Any] | None
-        if (
-            not force
-            and (cached := cache_manager.data_cache.get(cache_key)) is not None
-        ):
-            logger.debug(
-                "column-values cache HIT: uid=%s col=%s", datasource.uid, column_name
-            )
-            response: Response = self.response(200, result=cached, limit=row_limit)
-            response.headers["X-Cache-Status"] = "HIT"
-            return response
-
         try:
+            cache_key: str = _column_values_cache_key(
+                datasource,
+                {
+                    "col": column_name,
+                    "limit": row_limit,
+                    "denorm": denormalize_column,
+                    "elements": array_elements,
+                    "q": search,
+                },
+            )
+            if (
+                not force
+                and (cached := cache_manager.data_cache.get(cache_key)) is not None
+            ):
+                logger.debug(
+                    "column-values cache HIT: uid=%s col=%s",
+                    datasource.uid,
+                    column_name,
+                )
+                response: Response = self.response(200, result=cached, limit=row_limit)
+                response.headers["X-Cache-Status"] = "HIT"
+                return response
             payload: list[Any] = datasource.values_for_column(
                 column_name=column_name,
                 limit=row_limit,
@@ -275,6 +291,10 @@ class DatasourceRestApi(BaseSupersetApi):
                 array_elements=array_elements,
                 search=search,
             )
+        except QueryObjectValidationError as ex:
+            # Validation errors can quote dataset SQL; embedded guests get the
+            # same generic text as the chart-data API.
+            return self.response(400, message=sanitize_error_message(str(ex)))
         except KeyError:
             return self.response(
                 400, message=f"Column name {column_name} does not exist"
@@ -305,13 +325,12 @@ class DatasourceRestApi(BaseSupersetApi):
                 warn_threshold,
             )
 
-        timeout = datasource.cache_timeout or app.config.get(
+        timeout: int = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
         )
-        if search:
-            # Every distinct search term is its own key, so a few users typing
-            # would otherwise pin one entry per keystroke for the full timeout.
-            timeout = min(timeout, SEARCH_CACHE_TIMEOUT)
+        # Bound each distinct search term's lifetime instead of retaining one
+        # entry per keystroke for the full default timeout.
+        timeout = min(timeout, SEARCH_CACHE_TIMEOUT) if search else timeout
         cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
         logger.debug(
             "column-values cache MISS: uid=%s col=%s", datasource.uid, column_name

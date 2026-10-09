@@ -17,12 +17,16 @@
 
 import logging
 import uuid
+from datetime import datetime
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 from flask import current_app
 from parameterized import parameterized
+from sqlalchemy.orm.session import Session
 
+from superset.connectors.sqla.models import SqlaTable
+from superset.models.core import Database
 from superset.models.slice import id_or_uuid_filter, set_related_perm, Slice
 
 
@@ -390,3 +394,65 @@ def test_set_related_perm_known_type_denormalizes_perms_from_datasource() -> Non
     assert target.perm == "[db].[table](id:5)"
     assert target.catalog_perm == "[db].[catalog]"
     assert target.schema_perm == "[db].[schema]"
+
+
+def _slice_with_stale_perms(datasource_id: int | None) -> Slice:
+    """A known-type chart still carrying perms denormalized from its dataset."""
+    target: Slice = Slice(
+        slice_name="table chart",
+        datasource_id=datasource_id,
+        datasource_type="table",
+    )
+    target.perm = "[db].[old_table](id:9)"
+    target.catalog_perm = "[db].[catalog]"
+    target.schema_perm = "[db].[schema]"
+    return target
+
+
+def test_set_related_perm_missing_dataset_fails_closed(
+    session: Session, app_context: None
+) -> None:
+    """sc-119912: a known-type chart whose dataset row no longer exists has its
+    perm columns cleared, rather than keeping access through the stale perm."""
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    target: Slice = _slice_with_stale_perms(datasource_id=9)
+
+    set_related_perm(MagicMock(), MagicMock(), target)
+
+    assert target.perm is None
+    assert target.catalog_perm is None
+    assert target.schema_perm is None
+
+
+def test_set_related_perm_without_datasource_id_fails_closed() -> None:
+    """sc-119912: a known-type chart with no ``datasource_id`` cannot resolve a
+    datasource, so its stale perm columns are cleared."""
+    target: Slice = _slice_with_stale_perms(datasource_id=None)
+
+    set_related_perm(MagicMock(), MagicMock(), target)
+
+    assert target.perm is None
+    assert target.catalog_perm is None
+    assert target.schema_perm is None
+
+
+def test_set_related_perm_resolves_soft_deleted_dataset(
+    session: Session, app_context: None
+) -> None:
+    """A soft-deleted dataset is restorable, not missing: its charts keep the
+    dataset's perms instead of being failed closed by the visibility filter."""
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database: Database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    dataset: SqlaTable = SqlaTable(table_name="trashed", database=database)
+    session.add(dataset)
+    session.flush()
+    dataset.deleted_at = datetime(2026, 1, 1)
+    session.flush()
+    target: Slice = _slice_with_stale_perms(datasource_id=dataset.id)
+
+    set_related_perm(MagicMock(), MagicMock(), target)
+
+    assert dataset.perm
+    assert target.perm == dataset.perm
+    assert target.catalog_perm == dataset.catalog_perm
+    assert target.schema_perm == dataset.schema_perm
