@@ -348,7 +348,6 @@ class _AsyncContext:
 
 @pytest.fixture
 def mcp_server():
-
     return mcp
 
 
