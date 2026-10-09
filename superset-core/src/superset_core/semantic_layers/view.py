@@ -51,6 +51,9 @@ class SemanticView(ABC):
     # conservative (Saved-only) picker for views that declare nothing.
     features: frozenset[SemanticViewFeature] = frozenset()
     selection_identity_version: str | None = None
+    # The host uses this exposed temporal dimension as Explore's default.
+    # Providers that do not declare one retain the existing column-order fallback.
+    preferred_temporal_dimension: str | None = None
 
     def validate_selection_version(self, version: object) -> None:
         """Reject selections made under a different member identity contract."""
