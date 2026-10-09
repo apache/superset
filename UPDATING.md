@@ -24,6 +24,11 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view providers may declare `SemanticView.preferred_temporal_dimension`
+  to choose the default exposed temporal dimension for new charts. The declaration
+  is optional; absent, unknown or non-temporal names retain the existing fallback.
+  Saved chart selections are preserved.
+
 ### Dashboard copy layout validation
 
 Copying a dashboard with its charts returns HTTP 422 if a layout slot references
