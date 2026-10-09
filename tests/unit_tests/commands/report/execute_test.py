@@ -1999,11 +1999,17 @@ def create_report_schedule(
     return schedule
 
 
+@pytest.mark.parametrize("row_limit", [500000, "250000"])
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
 def test_get_chart_data_request_payload_prepares_server_paginated_export(
     mocker: MockerFixture,
+    row_limit: int | str,
+    result_format: ChartDataResultFormat,
 ) -> None:
     """Server-paginated exports should use the configured row limit."""
-    report_state = BaseReportState(
+    report_state: BaseReportState = BaseReportState(
         create_report_schedule(mocker),
         "January 1, 2021",
         "execution_id_example",
@@ -2019,24 +2025,26 @@ def test_get_chart_data_request_payload_prepares_server_paginated_export(
             "form_data": {
                 "server_pagination": True,
                 "server_page_length": 25,
-                "row_limit": 1000,
+                "row_limit": row_limit,
             },
             "result_format": "json",
             "result_type": "full",
         }
     )
 
-    payload = report_state._get_chart_data_request_payload(ChartDataResultFormat.CSV)
+    payload: dict[str, Any] = report_state._get_chart_data_request_payload(
+        result_format
+    )
 
-    assert payload["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["result_format"] == result_format.value
     assert payload["result_type"] == ChartDataResultType.POST_PROCESSED.value
     assert payload["force"] is True
-    assert payload["queries"][0]["row_limit"] == 1000
+    assert payload["queries"][0]["row_limit"] == row_limit
     assert payload["queries"][0]["row_offset"] == 0
     assert len(payload["queries"]) == 2
     assert all(not query.get("is_rowcount") for query in payload["queries"])
     assert payload["queries"][1]["metrics"] == ["count"]
-    assert payload["form_data"]["result_format"] == ChartDataResultFormat.CSV.value
+    assert payload["form_data"]["result_format"] == result_format.value
     assert (
         payload["form_data"]["result_type"] == ChartDataResultType.POST_PROCESSED.value
     )
@@ -6053,7 +6061,25 @@ def test_chart_data_http_failure_does_not_expose_request(
     assert "SECRET" not in "".join(traceback.format_exception(exc.value))
 
 
-@pytest.mark.parametrize("row_limit", [100, 0, None, 500000])
+@pytest.mark.parametrize(
+    "row_limit, expected_limit",
+    [
+        (100, 100),
+        (0, 150),
+        (None, 150),
+        (500000, 150),
+        ("15", 15),
+        ("250000", 150),
+        ("0", 150),
+        ("15.0", 15),
+        ("-5", 150),
+        (-5, 150),
+        ("invalid", 150),
+        ("NaN", 150),
+        ("Infinity", 150),
+        ("", 150),
+    ],
+)
 @pytest.mark.parametrize("server_pagination", [True, False])
 @pytest.mark.parametrize(
     ("stored_form_data", "params"),
@@ -6070,7 +6096,8 @@ def test_chart_data_http_failure_does_not_expose_request(
 def test_embedded_data_uses_export_pagination(
     app: SupersetApp,
     mocker: MockerFixture,
-    row_limit: int | None,
+    row_limit: int | str | None,
+    expected_limit: int,
     server_pagination: bool,
     stored_form_data: str,
     params: str | None,
@@ -6082,7 +6109,6 @@ def test_embedded_data_uses_export_pagination(
     import pandas as pd
 
     mocker.patch.dict(app.config, {"SQL_MAX_ROW": 150})
-    expected_limit: int = min(row_limit or 150, 150)
     schedule: ReportSchedule = create_report_schedule(mocker)
     schedule.force_screenshot = True
     schedule.chart.query_context = json.dumps(

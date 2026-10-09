@@ -836,30 +836,39 @@ def test_slackv2_send_without_channels_raises(
 def test_slack_mixin_get_body_truncates_large_table(
     slack_client_mock: MagicMock,
     flask_global_mock: MagicMock,
-    mock_header_data,
+    mock_header_data: HeaderDataType,
 ) -> None:
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
 
     flask_global_mock.logs_context = {}
     # Create a large DataFrame that exceeds the 4000-char message limit
-    large_df = pd.DataFrame({"col_" + str(i): range(100) for i in range(10)})
-    content = NotificationContent(
+    large_df: pd.DataFrame = pd.DataFrame(
+        {"col_" + str(i): range(100) for i in range(10)}
+    )
+    content: NotificationContent = NotificationContent(
         name="test",
         header_data=mock_header_data,
         embedded_data=large_df,
         description="desc",
     )
-    notification = SlackV2Notification(
+    notification: SlackV2Notification = SlackV2Notification(
         recipient=ReportRecipients(
             type=ReportRecipientType.SLACKV2,
             recipient_config_json='{"target": "some_channel"}',
         ),
         content=content,
     )
-    body = notification._get_body(content=content)
+    body: str = notification._get_body(content=content)
     assert "(table was truncated)" in body
     assert len(body) <= 4000
+
+    assert any(
+        line.startswith("|")
+        and "..." not in line
+        and line.split("|")[1].strip().isdigit()
+        for line in body.splitlines()
+    )
 
 
 @patch("superset.reports.notifications.slackv2.g")

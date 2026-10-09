@@ -185,6 +185,15 @@ def resolve_executor_user(model: ReportSchedule) -> tuple["User", str]:
     return user, username or user.username
 
 
+def _get_embedded_row_limit(row_limit: int | str) -> int:
+    """Parse a saved numeric limit and cap it for an embedded report table."""
+    try:
+        parsed_limit: int = max(int(float(row_limit)), 0)
+    except (TypeError, ValueError, OverflowError):
+        parsed_limit = 0
+    return apply_max_row_limit(parsed_limit)
+
+
 def alerts_attach_reports_enabled() -> bool:
     """
     Whether alerts deliver their attachment (screenshot/PDF/CSV/XLSX).
@@ -1232,9 +1241,9 @@ class BaseReportState:
             form_data["force"] = force
 
             if form_data.get("server_pagination"):
-                row_limit = form_data.get("row_limit") or 0
+                row_limit: int | str = form_data.get("row_limit") or 0
                 row_limit = (
-                    apply_max_row_limit(row_limit)
+                    _get_embedded_row_limit(row_limit)
                     if result_format == ChartDataResultFormat.JSON
                     else row_limit
                 )
