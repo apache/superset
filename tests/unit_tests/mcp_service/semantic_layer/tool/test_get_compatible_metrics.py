@@ -94,6 +94,7 @@ def _make_view(view_id: int = 5) -> MagicMock:
     view.name = f"view_{view_id}"
     view.raise_for_access = MagicMock(return_value=None)
     view.metrics = [_make_metric("bookings")]
+    view.columns = [_make_column("country_name")]
     view.get_compatible_metrics = MagicMock(return_value=["bookings"])
     return view
 
@@ -221,6 +222,8 @@ async def test_get_compatible_metrics_mutual_exclusion_validation(
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
 
+    assert data["message"] == "Provide only one of dataset_id or view_id, not both."
+
 
 @pytest.mark.asyncio
 async def test_get_compatible_metrics_requires_one_source(
@@ -233,6 +236,10 @@ async def test_get_compatible_metrics_requires_one_source(
 
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
+
+    assert (
+        data["message"] == "Provide either dataset_id (built-in) or view_id (external)."
+    )
 
 
 @pytest.mark.asyncio
