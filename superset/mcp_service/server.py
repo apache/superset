@@ -717,7 +717,7 @@ def _name_words(text: str) -> list[str]:
     Mirrors the BM25 tokenizer: runs of letters and digits, dropping
     single-character fragments.
     """
-    return [word for word in re.split(r"[^a-z0-9]+", text.casefold()) if len(word) > 1]
+    return [word for word in re.split(r"[^a-z0-9]+", text.lower()) if len(word) > 1]
 
 
 def _create_search_transform(  # noqa: C901
@@ -772,9 +772,10 @@ def _create_search_transform(  # noqa: C901
 
         1. Exact names, which always come first.
         2. With ``cover_query_words`` (natural-language search only), multi-word
-           names whose words all appear in the query, for example
-           ``get_dataset_info`` for "get dataset info execute sql", ordered by
-           name length and then by upstream rank.
+           names whose words appear in the query as a contiguous, in-order run,
+           for example ``get_dataset_info`` for "get dataset info execute sql",
+           ordered by name length and then by upstream rank. Words scattered
+           across the query do not count.
 
         Only caller-visible candidates are inspected, never the full catalog,
         and the result never exceeds ``max_results``.
@@ -789,7 +790,7 @@ def _create_search_transform(  # noqa: C901
         exact_names = {tool.name for tool in exact}
         covered: list[Tool] = []
         if cover_query_words:
-            query_vocabulary = set(_name_words(query))
+            query_words = _name_words(query)
             ranked_position = {tool.name: index for index, tool in enumerate(ranked)}
             covered = sorted(
                 (
@@ -797,7 +798,10 @@ def _create_search_transform(  # noqa: C901
                     for tool in tools
                     if tool.name not in exact_names
                     and len(words := _name_words(tool.name)) > 1
-                    and set(words) <= query_vocabulary
+                    and any(
+                        query_words[start : start + len(words)] == words
+                        for start in range(len(query_words) - len(words) + 1)
+                    )
                 ),
                 key=lambda tool: (
                     -len(_name_words(tool.name)),
@@ -854,7 +858,7 @@ def _create_search_transform(  # noqa: C901
             return await _filter_visible_tools_fail_open(tools)
 
         async def _search(self, tools: Sequence[Tool], query: str) -> Sequence[Tool]:
-            """Promote visible exact names before applying the final result limit."""
+            """Promote visible exact names and contiguous name runs before the limit."""
             ranked = await super()._search(tools, query)
             return _promote_name_matches(
                 tools, query, ranked, self._max_results, cover_query_words=True

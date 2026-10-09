@@ -1368,8 +1368,9 @@ def _exact_name_search(
     *,
     can_access: bool | Callable[[str, str], bool],
     can_view_metadata: bool,
+    query_for: Callable[[str], str] = lambda name: name,
 ) -> tuple[dict[str, list[str]], set[str]]:
-    """Search each tool's exact name through search_tools as one caller.
+    """Search each tool's name (or ``query_for(name)``) through search_tools.
 
     Returns the ranked names for every query and the caller's visible names.
     """
@@ -1397,7 +1398,8 @@ def _exact_name_search(
         search = transform._make_search_tool().fn
         results = {
             tool.name: [
-                result["name"] for result in asyncio.run(search(query=tool.name))
+                result["name"]
+                for result in asyncio.run(search(query=query_for(tool.name)))
             ]
             for tool in catalog
         }
@@ -1546,6 +1548,34 @@ def test_regex_does_not_use_name_coverage(
     assert asyncio.run(transform._search(crowded_catalog, query)) == expected
 
 
+@pytest.mark.parametrize(
+    "query, unexpected",
+    [
+        ("create a dashboard from a dataset", "create_dataset"),
+        ("list all the charts on a dashboard", "list_charts"),
+    ],
+)
+def test_bm25_name_coverage_ignores_scattered_name_words(
+    bm25_transform: BM25SearchTransform,
+    query: str,
+    unexpected: str,
+) -> None:
+    """Name words scattered across the query do not promote that tool."""
+    catalog = [
+        Tool.from_function(lambda: None, name=name, description="Report details. ")
+        for name in [unexpected, "create_dashboard", "list_dashboards"]
+    ] + [
+        Tool.from_function(
+            lambda: None, name=f"noise_{index}", description=f"{query} " * 20
+        )
+        for index in range(8)
+    ]
+
+    results = asyncio.run(bm25_transform._search(catalog, query))
+
+    assert results[0].name != unexpected
+
+
 def _read_only_can_access(permission: str, _view: str) -> bool:
     """Allow only read and get permissions for the read-only test caller."""
     return permission in {"can_read", "can_get"}
@@ -1579,6 +1609,28 @@ def test_bm25_exact_name_never_surfaces_unauthorized_registered_tools(
         if name in visible and ranked[:1] != [name]
     }
     assert not_first == {}
+
+
+def test_bm25_name_coverage_respects_visibility(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """A hidden tool's full name inside a longer query is never returned."""
+    results, visible = _exact_name_search(
+        production_bm25_transform,
+        registered_catalog,
+        can_access=_read_only_can_access,
+        can_view_metadata=False,
+        query_for=lambda name: f"please {name.replace('_', ' ')} for me",
+    )
+    denied: set[str] = {tool.name for tool in registered_catalog} - visible
+    assert "generate_chart" in denied
+
+    assert "generate_chart" not in results["generate_chart"]
+    leaked: dict[str, list[str]] = {
+        name: sorted(set(ranked) & denied) for name, ranked in results.items()
+    }
+    assert {name: hidden for name, hidden in leaked.items() if hidden} == {}
 
 
 @pytest.fixture
