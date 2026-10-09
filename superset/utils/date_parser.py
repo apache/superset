@@ -38,7 +38,7 @@ from pyparsing import (
     ParserElement,
     ParseResults,
     pyparsing_common,
-    quotedString,
+    quoted_string,
     Suppress,
 )
 
@@ -945,25 +945,25 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
         "year quarter month week day hour minute second".split(),
     )
     lparen, rparen, comma = map(Suppress, "(),")
-    text_operand = quotedString.setName("text_operand").setParseAction(EvalText)
+    text_operand = quoted_string.set_name("text_operand").set_parse_action(EvalText)
 
     # allow expression to be used recursively
-    datetime_func = Forward().setName("datetime")
-    dateadd_func = Forward().setName("dateadd")
-    datetrunc_func = Forward().setName("datetrunc")
-    lastday_func = Forward().setName("lastday")
-    holiday_func = Forward().setName("holiday")
+    datetime_func = Forward().set_name("datetime")
+    dateadd_func = Forward().set_name("dateadd")
+    datetrunc_func = Forward().set_name("datetrunc")
+    lastday_func = Forward().set_name("lastday")
+    holiday_func = Forward().set_name("holiday")
     date_expr = (
         datetime_func | dateadd_func | datetrunc_func | lastday_func | holiday_func
     )
 
     # literal integer and expression that return a literal integer
-    datediff_func = Forward().setName("datediff")
+    datediff_func = Forward().set_name("datediff")
     int_operand = (
-        pyparsing_common.signed_integer().setName("int_operand") | datediff_func
+        pyparsing_common.signed_integer().set_name("int_operand") | datediff_func
     )
 
-    datetime_func <<= (DATETIME + lparen + text_operand + rparen).setParseAction(
+    datetime_func <<= (DATETIME + lparen + text_operand + rparen).set_parse_action(
         EvalDateTimeFunc
     )
     dateadd_func <<= (
@@ -978,7 +978,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalDateAddFunc)
+    ).set_parse_action(EvalDateAddFunc)
     datetrunc_func <<= (
         DATETRUNC
         + lparen
@@ -989,7 +989,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalDateTruncFunc)
+    ).set_parse_action(EvalDateTruncFunc)
     lastday_func <<= (
         LASTDAY
         + lparen
@@ -1000,7 +1000,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalLastDayFunc)
+    ).set_parse_action(EvalLastDayFunc)
     holiday_func <<= (
         HOLIDAY
         + lparen
@@ -1013,7 +1013,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma)
         )
         + rparen
-    ).setParseAction(EvalHolidayFunc)
+    ).set_parse_action(EvalHolidayFunc)
     datediff_func <<= (
         DATEDIFF
         + lparen
@@ -1024,7 +1024,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
             + ppOptional(comma + (YEAR | DAY) + ppOptional(comma))
         )
         + rparen
-    ).setParseAction(EvalDateDiffFunc)
+    ).set_parse_action(EvalDateDiffFunc)
 
     return date_expr | datediff_func
 
@@ -1032,7 +1032,7 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
 def datetime_eval(datetime_expression: str | None = None) -> datetime | None:
     if datetime_expression:
         try:
-            return datetime_parser().parseString(datetime_expression)[0].eval()
+            return datetime_parser().parse_string(datetime_expression)[0].eval()
         except ParseException as ex:
             raise ValueError(ex) from ex
     return None

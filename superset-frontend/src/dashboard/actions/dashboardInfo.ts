@@ -18,7 +18,11 @@
  */
 import { Dispatch } from 'redux';
 import { t } from '@apache-superset/core/translation';
-import { makeApi, getClientErrorObject } from '@superset-ui/core';
+import {
+  DatasourceType,
+  makeApi,
+  getClientErrorObject,
+} from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   ChartConfiguration,
@@ -46,6 +50,98 @@ export function dashboardSaveSucceeded(dashboardId: number) {
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 export const DASHBOARD_INFO_FILTERS_CHANGED = 'DASHBOARD_INFO_FILTERS_CHANGED';
+export const REPLACE_DASHBOARD_SEMANTIC_DATASETS =
+  'REPLACE_DASHBOARD_SEMANTIC_DATASETS';
+export const UPDATE_DASHBOARD_SEMANTIC_DATASET =
+  'UPDATE_DASHBOARD_SEMANTIC_DATASET';
+
+type SemanticDataset = NonNullable<
+  DashboardInfo['semanticDatasets']
+>['datasets'][number];
+
+const SEMANTIC_SOURCE_KEY_RE = new RegExp(
+  `^([1-9]\\d*)__${DatasourceType.SemanticView}$`,
+);
+
+export function provenSemanticDataset(
+  value: unknown,
+  sourceKey: string,
+): SemanticDataset | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Partial<SemanticDataset> & { id?: number };
+  const sourceId = SEMANTIC_SOURCE_KEY_RE.exec(sourceKey)?.[1];
+  if (
+    !sourceId ||
+    candidate.type !== DatasourceType.SemanticView ||
+    !Array.isArray(candidate.columns) ||
+    !candidate.columns.every(
+      (column: unknown) =>
+        column !== null &&
+        typeof column === 'object' &&
+        'column_name' in column &&
+        typeof column.column_name === 'string',
+    ) ||
+    (candidate.id !== undefined && candidate.id !== Number(sourceId)) ||
+    (candidate.uid !== sourceKey && candidate.id === undefined)
+  ) {
+    return null;
+  }
+  // The metadata endpoint uses provider identity for uid; dashboard charts
+  // use the integer datasource key. A matching id proves this normalization.
+  return { ...candidate, uid: sourceKey } as SemanticDataset;
+}
+
+export function provenSemanticDatasets(
+  value: unknown,
+): SemanticDataset[] | null {
+  if (!Array.isArray(value)) return null;
+  return value
+    .map((candidate: unknown) => {
+      if (
+        !candidate ||
+        typeof candidate !== 'object' ||
+        !('uid' in candidate)
+      ) {
+        return null;
+      }
+      return provenSemanticDataset(candidate, String(candidate.uid));
+    })
+    .filter((candidate): candidate is SemanticDataset => candidate !== null);
+}
+
+export function replaceDashboardSemanticDatasets(
+  dashboardId: number,
+  datasets: SemanticDataset[] | null,
+  requestId?: string,
+  isRefreshStart = false,
+  expectedGeneration?: number,
+) {
+  return {
+    type: REPLACE_DASHBOARD_SEMANTIC_DATASETS,
+    dashboardId,
+    datasets,
+    requestId,
+    isRefreshStart,
+    expectedGeneration,
+  };
+}
+
+export function updateDashboardSemanticDataset(
+  dashboardId: number,
+  sourceKey: string,
+  dataset: SemanticDataset | null,
+  requestId?: string,
+  isRefreshStart = false,
+) {
+  return {
+    type: UPDATE_DASHBOARD_SEMANTIC_DATASET,
+    dashboardId,
+    sourceKey,
+    dataset,
+    requestId,
+    isRefreshStart,
+  };
+}
 
 // updates partially changed dashboard info
 export function dashboardInfoChanged(newInfo: Partial<DashboardInfo>) {

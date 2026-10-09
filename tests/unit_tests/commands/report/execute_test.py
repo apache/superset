@@ -373,6 +373,47 @@ def test_old_retry_is_discarded_before_state_machine(
     machine.assert_not_called()
 
 
+@pytest.mark.parametrize("content_user_present", [False, True])
+def test_attachment_free_alert_skips_permalink_precommit(
+    mocker: MockerFixture, app_context: None, content_user_present: bool
+) -> None:
+    """An alert query must not depend on its optional dashboard permalink."""
+    from superset.commands.report.execution_claim import ExecutionClaim
+
+    command = AsyncExecuteReportScheduleCommand(str(uuid4()), 11, datetime.utcnow())
+    command._model = ReportSchedule(
+        id=11,
+        name="query-only alert",
+        type=ReportScheduleType.ALERT,
+        report_format=ReportDataFormat.NONE,
+        dashboard_id=7,
+        last_state=ReportState.NOOP,
+    )
+    mocker.patch.object(command, "validate")
+    mocker.patch(
+        "superset.commands.report.execute._should_build_execution_context",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(mocker.Mock() if content_user_present else None, "executor"),
+    )
+    permalink = mocker.patch.object(BaseReportState, "get_dashboard_urls")
+    claim = mocker.patch(
+        "superset.commands.report.execute.claim_execution",
+        return_value=ExecutionClaim(ReportState.NOOP),
+    )
+    machine = mocker.patch(
+        "superset.commands.report.execute.ReportScheduleStateMachine"
+    )
+
+    command.run()
+
+    permalink.assert_not_called()
+    claim.assert_called_once()
+    machine.return_value.run.assert_called_once()
+
+
 @pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
 def test_partial_delivery_does_not_retry_whole_execution(
     mocker: MockerFixture, schedule_type: ReportScheduleType
@@ -2461,7 +2502,7 @@ def test_screenshot_width_calculation(
     # Mock security manager and screenshot
     with (
         patch(
-            "superset.commands.report.execute.security_manager"
+            "superset.commands.report.execute.security_manager", new_callable=MagicMock
         ) as mock_security_manager,
         patch(
             "superset.utils.screenshots.ChartScreenshot.get_screenshot"
@@ -2655,13 +2696,11 @@ def test_blank_capture_prevents_pdf_generation_and_delivery(
 
 def test_executor_not_found_error_message_without_username() -> None:
     """
-    When no username is available, the message falls back to ``(unknown)``
-    rather than leaving a double space ("...executor user  was not found.").
+    When no username is available, explain that no executor was resolved.
     """
     message = str(ReportScheduleExecutorNotFoundError().message)
 
-    assert "(unknown)" in message
-    assert "user  was" not in message
+    assert message == "Scheduled task executor not found"
 
 
 def test_executor_not_found_error_status_is_server_error() -> None:
@@ -4381,6 +4420,33 @@ def test_get_notification_content_text_format(mock_ff, mocker: MockerFixture) ->
     assert list(content.embedded_data.columns) == ["a"]
 
 
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_text_alert_skips_embedded_table_with_attachments_disabled(
+    mock_ff, mocker: MockerFixture
+) -> None:
+    """A condition-only alert does not fetch chart data for an inline TEXT table."""
+    mock_ff.is_feature_enabled.return_value = False
+    state = _make_notification_state(
+        mocker,
+        report_format=ReportDataFormat.TEXT,
+        schedule_type=ReportScheduleType.ALERT,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
+        return_value=False,
+    )
+    get_embedded_data = mocker.patch.object(state, "_get_embedded_data")
+    resolve_executor = mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user"
+    )
+
+    content = state._get_notification_content()
+
+    get_embedded_data.assert_not_called()
+    resolve_executor.assert_not_called()
+    assert content.embedded_data is None
+
+
 @pytest.mark.parametrize(
     "email_subject,has_chart,expected_name",
     [
@@ -4844,6 +4910,10 @@ def test_get_notification_content_alert_no_flag_skips_attachment(
         has_chart=True,
     )
     mock_screenshots = mocker.patch.object(state, "_get_screenshots")
+    mocker.patch(
+        "superset.commands.report.execute.ReportConfigDAO.get_effective_value",
+        return_value=False,
+    )
 
     content = state._get_notification_content()
 
