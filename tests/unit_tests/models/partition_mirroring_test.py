@@ -1064,6 +1064,39 @@ def test_the_probe_widens_to_the_day_when_the_engine_drops_the_time(
     assert "dt_epoch <= 2" in sql
 
 
+def test_the_probe_widens_to_the_day_on_a_date_column_not_flagged_temporal(
+    app: Flask,
+) -> None:
+    """
+    `get_time_filter` renders a bound through `convert_dttm` for a DATE column
+    whether or not the owner ticked "Is temporal", so an unflagged DATE column
+    still compares `DATE '2026-01-01'` for a 10:00 bound. Keying the resolution
+    check on `is_dttm` alone handed the probe 10:00 there, and the mirror
+    dropped the first day.
+    """
+    table = _table(mapped_column="event_date", main_dttm_col="event_date")
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=False, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "unix_timestamp(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1, 2]) as probe:
+                _query(
+                    table,
+                    granularity="event_date",
+                    from_dttm=datetime(2026, 1, 1, 10, 0),
+                    to_dttm=datetime(2026, 1, 2, 10, 0),
+                )
+
+    assert probe.call_args.args[-1] == [
+        datetime(2026, 1, 1, 0, 0),
+        datetime(2026, 1, 3, 0, 0),
+    ]
+
+
 def test_a_day_resolution_bound_already_at_midnight_is_left_alone(
     app: Flask,
 ) -> None:
