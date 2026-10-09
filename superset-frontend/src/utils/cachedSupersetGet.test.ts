@@ -17,7 +17,9 @@
  * under the License.
  */
 
+import fetchMock from 'fetch-mock';
 import {
+  cachedSupersetGet,
   supersetGetCache,
   clearDatasetCache,
   clearAllDatasetCache,
@@ -26,6 +28,24 @@ import {
 describe('cachedSupersetGet', () => {
   beforeEach(() => {
     supersetGetCache.clear();
+  });
+
+  afterEach(() => {
+    fetchMock.removeRoutes();
+    fetchMock.clearHistory();
+  });
+
+  test('retries a failed GET instead of retaining its rejection', async () => {
+    const endpoint = '/api/v1/dataset/909';
+    const route = `glob:*${endpoint}`;
+    fetchMock.getOnce(route, 500);
+
+    await expect(cachedSupersetGet({ endpoint })).rejects.toBeTruthy();
+    fetchMock.get(route, { result: { id: 909 } });
+
+    const response = await cachedSupersetGet({ endpoint });
+    expect(response.json.result.id).toBe(909);
+    expect(fetchMock.callHistory.calls(route)).toHaveLength(2);
   });
 
   describe('clearDatasetCache', () => {

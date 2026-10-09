@@ -84,7 +84,14 @@ async def test_saved_chart_reads_use_the_source_type(
     query_context: SimpleNamespace = SimpleNamespace(queries=[], form_data={})
     command: Mock = Mock()
     command.run.return_value = {
-        "queries": [{"data": [{"sales": 7}], "colnames": ["sales"], "rowcount": 1}]
+        "queries": [
+            {
+                "data": [{"sales": 7}],
+                "colnames": ["sales"],
+                "coltypes": [0],
+                "rowcount": 1,
+            }
+        ]
     }
     table_lookup: Mock
     view_lookup: Mock
@@ -193,7 +200,14 @@ async def test_guest_semantic_chart_data_uses_dashboard_authorization(
     query_context: SimpleNamespace = SimpleNamespace(queries=[], form_data={})
     command: Mock = Mock()
     command.run.return_value = {
-        "queries": [{"data": [{"sales": 7}], "colnames": ["sales"], "rowcount": 1}]
+        "queries": [
+            {
+                "data": [{"sales": 7}],
+                "colnames": ["sales"],
+                "coltypes": [0],
+                "rowcount": 1,
+            }
+        ]
     }
     # The query-context check refuses guest row-level security on semantic
     # views (raise_for_unsupported_guest_rls via command.validate()).
