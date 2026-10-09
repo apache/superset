@@ -1992,6 +1992,9 @@ msgstr "Toate dimensiunile"
 msgid "All filters"
 msgstr "Toate filtrele"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Toate panourile"
 
@@ -4632,6 +4635,9 @@ msgstr "Coloane de citit"
 
 msgid "Columns to show in the tooltip."
 msgstr "Coloane de afișat în tooltip."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combină indicatori"
@@ -8848,6 +8854,9 @@ msgstr "Numele grupului"
 msgid "Group remaining as \"Others\""
 msgstr "Grupează restul ca \"Altele\""
 
+msgid "Groupable columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, lv, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -9892,6 +9901,11 @@ msgid "Least recently modified"
 msgstr "Cel mai puțin modificat recent"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11489,6 +11503,10 @@ msgstr "Negăsit"
 
 msgid "Not in"
 msgstr "Nu în"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nu null"
@@ -16714,6 +16732,11 @@ msgstr "Coloana de folosit ca țintă a muchiei."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Coloana a fost ștearsă sau redenumită în baza de date."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Configurația pentru straturile hărții"

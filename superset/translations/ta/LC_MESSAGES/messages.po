@@ -1838,6 +1838,9 @@ msgstr "பரிமாணமா (Is dimension)"
 msgid "All filters"
 msgstr "அனைத்து வடிகட்டிகள்"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "அனைத்து பேனல்கள் (panels)"
 
@@ -4322,6 +4325,9 @@ msgstr "வாசிக்க வேண்டிய நெடுவரிசை�
 
 msgid "Columns to show in the tooltip."
 msgstr "உதவிக்குறிப்பில் காட்ட வேண்டிய நெடுவரிசைகள்."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "அளவீடுகளை இணைக்கவும்"
@@ -8209,6 +8215,9 @@ msgstr "குழுவின் பெயர்"
 msgid "Group remaining as \"Others\""
 msgstr "மீதமுள்ளவற்றை \"ஏனையவை\" என குழுவாக்கு"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "குழுவாக்கம்"
 
@@ -9146,6 +9155,11 @@ msgid "Least recently modified"
 msgstr "மிகக் குறைவாக மாற்றப்பட்டது"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -10589,6 +10603,10 @@ msgstr "முடிவுகள் எதுவும் காணப்பட�
 
 msgid "Not in"
 msgstr "இதில் இல்லை"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "காலியாக இல்லை (Not null)"
@@ -15299,6 +15317,11 @@ msgstr "விளிம்பின் இலக்காகப் பயன்�
 
 msgid "The column was deleted or renamed in the database."
 msgstr "தரவுத்தளத்தில் நெடுவரிசை நீக்கப்பட்டது அல்லது மறுபெயரிடப்பட்டது."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "வரைபட அடுக்குகளுக்கான உள்ளமைப்பு"

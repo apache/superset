@@ -1986,6 +1986,9 @@ msgstr "Wymiary"
 msgid "All filters"
 msgstr "Wszystkie filtry"
 
+msgid "All groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "All panels"
 msgstr "Wszystkie panele"
@@ -4692,6 +4695,9 @@ msgstr "Kolumny do odczytu"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Podpowiedź nagłówka kolumny"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 #, fuzzy
 msgid "Combine metrics"
@@ -9131,6 +9137,9 @@ msgstr "Nazwa grupy"
 msgid "Group remaining as \"Others\""
 msgstr "Grupuj pozostałe jako \"Inne\""
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "Określanie zakresu"
@@ -10193,6 +10202,11 @@ msgid "Least recently modified"
 msgstr "Najmniej ostatnio zmodyfikowany"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11824,6 +11838,10 @@ msgstr "Nie znaleziono wykresu"
 
 msgid "Not in"
 msgstr "Nie w"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nie puste"
@@ -17312,6 +17330,11 @@ msgstr "Kolumna używana jako cel krawędzi."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Kolumna została usunięta lub przemianowana w bazie danych."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
