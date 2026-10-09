@@ -4540,8 +4540,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         The guard lives here rather than in each caller so this and
         `_column_literal_resolution` cannot disagree about which column is
         coarse -- which is the same reason that helper delegates to this one.
+
+        "Temporal" is the column's generic type, not just its ``is_dttm`` flag.
+        `get_time_filter` renders a bound through ``convert_dttm`` for any
+        ``DATE`` column, flagged or not, so a ``DATE`` column left unflagged
+        still compares a bare day -- and skipping the resolution check there
+        would hand the probe 10:00 for a bound the engine reads as midnight.
         """
-        if col is None or not col.type or not col.is_dttm:
+        if col is None or not col.type or col.type_generic != GenericDataType.TEMPORAL:
             return LiteralResolution.FULL
 
         def render(moment: datetime) -> Optional[str]:
