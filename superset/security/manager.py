@@ -4417,9 +4417,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         view_perms: set[str] = {
             perm
             for perm in connection.execute(
-                select(sv_table.c.perm).where(
-                    sv_table.c.semantic_layer_uuid == target.uuid
-                )
+                select(sv_table.c.perm)
+                .where(sv_table.c.semantic_layer_uuid == target.uuid)
+                .order_by(sv_table.c.id)
+                .with_for_update()
             ).scalars()
             if perm
         }
@@ -4428,8 +4429,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if self._retain_shared_datasource_perm_for_isolation(connection):
             return
 
-        # The database can cascade unloaded views without firing their delete
-        # hooks. Serialize their permission cleanup with direct owner deletes.
+        # Lock child views before permission rows, matching direct view deletion.
+        # Otherwise its after_delete hook can wait on us while our cascade waits
+        # on its view row. Unloaded views have no ORM after_delete hook.
         self._lock_datasource_perms(connection, view_perms)
 
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
@@ -4498,8 +4500,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         self._lock_datasource_perms(connection, {perm})
 
-        # These owner probes remain unindexed by design. Retention deployments
-        # must cap purges per run; an ordinary delete checks one asset at a time.
+        # These unindexed probes run per delete. LIMIT 1 bounds returned rows,
+        # not scan work; a large purge backlog can require repeated catalog scans.
         table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
         if connection.execute(
             table.select().where(table.c.perm == perm).limit(1)

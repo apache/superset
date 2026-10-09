@@ -5713,6 +5713,12 @@ def test_semantic_layer_delete_locks_child_permission_before_owner_probe(
 
     sm.semantic_layer_before_delete(MagicMock(), connection, target)
 
+    child_statement: Any = connection.execute.call_args_list[0].args[0]
+    child_sql: str = str(child_statement.compile(dialect=postgresql.dialect()))
+    assert "semantic_views" in child_sql
+    assert "ORDER BY semantic_views.id" in child_sql
+    assert "FOR UPDATE" in child_sql
+
     lock_statement: Any = connection.execute.call_args_list[1].args[0]
     sql: str = str(lock_statement.compile(dialect=postgresql.dialect()))
     assert "ab_view_menu" in sql
@@ -5720,14 +5726,15 @@ def test_semantic_layer_delete_locks_child_permission_before_owner_probe(
     assert "FOR UPDATE" in sql
 
 
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
 @pytest.mark.parametrize("isolation", ["REPEATABLE READ", "SERIALIZABLE", None])
 def test_shared_permission_cleanup_retains_on_unsafe_mysql_isolation(
-    isolation: str | None, mocker: MockerFixture, app_context: None
+    dialect_name: str, isolation: str | None, mocker: MockerFixture, app_context: None
 ) -> None:
     """An untrusted MySQL snapshot must not retire a shared grant."""
     sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
     connection: MagicMock = MagicMock()
-    connection.dialect.name = "mysql"
+    connection.dialect.name = dialect_name
     connection.get_isolation_level.return_value = isolation
     warning: MagicMock = mocker.patch("superset.security.manager.logger.warning")
 
@@ -5741,13 +5748,14 @@ def test_shared_permission_cleanup_retains_on_unsafe_mysql_isolation(
     warning.assert_called_once()
 
 
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
 def test_shared_permission_cleanup_retains_when_mysql_isolation_cannot_be_read(
-    mocker: MockerFixture, app_context: None
+    dialect_name: str, mocker: MockerFixture, app_context: None
 ) -> None:
     """Isolation lookup failure must leave the grant in place."""
     sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
     connection: MagicMock = MagicMock()
-    connection.dialect.name = "mysql"
+    connection.dialect.name = dialect_name
     connection.get_isolation_level.side_effect = RuntimeError("unavailable")
     warning: MagicMock = mocker.patch("superset.security.manager.logger.warning")
 
@@ -5761,13 +5769,14 @@ def test_shared_permission_cleanup_retains_when_mysql_isolation_cannot_be_read(
     warning.assert_called_once()
 
 
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
 def test_dataset_delete_retains_grant_on_mysql_repeatable_read(
-    mocker: MockerFixture, app_context: None
+    dialect_name: str, mocker: MockerFixture, app_context: None
 ) -> None:
     """The ORM delete hook must not revoke a possibly shared grant."""
     sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
     connection: MagicMock = MagicMock()
-    connection.dialect.name = "mysql"
+    connection.dialect.name = dialect_name
     connection.get_isolation_level.return_value = "REPEATABLE READ"
     target: MagicMock = MagicMock()
     target.perm = "[shared](id:42)"
@@ -5779,13 +5788,15 @@ def test_dataset_delete_retains_grant_on_mysql_repeatable_read(
     delete_pvm.assert_not_called()
 
 
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
 def test_shared_permission_cleanup_proceeds_on_mysql_read_committed(
+    dialect_name: str,
     app_context: None,
 ) -> None:
     """The configured safe isolation still permits final-owner cleanup."""
     sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
     connection: MagicMock = MagicMock()
-    connection.dialect.name = "mysql"
+    connection.dialect.name = dialect_name
     connection.get_isolation_level.return_value = "READ COMMITTED"
     connection.execute.return_value.first.return_value = None
 
@@ -5799,13 +5810,14 @@ def test_shared_permission_cleanup_proceeds_on_mysql_read_committed(
     assert connection.execute.call_count == 3
 
 
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
 def test_semantic_layer_delete_retains_child_grant_on_mysql_repeatable_read(
-    mocker: MockerFixture, app_context: None
+    dialect_name: str, mocker: MockerFixture, app_context: None
 ) -> None:
     """The unloaded-child cascade uses the same fail-safe isolation gate."""
     sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
     connection: MagicMock = MagicMock()
-    connection.dialect.name = "mysql"
+    connection.dialect.name = dialect_name
     connection.get_isolation_level.return_value = "REPEATABLE READ"
     connection.execute.return_value.scalars.return_value = ["[shared](id:42)"]
     target: MagicMock = MagicMock()
