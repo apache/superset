@@ -238,6 +238,39 @@ def test_wide_preview_fold_does_not_overwrite_the_axis(x_axis: str) -> None:
     assert spec["encoding"]["x"]["field"] == x_axis
 
 
+@pytest.mark.parametrize(
+    ("stack", "expected"),
+    [
+        (None, None),
+        (False, None),
+        ("Stack", "zero"),
+        (True, "zero"),
+        ("Expand", "normalize"),
+    ],
+)
+def test_wide_preview_fold_follows_the_saved_stack_control(
+    stack: Any, expected: str | None
+) -> None:
+    """An unstacked grouped bar chart previews separate bars, not one stack."""
+    form_data: dict[str, Any] = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+    }
+    if stack is not None:
+        form_data["stack"] = stack
+    result = _generate_vega_lite_preview_from_data(
+        [{"ds": "2026-01-01", "revenue, East": 10, "revenue, West": 20}],
+        form_data,
+    )
+    assert isinstance(result, VegaLitePreview)
+    spec = result.specification
+    assert spec["transform"][0]["fold"] == ["revenue, East", "revenue, West"]
+    assert "stack" in spec["encoding"]["y"]
+    assert spec["encoding"]["y"]["stack"] == expected
+
+
 @pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
 @pytest.mark.parametrize("saved_viz", [True, False])
 @pytest.mark.parametrize("request_offset", [None, "2 weeks ago", "3 weeks ago"])

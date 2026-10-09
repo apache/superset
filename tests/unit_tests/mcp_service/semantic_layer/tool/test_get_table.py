@@ -504,6 +504,54 @@ async def test_get_table_temporal_result_type(
 
 
 @pytest.mark.asyncio
+async def test_get_table_empty_result_keeps_temporal_grain_column_type(
+    mcp_server: FastMCP,
+    temporal_view: MagicMock,
+) -> None:
+    """An empty result reports the same grain-column type as a non-empty one."""
+    with patch.object(
+        get_table_module,
+        "execute_tabular_query",
+        return_value={
+            "queries": [
+                {
+                    "data": [],
+                    "colnames": ["metric_time__month", "country_name"],
+                    "coltypes": [
+                        int(GenericDataType.STRING),
+                        int(GenericDataType.STRING),
+                    ],
+                }
+            ]
+        },
+    ):
+        async with Client(mcp_server) as client:
+            data: dict[str, Any] = json.loads(
+                (
+                    await client.call_tool(
+                        "get_table",
+                        {
+                            "request": {
+                                "view_id": 5,
+                                "metrics": ["bookings"],
+                                "dimensions": ["metric_time", "country_name"],
+                                "time_grain": "P1M",
+                            }
+                        },
+                    )
+                )
+                .content[0]
+                .text
+            )
+    assert data["success"] is True
+    assert data["row_count"] == 0
+    assert [column["data_type"] for column in data["columns"]] == [
+        "temporal",
+        "string",
+    ]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("result_column", "value", "coltype", "expected_type"),
     [

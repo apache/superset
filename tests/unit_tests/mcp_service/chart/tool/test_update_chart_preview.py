@@ -1583,7 +1583,7 @@ class TestUpdateChartPreviewValidation:
             assert "sum_boys" in error["suggestions"]
             mock_create_form_data.assert_not_called()
 
-    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=False)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
@@ -1594,14 +1594,18 @@ class TestUpdateChartPreviewValidation:
         self,
         mock_create_form_data,
         mock_find_by_id,
-        unused_access_mock,
-        mock_find_dataset,
+        mock_has_dataset_access,
+        mock_validate_and_compile,
         mcp_server,
         mock_auth,
     ):
-        """has_dataset_access=False → DatasetNotAccessible, no cache write."""
-        mock_find_dataset.return_value = _mock_dataset(id=3)
-        mock_find_by_id.return_value = _mock_dataset(id=3)
+        """has_dataset_access=False → DatasetNotAccessible, no compile or cache.
+
+        The real ``_find_dataset`` resolves the dataset, so this covers the
+        tool's own access check rather than a lookup that returns nothing.
+        """
+        dataset = _mock_dataset(id=3)
+        mock_find_by_id.return_value = dataset
 
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="region")]
@@ -1620,6 +1624,8 @@ class TestUpdateChartPreviewValidation:
             error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_type"] == "DatasetNotAccessible"
+            mock_has_dataset_access.assert_called_once_with(dataset)
+            mock_validate_and_compile.assert_not_called()
             mock_create_form_data.assert_not_called()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")

@@ -1815,10 +1815,23 @@ def generate_xy_vega_lite_preview(
             spec["transform"] = [
                 {"fold": series_columns, "as": [series_field, value_field]}
             ]
-            encoding["y"] = {"field": value_field, "type": "quantitative"}
+            # Vega-Lite stacks bar and area marks colored by a nominal field
+            # by default; follow the chart's saved ``stack`` control instead.
+            encoding["y"] = {
+                "field": value_field,
+                "type": "quantitative",
+                "stack": _xy_vega_lite_stack(form_data.get("stack")),
+            }
             encoding["color"] = {"field": series_field, "type": "nominal"}
 
     return preview
+
+
+def _xy_vega_lite_stack(stack: Any) -> str | None:
+    """Map the ECharts timeseries ``stack`` control to a Vega-Lite stack."""
+    if not stack:
+        return None
+    return "normalize" if stack == "Expand" else "zero"
 
 
 def _truncate_utf8(value: str, max_bytes: int) -> str:
