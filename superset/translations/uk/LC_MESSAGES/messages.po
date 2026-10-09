@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-05 23:38+0000\n"
+"POT-Creation-Date: 2026-10-07 14:21-0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -247,24 +247,6 @@ msgid "%(name)s deleted successfully"
 msgstr ""
 
 #, python-format
-msgid ""
-"%(name)s has an advanced data type, so its filters are translated into "
-"their own predicate shape and cannot be mirrored onto the partition "
-"column."
-msgstr ""
-
-#, python-format
-msgid ""
-"%(name)s is both the partition column and the default datetime column, so"
-" the mapping points at itself and stays inactive. Set a mapped column "
-"override, or change the default datetime column."
-msgstr ""
-
-#, python-format
-msgid "%(name)s is not a column on this dataset."
-msgstr ""
-
-#, python-format
 msgid "%(name)s restored successfully"
 msgstr ""
 
@@ -303,12 +285,6 @@ msgstr[3] ""
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "%(object)s не існує в цій базі даних."
-
-#, python-format
-msgid ""
-"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
-" queries will scan every partition until a column is mapped."
-msgstr ""
 
 #, python-format
 msgid "%(prefix)s %(title)s"
@@ -541,6 +517,14 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr "%s обʼєктів неможливо редагувати, бо не до всіх із них у вас є доступ."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, python-format
 msgid "%s metric"
@@ -1052,18 +1036,6 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
-#, python-format
-msgid ""
-"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
-" a single value cannot describe."
-msgstr ""
-
-#, python-format
-msgid ""
-"A %(operator)s filter is only mirrored when the transform preserves "
-"ordering, which this one is not declared to do."
-msgstr ""
-
 msgid "A Big Number"
 msgstr "Лічильник"
 
@@ -1080,11 +1052,6 @@ msgstr ""
 "перевизначаючи інші параметри керування з вищим пріоритетом. (напр. { "
 "title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Деталі:"
 " https://echarts.apache.org/en/option.html. "
-
-msgid ""
-"A SQL expression evaluated against the engine, with :value standing for "
-"the filter bound being mirrored."
-msgstr ""
 
 msgid "A Slack channel is required for Slack recipients"
 msgstr ""
@@ -1209,30 +1176,6 @@ msgstr "Створиться нова діаграма."
 msgid "A new dashboard will be created."
 msgstr "Створиться новий звіт."
 
-#, python-format
-msgid "A partition value transform cannot be longer than %(limit)d characters."
-msgstr ""
-
-#, python-format
-msgid "A partition value transform cannot call %(functions)s."
-msgstr ""
-
-msgid "A partition value transform cannot contain a sub-query."
-msgstr ""
-
-msgid ""
-"A partition value transform must be a single SQL expression, with no "
-"FROM, WHERE or other clause."
-msgstr ""
-
-msgid "A partition value transform must parse as a single SQL expression."
-msgstr ""
-
-msgid ""
-"A partition value transform must use the :value placeholder where the "
-"engine will evaluate it, not inside a string literal or a comment."
-msgstr ""
-
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1256,6 +1199,11 @@ msgstr ""
 "перевикористовувати для інших діаграм."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
 msgstr ""
 
 msgid ""
@@ -1306,18 +1254,6 @@ msgstr "Знімок не встиг створитися у відведени�
 
 msgid "A valid color scheme is required"
 msgstr "Потрібна коректна схема кольорів"
-
-#, python-format
-msgid ""
-"A value transform is required on %(name)s, which is not a temporal "
-"column. Use :value for each value."
-msgstr ""
-
-msgid ""
-"A value transform must be a single SQL expression. It cannot carry a "
-"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
-"query."
-msgstr ""
 
 msgid ""
 "A waterfall chart is a form of data visualization that helps in "
@@ -1499,6 +1435,11 @@ msgstr "Додати оповіщення"
 
 msgid "Add an annotation layer"
 msgstr "Додати шар анотацій"
+
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
 
 msgid "Add an item"
 msgstr "Додати елемент"
@@ -1852,6 +1793,9 @@ msgstr "Трапилась помилка оповіщення через нев
 msgid "Alert is active"
 msgstr "Оповіщення чинне"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "Назва оповіщення"
 
@@ -1905,6 +1849,18 @@ msgstr "Оповіщення"
 msgid "Alerts & Reports"
 msgstr "Оповіщення та доповіді"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "Оповіщення та доповіді"
 
@@ -1914,6 +1870,9 @@ msgstr "Коригувати +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Показати всі стовпці"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "Усе"
@@ -2017,6 +1976,9 @@ msgstr "Дозволити користувачу вибирати кілька 
 
 msgid "Allowed Domains (comma separated)"
 msgstr "Дозволені домени (розділені комою)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "Алфавітний порядок"
@@ -2329,6 +2291,9 @@ msgstr "Не вдалося вилучити табличну схему. Зве
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Не вдалося відтворити візуалізацію: %s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
 msgstr "Не вдалося завантажити запит SQL"
@@ -2536,6 +2501,9 @@ msgid ""
 msgstr ""
 "Можна додати будь-яку базу даних, яка підтримує з’єднання через посилання"
 " SQL Alchemy. Дізнайтесь як додати драйвер бази даних "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -3318,9 +3286,6 @@ msgstr "Вкладку верхнього рівня не можна перем�
 
 msgid "Can select multiple values"
 msgstr "Можна вибрати декілька значень"
-
-msgid "Can't parse transform"
-msgstr ""
 
 msgid "Cancel"
 msgstr "Скасувати"
@@ -4129,10 +4094,17 @@ msgstr "Код скопійовано!"
 msgid "Collapse"
 msgstr "Згорнути рядок"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr "Згорнути все"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4337,11 +4309,6 @@ msgstr ""
 
 msgid "Column type"
 msgstr "Тип стовпця"
-
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
-msgstr ""
 
 msgid "Columnar upload"
 msgstr "Вивантаження стовпчикових даних"
@@ -4638,6 +4605,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "Містить текст (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 msgid "Content format"
 msgstr "Формат вмісту"
 
@@ -4678,6 +4651,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -5111,9 +5087,6 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
-msgstr ""
-
-msgid "Customize the value transform →"
 msgstr ""
 
 msgid "Customize tooltips template"
@@ -6849,9 +6822,6 @@ msgstr "Не вдалося вилучити вбудований звіт."
 msgid "Embedding deactivated."
 msgstr "Вбудовування вимкнено."
 
-msgid "Emitted predicate"
-msgstr ""
-
 msgid "Emphasis"
 msgstr "Наголос"
 
@@ -6882,6 +6852,9 @@ msgid "Enable Matrixify"
 msgstr "Увімкнути матрицю"
 
 msgid "Enable Retries"
+msgstr ""
+
+msgid "Enable attachments for alerts"
 msgstr ""
 
 msgid "Enable automatic retries on report failure"
@@ -7262,6 +7235,9 @@ msgstr "Відкинути вибрані значення"
 msgid "Excluded subjects"
 msgstr "Виключені суб’єкти"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "Виконаний запит"
 
@@ -7277,6 +7253,10 @@ msgstr "Журнал виконання"
 msgid "Existing dataset"
 msgstr "Наявний набір даних"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7286,8 +7266,15 @@ msgstr "Вийти з повного екрану"
 msgid "Expand"
 msgstr "Розгорнути"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Розгорнути все"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "Розгорнути все"
@@ -7876,28 +7863,8 @@ msgid "Filters for values less than or equal."
 msgstr "Фільтрує значення, що менші або рівні вказаному."
 
 #, python-format
-msgid ""
-"Filters on %(mapped)s will automatically apply an equivalent filter to "
-"%(partition)s."
-msgstr ""
-
-msgid ""
-"Filters on the mapped column are mirrored onto this column so the engine "
-"can prune partitions."
-msgstr ""
-
-msgid "Filters on this column are mirrored onto the partition column."
-msgstr ""
-
-msgid "Filters on this column are mirrored onto the partition field."
-msgstr ""
-
-#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "Фільтри поза звітом (%d)"
-
-msgid "Filters will not be mirrored"
-msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -8115,6 +8082,9 @@ msgstr ""
 "Форматування міток даних. Використовуйте змінні: {name}, {value}, "
 "{percent}. \\n означає новий рядок. Сумісність з ECharts: {a} (рядки), "
 "{b} (назва), {c} (значення), {d} (відсоток)"
+
+msgid "Format dates in email subjects"
+msgstr ""
 
 msgid ""
 "Format metrics or columns with currency symbols as prefixes or suffixes. "
@@ -8435,6 +8405,9 @@ msgstr "Горизонтально (зверху)"
 msgid "Horizontal alignment"
 msgstr "Горизонтальне вирівнювання"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr "Вузол"
 
@@ -8636,6 +8609,9 @@ msgid "Include a description that will be sent with your report"
 msgstr "Додайте опис, що надсилатиметься разом із доповіддю"
 
 msgid "Include a link back to Superset"
+msgstr ""
+
+msgid "Include attachment"
 msgstr ""
 
 #, python-format
@@ -8840,6 +8816,14 @@ msgstr "Некоректний код валюти у збережених по�
 msgid "Invalid date/timestamp format"
 msgstr "Некоректний формат дати і часу"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 msgid "Invalid executor type"
 msgstr "Некоректний тип виконавця"
 
@@ -9002,6 +8986,9 @@ msgstr "Параметри JSON"
 msgid "JSON Metadata"
 msgstr "Метадані JSON"
 
+msgid "JSON in cell"
+msgstr ""
+
 msgid "JSON metadata"
 msgstr "Метадані JSON"
 
@@ -9032,12 +9019,6 @@ msgstr "Січень"
 
 msgid "Jinja templating"
 msgstr "Шаблонізація Jinja"
-
-msgid ""
-"Jinja templating is not supported in a partition value transform. The "
-"transform is evaluated in a different context and at a different time "
-"from the chart query, so a template would not render the same way."
-msgstr ""
 
 msgid "July"
 msgstr "Липень"
@@ -9383,6 +9364,9 @@ msgstr "Схоже на (без урахування регістру)"
 msgid "Limit"
 msgstr "Обмеження"
 
+msgid "Limit recipients to users"
+msgstr ""
+
 msgid "Limit type"
 msgstr "Тип обмеження"
 
@@ -9713,12 +9697,6 @@ msgstr "Моментальний перегляд"
 msgid "Map Style"
 msgstr "Стиль карти"
 
-msgid "Map a column →"
-msgstr ""
-
-msgid "Map a different column instead →"
-msgstr ""
-
 msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
@@ -9747,13 +9725,6 @@ msgstr "Електронна пошта обовʼязкова"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox вимагає налаштування MAPBOX_API_KEY на сервері."
-
-#, python-format
-msgid "Mapped column %(name)s is not a column on this dataset."
-msgstr ""
-
-msgid "Maps to partition"
-msgstr ""
 
 msgid "March"
 msgstr "Березень"
@@ -10211,14 +10182,6 @@ msgstr "Змінено з шаблону «%s»"
 msgid "Monday"
 msgstr "Понеділок"
 
-msgid ""
-"Monotonicity is a property of the transform, not of the column type: "
-"hour(:value) and dayofweek(:value) are reasonable transforms on a "
-"timestamp and neither preserves ordering, so Superset asks rather than "
-"guessing. Unchecked, = and IN still mirror — except on a text column "
-"whose engine compares text case-insensitively, where they never do."
-msgstr ""
-
 msgid "Month"
 msgstr "Місяць"
 
@@ -10250,9 +10213,6 @@ msgstr "Перемістити групу праворуч"
 #, fuzzy
 msgid "Move icon"
 msgstr "Тільки переміщення"
-
-msgid "Move mapping to this column →"
-msgstr ""
 
 msgid "Move only"
 msgstr "Тільки переміщення"
@@ -10512,6 +10472,9 @@ msgstr "Жоден фільтр не застосовано"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "Немає доступних фільтрів."
 
@@ -10602,9 +10565,6 @@ msgstr ""
 msgid "No items"
 msgstr "Немає жодного елемента"
 
-msgid "No mapping"
-msgstr ""
-
 msgid "No matching records found"
 msgstr "Не знайдено відповідних записів"
 
@@ -10615,7 +10575,7 @@ msgstr "Не знайдено відповідних результатів"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Наразі до цього звіту не додано жодного фільтра."
 
-msgid "No partition column is set."
+msgid "No provider query is available for this run."
 msgstr ""
 
 msgid "No records found"
@@ -10707,17 +10667,6 @@ msgstr ""
 "Не знайдено перевірку із назвою %(validator_name)s , яку налаштовано для "
 "рушія %(engine_spec)s"
 
-#, python-format
-msgid ""
-"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
-"queries will scan every partition."
-msgstr ""
-
-msgid ""
-"No value transform is set, so no filter will be mirrored onto the "
-"partition column."
-msgstr ""
-
 msgid "Node label position"
 msgstr "Розміщення кнопок"
 
@@ -10756,9 +10705,6 @@ msgstr "Нормалізувати назви полів"
 msgid "Normalized"
 msgstr "Нормалізовано"
 
-msgid "Normally the default datetime column, but none is set on this dataset."
-msgstr ""
-
 msgid "Not Contains"
 msgstr "Не містить"
 
@@ -10788,9 +10734,6 @@ msgstr "Не всі обовʼязкові поля заповнено. Будь
 
 msgid "Not available"
 msgstr "Недоступно"
-
-msgid "Not currently mapped to the partition column."
-msgstr ""
 
 msgid "Not defined"
 msgstr "Не визначено"
@@ -11039,11 +10982,17 @@ msgstr "Тільки підсумки"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Дозволено лише запити на читання"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "Використовується лише тоді, коли тип мітки – відсоток."
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "Використовується лише тоді, коли тип мітки – показувати значення."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11106,6 +11055,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "Відкрити вкладку джерел даних"
+
+msgid "Open JSON"
+msgstr ""
 
 msgid "Open SQL Lab in a new tab"
 msgstr "Відкрити майстерню запитів у новій вкладці"
@@ -11356,14 +11308,8 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
-msgid "PARTITION"
-msgstr ""
-
 msgid "PDF download failed, please refresh and try again."
 msgstr "Не вдалося звантажити PDF. Оновіть сторінку та спробуйте ще раз."
-
-msgid "PREVIEW"
-msgstr ""
 
 msgid "Page"
 msgstr "Сторінка"
@@ -11420,19 +11366,6 @@ msgstr "Обмеження розподілу"
 
 msgid "Partition Threshold"
 msgstr "Поріг розподілу"
-
-msgid "Partition column"
-msgstr ""
-
-#, python-format
-msgid "Partition column %(name)s is not a column on this dataset."
-msgstr ""
-
-msgid "Partition field:"
-msgstr ""
-
-msgid "Partition filter mapping"
-msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -11914,7 +11847,7 @@ msgid "Prefix or suffix"
 msgstr "Префікс або суфікс"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -12354,9 +12287,6 @@ msgstr "Вилучити групу"
 msgid "Remove item"
 msgstr "Вилучити елемент"
 
-msgid "Remove mapping"
-msgstr ""
-
 msgid "Remove notification method"
 msgstr ""
 
@@ -12425,6 +12355,12 @@ msgstr ""
 msgid "Replace"
 msgstr "Замінити"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "Доповідь"
 
@@ -12488,6 +12424,12 @@ msgstr "Розклад досі виконується, але доповідь 
 msgid "Report Schedule log prune failed."
 msgstr "Не вдалося очистити журнал розкладу."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "Розклад доповіді не знайдено."
 
@@ -12511,6 +12453,9 @@ msgstr "Не вдалося сформувати доповідь"
 
 msgid "Report is active"
 msgstr "Чинна доповідь"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "Назва доповіді"
@@ -12546,6 +12491,9 @@ msgstr "Доповідь оновлено"
 
 msgid "Reports"
 msgstr "Доповіді"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "Відштовхування"
@@ -12588,13 +12536,7 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Обов’язкові значення параметрів вилучено"
 
-msgid "Required for non-temporal columns. Use :value for each value."
-msgstr ""
-
 msgid "Required if your account already has a password"
-msgstr ""
-
-msgid "Required to mirror range filters, including the time range."
 msgstr ""
 
 msgid "Resample"
@@ -12923,6 +12865,18 @@ msgstr "Виконати запит, щоб показати історію"
 msgid "Run a query to display results"
 msgstr "Виконати запит, щоб показати результати"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "Виконати поточний запит"
 
@@ -13063,13 +13017,13 @@ msgstr "Рядок"
 msgid "SUN"
 msgstr "НД"
 
+msgid "Same as \"Run as\""
+msgstr ""
+
 msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
-msgstr ""
-
-msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -13858,6 +13812,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Вибрати тип схеми кольорів."
 
+msgid "Select user"
+msgstr ""
+
 msgid "Select users"
 msgstr "Вибрати користувачів"
 
@@ -13982,6 +13939,9 @@ msgstr "Семантичний вигляд оновлено"
 msgid "Semantic views"
 msgstr "Семантичні вигляди"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -14001,6 +13961,9 @@ msgid "Send as text"
 msgstr "Надіслати як текст"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -14088,11 +14051,6 @@ msgstr "Встановити автоматичне оновлення"
 
 msgid "Set filter mapping"
 msgstr "Налаштувати відповідність фільтрів"
-
-msgid ""
-"Set from the default datetime column above, so re-pointing that column "
-"moves the mapping with it."
-msgstr ""
 
 msgid "Set local theme for testing"
 msgstr "Встановити місцеву тему для тестування"
@@ -14599,6 +14557,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -14818,6 +14781,9 @@ msgstr "Просторовий"
 
 msgid "Specific Date/Time"
 msgstr "Конкретний час"
+
+msgid "Specific user"
+msgstr ""
 
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "Вкажіть назву для створення таблиці (CREATE TABLE AS) у схемі: public"
@@ -15498,11 +15464,6 @@ msgstr "Одержано %s"
 msgid "The %s linked to this chart may have been deleted."
 msgstr ""
 
-msgid ""
-"The :value placeholder must appear where the engine will evaluate it. It "
-"cannot sit inside a string literal or a comment."
-msgstr ""
-
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "Відповідь API з %s не відповідає інтерфейсу IDatabaseTable."
@@ -15612,6 +15573,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 msgid "The annotation has been saved"
 msgstr "Анотацію збережено"
 
@@ -15717,11 +15681,6 @@ msgstr "Стовпець, який використовується як кін�
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Стовпець вилучено або перейменовано у базі даних."
-
-msgid ""
-"The column whose filters are mirrored. It follows the default datetime "
-"column unless a different column holds the mapping."
-msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Налаштування шарів карти"
@@ -15942,6 +15901,12 @@ msgstr ""
 "                    але їх не вдалося завантажити. Це заважає \n"
 "                    відтворенню звіту: %s"
 
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
+
 msgid "The font size of the point labels"
 msgstr "Розмір шрифту міток точок"
 
@@ -16134,15 +16099,6 @@ msgstr[2] "Параметри, які не визначено, у вашому �
 msgstr[3] "Параметр %(parameters)s у вашому запиті не визначено."
 
 #, python-format
-msgid ""
-"The partition column cannot be mapped onto itself. %(name)s is both the "
-"partition column and the mapped column."
-msgstr ""
-
-msgid "The partition filter mapping was cleared: its column is gone"
-msgstr ""
-
-#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Неправильний пароль для користувача «%(username)s»."
 
@@ -16223,11 +16179,6 @@ msgid ""
 "                expressions."
 msgstr ""
 
-msgid ""
-"The physical column the engine partitions on. Filters on the mapped "
-"column are mirrored onto it so the engine can prune partitions."
-msgstr ""
-
 msgid "The pixel radius"
 msgstr "Радіус у пікселях"
 
@@ -16246,9 +16197,6 @@ msgstr "Порт закрито."
 msgid "The port number is invalid."
 msgstr "Неправильний номер порта."
 
-msgid "The preview could not be loaded."
-msgstr ""
-
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr ""
 "Основний показник, який використовується для визначення розміру сегментів"
@@ -16256,6 +16204,9 @@ msgstr ""
 
 msgid "The provided table was not found in the provided database"
 msgstr "Таблицю не знайдено в базі даних"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Запит, який повʼязано з результатом, вилучено."
@@ -16543,19 +16494,6 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "Одиниця часу, що використовується для групування блоків"
 
-msgid "The transform could not be evaluated against the database."
-msgstr ""
-
-#, python-format
-msgid "The transform could not be evaluated against the database: %(reason)s"
-msgstr ""
-
-#, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
-msgstr ""
-
 msgid "The two passwords that you entered do not match!"
 msgstr "Паролі, які ви ввели, не збігаються!"
 
@@ -16596,6 +16534,18 @@ msgstr "Користувача успішно оновлено."
 msgid "The user was updated successfully"
 msgstr "Користувача успішно оновлено"
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
 "Неправильна комбінація користувача та паролю (неправильний пароль для "
@@ -16607,34 +16557,6 @@ msgstr "Користувача «%(username)s» не існує."
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "Вказаний користувач неправильний для зʼєднання з базою даних."
-
-#, python-format
-msgid ""
-"The value transform calls %(functions)s, whose result depends on when and"
-" where it runs. The transform is evaluated in a separate session and the "
-"result is cached, so the emitted predicate would freeze a snapshot of "
-"that moment."
-msgstr ""
-
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
-msgstr ""
-
-#, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
-msgstr ""
-
-msgid ""
-"The value transform must contain the :value placeholder, which stands for"
-" the filter value being mirrored."
-msgstr ""
-
-#, python-format
-msgid "The value transform on %(column)s cannot be saved: %(reason)s"
-msgstr ""
 
 msgid "The values overlap other breakpoint values"
 msgstr "Значення перетинаються з іншими порогами"
@@ -16999,6 +16921,12 @@ msgstr "Фільтр буде застосовано до цих наборів 
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -17067,6 +16995,12 @@ msgid "This action will permanently delete the user."
 msgstr "Ця дія остаточно вилучає користувача."
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr ""
@@ -17104,9 +17038,6 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
-msgstr ""
-
-msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, python-format
@@ -17263,14 +17194,6 @@ msgstr ""
 "іншу."
 
 #, python-format
-msgid ""
-"This engine compares less of a %(operator)s value on %(column)s than the "
-"filter carries, so there is no mirror a predicate on the partition column"
-" could stand in for. Map a column the engine compares in full to mirror "
-"this operator."
-msgstr ""
-
-#, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
 
@@ -17294,11 +17217,6 @@ msgstr ""
 
 msgid "This filter already exist on the report"
 msgstr "Цей фільтр уже існує в доповіді"
-
-msgid ""
-"This filter is also applied to a partition column for faster queries. See"
-" \"View query\" for the generated SQL."
-msgstr ""
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
@@ -17441,6 +17359,11 @@ msgstr "Цей пароль занадто простий; будь ласка, 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 msgid ""
@@ -17824,9 +17747,6 @@ msgstr[3] ""
 msgid "Token Request URI"
 msgstr "Посилання запиту жетону"
 
-msgid "Too many preview requests for this dataset. Wait a moment and try again."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -17903,9 +17823,6 @@ msgstr "Всього: %s"
 
 msgid "Track job"
 msgstr "Відстежувати задачу"
-
-msgid "Transform preserves ordering"
-msgstr ""
 
 msgid "Transformable"
 msgstr "Конструктор"
@@ -18205,6 +18122,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Не вдалося завантажити звіт"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -18490,7 +18410,7 @@ msgstr "Використання"
 msgid "Use %s to open in a new tab."
 msgstr "Використовуйте %s, щоб відкрити в новій вкладці."
 
-msgid "Use :value for the filter bound."
+msgid "Use 0 or leave empty to allow any schedule."
 msgstr ""
 
 msgid "Use Area Proportions"
@@ -18531,6 +18451,12 @@ msgstr "Використовувати поточний масштаб"
 
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Форматувати як дату, навіть коли показник не є часовою міткою"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 msgid "Use gradient"
 msgstr "Використовувати градієнт"
@@ -18580,6 +18506,9 @@ msgstr "Користувач"
 
 msgid "User Registrations"
 msgstr "Реєстрації користувачів"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "Користувач не має належних прав."
@@ -18650,9 +18579,6 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Використовує перші 25 значень, якщо вимір містить більше."
 
-msgid "Valid"
-msgstr ""
-
 msgid "Valid SQL expression"
 msgstr "Правильний SQL"
 
@@ -18721,9 +18647,6 @@ msgstr "Значення повинно бути нуль або більше"
 
 msgid "Value must be greater than 0"
 msgstr "Значення повинно бути більше за нуль"
-
-msgid "Value transform"
-msgstr ""
 
 #, python-format
 msgid ""
@@ -19169,6 +19092,11 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr ""
 "Якщо вибрано, карта автоматично масштабуватиметься до ваших даних після "
 "кожного запиту"
+
+msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
 
 msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
@@ -19726,6 +19654,19 @@ msgid ""
 "You can create a new chart or use existing ones from the panel on the "
 "right"
 msgstr "Ви можете створити нову діаграму або використати наявну з панелі праворуч"
+
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -20549,6 +20490,9 @@ msgstr "щохвилини"
 msgid "every month"
 msgstr "щомісяця"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "розширити"
 
@@ -20752,6 +20696,9 @@ msgstr "хвилина"
 msgid "minute(s)"
 msgstr "хвилин"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "місяць"
 
@@ -20922,6 +20869,10 @@ msgstr "перезавантажити"
 msgid "recent"
 msgstr "нещодавні"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "одержувачі"
 
@@ -20946,11 +20897,18 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "обмеження на рівні рядків"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "виконується"
 
 msgid "save"
 msgstr "зберегти"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
@@ -21029,10 +20987,6 @@ msgstr "сума"
 msgid "superset.example.com"
 msgstr "superset.example.com"
 
-#, python-format
-msgid "syntax error at position %(position)d."
-msgstr ""
-
 msgid "syntax."
 msgstr "синтаксис."
 
@@ -21080,9 +21034,6 @@ msgstr "зверху"
 
 msgid "undo"
 msgstr "скасувати"
-
-msgid "unix_timestamp(:value)"
-msgstr ""
 
 msgid "unknown type icon"
 msgstr "піктограма для невідомого типу"
@@ -21163,9 +21114,6 @@ msgstr "ділянка масштабування"
 
 msgid "© Layer attribution"
 msgstr "© Атрибут шару"
-
-msgid "— set in Default Column Settings · one per dataset"
-msgstr ""
 
 #, python-format
 msgid "…and %s more chart"

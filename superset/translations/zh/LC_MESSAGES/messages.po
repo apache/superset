@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-05 23:38+0000\n"
+"POT-Creation-Date: 2026-10-07 14:21-0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -252,24 +252,6 @@ msgid "%(name)s deleted successfully"
 msgstr "%(name)s 已成功删除"
 
 #, python-format
-msgid ""
-"%(name)s has an advanced data type, so its filters are translated into "
-"their own predicate shape and cannot be mirrored onto the partition "
-"column."
-msgstr ""
-
-#, python-format
-msgid ""
-"%(name)s is both the partition column and the default datetime column, so"
-" the mapping points at itself and stays inactive. Set a mapped column "
-"override, or change the default datetime column."
-msgstr ""
-
-#, python-format
-msgid "%(name)s is not a column on this dataset."
-msgstr ""
-
-#, python-format
 msgid "%(name)s restored successfully"
 msgstr "%(name)s 已成功恢复"
 
@@ -301,12 +283,6 @@ msgstr[0] "%(num)d 秒"
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "数据库中不存在 %(object)s 。"
-
-#, python-format
-msgid ""
-"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
-" queries will scan every partition until a column is mapped."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -501,6 +477,11 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr "%s 个项目无法添加标签，因为您没有对所有选定对象的编辑权限。"
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
 
 #, fuzzy, python-format
 msgid "%s metric"
@@ -1038,18 +1019,6 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
-#, python-format
-msgid ""
-"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
-" a single value cannot describe."
-msgstr ""
-
-#, python-format
-msgid ""
-"A %(operator)s filter is only mirrored when the transform preserves "
-"ordering, which this one is not declared to do."
-msgstr ""
-
 msgid "A Big Number"
 msgstr "大数字"
 
@@ -1065,11 +1034,6 @@ msgstr ""
 "遵循 ECharts 选项规范的 JavaScript 对象，优先级高于其他控制选项。（例如：{ title: { text: \"My "
 "Chart\" }, tooltip: { trigger: \"item\" } "
 "}）。详情：https://echarts.apache.org/en/option.html。"
-
-msgid ""
-"A SQL expression evaluated against the engine, with :value standing for "
-"the filter bound being mirrored."
-msgstr ""
 
 msgid "A Slack channel is required for Slack recipients"
 msgstr ""
@@ -1199,30 +1163,6 @@ msgstr "将会创建一个新图表"
 msgid "A new dashboard will be created."
 msgstr "将创建一个新看板。"
 
-#, python-format
-msgid "A partition value transform cannot be longer than %(limit)d characters."
-msgstr ""
-
-#, python-format
-msgid "A partition value transform cannot call %(functions)s."
-msgstr ""
-
-msgid "A partition value transform cannot contain a sub-query."
-msgstr ""
-
-msgid ""
-"A partition value transform must be a single SQL expression, with no "
-"FROM, WHERE or other clause."
-msgstr ""
-
-msgid "A partition value transform must parse as a single SQL expression."
-msgstr ""
-
-msgid ""
-"A partition value transform must use the :value placeholder where the "
-"engine will evaluate it, not inside a string literal or a comment."
-msgstr ""
-
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1247,6 +1187,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "一个可重复使用的数据集将与您的图表一起保存。"
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
 msgstr ""
 
 msgid ""
@@ -1291,18 +1236,6 @@ msgstr "截图超时"
 
 msgid "A valid color scheme is required"
 msgstr "需要有效的配色方案"
-
-#, python-format
-msgid ""
-"A value transform is required on %(name)s, which is not a temporal "
-"column. Use :value for each value."
-msgstr ""
-
-msgid ""
-"A value transform must be a single SQL expression. It cannot carry a "
-"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
-"query."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -1486,6 +1419,11 @@ msgstr "新增告警"
 #, fuzzy
 msgid "Add an annotation layer"
 msgstr "新增注释层"
+
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
 
 msgid "Add an item"
 msgstr "新增一行"
@@ -1851,6 +1789,9 @@ msgstr "告警在执行查询时发现错误。"
 msgid "Alert is active"
 msgstr "警报已激活"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "告警名称"
 
@@ -1902,6 +1843,18 @@ msgstr "告警"
 msgid "Alerts & Reports"
 msgstr "告警和报告"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "告警和报告"
 
@@ -1910,6 +1863,9 @@ msgstr "对齐 +/-"
 
 msgid "Align +/- for all columns"
 msgstr "对齐所有列的正负号"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "所有"
@@ -2014,6 +1970,9 @@ msgstr "允许选择多个值"
 
 msgid "Allowed Domains (comma separated)"
 msgstr "允许的域名（逗号分隔）"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "按字母顺序排列"
@@ -2328,6 +2287,9 @@ msgstr "删除表结构时出错。请与管理员联系。"
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "渲染可视化时发生错误：%s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 msgid "An error occurred while saving the semantic view"
 msgstr "保存语义视图时发生错误"
 
@@ -2531,6 +2493,9 @@ msgid ""
 "Any databases that allow connections via SQL Alchemy URIs can be added. "
 "Learn about how to connect a database driver "
 msgstr "可以添加任何允许通过SQL Alchemy URI进行连接的数据库。了解如何连接数据库驱动程序"
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -3342,9 +3307,6 @@ msgstr "无法将顶级选项卡移动到嵌套选项卡中"
 #, fuzzy
 msgid "Can select multiple values"
 msgstr "允许选择多个值"
-
-msgid "Can't parse transform"
-msgstr ""
 
 msgid "Cancel"
 msgstr "取消"
@@ -4184,12 +4146,19 @@ msgstr "代码已复制！"
 msgid "Collapse"
 msgstr "折叠"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 #, fuzzy
 msgid "Collapse All"
 msgstr "全部折叠"
 
 msgid "Collapse Datasource panel"
 msgstr "折叠数据源面板"
+
+msgid "Collapse JSON"
+msgstr ""
 
 msgid "Collapse all"
 msgstr "全部折叠"
@@ -4390,11 +4359,6 @@ msgstr "用作数据框索引的列。如果未指定，则使用索引标签。
 #, fuzzy
 msgid "Column type"
 msgstr "列数据类型"
-
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
-msgstr ""
 
 msgid "Columnar upload"
 msgstr "列式上传"
@@ -4707,6 +4671,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "包含文本 (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 msgid "Content format"
 msgstr "内容格式"
 
@@ -4749,6 +4719,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -5217,9 +5190,6 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
-msgstr ""
-
-msgid "Customize the value transform →"
 msgstr ""
 
 msgid "Customize tooltips template"
@@ -6948,9 +6918,6 @@ msgstr "嵌入式看板无法被删除。"
 msgid "Embedding deactivated."
 msgstr "嵌入已停用。"
 
-msgid "Emitted predicate"
-msgstr ""
-
 msgid "Emphasis"
 msgstr "重点"
 
@@ -6984,6 +6951,9 @@ msgid "Enable Matrixify"
 msgstr "启用 Matrixify"
 
 msgid "Enable Retries"
+msgstr ""
+
+msgid "Enable attachments for alerts"
 msgstr ""
 
 msgid "Enable automatic retries on report failure"
@@ -7397,6 +7367,9 @@ msgstr "排除选定的值"
 msgid "Excluded subjects"
 msgstr "排除的主题"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "已执行的SQL"
 
@@ -7412,6 +7385,10 @@ msgstr "执行日志"
 msgid "Existing dataset"
 msgstr "现有数据集"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr "退出编辑模式"
 
@@ -7422,9 +7399,16 @@ msgstr "退出全屏"
 msgid "Expand"
 msgstr "展开"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "全部展开"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "全部展开"
@@ -8065,28 +8049,8 @@ msgid "Filters for values less than or equal."
 msgstr "筛选小于或等于的值。"
 
 #, python-format
-msgid ""
-"Filters on %(mapped)s will automatically apply an equivalent filter to "
-"%(partition)s."
-msgstr ""
-
-msgid ""
-"Filters on the mapped column are mirrored onto this column so the engine "
-"can prune partitions."
-msgstr ""
-
-msgid "Filters on this column are mirrored onto the partition column."
-msgstr ""
-
-msgid "Filters on this column are mirrored onto the partition field."
-msgstr ""
-
-#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "过滤器超出范围(%d)"
-
-msgid "Filters will not be mirrored"
-msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -8306,6 +8270,9 @@ msgid ""
 msgstr ""
 "格式化数据标签。使用变量：{name}、{value}、{percent}。\\n 表示换行。ECharts 兼容性：\n"
 "{a}（系列）、{b}（名称）、{c}（数值）、{d}（百分比）"
+
+msgid "Format dates in email subjects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -8659,6 +8626,9 @@ msgstr "横向（顶部对齐）"
 msgid "Horizontal alignment"
 msgstr "水平对齐"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr "主机"
 
@@ -8867,6 +8837,9 @@ msgid "Include a description that will be sent with your report"
 msgstr "包含将随报告发送的描述"
 
 msgid "Include a link back to Superset"
+msgstr ""
+
+msgid "Include attachment"
 msgstr ""
 
 #, python-format
@@ -9089,6 +9062,14 @@ msgstr "保存的指标中存在无效的货币代码"
 msgid "Invalid date/timestamp format"
 msgstr "无效的日期/时间戳格式"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -9271,6 +9252,9 @@ msgstr "JSON 配置"
 msgid "JSON Metadata"
 msgstr "JSON 元数据"
 
+msgid "JSON in cell"
+msgstr ""
+
 msgid "JSON metadata"
 msgstr "JSON 元数据"
 
@@ -9303,12 +9287,6 @@ msgstr "一月"
 #, fuzzy
 msgid "Jinja templating"
 msgstr "Jinja模板"
-
-msgid ""
-"Jinja templating is not supported in a partition value transform. The "
-"transform is evaluated in a different context and at a different time "
-"from the chart query, so a template would not render the same way."
-msgstr ""
 
 msgid "July"
 msgstr "七月"
@@ -9676,6 +9654,9 @@ msgstr "Like（不区分大小写）"
 msgid "Limit"
 msgstr "行限制"
 
+msgid "Limit recipients to users"
+msgstr ""
+
 #, fuzzy
 msgid "Limit type"
 msgstr "限制类型"
@@ -10015,12 +9996,6 @@ msgstr "地图渲染器"
 msgid "Map Style"
 msgstr "地图样式"
 
-msgid "Map a column →"
-msgstr ""
-
-msgid "Map a different column instead →"
-msgstr ""
-
 msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
@@ -10044,13 +10019,6 @@ msgstr "Mapbox（需要 API 密钥）"
 # sr_Latn]
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox 需要在服务器上配置 MAPBOX_API_KEY。"
-
-#, python-format
-msgid "Mapped column %(name)s is not a column on this dataset."
-msgstr ""
-
-msgid "Maps to partition"
-msgstr ""
 
 msgid "March"
 msgstr "三月"
@@ -10551,14 +10519,6 @@ msgstr "基于 \"%s\" 模板修改"
 msgid "Monday"
 msgstr "星期一"
 
-msgid ""
-"Monotonicity is a property of the transform, not of the column type: "
-"hour(:value) and dayofweek(:value) are reasonable transforms on a "
-"timestamp and neither preserves ordering, so Superset asks rather than "
-"guessing. Unchecked, = and IN still mirror — except on a text column "
-"whose engine compares text case-insensitively, where they never do."
-msgstr ""
-
 msgid "Month"
 msgstr "月"
 
@@ -10594,9 +10554,6 @@ msgstr "将分组右移"
 
 msgid "Move icon"
 msgstr "移动图标"
-
-msgid "Move mapping to this column →"
-msgstr ""
 
 msgid "Move only"
 msgstr "仅移动"
@@ -10867,6 +10824,9 @@ msgstr "没有应用过滤器"
 msgid "No archived items"
 msgstr "没有已归档的项目"
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "没有可用的筛选器。"
 
@@ -10966,9 +10926,6 @@ msgstr ""
 msgid "No items"
 msgstr "无项目"
 
-msgid "No mapping"
-msgstr ""
-
 #, fuzzy
 msgid "No matching records found"
 msgstr "没有找到任何记录"
@@ -10979,7 +10936,7 @@ msgstr "未找到匹配结果"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "当前仪表板未添加任何多层 deck.gl 图表。"
 
-msgid "No partition column is set."
+msgid "No provider query is available for this run."
 msgstr ""
 
 msgid "No records found"
@@ -11074,17 +11031,6 @@ msgid ""
 "%(engine_spec)s engine)"
 msgstr "未找到名为 %(validator_name)s 的验证器（为 %(engine_spec)s 引擎配置）"
 
-#, python-format
-msgid ""
-"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
-"queries will scan every partition."
-msgstr ""
-
-msgid ""
-"No value transform is set, so no filter will be mirrored onto the "
-"partition column."
-msgstr ""
-
 msgid "Node label position"
 msgstr "节点标签位置"
 
@@ -11125,9 +11071,6 @@ msgstr "标准化列名称"
 msgid "Normalized"
 msgstr "标准化"
 
-msgid "Normally the default datetime column, but none is set on this dataset."
-msgstr ""
-
 msgid "Not Contains"
 msgstr "不包含"
 
@@ -11161,9 +11104,6 @@ msgstr "并非所有必填字段都已填写。请提供以下内容："
 
 msgid "Not available"
 msgstr "不可用"
-
-msgid "Not currently mapped to the partition column."
-msgstr ""
 
 #, fuzzy
 msgid "Not defined"
@@ -11421,6 +11361,9 @@ msgstr "仅总计"
 msgid "Only `SELECT` statements are allowed"
 msgstr "仅允许 `SELECT` 语句"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Only applies when \"Label Type\" is not set to a percentage."
@@ -11430,6 +11373,9 @@ msgstr "仅当“标签类型”未设置为百分比时适用。"
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "仅当“标签类型”设置为显示值时适用。"
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11497,6 +11443,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "打开数据源选项卡"
+
+msgid "Open JSON"
+msgstr ""
 
 msgid "Open SQL Lab in a new tab"
 msgstr "在新选项卡中打开 SQL Lab"
@@ -11732,14 +11681,8 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
-msgid "PARTITION"
-msgstr ""
-
 msgid "PDF download failed, please refresh and try again."
 msgstr "PDF 下载失败，请刷新后重试。"
-
-msgid "PREVIEW"
-msgstr ""
 
 msgid "Page"
 msgstr "页面"
@@ -11799,19 +11742,6 @@ msgstr "分区限制"
 
 msgid "Partition Threshold"
 msgstr "分区阈值"
-
-msgid "Partition column"
-msgstr ""
-
-#, python-format
-msgid "Partition column %(name)s is not a column on this dataset."
-msgstr ""
-
-msgid "Partition field:"
-msgstr ""
-
-msgid "Partition filter mapping"
-msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12330,7 +12260,7 @@ msgid "Prefix or suffix"
 msgstr "前缀或者后缀"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -12805,9 +12735,6 @@ msgstr "删除分组"
 msgid "Remove item"
 msgstr "删除项"
 
-msgid "Remove mapping"
-msgstr ""
-
 msgid "Remove notification method"
 msgstr "移除通知方式"
 
@@ -12880,6 +12807,12 @@ msgstr "在适用时将表格单元格渲染为HTML。例如，HTML <a> 标签�
 msgid "Replace"
 msgstr "替换"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "报表"
 
@@ -12944,6 +12877,12 @@ msgstr "报表计划仍在运行，拒绝重新计算。"
 msgid "Report Schedule log prune failed."
 msgstr "报表计划日志精简失败。"
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "找不到报表计划。"
 
@@ -12967,6 +12906,9 @@ msgstr "报告失败"
 
 msgid "Report is active"
 msgstr "报告已激活"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "报告名称"
@@ -13005,6 +12947,9 @@ msgstr "报告已更新"
 
 msgid "Reports"
 msgstr "报告"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "排斥力"
@@ -13052,13 +12997,7 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "必需的控件值已被移除"
 
-msgid "Required for non-temporal columns. Use :value for each value."
-msgstr ""
-
 msgid "Required if your account already has a password"
-msgstr ""
-
-msgid "Required to mirror range filters, including the time range."
 msgstr ""
 
 msgid "Resample"
@@ -13389,6 +13328,18 @@ msgstr "运行查询以显示查询历史"
 msgid "Run a query to display results"
 msgstr "运行查询以显示结果"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 #, fuzzy
 msgid "Run current query"
 msgstr "运行查询"
@@ -13528,13 +13479,13 @@ msgstr "字符串"
 msgid "SUN"
 msgstr "星期日"
 
+msgid "Same as \"Run as\""
+msgstr ""
+
 msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
-msgstr ""
-
-msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -14331,6 +14282,9 @@ msgstr "选择用于确定每条路径所属颜色断点范围的指标。"
 msgid "Select the type of color scheme to use."
 msgstr "选择要使用的颜色方案类型。"
 
+msgid "Select user"
+msgstr ""
+
 msgid "Select users"
 msgstr "选择用户"
 
@@ -14433,6 +14387,9 @@ msgstr "语义视图已更新"
 msgid "Semantic views"
 msgstr "语义视图"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -14452,6 +14409,9 @@ msgid "Send as text"
 msgstr "发送文本"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -14550,11 +14510,6 @@ msgstr "设置自动刷新"
 
 msgid "Set filter mapping"
 msgstr "设置过滤映射"
-
-msgid ""
-"Set from the default datetime column above, so re-pointing that column "
-"moves the mapping with it."
-msgstr ""
 
 msgid "Set local theme for testing"
 msgstr "设置用于测试的本地主题"
@@ -15066,6 +15021,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -15277,6 +15237,9 @@ msgstr "空间"
 
 msgid "Specific Date/Time"
 msgstr "具体日期/时间"
+
+msgid "Specific user"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16000,11 +15963,6 @@ msgstr "%s"
 msgid "The %s linked to this chart may have been deleted."
 msgstr "与此图表关联的 %s 可能已被删除。"
 
-msgid ""
-"The :value placeholder must appear where the engine will evaluate it. It "
-"cannot sit inside a string literal or a comment."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -16104,6 +16062,9 @@ msgstr "X轴不在筛选器列表中，这将阻止其在仪表板的时间范�
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
+msgstr ""
+
+msgid "The alert query executor is only allowed on alerts"
 msgstr ""
 
 msgid "The annotation has been saved"
@@ -16208,11 +16169,6 @@ msgstr "用作边目标的列。"
 
 msgid "The column was deleted or renamed in the database."
 msgstr "该列已在数据库中删除或重命名。"
-
-msgid ""
-"The column whose filters are mirrored. It follows the default datetime "
-"column unless a different column holds the mapping."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -16440,6 +16396,12 @@ msgid ""
 "                    from rendering: %s"
 msgstr "以下筛选器已勾选“默认选择第一个筛选值”选项，但无法加载，导致仪表板无法渲染：%s"
 
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
+
 msgid "The font size of the point labels"
 msgstr "点标签的字体大小"
 
@@ -16625,15 +16587,6 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "查询中的以下参数未定义：%(parameters)s 。"
 
 #, python-format
-msgid ""
-"The partition column cannot be mapped onto itself. %(name)s is both the "
-"partition column and the mapped column."
-msgstr ""
-
-msgid "The partition filter mapping was cleared: its column is gone"
-msgstr ""
-
-#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "用户名 \"%(username)s\" 提供的密码不正确。"
 
@@ -16705,11 +16658,6 @@ msgid ""
 "                expressions."
 msgstr ""
 
-msgid ""
-"The physical column the engine partitions on. Filters on the mapped "
-"column are mirrored onto it so the engine can prune partitions."
-msgstr ""
-
 msgid "The pixel radius"
 msgstr "像素半径"
 
@@ -16725,15 +16673,15 @@ msgstr "端口已关闭。"
 msgid "The port number is invalid."
 msgstr "端口值无效"
 
-msgid "The preview could not be loaded."
-msgstr ""
-
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "主计量指标用于定义弧段大小。"
 
 #, fuzzy
 msgid "The provided table was not found in the provided database"
 msgstr "该表在数据库中不存在"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "与结果关联的查询已删除。"
@@ -16987,19 +16935,6 @@ msgstr "每个块的时间单位。应比 domain_granularity 更小。应大于�
 msgid "The time unit used for the grouping of blocks"
 msgstr "用于块分组的时间单位"
 
-msgid "The transform could not be evaluated against the database."
-msgstr ""
-
-#, python-format
-msgid "The transform could not be evaluated against the database: %(reason)s"
-msgstr ""
-
-#, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
-msgstr ""
-
 msgid "The two passwords that you entered do not match!"
 msgstr "两次输入的密码不一致！"
 
@@ -17041,6 +16976,18 @@ msgstr "用户已成功更新。"
 msgid "The user was updated successfully"
 msgstr "用户已成功更新。"
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -17053,34 +17000,6 @@ msgstr "用户名 \"%(username)s\" 不存在。"
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "连接到数据库时提供的用户名无效。"
-
-#, python-format
-msgid ""
-"The value transform calls %(functions)s, whose result depends on when and"
-" where it runs. The transform is evaluated in a separate session and the "
-"result is cached, so the emitted predicate would freeze a snapshot of "
-"that moment."
-msgstr ""
-
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
-msgstr ""
-
-#, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
-msgstr ""
-
-msgid ""
-"The value transform must contain the :value placeholder, which stands for"
-" the filter value being mirrored."
-msgstr ""
-
-#, python-format
-msgid "The value transform on %(column)s cannot be saved: %(reason)s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17442,6 +17361,12 @@ msgstr "这些是此筛选器将应用到的数据集。"
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -17504,6 +17429,12 @@ msgid "This action will permanently delete the user."
 msgstr "此操作将永久删除该用户。"
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr "这可以是一个IP地址(例如127.0.0.1)或一个域名(例如mydatabase.com)。"
@@ -17542,9 +17473,6 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
-msgstr ""
-
-msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, python-format
@@ -17702,14 +17630,6 @@ msgid ""
 msgstr "此邮箱已关联到一个账户。请选择其他邮箱。"
 
 #, python-format
-msgid ""
-"This engine compares less of a %(operator)s value on %(column)s than the "
-"filter carries, so there is no mirror a predicate on the partition column"
-" could stand in for. Map a column the engine compares in full to mirror "
-"this operator."
-msgstr ""
-
-#, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr "此导出请求于 %(when)s UTC 发起。"
 
@@ -17736,11 +17656,6 @@ msgstr "此字段用作将指标附加到图表的唯一标识符。它也用作
 
 msgid "This filter already exist on the report"
 msgstr "此筛选器已存在于报表中"
-
-msgid ""
-"This filter is also applied to a partition column for faster queries. See"
-" \"View query\" for the generated SQL."
-msgstr ""
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
@@ -17894,6 +17809,11 @@ msgstr "此密码过于常见；请选择一个不易被猜到的密码。"
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 msgid ""
@@ -18271,9 +18191,6 @@ msgstr[0] ""
 msgid "Token Request URI"
 msgstr "令牌请求URI"
 
-msgid "Too many preview requests for this dataset. Wait a moment and try again."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, python-format
 msgid ""
@@ -18358,9 +18275,6 @@ msgstr "总计: %s"
 
 msgid "Track job"
 msgstr "跟踪任务"
-
-msgid "Transform preserves ordering"
-msgstr ""
 
 msgid "Transformable"
 msgstr "转换"
@@ -18677,6 +18591,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "无法加载看板"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -18976,7 +18893,7 @@ msgstr "用途"
 msgid "Use %s to open in a new tab."
 msgstr "使用 %s 打开新的选项卡。"
 
-msgid "Use :value for the filter bound."
+msgid "Use 0 or leave empty to allow any schedule."
 msgstr ""
 
 msgid "Use Area Proportions"
@@ -19021,6 +18938,12 @@ msgstr "使用当前范围"
 #, fuzzy
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "即使指标值不是时间戳，也使用日期格式"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 msgid "Use gradient"
 msgstr "使用渐变"
@@ -19070,6 +18993,9 @@ msgstr "用户名"
 
 msgid "User Registrations"
 msgstr "用户注册"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "用户没有相应的权限。"
@@ -19131,9 +19057,6 @@ msgstr "使用圆圈来可视化数据在系统不同阶段的流动。将鼠标
 # sr_Latn]
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "如果维度包含超过25个值，则仅使用前25个。"
-
-msgid "Valid"
-msgstr ""
 
 #, fuzzy
 msgid "Valid SQL expression"
@@ -19214,9 +19137,6 @@ msgstr "值必须大于或等于 0"
 
 msgid "Value must be greater than 0"
 msgstr "`行偏移量` 必须大于或等于0"
-
-msgid "Value transform"
-msgstr ""
 
 #, python-format
 msgid ""
@@ -19646,6 +19566,11 @@ msgstr "当提供次计量指标时，会使用线性色阶。"
 
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "勾选后，每次查询后地图将自动缩放至您的数据范围"
+
+msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
 
 msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
@@ -20193,6 +20118,19 @@ msgid ""
 "You can create a new chart or use existing ones from the panel on the "
 "right"
 msgstr "您可以创建一个新图表，或使用右侧面板中的现有图表。"
+
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -21059,6 +20997,9 @@ msgstr "每分钟"
 msgid "every month"
 msgstr "每个月"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 #, fuzzy
 msgid "expand"
 msgstr "展开"
@@ -21283,6 +21224,9 @@ msgstr "分"
 msgid "minute(s)"
 msgstr "分钟"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "月"
 
@@ -21470,6 +21414,10 @@ msgstr "重启"
 msgid "recent"
 msgstr "最近"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "收件人"
 
@@ -21499,6 +21447,9 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "行级安全"
 
+msgid "run as"
+msgstr ""
+
 #, fuzzy
 msgid "running"
 msgstr "正在执行"
@@ -21506,6 +21457,10 @@ msgstr "正在执行"
 #, fuzzy
 msgid "save"
 msgstr "保存"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
@@ -21590,10 +21545,6 @@ msgstr "求和"
 msgid "superset.example.com"
 msgstr "superset.example.com"
 
-#, python-format
-msgid "syntax error at position %(position)d."
-msgstr ""
-
 #, fuzzy
 msgid "syntax."
 msgstr "语法"
@@ -21641,9 +21592,6 @@ msgstr "顶部"
 #, fuzzy
 msgid "undo"
 msgstr "撤销"
-
-msgid "unix_timestamp(:value)"
-msgstr ""
 
 #, fuzzy
 msgid "unknown type icon"
@@ -21748,9 +21696,6 @@ msgstr "缩放区域"
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© 图层归属"
-
-msgid "— set in Default Column Settings · one per dataset"
-msgstr ""
 
 #, python-format
 msgid "…and %s more chart"

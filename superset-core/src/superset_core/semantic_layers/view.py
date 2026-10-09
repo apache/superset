@@ -70,6 +70,17 @@ class SemanticView(ABC):
     # implementations are not required to add a formal @abstractmethod.
     name: str
 
+    @property
+    def metadata_cache_token(self) -> str | None:
+        """Return the identity captured with these members, or None for legacy views.
+
+        A provider using a bound metadata store must return its observation's
+        nonempty token. The host must reject a missing token in that mode rather
+        than silently using legacy cache keys. Never look up a later identity
+        independently of the data used for discovery or compatibility.
+        """
+        return None
+
     @abstractmethod
     def uid(self) -> str:
         """
@@ -96,18 +107,31 @@ class SemanticView(ABC):
     ) -> SemanticResult:
         """
         Return distinct values for a dimension.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
+        Do not drop ``filters`` and retry when a filtered request is incomplete.
         """
 
     @abstractmethod
     def get_table(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a semantic query and return the results.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
         """
 
     @abstractmethod
     def get_row_count(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a query and return the number of rows the result would have.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
         """
 
     @abstractmethod

@@ -24,6 +24,44 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-layer providers may opt into `SemanticLayer.result_cache_version` to
+  isolate chart, filter-value and chart-backed annotation results from older
+  producer guarantees. The default `None` preserves existing cache keys. Providers
+  enforcing completeness should raise the public
+  `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
+  results are incomplete or cannot be verified (an additive `apache-superset-core`
+  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  not the same-named host class in `superset.exceptions`); the host converts it to
+  its client error, and these
+  failures do not publish a successful async result cache key. A provider raising
+  `superset.exceptions.SemanticResultCompletenessError` directly is still accepted
+  for one release. Deploy compatible host/provider versions to
+  all web and worker processes and drain old deliveries before activating a new
+  guarantee. Mixed fleets and an old host with an opted-in provider are unsupported.
+
+- A chart whose datasource no longer exists (hard-deleted, or no datasource ID)
+  has its denormalized `perm`, `schema_perm` and `catalog_perm` cleared when it is
+  saved, including during the dataset's deletion. Purging a soft-deleted dataset
+  (the retention task or force purge) keeps its charts but clears their
+  datasource ID and these permission fields, as an ordinary hard delete already
+  does, so a later dataset cannot take over those charts. Such orphaned charts no
+  longer appear in the chart list through `schema_access` or `catalog_access`
+  grants, matching the object-level check that already denies them. Charts of a
+  soft-deleted dataset keep their permissions, so restoring the dataset restores
+  access. Purge does not advance the detached charts' history or ETags; the
+  purge audit's `affected_referrers` records which charts were detached. Charts
+  left by purges that ran before this change are not migrated:
+  they keep the purged dataset's ID and permission fields. Saving such a chart
+  clears its permission fields only while no dataset has that ID; if a new
+  dataset has since taken the ID, the save adopts that dataset instead.
+  Operators should find charts whose `table` datasource no longer exists and
+  repoint them to the intended dataset or detach them.
+
+- MCP dashboard mutation tools refuse externally managed dashboards, including
+  owner and role changes. Update the dashboard in its external source of truth
+  instead; the response sets `managed_externally: true`. Read-only tools and
+  certification inspection are unaffected.
+
 - Refreshing a dataset's columns from its source -- the "Sync columns from
   source" button, and a `PUT /api/v1/dataset/<id>?override_columns=true` --
   no longer resets **Is dimension** and **Is filterable** on columns that
@@ -88,6 +126,62 @@ assists people when migrating to a new version.
   exports. Ordinary table bundles retain their existing format. The examples
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
+
+### Alerts & Reports: runtime configuration and per-schedule "Run As" executor (SIP-209)
+
+- The migration creates an empty versioned document in the existing `key_value` table
+  for the global Alerts & Reports settings that admins can now manage from the
+  **Configuration** button on the Alerts & Reports list page (or
+  `GET`/`PUT /api/v1/report/configuration/`). `ALERTS_ATTACH_REPORTS`,
+  `ALERT_MINIMUM_INTERVAL` and `REPORT_MINIMUM_INTERVAL` are deprecated: they keep working
+  as fallbacks until the corresponding setting is saved in the UI, at which point the saved
+  value wins. Two new settings, **Limit recipients to users** and **Allowed e-mail
+  domains**, restrict e-mail recipients; they are enforced when saving a schedule and at
+  execution time.
+- Alerts have an **Include attachment** toggle, represented by `report_format: "NONE"`
+  when off. Attachment-free alerts need no chart/dashboard; asset-less notifications omit
+  the asset link. An alert with an attachment format must have a chart/dashboard even
+  when global alert attachments are disabled. Saved attachment settings are retained.
+  Reports always require content. Downgrading past this migration changes attachment-free
+  alerts with a saved chart or dashboard to PNG and deletes attachment-free alerts with
+  no saved asset. Back up the metadata database before downgrading if those alerts must be retained (or update them to set a valid attachment).
+- **Behavior change for existing Text alerts:** Before this upgrade, a chart alert with
+  `report_format: "TEXT"` embedded its data table in the notification even when
+  `ALERTS_ATTACH_REPORTS` was off. After this upgrade, when the global **Enable
+  attachments for alerts** setting is off, the alert notification is still sent but
+  **the embedded table is omitted**. This applies even if `ALERT_REPORT_DYNAMIC_EXECUTOR`
+  remains off. Disabling attachments now fully bypass data collection, to ensure notification
+  will be sent right away.
+- Behind the new `ALERT_REPORT_DYNAMIC_EXECUTOR` feature flag (off by default), alerts and
+  reports record the user they execute as (`run_as`, plus `run_alert_query_as` for the
+  alert condition query). Non-admins can only set themselves. `ALERT_REPORTS_EXECUTORS` is
+  deprecated in favor of these fields; schedules without a value keep using it. The
+  migration adds nullable `run_as_fk` / `run_alert_query_as_fk` columns to
+  `report_schedule` and does not change untouched legacy schedules. Executor types are
+  persisted separately: deleting a selected user does not restore legacy execution.
+- Admins can select a specific user or Application default
+  (`ALERT_REPORTS_EXECUTORS`). An unset content executor remains on the application
+  default when edited, and admins can clear an explicit choice back to it. A blank
+  alert-query executor inherits the content executor dynamically.
+- Saving a schedule while `ALERT_REPORT_DYNAMIC_EXECUTOR` is off clears any stored
+  per-schedule content and alert-query executor selections. The schedule continues
+  using `ALERT_REPORTS_EXECUTORS` if the flag is enabled again. Untouched schedules
+  retain their selections.
+- Non-admins must select **Execute using my permissions** before changing content or
+  recipients on a schedule using another user, a typed executor, or a legacy content
+  executor. For alerts, this action switches both executors to the current user on Save.
+  Metadata-only edits preserve existing executor settings.
+- Saved `null` configuration values clear a setting without restoring application-config
+  defaults (only keys never saved inherit defaults/fallbacks). Configuration read failures
+  propagate instead of treating delivery as unrestricted. The UI updates only changed keys.
+- Recipient restrictions also cover retry/final-failure notices to configured recipients;
+  operational notices to owners/editors remain exempt.
+- Missing executors and recipient-policy violations terminate an execution without retry.
+- Domain allow-lists accept wildcards. Matching is case-insensitive.
+- The SIP migration follows the execution-ownership migration. Run `superset db upgrade`
+  before starting this code, with scheduling paused and active work/queued retries drained
+  as described below. Keep web and worker versions aligned. Before rollback, replace `NONE`
+  formats with a supported format and account for losing explicit executor/policy settings.
 
 ### Semantic-view Table charts without a temporal axis
 
@@ -1792,7 +1886,6 @@ With the flag on, delete confirmations across the chart/dashboard/dataset list p
 This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
 
 Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), which collapses duplicate `blocked` records and ages out operational noise. That bounds the growth that comes from scheduled purges being repeatedly blocked or failing; it is **not** a bound on total table size. Force-purge (`force`-triggered) `blocked` records are retained permanently — exempt from both the duplicate collapse and the operational age-out, including in resolved streaks — so repeated `force-purge` attempts against a persistently blocked entity still add a record each; completed-destruction evidence is retained by default; and the first `blocked` record after each change of block reason is preserved. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned at all — enabling it is an explicit operator choice, and a second-phase one (see the rollout requirement in the release-note entry above). `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50) caps the candidates per batch; how long a batch holds the audit coordination lock against concurrent audit writes grows with that cap and with the history depth of the entities in the batch — a workload-dependent trade-off against drain speed, not a time bound; see the release-note entry for capacity limits and measurement guidance. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — scheduled `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
-
 
 ### Webhook alerts/reports block private/internal hosts by default
 

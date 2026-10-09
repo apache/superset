@@ -21,6 +21,7 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
+from fastmcp.tools.tool import Tool
 from jsonschema import Draft202012Validator
 
 from superset.mcp_service.app import mcp
@@ -124,7 +125,9 @@ TOOL_BUDGETS = {
     "manage_dashboard_markdown": 7_000,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,
-    "manage_native_filters": 9_600,
+    # Includes filter-bar dividers and select-filter default values:
+    # 10,380 bytes, rounded up plus the standard 100-byte headroom.
+    "manage_native_filters": 10_500,
     "open_sql_lab_with_context": 1_800,
     "query_dataset": 3_700,
     "remove_chart_from_dashboard": 1_300,
@@ -145,6 +148,37 @@ async def test_inventory_budgets_cover_every_registered_tool() -> None:
     """New or renamed tools must get explicit budgets instead of escaping checks."""
     tools = await mcp.list_tools(run_middleware=False)
     assert {tool.name for tool in tools} == set(TOOL_BUDGETS)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "name",
+    [
+        "list_datasets",
+        "get_dataset_info",
+        "create_dataset",
+        "update_dataset",
+        "query_dataset",
+    ],
+)
+async def test_sql_dataset_inventory_routes_semantic_view_callers(name: str) -> None:
+    """Keep SQL scope in compact discovery and routing in tool descriptions."""
+    tool: Tool | None = await mcp.get_tool(name)
+    assert tool is not None
+    description: str = _create_search_result_serializer(MCP_TOOL_SEARCH_CONFIG)([tool])[
+        0
+    ]["description"]
+    assert "SQL dataset" in description
+    assert tool.description is not None
+    assert "semantic view" in tool.description
+    assert "list_metrics" in tool.description
+    assert "get_table" in tool.description
+    # The list tool reserves most of its compact prose budget for mandatory
+    # request-wrapper and candidate-selection instructions.
+    if name != "list_datasets":
+        assert "semantic view" in description
+        assert "list_metrics" in description
+        assert "get_table" in description
 
 
 @pytest.mark.asyncio

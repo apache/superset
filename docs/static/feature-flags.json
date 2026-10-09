@@ -10,6 +10,12 @@
         "description": "Enables Table V2 (AG Grid) viz plugin"
       },
       {
+        "name": "ALERT_REPORT_DYNAMIC_EXECUTOR",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enables the per-schedule \"Run As\" fields in Alerts & Reports (SIP-209). When enabled, each alert/report records which user's credentials (RBAC, database OAuth2 tokens) are used at execution time, and alerts can specify a distinct user for the alert condition query. Admins can pick any user; non-admins are restricted to their own account. Schedules without a value keep using the ALERT_REPORTS_EXECUTORS resolution."
+      },
+      {
         "name": "ALERT_REPORT_TABS",
         "default": false,
         "lifecycle": "development",
@@ -264,7 +270,7 @@
         "name": "ALERTS_ATTACH_REPORTS",
         "default": true,
         "lifecycle": "stable",
-        "description": "When enabled, alerts send email/slack with screenshot AND link. When disabled, alerts send only link; reports still send screenshot.",
+        "description": "When enabled, alerts send email/slack with screenshot AND link. When disabled, alerts send only link; reports still send screenshot. Deprecation notice: this flag is superseded by the \"Enable attachments for alerts\" setting in the Alerts & Reports configuration UI (SIP-209). The flag is only used as a fallback while that setting is not saved.",
         "category": "runtime_config"
       },
       {

@@ -8679,6 +8679,74 @@
         },
         "type": "object"
       },
+      "ReportConfigImpactedSchema": {
+        "properties": {
+          "detail": {
+            "description": "The offending e-mail address or crontab",
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "description": "Either 'recipient' or 'frequency'",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReportConfigurationSchema": {
+        "properties": {
+          "alert_minimum_interval": {
+            "description": "Minimum interval between alert executions, in seconds. Values below 120 do not restrict schedules. Falls back to ALERT_MINIMUM_INTERVAL only before this setting has been saved.",
+            "example": 3600,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "alerts_attach_reports": {
+            "description": "Whether alerts deliver their attachment (screenshot, PDF, CSV or XLSX). When disabled, alerts only send the message and link. Falls back to the FF until a row has first been saved.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "allowed_email_domains": {
+            "description": "E-mail domains accepted as recipients. An empty list allows any domain.",
+            "example": [
+              "example.com",
+              "superset.com"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "date_format_in_email_subject": {
+            "description": "Render strftime date placeholders in email subjects. Falls back to the DATE_FORMAT_IN_EMAIL_SUBJECT FF until first saved.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "limit_recipients_to_users": {
+            "description": "When enabled, only e-mail addresses of existing active users are accepted as recipients.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "report_minimum_interval": {
+            "description": "Minimum interval between report executions, in seconds. Values below 120 do not restrict schedules. Falls back to REPORT_MINIMUM_INTERVAL only before this setting has been saved.",
+            "example": 3600,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "ReportExecutionLogRestApi.get": {
         "properties": {
           "end_dttm": {
@@ -8938,6 +9006,22 @@
           "retry_on_failure": {
             "type": "boolean"
           },
+          "run_alert_query_as": {
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.User"
+          },
+          "run_alert_query_as_type": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
+          "run_as": {
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.User1"
+          },
+          "run_as_type": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
           "send_failed_reports": {
             "type": "boolean"
           },
@@ -9059,6 +9143,46 @@
         ],
         "type": "object"
       },
+      "ReportScheduleRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
       "ReportScheduleRestApi.get_list": {
         "properties": {
           "active": {
@@ -9157,6 +9281,14 @@
           "retry_on_failure": {
             "type": "boolean"
           },
+          "run_as": {
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
+          },
+          "run_as_type": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
           "send_failed_reports": {
             "type": "boolean"
           },
@@ -9243,6 +9375,14 @@
           "first_name",
           "last_name"
         ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get_list.User2": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "ReportScheduleRestApi.post": {
@@ -9343,12 +9483,14 @@
             "type": "array"
           },
           "report_format": {
+            "description": "Attachment format. NONE disables attachments for alerts and makes chart/dashboard optional. Omitted attachment settings are preserved on update.",
             "enum": [
               "PDF",
               "PNG",
               "CSV",
               "XLSX",
-              "TEXT"
+              "TEXT",
+              "NONE"
             ],
             "type": "string"
           },
@@ -9374,6 +9516,34 @@
             "default": false,
             "description": "Enable automatic retries on report failure",
             "type": "boolean"
+          },
+          "run_alert_query_as": {
+            "description": "ID of the user whose credentials are used when running the alert condition SQL query, useful when the audience of the alert does not have access to the database. Null inherits the content executor at execution time.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_alert_query_as_type": {
+            "description": "Alert query executor type; null inherits run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "run_as": {
+            "description": "ID of the user whose credentials (RBAC permissions, database OAuth2 tokens) are used when rendering the content (screenshot, PDF, CSV, XLSX or text). Admins can set any active user; non-admins can only set themselves. Onlyhonored when the ALERT_REPORT_DYNAMIC_EXECUTOR feature flag is enabled. Admins can set this and run_as_type to null to use ALERT_REPORTS_EXECUTORS.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_as_type": {
+            "description": "Explicit executor type; fixed_user requires run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
           },
           "send_failed_reports": {
             "default": false,
@@ -10120,12 +10290,14 @@
             "type": "array"
           },
           "report_format": {
+            "description": "Attachment format. NONE disables attachments for alerts and makes chart/dashboard optional. Omitted attachment settings are preserved on update.",
             "enum": [
               "PDF",
               "PNG",
               "CSV",
               "XLSX",
-              "TEXT"
+              "TEXT",
+              "NONE"
             ],
             "type": "string"
           },
@@ -10147,6 +10319,34 @@
           "retry_on_failure": {
             "description": "Enable automatic retries on report failure",
             "type": "boolean"
+          },
+          "run_alert_query_as": {
+            "description": "ID of the user whose credentials are used when running the alert condition SQL query, useful when the audience of the alert does not have access to the database. Null inherits the content executor at execution time.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_alert_query_as_type": {
+            "description": "Alert query executor type; null inherits run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "run_as": {
+            "description": "ID of the user whose credentials (RBAC permissions, database OAuth2 tokens) are used when rendering the content (screenshot, PDF, CSV, XLSX or text). Admins can set any active user; non-admins can only set themselves. Onlyhonored when the ALERT_REPORT_DYNAMIC_EXECUTOR feature flag is enabled. Admins can set this and run_as_type to null to use ALERT_REPORTS_EXECUTORS.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_as_type": {
+            "description": "Explicit executor type; fixed_user requires run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
           },
           "send_failed_reports": {
             "description": "Send the failed report to all recipients after retries are exhausted",
@@ -27796,6 +27996,125 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+        "tags": [
+          "Report Schedules"
+        ]
+      }
+    },
+    "/api/v1/report/configuration/": {
+      "get": {
+        "description": "Returns the values in effect for every setting: the stored value when an admin saved one, otherwise the legacy application config or feature flag fallback.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/ReportConfigurationSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Alerts & Reports configuration"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the global Alerts & Reports configuration",
+        "tags": [
+          "Report Schedules"
+        ]
+      },
+      "put": {
+        "description": "Admin only. Absent fields keep their value and ``null`` clears a field without restoring its legacy fallback. Recipient restrictions and minimum intervals are validated against existing alerts/reports. When any conflicts, the configuration is not saved and the impacted schedules are returned.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportConfigurationSchema"
+              }
+            }
+          },
+          "description": "Alerts & Reports configuration",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/ReportConfigurationSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Configuration updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "impacted_schedules": {
+                      "items": {
+                        "$ref": "#/components/schemas/ReportConfigImpactedSchema"
+                      },
+                      "type": "array"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Existing schedules conflict with the configuration"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update the global Alerts & Reports configuration",
         "tags": [
           "Report Schedules"
         ]

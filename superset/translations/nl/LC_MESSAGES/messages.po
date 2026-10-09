@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-05 23:38+0000\n"
+"POT-Creation-Date: 2026-10-07 14:21-0300\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -271,24 +271,6 @@ msgid "%(name)s deleted successfully"
 msgstr ""
 
 #, python-format
-msgid ""
-"%(name)s has an advanced data type, so its filters are translated into "
-"their own predicate shape and cannot be mirrored onto the partition "
-"column."
-msgstr ""
-
-#, python-format
-msgid ""
-"%(name)s is both the partition column and the default datetime column, so"
-" the mapping points at itself and stays inactive. Set a mapped column "
-"override, or change the default datetime column."
-msgstr ""
-
-#, python-format
-msgid "%(name)s is not a column on this dataset."
-msgstr ""
-
-#, python-format
 msgid "%(name)s restored successfully"
 msgstr ""
 
@@ -321,12 +303,6 @@ msgstr[1] ""
 #, python-format
 msgid "%(object)s does not exist in this database."
 msgstr "%(object)s bestaat niet in deze database."
-
-#, python-format
-msgid ""
-"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
-" queries will scan every partition until a column is mapped."
-msgstr ""
 
 #, python-format
 msgid "%(prefix)s %(title)s"
@@ -535,6 +511,12 @@ msgid ""
 msgstr ""
 "%s items kunnen niet worden getagd omdat u geen bewerkrechten heeft voor "
 "de geselecteerde objecten."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s metric"
@@ -1034,18 +1016,6 @@ msgid ""
 "CSS. Convert it to inline CSS to keep using it."
 msgstr ""
 
-#, python-format
-msgid ""
-"A %(operator)s filter is mirrored as a pair of bounds, which a preview of"
-" a single value cannot describe."
-msgstr ""
-
-#, python-format
-msgid ""
-"A %(operator)s filter is only mirrored when the transform preserves "
-"ordering, which this one is not declared to do."
-msgstr ""
-
 msgid "A Big Number"
 msgstr "Een groot getal"
 
@@ -1062,11 +1032,6 @@ msgstr ""
 "andere besturingsopties overschrijft met hogere prioriteit. (bijv. { "
 "title: { text: \"Mijn grafiek\" }, tooltip: { trigger: \"item\" } }). "
 "Details: https://echarts.apache.org/en/option.html. "
-
-msgid ""
-"A SQL expression evaluated against the engine, with :value standing for "
-"the filter bound being mirrored."
-msgstr ""
 
 msgid "A Slack channel is required for Slack recipients"
 msgstr ""
@@ -1198,30 +1163,6 @@ msgstr "Er zal een nieuwe grafiek worden aangemaakt."
 msgid "A new dashboard will be created."
 msgstr "Er zal een nieuw dashboard worden aangemaakt."
 
-#, python-format
-msgid "A partition value transform cannot be longer than %(limit)d characters."
-msgstr ""
-
-#, python-format
-msgid "A partition value transform cannot call %(functions)s."
-msgstr ""
-
-msgid "A partition value transform cannot contain a sub-query."
-msgstr ""
-
-msgid ""
-"A partition value transform must be a single SQL expression, with no "
-"FROM, WHERE or other clause."
-msgstr ""
-
-msgid "A partition value transform must parse as a single SQL expression."
-msgstr ""
-
-msgid ""
-"A partition value transform must use the :value placeholder where the "
-"engine will evaluate it, not inside a string literal or a comment."
-msgstr ""
-
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1245,6 +1186,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Een herbruikbaar dataset wordt opgeslagen met uw grafiek."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
 msgstr ""
 
 msgid ""
@@ -1294,18 +1240,6 @@ msgstr "Er is een time-out opgetreden tijdens het maken van een screenshot."
 
 msgid "A valid color scheme is required"
 msgstr "Een geldig kleurenschema is vereist"
-
-#, python-format
-msgid ""
-"A value transform is required on %(name)s, which is not a temporal "
-"column. Use :value for each value."
-msgstr ""
-
-msgid ""
-"A value transform must be a single SQL expression. It cannot carry a "
-"FROM, WHERE, GROUP BY or any other clause, and it cannot contain a sub-"
-"query."
-msgstr ""
 
 msgid ""
 "A waterfall chart is a form of data visualization that helps in "
@@ -1503,6 +1437,11 @@ msgstr "Alarm toevoegen"
 
 msgid "Add an annotation layer"
 msgstr "Voeg een aantekeningslaag toe"
+
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
 
 msgid "Add an item"
 msgstr "Voeg een item toe"
@@ -1886,6 +1825,9 @@ msgstr "Alert heeft een fout gevonden tijdens het uitvoeren van een query."
 msgid "Alert is active"
 msgstr "E-mailrapporten actief"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "Naam van de waarschuwing"
 
@@ -1941,6 +1883,18 @@ msgstr "Waarschuwingen"
 msgid "Alerts & Reports"
 msgstr "Waarschuwingen en rapporten"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "Waarschuwingen & rapporten"
 
@@ -1950,6 +1904,9 @@ msgstr "Uitlijnen +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Toon alle kolommen"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "Alle"
@@ -2066,6 +2023,9 @@ msgstr "Kan meerdere waarden selecteren"
 
 msgid "Allowed Domains (comma separated)"
 msgstr "Toegestane domeinen (komma gescheiden)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "Alfabetisch"
@@ -2426,6 +2386,9 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Er is een fout opgetreden bij het renderen van de visualisatie: %s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
 msgstr "Er is een fout opgetreden bij het laden van de SQL"
@@ -2646,6 +2609,9 @@ msgstr ""
 "Alle databases die verbindingen via SQL Alchemy URI's toestaan, kunnen "
 "worden toegevoegd. Meer informatie over het verbinden met een database "
 "driver "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -3512,9 +3478,6 @@ msgstr "Kan bovenste tabblad niet in geneste tabbladen verplaatsen"
 
 msgid "Can select multiple values"
 msgstr "Kan meerdere waarden selecteren"
-
-msgid "Can't parse transform"
-msgstr ""
 
 msgid "Cancel"
 msgstr "Annuleer"
@@ -4402,11 +4365,18 @@ msgstr "SQL gekopieerd!"
 msgid "Collapse"
 msgstr "Rij inklappen"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 #, fuzzy
 msgid "Collapse All"
 msgstr "Alles inklappen"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4617,11 +4587,6 @@ msgstr ""
 #, fuzzy
 msgid "Column type"
 msgstr "Kolom gegevenstype"
-
-msgid ""
-"Column used for partition pruning on this table. Selecting one hides it "
-"from Explore's dimension and filter pickers by default."
-msgstr ""
 
 #, fuzzy
 msgid "Columnar upload"
@@ -4955,6 +4920,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "Bevat tekst (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 #, fuzzy
 msgid "Content format"
 msgstr "Datum opmaak"
@@ -4997,6 +4968,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -5481,9 +5455,6 @@ msgid "Customize the label for the left series in tooltips and legend"
 msgstr ""
 
 msgid "Customize the label for the right series in tooltips and legend"
-msgstr ""
-
-msgid "Customize the value transform →"
 msgstr ""
 
 #, fuzzy
@@ -7350,9 +7321,6 @@ msgstr "Dashboard kon niet worden verwijderd."
 msgid "Embedding deactivated."
 msgstr "Embedden gedeactiveerd."
 
-msgid "Emitted predicate"
-msgstr ""
-
 msgid "Emphasis"
 msgstr "Nadruk"
 
@@ -7386,6 +7354,9 @@ msgid "Enable Matrixify"
 msgstr "Matrixify inschakelen"
 
 msgid "Enable Retries"
+msgstr ""
+
+msgid "Enable attachments for alerts"
 msgstr ""
 
 msgid "Enable automatic retries on report failure"
@@ -7826,6 +7797,9 @@ msgstr "Geselecteerde waarden uitsluiten"
 msgid "Excluded subjects"
 msgstr "Uitgesloten subjects"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "Uitgevoerde SQL"
 
@@ -7841,6 +7815,10 @@ msgstr "Uitvoeringslog"
 msgid "Existing dataset"
 msgstr "Bestaande dataset"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7850,9 +7828,16 @@ msgstr "Volledig scherm afsluiten"
 msgid "Expand"
 msgstr "Uitklappen"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "Alles uitklappen"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "Alles uitklappen"
@@ -8504,28 +8489,8 @@ msgid "Filters for values less than or equal."
 msgstr "Filters voor waarden kleiner dan of gelijk aan."
 
 #, python-format
-msgid ""
-"Filters on %(mapped)s will automatically apply an equivalent filter to "
-"%(partition)s."
-msgstr ""
-
-msgid ""
-"Filters on the mapped column are mirrored onto this column so the engine "
-"can prune partitions."
-msgstr ""
-
-msgid "Filters on this column are mirrored onto the partition column."
-msgstr ""
-
-msgid "Filters on this column are mirrored onto the partition field."
-msgstr ""
-
-#, python-format
 msgid "Filters out of scope (%d)"
 msgstr "Filters buiten bereik (%d)"
-
-msgid "Filters will not be mirrored"
-msgstr ""
 
 msgid ""
 "Filters with the same group key will be ORed together within the group, "
@@ -8772,6 +8737,9 @@ msgstr ""
 "Gegevenslabels opmaken. Gebruik variabelen: {name}, {value}, {percent}. "
 "\\n staat voor een nieuwe regel. ECharts-compatibiliteit:\n"
 "{a} (reeks), {b} (naam), {c} (waarde), {d} (percentage)"
+
+msgid "Format dates in email subjects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -9130,6 +9098,9 @@ msgstr "Horizontaal (Boven)"
 msgid "Horizontal alignment"
 msgstr "Horizontale uitlijning"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr "Host"
 
@@ -9360,6 +9331,9 @@ msgid "Include a description that will be sent with your report"
 msgstr "Voeg een beschrijving toe die zal worden verzonden met uw rapport"
 
 msgid "Include a link back to Superset"
+msgstr ""
+
+msgid "Include attachment"
 msgstr ""
 
 #, python-format
@@ -9593,6 +9567,14 @@ msgstr "Ongeldige valuta code in opgeslagen metriek"
 msgid "Invalid date/timestamp format"
 msgstr "Ongeldig datum/tijdstempel opmaak"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -9767,6 +9749,9 @@ msgstr "Kolom Configuratie"
 msgid "JSON Metadata"
 msgstr "JSON Metadata"
 
+msgid "JSON in cell"
+msgstr ""
+
 msgid "JSON metadata"
 msgstr "JSON metadata"
 
@@ -9801,12 +9786,6 @@ msgstr "Januari"
 
 msgid "Jinja templating"
 msgstr "Jinja templating"
-
-msgid ""
-"Jinja templating is not supported in a partition value transform. The "
-"transform is evaluated in a different context and at a different time "
-"from the chart query, so a template would not render the same way."
-msgstr ""
 
 msgid "July"
 msgstr "Juli"
@@ -10181,6 +10160,9 @@ msgstr "Like (hoofdlettergevoelig)"
 msgid "Limit"
 msgstr "LIMIT"
 
+msgid "Limit recipients to users"
+msgstr ""
+
 msgid "Limit type"
 msgstr "Limiet type"
 
@@ -10537,12 +10519,6 @@ msgstr "Live render"
 msgid "Map Style"
 msgstr "Kaart Stijl"
 
-msgid "Map a column →"
-msgstr ""
-
-msgid "Map a different column instead →"
-msgstr ""
-
 msgid "Map specific labels to colors. This automatically updates the JSON below."
 msgstr ""
 
@@ -10571,13 +10547,6 @@ msgstr "Waarde is vereist"
 #, fuzzy
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Mapbox vereist dat er een MAPBOX_API_KEY op de server is geconfigureerd."
-
-#, python-format
-msgid "Mapped column %(name)s is not a column on this dataset."
-msgstr ""
-
-msgid "Maps to partition"
-msgstr ""
 
 msgid "March"
 msgstr "Maart"
@@ -11091,14 +11060,6 @@ msgstr ""
 msgid "Monday"
 msgstr "Maandag"
 
-msgid ""
-"Monotonicity is a property of the transform, not of the column type: "
-"hour(:value) and dayofweek(:value) are reasonable transforms on a "
-"timestamp and neither preserves ordering, so Superset asks rather than "
-"guessing. Unchecked, = and IN still mirror — except on a text column "
-"whose engine compares text case-insensitively, where they never do."
-msgstr ""
-
 msgid "Month"
 msgstr "Maand"
 
@@ -11134,9 +11095,6 @@ msgstr "Groep naar rechts verplaatsen"
 #, fuzzy
 msgid "Move icon"
 msgstr "Enkel verplaatsen"
-
-msgid "Move mapping to this column →"
-msgstr ""
 
 msgid "Move only"
 msgstr "Enkel verplaatsen"
@@ -11410,6 +11368,9 @@ msgstr "Geen toegepaste filters"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "Geen beschikbare filters."
 
@@ -11505,9 +11466,6 @@ msgstr ""
 msgid "No items"
 msgstr "Geen filters"
 
-msgid "No mapping"
-msgstr ""
-
 msgid "No matching records found"
 msgstr "Geen overeenkomende records gevonden"
 
@@ -11519,7 +11477,7 @@ msgstr "Geen overeenkomende records gevonden"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Er zijn momenteel geen filters toegevoegd aan dit dashboard."
 
-msgid "No partition column is set."
+msgid "No provider query is available for this run."
 msgstr ""
 
 msgid "No records found"
@@ -11613,17 +11571,6 @@ msgstr ""
 "Geen validator gevonden met de naam %(validator_name)s (geconfigureerd "
 "voor de %(engine_spec)s engine)"
 
-#, python-format
-msgid ""
-"No value transform is set on %(mapped)s, so nothing is mirrored yet and "
-"queries will scan every partition."
-msgstr ""
-
-msgid ""
-"No value transform is set, so no filter will be mirrored onto the "
-"partition column."
-msgstr ""
-
 msgid "Node label position"
 msgstr "Node label positie"
 
@@ -11663,9 +11610,6 @@ msgstr "Normaliseer kolomnamen"
 msgid "Normalized"
 msgstr "Genormaliseerd"
 
-msgid "Normally the default datetime column, but none is set on this dataset."
-msgstr ""
-
 #, fuzzy
 msgid "Not Contains"
 msgstr "Rapport verzonden"
@@ -11701,9 +11645,6 @@ msgstr "Niet alle verplichte velden zijn ingevuld. Geef het volgende op:"
 
 msgid "Not available"
 msgstr "Niet beschikbaar"
-
-msgid "Not currently mapped to the partition column."
-msgstr ""
 
 msgid "Not defined"
 msgstr "Niet gedefinieerd"
@@ -11966,11 +11907,17 @@ msgstr "Alleen Totaal"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Alleen `SELECT` statements zijn toegestaan"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "Geldt alleen wanneer \"Label Type\" niet is ingesteld op een percentage."
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "Geldt alleen wanneer \"Label Type\" is ingesteld op toon waarden."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -12040,6 +11987,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "Open Gegevensbron Tabblad"
+
+msgid "Open JSON"
+msgstr ""
 
 #, fuzzy
 msgid "Open SQL Lab in a new tab"
@@ -12298,17 +12248,11 @@ msgstr ""
 msgid "Owners"
 msgstr ""
 
-msgid "PARTITION"
-msgstr ""
-
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr ""
 "Afbeelding downloaden mislukt, gelieve te vernieuwen en probeer het "
 "opnieuw."
-
-msgid "PREVIEW"
-msgstr ""
 
 #, fuzzy
 msgid "Page"
@@ -12367,19 +12311,6 @@ msgstr "Partitie Limiet"
 
 msgid "Partition Threshold"
 msgstr "Partitie Drempelwaarde"
-
-msgid "Partition column"
-msgstr ""
-
-#, python-format
-msgid "Partition column %(name)s is not a column on this dataset."
-msgstr ""
-
-msgid "Partition field:"
-msgstr ""
-
-msgid "Partition filter mapping"
-msgstr ""
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12912,7 +12843,7 @@ msgid "Prefix or suffix"
 msgstr "Voorvoegsel of achtervoegsel"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -13384,9 +13315,6 @@ msgstr "Groep verwijderen"
 msgid "Remove item"
 msgstr "Item verwijderen"
 
-msgid "Remove mapping"
-msgstr ""
-
 msgid "Remove notification method"
 msgstr ""
 
@@ -13464,6 +13392,12 @@ msgstr ""
 msgid "Replace"
 msgstr "Vervang"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "Rapport"
 
@@ -13530,6 +13464,12 @@ msgstr "Rapportage planning werkt nog steeds, weigert om opnieuw te berekenen."
 msgid "Report Schedule log prune failed."
 msgstr "Rapportage planning log prune mislukt."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "Rapportage planning niet gevonden."
 
@@ -13555,6 +13495,9 @@ msgstr "Rapport mislukt"
 #, fuzzy
 msgid "Report is active"
 msgstr "E-mailrapporten actief"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "Naam rapport"
@@ -13590,6 +13533,9 @@ msgstr "Rapport bijgewerkt"
 
 msgid "Reports"
 msgstr "Rapporten"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "Afstoting"
@@ -13635,13 +13581,7 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Vereiste controlewaarden zijn verwijderd"
 
-msgid "Required for non-temporal columns. Use :value for each value."
-msgstr ""
-
 msgid "Required if your account already has a password"
-msgstr ""
-
-msgid "Required to mirror range filters, including the time range."
 msgstr ""
 
 msgid "Resample"
@@ -13993,6 +13933,18 @@ msgstr "Voer een query uit om de querygeschiedenis weer te geven"
 msgid "Run a query to display results"
 msgstr "Voer een query uit om resultaten weer te geven"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "Voer huidige query uit"
 
@@ -14135,13 +14087,13 @@ msgstr "STRING"
 msgid "SUN"
 msgstr "ZO"
 
+msgid "Same as \"Run as\""
+msgstr ""
+
 msgid "Sample Standard Deviation"
 msgstr ""
 
 msgid "Sample Variance"
-msgstr ""
-
-msgid "Sample input"
 msgstr ""
 
 msgid "Samples"
@@ -15005,6 +14957,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Selecteer kleurschema"
 
+msgid "Select user"
+msgstr ""
+
 #, fuzzy
 msgid "Select users"
 msgstr "Selecteer eigenaren"
@@ -15133,6 +15088,9 @@ msgstr "Semantische weergave bijgewerkt"
 msgid "Semantic views"
 msgstr "Semantische weergaven"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -15153,6 +15111,9 @@ msgid "Send as text"
 msgstr "Verstuur als tekst"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -15258,11 +15219,6 @@ msgstr "Stel auto-refresh in"
 
 msgid "Set filter mapping"
 msgstr "Filter toewijzing instellen"
-
-msgid ""
-"Set from the default datetime column above, so re-pointing that column "
-"moves the mapping with it."
-msgstr ""
 
 #, fuzzy
 msgid "Set local theme for testing"
@@ -15813,6 +15769,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -16044,6 +16005,9 @@ msgstr "Ruimtelijk"
 
 msgid "Specific Date/Time"
 msgstr "Specifieke datum/tijd"
+
+msgid "Specific user"
+msgstr ""
 
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "Specificeer de naam van CREATE TABLE AS schema in: public"
@@ -16774,11 +16738,6 @@ msgstr "Opgehaald %s"
 msgid "The %s linked to this chart may have been deleted."
 msgstr ""
 
-msgid ""
-"The :value placeholder must appear where the engine will evaluate it. It "
-"cannot sit inside a string literal or a comment."
-msgstr ""
-
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
 msgstr "De API-reactie van %s komt niet overeen met de IDatabaseTable interface."
@@ -16894,6 +16853,9 @@ msgstr ""
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
+msgstr ""
+
+msgid "The alert query executor is only allowed on alerts"
 msgstr ""
 
 msgid "The annotation has been saved"
@@ -17016,11 +16978,6 @@ msgstr "De kolom die als doel van de verbinding moet worden gebruikt."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "De kolom werd verwijderd of hernoemd in de database."
-
-msgid ""
-"The column whose filters are mirrored. It follows the default datetime "
-"column unless a different column holds the mapping."
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17287,6 +17244,12 @@ msgstr ""
 "het dashboard\n"
 "                    niet kan worden weergegeven: %s"
 
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
+
 #, fuzzy
 msgid "The font size of the point labels"
 msgstr "Of de aanwijzer moet worden weergegeven"
@@ -17505,15 +17468,6 @@ msgstr[1] ""
 "%(parameters)s."
 
 #, python-format
-msgid ""
-"The partition column cannot be mapped onto itself. %(name)s is both the "
-"partition column and the mapped column."
-msgstr ""
-
-msgid "The partition filter mapping was cleared: its column is gone"
-msgstr ""
-
-#, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Het opgegeven wachtwoord voor gebruikersnaam “%(username)s” is onjuist."
 
@@ -17603,11 +17557,6 @@ msgid ""
 "                expressions."
 msgstr ""
 
-msgid ""
-"The physical column the engine partitions on. Filters on the mapped "
-"column are mirrored onto it so the engine can prune partitions."
-msgstr ""
-
 msgid "The pixel radius"
 msgstr "De pixel radius"
 
@@ -17626,14 +17575,14 @@ msgstr "De poort is gesloten."
 msgid "The port number is invalid."
 msgstr "Het poortnummer is ongeldig."
 
-msgid "The preview could not be loaded."
-msgstr ""
-
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "De primaire metriek wordt gebruikt om de boogsegmentformaten te definiëren"
 
 msgid "The provided table was not found in the provided database"
 msgstr "De opgegeven tabel is niet gevonden in de opgegeven database"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "De query die is gekoppeld aan de resultaten is verwijderd."
@@ -17952,19 +17901,6 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr "De tijdeenheid die gebruikt wordt voor het groeperen van blokken"
 
-msgid "The transform could not be evaluated against the database."
-msgstr ""
-
-#, python-format
-msgid "The transform could not be evaluated against the database: %(reason)s"
-msgstr ""
-
-#, python-format
-msgid ""
-"The transform returned %(returned)s for %(column)s, which is %(kind)s. "
-"Mirrored filters on this mapping would fail at the database."
-msgstr ""
-
 #, fuzzy
 msgid "The two passwords that you entered do not match!"
 msgstr "Dashboards bestaan niet"
@@ -18013,6 +17949,18 @@ msgstr "Dit dashboard is succesvol opgeslagen."
 msgid "The user was updated successfully"
 msgstr "Dit dashboard is succesvol opgeslagen."
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
 "De combinatie van gebruiker/wachtwoord is niet geldig (onjuist wachtwoord"
@@ -18026,34 +17974,6 @@ msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 "De opgegeven gebruikersnaam tijdens het verbinden met een database is "
 "niet geldig."
-
-#, python-format
-msgid ""
-"The value transform calls %(functions)s, whose result depends on when and"
-" where it runs. The transform is evaluated in a separate session and the "
-"result is cached, so the emitted predicate would freeze a snapshot of "
-"that moment."
-msgstr ""
-
-msgid ""
-"The value transform could not be parsed. The mapping is saved but stays "
-"inactive until it does."
-msgstr ""
-
-#, python-format
-msgid ""
-"The value transform could not be parsed: %(detail)s The mapping is saved "
-"but stays inactive until it does."
-msgstr ""
-
-msgid ""
-"The value transform must contain the :value placeholder, which stands for"
-" the filter value being mirrored."
-msgstr ""
-
-#, python-format
-msgid "The value transform on %(column)s cannot be saved: %(reason)s"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -18450,6 +18370,12 @@ msgstr "Dit zijn de datasets waarop dit filter zal worden toegepast."
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -18522,6 +18448,12 @@ msgid "This action will permanently delete the user."
 msgstr "Deze actie zal de laag permanent verwijderen."
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr ""
@@ -18561,9 +18493,6 @@ msgid "This chart only"
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
-msgstr ""
-
-msgid "This column holds the mapping instead of the default datetime column."
 msgstr ""
 
 #, python-format
@@ -18728,14 +18657,6 @@ msgstr ""
 "e-mailadres."
 
 #, python-format
-msgid ""
-"This engine compares less of a %(operator)s value on %(column)s than the "
-"filter carries, so there is no mirror a predicate on the partition column"
-" could stand in for. Map a column the engine compares in full to mirror "
-"this operator."
-msgstr ""
-
-#, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
 
@@ -18763,11 +18684,6 @@ msgstr ""
 #, fuzzy
 msgid "This filter already exist on the report"
 msgstr "Filterwaardenlijst kan niet leeg zijn"
-
-msgid ""
-"This filter is also applied to a partition column for faster queries. See"
-" \"View query\" for the generated SQL."
-msgstr ""
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
@@ -18954,6 +18870,11 @@ msgstr "Dit wachtwoord is te gewoon; kies een minder voorspelbaar wachtwoord."
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 msgid ""
@@ -19361,9 +19282,6 @@ msgstr[1] ""
 msgid "Token Request URI"
 msgstr "Token-aanvraag-URI"
 
-msgid "Too many preview requests for this dataset. Wait a moment and try again."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -19447,9 +19365,6 @@ msgstr "Totaal: %s"
 
 msgid "Track job"
 msgstr "Job volgen"
-
-msgid "Transform preserves ordering"
-msgstr ""
 
 msgid "Transformable"
 msgstr "Transformabel"
@@ -19771,6 +19686,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Toegevoegd aan het dashboard"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -20090,7 +20008,7 @@ msgstr "Gebruik"
 msgid "Use %s to open in a new tab."
 msgstr "Gebruik %s om een nieuw tabblad te openen."
 
-msgid "Use :value for the filter bound."
+msgid "Use 0 or leave empty to allow any schedule."
 msgstr ""
 
 msgid "Use Area Proportions"
@@ -20138,6 +20056,12 @@ msgstr "Voer huidige query uit"
 
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Gebruik datum opmaak zelfs wanneer metrische waarde geen tijdstempel is"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 #, fuzzy
 msgid "Use gradient"
@@ -20190,6 +20114,9 @@ msgstr "Gebruikersnaam"
 #, fuzzy
 msgid "User Registrations"
 msgstr "Gebruik Gebied Proporties"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "Gebruiker heeft niet de juiste permissies."
@@ -20269,9 +20196,6 @@ msgstr ""
 #, fuzzy
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Gebruikt de eerste 25 waarden als de dimensie er meer heeft."
-
-msgid "Valid"
-msgstr ""
 
 #, fuzzy
 msgid "Valid SQL expression"
@@ -20357,9 +20281,6 @@ msgstr "Waarde moet groter zijn dan 0"
 
 msgid "Value must be greater than 0"
 msgstr "Waarde moet groter zijn dan 0"
-
-msgid "Value transform"
-msgstr ""
 
 #, python-format
 msgid ""
@@ -20813,6 +20734,11 @@ msgstr ""
 
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Wanneer aangevinkt, zal de kaart uw gegevens zoomen na elke zoekopdracht"
+
+msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
 
 msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
@@ -21416,6 +21342,19 @@ msgid ""
 msgstr ""
 "Je kunt een nieuwe grafiek maken of bestaande vanuit het paneel aan de "
 "rechterkant gebruiken"
+
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -22281,6 +22220,9 @@ msgstr "elke minuut"
 msgid "every month"
 msgstr "elke maand"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "uitklappen"
 
@@ -22493,6 +22435,9 @@ msgstr "minuut"
 msgid "minute(s)"
 msgstr "minu(u)t(en)"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "maand"
 
@@ -22672,6 +22617,10 @@ msgstr "herstart"
 msgid "recent"
 msgstr "recent"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 #, fuzzy
 msgid "recipients"
 msgstr "recente"
@@ -22697,12 +22646,19 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "rij-level-beveiliging"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "bezig"
 
 #, fuzzy
 msgid "save"
 msgstr "Opslaan"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
@@ -22782,10 +22738,6 @@ msgstr "som"
 msgid "superset.example.com"
 msgstr ""
 
-#, python-format
-msgid "syntax error at position %(position)d."
-msgstr ""
-
 msgid "syntax."
 msgstr "syntax."
 
@@ -22835,9 +22787,6 @@ msgstr "bovenkant"
 
 msgid "undo"
 msgstr "ongedaan maken"
-
-msgid "unix_timestamp(:value)"
-msgstr ""
 
 msgid "unknown type icon"
 msgstr "onbekend type icoon"
@@ -22924,9 +22873,6 @@ msgstr "zoom gebied"
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© Laagattributie"
-
-msgid "— set in Default Column Settings · one per dataset"
-msgstr ""
 
 #, python-format
 msgid "…and %s more chart"
