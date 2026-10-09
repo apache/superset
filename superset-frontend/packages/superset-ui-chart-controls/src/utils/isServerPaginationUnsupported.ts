@@ -22,11 +22,17 @@ import type { ControlPanelState } from '../types';
 /** SemanticViewFeature value for providers that support row offsets. */
 export const ROW_OFFSET = 'ROW_OFFSET';
 
-/** Only selected-datasource metadata can describe its capabilities. */
+/** Match Explore's host identity, or an opaque provider selection. */
 export function hasMatchingDatasourceMetadata({
   datasource,
   form_data,
 }: Pick<ControlPanelState, 'datasource' | 'form_data'>): boolean {
+  const selected = form_data.datasource?.match(/^(\d+)__(.+)$/);
+  if (selected) {
+    return (
+      datasource?.id === Number(selected[1]) && datasource.type === selected[2]
+    );
+  }
   return Boolean(
     datasource &&
     'uid' in datasource &&

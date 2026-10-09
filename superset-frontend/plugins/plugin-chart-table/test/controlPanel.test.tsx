@@ -508,7 +508,8 @@ function panelState(
 ): ControlPanelState {
   return {
     datasource: {
-      uid: `1__${type}`,
+      id: 1,
+      uid: 'provider-view',
       type,
       semantic_view_features: features,
     } as Dataset,
@@ -636,6 +637,7 @@ test.each([
     const state = panelState([], 'semantic_view', true);
     state.datasource = {
       ...state.datasource,
+      id: 1,
       uid,
       type: 'semantic_view',
       semantic_view_features: [],
@@ -649,13 +651,60 @@ test.each([
       resetLabel: undefined,
       disabledReason: undefined,
     });
-    state.datasource = { ...state.datasource, uid: selected } as Dataset;
+    state.datasource = { ...state.datasource, id: 2, uid: selected } as Dataset;
     expect(
       panel.mapStateToProps?.(state, state.controls.server_pagination),
     ).toMatchObject({
       disabled: true,
       resetLabel: 'Turn off server pagination',
       disabledReason: 'This semantic view does not support server pagination.',
+    });
+  },
+);
+
+test.each([true, false])(
+  'matches Explore id/type independently of provider uid: offset=%s',
+  supportsOffset => {
+    const state = panelState([], 'semantic_view', true);
+    state.datasource = {
+      ...state.datasource,
+      id: 42,
+      uid: 'provider-orders',
+      type: 'semantic_view',
+      semantic_view_features: supportsOffset ? ['ROW_OFFSET'] : [],
+    } as Dataset;
+    state.form_data.datasource = '42__semantic_view';
+    const panel = getControl('server_pagination');
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: !supportsOffset,
+      resetLabel: 'Turn off server pagination',
+      disabledReason: 'This semantic view does not support server pagination.',
+    });
+    state.datasource = {
+      ...state.datasource,
+      id: 43,
+      uid: '42__semantic_view',
+    } as Dataset;
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: true,
+      resetLabel: undefined,
+      disabledReason: undefined,
+    });
+    state.datasource = {
+      ...state.datasource,
+      id: 42,
+      type: 'table',
+    } as Dataset;
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: true,
+      resetLabel: undefined,
+      disabledReason: undefined,
     });
   },
 );
