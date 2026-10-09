@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Hashable
 from typing import Any
 from unittest.mock import Mock, patch, PropertyMock
 from uuid import uuid4
@@ -625,7 +626,7 @@ def test_cache_keys_compose_metadata_and_producer_versions(
         ),
     ):
         first_generation: str = view.metadata_generation
-        first_result: list[object] = view.get_extra_cache_keys({})
+        first_result: list[Hashable] = view.get_extra_cache_keys({})
         first_values: str = _column_values_cache_key(view, {"col": "category"})
         first_annotation: dict[str, Any] = processor._annotation_cache_context(query)
         assert first_result == [
