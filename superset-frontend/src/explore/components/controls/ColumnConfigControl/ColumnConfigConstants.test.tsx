@@ -30,6 +30,7 @@ test('should include the comma-separated number format preset', () => {
 
 test('should not treat commas as D3 format token separators', () => {
   expect(SHARED_COLUMN_CONFIG_PROPS.d3NumberFormat.tokenSeparators).toEqual([
+    '\r\n',
     '\n',
     '\t',
     ';',

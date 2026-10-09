@@ -60,9 +60,10 @@ const d3NumberFormat: ControlFormItemSpec<'Select'> = {
     value: option[0],
     label: option[1],
   })),
-  defaultValue: D3_FORMAT_OPTIONS[0][0],
+  defaultValue: d3NumberFormatOptions[0][0],
   creatable: true,
-  tokenSeparators: ['\n', '\t', ';'],
+  // Keep commas out of token separators because they are valid in D3 number formats.
+  tokenSeparators: ['\r\n', '\n', '\t', ';'],
   minWidth: '14em',
   debounceDelay: 500,
 };
