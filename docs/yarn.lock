@@ -15000,9 +15000,9 @@ webpack-bundle-analyzer@^4.10.2:
     ws "^7.3.1"
 
 webpack-dev-middleware@^7.4.2:
-  version "7.4.5"
-  resolved "https://registry.yarnpkg.com/webpack-dev-middleware/-/webpack-dev-middleware-7.4.5.tgz#d4e8720aa29cb03bc158084a94edb4594e3b7ac0"
-  integrity sha512-uxQ6YqGdE4hgDKNf7hUiPXOdtkXvBJXrfEGYSx7P7LC8hnUYGK70X6xQXUvXeNyBDDcsiQXpG2m3G9vxowaEuA==
+  version "7.4.6"
+  resolved "https://registry.yarnpkg.com/webpack-dev-middleware/-/webpack-dev-middleware-7.4.6.tgz#c27229cb157842882732ee5125fa217a2c6466dc"
+  integrity sha512-yBWCMvIfUmuhAE8vdqUKzH0vg9kuWN0KeG4vBnqRplUFHRU7lMQjkiJWxVQzvo2BTewqhPhDlMB41rAt2jVA9A==
   dependencies:
     colorette "^2.0.10"
     memfs "^4.43.1"
