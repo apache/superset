@@ -19,21 +19,21 @@
 
 import { SHARED_COLUMN_CONFIG_PROPS } from './constants';
 
-test('should allow commas in D3 format inputs', () => {
+test('should include the comma-separated number format preset', () => {
   const { options } = SHARED_COLUMN_CONFIG_PROPS.d3NumberFormat;
-  const labels = (options ?? []).map((option: { label: unknown }) =>
-    String(option.label),
-  );
-  expect(labels.some((label: string) => label.includes(','))).toBe(true);
+
+  expect(options).toContainEqual({
+    value: ',.0f',
+    label: ',.0f (12,345)',
+  });
 });
 
-test('should use defaults from Select token separators', () => {
-  expect(
-    Object.prototype.hasOwnProperty.call(
-      SHARED_COLUMN_CONFIG_PROPS.d3NumberFormat,
-      'tokenSeparators',
-    ),
-  ).toBe(false);
+test('should not treat commas as D3 format token separators', () => {
+  expect(SHARED_COLUMN_CONFIG_PROPS.d3NumberFormat.tokenSeparators).toEqual([
+    '\n',
+    '\t',
+    ';',
+  ]);
 });
 
 test('d3NumberFormat and d3TimeFormat should allow free-text entry', () => {
