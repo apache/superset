@@ -2182,6 +2182,23 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             ),
         }
 
+    if operator in MIRRORABLE_ALWAYS and not mapping.equality_is_safe:
+        # Withdrawn by `equality_mirrors_safely`, which no declaration about
+        # ordering can change -- so naming monotonicity here would send the
+        # owner to a checkbox that leaves the answer as it is.
+        return {
+            "valid": False,
+            "reason": "operator",
+            "sample_input": sample_input,
+            "error": _(
+                "A %(operator)s filter on this text column is not mirrored: "
+                "the database may treat strings that differ in case or "
+                "trailing spaces as equal, and the mirrored predicate could "
+                "then drop rows the filter keeps.",
+                operator=operator.value,
+            ),
+        }
+
     if not mapping.mirrors(operator):
         return {
             "valid": False,
