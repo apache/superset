@@ -31,6 +31,11 @@ assists people when migrating to a new version.
   Unknown chart-defined columns are also reported as rejected, matching SQL
   datasets. Valid dimension filters are reported as applied.
 
+- Dashboard-applied filters now carry `isExtra` in chart-data requests, including
+  MCP `get_chart_data` and `get_chart_sql` calls with `extra_form_data`. This
+  changes chart cache keys for dashboard-filtered queries once, so expect a cold
+  chart cache right after deploying.
+
 - MCP data-bearing tools enforce mandatory chart-query result limits before
   response serialization or CSV/XLSX export, independently of the configurable
   response size guard (`MCP_RESPONSE_SIZE_CONFIG`). Results are limited to 32

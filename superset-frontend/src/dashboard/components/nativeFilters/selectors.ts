@@ -334,7 +334,7 @@ const getStatus = ({
     // Filter without datasource
     return APPLIED_STATUS;
   }
-  if (column && rejectedColumns?.has(column))
+  if (column && hasValue && rejectedColumns?.has(column))
     return IndicatorStatus.Incompatible;
   if (column && appliedColumns?.has(column) && hasValue) return APPLIED_STATUS;
   return IndicatorStatus.Unset;

@@ -362,13 +362,40 @@ def test_merge_extra_form_data_filters_into_query_adds_only_extra_predicates(
 
     assert query["filters"] == [
         {"col": "country", "op": "==", "val": "US"},
-        {"col": "gender", "op": "==", "val": "boy"},
+        {"col": "gender", "op": "==", "val": "boy", "isExtra": True},
     ]
     assert query["time_range"] == "No filter"
     assert query["granularity"] == "updated_at"
     # The grain belongs in extras: a top-level time_grain_sqla is dropped by
     # ChartDataQueryObjectSchema (unknown = EXCLUDE) and never reaches the query.
     assert query["extras"]["time_grain_sqla"] == "P1D"
+
+
+def test_merge_extra_form_data_filters_keep_dashboard_provenance(monkeypatch):
+    """A dashboard filter on a metric name is reported, not refused as chart-owned."""
+    from superset.exceptions import QueryObjectValidationError
+    from superset.semantic_layers.mapper import validate_filter_columns
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    query = {"filters": []}
+
+    merge_extra_form_data_filters_into_query(
+        query,
+        {"filters": [{"col": "total_amount", "op": "IN", "val": [1]}]},
+        1,
+        "semantic_view",
+    )
+
+    assert query["filters"] == [
+        {"col": "total_amount", "op": "IN", "val": [1], "isExtra": True}
+    ]
+    validate_filter_columns(query["filters"], {"category"}, {"total_amount"})
+    chart_owned = [{"col": "total_amount", "op": "IN", "val": [1]}]
+    with pytest.raises(QueryObjectValidationError, match="total_amount"):
+        validate_filter_columns(chart_owned, {"category"}, {"total_amount"})
 
 
 def test_merge_extra_form_data_time_grain_override_lands_in_extras(monkeypatch):

@@ -1393,7 +1393,7 @@ class TestSqlFromSavedQueryContextExtraFormData:
         )
 
         filters = query_context_json["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
         assert query_context_json["_set_form_data_args"].args[1:] == (1, "table")
 
     def test_real_column_filter_via_adhoc_filters_key(self):
@@ -1415,7 +1415,7 @@ class TestSqlFromSavedQueryContextExtraFormData:
         )
 
         filters = query_context_json["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     def test_no_extra_form_data_leaves_query_unchanged(self):
         """Without extra_form_data, the saved query_context is used as-is."""
