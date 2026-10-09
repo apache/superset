@@ -28,7 +28,7 @@ The Continuum shadow tables get the same columns so dataset version history and
 restore keep working.
 
 Revision ID: a7f3c2e91d84
-Revises: 00fab727cd0a
+Revises: e4a7c2b9d1f3
 Create Date: 2026-08-31 22:30:00.000000
 
 """
