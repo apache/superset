@@ -305,3 +305,17 @@ class ApplyOperationsRequest(BaseModel):
     # The revision the caller's view of the canvas is based on.
     base_revision: int = Field(ge=0)
     ops: list[Operation] = Field(min_length=1)
+
+
+class DraftOperationsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # The draft revision the caller's view is based on.
+    revision: int = Field(ge=0)
+    ops: list[Operation] = Field(min_length=1)
+
+
+class CommitDraftRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    revision: int = Field(ge=0)

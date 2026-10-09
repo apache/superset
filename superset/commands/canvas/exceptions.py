@@ -82,6 +82,37 @@ class DefinitionConflictError(CommandException):
         }
 
 
+class CanvasDraftNotFoundError(ObjectNotFoundError):
+    def __init__(self) -> None:
+        super().__init__("Canvas draft")
+
+
+class DraftConflictError(CommandException):
+    """
+    A draft write based on an older draft revision, or a commit of a draft
+    whose canvas changed since the draft started.
+    """
+
+    status = 409
+
+    def __init__(self, revision: int, canvas_changed: bool = False) -> None:
+        self.revision = revision
+        self.canvas_changed = canvas_changed
+        message = (
+            _("The canvas changed since this draft started; start a new draft.")
+            if canvas_changed
+            else _("The draft changed since your revision; reload it.")
+        )
+        super().__init__(message)
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "message": str(self.message),
+            "revision": self.revision,
+            "canvasChanged": self.canvas_changed,
+        }
+
+
 class DefinitionInvalidError(CommandException):
     """An operation could not apply, or its result is not a valid definition."""
 

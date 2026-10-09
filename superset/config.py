@@ -1275,6 +1275,12 @@ ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via 
 # Default theme mode for sessions without a saved user preference.
 THEME_DEFAULT_MODE: Literal["default", "dark", "system"] = "system"
 
+# Canvas drafts expire after this long without a write.
+CANVAS_DRAFT_TTL_SECONDS: int = 7 * 24 * 60 * 60
+# How often, in seconds, an open draft page checks for changes made elsewhere,
+# such as by an agent working in the same draft. 0 turns checking off.
+CANVAS_DRAFT_POLL_INTERVAL: int = 5
+
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
 

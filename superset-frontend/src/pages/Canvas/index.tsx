@@ -37,6 +37,8 @@ import CanvasGrid, {
 } from 'src/features/canvas/CanvasGrid';
 import { CanvasMetadata } from 'src/features/canvas/types';
 import { useCanvasDefinition } from 'src/features/canvas/useCanvasDefinition';
+import DraftBanner from 'src/features/canvas/DraftBanner';
+import { useDraftToken } from 'src/features/canvas/useDraftToken';
 import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
@@ -101,7 +103,8 @@ const notFound = (
 
 function CanvasContent({ id }: { id: number }) {
   const metadata = useApiV1Resource<CanvasMetadata>(`/api/v1/canvas/${id}`);
-  const { state } = useCanvasDefinition(id);
+  const draft = useDraftToken();
+  const { state } = useCanvasDefinition(id, draft.token);
   const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
   const refreshKeys = useCanvasRefresh(
     state.status === 'complete' ? state.result.definition : undefined,
@@ -137,6 +140,19 @@ function CanvasContent({ id }: { id: number }) {
   }, [id, title, revision]);
   useEffect(() => () => setActiveCanvas(undefined), [id]);
 
+  if (draft.token && state.status === 'error') {
+    return (
+      <EmptyState
+        size="large"
+        title={t('This draft is no longer available')}
+        description={t(
+          'It was published, discarded or expired, or it belongs to someone else.',
+        )}
+        buttonText={t('Show the published canvas')}
+        buttonAction={draft.clear}
+      />
+    );
+  }
   if (metadata.status === ResourceStatus.Error || state.status === 'error') {
     return notFound;
   }
@@ -168,6 +184,13 @@ function CanvasContent({ id }: { id: number }) {
             <Description>{metadata.result.description}</Description>
           )}
         </Header>
+        {draft.token && (
+          <DraftBanner
+            token={draft.token}
+            revision={state.result.revision}
+            onClose={draft.clear}
+          />
+        )}
         {isEmpty ? (
           <EmptyState
             size="medium"

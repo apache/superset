@@ -39,7 +39,9 @@ from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
     ApplyOperationsRequest,
     CanvasDefinition,
+    CommitDraftRequest,
     DEFINITION_VERSION,
+    DraftOperationsRequest,
     Operation,
 )
 from superset.canvas.definition.scopes import resolve_scopes
@@ -58,15 +60,25 @@ from superset.canvas.schemas import (
 from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
 from superset.commands.canvas.create import CreateCanvasCommand
 from superset.commands.canvas.delete import DeleteCanvasCommand
+from superset.commands.canvas.draft import (
+    ApplyCanvasDraftOperationsCommand,
+    CommitCanvasDraftCommand,
+    CreateCanvasDraftCommand,
+    DeleteCanvasDraftCommand,
+    draft_payload,
+    load_draft,
+)
 from superset.commands.canvas.exceptions import (
     CanvasCreateFailedError,
     CanvasDeleteFailedError,
+    CanvasDraftNotFoundError,
     CanvasForbiddenError,
     CanvasInvalidError,
     CanvasNotFoundError,
     CanvasUpdateFailedError,
     DefinitionConflictError,
     DefinitionInvalidError,
+    DraftConflictError,
 )
 from superset.commands.canvas.update import UpdateCanvasCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -91,13 +103,17 @@ def _handle_canvas_errors(
     def wrapped(self: CanvasRestApi, *args: Any, **kwargs: Any) -> Response:
         try:
             return f(self, *args, **kwargs)
-        except CanvasNotFoundError:
+        except (CanvasNotFoundError, CanvasDraftNotFoundError):
             return self.response_404()
         except CanvasForbiddenError:
             return self.response_403()
         except CanvasInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
-        except (DefinitionConflictError, DefinitionInvalidError) as ex:
+        except (
+            DefinitionConflictError,
+            DefinitionInvalidError,
+            DraftConflictError,
+        ) as ex:
             return self.response(ex.status, **ex.to_payload())
         except DefinitionVersionError as ex:
             return self.response_422(message=str(ex))
@@ -110,6 +126,17 @@ def _handle_canvas_errors(
             return self.response_422(message=str(ex))
 
     return wrapped
+
+
+# Draft tokens travel in a header, never in a URL, so they stay out of logs.
+DRAFT_TOKEN_HEADER = "X-Canvas-Draft"  # noqa: S105
+
+
+def _draft_token() -> str:
+    token = request.headers.get(DRAFT_TOKEN_HEADER, "")
+    if not token:
+        raise CanvasDraftNotFoundError()
+    return token
 
 
 def _pydantic_errors(ex: PydanticValidationError) -> list[dict[str, Any]]:
@@ -172,6 +199,11 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "get_definition_changes",
         "apply_definition_operations",
         "get_schema",
+        "create_draft",
+        "get_draft",
+        "apply_draft_operations",
+        "commit_draft",
+        "delete_draft",
     }
     resource_name = "canvas"
     allow_browser_login = True
@@ -182,6 +214,11 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "get_definition_changes": "read",
         "apply_definition_operations": "write",
         "get_schema": "read",
+        "create_draft": "write",
+        "get_draft": "write",
+        "apply_draft_operations": "write",
+        "commit_draft": "write",
+        "delete_draft": "write",
     }
     openapi_spec_tag = "Canvases"
 
@@ -674,6 +711,169 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                 **result.render_context,
             },
         )
+
+    @expose("/<id_or_uuid>/draft", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.create_draft",
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def create_draft(self, id_or_uuid: str) -> Response:
+        """Start a draft of a canvas.
+        ---
+        post:
+          summary: Start a private draft of a canvas
+          description: >-
+            Copies the canvas's current definition into a draft only the caller
+            can see. Send the returned token in the `X-Canvas-Draft` header to
+            read, change, commit or delete the draft; it never goes in a URL.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_uuid
+          responses:
+            201:
+              description: The draft's token and revisions
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        draft = CreateCanvasDraftCommand(id_or_uuid).run()
+        return self.response(
+            201,
+            result={"token": draft.token, **draft_payload(draft, resolved=False)},
+        )
+
+    @expose("/draft", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_draft",
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def get_draft(self) -> Response:
+        """Get the draft named by the `X-Canvas-Draft` header.
+        ---
+        get:
+          summary: Get a canvas draft
+          responses:
+            200:
+              description: The draft's definition, revisions and resolved layout
+            404:
+              $ref: '#/components/responses/404'
+        """
+        draft = load_draft(_draft_token())
+        return self.response(200, result=draft_payload(draft))
+
+    @expose("/draft", methods=("PATCH",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.apply_draft_operations"
+        ),
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def apply_draft_operations(self) -> Response:
+        """Apply operations to the draft named by the `X-Canvas-Draft` header.
+        ---
+        patch:
+          summary: Apply operations to a canvas draft
+          description: >-
+            The same operations as the definition route, validated the same
+            way, applied to the draft only. `revision` must be the draft's
+            current revision.
+          responses:
+            200:
+              description: The draft after the write
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: The draft changed since `revision`
+            422:
+              description: An operation failed or produced an invalid definition
+        """
+        try:
+            body = DraftOperationsRequest.model_validate(request.get_json(silent=True))
+        except PydanticValidationError as ex:
+            return self.response(400, message=_pydantic_errors(ex))
+        draft, ops = ApplyCanvasDraftOperationsCommand(
+            _draft_token(), body.revision, body.ops
+        ).run()
+        return self.response(200, result={**draft_payload(draft), "ops": ops})
+
+    @expose("/draft/commit", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.commit_draft",
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def commit_draft(self) -> Response:
+        """Publish the draft named by the `X-Canvas-Draft` header.
+        ---
+        post:
+          summary: Commit a canvas draft
+          description: >-
+            Replays the draft's operations on the canvas and deletes the draft.
+            Rejected with 409 if the canvas changed since the draft started.
+          responses:
+            200:
+              description: The canvas revision after the commit
+            404:
+              $ref: '#/components/responses/404'
+            409:
+              description: The draft or the canvas changed
+            422:
+              description: An operation no longer applies
+        """
+        try:
+            body = CommitDraftRequest.model_validate(request.get_json(silent=True))
+        except PydanticValidationError as ex:
+            return self.response(400, message=_pydantic_errors(ex))
+        draft = load_draft(_draft_token())
+        result = CommitCanvasDraftCommand(draft.token, body.revision).run()
+        return self.response(
+            200,
+            result={
+                "canvasId": draft.canvas_id,
+                "revision": result.revision if result else draft.base_revision,
+            },
+        )
+
+    @expose("/draft", methods=("DELETE",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete_draft",
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def delete_draft(self) -> Response:
+        """Discard the draft named by the `X-Canvas-Draft` header.
+        ---
+        delete:
+          summary: Delete a canvas draft
+          responses:
+            200:
+              description: Deleted
+            404:
+              $ref: '#/components/responses/404'
+        """
+        DeleteCanvasDraftCommand(_draft_token()).run()
+        return self.response(200, message="OK")
 
     @expose("/schema", methods=("GET",))
     @protect()

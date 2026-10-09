@@ -206,3 +206,59 @@ def test_update_canvas_needs_editorship() -> None:
         result = _update_canvas_impl("5", {"title": "Renamed"})
 
     assert "editors" in result["error"]
+
+
+def test_create_canvas_draft_returns_a_token_and_a_fragment_url() -> None:
+    from superset.commands.canvas.draft import CanvasDraft
+    from superset.mcp_service.canvas.tool.create_canvas_draft import (
+        _create_canvas_draft_impl,
+    )
+
+    draft = CanvasDraft(
+        token="tok",  # noqa: S106
+        owner_id=1,
+        canvas_id=7,
+        base_revision=3,
+        revision=0,
+        definition={"version": 1, "root": {}, "nodes": {}},
+    )
+    with (
+        patch(
+            "superset.mcp_service.canvas.tool.create_canvas_draft."
+            "CreateCanvasDraftCommand"
+        ) as command,
+        patch("superset.mcp_service.canvas.tool.canvas_draft_common.CanvasDAO") as dao,
+    ):
+        command.return_value.run.return_value = draft
+        dao.find_by_id.return_value = MagicMock(url="/canvas/sales/")
+        result = _create_canvas_draft_impl(7)
+
+    assert result["token"] == "tok"  # noqa: S105
+    assert result["url"] == "/canvas/sales/#draft=tok"
+    assert (result["base_revision"], result["revision"]) == (3, 0)
+
+
+def test_draft_errors_come_back_as_data() -> None:
+    from superset.commands.canvas.exceptions import (
+        CanvasDraftNotFoundError,
+        DraftConflictError,
+    )
+    from superset.mcp_service.canvas.tool.commit_canvas_draft import (
+        _commit_canvas_draft_impl,
+    )
+
+    module = "superset.mcp_service.canvas.tool.commit_canvas_draft"
+    with patch(f"{module}.load_draft", side_effect=CanvasDraftNotFoundError()):
+        assert "not found" in _commit_canvas_draft_impl("tok", 1)["error"]
+
+    with (
+        patch(f"{module}.load_draft"),
+        patch(f"{module}.CommitCanvasDraftCommand") as command,
+    ):
+        command.return_value.run.side_effect = DraftConflictError(
+            5, canvas_changed=True
+        )
+        result = _commit_canvas_draft_impl("tok", 1)
+
+    assert result["canvas_changed"] is True
+    assert result["revision"] == 5

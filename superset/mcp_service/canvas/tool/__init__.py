@@ -15,16 +15,26 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .apply_canvas_draft_ops import apply_canvas_draft_ops
 from .apply_canvas_ops import apply_canvas_ops
+from .commit_canvas_draft import commit_canvas_draft
 from .create_canvas import create_canvas
+from .create_canvas_draft import create_canvas_draft
+from .delete_canvas_draft import delete_canvas_draft
 from .get_canvas import get_canvas
+from .get_canvas_draft import get_canvas_draft
 from .list_canvases import list_canvases
 from .update_canvas import update_canvas
 
 __all__ = [
+    "apply_canvas_draft_ops",
     "apply_canvas_ops",
+    "commit_canvas_draft",
     "create_canvas",
+    "create_canvas_draft",
+    "delete_canvas_draft",
     "get_canvas",
+    "get_canvas_draft",
     "list_canvases",
     "update_canvas",
 ]

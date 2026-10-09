@@ -391,8 +391,14 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
     # non-read-only tool is added without also being added here.
     "excluded_tools": [
         "add_chart_to_existing_dashboard",
+        "apply_canvas_draft_ops",
         "apply_canvas_ops",
+        "commit_canvas_draft",
         "create_canvas",
+        "create_canvas_draft",
+        "delete_canvas_draft",
+        # Changes with every draft write; a cached read would be stale.
+        "get_canvas_draft",
         "update_canvas",
         "apply_dashboard_filters",
         "create_dataset",
