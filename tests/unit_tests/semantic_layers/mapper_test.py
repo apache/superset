@@ -3166,6 +3166,32 @@ def test_validate_query_object_adhoc_orderby_not_supported_error(
         validate_query_object(query_object)
 
 
+@pytest.mark.parametrize("include_unknown_name", [False, True])
+def test_validate_query_object_supported_adhoc_orderby(
+    mock_datasource: MagicMock,
+    include_unknown_name: bool,
+) -> None:
+    """Accept supported expressions while still rejecting unknown named elements."""
+    mock_datasource.implementation.features |= frozenset(
+        {SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY}
+    )
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        orderby=[
+            ({"label": "custom_order", "sqlExpression": "RAND()"}, True),
+            ("undefined_column" if include_unknown_name else "category", False),
+        ],
+    )
+
+    if include_unknown_name:
+        with pytest.raises(ValueError, match="All order by elements must be defined"):
+            validate_query_object(query_object)
+    else:
+        validate_query_object(query_object)
+
+
 def test_validate_query_object_orderby_undefined_element_error(
     mock_datasource: MagicMock,
 ) -> None:

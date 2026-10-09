@@ -1316,7 +1316,9 @@ def _validate_orderby(
             "Adhoc expressions in order by are not supported in this Semantic View."
         )
 
-    elements = {orderby[0] for orderby in query_object.orderby}
+    elements: set[str] = {
+        element for element, _ in query_object.orderby if isinstance(element, str)
+    }
     metric_names: set[str] = {metric.name for metric in metadata.metrics}
     dimension_names: set[str] = {dimension.name for dimension in metadata.dimensions}
     if not elements <= metric_names | dimension_names:
