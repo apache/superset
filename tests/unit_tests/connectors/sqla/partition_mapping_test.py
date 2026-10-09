@@ -1386,17 +1386,29 @@ def test_the_function_denylist_is_keyed_on_the_engine_spec_name(app: Flask) -> N
     write, so this one does too -- a spec covering several SQLAlchemy backends
     through `engine_aliases` reports the one canonical name under which its
     entry exists.
+
+    Tested through an *aliased* engine, which is the only way to tell the two
+    names apart. On `sqlite://` the backend and the spec name are both
+    `"sqlite"`, so the assertion held whichever one the gate read, and the test
+    did not check what its name promises. `postgres://` is
+    `PostgresEngineSpec.engine_aliases`, so the URL's backend is `postgres`
+    while the spec -- and the config key an operator writes -- is `postgresql`.
     """
-    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgres://u@h/d")
 
     with app.app_context():
-        app.config["DISALLOWED_SQL_FUNCTIONS"] = {
-            database.db_engine_spec.engine: {"version"}
-        }
-        assert (
-            stored_expression_error(database, None, None, "version() || :value")
-            is not None
-        )
+        # The premise, asserted rather than assumed: if this alias ever goes
+        # away, the test below stops discriminating and should say so here.
+        assert database.backend == "postgres"
+        assert database.db_engine_spec.engine == "postgresql"
+
+        # Denied only under the spec's name. Keyed on `database.backend` the
+        # gate would find no entry and let the call through.
+        app.config["DISALLOWED_SQL_FUNCTIONS"] = {"postgresql": {"version"}}
+        reason = stored_expression_error(database, None, None, "version() || :value")
+
+    assert reason is not None
+    assert "version" in reason
 
 
 def test_the_denylist_key_falls_back_when_the_engine_spec_cannot_load(
@@ -1857,6 +1869,12 @@ def test_a_connection_mutator_keys_the_probe_cache_per_caller(app: Flask) -> Non
         # A month key is not a date any engine reads, so it declines -- on a
         # *text* partition column it never reaches this gate.
         ("202601", False),
+        # `strptime` accepts unpadded fields, so a bare epoch parsed happily as
+        # `%Y%m%d%H%M%S` (1767-02-25 06:00) and was emitted as a date literal --
+        # the exact bad-literal error this gate exists to stop. The round-trip
+        # is what rejects it.
+        ("1767225600", False),
+        ("1767225600000", False),
     ],
 )
 def test_only_text_an_engine_reads_as_an_instant_suits_a_temporal_key(

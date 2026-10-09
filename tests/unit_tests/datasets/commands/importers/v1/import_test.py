@@ -3069,6 +3069,54 @@ def test_import_clears_a_mapping_whose_column_the_sync_removed(
     assert dataset.partition_mapped_column is None
 
 
+def test_import_clears_a_mapping_that_names_the_partition_column_itself(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    A dangling reference is not the only mapping `UpdateDatasetCommand` refuses.
+    An *explicit* self-mapping -- `partition_mapped_column` equal to
+    `partition_column` -- is blocking there too, so a bundle setting both to
+    `event_time` imported happily and then failed every later edit, including a
+    description-only PUT, until someone repaired the mapping by hand.
+
+    Cleared rather than refused, which is the bargain the rest of the importer
+    strikes. Only the override goes, leaving the mapping following
+    `main_dttm_col` -- the state a bundle omitting the field would have given.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_self_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config: dict[str, Any] = {
+        "table_name": "pfm_self",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "event_time",
+        "partition_mapped_column": "event_time",
+        "columns": [
+            {"column_name": "event_time", "is_dttm": True},
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(config)
+    db.session.flush()
+
+    # The dataset imported, and the reference no later save would accept is gone.
+    assert dataset.partition_mapped_column is None
+    assert dataset.partition_column == "event_time"
+
+
 def _partition_mapping_config(database_id: int, transform: str) -> dict[str, Any]:
     return {
         "table_name": "web_events",
