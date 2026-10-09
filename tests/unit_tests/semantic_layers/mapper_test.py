@@ -28,6 +28,7 @@ import pyarrow as pa
 import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
@@ -4862,3 +4863,77 @@ def test_no_raw_variant_bounds_use_finest_grain(
             ),
             Filter(PredicateType.WHERE, day, Operator.LESS_THAN, datetime(2026, 1, 1)),
         }
+
+
+def test_required_comparison_completeness_failure_rejects_main_result(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """A complete main query cannot hide an incomplete required comparison."""
+    from superset.exceptions import SemanticResultCompletenessError
+
+    main: SemanticResult = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="fixture")],
+        results=pa.table({"category": ["Books"], "total_sales": [10.0]}),
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(
+        side_effect=[main, SemanticResultCompletenessError("incomplete")]
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=["1 week ago"],
+    )
+    with pytest.raises(SemanticResultCompletenessError):
+        get_results(query)
+    assert mock_datasource.implementation.get_table.call_count == 2
+
+
+@pytest.mark.parametrize(
+    "dispatch, offsets",
+    [("get_table", []), ("get_table", ["1 week ago"]), ("get_row_count", [])],
+    ids=["table", "comparison", "row-count"],
+)
+@pytest.mark.parametrize("reason", ["incomplete", "unverified"])
+def test_public_provider_completeness_error_becomes_host_error(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+    dispatch: str,
+    offsets: list[str],
+    reason: SemanticResultCompletenessReason,
+) -> None:
+    """A provider following the public contract gets the host's client error."""
+    from superset_core.semantic_layers import errors as core_errors
+
+    from superset.exceptions import SemanticResultCompletenessError
+
+    main: SemanticResult = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="fixture")],
+        results=pa.table({"category": ["Books"], "total_sales": [10.0]}),
+    )
+    failure: core_errors.SemanticResultCompletenessError = (
+        core_errors.SemanticResultCompletenessError(reason)
+    )
+    setattr(
+        mock_datasource.implementation,
+        dispatch,
+        mocker.Mock(side_effect=[main, failure] if offsets else [failure]),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=offsets,
+        is_rowcount=dispatch == "get_row_count",
+    )
+    with pytest.raises(SemanticResultCompletenessError) as excinfo:
+        get_results(query)
+    assert excinfo.value.reason == reason
+    assert excinfo.value.__cause__ is failure

@@ -26,7 +26,7 @@ When scheduling an alert or report, you can choose the format used to deliver th
 
 Dashboard reports and alerts are limited to the PDF and PNG formats; the CSV, XLSX, and Text options are only available when scheduling a report or alert for an individual chart.
 
-For alerts (not scheduled reports), PNG/PDF screenshots and chart CSV/XLSX data are only generated when the `ALERTS_ATTACH_REPORTS` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags) is enabled (the default); with it disabled, an alert notification is still sent, but without the attachment.
+For alerts (not scheduled reports), PNG/PDF screenshots, chart CSV/XLSX data, and embedded Text tables are only generated when **Enable attachments for alerts** is on in the [Alerts & Reports configuration](#alerts--reports-configuration) (it defaults to the `ALERTS_ATTACH_REPORTS` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags), which is enabled by default). With it off, an alert notification is still sent, but without rendered chart or dashboard content. Individual alerts also have an **Include attachment** toggle at the top of their Content section.
 
 ## Requirements
 
@@ -39,7 +39,7 @@ For alerts (not scheduled reports), PNG/PDF screenshots and chart CSV/XLSX data 
 - At least one of those must be configured, depending on what you want to use:
   - emails: `SMTP_*` settings
   - Slack messages: `SLACK_API_TOKEN`
-- Users can customize the email subject by including date code placeholders, which will automatically be replaced with the corresponding UTC date when the email is sent. To enable this functionality, activate the `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags). This enables date formatting in email subjects, preventing all reporting emails from being grouped into the same thread (optional for the reporting feature).
+- Users can customize the email subject by including date code placeholders, which are replaced with the corresponding UTC date when the email is sent if **Format dates in email subjects** is enabled in the [Alerts & Reports configuration](#alerts--reports-configuration). Until this setting is saved, it follows the `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags).
   - Use date codes from [strftime.org](https://strftime.org/) to create the email subject.
   - If no date code is provided, the original string will be used as the email subject.
 - Each alert/report has an "Include a link back to Superset" option (enabled by default) controlling whether the call-to-action link is included in email and Slack notifications. The link text in emails is configurable via `EMAIL_REPORTS_CTA`; the Slack message always uses "Explore in Superset". Uncheck the option when recipients should not receive a link to your Superset host, e.g. for external audiences.
@@ -418,6 +418,121 @@ ALERT_REPORTS_EXECUTORS = [FixedExecutor("admin")]
 
 Please refer to `ExecutorType` in the codebase for other executor types.
 
+#### Per-schedule "Run As" executor
+
+`ALERT_REPORTS_EXECUTORS` is a global, server-side setting that is invisible to the people
+configuring alerts and reports, which makes permission problems hard to diagnose and is
+especially painful for databases authenticated with OAuth2, where the impersonated account
+must hold a valid token. [SIP-209](https://github.com/apache/superset/issues/39642)
+introduces an explicit, per-schedule alternative behind the `ALERT_REPORT_DYNAMIC_EXECUTOR`
+[feature flag](/admin-docs/configuration/configuring-superset#feature-flags):
+
+```python
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "ALERT_REPORT_DYNAMIC_EXECUTOR": True,
+}
+```
+
+When the flag is enabled:
+
+- Every alert/report gets a **Run as** field recording which user's RBAC permissions and
+  database credentials are used to render the content. Alerts get an additional
+  **Run alert query as** field for the alert condition SQL, so the audience of an alert
+  does not need direct database access.
+- Admins can select **Application default** or **Specific user**:
+  * **Application default:** resolves through `ALERT_REPORTS_EXECUTORS` value.
+  * **Specific user:** User picker option.
+  Non-admins can only select themselves. They see no user search and the API rejects
+  selecting another user. New reports scheduled from a dashboard or chart execute
+  as the subscribing user. Existing subscriptions with no stored executor keep using
+  `ALERT_REPORTS_EXECUTORS`: recreate the subscription with the flag enabled, or
+  update it through the Alerts & Reports menu. Non-admins can select only themselves.
+- When a non-admin edits an alert/report configured to render as someone else, they can
+  change its name and schedule, but not its selected chart/dashboard, filters, delivery
+  format, type, or recipients. Changing an alert's database, SQL, or validator also requires its
+  condition query to execute as that editor. To change protected fields, they can select
+  their own account via **Execute using my permissions** (or ask an admin). For alerts,
+  this action selects the current user for both content and SQL condition execution.
+  A non-admin cannot clear a separate alert-query executor if the query would then
+  inherit another user's content executor.
+  Legacy schedules using the application-default executor need the same switch before
+  a non-admin changes fields executed with that identity.
+- Untouched legacy schedules continue using `ALERT_REPORTS_EXECUTORS`. **Application
+  default** preserves this behavior in the Run as selector, including when an admin
+  clears an explicit executor.
+- With the flag off, schedules execute using `ALERT_REPORTS_EXECUTORS`. Saving a
+  schedule while the flag is off clears its stored content and alert-query executor
+  selections, so that schedule remains on **Application default** if the flag is
+  enabled again. Schedules not saved while the flag is off retain their selections.
+- A selected user that is deleted remains recorded as a **Specific user** selection.
+  Resolving a deleted or inactive user fails rather than switching to a legacy executor.
+  Alert SQL templates, SQL mutation hooks, authorization and database access all use
+  the query executor's identity.
+
+It's possible to set a custom "Run As" tooltip value via the `ALERT_REPORTS_RUN_AS_TOOLTIP`
+config in `superset_config.py`. This is useful if you want to provide further context on what
+the "Application default" means. **It does not change the feature behavior**.
+`ALERT_REPORTS_EXECUTORS` is deprecated in favor of this field and will be removed once the
+feature graduates from the flag.
+
+### Alerts & Reports configuration
+
+Admins can manage the global Alerts & Reports settings at runtime from the **Configuration**
+button on the Alerts & Reports list page (also available through
+`GET`/`PUT /api/v1/report/configuration/`). Values are stored as a versioned document in the
+metadata database's `key_value` table (which survives the factory reset command); a setting that
+was never saved falls back to the corresponding `superset_config.py` value or feature flag.
+
+| Setting | Fallback | Description |
+| --- | --- | --- |
+| Enable attachments for alerts | `ALERTS_ATTACH_REPORTS` FF | Whether alerts deliver rendered chart or dashboard content, including embedded Text tables. |
+| Format dates in email subjects | `DATE_FORMAT_IN_EMAIL_SUBJECT` FF | Render date code placeholders in alert and report email subjects using the UTC date at delivery. |
+| Alert minimum interval | `ALERT_MINIMUM_INTERVAL` config | Minimum interval between two executions of an alert. |
+| Report minimum interval | `REPORT_MINIMUM_INTERVAL` config | Minimum interval between two executions of a report. |
+| Limit recipients to users | off | Only e-mail addresses of existing active users are accepted as recipients. |
+| Allowed e-mail domains | any | Allowlist of e-mail domains accepted as recipients. |
+
+Saving a stricter configuration is refused when existing alerts/reports (including disabled schedules) would
+violate it. The response lists the impacted schedules in pages of ten so they can be fixed first. The
+recipient policy is enforced when saving an alert/report and again at execution time, so a schedule
+to a recipient that is no longer allowed fails instead of being sent. These restrictions also apply
+to configured recipients of retry and final-failure notices. Owner/editor operational error notices
+are exempt; if recipient validation fails during a retry notice, only eligible operational notices
+are attempted.
+
+Domain matching is case-insensitive. An exact entry such as `example.com` does not
+include subdomains. Use `*.example.com` to allow subdomains at any depth, or
+`example.*` to allow `example.com`, `example.org`, and other single-segment top-level
+domains.
+Combining leading and trailing wildcards, or placing wildcards inside a label,
+is not supported. A prohibited address in To, Cc, or Bcc blocks the entire normal delivery.
+
+An attachment-free alert needs only its condition-query executor. Its unused content
+executor may be missing or inactive when a separate valid query executor is selected.
+If the alert has a chart or dashboard, its notification can still include a plain link
+to that asset.
+Set **No attachment** for an alert without a chart or dashboard, even when global alert
+attachments are disabled. An attachment format requires an asset when the alert is saved.
+Enabling **Include attachment** validates the selected chart/dashboard and content
+executor before saving. Reports always require content. Supplied attachment settings
+remain stored while off and are ignored for attachment generation; supplied asset
+references still require existence and access checks.
+Turning the toggle back on during editing restores the selected format; when reopening
+an alert saved without attachments, choose a format when re-enabling attachments.
+
+Missing/inactive executors and recipient-policy violations are terminal failures and
+never schedule a retry. Retries are intended to recover execution failures such as
+transient data-source or browser errors; alert retries re-evaluate the condition.
+Schedule edits and global setting changes do not cancel queued retries. A retry reads
+the latest schedule and effective configuration when it starts, so it may use updated
+executors, content, or recipients. Authorization and recipient checks still apply when
+an attempt runs. An attempt already running during an edit may finish using the schedule
+values it loaded before the edit.
+
+`ALERTS_ATTACH_REPORTS`, `ALERT_MINIMUM_INTERVAL` and `REPORT_MINIMUM_INTERVAL` are
+deprecated in favor of this configuration.
+
 **Important notes**
 
 - Be mindful of the concurrency setting for celery (using `-c 4`). Each worker process keeps its own
@@ -430,7 +545,9 @@ Please refer to `ExecutorType` in the codebase for other executor types.
 - Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
   its default value of `http://0.0.0.0:8080/`.
 
-It's also possible to specify a minimum interval between each report's execution through the config file:
+It's also possible to specify a minimum interval between each report's execution through the config file.
+These values are only used as a fallback when the corresponding setting has not been saved in the
+[Alerts & Reports configuration](#alerts--reports-configuration) UI:
 
 ```python
 # Set a minimum interval threshold between executions (for each Alert/Report)
