@@ -36,6 +36,7 @@ from superset.connectors.sqla.partition_mapping import (
     drop_unmapped_value_transforms,
     stored_expression_error,
     validate_partition_mapping,
+    validate_transform,
 )
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
@@ -106,6 +107,16 @@ def _partition_transform_error(
     actually changes is worth refusing over -- re-sending a value already in
     storage is what a GET-then-PUT client does, and a transform stored before
     this check existed is disarmed at probe time instead.
+
+    Both gates the other writers apply, not just the storability one.
+    `stored_expression_error` asks whether the expression may be *run*;
+    `validate_transform`'s blocking tier asks whether it may be *stored* --
+    Jinja, an executable comment, a non-deterministic function, a placeholder
+    the engine will not read. The REST PUT and the importer reach both, and this
+    endpoint reached only the first, so `random() + :value` saved here with a
+    200 and then failed `UpdateDatasetCommand`'s validation on every later edit,
+    including a description-only PUT. The dataset could not be saved again until
+    someone edited the transform.
     """
     incoming = [
         column
@@ -124,12 +135,22 @@ def _partition_transform_error(
         transform = column["partition_value_transform"]
         if transform == stored.get(column.get("column_name")):
             continue
-        if reason := stored_expression_error(
+        reason = stored_expression_error(
             database,
             orm_datasource.catalog,
             orm_datasource.schema,
             transform,
-        ):
+        )
+        if reason is None:
+            reason = next(
+                (
+                    str(issue.message)
+                    for issue in validate_transform(transform, database.backend)
+                    if issue.blocking
+                ),
+                None,
+            )
+        if reason:
             return str(
                 _(
                     "The value transform on %(column)s cannot be saved: %(reason)s",

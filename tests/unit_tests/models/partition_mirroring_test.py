@@ -210,6 +210,50 @@ def test_ordinary_text_does_not_mirror_onto_a_temporal_partition_column(
     assert "country = 'US'" in sql
 
 
+def test_a_text_column_s_bound_is_not_rounded_as_though_it_were_temporal(
+    app: Flask,
+) -> None:
+    """
+    SQLite's `convert_dttm` renders for `types.String` as well as the date
+    types, so a VARCHAR mapped column read as second-resolution -- and a filter
+    value that merely *looks* like an instant had its bound rounded as though
+    the engine had truncated it.
+
+    On a VARCHAR `country` mapped onto VARCHAR `region_key` by `:value`,
+    `country < '2026-07-06T10:08:11.500000'` was mirrored as
+    `region_key <= '2026-07-06 10:08:12.000000'`. A space sorts before `T`, so a
+    row holding `2026-07-06T09:00:00` -- which the filter keeps -- fell outside
+    the mirror and was dropped.
+
+    `_column_literal_resolution` already guarded on `is_dttm` and said in its
+    docstring that the per-instant callers never met this case. They do: the
+    value parses as an instant while the column is still text.
+    """
+    table = _table(
+        transform=":value",
+        monotonic=True,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["2026-07-06T10:08:11.500000"]) as probe:
+            _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.LESS_THAN.value,
+                        "val": "2026-07-06T10:08:11.500000",
+                    }
+                ],
+            )
+
+    # Handed through untouched: no rounding, and no seconds-shaped rewrite.
+    assert probe.call_args.args[-1] == ["2026-07-06T10:08:11.500000"]
+
+
 def test_a_day_key_still_mirrors_onto_a_temporal_partition_column(
     app: Flask,
 ) -> None:
@@ -949,6 +993,38 @@ def test_the_probe_rounds_outward_when_the_engine_drops_subseconds(
         datetime(2026, 2, 1, 0, 0, 1),
     ]
     assert "dt_epoch <= 2" in sql
+
+
+def test_the_probe_rounds_outward_on_a_date_column_too(app: Flask) -> None:
+    """
+    The truncation test cannot be "does this render the same as the bound
+    truncated to the second". SQLite renders a DATE column at exactly midnight
+    as a bare date, so truncating a `.500000` bound crosses a *formatting*
+    boundary as well as a precision one: the two texts differ for a reason that
+    has nothing to do with precision, and the truncation that is really
+    happening goes unnoticed. Two probes that both carry a sub-second part see
+    it.
+    """
+    table = _table(mapped_column="event_date", main_dttm_col="event_date")
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=True, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "unix_timestamp(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]) as probe:
+            _query(
+                table,
+                granularity="event_date",
+                from_dttm=datetime(2026, 1, 1, 0, 0, 0, 500000),
+                to_dttm=datetime(2026, 2, 1, 0, 0, 0, 500000),
+            )
+
+    assert probe.call_args.args[-1] == [
+        datetime(2026, 1, 1, 0, 0, 0),
+        datetime(2026, 2, 1, 0, 0, 1),
+    ]
 
 
 def test_the_probe_widens_to_the_day_when_the_engine_drops_the_time(

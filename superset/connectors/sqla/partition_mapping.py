@@ -2608,8 +2608,15 @@ def _reads_as_temporal(value: str) -> bool:
         pass
     for fmt in _TEMPORAL_KEY_FORMATS:
         try:
-            datetime.strptime(value, fmt)
-            return True
+            # Round-tripped, because `strptime` accepts unpadded fields: a bare
+            # epoch such as ``1767225600`` otherwise parses as
+            # ``%Y%m%d%H%M%S`` -- 1767-02-25 06:00 -- and is emitted as
+            # ``part_date = '1767225600'``, which is the bad-literal error this
+            # whole gate exists to stop. Re-rendering and comparing is what
+            # makes "parses" mean "is in this format" rather than "the parser
+            # found something in it".
+            if datetime.strptime(value, fmt).strftime(fmt) == value:
+                return True
         except ValueError:
             continue
     return False

@@ -59,7 +59,6 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_config as dataset_fixture,
 )
 from tests.unit_tests.conftest import with_feature_flags
-from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
@@ -2806,6 +2805,65 @@ def test_load_data_bounds_gzip_download_before_decompression(
     # ...then gzip.open() decompresses the bounded buffer...
     mock_gzip_open.assert_called_once_with(bounded_raw)
     # ...and the decompressed output is bounded again before parsing.
+    assert mock_read_bounded.call_args_list[1].args[0] is decompressed
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_import_drops_a_transform_the_mapping_does_not_mirror(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An import is a writer like any other, and it bypasses the editor entirely.
+
+    A bundle carrying a transform on a column the mapping does not mirror would
+    otherwise land a value nothing renders and nothing can edit, waiting for the
+    mapped column to resolve back to it.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_import_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config: dict[str, Any] = {
+        "table_name": "pfm_import_table",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time2",
+        "columns": [
+            {
+                "column_name": "event_time",
+                "is_dttm": True,
+                "partition_value_transform": "unix_timestamp(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {
+                "column_name": "event_time2",
+                "is_dttm": True,
+                "partition_value_transform": "to_unixtime(:value)",
+                "partition_transform_is_monotonic": True,
+            },
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(config)
+    db.session.flush()
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    assert transforms == {
+        "event_time": None,
+        "event_time2": "to_unixtime(:value)",
+        "dt_epoch": None,
+    }
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=False)
@@ -3009,6 +3067,54 @@ def test_import_clears_a_mapping_whose_column_the_sync_removed(
 
     assert dataset.partition_column is None
     assert dataset.partition_mapped_column is None
+
+
+def test_import_clears_a_mapping_that_names_the_partition_column_itself(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    A dangling reference is not the only mapping `UpdateDatasetCommand` refuses.
+    An *explicit* self-mapping -- `partition_mapped_column` equal to
+    `partition_column` -- is blocking there too, so a bundle setting both to
+    `event_time` imported happily and then failed every later edit, including a
+    description-only PUT, until someone repaired the mapping by hand.
+
+    Cleared rather than refused, which is the bargain the rest of the importer
+    strikes. Only the override goes, leaving the mapping following
+    `main_dttm_col` -- the state a bundle omitting the field would have given.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_self_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config: dict[str, Any] = {
+        "table_name": "pfm_self",
+        "main_dttm_col": "event_time",
+        "schema": "main",
+        "sql": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "partition_column": "event_time",
+        "partition_mapped_column": "event_time",
+        "columns": [
+            {"column_name": "event_time", "is_dttm": True},
+            {"column_name": "dt_epoch"},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(config)
+    db.session.flush()
+
+    # The dataset imported, and the reference no later save would accept is gone.
+    assert dataset.partition_mapped_column is None
+    assert dataset.partition_column == "event_time"
 
 
 def _partition_mapping_config(database_id: int, transform: str) -> dict[str, Any]:
@@ -3283,62 +3389,3 @@ def test_an_unfinished_transform_survives_the_export_import_round_trip(
     drop_unusable_partition_transforms(config)
 
     assert config["columns"][0]["partition_value_transform"] == transform
-    assert mock_read_bounded.call_args_list[1].args[0] is decompressed
-
-
-@with_feature_flags(PARTITION_FILTER_MAPPING=True)
-def test_import_drops_a_transform_the_mapping_does_not_mirror(
-    mocker: MockerFixture, session: Session
-) -> None:
-    """
-    An import is a writer like any other, and it bypasses the editor entirely.
-
-    A bundle carrying a transform on a column the mapping does not mirror would
-    otherwise land a value nothing renders and nothing can edit, waiting for the
-    mapped column to resolve back to it.
-    """
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-
-    engine = db.session.get_bind()
-    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
-    database = Database(database_name="pfm_import_db", sqlalchemy_uri="sqlite://")
-    db.session.add(database)
-    db.session.flush()
-
-    config: dict[str, Any] = {
-        "table_name": "pfm_import_table",
-        "main_dttm_col": "event_time",
-        "schema": "main",
-        "sql": None,
-        "uuid": uuid.uuid4(),
-        "metrics": [],
-        "partition_column": "dt_epoch",
-        "partition_mapped_column": "event_time2",
-        "columns": [
-            {
-                "column_name": "event_time",
-                "is_dttm": True,
-                "partition_value_transform": "unix_timestamp(:value)",
-                "partition_transform_is_monotonic": True,
-            },
-            {
-                "column_name": "event_time2",
-                "is_dttm": True,
-                "partition_value_transform": "to_unixtime(:value)",
-                "partition_transform_is_monotonic": True,
-            },
-            {"column_name": "dt_epoch"},
-        ],
-        "database_uuid": database.uuid,
-        "database_id": database.id,
-    }
-
-    dataset = import_dataset(config)
-    db.session.flush()
-
-    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
-    assert transforms == {
-        "event_time": None,
-        "event_time2": "to_unixtime(:value)",
-        "dt_epoch": None,
-    }
