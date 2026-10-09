@@ -121,6 +121,8 @@ export default function MatrixifyDimensionControl(
   const isAllWithMetric = selectionMode === 'all' && allSortBy === 'metric';
   useEffect(() => {
     setSuggestionsDisabled(false);
+    // An aborted load skips its own reset, so clear it before any early return.
+    setLoadingValues(false);
     if (
       !value?.dimension ||
       !datasource ||

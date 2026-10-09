@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
@@ -714,3 +720,39 @@ test.each([undefined, 'old-title-version', 'cube-member-id-v1'])(
     ).toBe(version ?? null);
   },
 );
+
+test('an aborted load does not leave the values select loading', async () => {
+  (SupersetClient.get as jest.Mock).mockReturnValue(new Promise(() => {}));
+  const value: MatrixifyDimensionControlValue = {
+    dimension: 'country',
+    values: [],
+  };
+  const { rerender } = render(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      value={value}
+      selectionMode="members"
+    />,
+  );
+  const valuesSelect = (): HTMLElement =>
+    screen
+      .getByRole('combobox', { name: 'Select dimension values' })
+      .closest('.ant-select') as HTMLElement;
+  await waitFor(() => expect(SupersetClient.get).toHaveBeenCalled());
+  expect(
+    within(valuesSelect()).queryByLabelText('down'),
+  ).not.toBeInTheDocument();
+
+  rerender(
+    <MatrixifyDimensionControl
+      {...defaultProps}
+      datasource={{ ...mockDatasource, filter_select: false }}
+      value={value}
+      selectionMode="members"
+    />,
+  );
+
+  expect(
+    await within(valuesSelect()).findByLabelText('down'),
+  ).toBeInTheDocument();
+});

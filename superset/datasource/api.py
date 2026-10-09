@@ -221,7 +221,10 @@ class DatasourceRestApi(BaseSupersetApi):
     ) -> FlaskResponse:
         """Return suggestions for an authorized datasource, gating before cache."""
         # A saved display title may equal a different member's stable ID.
-        # Validate caller provenance before cache access or value retrieval.
+        # Check the caller's selection version before cache access or value
+        # retrieval. The marker is the caller's assertion, not proof of
+        # provenance: anyone can copy it from datasource metadata. It only
+        # prevents stale-title collisions; authorization is enforced above.
         selection_version: str | None = None
         if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
             from superset.semantic_layers.models import SemanticView

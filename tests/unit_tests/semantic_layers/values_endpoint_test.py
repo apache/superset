@@ -466,3 +466,36 @@ def test_suggestion_cache_separates_selection_versions(
         assert response.json["result"] == ["Books", "Clothing"]
         keys.append(cache.get.call_args.args[0])
     assert keys[0] != keys[1]
+
+
+def test_unversioned_suggestion_cache_material_is_unchanged(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    """Unversioned views keep their pre-marker cache identity, even if sent one."""
+    from superset.datasource.api import _column_values_cache_key
+
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+    key_fn: MagicMock = mocker.patch(
+        "superset.datasource.api._column_values_cache_key",
+        wraps=_column_values_cache_key,
+    )
+    keys: list[str] = []
+    path: str
+    for path in (
+        "category/values/",
+        "category/values/?semantic_selection_version=cube-member-id-v1",
+    ):
+        assert _get(client, path).json["result"] == ["Books", "Clothing"]
+        assert set(key_fn.call_args.args[1]) == {
+            "col",
+            "limit",
+            "denorm",
+            "elements",
+            "q",
+        }
+        keys.append(cache.get.call_args.args[0])
+    assert keys[0] == keys[1]

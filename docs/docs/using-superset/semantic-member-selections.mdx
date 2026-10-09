@@ -75,3 +75,9 @@ Missing or stale versions on versioned views return an empty `result` and
 `suggestions_status: "unavailable_versioned_view"` before reading cached values
 or requesting provider values. A matching version enables the existing retrieval
 and search behavior. Tables and unversioned views keep their existing behavior.
+
+The version is recorded once per chart, not per filter. A filter column added by
+editing saved form data directly inherits the chart's version, so suggestions are
+a usability aid for compatible selections, not a guarantee about each filter's
+provenance. The marker is not an authorization check; access to the datasource is
+verified separately.
