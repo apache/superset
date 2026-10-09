@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-07 14:21-0300\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -502,6 +502,13 @@ msgid ""
 msgstr ""
 "%s položiek nemohlo byť označených, pretože nemáte oprávnenie na úpravy "
 "všetkých vybraných objektov."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "%s metric"
@@ -1402,6 +1409,11 @@ msgstr "Pridať upozornenie"
 msgid "Add an annotation layer"
 msgstr "Pridať vrstvu anotací"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "Pridať položku"
 
@@ -1766,6 +1778,9 @@ msgstr "Upozornenie nalezlo chybu pri provádení dotazu."
 msgid "Alert is active"
 msgstr "Upozornenie je aktívny"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "Názov upozornenie"
 
@@ -1821,6 +1836,18 @@ msgstr "Upozornenie"
 msgid "Alerts & Reports"
 msgstr "Upozornenie a reporty"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "Upozornenie a reporty"
 
@@ -1830,6 +1857,9 @@ msgstr "Zarovnat +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Zobraziť všetky stĺpce"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "Vše"
@@ -1856,6 +1886,9 @@ msgstr "Dimenze"
 
 msgid "All filters"
 msgstr "Všetky filtre"
+
+msgid "All groupable columns"
+msgstr ""
 
 msgid "All panels"
 msgstr "Všetky panely"
@@ -1935,6 +1968,9 @@ msgstr "Umožniť používateľom výber viac hodnôt"
 
 msgid "Allowed Domains (comma separated)"
 msgstr "Povolené domény (oddelené čiarkou)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "Abecedne"
@@ -2264,6 +2300,9 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Pri vykreslovanie vizualizácia došlo k chybe: %s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
 msgstr "Pri načítavanie SQL došlo k chybe"
@@ -2471,6 +2510,9 @@ msgid ""
 msgstr ""
 "Možno pridať akékoľvek databázy, ktoré umožňujú pripojenie cez URI SQL "
 "Alchemy. Zistite viac o tom, ako pripojiť databázový ovládač "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -4095,11 +4137,18 @@ msgstr "Kód zkopírován!"
 msgid "Collapse"
 msgstr "Sbalit riadok"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 #, fuzzy
 msgid "Collapse All"
 msgstr "Sbalit vše"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4369,6 +4418,9 @@ msgstr "Stĺpce ke čtenie"
 msgid "Columns to show in the tooltip."
 msgstr "Stĺpce k zobrazenie v tooltipu."
 
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "Kombinovať metriky"
 
@@ -4607,6 +4659,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "Obsahuje text (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 msgid "Content format"
 msgstr "Formát obsahu"
 
@@ -4647,6 +4705,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -6901,6 +6962,9 @@ msgstr "Povolit Matrixify"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -7295,6 +7359,9 @@ msgstr "Vylúčiť vybrané hodnoty"
 msgid "Excluded subjects"
 msgstr "Vylúčené subjekty"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "Provedené SQL"
 
@@ -7310,6 +7377,10 @@ msgstr "Protokol provedenie"
 msgid "Existing dataset"
 msgstr "Existujúcí sada dat"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7319,9 +7390,16 @@ msgstr "Ukončiť režim celé obrazovky"
 msgid "Expand"
 msgstr "Rozbalit"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "Rozbalit vše"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "Rozbalit vše"
@@ -8150,6 +8228,9 @@ msgstr ""
 " predstavuje nový riadok. Kompatibilita s ECharts:\n"
 "{a} (série), {b} (názov), {c} (hodnota), {d} (procento)"
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 msgid ""
 "Format metrics or columns with currency symbols as prefixes or suffixes. "
 "Choose a symbol manually or use 'Auto-detect' to apply the correct symbol"
@@ -8366,6 +8447,9 @@ msgstr "Názov skupiny"
 msgid "Group remaining as \"Others\""
 msgstr "Zostávajúce riadky zoskupiť do skupiny \"Ostatné\""
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "Zoskupenie"
@@ -8475,6 +8559,9 @@ msgstr "Vodorovný (nahoře)"
 
 msgid "Horizontal alignment"
 msgstr "Vodorovné zarovnanie"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "Hostitel"
@@ -8686,6 +8773,9 @@ msgid "Include a description that will be sent with your report"
 msgstr "Zahrnúť popis, ktorý bude odeslán s vaším reportem"
 
 msgid "Include a link back to Superset"
+msgstr ""
+
+msgid "Include attachment"
 msgstr ""
 
 #, python-format
@@ -8903,6 +8993,14 @@ msgstr "Neplatný kód meny v uložených metrikách"
 msgid "Invalid date/timestamp format"
 msgstr "Neplatný formát data/časového značky"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 msgid "Invalid executor type"
 msgstr "Neplatný typ exekutoru"
 
@@ -9069,6 +9167,9 @@ msgstr "Konfigurácia JSON"
 
 msgid "JSON Metadata"
 msgstr "Metadata JSON"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "Metadata JSON"
@@ -9334,6 +9435,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -9452,6 +9558,9 @@ msgstr "Like (nerozlišuje veľké a malé písmená)"
 #, fuzzy
 msgid "Limit"
 msgstr "Limit"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "Typ limitu"
@@ -10583,6 +10692,9 @@ msgstr "Žiadne aplikované filtre"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "Nesú k dispozici žiadne filtre."
 
@@ -10740,6 +10852,9 @@ msgstr "Nebyly nalezeny žiadne uložené metriky"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr "Nebyly nalezeny žiadne uložené výsledky, musíte dotaz spustiť znovu"
 
@@ -10859,6 +10974,10 @@ msgstr "Graf nenalezen"
 
 msgid "Not in"
 msgstr "Nie je v"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nie je null"
@@ -11098,11 +11217,17 @@ msgstr "Iba celkovo"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Sú povoleny iba príkazy `SELECT`"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "Platí pouze, keď „Typ popisku“ nie je nastaven na procento."
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "Platí pouze, keď je „Typ popisku“ nastaven na zobrazenie hodnôt."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11166,6 +11291,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "Otvoriť kartu Zdroje dat"
+
+msgid "Open JSON"
+msgstr ""
 
 #, fuzzy
 msgid "Open SQL Lab in a new tab"
@@ -11974,7 +12102,7 @@ msgid "Prefix or suffix"
 msgstr "Predpona alebo prípona"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -12490,6 +12618,12 @@ msgstr ""
 msgid "Replace"
 msgstr "Nahradit"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "Report"
 
@@ -12553,6 +12687,12 @@ msgstr "Plán reportu stále pracuje, odmítá sa přepočítat."
 msgid "Report Schedule log prune failed."
 msgstr "Promazanie protokolu plánu reportu zlyhalo."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "Plán reportu nebyl nalezen."
 
@@ -12576,6 +12716,9 @@ msgstr "Report selhal"
 
 msgid "Report is active"
 msgstr "Report je aktívny"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "Názov reportu"
@@ -12611,6 +12754,9 @@ msgstr "Report aktualizován"
 
 msgid "Reports"
 msgstr "Reporty"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "Odpuzovanie"
@@ -12995,6 +13141,18 @@ msgstr "Spusťte dotaz pre zobrazenie historie dotazov"
 msgid "Run a query to display results"
 msgstr "Spusťte dotaz pre zobrazenie výsledkov"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "Spustiť aktuálny dotaz"
 
@@ -13134,6 +13292,9 @@ msgstr "ŘETĚZEC"
 
 msgid "SUN"
 msgstr "NE"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -13942,6 +14103,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Vyberte typ fariebného schématu k použití."
 
+msgid "Select user"
+msgstr ""
+
 #, fuzzy
 msgid "Select users"
 msgstr "Vyberte používateľa"
@@ -14069,6 +14233,9 @@ msgstr "Sémantický pohľad bol aktualizovaný"
 msgid "Semantic views"
 msgstr "Sémantické pohľady"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -14088,6 +14255,9 @@ msgid "Send as text"
 msgstr "Odoslať ako text"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -14694,6 +14864,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -14917,6 +15092,9 @@ msgstr "Prostorový"
 
 msgid "Specific Date/Time"
 msgstr "Konkrétní dátum/čas"
+
+msgid "Specific user"
+msgstr ""
 
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "Zadejte názov pre CREATE TABLE AS ve schématu: public"
@@ -15712,6 +15890,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 msgid "The annotation has been saved"
 msgstr "Anotace bola uložena"
 
@@ -15818,6 +15999,11 @@ msgstr "Stĺpec, ktorý sa má použít ako cieľ hrany."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Stĺpec bol v databázy zmazaný alebo přejmenován."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Konfigurácia pre vrstvy mapy"
@@ -16044,6 +16230,12 @@ msgstr ""
 "ako predvolený'\n"
 "                    a nepodarilo sa je načítať, což branie vykreslenie\n"
 "                    nástenky: %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 #, fuzzy
 msgid "The font size of the point labels"
@@ -16675,6 +16867,18 @@ msgstr "Používateľ bol úspešne aktualizován."
 msgid "The user was updated successfully"
 msgstr "Používateľ bol úspešne aktualizován"
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
 "Kombinace uživatelského jména a hesla nie je platná (nesprávné heslo pre "
@@ -17063,6 +17267,12 @@ msgstr "Toto sú sady dat, na ktoré bude tento filter aplikován."
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -17131,6 +17341,12 @@ msgstr "Táto akce trvale smaže registraci používateľa."
 
 msgid "This action will permanently delete the user."
 msgstr "Táto akce trvale smaže používateľa."
+
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
 
 msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
@@ -17503,6 +17719,11 @@ msgstr "Toto heslo je príliš bežné; zvoľte si ťažšie uhádnuteľné hesl
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 msgid ""
@@ -18271,6 +18492,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Nemožno načítať nástenku"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -18567,6 +18791,9 @@ msgstr "Použití"
 msgid "Use %s to open in a new tab."
 msgstr "Použijte %s pre otvorenie v nové karte."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "Použít proporce plochy"
 
@@ -18606,6 +18833,12 @@ msgstr "Použít aktuálny rozsah"
 
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Použít formátovanie data, i keď hodnota metriky nie je časová značka"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 #, fuzzy
 msgid "Use gradient"
@@ -18656,6 +18889,9 @@ msgstr "Meno používateľa"
 
 msgid "User Registrations"
 msgstr "Registrácia používateľov"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "Používateľ nemá příslušná oprávnenie."
@@ -19250,6 +19486,11 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "Keď je zaškrtnuto, mapa sa po každém dotazu přiblíží k vašim datům"
 
 msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
+
+msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
@@ -19804,6 +20045,19 @@ msgid ""
 "You can create a new chart or use existing ones from the panel on the "
 "right"
 msgstr "Môžete vytvoriť nový graf alebo použít existujúci z panelu vpravo"
+
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -20635,6 +20889,9 @@ msgstr "každou minutu"
 msgid "every month"
 msgstr "každý mesiac"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "rozbalit"
 
@@ -20845,6 +21102,9 @@ msgstr "minúta"
 msgid "minute(s)"
 msgstr "minúta(y)"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "mesiac"
 
@@ -21017,6 +21277,10 @@ msgstr "restartovať"
 msgid "recent"
 msgstr "nedávné"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "príjemcovia"
 
@@ -21041,11 +21305,18 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "zabezpečení_na_úrovni_riadkov"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "beží"
 
 msgid "save"
 msgstr "uložiť"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"

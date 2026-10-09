@@ -13,13 +13,13 @@
 
 # Maps are fragile and political. GeoJson edits MUST be made in the Jupyter notebook or they'll be overwritten.
 
-**/*.geojson @villebro @rusackas
-**/*.ipynb @villebro @rusackas
-/superset-frontend/plugins/plugin-chart-country-map/ @villebro @rusackas
+**/*.geojson @villebro @rusackas @sadpandajoe
+**/*.ipynb @villebro @rusackas @sadpandajoe
+/superset-frontend/plugins/plugin-chart-country-map/ @villebro @rusackas @sadpandajoe
 
 # Notify PMC members of changes to extension-related files
 
-/docs/developer_docs/extensions/ @michael-s-molina @villebro @rusackas @geido @msyavuz
+/docs/developer_docs/extensions/ @michael-s-molina @villebro @rusackas @geido @msyavuz @sadpandajoe
 /superset-extensions-cli/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz
 /superset/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz
 /superset-frontend/src/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz

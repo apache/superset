@@ -648,8 +648,14 @@ class SemanticLayerRestApi(BaseSupersetApi):
         if not cls:
             return self.response_400(message=f"Unknown type: {sl_type}")
 
+        # Enriching the schema hands the submitted configuration to the
+        # provider, which may contact the hosts it names. That is part of
+        # configuring a layer, so it requires write access; read-only callers
+        # get the static schema.
         parsed_config = None
-        if config := body.get("configuration"):
+        if (config := body.get("configuration")) and security_manager.can_access(
+            "can_write", "SemanticLayer"
+        ):
             parsed_config = _parse_partial_config(cls, config)
 
         warning: str | None = None
