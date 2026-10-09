@@ -18,7 +18,7 @@
 """Add a transactionally rotated semantic-layer cache generation.
 
 Revision ID: c179af013f48
-Revises: 00fab727cd0a
+Revises: e4a7c2b9d1f3
 """
 
 import sqlalchemy as sa
@@ -26,7 +26,7 @@ import sqlalchemy as sa
 from superset.migrations.shared.utils import add_columns, drop_columns
 
 revision: str = "c179af013f48"
-down_revision: str = "00fab727cd0a"
+down_revision: str = "e4a7c2b9d1f3"
 
 
 def upgrade() -> None:
