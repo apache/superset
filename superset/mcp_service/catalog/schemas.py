@@ -37,7 +37,8 @@ CATALOG_MAX_SEARCH_LENGTH = 256
 CATALOG_MAX_CURSOR_LENGTH = 512
 
 # Upper bound on the UTF-8 JSON size of one catalog response. Items that would
-# push the page past this bound are left for the next page (``truncated``).
+# push the page past this bound are left for the next page (``truncated``, with
+# a ``next_cursor`` that resumes after the last returned item).
 CATALOG_MAX_RESPONSE_BYTES = 32 * 1024
 
 # Per-item text caps, so a single entry can never consume the page budget.
@@ -126,6 +127,12 @@ class CatalogResponse(BaseModel):
     truncated: bool = Field(
         False,
         description="True when the page ended early to stay within the response "
-        "size bound, a name/description was shortened, or an oversized URL omitted",
+        "size bound; next_cursor is then always set. A page with no next_cursor "
+        "is complete and never truncated",
+    )
+    fields_shortened: bool = Field(
+        False,
+        description="True when an item's name or description was shortened, or "
+        "an oversized URL omitted. Does not mean entries are missing",
     )
     message: str | None = Field(None, description="Explanation when restricted")
