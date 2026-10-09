@@ -249,6 +249,42 @@ test('Reload metadata confirms and closes without navigating away from the toast
   );
 });
 
+test('Reload metadata stays enabled after schema values are backfilled but disables on an edit', async () => {
+  mockJsonFormsChangeTriggered = true;
+  mockedPost.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          warehouse: { type: 'string' },
+          region: { type: 'string', readOnly: true, default: 'us-east-1' },
+          provider: { type: 'string', const: 'snowflake' },
+        },
+      },
+    },
+  });
+
+  render(<SemanticLayerModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Reload metadata' });
+  await waitFor(() => expect(capturedOnChange).not.toBeNull());
+
+  act(() =>
+    capturedOnChange?.({
+      data: { warehouse: 'wh0', region: 'us-east-1', provider: 'snowflake' },
+      errors: [],
+    }),
+  );
+  expect(button).toBeEnabled();
+
+  act(() =>
+    capturedOnChange?.({
+      data: { warehouse: 'wh1', region: 'us-east-1', provider: 'snowflake' },
+      errors: [],
+    }),
+  );
+  expect(button).toBeDisabled();
+});
+
 test('Reload metadata is disabled for unsaved configuration and name edits', async () => {
   render(<SemanticLayerModal {...props} />);
   const button = await screen.findByRole('button', { name: 'Reload metadata' });

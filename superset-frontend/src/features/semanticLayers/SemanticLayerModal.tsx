@@ -89,10 +89,20 @@ export default function SemanticLayerModal({
     configuration: Record<string, unknown>;
   } | null>(null);
   const clearRequestRef = useRef(0);
+  const savedConfiguration = { ...savedForm?.configuration };
+  for (const [field, property] of Object.entries(
+    configSchema?.properties ?? {},
+  )) {
+    if (typeof property !== 'object' || property === null) continue;
+    const backfilledValue =
+      property.const ?? (property.readOnly ? property.default : undefined);
+    if (backfilledValue !== undefined)
+      savedConfiguration[field] = backfilledValue;
+  }
   const dirty =
     !savedForm ||
     name !== savedForm.name ||
-    !isEqual(formData, savedForm.configuration);
+    !isEqual(formData, savedConfiguration);
   const [hasErrors, setHasErrors] = useState(true);
   const [refreshingSchema, setRefreshingSchema] = useState(false);
   const [validationMode, setValidationMode] =
