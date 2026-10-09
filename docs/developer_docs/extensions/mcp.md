@@ -28,6 +28,15 @@ under the License.
 
 Model Context Protocol (MCP) integration allows extensions to register custom AI agent capabilities that integrate seamlessly with Superset's MCP service. Extensions can provide both **tools** (executable functions) and **prompts** (interactive guidance) that AI agents can discover and use.
 
+## Chart dataset changes
+
+The built-in `update_chart` tool requires a complete `config` when rebinding
+a chart to a different `dataset_id`. Specify the chart type and all column and
+metric roles valid on the target dataset. This applies to both previews and
+immediate saves; dataset-only rebinds return a validation error instead of
+clearing saved query roles. Sending the existing dataset ID does not require
+a replacement config.
+
 ## What is MCP?
 
 MCP enables extensions to extend Superset's AI capabilities in two ways:
