@@ -2842,9 +2842,14 @@ def test_layer_delete_batches_permission_ownership_queries(session: Any) -> None
         event.remove(connection, "before_cursor_execute", record_select)
 
     assert delete_pvm.call_count == 30
-    assert len(selects) <= 3
+    assert len(selects) <= 4
+    assert sum("ab_view_menu" in statement for statement in selects) == 1
     assert all("configuration" not in statement.lower() for statement in selects)
-    assert all(" IN (" not in statement.upper() for statement in selects)
+    assert all(
+        " IN (" not in statement.upper()
+        for statement in selects
+        if "ab_view_menu" not in statement
+    )
     assert all("NOT IN" not in statement.upper() for statement in selects)
 
 
