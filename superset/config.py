@@ -293,6 +293,8 @@ SQLALCHEMY_DATABASE_URI = (
 # Note that you can use this to set the isolation level of your database, as in
 # `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}`
 # Also note that we recommend READ COMMITTED for regular operation.
+# MySQL/MariaDB datasource permission cleanup requires READ COMMITTED; other
+# isolation levels retain potentially orphaned permission records (see UPDATING.md).
 # Find out more here https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/
 SQLALCHEMY_ENGINE_OPTIONS = {}
 

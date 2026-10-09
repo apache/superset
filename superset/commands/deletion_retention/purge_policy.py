@@ -2281,6 +2281,7 @@ def _delete_dataset_permission(
     from superset import security_manager
 
     connection: Connection = session.connection()
+    # POST_DELETE runs after the dataset row is gone, so it cannot match itself.
     if security_manager._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
         connection, permission_name, None
     ):

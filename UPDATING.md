@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+- For MySQL/MariaDB metadata databases, use `READ COMMITTED` isolation (Superset's
+  default for MySQL connections). If `SQLALCHEMY_ENGINE_OPTIONS` overrides it with
+  another isolation level, dataset and semantic-view deletion and purge retain
+  `datasource_access` permission records by design, rather than risk revoking a
+  shared grant based on a stale snapshot. Records with no remaining owner become
+  orphans and can accumulate. Cleanup is also skipped if the isolation level
+  cannot be verified.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.
