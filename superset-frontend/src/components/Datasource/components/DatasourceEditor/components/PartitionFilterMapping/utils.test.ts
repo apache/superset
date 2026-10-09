@@ -605,6 +605,38 @@ test('a non-temporal column previews the IN shape a category filter produces', (
   );
 });
 
+test('a temporal column stored as a number previews in its stored representation', () => {
+  expect(
+    sampleValuesFor({
+      column_name: 'event_epoch',
+      type: 'BIGINT',
+      is_dttm: true,
+      python_date_format: 'epoch_s',
+    }),
+  ).toEqual(['1768435200']);
+  expect(
+    sampleValuesFor({
+      column_name: 'event_epoch_ms',
+      type: 'BIGINT',
+      is_dttm: true,
+      python_date_format: 'epoch_ms',
+    }),
+  ).toEqual(['1768435200000']);
+  // A numeric temporal column without an epoch format still gets numbers,
+  // never a timestamp string its own type cannot hold.
+  expect(
+    sampleValuesFor({ column_name: 'ds_int', type: 'INTEGER', is_dttm: true }),
+  ).toEqual(['2025', '2026']);
+  expect(
+    sampleValuesFor({
+      column_name: 'event_time',
+      type: 'TIMESTAMP',
+      is_dttm: true,
+      python_date_format: 'epoch_s',
+    }),
+  ).toEqual(['2026-01-15 00:00:00']);
+});
+
 test('"map a column" suggests a temporal column over whatever sorts first', () => {
   // The alternative lands on `revenue`, which nobody would mirror onto a
   // partition key.

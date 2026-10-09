@@ -302,6 +302,12 @@ export function defaultTransformFor(
 const NUMERIC_TYPE_RE =
   /INT|NUMERIC|DECIMAL|DOUBLE|FLOAT|REAL|NUMBER|BIGNUMERIC/i;
 
+/** The sample instant, 2026-01-15 00:00:00 UTC, in each epoch representation. */
+const EPOCH_SAMPLES: Record<string, string> = {
+  epoch_s: '1768435200',
+  epoch_ms: '1768435200000',
+};
+
 /**
  * Samples the preview evaluates the transform at.
  *
@@ -314,14 +320,28 @@ const NUMERIC_TYPE_RE =
  * configuration, and evaluating it at `'US'` makes the engine reject a transform
  * that an actual `IN (2025, 2026)` filter would mirror perfectly well -- the
  * preview was reporting a fault in its own sample data.
+ *
+ * That includes a temporal column stored as a number. A `BIGINT` epoch column
+ * marked temporal compares epoch integers, and a chart's time range reaches it
+ * as one; a timestamp string coerces to nothing on that column, so the preview
+ * would report a broken mapping that the chart path mirrors correctly. Such a
+ * column gets the sample instant in its epoch representation, or the plain
+ * numeric samples when its format is not an epoch.
  */
 export function sampleValuesFor(
   column: PartitionMappingColumn | undefined,
 ): string[] {
+  const isNumeric = Boolean(column?.type && NUMERIC_TYPE_RE.test(column.type));
   if (column?.is_dttm) {
-    return ['2026-01-15 00:00:00'];
+    if (!isNumeric) {
+      return ['2026-01-15 00:00:00'];
+    }
+    const epochSample = EPOCH_SAMPLES[column.python_date_format ?? ''];
+    if (epochSample) {
+      return [epochSample];
+    }
   }
-  if (column?.type && NUMERIC_TYPE_RE.test(column.type)) {
+  if (isNumeric) {
     return ['2025', '2026'];
   }
   return ['US', 'CA'];
