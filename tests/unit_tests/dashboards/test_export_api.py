@@ -44,8 +44,6 @@ def test_export_maps_inaccessible_nested_object_to_not_found(
         # access, so they report them as not found.
         raise error()
 
-    # The endpoint refuses anonymous callers before exporting.
-    mocker.patch("superset.dashboards.api.get_user_id", return_value=1)
     command: MagicMock = mocker.patch("superset.dashboards.api.ExportDashboardsCommand")
     command.return_value.run.side_effect = run
 

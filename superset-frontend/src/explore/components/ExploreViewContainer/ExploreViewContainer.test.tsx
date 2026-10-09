@@ -32,6 +32,7 @@ import type { RouteComponentProps } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import {
   act,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -897,7 +898,7 @@ const renderAfterInitialQuery = async (initialState: object) => {
 test('Ctrl+Enter runs the query when controls are valid', async () => {
   const { triggerQuerySpy } = await renderAfterInitialQuery(reduxState);
 
-  await userEvent.keyboard('{Control>}{Enter}{/Control}');
+  fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
 
   expect(triggerQuerySpy).toHaveBeenCalledWith(true, 1);
 });
@@ -905,7 +906,7 @@ test('Ctrl+Enter runs the query when controls are valid', async () => {
 test('Cmd+Enter runs the query when controls are valid', async () => {
   const { triggerQuerySpy } = await renderAfterInitialQuery(reduxState);
 
-  await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+  fireEvent.keyDown(document, { key: 'Enter', metaKey: true });
 
   expect(triggerQuerySpy).toHaveBeenCalledWith(true, 1);
 });
@@ -926,8 +927,8 @@ test('Ctrl/Cmd+Enter does not run the query when controls have validation errors
     },
   });
 
-  await userEvent.keyboard('{Control>}{Enter}{/Control}');
-  await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+  fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
+  fireEvent.keyDown(document, { key: 'Enter', metaKey: true });
 
   expect(triggerQuerySpy).not.toHaveBeenCalled();
 });
@@ -944,8 +945,8 @@ test('Ctrl/Cmd+Enter does not run the query while the chart is loading', async (
     );
   });
 
-  await userEvent.keyboard('{Control>}{Enter}{/Control}');
-  await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+  fireEvent.keyDown(document, { key: 'Enter', ctrlKey: true });
+  fireEvent.keyDown(document, { key: 'Enter', metaKey: true });
 
   expect(triggerQuerySpy).not.toHaveBeenCalled();
 });
