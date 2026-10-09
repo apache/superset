@@ -32,7 +32,10 @@ from werkzeug.test import TestResponse
 
 from superset.app import SupersetApp
 from superset.initialization import SupersetAppInitializer
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import (
+    SemanticLayer as SemanticLayerModel,
+    SemanticView,
+)
 from superset.semantic_layers.registry import registry
 
 STUB_PATH: Path = (
@@ -65,7 +68,12 @@ def stub_view(
     view: SemanticViewABC = stub_layer.from_configuration({}).get_semantic_view(
         "orders", {}
     )
-    model: SemanticView = SemanticView(id=91, name="orders", cache_timeout=-1)
+    model: SemanticView = SemanticView(
+        id=91,
+        name="orders",
+        cache_timeout=-1,
+        semantic_layer=SemanticLayerModel(type=STUB_TYPE),
+    )
     mocker.patch.object(
         SemanticView, "implementation", new_callable=PropertyMock, return_value=view
     )
