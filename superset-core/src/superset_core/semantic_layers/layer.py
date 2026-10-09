@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar
 
 from pydantic import BaseModel
 
@@ -35,6 +35,9 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     """
 
     configuration_class: type[BaseModel]
+    # Opt in only when all result methods enforce the advertised guarantee.
+    # None preserves legacy result-cache keys without constructing the provider.
+    result_cache_version: ClassVar[str | None] = None
 
     @classmethod
     def supports_metadata_refresh(cls, configuration: dict[str, Any]) -> bool:
