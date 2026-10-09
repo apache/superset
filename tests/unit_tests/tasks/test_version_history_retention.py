@@ -785,6 +785,63 @@ def test_prune_cap_limits_every_shadow_delete_to_capped_ids() -> None:
     assert result["pruned_transactions"] == 0
 
 
+def test_prune_child_delete_failure_rolls_back_parent_delete() -> None:
+    """A child-delete failure rolls back the pass instead of committing its parent."""
+    metadata: sa.MetaData = sa.MetaData()
+    parent: sa.Table = sa.Table("parent", metadata)
+    child: sa.Table = sa.Table("child", metadata)
+    tables: version_history_retention.ShadowTables = (
+        version_history_retention.ShadowTables(
+            parent=[parent],
+            child=[child],
+            m2m=sa.Table("m2m", metadata),
+            transaction=sa.Table(
+                "version_transaction", metadata, sa.Column("id", sa.Integer)
+            ),
+        )
+    )
+    window: version_history_retention._PruneWindow = (
+        version_history_retention._PruneWindow(
+            prunable=[1], candidate_count=1, max_candidate_id=1
+        )
+    )
+    engine: MagicMock = MagicMock()
+    connection_context: MagicMock = (
+        engine.connect.return_value.execution_options.return_value
+    )
+    connection: MagicMock = connection_context.__enter__.return_value
+    transaction: MagicMock = connection.begin.return_value
+    delete_error: RuntimeError = RuntimeError("child-shadow delete failed")
+    delete: MagicMock
+    mock_db: MagicMock
+    raised: pytest.ExceptionInfo[RuntimeError]
+    with (
+        patch.object(version_history_retention, "db") as mock_db,
+        patch.object(
+            version_history_retention, "_resolve_prune_window", return_value=window
+        ),
+        patch.object(
+            version_history_retention,
+            "_delete_for_transactions",
+            side_effect=[1, delete_error],
+        ) as delete,
+    ):
+        mock_db.engine = engine
+        with pytest.raises(RuntimeError, match="child-shadow delete failed") as raised:
+            version_history_retention._run_prune_pass(
+                datetime(2026, 1, 1), tables, max_prune=1
+            )
+
+    assert raised.value is delete_error
+    assert delete.call_args_list == [
+        call(connection, [parent], [1]),
+        call(connection, [child], [1]),
+    ]
+    transaction.rollback.assert_called_once_with()
+    transaction.commit.assert_not_called()
+    connection.execute.assert_not_called()
+
+
 def test_prune_retries_definitive_db_commit_failure(stats: MagicMock) -> None:
     """An acknowledged transaction rejection may retry the same capped window."""
     tables: version_history_retention.ShadowTables = (
