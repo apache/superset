@@ -99,6 +99,35 @@ class CanvasWriteResponse(BaseModel):
     )
 
 
+class PreviewWidgetResponse(BaseModel):
+    placement_id: str | None = None
+    widget_type: str | None = None
+    row_count: int | None = Field(
+        default=None, description="Rows the widget's query returned."
+    )
+    columns: list[str] | None = None
+    sample_rows: list[dict[str, Any]] | None = Field(
+        default=None, description="The first rows of the widget's query."
+    )
+    option: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "The ECharts option as rendered: bindings resolved, theme applied. "
+            "Only with a renderer configured; long data arrays are shortened."
+        ),
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Problems found without looking: unbound fields, empty "
+        "data, tooltips or labels that would print raw objects.",
+    )
+    image: str | None = Field(
+        default=None,
+        description="Whether an image was attached, and its size.",
+    )
+    error: str | None = None
+
+
 class CanvasDraftResponse(BaseModel):
     """A canvas draft, or the result of a write to one."""
 

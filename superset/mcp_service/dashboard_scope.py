@@ -1199,6 +1199,14 @@ def _refuse_definition_change(tool_name: str) -> MCPDashboardScopeError:
     )
 
 
+def _refuse_canvas_preview(request: Any, scope: DashboardScope) -> Any:
+    raise MCPDashboardScopeError(
+        "preview_widget returns rows from a canvas widget's query, which the "
+        "active dashboard filters do not cover.",
+        "Preview canvas widgets outside a dashboard-scoped conversation.",
+    )
+
+
 def _refuse_while_scoped(tool_name: str) -> Rewriter:
     def refuse(request: Any, scope: DashboardScope) -> Any:
         raise _refuse_definition_change(tool_name)
@@ -1239,6 +1247,7 @@ SCOPE_REWRITERS: dict[str, Rewriter] = {
     "update_chart": _gate_update_chart,
     "update_chart_preview": _gate_update_chart_preview,
     **{name: _refuse_while_scoped(name) for name in DEFINITION_CHANGING_TOOLS},
+    "preview_widget": _refuse_canvas_preview,
 }
 
 # Tools that return no dataset rows: metadata, links, and writes. Keep this an

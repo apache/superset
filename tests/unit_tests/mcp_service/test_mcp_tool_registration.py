@@ -46,6 +46,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "create_canvas": "revision",
     "get_canvas": "definition",
     "list_canvases": "canvases",
+    "preview_widget": "sample_rows",
     "update_canvas": "revision",
     "get_widget_control_schema": "control_schema",
     "list_widget_types": "widget_types",
@@ -763,6 +764,7 @@ def test_canvas_tools_removed_when_canvas_disabled(gtf_ffm: MagicMock) -> None:
         "apply_canvas_draft_ops",
         "commit_canvas_draft",
         "delete_canvas_draft",
+        "preview_widget",
         "list_widget_types",
         "get_widget_control_schema",
     } <= removed

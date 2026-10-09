@@ -817,6 +817,7 @@ from superset.mcp_service.canvas.tool import (  # noqa: F401, E402
     get_canvas,
     get_canvas_draft,
     list_canvases,
+    preview_widget,
     update_canvas,
 )
 from superset.mcp_service.catalog.tool import (  # noqa: F401, E402
@@ -1046,6 +1047,7 @@ CANVAS_TOOLS = (
     "apply_canvas_draft_ops",
     "commit_canvas_draft",
     "delete_canvas_draft",
+    "preview_widget",
     "list_widget_types",
     "get_widget_control_schema",
 )

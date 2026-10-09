@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from superset.commands.canvas.apply_ops import ApplyResult
@@ -206,6 +207,111 @@ def test_update_canvas_needs_editorship() -> None:
         result = _update_canvas_impl("5", {"title": "Renamed"})
 
     assert "editors" in result["error"]
+
+
+PREVIEW = "superset.mcp_service.canvas.tool.preview_widget"
+REVENUE = {"expressionType": "SQL", "sqlExpression": "SUM(sales)", "label": "revenue"}
+
+
+def _preview_canvas(node: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "version": 1,
+        "root": {"layout": {"columns": 24}, "children": ["chart"]},
+        "nodes": {"chart": {**node, "layout": {"colSpan": 12, "rowSpan": 8}}},
+    }
+
+
+def test_preview_query_matches_the_canvas_request() -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _query_payload
+
+    payload = _query_payload(
+        {
+            "datasetId": 13,
+            "metrics": [REVENUE],
+            "dimensions": ["country"],
+            "filters": [
+                {"expressionType": "SQL", "sqlExpression": "territory IS NOT NULL"},
+                {"subject": "deal_size", "operator": "IN", "comparator": ["Large"]},
+            ],
+            "orderBy": [{"field": "revenue", "descending": True}],
+            "rowLimit": 5,
+        }
+    )
+
+    query = payload["queries"][0]
+    assert payload["datasource"] == {"id": 13, "type": "table"}
+    assert query["columns"] == ["country"]
+    assert query["filters"] == [{"col": "deal_size", "op": "IN", "val": ["Large"]}]
+    assert query["extras"] == {"where": "(territory IS NOT NULL)"}
+    assert query["orderby"] == [[REVENUE, False]]
+    assert query["row_limit"] == 5
+
+
+def test_preview_without_a_renderer_returns_rows_only() -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    node = {
+        "widgetType": "echarts",
+        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+    }
+    rows = [{"revenue": float(i)} for i in range(12)]
+    with (
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+        patch(f"{PREVIEW}._fetch_rows", return_value=rows),
+        patch(f"{PREVIEW}.current_app") as app,
+        patch(f"{PREVIEW}._render") as render,
+    ):
+        dao.load.return_value = _preview_canvas(node)
+        app.config = {"CANVAS_WIDGET_RENDERER_URL": None}
+        result, image = _preview_widget_impl(1, "chart", dark=False)
+
+    render.assert_not_called()
+    assert image is None
+    assert result["row_count"] == 12
+    assert len(result["sample_rows"]) == 10
+    assert result["columns"] == ["revenue"]
+
+
+def test_preview_merges_renderer_warnings_and_image() -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    node = {
+        "widgetType": "echarts",
+        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+    }
+    with (
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+        patch(f"{PREVIEW}._fetch_rows", return_value=[]),
+        patch(f"{PREVIEW}.current_app") as app,
+        patch(f"{PREVIEW}._render") as render,
+    ):
+        dao.load.return_value = _preview_canvas(node)
+        app.config = {"CANVAS_WIDGET_RENDERER_URL": "http://renderer"}
+        render.return_value = {
+            "png": "aGk=",
+            "width": 672,
+            "height": 600,
+            "option": {"series": []},
+            "warnings": ["Tooltip prints [object Object]"],
+        }
+        result, image = _preview_widget_impl(1, "chart", dark=True)
+
+    assert image == "aGk="
+    assert result["warnings"] == [
+        "The widget's query returned no rows",
+        "Tooltip prints [object Object]",
+    ]
+    assert result["image"] == "attached, 672x600 PNG"
+
+
+def test_preview_reports_unknown_placements() -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    with patch(f"{PREVIEW}.CanvasDAO") as dao:
+        dao.load.return_value = _preview_canvas({"widgetType": "markdown"})
+        result, _ = _preview_widget_impl(1, "nope", dark=False)
+
+    assert "No placement" in result["error"]
 
 
 def test_create_canvas_draft_returns_a_token_and_a_fragment_url() -> None:

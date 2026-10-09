@@ -1275,6 +1275,14 @@ ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via 
 # Default theme mode for sessions without a saved user preference.
 THEME_DEFAULT_MODE: Literal["default", "dark", "system"] = "system"
 
+# Canvas widget previews (the ``preview_widget`` MCP tool) run the widget's
+# query on their own. With a renderer service set here, they also return the
+# resolved chart option, render warnings and an image: Superset POSTs the
+# widget's props, its rows, the theme and the canvas colors to
+# ``<url>/render/echarts`` and expects ``{"png": <base64>, "option": {...},
+# "warnings": [...]}`` back.
+CANVAS_WIDGET_RENDERER_URL: str | None = None
+
 # Canvas drafts expire after this long without a write.
 CANVAS_DRAFT_TTL_SECONDS: int = 7 * 24 * 60 * 60
 # How often, in seconds, an open draft page checks for changes made elsewhere,

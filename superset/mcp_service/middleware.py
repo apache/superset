@@ -487,6 +487,7 @@ _SENSITIVE_PARAM_KEYS = frozenset(
         "credentials",
         "authorization",
         "cookie",
+        "draft_token",
     }
 )
 
