@@ -365,3 +365,19 @@ validator. Direct API callers continue to use provider-local enforcement.
 Providers must deploy against a compatible core version before importing the
 new enum member. Older providers remain valid with an empty feature set; their
 Table pagination controls stay disabled until they explicitly opt in.
+
+#### Choosing a default time dimension
+
+A semantic view may set `preferred_temporal_dimension` to the name of a temporal
+dimension it exposes. Superset publishes that name as `main_dttm_col`, which
+Explore uses for the default time filter on new charts. The declaration is
+ignored if the name is absent or does not identify a temporal dimension.
+
+```python
+class MySemanticView(SemanticView):
+    preferred_temporal_dimension = "metric_time"
+```
+
+Providers that omit the declaration retain Explore's existing first temporal
+column fallback. This preference does not change the time dimension already
+selected on a saved chart.
