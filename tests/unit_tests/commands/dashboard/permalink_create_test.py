@@ -24,6 +24,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.key_value.types import RowLock
 
 MODULE = "superset.commands.dashboard.permalink.create"
 UUID_KEY = UUID("11111111-1111-1111-1111-111111111111")
@@ -112,7 +113,7 @@ def test_create_permalink_joins_concurrent_winner(mocks: dict[str, Any]) -> None
     # The re-read must be a locking read so that it sees the winner's committed row
     # even when the transaction runs under REPEATABLE READ. It must be a shared lock:
     # exclusive re-reads from 3+ concurrent losers deadlock on InnoDB.
-    assert mocks["dao"].get_entry.call_args.kwargs == {"for_share": True}
+    assert mocks["dao"].get_entry.call_args.kwargs == {"lock": RowLock(read=True)}
 
 
 def test_create_permalink_reraises_unexpected_integrity_error(

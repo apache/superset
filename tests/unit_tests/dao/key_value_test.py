@@ -36,6 +36,7 @@ from superset.key_value.types import (
     JsonKeyValueCodec,
     KeyValueResource,
     PickleKeyValueCodec,
+    RowLock,
 )
 from superset.utils import json
 from superset.utils.core import override_user
@@ -188,13 +189,13 @@ def test_get_uuid_entry(
     assert JSON_CODEC.decode(found_entry.value) == JSON_VALUE
 
 
-def test_get_entry_for_share(
+def test_get_entry_shared_lock(
     app_context: AppContext,
     key_value_entry: KeyValueEntry,  # noqa: F811
     after_each: None,  # noqa: F811
 ) -> None:
     """
-    ``for_share`` must request a shared lock, not an exclusive one: exclusive
+    ``RowLock(read=True)`` must request a shared lock, not an exclusive one: exclusive
     re-reads from several concurrent permalink requests deadlock on InnoDB.
     """
     from sqlalchemy.dialects import mysql, postgresql
@@ -213,7 +214,7 @@ def test_get_entry_for_share(
         found_entry = KeyValueDAO.get_entry(
             resource=RESOURCE,
             key=key_value_entry.uuid,
-            for_share=True,
+            lock=RowLock(read=True),
         )
 
     assert found_entry is not None
