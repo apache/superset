@@ -110,18 +110,31 @@ class SemanticView(ABC):
     ) -> SemanticResult:
         """
         Return distinct values for a dimension.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
+        Do not drop ``filters`` and retry when a filtered request is incomplete.
         """
 
     @abstractmethod
     def get_table(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a semantic query and return the results.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
         """
 
     @abstractmethod
     def get_row_count(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a query and return the number of rows the result would have.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
         """
 
     @abstractmethod
