@@ -14187,10 +14187,10 @@ swagger-client@^3.38.2:
     "@swagger-api/apidom-parser-adapter-openapi-yaml-3-2" "1.11.6"
     "@swagger-api/apidom-parser-adapter-yaml-1-2" "1.11.6"
 
-swagger-ui-react@^5.33.0:
-  version "5.33.0"
-  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.33.0.tgz#557a7a21ed1a99da03e23bef51323be47e23b51c"
-  integrity sha512-4CJm/NyzuVHYRH3rVWgMeBcsx4TKnSvSHf+hd5uWf6od6l7VbXED5fMhoPB7IkJe+SKnBm5uSxbomoLpXkoFXQ==
+swagger-ui-react@^5.33.1:
+  version "5.33.1"
+  resolved "https://registry.yarnpkg.com/swagger-ui-react/-/swagger-ui-react-5.33.1.tgz#1d195131ff2344213b17454cb5f9439500ff9ec5"
+  integrity sha512-AvfsWJrKsiSxiE/GMvya4z4RRNyHAiGM3LAezdJzPe8pY5MP6jAyCB+2/7Bq+YYd+XcnsNxt6GaottJMj5CRzA==
   dependencies:
     "@babel/runtime-corejs3" "^7.27.1"
     "@scarf/scarf" "=1.4.0"
