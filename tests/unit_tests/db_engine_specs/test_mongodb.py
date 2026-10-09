@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import uuid
 from datetime import datetime
 from typing import Any, Optional
 
@@ -362,3 +363,81 @@ def test_get_sqla_table_does_not_qualify_collection() -> None:
 
     assert "FROM orders" in compiled
     assert "testdb" not in compiled
+
+
+def test_normalize_column_values_decodes_bson_uuid() -> None:
+    """BSON UUIDs (BinData subtype 3/4) become canonical UUID strings."""
+    bson_binary = pytest.importorskip("bson.binary")
+
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+
+    value = uuid.UUID("fffeee5b-a897-872a-4a45-b5300314e216")
+    standard = bson_binary.Binary.from_uuid(
+        value, bson_binary.UuidRepresentation.STANDARD
+    )
+    legacy = bson_binary.Binary.from_uuid(
+        value, bson_binary.UuidRepresentation.PYTHON_LEGACY
+    )
+
+    assert standard.subtype == 4
+    assert legacy.subtype == 3
+
+    assert MongoDBEngineSpec.normalize_column_values([standard, legacy, None]) == [
+        "fffeee5b-a897-872a-4a45-b5300314e216",
+        "fffeee5b-a897-872a-4a45-b5300314e216",
+        None,
+    ]
+
+
+def test_normalize_column_values_leaves_non_uuid_values_untouched() -> None:
+    """Only 16-byte UUID subtypes are rewritten; everything else passes through."""
+    bson_binary = pytest.importorskip("bson.binary")
+
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+
+    generic_blob = bson_binary.Binary(b"\x89PNG\r\n\x1a\n", 0)
+    short_uuid_subtype = bson_binary.Binary(b"\x01\x02\x03", 4)
+    plain_bytes = b"\x89PNG\r\n\x1a\n"
+
+    assert MongoDBEngineSpec.normalize_column_values(
+        [generic_blob, short_uuid_subtype, plain_bytes, "a string", 42, None]
+    ) == [generic_blob, short_uuid_subtype, plain_bytes, "a string", 42, None]
+
+
+def test_bson_uuid_column_serializes_as_uuid_string_not_mojibake() -> None:
+    """
+    End-to-end regression for the reported symptom.
+
+    A BSON UUID column travelling the SQL Lab path -- ``SupersetResultSet`` ->
+    ``df_to_records`` -> JSON serialization -- must reach the client as a readable
+    UUID string. Before the fix the 16 raw bytes stayed a PyArrow ``binary``
+    column all the way to ``base_json_conv``, whose bytes branch falls back to
+    ``decode("utf-16")`` and emitted CJK mojibake instead.
+    """
+    bson_binary = pytest.importorskip("bson.binary")
+
+    from superset.dataframe import df_to_records
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+    from superset.result_set import SupersetResultSet
+
+    value = uuid.UUID("fffeee5b-a897-872a-4a45-b5300314e216")
+    stored = bson_binary.Binary.from_uuid(
+        value, bson_binary.UuidRepresentation.STANDARD
+    )
+
+    # The exact mojibake from the report: these 16 bytes decoded as UTF-16.
+    assert bytes(stored).decode("utf-16") == "寮鞨⪇䕊サᐃᛢ"
+
+    result_set = SupersetResultSet(
+        [(stored,)],
+        [("_id", "BINARY", None, None, None, None, True)],
+        MongoDBEngineSpec,
+    )
+    payload = json.dumps(
+        df_to_records(result_set.to_pandas_df()),
+        default=json.pessimistic_json_iso_dttm_ser,
+    )
+
+    assert str(value) in payload
+    assert "寮鞨⪇䕊サᐃᛢ" not in payload
+    assert "[bytes]" not in payload

@@ -22,6 +22,7 @@ to enable SQL queries on MongoDB collections.
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 
@@ -44,6 +45,12 @@ class MongoDBEngineSpec(BaseEngineSpec):
     engine = "mongodb"
     engine_name = "MongoDB"
     force_column_alias_quotes = False
+
+    # PyMongoSQL returns BSON UUIDs as `bson.Binary` -- a `bytes` subclass -- which
+    # PyArrow keeps as an opaque `binary` column all the way to JSON serialization,
+    # where the bytes are decoded as UTF-16 and reach the client as unreadable text.
+    # `normalize_column_values` below rewrites them to canonical UUID strings first.
+    requires_column_value_normalization = True
 
     # A MongoDB database is exposed as a SQLAlchemy schema. PyMongoSQL treats the
     # whole FROM reference as the collection name, so the schema is selected through
@@ -171,6 +178,48 @@ class MongoDBEngineSpec(BaseEngineSpec):
         as the collection, so the schema is applied via the ``database`` connect arg.
         """
         return dialect.identifier_preparer.quote(table.table)
+
+    @classmethod
+    def normalize_column_values(cls, col_values: list[Any]) -> list[Any]:
+        """
+        Convert BSON UUIDs to canonical UUID strings.
+
+        MongoDB stores UUIDs as BinData with subtype 4 (RFC 4122) or the legacy
+        subtype 3, which the driver surfaces as 16-byte `bson.Binary` values.
+        Left alone they stay an opaque Arrow `binary` column and are serialized
+        by decoding the raw bytes as text, which renders as unreadable
+        characters and cannot be used for joins or filters.
+
+        Values are matched by duck-typing on the BSON `subtype` attribute so the
+        engine spec stays importable without `pymongo` installed. Other binary
+        values -- generic BLOBs, or anything that is not exactly 16 bytes -- are
+        passed through untouched.
+
+        :param col_values: Raw Python values for one column
+        :return: Values with BSON UUIDs replaced by their string form
+        """
+        return [cls._decode_bson_uuid(value) for value in col_values]
+
+    @staticmethod
+    def _decode_bson_uuid(value: Any) -> Any:
+        """
+        Return `value` as a canonical UUID string when it is a BSON UUID.
+
+        The 16 stored bytes are read in RFC 4122 order. That is exact for
+        subtype 4; subtype 3 predates a standard byte order, so a UUID written
+        by a legacy Java or C# driver uses a different layout and round-trips
+        to a differently-ordered string. Reading the bytes as stored is the only
+        interpretation available without knowing the writing driver, and it
+        matches what the MongoDB shell displays for the same value.
+        """
+        if (
+            isinstance(value, bytes)
+            and len(value) == 16
+            and getattr(value, "subtype", None) in {3, 4}
+        ):
+            return str(uuid.UUID(bytes=bytes(value)))
+
+        return value
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

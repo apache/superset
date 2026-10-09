@@ -1704,9 +1704,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Engine-specific hook to normalize column values before PyArrow conversion.
 
-        Called when the initial pa.array() conversion raises an exception, giving
-        the engine a chance to clean up values (e.g. replace sentinel strings with
-        None) before a second conversion attempt.
+        Called for every column, ahead of the first pa.array() attempt, on engine
+        specs that set `requires_column_value_normalization`. It gives the engine a
+        chance to clean up driver-specific values -- replacing sentinel strings with
+        None, or rewriting opaque binary values to a readable form -- while PyArrow
+        can still infer a useful column type from them.
 
         :param col_values: Raw Python values for one column
         :return: Normalized values; return the input list unchanged by default
