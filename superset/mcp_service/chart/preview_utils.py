@@ -2413,12 +2413,22 @@ def fallback_vega_lite_preview(
     return None
 
 
+# Extended ISO date/datetime text that the renderer's ``Date.parse`` accepts.
+# Python's ISO parser also accepts basic forms such as ``20250101`` and week
+# dates, which browsers reject, so those must not mark the axis temporal.
+_VEGA_TEMPORAL_TEXT = re.compile(
+    r"\d{4}-\d{2}-\d{2}"
+    r"(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?)?"
+)
+
+
 def _xy_pivot_x_type(values: list[Any]) -> str:
     """Infer the Vega-Lite x type from every x value, not a character scan.
 
     The renderer has no column metadata, so text is temporal only when each
-    value parses as an ISO date or datetime; labels such as ``New York`` stay
-    nominal instead of becoming unparseable dates.
+    value is an extended ISO date or datetime the renderer can parse; labels
+    such as ``New York`` and compact dates such as ``20250101`` stay nominal
+    instead of becoming unparseable dates.
     """
     present = [value for value in values if value is not None]
     if not present:
@@ -2430,7 +2440,11 @@ def _xy_pivot_x_type(values: list[Any]) -> str:
         return "quantitative"
     if all(
         isinstance(value, (date, datetime))
-        or (isinstance(value, str) and _gantt_temporal_value(value) is not None)
+        or (
+            isinstance(value, str)
+            and _VEGA_TEMPORAL_TEXT.fullmatch(value) is not None
+            and _gantt_temporal_value(value) is not None
+        )
         for value in present
     ):
         return "temporal"

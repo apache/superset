@@ -3355,6 +3355,15 @@ def test_xy_preview_renders_truncated_metric_series(
         (["New York", "San Jose"], "nominal"),
         (["Product A", "Product-B"], "nominal"),
         (["2026-10-01", "2026-10-02 00:00:00"], "temporal"),
+        (["2026-10-01T00:00:00.000", "2026-10-02T00:00:00Z"], "temporal"),
+        (["2026-10-01T00:00:00+02:00", "2026-10-02T00:00"], "temporal"),
+        # Python's ISO parser accepts these basic/week forms, but the
+        # renderer's Date.parse returns NaN, so they must stay nominal.
+        (["20250101", "20250102"], "nominal"),
+        (["2025-01-01", "20250102"], "nominal"),
+        (["2025-W01-1", "2025-W01-2"], "nominal"),
+        (["2025-01-01T000000", "2025-01-02T000000"], "nominal"),
+        (["2025-13-01", "2025-01-02"], "nominal"),
         ([1, 2.5], "quantitative"),
     ],
 )

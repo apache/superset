@@ -683,6 +683,63 @@ async def test_get_table_maps_invalid_result_without_formatting_hooks(
 
 
 @pytest.mark.asyncio
+async def test_get_table_rejects_response_amplified_by_column_profiling(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A source-valid result whose formatted response exceeds the byte limit fails.
+
+    Each 64 KiB cell and the total payload pass source validation, so the
+    rejection can only come from the post-format response guard, which counts
+    the profiling samples repeated in the column metadata.
+    """
+    from superset.mcp_service.chart.query_result import (
+        MAX_QUERY_RESULT_STRING_BYTES,
+        MAX_QUERY_RESULT_VALUE_BYTES,
+        query_result_data,
+    )
+
+    cell_bytes = MAX_QUERY_RESULT_STRING_BYTES - 16
+    row_count = 255
+    rows = [
+        {"category": f"{index:03d}" + "x" * (cell_bytes - 3), "count": index}
+        for index in range(row_count)
+    ]
+    result = {
+        "queries": [
+            {
+                "data": rows,
+                "colnames": ["category", "count"],
+                "coltypes": [GenericDataType.STRING, GenericDataType.NUMERIC],
+                "rowcount": row_count,
+            }
+        ]
+    }
+    assert row_count * cell_bytes < MAX_QUERY_RESULT_VALUE_BYTES
+    _data, source_failure = query_result_data(result)
+    assert source_failure is None
+
+    real_guard = get_table_module.response_json_failure
+    guard_failures: list[Any] = []
+
+    def record_guard(response: Any) -> Any:
+        failure = real_guard(response)
+        guard_failures.append(failure)
+        return failure
+
+    monkeypatch.setattr(get_table_module, "response_json_failure", record_guard)
+
+    response = await _run_with_command_result(monkeypatch, result)
+
+    assert len(guard_failures) == 1
+    assert guard_failures[0] is not None
+    assert response.success is False
+    assert response.error_type == "MalformedQueryResult"
+    assert "byte limit" in response.error
+    assert getattr(response, "data", None) is None
+    assert getattr(response, "columns", None) is None
+
+
+@pytest.mark.asyncio
 async def test_get_table_grain_alias_hint_for_other_temporal_column(
     mcp_server: FastMCP, temporal_view: MagicMock
 ) -> None:
