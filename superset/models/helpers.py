@@ -4941,8 +4941,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         The result is SQL text rather than a value, because an array literal is
         an expression; `RawProbeValue` carries it and `build_probe_sql`
         substitutes rather than binds. Returns `None` when the engine spec
-        claims multi-value columns without implementing a literal for them,
-        which costs the query its pruning and nothing else.
+        claims multi-value columns without implementing a literal for them, or
+        when an element has no literal the dialect can render -- a nested array
+        such as ``[[1, 2]]`` -- which costs the query its pruning and nothing
+        else.
         """
 
         def literal(entry: Any) -> Any:
@@ -4960,7 +4962,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 return tuple(literal(candidate) for candidate in candidates)
             return literal(value)
-        except NotImplementedError:
+        except (NotImplementedError, sa.exc.CompileError):
             return None
 
     def _as_probe_input(self, value: Any) -> Any:
