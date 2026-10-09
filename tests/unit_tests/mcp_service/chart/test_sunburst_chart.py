@@ -1129,6 +1129,10 @@ def test_registered_same_viz_role_registry_is_complete_across_update_products(
         key: [f"stale_{key}"] if key in list_roles else f"stale_{key}"
         for key in role_keys
     }
+    if isinstance(config, TableChartConfig) and mapped["query_mode"] == "aggregate":
+        # Percent metrics are valid unmodeled native roles, not replacement
+        # aliases. Exercise their preservation in every update product.
+        stale_roles["percent_metrics"] = deepcopy(mapped["metrics"][:1])
     if isinstance(config, MixedTimeseriesChartConfig):
         # Valid secondary controls survive omissions. Use malformed values to
         # test rejection instead of valid strings representing native settings.
@@ -1172,11 +1176,14 @@ def test_registered_same_viz_role_registry_is_complete_across_update_products(
     assert isinstance(immediate, dict)
     assert isinstance(preview, dict)
     saved = json.loads(immediate["params"])
+    expected_mapped = deepcopy(mapped)
+    if isinstance(config, TableChartConfig) and mapped["query_mode"] == "aggregate":
+        expected_mapped["percent_metrics"] = stale_roles["percent_metrics"]
     for state in (cached_overlay, saved, preview):
         if preserves_native_controls:
             assert state["native_plugin_control"] == {"enabled": True}
         assert {key: state[key] for key in role_keys if key in state} == {
-            key: mapped[key] for key in role_keys if key in mapped
+            key: expected_mapped[key] for key in role_keys if key in expected_mapped
         }
 
         # Both production query rebuilders must be invariant to the adversarial
@@ -1187,7 +1194,7 @@ def test_registered_same_viz_role_registry_is_complete_across_update_products(
             viz_type=mapped["viz_type"],
         )
         mapped_common_query = build_query_context_from_form_data(
-            deepcopy(mapped),
+            deepcopy(expected_mapped),
             {"id": 7, "type": "table"},
             viz_type=mapped["viz_type"],
         )
@@ -1211,7 +1218,7 @@ def test_registered_same_viz_role_registry_is_complete_across_update_products(
                 datasource_type="table",
             )
             mapped_chart_queries = build_query_dicts_from_form_data(
-                deepcopy(mapped),
+                deepcopy(expected_mapped),
                 datasource_id=7,
                 datasource_type="table",
             )

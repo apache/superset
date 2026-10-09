@@ -24,6 +24,8 @@ from typing import Any, TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from flask_babel import lazy_gettext
+from flask_babel.speaklater import LazyString
 
 if TYPE_CHECKING:
     from fastmcp import FastMCP
@@ -2081,3 +2083,51 @@ class TestRejectedFilterColumnsAreSurfaced:
         )
 
         assert isinstance(result, ChartSql)
+
+
+@pytest.mark.parametrize("sql", ["", "SELECT 1"])
+def test_extract_sql_resolves_lazy_validation_error(sql: str) -> None:
+    """Return the original lazy query validation message, not a shape error."""
+    output = _extract_sql_from_result(
+        {"queries": [{"query": sql, "error": lazy_gettext("Empty query?")}]},
+        1,
+        "chart",
+        "dataset",
+    )
+
+    if sql:
+        assert isinstance(output, ChartSql)
+        assert output.sql == sql
+        assert output.error == "Query 1: Empty query?"
+    else:
+        assert isinstance(output, ChartError)
+        assert output.error_type == "QueryGenerationFailed"
+        assert output.error == "SQL generation failed: Query 1: Empty query?"
+
+
+def test_extract_sql_bounds_resolved_lazy_validation_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Resolved translations remain subject to the SQL source byte budget."""
+    monkeypatch.setattr(_get_chart_sql_mod, "MAX_QUERY_RESULT_VALUE_BYTES", 16)
+    output = _extract_sql_from_result(
+        {"queries": [{"error": lazy_gettext("x" * 17)}]}, 1, "chart", "dataset"
+    )
+
+    assert isinstance(output, ChartError)
+    assert output.error_type == "MalformedQueryResult"
+
+
+def test_extract_sql_rejects_unresolvable_lazy_validation_error() -> None:
+    """Translation failures produce a structured error rather than escaping."""
+
+    def fail_translation() -> str:
+        """Simulate a failed translation lookup."""
+        raise ValueError("translation failed")
+
+    output = _extract_sql_from_result(
+        {"queries": [{"error": LazyString(fail_translation)}]}, 1, "chart", "dataset"
+    )
+
+    assert isinstance(output, ChartError)
+    assert output.error_type == "MalformedQueryResult"

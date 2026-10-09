@@ -21,6 +21,7 @@ from decimal import Decimal
 from enum import Enum
 from types import SimpleNamespace
 from typing import Any, cast
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -52,6 +53,7 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     PerformanceMetadata,
 )
+from superset.superset_typing import AdhocColumn
 from superset.utils import json
 from superset.utils.core import GenericDataType
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
@@ -2014,3 +2016,75 @@ def test_postgres_range_text_respects_cell_and_aggregate_byte_budgets(
         "queries": [{"data": [{"bands": [module.Range(1, 10), module.Range(1, 10)]}]}]
     }
     assert validate_query_result_envelope(result) is not None
+
+
+@pytest.mark.parametrize(
+    "result_type", [ChartDataResultType.FULL, ChartDataResultType.QUERY]
+)
+@pytest.mark.parametrize("label", ["Removed column", None])
+def test_adhoc_rejected_filters_are_normalized_before_mcp_validation(
+    result_type: ChartDataResultType,
+    label: str | None,
+) -> None:
+    """Real query actions expose string names, not the datasource's adhoc dict."""
+    from superset.common import query_actions
+    from superset.mcp_service.chart.tool.get_chart_sql import _extract_sql_from_result
+    from superset.models.helpers import QueryStringExtended
+
+    adhoc_column: AdhocColumn = {"sqlExpression": "removed_column"}
+    if label is not None:
+        adhoc_column["label"] = label
+    expected_name = label or "removed_column"
+    query_context = MagicMock()
+    query_context.result_type = result_type
+    query_context.result_format = ChartDataResultFormat.JSON
+    query_context.get_data.return_value = [{"value": 7}]
+    query_obj = MagicMock()
+    query_obj.result_type = result_type
+    query_obj.applied_time_extras = {}
+    datasource = MagicMock()
+    datasource.query_language = "sql"
+    datasource.get_query_str_extended.return_value = QueryStringExtended(
+        applied_template_filters=[],
+        applied_filter_columns=[],
+        rejected_filter_columns=[adhoc_column],
+        labels_expected=[],
+        prequeries=[],
+        sql="SELECT 7 AS value",
+        sql_shifted_temporal_labels=set(),
+    )
+
+    with (
+        patch.object(query_actions, "_get_datasource", return_value=datasource),
+        patch.object(query_actions, "get_time_filter_status", return_value=([], [])),
+        patch.object(query_actions, "_detect_currency", return_value=None),
+    ):
+        if result_type == ChartDataResultType.QUERY:
+            query = query_actions._get_query(query_context, query_obj, False)
+        else:
+            query = query_actions._materialize_full_payload(
+                query_context,
+                query_obj,
+                {
+                    "df": pd.DataFrame([{"value": 7}]),
+                    "status": QueryStatus.SUCCESS,
+                    "applied_filter_columns": [],
+                    "rejected_filter_columns": [adhoc_column],
+                },
+            )
+
+    assert query["rejected_filter_columns"] == [expected_name]
+    assert query["rejected_filters"] == [
+        {"column": expected_name, "reason": "not_in_datasource"}
+    ]
+    result = _producer_result(query)
+    if result_type == ChartDataResultType.QUERY:
+        from superset.mcp_service.chart.schemas import ChartSql
+
+        response = _extract_sql_from_result(result, 1, "chart", "dataset")
+        assert isinstance(response, ChartSql)
+        assert response.sql == "SELECT 7 AS value;"
+    else:
+        data, error = first_query_data(result)
+        assert error is None
+        assert data == [{"value": 7}]

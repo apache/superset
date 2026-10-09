@@ -16,6 +16,7 @@
 # under the License.
 
 from copy import deepcopy
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -26,7 +27,16 @@ from superset.common.form_data_query_context import (
 from superset.mcp_service.chart.chart_helpers import (
     build_query_dicts_from_form_data,
 )
-from superset.mcp_service.chart.chart_utils import scrub_dataset_bound_form_data
+from superset.mcp_service.chart.chart_utils import (
+    map_mixed_timeseries_config,
+    map_table_config,
+    merge_form_data_for_update,
+    scrub_dataset_bound_form_data,
+)
+from superset.mcp_service.chart.schemas import (
+    MixedTimeseriesChartConfig,
+    TableChartConfig,
+)
 
 
 def _base_axis(column: str, grain: str | None = None) -> dict[str, object]:
@@ -328,3 +338,137 @@ def test_deck_adapter_fails_closed_for_incomplete_spatial_role() -> None:
                 "spatial": {"type": "latlong", "lonCol": "longitude"},
             }
         )
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+def test_same_viz_table_update_preserves_native_percent_metrics(viz_type: str) -> None:
+    """Typed aggregate updates keep Explore's unmodeled percent columns."""
+    config = TableChartConfig.model_validate(
+        {
+            "chart_type": "table",
+            "viz_type": viz_type,
+            "columns": [{"name": "region"}, {"name": "revenue", "saved_metric": True}],
+            "row_limit": 50,
+        }
+    )
+    existing = {
+        "viz_type": viz_type,
+        "query_mode": "aggregate",
+        "groupby": ["region"],
+        "metrics": ["revenue"],
+        "percent_metrics": ["revenue"],
+    }
+    merged = merge_form_data_for_update(existing, map_table_config(config), config)
+    query = build_query_objects_from_form_data(merged)[0]
+
+    assert merged["percent_metrics"] == ["revenue"]
+    assert query["row_limit"] == 50
+    assert query["post_processing"][0]["operation"] == "contribution"
+    assert query["post_processing"][0]["options"]["columns"] == ["revenue"]
+
+
+@pytest.mark.parametrize("transition", ["raw", "cross-viz", "rebind"])
+def test_table_percent_metrics_do_not_leak_into_replacement(transition: str) -> None:
+    """Raw mode, different visualizations and new datasets drop saved roles."""
+    columns: list[dict[str, object]] = (
+        [{"name": "region"}]
+        if transition == "raw"
+        else [{"name": "revenue", "saved_metric": True}]
+    )
+    config = TableChartConfig.model_validate(
+        {"chart_type": "table", "columns": columns}
+    )
+    existing = {
+        "viz_type": "pie" if transition == "cross-viz" else "table",
+        "percent_metrics": ["old_revenue"],
+    }
+    merged = merge_form_data_for_update(
+        existing,
+        map_table_config(config),
+        config,
+        dataset_rebind=transition == "rebind",
+    )
+
+    assert "percent_metrics" not in merged
+
+
+@pytest.mark.parametrize("key", ["series_limit_metric_b", "timeseries_limit_metric_b"])
+@pytest.mark.parametrize(
+    "ranking_metric",
+    [
+        "revenue",
+        {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "revenue", "type": "DOUBLE"},
+            "aggregate": "SUM",
+            "label": "Revenue",
+        },
+        {
+            "expressionType": "SQL",
+            "sqlExpression": "SUM(revenue)",
+            "label": "Revenue",
+        },
+    ],
+)
+def test_mixed_update_preserves_native_secondary_ranking_metric(
+    key: str,
+    ranking_metric: object,
+) -> None:
+    """Omitted ranking controls retain saved names and native adhoc metrics."""
+    config = MixedTimeseriesChartConfig.model_validate(
+        {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "event_time"},
+            "y": [{"name": "revenue", "saved_metric": True}],
+            "y_secondary": [{"name": "profit", "saved_metric": True}],
+            "show_legend": False,
+        }
+    )
+    existing = {
+        "viz_type": "mixed_timeseries",
+        "groupby_b": ["region"],
+        "series_limit_b": 5,
+        key: ranking_metric,
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        merged = merge_form_data_for_update(
+            existing, map_mixed_timeseries_config(config), config
+        )
+    _, secondary = build_query_objects_from_form_data(merged)
+
+    assert merged[key] == ranking_metric
+    assert secondary["series_limit_metric"] == ranking_metric
+    assert secondary["series_limit"] == 5
+    assert merged["show_legend"] is False
+
+
+@pytest.mark.parametrize("secondary_grouping", [None, [], [{"name": "channel"}]])
+def test_mixed_mapper_defaults_secondary_grouping_independently(
+    secondary_grouping: list[dict[str, str]] | None,
+) -> None:
+    """New typed charts do not inherit query A's grouping when B omits it."""
+    payload: dict[str, Any] = {
+        "chart_type": "mixed_timeseries",
+        "x": {"name": "event_time"},
+        "y": [{"name": "revenue", "saved_metric": True}],
+        "y_secondary": [{"name": "profit", "saved_metric": True}],
+        "group_by": [{"name": "region"}],
+    }
+    if secondary_grouping is not None:
+        payload["group_by_secondary"] = secondary_grouping
+    config = MixedTimeseriesChartConfig.model_validate(payload)
+    with patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    ):
+        form_data = map_mixed_timeseries_config(config)
+    primary, secondary = build_query_objects_from_form_data(form_data)
+
+    expected = ["channel"] if secondary_grouping else []
+    assert form_data["groupby_b"] == expected
+    assert primary["series_columns"] == ["region"]
+    assert secondary["series_columns"] == expected
+    assert secondary["columns"] == [_base_axis("event_time"), *expected]

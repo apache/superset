@@ -103,6 +103,23 @@ class TableChartPlugin(BaseChartPlugin):
     ) -> dict[str, Any]:
         return map_table_config(config)
 
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        """Keep unmodeled percent metrics only for same-viz aggregate updates."""
+        if (
+            existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+            and merged.get("query_mode") == "aggregate"
+            and "percent_metrics" not in new_form_data
+            and "percent_metrics" in existing_form_data
+        ):
+            merged["percent_metrics"] = existing_form_data["percent_metrics"]
+        return merged
+
     def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
         what = _table_chart_what(config, dataset_name)
         context = _summarize_filters(config.filters)

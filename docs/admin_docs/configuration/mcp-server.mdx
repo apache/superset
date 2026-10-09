@@ -1454,10 +1454,11 @@ For Generic Chart Axes charts, both MCP overrides and dashboard time-grain
 filters update the `BASE_AXIS` column's `timeGrain`, regardless of its position
 in the query's `columns` list. Other columns are left untouched. Queries without
 a `BASE_AXIS` column continue to use `extras.time_grain_sqla`.
-Same-visualization updates that supply only `time_grain` preserve saved temporal
-range filters, including when the grain is explicitly cleared. Changing grain
-does not clear the date restriction; supply `time_range` or `temporal_column`
-to change the temporal restriction or binding.
+Same-visualization updates that supply only a non-null `time_grain` preserve saved
+temporal range filters. Explicitly setting `time_grain` to null clears saved
+temporal state, including `time_range` and temporal range filters; it does not
+preserve the date restriction. Supply `time_range` or `temporal_column` to change
+the temporal restriction or binding.
 
 ### Exploring large dashboard layouts
 
@@ -1619,10 +1620,14 @@ Saved Mixed Timeseries Vega-Lite previews honor the requested width and height.
 Both Mixed Timeseries queries validate SIMPLE filter clauses and column references;
 unsupported SIMPLE HAVING filters are rejected rather than silently discarded.
 Same-visualization Mixed Timeseries updates preserve omitted secondary-query
-controls, including time range, row limits, time grain, and rolling/resample
-settings. Omitted primary and secondary grouping also retain their saved values;
+controls, including time range, row limits, time grain, rolling/resample settings,
+and saved or adhoc ranking metrics. New typed Mixed Timeseries charts default
+secondary grouping to empty rather than inheriting primary grouping.
+Omitted primary and secondary grouping on updates retain their saved values;
 `group_by: []`/`null` and `group_by_secondary: []`/`null` clear only that query's
 grouping. Explicit secondary controls and clears replace the saved values.
+Same-visualization aggregate Table updates preserve native percent-metric columns;
+raw-mode updates, visualization changes, and dataset rebinds do not carry them over.
 Same-visualization Table updates preserve saved ordering when `sort_by` is
 omitted; `sort_by: []` clears it. Same-visualization XY updates preserve saved
 series grouping when `group_by` is omitted; `group_by: []` clears it. Omitted

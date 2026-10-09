@@ -2386,9 +2386,16 @@ def retain_mixed_timeseries_secondary_update_state(
             {"groupby_b": "group_by_secondary"}.get(key, key)
         ):
             try:
-                TypeAdapter(field.rebuild_annotation()).validate_python(value)
+                validation_value = value
+                if key in {"series_limit_metric_b", "timeseries_limit_metric_b"}:
+                    # Validate the native wire representation as a metric while
+                    # retaining the original saved name or adhoc object.
+                    validation_value = XYChartConfig.coerce_series_ranking_metric(value)
+                TypeAdapter(field.rebuild_annotation()).validate_python(
+                    validation_value
+                )
                 is_valid_modeled_control = True
-            except ValidationError:
+            except ValueError:
                 pass
         if (
             is_explicit_clear
@@ -3004,6 +3011,8 @@ def map_mixed_timeseries_config(  # noqa: C901
         "yAxisIndex": 0,
         # Query B
         "metrics_b": [create_metric_object(col) for col in config.y_secondary],
+        # Explore defaults B's grouping independently of query A.
+        "groupby_b": [],
         "seriesTypeB": _MIXED_SERIES_TYPE_MAP.get(config.secondary_kind, "bar"),
         "areaB": config.secondary_kind == "area",
         "yAxisIndexB": 1,
@@ -3028,9 +3037,6 @@ def map_mixed_timeseries_config(  # noqa: C901
 
     if "group_by" in config.model_fields_set:
         form_data["groupby"] = []
-    if "group_by_secondary" in config.model_fields_set:
-        form_data["groupby_b"] = []
-
     # Primary groupby (Query A)
     if config.group_by:
         groupby = [c.name for c in config.group_by if c.name != config.x.name]

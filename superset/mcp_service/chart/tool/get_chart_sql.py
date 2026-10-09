@@ -23,6 +23,7 @@ import logging
 from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from flask_babel.speaklater import LazyString
 from marshmallow import ValidationError as MarshmallowValidationError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -475,6 +476,19 @@ def _extract_sql_from_result(  # noqa: C901
             language = query_language
         query_sql = dict.get(query_result, "query", "")
         query_error = dict.get(query_result, "error")
+        # QueryObjectValidationError carries Flask-Babel lazy translations.
+        # Resolve only the concrete library type, not arbitrary string hooks.
+        if type(query_error) is LazyString:
+            try:
+                query_error = str(query_error)
+            except Exception:
+                return ChartError(
+                    error=(
+                        f"Malformed chart SQL result: query {idx} error could not "
+                        "be resolved."
+                    ),
+                    error_type="MalformedQueryResult",
+                )
         for label, value in (("query", query_sql), ("error", query_error)):
             if value is None:
                 continue
