@@ -90,6 +90,17 @@ built-in `pivot_table` chart type and is not offered when the host visualization
 is unavailable.
 :::
 
+MCP Vega-Lite previews of grouped time-series charts retain each series from
+post-processed chart data, including charts with multiple grouping dimensions.
+Saved line, bar, area, and scatter previews honor the requested width and height
+and include the chart name in their description.
+When rebuilding queries for saved charts without a query context, MCP honors
+resampling across the requested time range, inherited table time comparisons,
+and temporal column references for semantic views. A matching inherited table
+comparison preserves other selected offsets, including custom comparisons.
+Forecasts use the x-axis time grain, resolved query grain, or panel grain, with a
+daily fallback.
+
 ### Create Dashboards
 
 Build dashboards from a collection of charts:
@@ -355,6 +366,53 @@ JSON, impact reporting still checks its saved form data and other accessible cha
 | `delete_dashboard`                | Delete a dashboard by ID, UUID, or slug; leaves its charts intact (soft-deletes to trash when `SOFT_DELETE` is enabled; fails if alerts/reports are still attached, checked before editorship; otherwise returns `permission_denied` if the caller isn't an editor of the dashboard — owners, Admins, and explicitly granted editors qualify) |
 | `restore_dashboard`               | Restore a soft-deleted dashboard from trash by ID or UUID (slug lookup does not cover trashed dashboards); not gated on `SOFT_DELETE`, so rows trashed while it was enabled stay recoverable, but only soft-deleted dashboards can be restored — permanently deleted dashboards are unrecoverable; returns `permission_denied` if the caller can see the dashboard but isn't an editor of it, or `NotFound` if the dashboard is outside the caller's RBAC visibility entirely |
 
+### Dashboard text components
+
+Use `manage_dashboard_markdown` to add, update, or remove markdown tiles,
+section headers, and dividers without replacing the dashboard's raw layout.
+The caller needs Dashboard write permission and editorship of the dashboard.
+
+```json
+{
+  "request": {
+    "dashboard_id": 42,
+    "add": [
+      {"component_type": "header", "text": "Sales overview"},
+      {"component_type": "markdown", "code": "**Updated daily**", "width": 12},
+      {"component_type": "divider"}
+    ]
+  }
+}
+```
+
+Markdown tiles are appended in their own rows; headers and dividers are appended
+directly to the grid or tab. Each addition can specify `target_tab` by name or
+component ID (available from `get_dashboard_layout`), including nested tabs.
+Without it, additions use the first top-level tab, or the grid on dashboards
+without top-level tabs. Markdown width is 1–12 columns (default 4); height is in
+8-pixel grid units (default 50). Width updates
+must fit the space remaining beside other components in the same 12-column row;
+otherwise, the error reports the available width. Components removed in the same
+request do not count toward that row width. If any operation is rejected, the
+layout remains unchanged.
+
+The response includes generated `added_component_ids` and a `components` summary.
+Reuse those IDs in `update`, for example
+`{"id": "MARKDOWN-…", "code": "Revised notes"}`, or in `remove`, for example
+`["MARKDOWN-…"]`. Updates merge only supplied non-null fields and cannot change a
+component's type or placement. Each update requires at least one non-null field
+besides `id`; ID-only or all-null updates are rejected. The reserved dashboard-title `HEADER_ID` is not a
+section header and cannot be changed through this tool.
+
+Operations in one request are validated before saving. Existing charts, native
+filters, and unrelated dashboard properties are preserved. Removing a tile prunes
+empty row/column wrappers but retains tabs. Invalid component IDs, incompatible
+fields, invalid layouts, and conflicting update/removal operations return errors
+without saving partial changes. Markdown uses the dashboard's existing renderer
+and HTML sanitization configuration. Concurrent layout edits are last-write-wins;
+avoid simultaneous edits from the UI and MCP clients. This tool does not reorder
+or move existing components; use the dashboard editor for those operations.
+
 ### SQL
 
 | Tool                        | Description                                    |
@@ -413,6 +471,27 @@ also have `data: null`. For each statement, `executed_sql` is `null` when it equ
 - Ask the AI "What Superset tools are available?" to confirm the connection
 - Restart your AI client if you recently changed the configuration
 
+
+### Sunburst chart data
+
+MCP chart tools support ordered Sunburst hierarchies with a primary metric and
+an optional secondary metric. When supplied, the secondary-to-primary ratio
+drives a sequential color scale (for example, profit divided by revenue shows
+margin); when omitted, arc colors are categorical. Use `chart_type: "sunburst"`
+in typed requests; the native chart uses `viz_type: "sunburst_v2"`.
+
+SQL NULL aggregate values are rendered as zero, matching the Sunburst frontend,
+including during compile checks, previews, and data exports. Non-finite floating-point
+metric values (including infinities and NaN) are normalized to null and then to
+zero in those same paths; an overflowing aggregate can therefore appear as zero,
+not as a validation error. Missing result columns, numeric strings, and booleans
+remain invalid.
+Chart queries also accept Superset's `cache_timeout = -1` setting to disable caching.
+
+Sunburst ASCII previews reserve space for an omitted-row count and mark clipped
+lines with dots. Preview width is bounded in terminal columns, including wide
+Unicode labels. Standard pandas timestamps using pytz UTC or named time zones
+retain their offsets and nanosecond precision in MCP results.
 
 ## Gantt charts through MCP
 

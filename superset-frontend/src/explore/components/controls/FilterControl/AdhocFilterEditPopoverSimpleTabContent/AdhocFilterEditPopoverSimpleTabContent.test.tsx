@@ -1370,7 +1370,7 @@ test('Filter subject lists and commits an expression-less Cube dimension', async
   const subjectSelect = screen.getByRole('combobox', {
     name: 'Select subject',
   });
-  userEvent.click(subjectSelect);
+  await userEvent.click(subjectSelect);
 
   const dropdown = await waitFor(() => {
     const list = document.querySelector(
@@ -1382,7 +1382,7 @@ test('Filter subject lists and commits an expression-less Cube dimension', async
   expect(within(dropdown).getByText('Order Date')).toBeInTheDocument();
   expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
 
-  userEvent.click(within(dropdown).getByText('Product Category'));
+  await userEvent.click(within(dropdown).getByText('Product Category'));
 
   await waitFor(() => {
     expect(props.onChange).toHaveBeenCalledWith(
