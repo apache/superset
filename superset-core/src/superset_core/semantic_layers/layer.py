@@ -20,7 +20,7 @@ from __future__ import annotations
 import enum
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Generic, Mapping, TypeVar
+from typing import Any, ClassVar, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel
 
@@ -95,6 +95,10 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     ) -> SemanticCacheIdentityMaterial | None:
         """Return complete request-context identity, or bypass containment."""
         return None
+
+    # Opt in only when all result methods enforce the advertised guarantee.
+    # None preserves legacy result-cache keys without constructing the provider.
+    result_cache_version: ClassVar[str | None] = None
 
     @classmethod
     def supports_metadata_refresh(cls, configuration: dict[str, Any]) -> bool:

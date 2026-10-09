@@ -68,6 +68,7 @@ from superset.semantic_layers.cache import SemanticCacheOutcome
 from superset.semantic_layers.cache_host import build_cache_configuration
 from superset.semantic_layers.cache_policy import ContainmentCapabilities
 from superset.semantic_layers.cache_repository import ViewMeta
+from superset.semantic_layers.completeness import provider_completeness
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     FilterOperator,
@@ -144,7 +145,9 @@ def _dispatch_semantic_query(
     # ``SemanticResult(results=None)`` for zero rows, and a cached ``None``
     # table would break every later transformation of that entry.
     def normalized_dispatcher(dispatched_query: SemanticQuery) -> SemanticResult:
-        return _coerce_empty_result(dispatcher(dispatched_query), dispatched_query)
+        with provider_completeness():
+            result: SemanticResult = dispatcher(dispatched_query)
+        return _coerce_empty_result(result, dispatched_query)
 
     if not cacheable or not semantic_cache.semantic_cache_service.state.effective:
         return semantic_cache.semantic_cache_service.execute_provider(
