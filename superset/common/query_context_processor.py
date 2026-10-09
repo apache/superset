@@ -57,6 +57,7 @@ from superset.semantic_layers.exceptions import (
     SemanticLayerExecutionError,
     SemanticLayerQueryRejectedError,
 )
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
@@ -469,6 +470,7 @@ class QueryContextProcessor:
         chart's datasource.
         """
         source_rls: dict[str, list[str] | None] = {}
+        source_versions: dict[str, tuple[str, str]] = {}
         for layer in query_obj.annotation_layers:
             if (
                 layer.get("sourceType")
@@ -485,7 +487,16 @@ class QueryContextProcessor:
                 if annotation_datasource
                 else None
             )
-        return {"user_id": get_user_id(), "source_rls": source_rls}
+            if isinstance(annotation_datasource, SemanticView):
+                discriminator: tuple[str, str] | None = (
+                    annotation_datasource.result_cache_discriminator
+                )
+                if discriminator is not None:
+                    source_versions[str(layer_value)] = discriminator
+        context: dict[str, Any] = {"user_id": get_user_id(), "source_rls": source_rls}
+        if source_versions:
+            context["semantic_result_versions"] = source_versions
+        return context
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """

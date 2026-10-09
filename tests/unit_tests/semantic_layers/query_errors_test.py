@@ -412,7 +412,9 @@ def test_async_completeness_does_not_publish_success(
     )
     with pytest.raises(SemanticResultCompletenessError):
         execute_chart_query.func(serialize_query(context, 0), user_id=7)
-    task_context.update_task.assert_not_called()
+    task_context.update_task.assert_called_once_with(
+        payload={"semantic_result_error": reason}, immediate=True
+    )
     date_view.get_table.assert_called_once()
 
 

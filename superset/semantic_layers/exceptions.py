@@ -22,7 +22,6 @@ from collections.abc import Callable
 
 from billiard.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as _
-from superset_core.semantic_layers import errors as core_errors
 from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
@@ -34,11 +33,11 @@ from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
     QueryObjectValidationError,
-    SemanticResultCompletenessError,
     SupersetCancelQueryException,
     SupersetErrorException,
     SupersetSecurityException,
 )
+from superset.semantic_layers.completeness import provider_completeness
 from superset.utils.error_sanitization import (
     GENERIC_ERROR_MESSAGE,
     sanitize_error_message,
@@ -103,11 +102,10 @@ def execute_semantic_query(
 ) -> SemanticResult:
     """Translate provider signals without changing host validation or retries."""
     try:
-        return dispatcher(query)
+        with provider_completeness():
+            return dispatcher(query)
     except SemanticQueryRejectedError as ex:
         raise SemanticLayerQueryRejectedError(ex.code) from ex
-    except core_errors.SemanticResultCompletenessError as ex:
-        raise SemanticResultCompletenessError(ex.reason) from ex
     except (
         QueryObjectValidationError,
         SemanticLayerQueryRejectedError,
