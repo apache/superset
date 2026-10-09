@@ -829,9 +829,8 @@ def _apply_compact_tool_list_transform(
     """Bound tool descriptions in the native ``tools/list`` when configured.
 
     Opt-in via ``MCP_NATIVE_TOOL_LIST_CONFIG["compact"]``. Listed descriptions
-    are bounded with :func:`_truncate_description`. Unlike search results,
-    native listings do not deduct request instructions from the prose budget:
-    those instructions already ship in the unchanged input schema. Only the
+    are bounded with :func:`_truncate_description`. Request instructions ship
+    in the unchanged input schema and never consume the prose budget. Only the
     listing changes: names, input and output schemas,
     and annotations are served unchanged, and ``tools/call`` resolves the
     registered tool, so validation and execution do not depend on this setting.
