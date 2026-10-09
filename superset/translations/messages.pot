@@ -6551,6 +6551,9 @@ msgstr ""
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7719,6 +7722,9 @@ msgstr ""
 
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
+msgstr ""
+
+msgid "Invalid semantic result cache version"
 msgstr ""
 
 msgid "Invalid state."
@@ -9577,6 +9583,9 @@ msgid "One or many metrics to display"
 msgstr ""
 
 msgid "One or more annotation layers failed loading."
+msgstr ""
+
+msgid "One or more chart-data queries failed"
 msgstr ""
 
 msgid "One or more columns already exist"
@@ -14083,6 +14092,21 @@ msgstr ""
 
 #, python-format
 msgid "The selected %s are linked to %s on %s. Deleting them will break those objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the time "
+"range or selected dimensions, or request a smaller explicit row limit, then "
+"retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 msgid "The service url of the layer"

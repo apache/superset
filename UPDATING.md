@@ -48,6 +48,20 @@ assists people when migrating to a new version.
   responses and exports instead of being narrowed to binary64.
   Bullet preview numeric format precision is limited to 20 digits; raw data
   reads do not validate presentation formats.
+- Semantic-layer providers may opt into `SemanticLayer.result_cache_version` to
+  isolate chart, filter-value and chart-backed annotation results from older
+  producer guarantees. The default `None` preserves existing cache keys. Providers
+  enforcing completeness should raise the public
+  `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
+  results are incomplete or cannot be verified (an additive `apache-superset-core`
+  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  not the same-named host class in `superset.exceptions`); the host converts it to
+  its client error, and these
+  failures do not publish a successful async result cache key. A provider raising
+  `superset.exceptions.SemanticResultCompletenessError` directly is still accepted
+  for one release. Deploy compatible host/provider versions to
+  all web and worker processes and drain old deliveries before activating a new
+  guarantee. Mixed fleets and an old host with an opted-in provider are unsupported.
 
 - A chart whose datasource no longer exists (hard-deleted, or no datasource ID)
   has its denormalized `perm`, `schema_perm` and `catalog_perm` cleared when it is
