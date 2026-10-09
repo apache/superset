@@ -192,6 +192,7 @@ describe('ExploreChartHeader', () => {
     managed?: boolean;
     preview?: boolean;
     newChart?: boolean;
+    canWrite?: boolean;
   }>([
     {
       name: 'admin',
@@ -204,6 +205,28 @@ describe('ExploreChartHeader', () => {
       name: 'extra editor',
       roles: { Gamma: [] },
       editors: [],
+      extraEditors: [7],
+      granted: true,
+    },
+    {
+      name: 'read-only extra editor',
+      roles: { Gamma: [] },
+      editors: [],
+      extraEditors: [7],
+      canWrite: false,
+      granted: false,
+    },
+    {
+      name: 'malformed editors after properties save',
+      roles: { Gamma: [] },
+      editors: JSON.parse('[null]'),
+      extraEditors: [],
+      granted: false,
+    },
+    {
+      name: 'valid extra editor with malformed editors',
+      roles: { Gamma: [] },
+      editors: JSON.parse('[null, "invalid", {}]'),
       extraEditors: [7],
       granted: true,
     },
@@ -252,6 +275,7 @@ describe('ExploreChartHeader', () => {
       editors: [],
       extraEditors: [],
       newChart: true,
+      canWrite: false,
       granted: true,
     },
   ])(
@@ -265,6 +289,7 @@ describe('ExploreChartHeader', () => {
       managed = false,
       preview = false,
       newChart = false,
+      canWrite = true,
     }) => {
       const bootstrap = bootstrapData.default();
       const bootstrapSpy = jest
@@ -289,6 +314,7 @@ describe('ExploreChartHeader', () => {
         render(<ExploreHeader {...props} />, {
           useRedux: true,
           initialState: {
+            explore: { can_add: canWrite },
             versionHistory: {
               entityType: 'chart',
               preview: preview ? { versionUuid: 'old-version' } : null,

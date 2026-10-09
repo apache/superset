@@ -111,7 +111,7 @@ const additionalItemsStyles = (theme: SupersetTheme) => css`
 const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   dashboardId,
   colorScheme: dashboardColorScheme,
-  slice,
+  slice: rawSlice,
   actions,
   formData,
   ownState,
@@ -125,6 +125,21 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   metadata,
   isSaveModalVisible,
 }) => {
+  const slice = useMemo(
+    () =>
+      rawSlice
+        ? {
+            ...rawSlice,
+            editors: rawSlice.editors?.filter(Number.isInteger),
+            extra_editors: rawSlice.extra_editors?.filter(Number.isInteger),
+          }
+        : rawSlice,
+    [rawSlice],
+  );
+  const canWriteChart = useSelector<
+    { explore?: { can_add?: boolean } },
+    boolean
+  >(state => state.explore?.can_add ?? false);
   const dispatch = useDispatch();
   const isVersionPreviewActive = useSelector(selectIsChartVersionPreviewActive);
   const { latestQueryFormData, sliceFormData } = chart;
@@ -297,11 +312,12 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
       canEdit:
         !isVersionPreviewActive &&
         (!slice ||
-          canOverwriteSlice({
-            slice,
-            user: isUserWithPermissionsAndRoles(user) ? user : undefined,
-            canOverwrite,
-          })),
+          (canWriteChart &&
+            canOverwriteSlice({
+              slice,
+              user: isUserWithPermissionsAndRoles(user) ? user : undefined,
+              canOverwrite,
+            }))),
       onSave: actions.updateChartTitle,
       placeholder: t('Add the name of the chart'),
       label: t('Chart title'),
@@ -309,6 +325,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [
       actions.updateChartTitle,
       canOverwrite,
+      canWriteChart,
       isVersionPreviewActive,
       slice,
       sliceName,
