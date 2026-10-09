@@ -1934,6 +1934,9 @@ msgstr "Dimensies"
 msgid "All filters"
 msgstr "Alle filters"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Alle panelen"
 
@@ -4656,6 +4659,9 @@ msgstr "Kolommen om te Lezen"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Kolomkop tooltip"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combineer metrieken"
@@ -8975,6 +8981,9 @@ msgstr "Groepsnaam"
 msgid "Group remaining as \"Others\""
 msgstr "Resterende groeperen als \"Overige\""
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "Scoping"
@@ -10037,6 +10046,11 @@ msgid "Least recently modified"
 msgstr "Meest recente wijziging"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11658,6 +11672,10 @@ msgstr "Grafiek niet gevonden"
 
 msgid "Not in"
 msgstr "Niet in"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Niet null"
@@ -16978,6 +16996,11 @@ msgstr "De kolom die als doel van de verbinding moet worden gebruikt."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "De kolom werd verwijderd of hernoemd in de database."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

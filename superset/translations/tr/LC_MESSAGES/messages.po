@@ -1888,6 +1888,9 @@ msgstr "Tüm boyutlar"
 msgid "All filters"
 msgstr "Tüm filtreler"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Tüm paneller"
 
@@ -4508,6 +4511,9 @@ msgstr "Kolonlar bulunamadı"
 
 msgid "Columns to show in the tooltip."
 msgstr "Takımda göstermek için sütunlar."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Ekle metrics"
@@ -8650,6 +8656,9 @@ msgstr "Grup adı"
 msgid "Group remaining as \"Others\""
 msgstr "Grup \"Diğerleri\" olarak kaldı"
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "çalışıyor"
@@ -9655,6 +9664,11 @@ msgid "Least recently modified"
 msgstr "Least son zamanlarda değiştirilmiş"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11239,6 +11253,10 @@ msgstr "Bulunamadı"
 
 msgid "Not in"
 msgstr "Değil"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Çıplak Değil"
@@ -16401,6 +16419,11 @@ msgstr "Köşe kenar hedefi olarak kullanılır."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "sütun veritabanında silindi veya değiştirildi."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Harita katmanları için yapılandırma"

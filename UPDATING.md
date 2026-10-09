@@ -24,6 +24,48 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Malformed explicit `time_range` values are rejected with a validation error
+  (HTTP 400 on chart-data requests) instead of silently producing an upper-bound-only
+  scan. Update saved charts, dashboard filters, imports, and API callers to use
+  `<start> : <end>` (including spaces around the colon) or a supported shorthand,
+  such as `Last week`. An empty string is invalid; use `No filter` for no time
+  filter. Omitted `time_range` values still support legacy `since`/`until` bounds.
+
+- Semantic-view providers may declare `SemanticView.preferred_temporal_dimension`
+  to choose the default exposed temporal dimension for new charts. The declaration
+  is optional; absent, unknown or non-temporal names retain the existing fallback.
+  Saved chart selections are preserved.
+
+- MCP data-bearing tools enforce mandatory chart-query result limits before
+  response serialization or CSV/XLSX export, independently of the configurable
+  response size guard (`MCP_RESPONSE_SIZE_CONFIG`). Results are limited to 32
+  queries, 50,000 rows per query, 100,000 rows in total, 4,096 columns per row,
+  2,500,000 values, 16 MiB of JSON, and 1 MiB of metadata. Nested cells
+  are limited to 4,096 items per container and 32 levels of nesting; text cells
+  are limited to 65,536 UTF-8 bytes. Increasing `SQL_MAX_ROW` or raising/disabling
+  the response size guard does not raise these fixed limits. Oversized results,
+  including saved Table exports, return `InvalidQueryResult`; lower row limits,
+  filter, select fewer/narrower columns, or aggregate before exporting.
+
+- MCP `update_chart` requires a complete `config` when changing `dataset_id`
+  to a different dataset, for both preview and immediate-save requests. Re-sending
+  the existing dataset ID remains an idempotent update.
+
+- Semantic-layer providers may opt into `SemanticLayer.result_cache_version` to
+  isolate chart, filter-value and chart-backed annotation results from older
+  producer guarantees. The default `None` preserves existing cache keys. Providers
+  enforcing completeness should raise the public
+  `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
+  results are incomplete or cannot be verified (an additive `apache-superset-core`
+  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  not the same-named host class in `superset.exceptions`); the host converts it to
+  its client error, and these
+  failures do not publish a successful async result cache key. A provider raising
+  `superset.exceptions.SemanticResultCompletenessError` directly is still accepted
+  for one release. Deploy compatible host/provider versions to
+  all web and worker processes and drain old deliveries before activating a new
+  guarantee. Mixed fleets and an old host with an opted-in provider are unsupported.
+
 - A chart whose datasource no longer exists (hard-deleted, or no datasource ID)
   has its denormalized `perm`, `schema_perm` and `catalog_perm` cleared when it is
   saved, including during the dataset's deletion. Purging a soft-deleted dataset
@@ -46,6 +88,17 @@ assists people when migrating to a new version.
   owner and role changes. Update the dashboard in its external source of truth
   instead; the response sets `managed_externally: true`. Read-only tools and
   certification inspection are unaffected.
+
+- For MySQL/MariaDB metadata databases, use `READ COMMITTED` isolation. Superset
+  defaults the `mysql` and `postgresql` URI backends to `READ COMMITTED` when no
+  `isolation_level` is configured. For the `mariadb` URI backend (including
+  `mariadb://` and `mariadb+pymysql://`), set
+  `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}` explicitly.
+  With any other isolation level, dataset and semantic-view deletion and purge retain
+  `datasource_access` permission records by design, rather than risk revoking a
+  shared grant based on a stale snapshot. Records with no remaining owner become
+  orphans and can accumulate. Cleanup is also skipped if the isolation level
+  cannot be verified.
 
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
