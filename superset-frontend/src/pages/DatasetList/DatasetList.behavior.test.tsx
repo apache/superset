@@ -165,6 +165,7 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
       `Could not delete semantic views orders_semantic: ${reason}`,
     ),
   );
+  expect(addDangerToast).toHaveBeenCalledTimes(1);
   expect(
     fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_BULK_DELETE),
   ).toHaveLength(1);

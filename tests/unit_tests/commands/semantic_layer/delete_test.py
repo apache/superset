@@ -678,11 +678,13 @@ def test_semantic_target_rejects_non_ids(raw_id: object) -> None:
 def test_semantic_delete_hides_unreadable_dependent(
     session: Session, mocker: MockerFixture
 ) -> None:
-    """A source editor gets a 409 without an unreadable chart's identity."""
+    """A 409 counts unreadable charts, dashboards and reports without naming them."""
     import uuid
 
     from superset.commands.semantic_layer.delete import DeleteSemanticViewCommand
+    from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
+    from superset.reports.models import ReportSchedule
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
     Slice.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -705,6 +707,24 @@ def test_semantic_delete_hides_unreadable_dependent(
                 slice_name="Private chart",
                 datasource_type="semantic_view",
                 datasource_id=42,
+            )
+        )
+        connection.execute(
+            Dashboard.__table__.insert().values(  # pylint: disable=no-member
+                id=722, dashboard_title="Private dashboard"
+            )
+        )
+        connection.exec_driver_sql(
+            "INSERT INTO dashboard_slices (dashboard_id, slice_id) VALUES (722, 721)"
+        )
+        connection.execute(
+            ReportSchedule.__table__.insert().values(  # pylint: disable=no-member
+                id=723,
+                type="Report",
+                name="Private report",
+                crontab="* * * * *",
+                chart_id=721,
+                active=True,
             )
         )
         mocker.patch("superset.db.session.scalar", side_effect=connection.scalar)
@@ -730,9 +750,9 @@ def test_semantic_delete_hides_unreadable_dependent(
 
         dao.delete.assert_not_called()
         assert exc_info.value.status == 409
-        assert exc_info.value.total == 1
+        assert exc_info.value.total == 3
         assert exc_info.value.dependents == []
-        assert exc_info.value.inaccessible_count == 1
+        assert exc_info.value.inaccessible_count == 3
     finally:
         connection.close()
 
