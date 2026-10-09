@@ -1104,6 +1104,33 @@ def test_standalone_window_bounds_reach_safe_purge_cutoff(
         )
 
 
+def test_count_eligible_counts_only_roots_archived_before_cutoff(
+    session: Session, app_context: None
+) -> None:
+    """The backlog count runs its real predicate and agrees with the purge scan."""
+    from superset.models.slice import Slice
+    from superset.tasks import deletion_retention as task
+
+    table: sa.Table = Slice.__table__
+    table.create(session.get_bind())
+    cutoff: datetime = datetime(2026, 1, 31)
+    # Core inserts keep Slice's ORM listeners out of a predicate-only test.
+    session.execute(
+        sa.insert(table),
+        [
+            {"id": 1, "deleted_at": cutoff - timedelta(days=1)},
+            {"id": 2, "deleted_at": cutoff - timedelta(seconds=1)},
+            {"id": 3, "deleted_at": cutoff},
+            {"id": 4, "deleted_at": cutoff + timedelta(days=1)},
+            {"id": 5, "deleted_at": None},
+        ],
+    )
+    session.commit()
+
+    assert task._count_eligible(Slice, cutoff) == 2
+    assert list(task._iter_eligible_ids(Slice, cutoff, batch=10)) == [[1, 2]]
+
+
 def test_purge_cap_counts_committed_roots_across_batches(app_context: None) -> None:
     """A failed or blocked root does not consume the successful-purge budget."""
     from superset.commands.deletion_retention.purge_cascade import CascadeResult
