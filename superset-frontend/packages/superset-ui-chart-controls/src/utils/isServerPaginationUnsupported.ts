@@ -27,13 +27,21 @@ export function isServerPaginationUnsupported({
   datasource,
   form_data,
 }: ControlPanelState): boolean {
+  const metadataMatchesSelection =
+    datasource &&
+    'uid' in datasource &&
+    datasource.uid === form_data.datasource;
+  const selectedType = form_data.datasource?.split('__')[1];
   const datasourceType =
-    datasource && 'uid' in datasource && datasource.uid === form_data.datasource
-      ? datasource.type
-      : (form_data.datasource?.split('__')[1] ?? datasource?.type);
+    metadataMatchesSelection ||
+    (selectedType !== DatasourceType.Table &&
+      selectedType !== DatasourceType.SemanticView)
+      ? datasource?.type
+      : selectedType;
   const isSemanticView = datasourceType === DatasourceType.SemanticView;
   const features =
     datasource &&
+    metadataMatchesSelection &&
     datasource.type === datasourceType &&
     'semantic_view_features' in datasource
       ? datasource.semantic_view_features

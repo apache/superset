@@ -348,7 +348,11 @@ test.each([
     const base = createMockExplore(undefined);
     const state: ControlPanelState = {
       ...base,
-      datasource: { type, semantic_view_features: features } as Dataset,
+      datasource: {
+        uid: `1__${type}`,
+        type,
+        semantic_view_features: features,
+      } as Dataset,
       form_data: {
         ...base.form_data,
         datasource: `1__${type}`,
@@ -417,6 +421,49 @@ test.each([undefined, [], ['ROW_OFFSET']])(
         ),
       ).toMatchObject({ disabled });
     }
+  },
+);
+
+test('ignores stale offset capability when switching opaque semantic UIDs', () => {
+  const state = createMockExplore(undefined);
+  state.datasource = {
+    ...state.datasource,
+    uid: 'cube__orders',
+    type: 'semantic_view',
+    semantic_view_features: ['ROW_OFFSET'],
+  } as Dataset;
+  state.form_data.datasource = 'cube__customers';
+
+  for (const name of ['server_pagination', 'server_page_length']) {
+    expect(
+      getPaginationControl(name).mapStateToProps?.(state, state.controls[name]),
+    ).toMatchObject({ disabled: true });
+  }
+});
+
+test.each(['server_pagination', 'server_page_length'])(
+  'AG Grid %s ignores stale offset capability from another semantic view',
+  name => {
+    const base = createMockExplore(undefined);
+    const state: ControlPanelState = {
+      ...base,
+      datasource: {
+        ...base.datasource,
+        uid: '1__semantic_view',
+        type: 'semantic_view',
+        semantic_view_features: ['ROW_OFFSET'],
+      } as Dataset,
+      form_data: {
+        ...base.form_data,
+        datasource: '2__semantic_view',
+        server_pagination: true,
+      },
+    };
+
+    expect(
+      getPaginationControl(name).mapStateToProps?.(state, state.controls[name]),
+    ).toMatchObject({ disabled: true });
+    expect(state.form_data.server_pagination).toBe(true);
   },
 );
 

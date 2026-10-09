@@ -507,7 +507,11 @@ function panelState(
   value = false,
 ): ControlPanelState {
   return {
-    datasource: { type, semantic_view_features: features } as Dataset,
+    datasource: {
+      uid: `1__${type}`,
+      type,
+      semantic_view_features: features,
+    } as Dataset,
     form_data: {
       datasource: `1__${type}`,
       viz_type: 'table',
@@ -655,6 +659,40 @@ test.each([
     expect(
       pageLength.mapStateToProps?.(state, state.controls.server_pagination),
     ).toMatchObject({ disabled });
+    expect(state.controls.server_pagination.value).toBe(true);
+  },
+);
+
+test('ignores stale offset capability when switching opaque semantic UIDs', () => {
+  const state = panelState(['ROW_OFFSET'], 'semantic_view', true);
+  state.datasource = {
+    ...state.datasource,
+    uid: 'cube__orders',
+    type: 'semantic_view',
+    semantic_view_features: ['ROW_OFFSET'],
+  } as Dataset;
+  state.form_data.datasource = 'cube__customers';
+
+  for (const name of ['server_pagination', 'server_page_length']) {
+    expect(
+      getControl(name).mapStateToProps?.(state, state.controls[name]),
+    ).toMatchObject({ disabled: true });
+  }
+});
+
+test.each(['server_pagination', 'server_page_length'])(
+  '%s ignores stale offset capability from another semantic view',
+  name => {
+    const state = panelState(['ROW_OFFSET'], 'semantic_view', true);
+    state.datasource = {
+      ...state.datasource,
+      uid: '1__semantic_view',
+    } as Dataset;
+    state.form_data.datasource = '2__semantic_view';
+
+    expect(
+      getControl(name).mapStateToProps?.(state, state.controls[name]),
+    ).toMatchObject({ disabled: true });
     expect(state.controls.server_pagination.value).toBe(true);
   },
 );
