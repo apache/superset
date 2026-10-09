@@ -99,9 +99,10 @@ def _is_valid_shorthand(value: str) -> bool:
     return True
 
 
-def validate_time_range(value: str | None) -> str | None:
+def validate_time_range(value: str | None, *, allow_empty: bool = True) -> str | None:
     """Normalize and validate an MCP ``time_range`` / ``default_time_range``
-    string.
+    string. Filter comparators must set ``allow_empty=False`` because their
+    values are passed directly to the parser rather than used as defaults.
 
     Returns the canonicalized value. Raises ``ValueError`` -- which Pydantic
     converts into a field ``ValidationError`` -- when ``value`` is a bare
@@ -113,10 +114,13 @@ def validate_time_range(value: str | None) -> str | None:
         return None
 
     stripped = value.strip()
-    # An empty string is the "no default" / "no filter applied" sentinel
-    # for these tools (callers gate on truthiness before using it), not a
-    # value get_since_until() ever sees -- pass it through unchanged.
+    # Optional top-level ranges use an empty default; filter comparators do not.
     if not stripped:
+        if not allow_empty:
+            raise ValueError(
+                "TEMPORAL_RANGE requires a non-empty range. Use 'No filter', "
+                "a supported shorthand such as 'Last week', or '<start> : <end>'."
+            )
         return stripped
 
     if stripped == NO_TIME_RANGE:

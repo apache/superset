@@ -27,12 +27,15 @@ from datetime import datetime
 
 import pytest
 from freezegun import freeze_time
+from pydantic import ValidationError
 
 from superset.commands.chart.exceptions import TimeRangeParseFailError
 from superset.mcp_service.common.time_range_validation import (
     BRACKET_SHORTHAND_TO_TIME_RANGE,
     validate_time_range,
 )
+from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+from superset.mcp_service.semantic_layer.schemas import GetTableRequest
 from superset.utils.date_parser import get_since_until
 
 
@@ -286,3 +289,62 @@ class TestValidateTimeRangeRejectsMalformedPrefixes:
 
         with pytest.raises(ValueError, match="Unrecognized time_range"):
             validate_time_range("Lasagna")
+
+
+@pytest.mark.parametrize("request_type", [QueryDatasetRequest, GetTableRequest])
+@pytest.mark.parametrize("value", ["", "  ", "\t\n"])
+def test_temporal_filter_rejects_blank_range(
+    request_type: type[QueryDatasetRequest] | type[GetTableRequest], value: str
+) -> None:
+    """Reject blank filter values at the request boundary before query execution."""
+    with pytest.raises(ValidationError, match="non-empty"):
+        request_type.model_validate(
+            {
+                "dataset_id": 1,
+                "metrics": ["count"],
+                "filters": [{"col": "ds", "op": "TEMPORAL_RANGE", "val": value}],
+            }
+        )
+
+
+@pytest.mark.parametrize("request_type", [QueryDatasetRequest, GetTableRequest])
+@pytest.mark.parametrize("value", ["", "  "])
+def test_top_level_range_preserves_blank_default(
+    request_type: type[QueryDatasetRequest] | type[GetTableRequest], value: str
+) -> None:
+    """Optional top-level ranges still normalize blank input to the empty default."""
+    request: QueryDatasetRequest | GetTableRequest = request_type.model_validate(
+        {"dataset_id": 1, "metrics": ["count"], "time_range": value}
+    )
+    assert request.time_range == ""
+
+
+@pytest.mark.parametrize("request_type", [QueryDatasetRequest, GetTableRequest])
+@pytest.mark.parametrize("value", ["No filter", "Last week", "2024-01-01 : 2024-02-01"])
+def test_temporal_filter_preserves_valid_range(
+    request_type: type[QueryDatasetRequest] | type[GetTableRequest], value: str
+) -> None:
+    """Valid temporal filters retain the shared range grammar."""
+    request: QueryDatasetRequest | GetTableRequest = request_type.model_validate(
+        {
+            "dataset_id": 1,
+            "metrics": ["count"],
+            "filters": [{"col": "ds", "op": "TEMPORAL_RANGE", "val": value}],
+        }
+    )
+    assert request.filters[0].val == value
+
+
+@pytest.mark.parametrize("request_type", [QueryDatasetRequest, GetTableRequest])
+def test_non_temporal_filter_preserves_blank_value(
+    request_type: type[QueryDatasetRequest] | type[GetTableRequest],
+) -> None:
+    """An equality filter can intentionally match an empty string."""
+    request: QueryDatasetRequest | GetTableRequest = request_type.model_validate(
+        {
+            "dataset_id": 1,
+            "metrics": ["count"],
+            "filters": [{"col": "name", "op": "==", "val": ""}],
+        }
+    )
+    assert request.filters[0].val == ""
