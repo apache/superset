@@ -38,7 +38,7 @@ def _parse_restore_metadata(raw_metadata: str | None) -> dict[str, Any] | None:
     """Only clean up metadata whose control structure can be walked safely."""
     try:
         metadata: Any = json.loads(raw_metadata or "{}")
-    except ValueError:
+    except (TypeError, ValueError, RecursionError):
         return None
     if not isinstance(metadata, dict):
         return None

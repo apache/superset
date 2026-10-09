@@ -78,6 +78,11 @@ def archived_dashboard(session: Session, metadata: dict[str, Any]) -> Dashboard:
         "null",
         "[]",
         pytest.param('{"value": ' + "9" * 5000 + "}", id="oversized-json-integer"),
+        pytest.param("[" * 10000 + "0" + "]" * 10000, id="deep-root-json"),
+        pytest.param(
+            '{"native_filter_configuration": ' + "[" * 10000 + "0" + "]" * 10000 + "}",
+            id="deep-controls-json",
+        ),
         '{"native_filter_configuration": {"id": "bad"}}',
         '{"native_filter_configuration": ["bad"]}',
         '{"chart_customization_config": "bad"}',
