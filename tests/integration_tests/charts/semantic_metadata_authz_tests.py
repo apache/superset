@@ -36,6 +36,11 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 )
 
 
+def _query_context_checks(spy: Mock) -> int:
+    """Count access decisions made on a query context (preflight or final)."""
+    return sum(1 for call in spy.call_args_list if "query_context" in call.kwargs)
+
+
 class TestSemanticMetadataAuthorization(SupersetTestCase):
     """Exercise the chart-data route with a provider that records metadata calls."""
 
@@ -136,6 +141,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 return True
             return original_can_access(permission_name, view_name)
 
+        access_spy: Mock
         try:
             with (
                 patch.object(
@@ -145,6 +151,11 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                     return_value=provider,
                 ),
                 patch.object(security_manager, "can_access", side_effect=can_access),
+                patch.object(
+                    security_manager,
+                    "raise_for_access",
+                    wraps=security_manager.raise_for_access,
+                ) as access_spy,
             ):
                 response: Response = self.client.post(
                     "/api/v1/chart/data",
@@ -156,6 +167,8 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 )
             assert response.status_code == 200, response.json
             provider.get_dimensions.assert_called()
+            # The preflight and the final check each decide on a query context.
+            assert _query_context_checks(access_spy) == 2
         finally:
             db.session.rollback()
             db.session.delete(view)
@@ -365,12 +378,20 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.query(SqlaTable).filter_by(table_name="birth_names").first()
         )
         assert dataset is not None
-        response: Response = self.client.post(
-            "/api/v1/chart/data",
-            json={
-                "datasource": {"id": dataset.id, "type": "table"},
-                "queries": [{"columns": ["name"], "metrics": []}],
-                "result_type": "query",
-            },
-        )
+        access_spy: Mock
+        with patch.object(
+            security_manager,
+            "raise_for_access",
+            wraps=security_manager.raise_for_access,
+        ) as access_spy:
+            response: Response = self.client.post(
+                "/api/v1/chart/data",
+                json={
+                    "datasource": {"id": dataset.id, "type": "table"},
+                    "queries": [{"columns": ["name"], "metrics": []}],
+                    "result_type": "query",
+                },
+            )
         assert response.status_code == 200, response.json
+        # Admin passes either way, so pin that a SQL dataset gets no preflight.
+        assert _query_context_checks(access_spy) == 1
