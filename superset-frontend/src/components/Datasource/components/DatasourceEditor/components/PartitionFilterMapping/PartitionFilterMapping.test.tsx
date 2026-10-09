@@ -460,6 +460,7 @@ test('designating a partition column does not claim it is hidden from Explore', 
     screen.getByText(/No filter is mirrored onto dt_epoch/),
   ).toBeInTheDocument();
   expect(screen.queryByText(/hidden from Explore/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/hides it from Explore/)).not.toBeInTheDocument();
 });
 
 test('the ordering checkbox reports back which column it belongs to', async () => {
