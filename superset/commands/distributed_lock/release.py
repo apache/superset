@@ -30,6 +30,7 @@ from superset.daos.key_value import KeyValueDAO
 from superset.exceptions import ReleaseDistributedLockFailedException
 from superset.extensions import db
 from superset.key_value.exceptions import KeyValueDeleteFailedError
+from superset.key_value.types import RowLock
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -109,7 +110,7 @@ class ReleaseDistributedLock(BaseDistributedLockCommand):
         the delete, and this delete would then remove *their* lock. This is the KV
         equivalent of the Redis path's compare-and-delete.
         """
-        entry = KeyValueDAO.get_entry(self.resource, self.key, for_update=True)
+        entry = KeyValueDAO.get_entry(self.resource, self.key, lock=RowLock())
         if entry is None or entry.is_expired():
             # Nothing to release (already gone or expired). A later holder that
             # re-created the row holds its own (locked) entry, untouched here.
