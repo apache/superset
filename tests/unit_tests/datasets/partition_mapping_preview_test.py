@@ -1051,6 +1051,48 @@ def test_preview_leaves_a_string_column_s_sample_alone(
     assert probed == [["02134"]]
 
 
+def test_preview_probes_an_array_column_with_the_chart_path_s_literal(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    An array column's predicate compares the engine's array literal built from
+    the raw value, so the chart path probes `array(1, 2)`. Preview has to probe
+    the same thing, or `length(:value)` previews 6 -- the length of the text
+    `[1, 2]` -- where the chart emits 2.
+    """
+    from superset.connectors.sqla.models import TableColumn
+    from superset.connectors.sqla.partition_mapping import RawProbeValue
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    dataset.columns.append(TableColumn(column_name="tags", type="Array(Int32)"))
+    db.session.flush()
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return [2]
+
+    with patch(PROBE, side_effect=record):
+        with patch.object(
+            type(dataset.database),
+            "db_engine_spec",
+            new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+        ):
+            response = client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={
+                    "mapped_column": "tags",
+                    "value_transform": "length(:value)",
+                    "sample_values": ["[1, 2]"],
+                },
+            )
+
+    assert response.status_code == 200
+    assert probed == [[RawProbeValue("array(1, 2)")]]
+    assert response.json["result"]["valid"] is True
+
+
 def test_preview_declines_an_equality_the_chart_path_declines(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:

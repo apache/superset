@@ -2333,11 +2333,34 @@ def _probe_input(
     conversion `_collect_partition_mirror_range` applies -- a ``datetime`` into
     the column's stored representation -- has no counterpart here.
 
-    Always answers with a value: nothing here declines. `UNMIRRORABLE` is
+    An array column is the exception to `filter_values_handler`: its predicate
+    is built from the raw value, parsed into elements and rendered as the
+    engine's own array literal, so the chart path probes that literal
+    (`ExploreMixin._array_mirror_probe_value`) and this does too. Passing the
+    handled text instead previewed ``length('[1, 2]')`` for a filter whose
+    query probes ``length(array(1, 2))``.
+
+    Answers with a value, or `None` where an engine spec claims array columns
+    without an array literal -- which `mirror_probe_request` then declines, as
+    the chart path declines it. Otherwise `UNMIRRORABLE` is
     `mirror_probe_request`'s to return, and the caller hands this straight to it.
     """
     is_list = operator == FilterOperator.IN
     column_spec = datasource.db_engine_spec.get_column_spec(native_type=column.type)
+    if (
+        column_spec
+        and column_spec.generic_type == utils.GenericDataType.MULTI_VALUE
+        and operator in MIRRORABLE_ALWAYS
+    ):
+        # `=` and `IN` are the previewable operators the array branch builds a
+        # literal for; a bound on an array column binds the handled value on
+        # the chart path too, so it falls through to the same here.
+        return datasource._array_mirror_probe_value(  # noqa: SLF001
+            sample_values if is_list else sample_values[0],
+            operator,
+            datasource.db_engine_spec.get_array_element_type(column.type),
+            datasource.db_engine_spec,
+        )
     handled = datasource.filter_values_handler(
         # `list[str]` is not a `list[FilterValue]` to mypy, invariantly, even
         # though every `str` is a `FilterValue`.
