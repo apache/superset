@@ -137,7 +137,6 @@ TOOL_BUDGETS = {
     "restore_dataset": 1_100,
     "save_sql_query": 1_600,
     "update_chart": 4_100,
-    # Independent prose/instruction budgets: 2,003 bytes plus snapshot headroom.
     "update_chart_preview": 2_200,
     "update_dashboard": 4_200,
     "update_dataset": 2_300,

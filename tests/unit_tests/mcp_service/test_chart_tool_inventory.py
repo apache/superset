@@ -70,7 +70,6 @@ CHART_TOOLS = [
 TOOL_BUDGETS = [
     ("generate_chart", 2_400),
     ("update_chart", 4_100),
-    # Independent prose/instruction budgets: 2,003 bytes plus snapshot headroom.
     ("update_chart_preview", 2_200),
     ("generate_explore_link", 1_800),
 ]
