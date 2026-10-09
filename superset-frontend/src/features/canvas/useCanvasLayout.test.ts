@@ -26,6 +26,7 @@ const endpoint = 'glob:*/api/v1/canvas/7/definition';
 const KPI: GridPlacement = { col: 1, row: 1, colSpan: 6, rowSpan: 4 };
 const TREND: GridPlacement = { col: 1, row: 5, colSpan: 24, rowSpan: 8 };
 const MOVED: GridPlacement = { col: 7, row: 1, colSpan: 6, rowSpan: 4 };
+const QUEUED: GridPlacement = { col: 1, row: 14, colSpan: 24, rowSpan: 8 };
 
 const resultAt = (
   revision: number,
@@ -220,4 +221,59 @@ test('drags made while a write is in flight are coalesced, not conflicted', asyn
     { op: 'place', id: 'trend', layout: third },
   ]);
   expect(result.current.error).toBeUndefined();
+});
+
+test('a gesture queued behind a write is not undone by that write landing', async () => {
+  // The first write resolves; the follow-up is held open so the window
+  // between them is observable. Inside it the queued gesture must still show.
+  let releaseFollowUp: () => void = () => {};
+  const followUp = new Promise<Response>(resolve => {
+    releaseFollowUp = () =>
+      resolve(
+        new Response(
+          JSON.stringify({
+            result: {
+              revision: 5,
+              ops: [],
+              placements: { kpi: MOVED, trend: QUEUED },
+            },
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+  });
+  fetchMock
+    .patch(
+      endpoint,
+      {
+        result: {
+          revision: 4,
+          ops: [],
+          placements: { kpi: MOVED, trend: TREND },
+        },
+      },
+      { repeat: 1 },
+    )
+    .patch(endpoint, () => followUp);
+
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  act(() => {
+    result.current.place('kpi', MOVED);
+    // Queued: the first request is already in flight.
+    result.current.place('trend', QUEUED);
+  });
+
+  // Both requests have gone out, so the first one's response has landed.
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
+
+  // The regression: the first response's placements have trend at TREND, and
+  // overwriting with them would snap the widget back mid-flight.
+  expect(result.current.placements.trend).toEqual(QUEUED);
+  expect(result.current.placements.kpi).toEqual(MOVED);
+
+  releaseFollowUp();
+  await waitFor(() => expect(result.current.placements.trend).toEqual(QUEUED));
 });

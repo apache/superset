@@ -258,3 +258,51 @@ test('a resize that grows onto a neighbour warns too', () => {
     'true',
   );
 });
+
+test('the drop lands where the pointer was released, not where it last moved', () => {
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: COL_PITCH, clientY: 0 });
+  // The pointer travels further before the release reports its own position.
+  pointer(handle, 'pointerup', { clientX: COL_PITCH * 5, clientY: 0 });
+
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 6,
+    row: 1,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+});
+
+test('a cancel from a different pointer leaves the gesture alone', () => {
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+
+  pointer(handle, 'pointerdown', {
+    button: 0,
+    pointerId: 1,
+    clientX: 0,
+    clientY: 0,
+  });
+  pointer(handle, 'pointermove', {
+    pointerId: 1,
+    clientX: COL_PITCH * 4,
+    clientY: 0,
+  });
+  // A second pointer going away must not discard the first one's drag.
+  pointer(handle, 'pointercancel', { pointerId: 2 });
+  pointer(handle, 'pointerup', {
+    pointerId: 1,
+    clientX: COL_PITCH * 4,
+    clientY: 0,
+  });
+
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 5,
+    row: 1,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+});

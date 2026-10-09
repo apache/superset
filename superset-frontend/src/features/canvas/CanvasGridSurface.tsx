@@ -304,17 +304,32 @@ export default function CanvasGridSurface({
     const { current } = live;
     if (!current || current.pointerId !== event.pointerId) return;
     update(undefined);
+    // From the release event's own position: the pointer can travel between
+    // the last move event and the release, and the drop belongs where the
+    // user let go.
     commit(
       current.nodeId,
-      targetOf(current.nodeId, current.kind, current.dx, current.dy),
+      targetOf(
+        current.nodeId,
+        current.kind,
+        event.clientX - current.startX,
+        event.clientY - current.startY,
+      ),
     );
   };
 
-  const onPointerCancel = () => update(undefined);
+  // Only the pointer that owns the gesture may cancel it, so a second
+  // pointer going away elsewhere doesn't discard this one.
+  const onPointerCancel = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const { current } = live;
+    if (!current || current.pointerId !== event.pointerId) return;
+    update(undefined);
+  };
 
   /**
-   * Arrow keys do what dragging does, one cell at a time, so the layout is
-   * reachable without a pointer. Shift resizes instead of moving.
+   * Arrow keys do what dragging that handle does, one cell at a time, so the
+   * layout is reachable without a pointer: the grip moves the widget, the
+   * resize corner resizes it.
    */
   const onKeyDown =
     (nodeId: string, kind: GestureKind) =>

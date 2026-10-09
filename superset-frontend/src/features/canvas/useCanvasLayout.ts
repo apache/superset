@@ -110,13 +110,21 @@ export function useCanvasLayout(
       })
         .then(({ json }) => {
           const written = json?.result as ApplyOperationsResult | undefined;
-          if (written) {
-            confirmed.current = written.revision;
-            setApplied({
-              revision: written.revision,
-              placements: written.placements,
-            });
-          }
+          if (!written) return;
+          confirmed.current = written.revision;
+          // Gestures queued while this write was in flight are newer than the
+          // placements it resolved, so they stay on top -- otherwise the
+          // widget would snap back until the follow-up request returned. The
+          // view is tagged a revision ahead, which is what the follow-up will
+          // produce, so a refetch of this revision doesn't drop them either.
+          const waiting = [...queued.current];
+          setApplied({
+            revision: written.revision + (waiting.length > 0 ? 1 : 0),
+            placements:
+              waiting.length > 0
+                ? { ...written.placements, ...Object.fromEntries(waiting) }
+                : written.placements,
+          });
         })
         .catch(async response => {
           queued.current.clear();

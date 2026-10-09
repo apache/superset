@@ -154,10 +154,13 @@ def _can_edit(canvas: Canvas) -> bool:
     """
     Whether the current user may change ``canvas``.
 
-    Asks the same check the write path enforces
-    (``ApplyCanvasOperationsCommand.validate``), so a client that hides its
-    editing affordances hides exactly what the server would refuse.
+    Both gates the write route applies: the route-level ``can_write`` on
+    Canvas that ``@protect()`` enforces, and the object-level editorship
+    ``ApplyCanvasOperationsCommand.validate`` enforces. Checking only
+    editorship would advertise editing to a role the route itself refuses.
     """
+    if not security_manager.can_access("can_write", "Canvas"):
+        return False
     try:
         security_manager.raise_for_editorship(canvas)
     except SupersetSecurityException:

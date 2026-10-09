@@ -214,6 +214,22 @@ def test_definition_reports_a_view_only_user_cannot_edit(
     assert response.json["result"]["canEdit"] is False
 
 
+def test_definition_reports_no_edit_without_route_write_permission(
+    client: Any, full_api_access: None, canvas: Any, mocker: MockerFixture
+) -> None:
+    """
+    The write route needs ``can_write`` on Canvas as well as editorship, so an
+    object editor whose role lacks the route permission is told not to offer
+    editing -- otherwise its saves would 403.
+    """
+    mocker.patch("superset.canvas.api.security_manager.can_access", return_value=False)
+
+    response = client.get(URL)
+
+    assert response.status_code == 200
+    assert response.json["result"]["canEdit"] is False
+
+
 def test_apply_operations_bumps_revision_logs_and_publishes(
     client: Any, full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
