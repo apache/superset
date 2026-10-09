@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -1593,6 +1593,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -4423,6 +4427,9 @@ msgstr "当日"
 msgid "Current month"
 msgstr "当月"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "当四半期"
 
@@ -6282,6 +6289,9 @@ msgstr "ユーザーのユーザー名を入力"
 msgid "Enter theme name"
 msgstr "テーマ名を入力"
 
+msgid "Enter your current password"
+msgstr ""
+
 msgid "Enter your login and password below:"
 msgstr "以下にユーザー名とパスワードを入力してください:"
 
@@ -6781,6 +6791,9 @@ msgstr "チャートデータの読み込みに失敗しました。"
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s の列情報の読み込みに失敗しました"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -7987,9 +8000,6 @@ msgstr "無効なタブID: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "ユーザー名またはパスワードが正しくありません"
 
 msgid "Inverse"
 msgstr ""
@@ -9365,6 +9375,9 @@ msgstr "新しいデータセット名"
 
 msgid "New header"
 msgstr "新しいヘッダー"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "新しいタブ"
@@ -11291,6 +11304,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "必須の制御値が削除されました"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "リサンプリング"
 
@@ -11666,6 +11682,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQLクエリ"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL式"
@@ -12516,6 +12537,9 @@ msgstr "セマンティックビューが更新されました"
 
 msgid "Semantic views"
 msgstr "セマンティックビュー"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

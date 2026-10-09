@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -2182,6 +2182,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -6174,6 +6178,9 @@ msgstr "Dia atual"
 msgid "Current month"
 msgstr "Mês atual"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Trimestre atual"
 
@@ -8810,6 +8817,9 @@ msgstr "Introduza o nome de utilizador do utilizador"
 msgid "Enter theme name"
 msgstr "Introduza o nome do tema"
 
+msgid "Enter your current password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Enter your login and password below:"
@@ -9484,6 +9494,9 @@ msgstr "Falha ao carregar dados do gráfico."
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Falha ao carregar colunas para %s %s"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -11217,11 +11230,6 @@ msgstr "IDs de separador inválidos: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
-# lv, ro, ru, sr, sr_Latn, tr, uk]
-msgid "Invalid username or password"
-msgstr "Nome de utilizador ou palavra-passe inválidos"
 
 msgid "Inverse"
 msgstr ""
@@ -13204,6 +13212,9 @@ msgstr "Nome do novo conjunto de dados"
 
 msgid "New header"
 msgstr "Novo cabeçalho"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nova aba"
@@ -16004,6 +16015,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Os valores de controlo necessários foram removidos"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
 # zh, zh_TW]
@@ -16501,6 +16515,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Query SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Expressão SQL"
@@ -17641,6 +17660,9 @@ msgstr "Vista semântica atualizada"
 # sr_Latn]
 msgid "Semantic views"
 msgstr "Vistas semânticas"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

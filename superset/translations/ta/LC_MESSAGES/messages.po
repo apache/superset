@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1716,6 +1716,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -4771,6 +4775,9 @@ msgstr "இன்றைய நாள்"
 msgid "Current month"
 msgstr "இந்த மாதம்"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "இந்தக் காலாண்டு"
 
@@ -6780,6 +6787,9 @@ msgstr "பயனரின் பயனர் பெயரை உள்ளிட
 msgid "Enter theme name"
 msgstr "தீம் பெயரை உள்ளிடவும்"
 
+msgid "Enter your current password"
+msgstr ""
+
 msgid "Enter your login and password below:"
 msgstr "உங்கள் பயனர் பெயர் மற்றும் கடவுச்சொல்லை கீழே உள்ளிடவும்:"
 
@@ -7297,6 +7307,9 @@ msgstr "சார்ட் தரவை ஏற்றுவதில் தோல
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -8559,9 +8572,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "தவறான பயனர் பெயர் அல்லது கடவுச்சொல்"
 
 msgid "Inverse"
 msgstr ""
@@ -9965,6 +9975,9 @@ msgstr "புதிய தரவுத்தொகுப்பு பெயர�
 
 msgid "New header"
 msgstr "புதிய தலைப்பு"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "புதிய தாவல் (tab)"
@@ -11943,6 +11956,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "தேவையான கட்டுப்பாட்டு மதிப்புகள் நீக்கப்பட்டுள்ளன"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "மறுமாதிரி (Resample)"
 
@@ -12311,6 +12327,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL வினவல்"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL கோவை (expression)"
@@ -13214,6 +13235,9 @@ msgid "Semantic view updated"
 msgstr ""
 
 msgid "Semantic views"
+msgstr ""
+
+msgid "Semantic views cannot enforce guest row-level security rules."
 msgstr ""
 
 msgid "Send Failed Reports"

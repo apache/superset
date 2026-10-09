@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -1778,6 +1778,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -4871,6 +4875,9 @@ msgstr "Tekoči dan"
 msgid "Current month"
 msgstr "Tekoči mesec"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Tekoče četrtletje"
 
@@ -6946,6 +6953,9 @@ msgstr "Vnesite uporabniško ime uporabnika"
 msgid "Enter theme name"
 msgstr "Vnesite ime teme"
 
+msgid "Enter your current password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Enter your login and password below:"
@@ -7471,6 +7481,9 @@ msgstr "Neuspešno nalaganje podatkov grafikona."
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Nalaganje stolpcev za %s %s ni uspelo"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -8782,9 +8795,6 @@ msgstr "Neveljavni ID-ji zavihkov: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Neveljavno uporabniško ime ali geslo"
 
 msgid "Inverse"
 msgstr ""
@@ -10265,6 +10275,9 @@ msgstr "Ime novega podatkovnega seta"
 
 msgid "New header"
 msgstr "Nov naslov"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nov zavihek"
@@ -12325,6 +12338,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Zahtevane kontrolne vrednosti so bile odstranjene"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Prevzorči"
 
@@ -12722,6 +12738,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL-poizvedba"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL-izraz"
@@ -13659,6 +13680,9 @@ msgstr "Semantični pogled posodobljen"
 # sr_Latn]
 msgid "Semantic views"
 msgstr "Semantični pogledi"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

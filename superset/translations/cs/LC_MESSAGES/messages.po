@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1770,6 +1770,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -4864,6 +4868,9 @@ msgstr "Aktuální den"
 msgid "Current month"
 msgstr "Aktuální měsíc"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Aktuální čtvrtletí"
 
@@ -6970,6 +6977,9 @@ msgstr "Zadejte uživatelské jméno uživatele"
 msgid "Enter theme name"
 msgstr "Zadejte název tématu"
 
+msgid "Enter your current password"
+msgstr ""
+
 msgid "Enter your login and password below:"
 msgstr "Zadejte vaše přihlašovací údaje níže:"
 
@@ -7505,6 +7515,9 @@ msgstr "Nepodařilo se načíst data grafu."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -8815,10 +8828,6 @@ msgstr "Neplatná ID karet: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Neplatné uživatelské jméno nebo heslo"
 
 msgid "Inverse"
 msgstr ""
@@ -10309,6 +10318,9 @@ msgstr "Nový název sady dat"
 
 msgid "New header"
 msgstr "Nové záhlaví"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nová karta"
@@ -12392,6 +12404,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Požadované hodnoty ovládacích prvků byly odstraněny"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Převzorkovat"
 
@@ -12798,6 +12813,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL dotaz"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL výraz"
@@ -13792,6 +13812,9 @@ msgstr "Sémantický pohled byl aktualizován"
 #, fuzzy
 msgid "Semantic views"
 msgstr "Sémantické pohledy"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

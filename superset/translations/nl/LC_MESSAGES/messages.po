@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1810,6 +1810,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -5152,6 +5156,9 @@ msgstr "Huidige dag"
 msgid "Current month"
 msgstr "Huidige maand"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Huidig kwartaal"
 
@@ -7400,6 +7407,9 @@ msgstr "Voer de gebruikersnaam van de gebruiker in"
 msgid "Enter theme name"
 msgstr "Naam van de waarschuwing"
 
+msgid "Enter your current password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7965,6 +7975,9 @@ msgstr "Laden van grafiekgegevens mislukt."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -9407,10 +9420,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Ofwel is de gebruikersnaam ofwel het wachtwoord verkeerd."
 
 msgid "Inverse"
 msgstr ""
@@ -11009,6 +11018,9 @@ msgstr "Nieuwe dataset naam"
 
 msgid "New header"
 msgstr "Nieuwe koptekst"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nieuw tabblad"
@@ -13200,6 +13212,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Vereiste controlewaarden zijn verwijderd"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Opnieuw bemonsteren"
 
@@ -13622,6 +13637,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL Query"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL expressie"
@@ -14663,6 +14683,9 @@ msgstr "Semantische weergave bijgewerkt"
 #, fuzzy
 msgid "Semantic views"
 msgstr "Semantische weergaven"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

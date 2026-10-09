@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1788,6 +1788,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -5030,6 +5034,9 @@ msgstr "روز جاری"
 msgid "Current month"
 msgstr "ماه جاری"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "سه ماهه جاری"
 
@@ -7225,6 +7232,9 @@ msgstr "نام کاربری کاربر را وارد کنید"
 msgid "Enter theme name"
 msgstr "نام هشدار را وارد کنید"
 
+msgid "Enter your current password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7780,6 +7790,9 @@ msgstr "بارگذاری داده‌های نمودار ناموفق بود."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -9184,10 +9197,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "نام کاربری یا رمز عبور اشتباه است."
 
 msgid "Inverse"
 msgstr ""
@@ -10761,6 +10770,9 @@ msgstr "نام مجموعه داده جدید"
 
 msgid "New header"
 msgstr "عنوان جدید"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "زبان جدید"
@@ -12906,6 +12918,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "مقادیر کنترل مورد نیاز حذف شده‌اند"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "نمونه‌برداری مجدد"
 
@@ -13320,6 +13335,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "کوئری SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "عبارت SQL"
@@ -14338,6 +14358,9 @@ msgstr "نمای معنایی به‌روزرسانی شد"
 #, fuzzy
 msgid "Semantic views"
 msgstr "نماهای معنایی"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

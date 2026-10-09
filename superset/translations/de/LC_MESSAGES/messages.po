@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -1709,6 +1709,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -4789,6 +4793,9 @@ msgstr "Aktueller Tag"
 msgid "Current month"
 msgstr "Aktueller Monat"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Aktuelles Quartal"
 
@@ -6818,6 +6825,9 @@ msgstr "Anmeldenamen eingeben"
 msgid "Enter theme name"
 msgstr "Designnamen eingeben"
 
+msgid "Enter your current password"
+msgstr ""
+
 msgid "Enter your login and password below:"
 msgstr "Geben Sie unten Ihren Anmeldenamen und Ihr Passwort ein:"
 
@@ -7323,6 +7333,9 @@ msgstr "Diagrammdaten konnten nicht geladen werden."
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Die Spalte für %s %s konnte nicht geladen werden"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -8606,9 +8619,6 @@ msgstr "Ungültige Tab-IDs: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Der Anmeldename oder das Kennwort ist falsch"
 
 msgid "Inverse"
 msgstr ""
@@ -10039,6 +10049,9 @@ msgstr "Name des neuen Datensatzes"
 
 msgid "New header"
 msgstr "Neue Überschrift"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Neuer Tab"
@@ -12096,6 +12109,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Erforderliche Steuerwerte wurden entfernt"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Resample"
 
@@ -12488,6 +12504,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL-Abfrage"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL-Ausdruck"
@@ -13410,6 +13431,9 @@ msgstr "Semantische Sicht aktualisiert"
 
 msgid "Semantic views"
 msgstr "Semantische Sichten"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

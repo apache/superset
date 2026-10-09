@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -1779,6 +1779,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -5021,6 +5025,9 @@ msgstr "Dia actual"
 msgid "Current month"
 msgstr "Mes actual"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Trimestre actual"
 
@@ -7206,6 +7213,9 @@ msgstr "Introdueix el nom d'usuari de l'usuari"
 msgid "Enter theme name"
 msgstr "Introdueix nom de l'alerta"
 
+msgid "Enter your current password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7753,6 +7763,9 @@ msgstr "Ha fallat en carregar dades del gràfic."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -9150,10 +9163,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "O bé el nom d'usuari o la contrasenya són incorrectes."
 
 msgid "Inverse"
 msgstr ""
@@ -10689,6 +10698,9 @@ msgstr "Nom del nou conjunt de dades"
 
 msgid "New header"
 msgstr "Nova capçalera"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nova pestanya"
@@ -12815,6 +12827,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Els valors de control obligatoris han estat eliminats"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Remostreig"
 
@@ -13228,6 +13243,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Consulta SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Expressió SQL"
@@ -14248,6 +14268,9 @@ msgstr "Vista semàntica actualitzada"
 #, fuzzy
 msgid "Semantic views"
 msgstr "Vistes semàntiques"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

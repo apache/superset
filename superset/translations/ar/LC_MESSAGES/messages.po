@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1934,6 +1934,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -5224,6 +5228,9 @@ msgstr "تشغيل الاستعلام الحالي"
 msgid "Current month"
 msgstr "الشهر الماضي"
 
+msgid "Current password"
+msgstr ""
+
 #, fuzzy
 msgid "Current quarter"
 msgstr "تشغيل الاستعلام الحالي"
@@ -7520,6 +7527,9 @@ msgstr "أدخل اسم المستخدم"
 msgid "Enter theme name"
 msgstr "اسم التنبيه"
 
+msgid "Enter your current password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -8085,6 +8095,9 @@ msgstr "فشل تحميل بيانات المخطط."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -9510,10 +9523,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "إما أن اسم المستخدم أو كلمة المرور خاطئين."
 
 msgid "Inverse"
 msgstr ""
@@ -11106,6 +11115,9 @@ msgstr "اسم مجموعة بيانات جديد"
 
 msgid "New header"
 msgstr "عنوان جديد"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "علامة تبويب جديدة"
@@ -13298,6 +13310,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "تمت إزالة قيم التحكم المطلوبة"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "إعادة أخذ عينة"
 
@@ -13719,6 +13734,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "استعلام SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "تعبير SQL"
@@ -14755,6 +14775,9 @@ msgstr "تم تحديث العرض الدلالي"
 #, fuzzy
 msgid "Semantic views"
 msgstr "العروض الدلالية"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

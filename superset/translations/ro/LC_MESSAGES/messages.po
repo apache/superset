@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -1862,6 +1862,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -5094,6 +5098,9 @@ msgstr "Zi curentă"
 msgid "Current month"
 msgstr "Lună curentă"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Trimestru curent"
 
@@ -7316,6 +7323,9 @@ msgstr "Introduceți numele de utilizator"
 msgid "Enter theme name"
 msgstr "Introduceți numele temei"
 
+msgid "Enter your current password"
+msgstr ""
+
 msgid "Enter your login and password below:"
 msgstr "Introduceți datele de conectare și parola mai jos:"
 
@@ -7870,6 +7880,9 @@ msgstr "Eșuat la încărcarea datelor graficului."
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Încărcarea coloanelor pentru %s %s a eșuat"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -9266,9 +9279,6 @@ msgstr "ID-uri de file nevalide: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Nume de utilizator sau parolă invalidă"
 
 msgid "Inverse"
 msgstr ""
@@ -10825,6 +10835,9 @@ msgstr "Nume nou set de date"
 
 msgid "New header"
 msgstr "Antet nou"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Filă nouă"
@@ -12956,6 +12969,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Valorile de control obligatorii au fost eliminate"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Re-eșantionare"
 
@@ -13389,6 +13405,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Interogare SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Expresie SQL"
@@ -14448,6 +14469,9 @@ msgstr "Vizualizare semantică actualizată"
 #, fuzzy
 msgid "Semantic views"
 msgstr "Vizualizări semantice"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

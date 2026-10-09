@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -1714,6 +1714,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -4727,6 +4731,9 @@ msgstr "Текущий день"
 msgid "Current month"
 msgstr "Текущий месяц"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Текущий квартал"
 
@@ -6733,6 +6740,9 @@ msgstr "Введите имя пользователя"
 msgid "Enter theme name"
 msgstr "Введите имя темы"
 
+msgid "Enter your current password"
+msgstr ""
+
 msgid "Enter your login and password below:"
 msgstr "Введите ваш логин и пароль ниже:"
 
@@ -7239,6 +7249,9 @@ msgstr "Не удалось загрузить данные"
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Не удалось загрузить столбцы %s %s"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -8505,9 +8518,6 @@ msgstr "Некорректные ID вкладок: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Неверное имя пользователя или пароль"
 
 msgid "Inverse"
 msgstr ""
@@ -9947,6 +9957,9 @@ msgstr "Новое имя датасета"
 
 msgid "New header"
 msgstr "Новый заголовок"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Новая вкладка"
@@ -11967,6 +11980,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Обязательные значения были удалены"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Ресемплирование (изменение частоты данных)"
 
@@ -12352,6 +12368,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL-запрос"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Выражение SQL"
@@ -13245,6 +13266,9 @@ msgstr "Представление аннотаций обновлено"
 
 msgid "Semantic views"
 msgstr "Представления аннотаций"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

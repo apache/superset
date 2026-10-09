@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1757,6 +1757,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -4805,6 +4809,9 @@ msgstr "Šodiena"
 msgid "Current month"
 msgstr "Šis mēnesis"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Šis ceturksnis"
 
@@ -6844,6 +6851,9 @@ msgstr "Ievadiet lietotāja lietotājvārdu"
 msgid "Enter theme name"
 msgstr "Ievadiet motīva nosaukumu"
 
+msgid "Enter your current password"
+msgstr ""
+
 msgid "Enter your login and password below:"
 msgstr "Ievadiet savu lietotājvārdu un paroli zemāk:"
 
@@ -7362,6 +7372,9 @@ msgstr "Neizdevās ielādēt diagrammas datus."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -8639,9 +8652,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Nepareizs lietotājvārds vai parole"
 
 msgid "Inverse"
 msgstr ""
@@ -10110,6 +10120,9 @@ msgstr "Jaunās datu kopas nosaukums"
 
 msgid "New header"
 msgstr "Jauna galvene"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Jauna cilne"
@@ -12155,6 +12168,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Obligātās vadīklas vērtības ir noņemtas"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Atkārtota izlase"
 
@@ -12549,6 +12565,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL vaicājums"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL izteiksme"
@@ -13510,6 +13531,9 @@ msgstr "Semantiskais skats atjaunināts"
 #, fuzzy
 msgid "Semantic views"
 msgstr "Semantiskie skati"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

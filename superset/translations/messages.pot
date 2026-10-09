@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4395,6 +4395,9 @@ msgstr ""
 msgid "Current month"
 msgstr ""
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr ""
 
@@ -6258,6 +6261,9 @@ msgid "Enter the user's username"
 msgstr ""
 
 msgid "Enter theme name"
+msgstr ""
+
+msgid "Enter your current password"
 msgstr ""
 
 msgid "Enter your login and password below:"
@@ -9331,6 +9337,9 @@ msgstr ""
 msgid "New header"
 msgstr ""
 
+msgid "New password"
+msgstr ""
+
 msgid "New tab"
 msgstr ""
 
@@ -11253,6 +11262,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr ""
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr ""
 
@@ -11619,7 +11631,9 @@ msgstr ""
 msgid "SQL Query"
 msgstr ""
 
-msgid "SQL WHERE/HAVING expressions are not supported for semantic views. Remove the SQL clause or use a semantic dimension filter."
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
 msgstr ""
 
 msgid "SQL expression"

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -2059,6 +2059,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5825,6 +5829,9 @@ msgstr "Trenutni dan"
 msgid "Current month"
 msgstr "Trenutni mesec"
 
+msgid "Current password"
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Current quarter"
 msgstr "Trenutni kvartal"
@@ -8362,6 +8369,9 @@ msgstr "Unesite korisničko ime korisnika"
 msgid "Enter theme name"
 msgstr "Unesite naziv teme"
 
+msgid "Enter your current password"
+msgstr ""
+
 # lv, pt_BR, ru, sk, uk]
 msgid "Enter your login and password below:"
 msgstr "Unesite svoje korisničko ime i lozinku ispod:"
@@ -8989,6 +8999,9 @@ msgstr "Neuspelo učitavanje podataka grafikona."
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Neuspelo učitavanje kolona za %s %s"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -10568,10 +10581,6 @@ msgstr "Nevažeći ID-ovi kartica: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-# ru, uk]
-msgid "Invalid username or password"
-msgstr "Neispravno korisničko ime ili lozinka"
 
 msgid "Inverse"
 msgstr ""
@@ -12348,6 +12357,9 @@ msgstr "Naziv novog skupa podataka"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "New header"
 msgstr "Novo zaglavlje"
+
+msgid "New password"
+msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -14878,6 +14890,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Obavezne kontrolne vrednosti su uklonjene"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Resample"
 msgstr "Ponovno uzorkovanje"
@@ -15354,6 +15369,11 @@ msgstr ""
 # zh_TW]
 msgid "SQL Query"
 msgstr "SQL upit"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "SQL expression"
@@ -16482,6 +16502,9 @@ msgstr "Semantički pregled je ažuriran"
 
 msgid "Semantic views"
 msgstr "Semantički pregledi"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

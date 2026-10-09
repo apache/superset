@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -2060,6 +2060,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5822,6 +5826,9 @@ msgstr "Тренутни дан"
 msgid "Current month"
 msgstr "Тренутни месец"
 
+msgid "Current password"
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Current quarter"
 msgstr "Тренутни квартал"
@@ -8358,6 +8365,9 @@ msgstr "Унесите корисничко име корисника"
 msgid "Enter theme name"
 msgstr "Унесите назив теме"
 
+msgid "Enter your current password"
+msgstr ""
+
 # lv, pt_BR, ru, sk, uk]
 msgid "Enter your login and password below:"
 msgstr "Унесите своје корисничко име и лозинку испод:"
@@ -8985,6 +8995,9 @@ msgstr "Неуспело учитавање података графикона.
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Неуспело учитавање колона за %s %s"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -10561,10 +10574,6 @@ msgstr "Неважећи ИД-ови картица: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-# ru, uk]
-msgid "Invalid username or password"
-msgstr "Неисправно корисничко име или лозинка"
 
 msgid "Inverse"
 msgstr ""
@@ -12341,6 +12350,9 @@ msgstr "Назив новог скупа података"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "New header"
 msgstr "Ново заглавље"
+
+msgid "New password"
+msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -14871,6 +14883,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Обавезне контролне вредности су уклоњене"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Resample"
 msgstr "Поновно узорковање"
@@ -15347,6 +15362,11 @@ msgstr ""
 # zh_TW]
 msgid "SQL Query"
 msgstr "SQL упит"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "SQL expression"
@@ -16475,6 +16495,9 @@ msgstr "Семантички преглед је ажуриран"
 
 msgid "Semantic views"
 msgstr "Семантички прегледи"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

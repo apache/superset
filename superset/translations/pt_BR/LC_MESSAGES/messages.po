@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -1795,6 +1795,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -5135,6 +5139,9 @@ msgstr "Executar consulta"
 msgid "Current month"
 msgstr "Formato do valor"
 
+msgid "Current password"
+msgstr ""
+
 #, fuzzy
 msgid "Current quarter"
 msgstr "Executar consulta"
@@ -7377,6 +7384,9 @@ msgstr "Insira o nome de usuário do usuário"
 msgid "Enter theme name"
 msgstr "Nome do alerta"
 
+msgid "Enter your current password"
+msgstr ""
+
 msgid "Enter your login and password below:"
 msgstr "Digite seu login e senha abaixo:"
 
@@ -7946,6 +7956,9 @@ msgstr "Falha ao carregar dados do gráfico."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -9427,10 +9440,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Nome de usuário ou a senha está incorreto."
 
 msgid "Inverse"
 msgstr ""
@@ -11026,6 +11035,9 @@ msgstr "Novo nome do conjunto de dados"
 
 msgid "New header"
 msgstr "Novo cabeçalho"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nova aba"
@@ -13272,6 +13284,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Os valores de controle necessários foram eliminados"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Reamostragem"
 
@@ -13706,6 +13721,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Consulta SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Expressão SQL"
@@ -14764,6 +14784,9 @@ msgstr "Visão semântica atualizada"
 #, fuzzy
 msgid "Semantic views"
 msgstr "Visões semânticas"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

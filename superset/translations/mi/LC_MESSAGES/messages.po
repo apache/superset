@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -1765,6 +1765,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -4976,6 +4980,9 @@ msgstr "Rā o nāianei"
 msgid "Current month"
 msgstr "Marama o nāianei"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Hautakiwā o nāianei"
 
@@ -7127,6 +7134,9 @@ msgstr "Tāuru i te ingoa kaiwhakamahi o te kaiwhakamahi"
 msgid "Enter theme name"
 msgstr "Tāuru ingoa matohi"
 
+msgid "Enter your current password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7670,6 +7680,9 @@ msgstr "I rahua te uta i ngā raraunga kauwhata."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -9069,10 +9082,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "Kua hē te ingoa kaiwhakamahi, te kupuhipa rānei."
 
 msgid "Inverse"
 msgstr ""
@@ -10600,6 +10609,9 @@ msgstr "Ingoa rārangi raraunga hou"
 
 msgid "New header"
 msgstr "Pane hou"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Ripa hou"
@@ -12727,6 +12739,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Kua tangohia ngā uara whakahaere e hiahiatia ana"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Tauira-anō"
 
@@ -13139,6 +13154,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Pātai SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Kīanga SQL"
@@ -14159,6 +14179,9 @@ msgstr "Kua whakahōungia te tirohanga tikanga"
 #, fuzzy
 msgid "Semantic views"
 msgstr "ngā tirohanga tikanga"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1776,6 +1776,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -4809,6 +4813,9 @@ msgstr "Поточний день"
 msgid "Current month"
 msgstr "Поточний місяць"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Поточний квартал"
 
@@ -6855,6 +6862,9 @@ msgstr "Введіть псевдонім користувача"
 msgid "Enter theme name"
 msgstr "Введіть назву теми"
 
+msgid "Enter your current password"
+msgstr ""
+
 msgid "Enter your login and password below:"
 msgstr "Введіть вашого користувача і його пароль нижче:"
 
@@ -7373,6 +7383,9 @@ msgstr "Не вдалося завантажити дані діаграми."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -8645,9 +8658,6 @@ msgstr ""
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-msgid "Invalid username or password"
-msgstr "Неправильний користувач або його пароль"
 
 msgid "Inverse"
 msgstr ""
@@ -10111,6 +10121,9 @@ msgstr "Нова назва набору даних"
 
 msgid "New header"
 msgstr "Новий заголовок"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Нова вкладка"
@@ -12152,6 +12165,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Обов’язкові значення параметрів вилучено"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Передискретизація"
 
@@ -12551,6 +12567,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Запит SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Вираз SQL"
@@ -13511,6 +13532,9 @@ msgstr "Семантичний вигляд оновлено"
 #, fuzzy
 msgid "Semantic views"
 msgstr "Семантичні вигляди"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""

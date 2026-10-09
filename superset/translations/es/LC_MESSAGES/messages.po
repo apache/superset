@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-09-30 14:07-0700\n"
+"POT-Creation-Date: 2026-10-09 15:34-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -1758,6 +1758,10 @@ msgid "Alert query must be a single statement"
 msgstr ""
 
 msgid "Alert query must be read-only"
+msgstr ""
+
+#, python-format
+msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr ""
 
 msgid "Alert query returned a non-number value."
@@ -4965,6 +4969,9 @@ msgstr "Hoy"
 msgid "Current month"
 msgstr "Mes en curso"
 
+msgid "Current password"
+msgstr ""
+
 msgid "Current quarter"
 msgstr "Trimestre en curso"
 
@@ -7123,6 +7130,9 @@ msgstr "Introduce el nombre de usuario"
 msgid "Enter theme name"
 msgstr "Introduce el nombre de la alerta"
 
+msgid "Enter your current password"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid "Enter your login and password below:"
@@ -7664,6 +7674,9 @@ msgstr "No se han podido cargar los datos del gráfico."
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "No se han podido cargar las columnas de %s %s"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -9045,10 +9058,6 @@ msgstr "ID de pestaña no válidos: %(tab_ids)s"
 #, python-format
 msgid "Invalid time range boundary for resample: %(value)s"
 msgstr ""
-
-#, fuzzy
-msgid "Invalid username or password"
-msgstr "El nombre de usuario o la contraseña son incorrectos."
 
 msgid "Inverse"
 msgstr ""
@@ -10579,6 +10588,9 @@ msgstr "Nombre del nuevo conjunto de datos"
 
 msgid "New header"
 msgstr "Nuevo encabezado"
+
+msgid "New password"
+msgstr ""
 
 msgid "New tab"
 msgstr "Nueva pestaña"
@@ -12713,6 +12725,9 @@ msgstr ""
 msgid "Required control values have been removed"
 msgstr "Se han eliminado los valores de control obligatorios"
 
+msgid "Required if your account already has a password"
+msgstr ""
+
 msgid "Resample"
 msgstr "Remuestreo"
 
@@ -13126,6 +13141,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Consulta SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Expresión SQL"
@@ -14120,6 +14140,9 @@ msgstr "Vista semántica actualizada"
 #, fuzzy
 msgid "Semantic views"
 msgstr "Vistas semánticas"
+
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
 
 msgid "Send Failed Reports"
 msgstr ""
