@@ -105,6 +105,15 @@ def _needs_unsupported_processing(form_data: dict[str, Any]) -> bool:
     return form_data.get("aggregation") == "raw"
 
 
+def _export_form_data(form_data: dict[str, Any], viz_type: str) -> dict[str, Any]:
+    """Remove interactive table pagination before export planning and execution."""
+    if viz_type == "table":
+        # Direct downloads must budget the full-limit query that the workbook
+        # executes, without a pagination-only rowcount query or page offset.
+        return {**form_data, "server_pagination": False, "row_offset": 0}
+    return form_data
+
+
 def resolve_query_context(chart: Any) -> dict[str, Any] | None:
     """Resolve a saved, custom-built, or built-in query context for a chart."""
     if saved := _saved_query_context(chart.query_context):
@@ -142,7 +151,7 @@ def resolve_query_context(chart: Any) -> dict[str, Any] | None:
         return None
 
     return build_query_context_from_form_data(
-        form_data,
+        _export_form_data(form_data, chart.viz_type),
         {"id": chart.datasource_id, "type": chart.datasource_type or "table"},
         chart.viz_type,
     )

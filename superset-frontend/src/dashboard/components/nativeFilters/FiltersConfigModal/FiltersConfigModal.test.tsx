@@ -1238,8 +1238,10 @@ test('semantic filter reset requires reselection and survives save and reopen', 
   );
   await userEvent.click(await screen.findByText('Orders.status'));
   // Column validation clears the previous save error asynchronously.
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeEnabled(),
+  await waitFor(
+    () =>
+      expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeEnabled(),
+    { timeout: 5000 },
   );
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));

@@ -28,9 +28,13 @@ from flask import current_app
 from flask_babel import gettext as __
 from pytz import timezone
 
-from superset import is_feature_enabled
+from superset.daos.report import ReportConfigDAO
 from superset.exceptions import SupersetErrorsException
-from superset.reports.models import ReportRecipients, ReportRecipientType
+from superset.reports.models import (
+    ReportConfigKey,
+    ReportRecipients,
+    ReportRecipientType,
+)
 from superset.reports.notifications.base import BaseNotification, NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils import json
@@ -136,10 +140,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     @property
     def _name(self) -> str:
-        """Include date format in the name if feature flag is enabled"""
+        """Render date placeholders in the name when configured."""
         return (
             self._parse_name(self._content.name)
-            if is_feature_enabled("DATE_FORMAT_IN_EMAIL_SUBJECT")
+            if ReportConfigDAO.get_effective_value(
+                ReportConfigKey.DATE_FORMAT_IN_EMAIL_SUBJECT
+            )
             else self._content.name
         )
 
