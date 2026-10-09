@@ -143,6 +143,7 @@ def _mock_dashboard(filters: list[dict[str, Any]] | None = None, id: int = 1) ->
     """Build a mock dashboard carrying the given native filter config."""
     dashboard = Mock()
     dashboard.id = id
+    dashboard.is_managed_externally = False
     dashboard.uuid = "8f2ab3c4-0000-4000-8000-000000000001"
     dashboard.dashboard_title = "Test Dashboard"
     dashboard.json_metadata = json.dumps({"native_filter_configuration": filters or []})
@@ -1043,6 +1044,7 @@ async def test_timegrain_filter_created_by_manage_native_filters_accepts_a_grain
 
     create_dashboard = Mock()
     create_dashboard.id = 1
+    create_dashboard.is_managed_externally = False
     create_dashboard.dashboard_title = "Test Dashboard"
     create_dashboard.json_metadata = json.dumps({"native_filter_configuration": []})
     create_dashboard.slices = []
@@ -1295,6 +1297,43 @@ async def test_unknown_filter_name_lists_the_available_filters(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("include_filter", [True, False])
+async def test_unknown_filter_name_excludes_dividers(
+    mcp_server: object, include_filter: bool
+) -> None:
+    """Available-filter errors omit dividers, including divider-only dashboards."""
+    divider = {
+        "id": "NATIVE_FILTER_DIVIDER-geography",
+        "type": "DIVIDER",
+        "title": "Geography",
+        "description": "Location filters",
+        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+    }
+    configs = [divider, SELECT_FILTER] if include_filter else [divider]
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard(configs)),
+        patch(CREATE_PERMALINK) as create_permalink,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Country", "values": ["FR"]}],
+            },
+        )
+
+    assert "No filter named 'Country'" in data["error"]
+    assert "NATIVE_FILTER_DIVIDER" not in data["error"]
+    assert "(unnamed)" not in data["error"]
+    assert "type=None" not in data["error"]
+    if include_filter:
+        assert "Region (id=NATIVE_FILTER-region, type=filter_select)" in data["error"]
+    else:
+        assert "This dashboard has no native filters." in data["error"]
+    create_permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_ambiguous_filter_name_asks_for_an_id(mcp_server: object) -> None:
     """Ambiguous filter name asks for an id."""
     duplicate = {**SELECT_FILTER, "id": "NATIVE_FILTER-region2"}
@@ -1390,6 +1429,36 @@ async def test_unsupported_filter_type_is_rejected(mcp_server: object) -> None:
 
     assert "has type 'filter_timecolumn'" in data["error"]
     assert "filter_range, filter_select, filter_time, filter_timegrain" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_divider_id_is_rejected_with_divider_type(mcp_server: object) -> None:
+    """Divider IDs report their display type without creating a permalink."""
+    divider = {
+        "id": "NATIVE_FILTER_DIVIDER-geography",
+        "type": "DIVIDER",
+        "title": "Geography",
+        "description": "Location filters",
+        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+    }
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([divider])),
+        patch(CREATE_PERMALINK) as create_permalink,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": divider["id"], "values": ["FR"]}],
+            },
+        )
+
+    assert data["permalink_key"] is None
+    assert (
+        "Filter 'NATIVE_FILTER_DIVIDER-geography' has type 'divider', "
+        "which this tool cannot apply values to."
+    ) in data["error"]
+    create_permalink.assert_not_called()
 
 
 @pytest.mark.asyncio

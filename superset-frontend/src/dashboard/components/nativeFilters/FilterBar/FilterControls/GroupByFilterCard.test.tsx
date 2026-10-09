@@ -142,7 +142,7 @@ test('maps columns to options honouring filterable and verbose_name', async () =
   );
 
   const combobox = await screen.findByRole('combobox');
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
 
   expect(await screen.findByText('Deal Size')).toBeInTheDocument();
   expect(screen.getByText('city')).toBeInTheDocument();
@@ -160,7 +160,7 @@ test('fetch failure fires the danger toast and leaves options empty', async () =
   expect(String(mockedAddDangerToast.mock.calls[0][0])).toMatch(/303/);
 
   const combobox = await screen.findByRole('combobox');
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
   expect(screen.queryByText('Deal Size')).not.toBeInTheDocument();
 });
 
@@ -217,7 +217,7 @@ test('semantic-view target lists only the view dimensions under an id collision'
   renderCard([{ datasetId: 306, datasourceType: DatasourceType.SemanticView }]);
 
   const combobox = await screen.findByRole('combobox');
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
 
   expect(await screen.findByText('Orders Status')).toBeInTheDocument();
   expect(screen.queryByText('address_line1')).not.toBeInTheDocument();
@@ -239,8 +239,8 @@ test('selecting a dimension persists a target that still carries datasourceType'
   renderCard([{ datasetId: 307, datasourceType: DatasourceType.SemanticView }]);
 
   const combobox = await screen.findByRole('combobox');
-  userEvent.click(combobox);
-  userEvent.click(await screen.findByText('Orders Users City'));
+  await userEvent.click(combobox);
+  await userEvent.click(await screen.findByText('Orders Users City'));
 
   await waitFor(() => expect(setPendingChartCustomization).toHaveBeenCalled());
   const persisted =
@@ -268,8 +268,8 @@ test('clearing the selection keeps the datasource binding intact', async () => {
   renderCard([{ datasetId: 308, datasourceType: DatasourceType.SemanticView }]);
 
   const combobox = await screen.findByRole('combobox');
-  userEvent.click(combobox);
-  userEvent.click(await screen.findByText('Orders State'));
+  await userEvent.click(combobox);
+  await userEvent.click(await screen.findByText('Orders State'));
   await waitFor(() => expect(setPendingChartCustomization).toHaveBeenCalled());
   setPendingChartCustomization.mockClear();
 
@@ -277,8 +277,10 @@ test('clearing the selection keeps the datasource binding intact', async () => {
   // datasource binding rather than collapsing to an empty object. After
   // selection the label exists twice (selection tag + dropdown option);
   // toggle via the option role.
-  userEvent.click(combobox);
-  userEvent.click(await screen.findByRole('option', { name: 'Orders State' }));
+  await userEvent.click(combobox);
+  await userEvent.click(
+    await screen.findByRole('option', { name: 'Orders State' }),
+  );
   await waitFor(() => expect(setPendingChartCustomization).toHaveBeenCalled());
   const cleared =
     setPendingChartCustomization.mock.calls[
@@ -314,7 +316,7 @@ test('semantic structure failure renders empty options and toasts exactly once w
   expect(mockedAddDangerToast).toHaveBeenCalledTimes(1);
 
   const combobox = await screen.findByRole('combobox');
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
   expect(screen.queryByText('Orders Status')).not.toBeInTheDocument();
   // Never a cross-type fallback.
   expect(fetchMock.callHistory.calls('glob:*/api/v1/dataset/*')).toHaveLength(
@@ -348,7 +350,7 @@ test('switching from a failed binding to a healthy one never toasts the healthy 
   // strictly after the switch, so any spurious toast would already have fired
   // and been counted by the time it settles (no wall-clock sleep needed).
   const combobox = await screen.findByRole('combobox');
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
   expect(await screen.findByText('city')).toBeInTheDocument();
 
   // No toast ever names the healthy datasource 311.
