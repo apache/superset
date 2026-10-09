@@ -25,14 +25,20 @@ export interface BindContext {
 }
 
 interface Bind {
-  source: 'metric' | 'dimension' | 'theme' | 'records';
+  source: 'metric' | 'dimension' | 'theme' | 'records' | 'tuples';
   alias?: string;
   token?: string;
-  fields?: Record<string, string>;
+  fields?: Record<string, string> | string[];
   single?: boolean;
 }
 
-const BIND_SOURCES = new Set(['metric', 'dimension', 'theme', 'records']);
+const BIND_SOURCES = new Set([
+  'metric',
+  'dimension',
+  'theme',
+  'records',
+  'tuples',
+]);
 // ECharts only accepts functions here, which a JSON option can't carry.
 const FUNCTION_ONLY_KEYS = new Set(['valueFormatter', 'labelLayout']);
 // Opened as URLs by ECharts on click.
@@ -75,10 +81,20 @@ function resolveBind(bind: Bind, ctx: BindContext): unknown {
     const values = ctx.rows.map(row => row[bind.alias as string]);
     return bind.single ? values[0] : values;
   }
+  if (bind.source === 'tuples') {
+    // Array-shaped data items (themeRiver, candlestick, boxplot, heatmap…).
+    const columns = bind.fields;
+    if (!Array.isArray(columns) || columns.length === 0) {
+      throw new Error('$bind with source "tuples" needs "fields": [<columns>]');
+    }
+    return ctx.rows.map(row => columns.map(column => row[column]));
+  }
   if (bind.source === 'records') {
     const fields = bind.fields ?? {};
-    if (Object.keys(fields).length === 0) {
-      throw new Error('$bind with source "records" needs "fields"');
+    if (Array.isArray(fields) || Object.keys(fields).length === 0) {
+      throw new Error(
+        '$bind with source "records" needs "fields": {<key>: <column>}',
+      );
     }
     return ctx.rows.map(row => {
       const record: Record<string, unknown> = {};

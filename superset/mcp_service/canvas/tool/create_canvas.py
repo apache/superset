@@ -91,8 +91,9 @@ def create_canvas(
 
     ``slug`` is the readable URL (``/canvas/<slug>/``); without one the URL
     uses the id. ``ops`` optionally builds the canvas in the same call, with
-    the operations ``apply_canvas_ops`` takes: if any fails, nothing is
-    created and the error names the operation at fault.
+    the operations ``apply_canvas_ops`` takes (grid layouts are 1-based; omit
+    ``col``/``row`` to auto-place): if any fails, nothing is created and the
+    error names the operation at fault.
     """
     return CanvasWriteResponse.model_validate(
         _create_canvas_impl(title, slug, description, ops)

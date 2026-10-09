@@ -25,6 +25,7 @@ import {
   getCategoricalSchemeRegistry,
   getClientErrorObject,
 } from '@superset-ui/core';
+import { applyStructuredChrome, EchartsChromeValue } from './chrome';
 import { DataBinding, fetchRows, withFilters } from './chartData';
 import { DataRow, resolveOption } from './resolveBindings';
 import { themedOption, withLabelColors } from './themedOption';
@@ -74,7 +75,7 @@ export default function EchartsRenderer({
   const binding = bound && withFilters(bound, [...filters, ...crossFilters]);
   const option = (props?.echartsOptions ?? {}) as Record<string, unknown>;
   const bindingKey = JSON.stringify(binding ?? null);
-  const optionKey = JSON.stringify(option);
+  const optionKey = JSON.stringify([option, props?.chrome ?? null]);
   const { scheme } = colors;
   const labelColorsKey = JSON.stringify(colors.labelColors);
 
@@ -100,7 +101,13 @@ export default function EchartsRenderer({
         const instance = echarts.init(container.current);
         instance.setOption(
           themedOption(
-            withLabelColors(resolved, colors.labelColors),
+            withLabelColors(
+              applyStructuredChrome(
+                resolved,
+                props?.chrome as EchartsChromeValue | undefined,
+              ),
+              colors.labelColors,
+            ),
             theme,
             palette,
           ),

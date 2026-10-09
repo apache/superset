@@ -143,3 +143,21 @@ test('nests dotted record fields and refuses prototype paths', () => {
   ).toThrow('not a valid field path');
   expect(({} as Record<string, unknown>).polluted).toBeUndefined();
 });
+
+test('tuples yield one array per row', () => {
+  const option = resolveOption(
+    {
+      series: [
+        {
+          type: 'themeRiver',
+          data: { $bind: { source: 'tuples', fields: ['line', 'revenue'] } },
+        },
+      ],
+    },
+    ctx,
+  );
+  expect((option.series as { data: unknown[] }[])[0].data).toEqual([
+    ['Cars', 10],
+    ['Ships', 4],
+  ]);
+});
