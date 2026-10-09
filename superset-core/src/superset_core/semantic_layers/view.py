@@ -112,6 +112,10 @@ class SemanticView(ABC):
         when the result is incomplete or its completeness cannot be verified;
         never return a partial result instead.
         Do not drop ``filters`` and retry when a filtered request is incomplete.
+
+        ``SemanticQueryRejectedError`` is not part of this method's contract: the
+        host treats a search filter as best-effort and retries without it, so a
+        rejection would not reach the user.
         """
 
     @abstractmethod

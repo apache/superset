@@ -18,10 +18,13 @@
 
 from __future__ import annotations
 
+import logging
 from enum import Enum
 from typing import get_args, Literal, TypeAlias
 
 SemanticResultCompletenessReason: TypeAlias = Literal["incomplete", "unverified"]
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class SemanticResultCompletenessError(Exception):
@@ -62,6 +65,9 @@ class SemanticQueryRejectedError(Exception):
         try:
             self.code = SemanticQueryErrorCode(code)
         except ValueError:
+            logger.warning(
+                "Unknown semantic query error code %.64r; using INVALID_QUERY", code
+            )
             self.code = SemanticQueryErrorCode.INVALID_QUERY
         super().__init__(self.code.value)
 

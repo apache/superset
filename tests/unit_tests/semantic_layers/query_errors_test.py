@@ -479,3 +479,17 @@ def test_provider_rejection_uses_host_guidance(
     assert captured.value.status == 400
     assert "private" not in str(captured.value.to_dict())
     dispatcher.assert_called_once()
+
+
+def test_unknown_rejection_code_is_logged_before_normalizing(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An adapter typo stays visible in operator logs, not in the response."""
+    from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+    with caplog.at_level(logging.WARNING):
+        error: SemanticQueryRejectedError = SemanticQueryRejectedError("INVALID_FLITER")
+
+    assert error.code == SemanticQueryErrorCode.INVALID_QUERY
+    assert "'INVALID_FLITER'" in caplog.text
+    assert str(error) == "Semantic query rejected."
