@@ -24,9 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
-- For MySQL/MariaDB metadata databases, use `READ COMMITTED` isolation (Superset's
-  default for MySQL connections). If `SQLALCHEMY_ENGINE_OPTIONS` overrides it with
-  another isolation level, dataset and semantic-view deletion and purge retain
+- For MySQL/MariaDB metadata databases, use `READ COMMITTED` isolation. Superset
+  defaults the `mysql` and `postgresql` URI backends to `READ COMMITTED` when no
+  `isolation_level` is configured. For the `mariadb` URI backend (including
+  `mariadb://` and `mariadb+pymysql://`), set
+  `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}` explicitly.
+  With any other isolation level, dataset and semantic-view deletion and purge retain
   `datasource_access` permission records by design, rather than risk revoking a
   shared grant based on a stale snapshot. Records with no remaining owner become
   orphans and can accumulate. Cleanup is also skipped if the isolation level
