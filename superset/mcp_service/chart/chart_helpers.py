@@ -1360,8 +1360,14 @@ def build_applied_dashboard_filters(
     )
     if metadata is None:
         return None
-    native_filter_config = metadata.get("native_filter_configuration", [])
+    native_filter_config = metadata.get("native_filter_configuration")
+    if native_filter_config is None:
+        native_filter_config = []
     if not isinstance(native_filter_config, list):
+        logger.warning(
+            "Ignoring malformed native_filter_configuration for dashboard %s.",
+            dashboard_id,
+        )
         return None
     position_json = (
         _safe_json_loads_dict(dashboard.position_json, "position_json", dashboard_id)

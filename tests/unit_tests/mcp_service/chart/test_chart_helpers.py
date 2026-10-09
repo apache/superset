@@ -1882,6 +1882,28 @@ def test_build_applied_dashboard_filters_json_metadata_is_string(
 
 @patch("superset.security_manager", MagicMock())
 @patch("superset.db")
+def test_build_applied_dashboard_filters_null_native_filter_configuration(
+    mock_db,
+):
+    _setup_dashboard_mock(
+        mock_db, json_metadata='{"native_filter_configuration": null}'
+    )
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result == []
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_non_list_native_filter_configuration(
+    mock_db,
+):
+    _setup_dashboard_mock(mock_db, json_metadata='{"native_filter_configuration": {}}')
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result is None
+
+
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
 def test_build_applied_dashboard_filters_malformed_position_json(
     mock_db,
 ):
