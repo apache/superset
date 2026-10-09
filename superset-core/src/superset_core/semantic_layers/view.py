@@ -55,11 +55,13 @@ class SemanticView(ABC):
       :attr:`selection_identity_version`.
     - **Grain variants.** Several dimension variants may share one ``name``, at
       most one per ``(name, grain)``. See
-      :class:`~superset_core.semantic_layers.types.Grains` for the preference
-      the host applies, and for why grains must not be ordered by name.
+      :class:`~superset_core.semantic_layers.types.Grains` for the intended
+      preference, which not every host lookup applies yet, and for why grains
+      must not be ordered by name.
     - **NULL in filters.** ``None`` is never a comparison operand; splitting
       nullness into ``IS_NULL``/``IS_NOT_NULL`` is the host's responsibility.
-      See :class:`~superset_core.semantic_layers.types.Operator`.
+      Until the host does so, keep handling ``None``; see
+      :class:`~superset_core.semantic_layers.types.Operator`.
     - **Ordering before limit.** ``order`` is applied to the full result set
       before ``offset`` and ``limit``. See
       :class:`~superset_core.semantic_layers.types.SemanticQuery`.
