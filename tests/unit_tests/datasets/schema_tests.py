@@ -317,3 +317,55 @@ def test_import_v1_column_schema_validates_date_formats() -> None:
 
     with pytest.raises(ValidationError):
         schema.load({"column_name": "ds", "datetime_format": "not a format'"})
+
+
+def test_dataset_put_schema_accepts_certification_metadata() -> None:
+    """
+    GET /api/v1/dataset/<id> exposes the certification/warning properties on
+    every column and metric. Echoing that payload back on PUT must load, and
+    the flat keys must be emitted after ``extra`` so they win on ``setattr``.
+    """
+    from superset.datasets.schemas import DatasetPutSchema
+
+    flat = {
+        "certified_by": "Data Platform",
+        "certification_details": "details",
+        "warning_markdown": "**warn**",
+        "is_certified": True,
+    }
+    payload = {
+        "columns": [{**flat, "column_name": "a", "extra": "{}"}],
+        "metrics": [
+            {**flat, "metric_name": "m", "expression": "COUNT(*)", "extra": "{}"}
+        ],
+    }
+
+    result = DatasetPutSchema().load(payload)
+
+    for item in [*result["columns"], *result["metrics"]]:
+        keys = list(item)
+        assert keys.index("extra") < keys.index("certified_by")
+        assert {k: item.get(k) for k in flat} == {**flat, "is_certified": None}
+
+
+@pytest.mark.parametrize(
+    "item, expected",
+    [
+        ({"is_certified": False}, {"is_certified": False}),
+        ({"is_certified": True}, {"is_certified": True}),
+        ({"is_certified": False, "certified_by": "x"}, {"certified_by": "x"}),
+        (
+            {"is_certified": True, "certification_details": None},
+            {"certification_details": None},
+        ),
+    ],
+)
+def test_dataset_put_schema_resolves_is_certified(
+    item: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    """``is_certified`` is kept only when the certification keys are absent."""
+    from superset.datasets.schemas import DatasetColumnsPutSchema
+
+    result = DatasetColumnsPutSchema().load({"column_name": "a", **item})
+
+    assert result == {"column_name": "a", **expected}

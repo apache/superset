@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-01 12:46+0300\n"
+"POT-Creation-Date: 2026-10-07 14:21-0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -504,6 +504,13 @@ msgid ""
 msgstr ""
 "%s položek nemohlo být označeno, protože nemáte oprávnění k úpravám všech"
 " vybraných objektů."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "%s metric"
@@ -1050,6 +1057,14 @@ msgstr "Čárkami oddělený seznam sloupců, které se mají zpracovat jako dat
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Čárkami oddělený seznam schémat, do kterých je povoleno nahrávat soubory."
 
+msgid ""
+"A dashboard filter or display control has incompatible semantic "
+"selections. Dynamic group-by is unsupported on versioned semantic views; "
+"remove this chart from that control's scope. For other filters or "
+"controls, reset and reselect fields or saved values. If it targets "
+"another semantic view, remove this chart from its scope."
+msgstr ""
+
 msgid "A database port is required when connecting via SSH Tunnel."
 msgstr "Při připojování přes SSH tunel je vyžadován port databáze."
 
@@ -1159,6 +1174,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "S vaším grafem bude uložena znovupoužitelná sada dat."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
 msgstr ""
 
 msgid ""
@@ -1395,6 +1415,11 @@ msgstr "Přidat upozornění"
 msgid "Add an annotation layer"
 msgstr "Přidat vrstvu anotací"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "Přidat položku"
 
@@ -1496,6 +1521,9 @@ msgstr "Přidat metriku"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
 msgstr "Přidat metriky do sady dat v modálním okně „Upravit zdroj dat“"
+
+msgid "Add more"
+msgstr ""
 
 msgid "Add new color formatter"
 msgstr "Přidat nový formátovač barev"
@@ -1758,6 +1786,9 @@ msgstr "Upozornění nalezlo chybu při provádění dotazu."
 msgid "Alert is active"
 msgstr "Upozornění je aktivní"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "Název upozornění"
 
@@ -1811,6 +1842,18 @@ msgstr "Upozornění"
 msgid "Alerts & Reports"
 msgstr "Upozornění a reporty"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "Upozornění a reporty"
 
@@ -1820,6 +1863,9 @@ msgstr "Zarovnat +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Zobrazit všechny sloupce"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "Vše"
@@ -1925,6 +1971,9 @@ msgstr "Umožnit uživatelům výběr více hodnot"
 
 msgid "Allowed Domains (comma separated)"
 msgstr "Povolené domény (oddělené čárkou)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "Abecedně"
@@ -2254,6 +2303,9 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Při vykreslování vizualizace došlo k chybě: %s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
 msgstr "Při načítání SQL došlo k chybě"
@@ -2461,6 +2513,9 @@ msgid ""
 msgstr ""
 "Lze přidat jakékoli databáze, které umožňují připojení přes URI SQL "
 "Alchemy. Zjistěte více o tom, jak připojit databázový ovladač "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -3804,6 +3859,12 @@ msgstr "Vyberte sloupce, které se mají zpracovat jako data"
 msgid "Choose columns to read"
 msgstr "Vyberte sloupce ke čtení"
 
+msgid "Choose current semantic fields"
+msgstr ""
+
+msgid "Choose current semantic filter fields"
+msgstr ""
+
 msgid ""
 "Choose from existing dashboard filters and select a value to refine your "
 "report results."
@@ -4070,11 +4131,18 @@ msgstr "Kód zkopírován!"
 msgid "Collapse"
 msgstr "Sbalit řádek"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 #, fuzzy
 msgid "Collapse All"
 msgstr "Sbalit vše"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4155,6 +4223,10 @@ msgstr "Barva podle směru"
 #, fuzzy
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
 msgstr "Pole barvy musí být hexadecimální barva (#rrggbb) nebo 'rgb(r, g, b)'"
+
+#, python-format
+msgid "Color for %s"
+msgstr ""
 
 msgid "Color for bars on the left side of the chart"
 msgstr ""
@@ -4578,6 +4650,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "Obsahuje text (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 msgid "Content format"
 msgstr "Formát obsahu"
 
@@ -4618,6 +4696,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -6873,6 +6954,9 @@ msgstr "Povolit Matrixify"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -7053,6 +7137,9 @@ msgstr "Zadejte uživatelské jméno uživatele"
 #, fuzzy
 msgid "Enter theme name"
 msgstr "Zadejte název tématu"
+
+msgid "Enter values"
+msgstr ""
 
 msgid "Enter your current password"
 msgstr ""
@@ -7238,6 +7325,9 @@ msgstr "Přesná shoda (IN)"
 msgid "Example"
 msgstr "Příklad"
 
+msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
 msgid "Examples"
 msgstr "Příklady"
 
@@ -7261,6 +7351,9 @@ msgstr "Vyloučit vybrané hodnoty"
 msgid "Excluded subjects"
 msgstr "Vyloučené subjekty"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "Provedené SQL"
 
@@ -7276,6 +7369,10 @@ msgstr "Protokol provedení"
 msgid "Existing dataset"
 msgstr "Existující sada dat"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7285,9 +7382,16 @@ msgstr "Ukončit režim celé obrazovky"
 msgid "Expand"
 msgstr "Rozbalit"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "Rozbalit vše"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "Rozbalit vše"
@@ -8115,6 +8219,9 @@ msgstr ""
 "\\n představuje nový řádek. Kompatibilita s ECharts:\n"
 "{a} (série), {b} (název), {c} (hodnota), {d} (procento)"
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 msgid ""
 "Format metrics or columns with currency symbols as prefixes or suffixes. "
 "Choose a symbol manually or use 'Auto-detect' to apply the correct symbol"
@@ -8441,6 +8548,9 @@ msgstr "Vodorovný (nahoře)"
 msgid "Horizontal alignment"
 msgstr "Vodorovné zarovnání"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr "Hostitel"
 
@@ -8576,6 +8686,9 @@ msgstr "Importovat %s"
 msgid "Import Error"
 msgstr "Chyba importu"
 
+msgid "Import annotation layer failed for an unknown reason"
+msgstr ""
+
 msgid "Import chart failed for an unknown reason"
 msgstr "Import grafu selhal z neznámého důvodu"
 
@@ -8646,6 +8759,9 @@ msgid "Include a description that will be sent with your report"
 msgstr "Zahrnout popis, který bude odeslán s vaším reportem"
 
 msgid "Include a link back to Superset"
+msgstr ""
+
+msgid "Include attachment"
 msgstr ""
 
 #, python-format
@@ -8804,6 +8920,11 @@ msgstr "Neplatná konfigurace zeměpisné šířky/délky."
 msgid "Invalid JSON metadata"
 msgstr "Neplatná JSON metadata"
 
+msgid ""
+"Invalid JSON metadata. Please resolve syntax errors in Advanced settings "
+"to use the GUI."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "Invalid SQL: %(error)s"
 msgstr "Neplatný SQL: %(error)s"
@@ -8857,6 +8978,14 @@ msgstr "Neplatný kód měny v uložených metrikách"
 
 msgid "Invalid date/timestamp format"
 msgstr "Neplatný formát data/časového razítka"
+
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
 
 msgid "Invalid executor type"
 msgstr "Neplatný typ exekutoru"
@@ -9025,6 +9154,9 @@ msgstr "Konfigurace JSON"
 msgid "JSON Metadata"
 msgstr "Metadata JSON"
 
+msgid "JSON in cell"
+msgstr ""
+
 msgid "JSON metadata"
 msgstr "Metadata JSON"
 
@@ -9093,6 +9225,9 @@ msgstr "Kilometry"
 
 msgid "Label"
 msgstr "Popisek"
+
+msgid "Label Colors"
+msgstr ""
 
 msgid "Label Contents"
 msgstr "Obsah popisku"
@@ -9404,6 +9539,9 @@ msgstr "Like (nerozlišuje velká a malá písmena)"
 #, fuzzy
 msgid "Limit"
 msgstr "Limit"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "Typ limitu"
@@ -9741,6 +9879,9 @@ msgstr "Živé vykreslení"
 
 msgid "Map Style"
 msgstr "Styl mapy"
+
+msgid "Map specific labels to colors. This automatically updates the JSON below."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10528,11 +10669,17 @@ msgstr "Žádné aplikované filtry"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "Nejsou k dispozici žádné filtry."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
 msgid "No columns found"
@@ -10631,6 +10778,9 @@ msgstr "Žádné odpovídající výsledky"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Na této nástěnce nejsou v současné době přidány žádné filtry."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nebyly nalezeny žádné záznamy"
 
@@ -10677,6 +10827,9 @@ msgid "No saved metrics found"
 msgstr "Nebyly nalezeny žádné uložené metriky"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -11037,11 +11190,17 @@ msgstr "Pouze celkem"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Jsou povoleny pouze příkazy `SELECT`"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "Platí pouze, když „Typ popisku“ není nastaven na procento."
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "Platí pouze, když je „Typ popisku“ nastaven na zobrazení hodnot."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11105,6 +11264,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "Otevřít kartu Zdroje dat"
+
+msgid "Open JSON"
+msgstr ""
 
 #, fuzzy
 msgid "Open SQL Lab in a new tab"
@@ -11913,7 +12075,7 @@ msgid "Prefix or suffix"
 msgstr "Předpona nebo přípona"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -12336,6 +12498,9 @@ msgstr "Odstranit systémové tmavé téma"
 msgid "Remove System Default Theme"
 msgstr "Odstranit systémové výchozí téma"
 
+msgid "Remove color mapping"
+msgstr ""
+
 msgid "Remove cross-filter"
 msgstr "Odstranit křížový filtr"
 
@@ -12426,6 +12591,12 @@ msgstr ""
 msgid "Replace"
 msgstr "Nahradit"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "Report"
 
@@ -12489,6 +12660,12 @@ msgstr "Plán reportu stále pracuje, odmítá se přepočítat."
 msgid "Report Schedule log prune failed."
 msgstr "Promazání protokolu plánu reportu selhalo."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "Plán reportu nebyl nalezen."
 
@@ -12512,6 +12689,9 @@ msgstr "Report selhal"
 
 msgid "Report is active"
 msgstr "Report je aktivní"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "Název reportu"
@@ -12547,6 +12727,9 @@ msgstr "Report aktualizován"
 
 msgid "Reports"
 msgstr "Reporty"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "Odpuzování"
@@ -12607,6 +12790,9 @@ msgid ""
 " rows"
 msgstr ""
 
+msgid "Reselect saved filter values"
+msgstr ""
+
 msgid "Reset"
 msgstr "Resetovat"
 
@@ -12616,6 +12802,9 @@ msgstr "Resetovat sloupce"
 
 msgid "Reset all folders to default"
 msgstr "Resetovat všechny složky na výchozí hodnoty"
+
+msgid "Reset and reselect values"
+msgstr ""
 
 msgid "Reset columns"
 msgstr "Resetovat sloupce"
@@ -12921,6 +13110,18 @@ msgstr "Spusťte dotaz pro zobrazení historie dotazů"
 msgid "Run a query to display results"
 msgstr "Spusťte dotaz pro zobrazení výsledků"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "Spustit aktuální dotaz"
 
@@ -13061,6 +13262,9 @@ msgstr "ŘETĚZEC"
 msgid "SUN"
 msgstr "NE"
 
+msgid "Same as \"Run as\""
+msgstr ""
+
 msgid "Sample Standard Deviation"
 msgstr ""
 
@@ -13194,6 +13398,14 @@ msgstr "Uložený dotaz nenalezen."
 
 msgid "Saved query parameters are invalid."
 msgstr "Parametry uloženého dotazu jsou neplatné."
+
+msgid ""
+"Saved semantic selections use an older identity format. Reset and "
+"explicitly reselect the metrics and dimensions, then save the chart. "
+"Display titles cannot be recovered automatically. For API requests, "
+"select current member IDs and supply semantic_selection_version from "
+"datasource metadata or MCP list_metrics."
+msgstr ""
 
 msgid "Saving..."
 msgstr "Ukládání..."
@@ -13722,6 +13934,9 @@ msgstr ""
 msgid "Select or type a custom value..."
 msgstr "Vyberte nebo zadejte vlastní hodnotu..."
 
+msgid "Select or type a label"
+msgstr ""
+
 msgid "Select or type currency symbol"
 msgstr "Vyberte nebo zadejte symbol měny"
 
@@ -13871,6 +14086,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Vyberte typ barevného schématu k použití."
 
+msgid "Select user"
+msgstr ""
+
 #, fuzzy
 msgid "Select users"
 msgstr "Vyberte uživatele"
@@ -13998,6 +14216,9 @@ msgstr "Sémantický pohled byl aktualizován"
 msgid "Semantic views"
 msgstr "Sémantické pohledy"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -14017,6 +14238,9 @@ msgid "Send as text"
 msgstr "Odeslat jako text"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -14624,6 +14848,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -14847,6 +15076,9 @@ msgstr "Prostorový"
 msgid "Specific Date/Time"
 msgstr "Konkrétní datum/čas"
 
+msgid "Specific user"
+msgstr ""
+
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "Zadejte název pro CREATE TABLE AS ve schématu: public"
 
@@ -14923,6 +15155,21 @@ msgstr "Datum zahájení"
 
 msgid "Start date included in time range"
 msgstr "Datum zahájení zahrnuto v časovém rozsahu"
+
+msgid "Start field selection"
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"field selections, pre-filters, sorting, defaults and dependencies. Saved "
+"display titles cannot be recovered automatically."
+msgstr ""
+
+msgid ""
+"Start field selection using current member IDs. This clears any existing "
+"query and formatting settings. Saved display titles cannot be safely "
+"mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
 
 msgid "Start y-axis at 0"
 msgstr "Začít osu Y na 0"
@@ -15110,6 +15357,12 @@ msgstr "Přípona"
 
 msgid "Suffix to apply after the percentage display"
 msgstr "Přípona, která se použije za zobrazením procent"
+
+msgid "Suggestions are unavailable for this view. Enter a value manually."
+msgstr ""
+
+msgid "Suggestions are unavailable. Enter values manually."
+msgstr ""
 
 msgid "Suggestions could not be loaded. You can still type a value."
 msgstr ""
@@ -15620,6 +15873,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 msgid "The annotation has been saved"
 msgstr "Anotace byla uložena"
 
@@ -15950,6 +16206,12 @@ msgstr ""
 "                    a nepodařilo se je načíst, což brání vykreslení\n"
 "                    nástěnky: %s"
 
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
+
 #, fuzzy
 msgid "The font size of the point labels"
 msgstr "Velikost popisků bodů"
@@ -16246,6 +16508,9 @@ msgstr "Primární metrika se používá k definování velikostí segmentů obl
 
 msgid "The provided table was not found in the provided database"
 msgstr "Zadaná tabulka nebyla nalezena v zadané databázi"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "Dotaz spojený s výsledky byl smazán."
@@ -16574,6 +16839,18 @@ msgstr "Uživatel byl úspěšně aktualizován."
 
 msgid "The user was updated successfully"
 msgstr "Uživatel byl úspěšně aktualizován"
+
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
@@ -16961,6 +17238,12 @@ msgstr "Toto jsou sady dat, na které bude tento filtr aplikován."
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -17029,6 +17312,12 @@ msgstr "Tato akce trvale smaže registraci uživatele."
 
 msgid "This action will permanently delete the user."
 msgstr "Tato akce trvale smaže uživatele."
+
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
 
 msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
@@ -17393,6 +17682,16 @@ msgstr "Tato stránka je určena k vložení do iframe, ale zdá se, že tomu ta
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Toto heslo je příliš běžné; zvolte prosím méně předvídatelné."
+
+msgid ""
+"This saved filter state predates the member-ID format. Reset it and "
+"explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
+msgstr ""
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -18158,6 +18457,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Nelze načíst nástěnku"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -18453,6 +18755,9 @@ msgstr "Použití"
 msgid "Use %s to open in a new tab."
 msgstr "Použijte %s pro otevření v nové kartě."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "Použít proporce plochy"
 
@@ -18492,6 +18797,12 @@ msgstr "Použít aktuální rozsah"
 
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Použít formátování data, i když hodnota metriky není časové razítko"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 #, fuzzy
 msgid "Use gradient"
@@ -18544,6 +18855,9 @@ msgstr "Jméno uživatele"
 #, fuzzy
 msgid "User Registrations"
 msgstr "Registrace uživatelů"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "Uživatel nemá příslušná oprávnění."
@@ -18717,6 +19031,11 @@ msgstr "Hodnoty"
 
 msgid "Values are dependent on other filters"
 msgstr "Hodnoty jsou závislé na jiných filtrech"
+
+msgid ""
+"Values cannot be refreshed in All mode for this semantic view. Saved "
+"values are preserved. Switch to Members to enter values manually."
+msgstr ""
 
 msgid "Values dependent on"
 msgstr "Hodnoty závislé na"
@@ -19131,6 +19450,11 @@ msgstr "Když je poskytnuta sekundární metrika, použije se lineární barevn�
 
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Když je zaškrtnuto, mapa se po každém dotazu přiblíží k vašim datům"
+
+msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
 
 msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
@@ -19688,6 +20012,19 @@ msgid ""
 "You can create a new chart or use existing ones from the panel on the "
 "right"
 msgstr "Můžete vytvořit nový graf nebo použít existující z panelu vpravo"
+
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -20519,6 +20856,9 @@ msgstr "každou minutu"
 msgid "every month"
 msgstr "každý měsíc"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "rozbalit"
 
@@ -20728,6 +21068,9 @@ msgstr "minuta"
 msgid "minute(s)"
 msgstr "minuta(y)"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "měsíc"
 
@@ -20900,6 +21243,10 @@ msgstr "restartovat"
 msgid "recent"
 msgstr "nedávné"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "příjemci"
 
@@ -20924,11 +21271,18 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "zabezpečení_na_úrovni_řádků"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "běží"
 
 msgid "save"
 msgstr "uložit"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"

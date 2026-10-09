@@ -22,6 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
+import { safeStringify } from 'src/utils/safeStringify';
 
 interface SimpleDataSource {
   id: string;
@@ -56,7 +57,9 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
       sql,
     };
     if (openInNewWindow) {
-      SupersetClient.postForm('/sqllab/', payload);
+      SupersetClient.postForm('/sqllab/', {
+        form_data: safeStringify(payload),
+      });
     } else {
       history.push({
         pathname: '/sqllab',
@@ -87,7 +90,7 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
       </Button>
       <Button
         buttonStyle="secondary"
-        onClick={({ metaKey }) => openSQL(Boolean(metaKey))}
+        onClick={({ metaKey, ctrlKey }) => openSQL(Boolean(metaKey || ctrlKey))}
       >
         {OPEN_IN_SQL_LAB}
       </Button>
