@@ -33,6 +33,7 @@ import { Space } from '@superset-ui/core/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import MemoizedFilterConfigurationLink from '../FilterConfigurationLink';
 
@@ -242,7 +243,7 @@ const FilterBarSettings = () => {
     filterValues,
   ]);
 
-  if (!menuItems.length || !canEdit) {
+  if (!menuItems.length || !canEdit || isEmbedded()) {
     return null;
   }
 

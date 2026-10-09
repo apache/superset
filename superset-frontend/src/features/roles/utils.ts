@@ -76,9 +76,11 @@ const PAGE_SIZE = 1000;
 const CONCURRENCY_LIMIT = 3;
 const MAX_CACHE_ENTRIES = 20;
 const permissionSearchCache = new Map<string, SelectOption[]>();
+let permissionCatalogPromise: Promise<SelectOption[]> | undefined;
 
 export const clearPermissionSearchCache = () => {
   permissionSearchCache.clear();
+  permissionCatalogPromise = undefined;
 };
 
 const fetchPermissionPageRaw = async (queryParams: Record<string, unknown>) => {
@@ -92,16 +94,15 @@ const fetchPermissionPageRaw = async (queryParams: Record<string, unknown>) => {
 };
 
 const fetchAllPermissionPages = async (
-  filters: Record<string, unknown>[],
+  filters: Record<string, unknown>[] = [],
 ): Promise<SelectOption[]> => {
-  const baseQuery = {
+  const page0 = await fetchPermissionPageRaw({
+    page: 0,
     page_size: PAGE_SIZE,
     order_column: 'id',
     order_direction: 'asc',
-    filters,
-  };
-
-  const page0 = await fetchPermissionPageRaw({ ...baseQuery, page: 0 });
+    ...(filters.length ? { filters } : {}),
+  });
   if (page0.data.length === 0 || page0.data.length >= page0.totalCount) {
     return page0.data;
   }
@@ -116,7 +117,13 @@ const fetchAllPermissionPages = async (
     const batchEnd = Math.min(batch + CONCURRENCY_LIMIT, totalPages);
     const batchResults = await Promise.all(
       Array.from({ length: batchEnd - batch }, (_, i) =>
-        fetchPermissionPageRaw({ ...baseQuery, page: batch + i }),
+        fetchPermissionPageRaw({
+          page: batch + i,
+          page_size: PAGE_SIZE,
+          order_column: 'id',
+          order_direction: 'asc',
+          ...(filters.length ? { filters } : {}),
+        }),
       ),
     );
     for (const r of batchResults) {
@@ -127,6 +134,14 @@ const fetchAllPermissionPages = async (
   }
 
   return allResults;
+};
+
+const fetchPermissionCatalog = () => {
+  permissionCatalogPromise ??= fetchAllPermissionPages().catch(error => {
+    permissionCatalogPromise = undefined;
+    throw error;
+  });
+  return permissionCatalogPromise;
 };
 
 export const fetchPermissionOptions = async (
@@ -153,21 +168,10 @@ export const fetchPermissionOptions = async (
     const cacheKey = filterValue.trim().toLowerCase();
     let cached = permissionSearchCache.get(cacheKey);
     if (!cached) {
-      const [byViewMenu, byPermission] = await Promise.all([
-        fetchAllPermissionPages([
-          { col: 'view_menu.name', opr: 'ct', value: filterValue },
-        ]),
-        fetchAllPermissionPages([
-          { col: 'permission.name', opr: 'ct', value: filterValue },
-        ]),
-      ]);
-
-      const seen = new Set<number>();
-      cached = [...byViewMenu, ...byPermission].filter(item => {
-        if (seen.has(item.value)) return false;
-        seen.add(item.value);
-        return true;
-      });
+      const catalog = await fetchPermissionCatalog();
+      cached = catalog.filter(({ label }) =>
+        label.toLowerCase().includes(cacheKey),
+      );
       if (permissionSearchCache.size >= MAX_CACHE_ENTRIES) {
         const oldestKey = permissionSearchCache.keys().next().value;
         if (oldestKey !== undefined) {

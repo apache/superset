@@ -22,7 +22,14 @@ import { waitFor, render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import FilterBarSettings from '.';
+
+jest.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: jest.fn(),
+}));
+
+const isEmbeddedMock = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
 
 const initialState: { dashboardInfo: DashboardInfo } = {
   dashboardInfo: {
@@ -73,6 +80,7 @@ const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) =>
 
 beforeEach(() => {
   fetchMock.clearHistory().removeRoutes();
+  isEmbeddedMock.mockReturnValue(false);
 });
 
 test('Dropdown trigger renders', async () => {
@@ -91,6 +99,15 @@ test('Dropdown trigger does not render without dashboard edit permissions', asyn
   await setup({
     dash_edit_perm: false,
   });
+
+  expect(
+    screen.queryByRole('img', { name: 'setting' }),
+  ).not.toBeInTheDocument();
+});
+
+test('Dropdown trigger does not render in an embedded dashboard', async () => {
+  isEmbeddedMock.mockReturnValue(true);
+  await setup();
 
   expect(
     screen.queryByRole('img', { name: 'setting' }),

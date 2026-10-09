@@ -22,6 +22,7 @@
 #
 import logging
 import os
+from typing import Any
 
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
@@ -116,10 +117,62 @@ CELERY_CONFIG = CeleryConfig
 FEATURE_FLAGS = {
     "ALERT_REPORTS": True,
     "DATASET_FOLDERS": True,
+    "EMBEDDED_SUPERSET": True,
     "ENABLE_EXTENSIONS": True,
+    "ENABLE_TEMPLATE_PROCESSING": True,
     "MOBILE_CONSUMPTION_MODE": True,
     "SEMANTIC_LAYERS": True,
 }
+
+_jinja_logger = logging.getLogger("superset.jinja_context")
+
+
+def get_user_attribute(attr: str, default: Any = None) -> Any:
+    """Return an attribute from the logged-in Superset user."""
+    try:
+        from flask_login import current_user
+
+        return getattr(current_user, attr, default)
+    except Exception:  # noqa: BLE001
+        return default
+
+
+def guest_attr(attr: str, default: Any = None) -> Any:
+    """Return a custom user attribute from an embedded guest token."""
+    try:
+        from flask_login import current_user
+
+        if getattr(current_user, "is_guest_user", False):
+            return current_user.guest_token.get("user", {}).get(attr, default)
+        return default
+    except Exception as exc:  # noqa: BLE001
+        _jinja_logger.warning("[guest_attr] ERROR attr=%r exc=%r", attr, exc)
+        return default
+
+
+JINJA_CONTEXT_ADDONS = {
+    "get_user_attribute": get_user_attribute,
+    "guest_attr": guest_attr,
+}
+
+
+def GUEST_TOKEN_VALIDATOR_HOOK(body: dict[str, Any]) -> bool:  # noqa: N802
+    """Preserve custom guest user attributes when minting a guest token."""
+    try:
+        from flask import request as flask_request
+
+        raw_user = (flask_request.json or {}).get("user", {})
+        standard_keys = {"username", "first_name", "last_name"}
+        custom_fields = {
+            key: value for key, value in raw_user.items() if key not in standard_keys
+        }
+        if custom_fields:
+            body.setdefault("user", {}).update(custom_fields)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("GUEST_TOKEN_VALIDATOR_HOOK error: %r", exc)
+    return True
+
+
 EXTENSIONS_PATH = "/app/docker/extensions"
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 # The Docker Compose app service is named "superset" and listens on 8088. Report
