@@ -1651,6 +1651,41 @@ def test_an_offset_bearing_bound_declines_rather_than_narrowing(app: Flask) -> N
     assert "dt_epoch" not in sql
 
 
+@pytest.mark.parametrize(
+    "operator",
+    [FilterOperator.EQUALS, FilterOperator.GREATER_THAN_OR_EQUALS],
+)
+def test_an_offset_bearing_string_declines_on_a_full_resolution_column(
+    app: Flask, operator: FilterOperator
+) -> None:
+    """
+    An engine that compares the whole instant still does not help a transform
+    that drops the offset. On a TIMESTAMPTZ column with
+    `extract(epoch from CAST(:value AS TIMESTAMP))`, a row at
+    `2026-01-01 00:00:00Z` matches `event_time = '2026-01-01T01:00:00+01:00'`,
+    but the cast discards the `+01:00` and the probe asks for the key an hour
+    later -- so the mirror would exclude the row. Declined like any other
+    offset-bearing value.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1767229200]) as probe:
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "event_time",
+                        "op": operator.value,
+                        "val": "2026-01-01T01:00:00+01:00",
+                    }
+                ],
+            )
+
+    probe.assert_not_called()
+    assert "dt_epoch" not in sql
+
+
 def test_a_non_temporal_string_equality_is_unaffected(app: Flask) -> None:
     """
     Every string value is now offered to an ISO parse, so the text mapping most
