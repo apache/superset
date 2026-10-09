@@ -89,17 +89,6 @@ assists people when migrating to a new version.
   instead; the response sets `managed_externally: true`. Read-only tools and
   certification inspection are unaffected.
 
-- For MySQL/MariaDB metadata databases, use `READ COMMITTED` isolation. Superset
-  defaults the `mysql` and `postgresql` URI backends to `READ COMMITTED` when no
-  `isolation_level` is configured. For the `mariadb` URI backend (including
-  `mariadb://` and `mariadb+pymysql://`), set
-  `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}` explicitly.
-  With any other isolation level, dataset and semantic-view deletion and purge retain
-  `datasource_access` permission records by design, rather than risk revoking a
-  shared grant based on a stale snapshot. Records with no remaining owner become
-  orphans and can accumulate. Cleanup is also skipped if the isolation level
-  cannot be verified.
-
 - Refreshing a dataset's columns from its source -- the "Sync columns from
   source" button, and a `PUT /api/v1/dataset/<id>?override_columns=true` --
   no longer resets **Is dimension** and **Is filterable** on columns that
@@ -144,6 +133,17 @@ assists people when migrating to a new version.
   pruning indicator still reporting the mapping healthy. Transforms already in
   storage on a column a request does not carry are left alone unless the feature
   flag is on.
+
+- For MySQL/MariaDB metadata databases, use `READ COMMITTED` isolation. Superset
+  defaults the `mysql` and `postgresql` URI backends to `READ COMMITTED` when no
+  `isolation_level` is configured. For the `mariadb` URI backend (including
+  `mariadb://` and `mariadb+pymysql://`), set
+  `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}` explicitly.
+  With any other isolation level, dataset and semantic-view deletion and purge retain
+  `datasource_access` permission records by design, rather than risk revoking a
+  shared grant based on a stale snapshot. Records with no remaining owner become
+  orphans and can accumulate. Cleanup is also skipped if the isolation level
+  cannot be verified.
 
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
@@ -1924,7 +1924,6 @@ With the flag on, delete confirmations across the chart/dashboard/dataset list p
 This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
 
 Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), which collapses duplicate `blocked` records and ages out operational noise. That bounds the growth that comes from scheduled purges being repeatedly blocked or failing; it is **not** a bound on total table size. Force-purge (`force`-triggered) `blocked` records are retained permanently — exempt from both the duplicate collapse and the operational age-out, including in resolved streaks — so repeated `force-purge` attempts against a persistently blocked entity still add a record each; completed-destruction evidence is retained by default; and the first `blocked` record after each change of block reason is preserved. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned at all — enabling it is an explicit operator choice, and a second-phase one (see the rollout requirement in the release-note entry above). `PURGE_AUDIT_PRUNING_BATCH_SIZE` (default 50) caps the candidates per batch; how long a batch holds the audit coordination lock against concurrent audit writes grows with that cap and with the history depth of the entities in the batch — a workload-dependent trade-off against drain speed, not a time bound; see the release-note entry for capacity limits and measurement guidance. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — scheduled `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
-
 
 ### Webhook alerts/reports block private/internal hosts by default
 

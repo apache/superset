@@ -755,6 +755,31 @@ def import_dataset(  # noqa: C901
         dataset, {column.column_name for column in dataset.columns}
     )
 
+    # The same repair for the other reference a bundle can leave unsaveable. A
+    # dangling reference is not the only mapping `UpdateDatasetCommand` refuses:
+    # an *explicit* self-mapping -- `partition_mapped_column` equal to
+    # `partition_column` -- is blocking there too. A bundle setting both to
+    # `event_time` imported happily and then failed every later edit, including
+    # a description-only PUT, until someone repaired the mapping by hand.
+    #
+    # Cleared rather than refused, which is the bargain the rest of this
+    # function strikes: a bundle is imported as a whole, and failing someone's
+    # dataset over one unusable reference is the worse trade. Dropping only the
+    # override leaves the mapping following `main_dttm_col`, which is the state
+    # a bundle that simply omitted the field would have produced.
+    if (
+        dataset.partition_mapped_column
+        and dataset.partition_mapped_column == dataset.partition_column
+    ):
+        logger.warning(
+            "Clearing the partition mapped column on %s (dataset %s) during "
+            "import: it names the partition column itself, which no later save "
+            "would accept",
+            config.get("table_name"),
+            config.get("uuid"),
+        )
+        dataset.partition_mapped_column = None
+
     if not ignore_permissions:
         try:
             security_manager.raise_for_access(datasource=dataset)

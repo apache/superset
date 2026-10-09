@@ -4525,8 +4525,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Likewise both sub-second probes carry a non-zero remainder. Comparing
         against ``dttm`` truncated to the second looks like the obvious test and
         is wrong for the same formatting-boundary reason.
+
+        A non-temporal column has no answer here, and asking anyway gets a wrong
+        one. SQLite's ``convert_dttm`` renders for ``types.String`` as well as
+        for the date types, so a ``VARCHAR`` mapped column reads as
+        second-resolution -- and a filter value that happens to *look* like an
+        instant then has its bound rounded as though the engine had truncated
+        it. On a VARCHAR ``code`` mapped onto a VARCHAR ``p`` by ``:value``,
+        ``code < '2026-07-06T10:08:11.500000'`` was mirrored as
+        ``p <= '2026-07-06 10:08:12.000000'``; a space sorts before ``T``, so a
+        row holding ``2026-07-06T09:00:00`` fell outside the mirror while
+        matching the filter.
+
+        The guard lives here rather than in each caller so this and
+        `_column_literal_resolution` cannot disagree about which column is
+        coarse -- which is the same reason that helper delegates to this one.
         """
-        if col is None or not col.type:
+        if col is None or not col.type or not col.is_dttm:
             return LiteralResolution.FULL
 
         def render(moment: datetime) -> Optional[str]:
@@ -4631,12 +4646,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         SQLite's ``convert_dttm`` renders for ``types.String`` as well as for the
         date types, so a reference instant makes a ``VARCHAR`` mapped column look
         second-resolution -- and ``country = 'US'``, the text half of this
-        feature, reads as a value the engine compares coarsely. The per-instant
-        callers never meet this, because they arrive only with a value that
-        parsed as an instant.
+        feature, reads as a value the engine compares coarsely.
+
+        That guard is `_engine_literal_resolution`'s, not this function's. It
+        used to be here, on the belief that the per-instant callers never met
+        the case because they arrive only with a value that parsed as an
+        instant -- which is untrue of a text column holding ISO-shaped text,
+        where the value parses and the column is still not temporal.
         """
-        if col is None or not col.is_dttm:
-            return LiteralResolution.FULL
         return self._engine_literal_resolution(_RESOLUTION_REFERENCE_INSTANT, col)
 
     def _round_bound_outward(

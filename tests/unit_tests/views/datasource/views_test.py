@@ -640,6 +640,36 @@ def _save_with_mapping(
 @patch("superset.views.datasource.views.db")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_refuses_a_non_deterministic_value_transform(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    `stored_expression_error` asks whether the expression may be *run*;
+    `validate_transform`'s blocking tier asks whether it may be *stored*. The
+    REST PUT and the importer reach both gates and this endpoint reached only
+    the first, so `random() + :value` saved with a 200 -- and then failed
+    `UpdateDatasetCommand`'s validation on every later edit, including a
+    description-only PUT, leaving a dataset that could not be saved again until
+    someone edited the transform.
+    """
+    mock_orm = _save_with_transform(
+        app, mock_get_datasource, mock_security_manager, "random() + :value"
+    )
+
+    mock_json_error_response.assert_called_once()
+    assert mock_json_error_response.call_args.kwargs["status"] == 422
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
 def test_save_refuses_a_partition_column_the_dataset_does_not_have(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,
