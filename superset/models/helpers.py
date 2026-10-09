@@ -29,6 +29,7 @@ import uuid
 from collections.abc import Hashable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from enum import Enum
 from typing import (
     Any,
@@ -4689,6 +4690,53 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         rounded = end_dttm if is_upper else start_dttm
         return rounded if rounded is not None else instant
 
+    def _in_column_number_type(self, value: Any, col: Optional["TableColumn"]) -> Any:
+        """
+        A numeric ``value`` in the number type the mapped column stores.
+
+        The engine compares a number against the column in the column's own
+        domain, so ``n = '1.0'`` on an integer ``n`` matches the row holding
+        ``1``. `filter_values_handler` hands over ``1.0``, though, and a
+        transform whose output depends on the representation --
+        ``CAST(:value AS TEXT)`` answers ``'1.0'`` where the row's key is
+        ``'1'`` -- then mirrors to a partition value no matching row holds.
+        Probing at the value the column would hold keeps ``T(col) = T(v)``.
+
+        Only lossless conversions: an integral number for an integer column, a
+        number a float represents exactly for a float column. Anything else is
+        returned unchanged -- a non-integral value on an integer column matches
+        no row, so its mirror cannot drop one, and a ``DECIMAL`` column's text
+        depends on a scale the spec does not expose.
+        """
+        if (
+            col is None
+            or not col.type
+            or isinstance(value, bool)
+            or not isinstance(value, (int, float, Decimal))
+        ):
+            return value
+        try:
+            column_spec = self.db_engine_spec.get_column_spec(
+                col.type, db_extra=self.db_extra
+            )
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            return value
+        if column_spec is None:
+            return value
+        sqla_type = column_spec.sqla_type
+        type_class = sqla_type if isinstance(sqla_type, type) else type(sqla_type)
+        if issubclass(type_class, sa.Integer):
+            if isinstance(value, int):
+                return value
+            try:
+                return int(value) if value == int(value) else value
+            except (OverflowError, ValueError):
+                # Infinity and NaN have no integer, and match no integer row.
+                return value
+        if issubclass(type_class, sa.Float) and float(value) == value:
+            return float(value)
+        return value
+
     def _mirror_probe_input(
         self,
         operator: utils.FilterOperator,
@@ -4755,6 +4803,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         is a function of an integer, and a `datetime` is not the value the real
         predicate compares.
         """
+        value = self._in_column_number_type(value, col)
         parsed = _instant_from_filter_value(value)
         if parsed is None:
             if (

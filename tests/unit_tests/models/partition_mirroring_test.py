@@ -1686,6 +1686,55 @@ def test_an_offset_bearing_string_declines_on_a_full_resolution_column(
     assert "dt_epoch" not in sql
 
 
+@pytest.mark.parametrize(
+    "native_type, filter_value, probed",
+    [
+        # The engine compares `n = '1.0'` numerically and keeps the row holding
+        # 1, so the probe has to see the 1 the row holds, not the 1.0 typed.
+        ("INTEGER", "1.0", [1]),
+        ("INTEGER", 1.0, [1]),
+        # A non-integral value matches no integer row; nothing to protect.
+        ("INTEGER", 1.5, [1.5]),
+        # A float column holds 1.0, whose text is not the text of 1.
+        ("REAL", 1, [1.0]),
+        # A DECIMAL's text depends on a scale the spec does not expose.
+        ("DECIMAL", 1, [1]),
+    ],
+)
+def test_a_numeric_equality_is_probed_in_the_column_s_number_type(
+    app: Flask, native_type: str, filter_value: Any, probed: list[Any]
+) -> None:
+    """
+    A transform such as `CAST(:value AS TEXT)` answers differently for `1` and
+    `1.0`, so probing at the number the filter happened to carry -- rather than
+    the one the column stores -- mirrors onto a partition key no matching row
+    holds.
+    """
+    table = _table(partition_column="region_key", mapped_column="n")
+    table.columns.append(TableColumn(column_name="n", type=native_type))
+    table.partition_mapped_column = "n"
+    table.columns[-1].partition_value_transform = "CAST(:value AS TEXT)"
+    table.columns[-1].partition_transform_is_monotonic = False
+
+    with app.app_context():
+        with patch(PROBE, return_value=["1"]) as probe:
+            _query(
+                table,
+                filter=[
+                    {
+                        "col": "n",
+                        "op": FilterOperator.EQUALS.value,
+                        "val": filter_value,
+                    }
+                ],
+            )
+
+    assert probe.call_args.args[-1] == probed
+    assert [type(value) for value in probe.call_args.args[-1]] == [
+        type(value) for value in probed
+    ]
+
+
 def test_a_non_temporal_string_equality_is_unaffected(app: Flask) -> None:
     """
     Every string value is now offered to an ISO parse, so the text mapping most
