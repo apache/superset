@@ -4764,18 +4764,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 return _UNMIRRORABLE
             return value
 
-        if (
-            self._engine_literal_resolution(parsed.replace(tzinfo=None), col)
-            is LiteralResolution.FULL
-        ):
+        # Ahead of the full-resolution return: a transform such as
+        # `CAST(:value AS TIMESTAMP)` drops the offset, so even an engine that
+        # compares the whole instant would probe it in the wrong frame.
+        if parsed.tzinfo is not None:
+            return _UNMIRRORABLE
+
+        if self._engine_literal_resolution(parsed, col) is LiteralResolution.FULL:
             return (
                 self._mirror_probe_value(parsed, col)
                 if isinstance(value, datetime)
                 else value
             )
-
-        if parsed.tzinfo is not None:
-            return _UNMIRRORABLE
 
         if operator in LOWER_BOUND_OPERATORS:
             instant = self._round_bound_outward(parsed, col, is_upper=False)
