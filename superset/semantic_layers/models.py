@@ -56,11 +56,13 @@ from superset.common.query_object import QueryObject
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,
+    SemanticResultCompletenessError,
 )
 from superset.explorables.base import TimeGrainDict
 from superset.extensions import db, encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
+from superset.semantic_layers.completeness import provider_completeness
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -549,7 +551,10 @@ class SemanticView(AuditMixinNullable, Model):
                 value=f"%{search}%",
             )
             try:
-                result = self.implementation.get_values(dimension, {narrowing})
+                with provider_completeness():
+                    result = self.implementation.get_values(dimension, {narrowing})
+            except SemanticResultCompletenessError:
+                raise
             except Exception:  # pylint: disable=broad-exception-caught
                 # The narrowing filter is best-effort: a provider that cannot
                 # apply it must degrade to the bounded first page (the picker
@@ -562,9 +567,11 @@ class SemanticView(AuditMixinNullable, Model):
                     dimension.name,
                     exc_info=True,
                 )
-                result = self.implementation.get_values(dimension, None)
+                with provider_completeness():
+                    result = self.implementation.get_values(dimension, None)
         else:
-            result = self.implementation.get_values(dimension, None)
+            with provider_completeness():
+                result = self.implementation.get_values(dimension, None)
 
         # Some drivers report zero rows as ``results is None``.
         if result.results is None or result.results.num_rows == 0:
@@ -843,8 +850,35 @@ class SemanticView(AuditMixinNullable, Model):
         """
         return self.metadata_generation
 
+    @property
+    def result_cache_version(self) -> str | None:
+        """Read the producer guarantee without constructing its implementation."""
+        layer_class: type[SemanticLayerABC[Any, Any]] | None = registry.get(
+            self.semantic_layer.type
+        )
+        if layer_class is None:
+            raise QueryObjectValidationError(
+                _("The semantic-layer provider is unavailable.")
+            )
+        version: str | None = layer_class.result_cache_version
+        if version is not None and (
+            not isinstance(version, str) or not version.strip()
+        ):
+            raise QueryObjectValidationError(_("Invalid semantic result cache version"))
+        return version
+
+    @property
+    def result_cache_discriminator(self) -> tuple[str, str] | None:
+        """Namespace the producer guarantee consistently across result caches."""
+        version: str | None = self.result_cache_version
+        return (self.semantic_layer.type, version) if version is not None else None
+
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return [self.metadata_generation]
+        discriminator: tuple[str, str] | None = self.result_cache_discriminator
+        keys: list[Hashable] = [self.metadata_generation]
+        if discriminator is not None:
+            keys.append(("semantic-result-version", *discriminator))
+        return keys
 
     @property
     def catalog_perm(self) -> str | None:

@@ -52,6 +52,7 @@ from superset.daos.exceptions import (
 from superset.dataframe import df_to_records
 from superset.exceptions import (
     QueryObjectValidationError,
+    SemanticResultCompletenessError,
     SupersetException,
     SupersetTemplateException,
 )
@@ -317,6 +318,8 @@ class QueryContextProcessor:
 
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
+            except SemanticResultCompletenessError:
+                raise
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
@@ -470,7 +473,8 @@ class QueryContextProcessor:
         chart's datasource.
         """
         source_rls: dict[str, list[str] | None] = {}
-        source_versions: dict[str, str] = {}
+        source_versions: dict[str, tuple[str, str]] = {}
+        metadata_versions: dict[str, str] = {}
         for layer in query_obj.annotation_layers:
             if (
                 layer.get("sourceType")
@@ -502,7 +506,7 @@ class QueryContextProcessor:
                 ):
                     annotation_datasource = None
             if isinstance(annotation_datasource, SemanticView):
-                source_versions[str(layer_value)] = (
+                metadata_versions[str(layer_value)] = (
                     annotation_datasource.metadata_generation
                 )
             source_rls[str(layer.get("value"))] = (
@@ -510,11 +514,20 @@ class QueryContextProcessor:
                 if annotation_datasource
                 else None
             )
-        return {
+            if isinstance(annotation_datasource, SemanticView):
+                discriminator: tuple[str, str] | None = (
+                    annotation_datasource.result_cache_discriminator
+                )
+                if discriminator is not None:
+                    source_versions[str(layer_value)] = discriminator
+        context: dict[str, Any] = {
             "user_id": get_user_id(),
             "source_rls": source_rls,
-            "source_versions": source_versions,
+            "source_versions": metadata_versions,
         }
+        if source_versions:
+            context["semantic_result_versions"] = source_versions
+        return context
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """
@@ -978,6 +991,8 @@ class QueryContextProcessor:
             command.validate()
             payload = command.run()
             return {"records": payload["queries"][0]["data"]}
+        except SemanticResultCompletenessError:
+            raise
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 

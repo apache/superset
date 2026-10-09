@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, PropertyMock
 from uuid import uuid4
 
 import pytest
@@ -36,8 +36,13 @@ pytestmark: pytest.MarkDecorator = pytest.mark.parametrize(
 
 
 @pytest.fixture
-def layer(session: Session) -> SemanticLayer:
+def layer(session: Session, monkeypatch: pytest.MonkeyPatch) -> SemanticLayer:
     """Persist a layer without involving a provider or permission event callbacks."""
+    from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
+
+    from superset.semantic_layers.models import registry
+
+    monkeypatch.setitem(registry, "test", ProviderLayer)
     SemanticLayer.metadata.create_all(session.get_bind())
     session.execute(
         SemanticLayer.__table__.insert().values(
@@ -128,7 +133,7 @@ def test_generation_binding_precedes_provider_construction(
     layer: SemanticLayer,
 ) -> None:
     """The optional factory hook receives identity before eager discovery can run."""
-    factory: Mock = Mock()
+    factory: Mock = Mock(result_cache_version=None)
     with (
         app.app_context(),
         patch.dict("superset.semantic_layers.models.registry", {"test": factory}),
@@ -257,6 +262,7 @@ def test_suggestion_cache_rotates_with_metadata_generation(
     view.changed_on = None
     view.type = "semantic_view"
     view.metadata_generation = "generation-zero"
+    view.result_cache_discriminator = None
     view.implementation.selection_identity_version = None
     view.get_compatible_metrics.return_value = []
     view.get_compatible_dimensions.return_value = []
@@ -585,3 +591,56 @@ def test_clear_preserves_loaded_views_of_other_layers(
     layer.clear_metadata_cache()
     assert view.implementation is implementation
     assert view.metadata_generation == before
+
+
+@pytest.mark.parametrize("changed", ["metadata", "producer"])
+def test_cache_keys_compose_metadata_and_producer_versions(
+    app: Flask, session: Session, layer: SemanticLayer, changed: str
+) -> None:
+    """Neither independently changing cache guarantee may be lost in the merge."""
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.datasource.api import _column_values_cache_key
+    from superset.models.slice import Slice
+
+    view: SemanticView = SemanticView(name="view", semantic_layer=layer)
+    provider: Mock = Mock(result_cache_version="v1")
+    chart: Slice = Slice(
+        datasource_type="semantic_view", datasource_id=17, semantic_view=view
+    )
+    query: Mock = Mock(annotation_layers=[{"sourceType": "line", "value": 7}])
+    processor: QueryContextProcessor = QueryContextProcessor(Mock())
+    with (
+        app.app_context(),
+        patch.dict("superset.semantic_layers.models.registry", {"test": provider}),
+        patch.object(
+            SemanticView, "uid", new_callable=PropertyMock, return_value="view"
+        ),
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=[],
+        ),
+    ):
+        first_generation: str = view.metadata_generation
+        first_result: list[object] = view.get_extra_cache_keys({})
+        first_values: str = _column_values_cache_key(view, {"col": "category"})
+        first_annotation: dict[str, Any] = processor._annotation_cache_context(query)
+        assert first_result == [
+            first_generation,
+            ("semantic-result-version", "test", "v1"),
+        ]
+        assert first_annotation["source_versions"] == {"7": first_generation}
+        assert first_annotation["semantic_result_versions"] == {"7": ("test", "v1")}
+        if changed == "metadata":
+            layer.cache_version = 1
+            session.info.clear()
+            view.forget_metadata()
+        else:
+            provider.result_cache_version = "v2"
+        assert view.get_extra_cache_keys({}) != first_result
+        assert _column_values_cache_key(view, {"col": "category"}) != first_values
+        assert processor._annotation_cache_context(query) != first_annotation
+        provider.assert_not_called()
