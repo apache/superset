@@ -1093,6 +1093,42 @@ def test_preview_probes_an_array_column_with_the_chart_path_s_literal(
     assert response.json["result"]["valid"] is True
 
 
+@pytest.mark.parametrize("sample", ["[[1, 2]]", "[1j]"])
+def test_preview_declines_an_array_element_the_dialect_cannot_render(
+    client: Any, full_api_access: None, dataset: Any, sample: str
+) -> None:
+    """
+    A nested or otherwise non-scalar element has no literal the dialect can
+    render, so building the array literal raises `CompileError`. That has to
+    decline like any other unmirrorable value rather than surface as a 500.
+    """
+    from superset.connectors.sqla.models import TableColumn
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    dataset.columns.append(
+        TableColumn(column_name="nested", type="Array(Array(Int32))")
+    )
+    db.session.flush()
+
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        with patch.object(
+            type(dataset.database),
+            "db_engine_spec",
+            new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+        ):
+            response = client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={
+                    "mapped_column": "nested",
+                    "value_transform": "length(:value)",
+                    "sample_values": [sample],
+                },
+            )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+
+
 def test_preview_declines_an_equality_the_chart_path_declines(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:
