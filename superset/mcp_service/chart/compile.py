@@ -40,7 +40,9 @@ from typing import Any, Dict, List, Literal
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
+from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
 from superset.mcp_service.chart.query_result import (
+    first_query_data,
     normalize_chart_query_result,
     query_result_failure,
 )
@@ -80,20 +82,38 @@ class CompileResult:
     row_count: int | None = None
 
 
-def _compile_chart(
+def _compile_chart(  # noqa: C901
     form_data: Dict[str, Any],
     dataset_id: int,
 ) -> CompileResult:
-    """Execute the chart's query to verify it renders without errors.
+    """Execute a bounded chart query to verify its base query and result contract.
 
     Builds a ``QueryContext`` from *form_data* and runs it through
     ``ChartDataCommand``.  A small ``row_limit`` is used so the check is
     fast — we only need to know the query compiles and returns data, not
-    fetch the full result set.
+    fetch the full result set. Rolling windows and forecasts are skipped because
+    their history requirements cannot be met by this sample; full data and
+    preview queries retain those analytics.
 
     Returns a :class:`CompileResult` with ``success=True`` when the
     query executes cleanly.
     """
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    temporal_state_error = (
+        plugin.validate_form_data_state(form_data) if plugin is not None else None
+    )
+    if temporal_state_error is not None:
+        return CompileResult(
+            success=False,
+            error=temporal_state_error.details or temporal_state_error.message,
+            error_code="CHART_VALIDATION_FAILED",
+            tier="validation",
+            error_obj=temporal_state_error,
+        )
+
+    from superset.charts.data.form_data import set_query_context_form_data
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.commands.chart.exceptions import (
         ChartDataCacheLoadError,
@@ -103,26 +123,31 @@ def _compile_chart(
         build_query_context_from_form_data,
     )
     from superset.mcp_service.chart.plugin import BaseChartPlugin
-    from superset.mcp_service.chart.registry import plugin_for_viz_type
 
     try:
-        query_form_data = deepcopy(form_data)
+        query_form_data = canonicalize_operation_form_data(
+            deepcopy(form_data),
+            datasource_id=dataset_id,
+        )
         query_form_data["datasource"] = f"{dataset_id}__table"
-        query_form_data["datasource_id"] = dataset_id
-        query_form_data["datasource_type"] = "table"
-        plugin = plugin_for_viz_type(form_data.get("viz_type"))
+        # Rolling windows and forecasts require history the bounded compile
+        # sample cannot supply. Keep the saved controls intact for full queries.
+        for key in ("rolling_type", "rolling_type_b", "forecastEnabled"):
+            query_form_data.pop(key, None)
         query_context = build_query_context_from_form_data(
             query_form_data,
             row_limit=plugin.compile_row_limit(form_data) if plugin else 2,
             force=False,
         )
+        try:
+            set_query_context_form_data(query_context, dataset_id, "table")
+        except TypeError:
+            logger.debug("Query-context form data could not be serialized")
 
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()
 
-        warnings: List[str] = []
-        row_count = 0
         if query_failure := query_result_failure(result):
             error_str = query_failure.error
             return CompileResult(
@@ -146,15 +171,40 @@ def _compile_chart(
                     error_type=result.error_type,
                     message=message,
                     details=result.error,
-                    suggestions=[
-                        "Use a numeric-producing metric",
-                        "Check the metric alias and SQL expression",
-                    ],
+                    suggestions=list(
+                        plugin.invalid_result_suggestions
+                        if plugin
+                        else BaseChartPlugin.invalid_result_suggestions
+                    ),
                     error_code=error_code,
                 ),
             )
-        for query in result.get("queries", []):
-            row_count += len(query.get("data", []))
+
+        data, result_error = first_query_data(result)
+        if result_error is not None:
+            return CompileResult(
+                success=False,
+                error=result_error.error,
+                error_code="CHART_COMPILE_FAILED",
+                tier="compile",
+                error_obj=_build_compile_error(result_error.error),
+            )
+        assert data is not None
+
+        warnings: List[str] = []
+        row_count = 0
+        for query in result["queries"]:
+            query_data = query.get("data")
+            if not isinstance(query_data, list):
+                error_str = "Chart query result data is not an array of rows."
+                return CompileResult(
+                    success=False,
+                    error=error_str,
+                    error_code="CHART_COMPILE_FAILED",
+                    tier="compile",
+                    error_obj=_build_compile_error(error_str),
+                )
+            row_count += len(query_data)
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
@@ -221,7 +271,7 @@ def _adhoc_filter_column_valid(
     )
 
 
-def _validate_adhoc_filter_columns(
+def _validate_adhoc_filter_columns(  # noqa: C901
     form_data: Dict[str, Any], dataset_context: DatasetContext
 ) -> ChartGenerationError | None:
     """Tier-1 check for adhoc-filter column references stored in ``form_data``.
@@ -230,34 +280,69 @@ def _validate_adhoc_filter_columns(
     ``ChartConfig`` and only sees ``config.filters``. Tools like
     ``update_chart_preview`` and ``update_chart`` (preview path) also merge
     *previously cached* ``adhoc_filters`` into ``form_data`` that aren't
-    represented on the new config — those would otherwise bypass validation
+    represented on the new config. Secondary-query filters receive the same
+    check — otherwise these filters would bypass validation
     and surface only when Explore tries to run the query.
     """
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
     adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
-    invalid: List[str] = []
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    secondary = plugin.secondary_query_form_data(form_data) if plugin else None
+    if secondary is not None:
+        adhoc_filters.extend(
+            _active_adhoc_filters(secondary.get("adhoc_filters") or [])
+        )
+    # Keep the clause for reference validation; SIMPLE HAVING is unsupported,
+    # so saved metrics must not be offered as corrective suggestions.
+    invalid: list[tuple[str, str]] = []
+    has_simple_having = False
     for f in adhoc_filters:
         # SIMPLE filters expose the column via "subject"; SQL-expression
         # filters carry a free-form ``sqlExpression`` we can't safely parse,
         # so skip those.
         if f.get("expressionType") and f.get("expressionType") != "SIMPLE":
             continue
+        clause = f.get("clause", "WHERE")
+        if not isinstance(clause, str) or clause not in {"WHERE", "HAVING"}:
+            return ChartGenerationError(
+                error_type="invalid_filter_clause",
+                message="SIMPLE filter clause must be 'WHERE' or 'HAVING'",
+                details=(
+                    f"A SIMPLE filter has malformed clause {clause!r}; the clause "
+                    "is never coerced or defaulted when explicitly set."
+                ),
+                suggestions=["Use clause='WHERE'"],
+                error_code="INVALID_FILTER_CLAUSE",
+            )
+        has_simple_having = has_simple_having or clause == "HAVING"
         column = f.get("subject") or f.get("col")
         if not column or not isinstance(column, str):
             continue
-        clause = f.get("clause", "WHERE").upper()
         try:
             if not _adhoc_filter_column_valid(column, clause, dataset_context):
-                invalid.append(column)
+                invalid.append((column, clause))
         except AmbiguousDatasetReferenceError as ex:
             return DatasetValidator._build_ambiguous_reference_error(ex)
 
     if not invalid:
+        if has_simple_having:
+            return ChartGenerationError(
+                error_type="unsupported_filter_clause",
+                message="SIMPLE HAVING filters are unsupported",
+                details=(
+                    "The shared query mapper cannot preserve SIMPLE HAVING "
+                    "semantics and will not coerce the filter to WHERE."
+                ),
+                suggestions=["Use a supported WHERE filter"],
+                error_code="UNSUPPORTED_FILTER_CLAUSE",
+            )
         return None
 
     suggestions: List[str] = []
-    for column in invalid:
+    for column, _ in invalid:
         for suggestion in DatasetValidator._get_column_suggestions(
-            column, dataset_context
+            column, dataset_context, include_metrics=False
         ):
             name = (
                 suggestion.name
@@ -267,7 +352,7 @@ def _validate_adhoc_filter_columns(
             if name and name not in suggestions:
                 suggestions.append(name)
 
-    bad = ", ".join(sorted(set(invalid)))
+    bad = ", ".join(sorted({column for column, _ in invalid}))
     return ChartGenerationError(
         error_type="invalid_column",
         message=(f"Filter references column(s) not in dataset: {bad}"),
@@ -426,6 +511,22 @@ def validate_and_compile(
                 error_code="CHART_VALIDATION_FAILED",
                 tier="validation",
                 error_obj=filter_error,
+            )
+        from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+        state_plugin = plugin_for_viz_type(form_data.get("viz_type"))
+        temporal_state_error = (
+            state_plugin.validate_form_data_state(form_data, dataset_context)
+            if state_plugin is not None
+            else None
+        )
+        if temporal_state_error is not None:
+            return CompileResult(
+                success=False,
+                error=temporal_state_error.details or temporal_state_error.message,
+                error_code="CHART_VALIDATION_FAILED",
+                tier="validation",
+                error_obj=temporal_state_error,
             )
 
     if not run_compile_check:

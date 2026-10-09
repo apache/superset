@@ -14,19 +14,40 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Declarative policies for explicit deletion-retention purges."""
+"""Declarative policies for explicit deletion-retention purges.
+
+A policy describes how one root is purged: which dependent tables go with it,
+and which callbacks carry that out. This package declares three roots --
+charts, dashboards and datasets -- and a host distribution installs policies
+for its own soft-delete roots through ``PURGE_POLICIES_FUNC``.
+
+The cascade owns the frame around a purge: the locked claim, the identity and
+eligibility predicates, the write-ahead audit record and the conditional
+delete. A policy fills in what happens inside that frame, either through the
+shared cleanup callbacks declared here or through its own.
+
+Validating a policy is deliberately partial. Declarations whose mistakes would
+be silent are refused -- deleting the wrong rows, or skipping cleanup that was
+asked for -- and everything else is left to fail where it fails, per row and
+counted. Enumerating every shape a host might write is not a goal: see
+``_validate_host_declarations`` for the line and the reasoning, and for why
+those rules run where a host policy is admitted rather than on every read.
+"""
 
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Hashable, Iterable, Mapping
-from dataclasses import dataclass
+import threading
+import time
+from collections.abc import Callable, Iterable, Mapping
+from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
 from types import MappingProxyType
 from typing import Any, cast, NamedTuple
 
 import sqlalchemy as sa
+from flask import current_app, has_app_context
 from sqlalchemy.orm import Mapper, Session
 
 from superset.utils.sqlalchemy_events import (
@@ -53,6 +74,13 @@ ALL_REASON_CODES: frozenset[str] = frozenset(
         REASON_CASCADE_INTEGRITY_FAILURE,
     }
 )
+
+#: Config key holding the host's purge-policy provider: a zero-argument
+#: callable returning ``PurgeEntityPolicy`` objects for soft-delete roots this
+#: package does not own. A host that wants to confirm this hook exists before
+#: relying on it can probe for this name, which is present exactly when the
+#: hook is; installing the key on a build without it is inert.
+HOST_POLICIES_CONFIG_KEY: str = "PURGE_POLICIES_FUNC"
 
 
 class BlockerReason(NamedTuple):
@@ -170,6 +198,23 @@ class PurgeEntityPolicy:
     delete_owned_children: PolicyAction
     capture_permission_name: PermissionSnapshot
     cleanup_permission: PermissionCleanup
+    #: Set by a policy that accounts for its own delete-listener
+    #: responsibilities in its own cleanup. The listener effects declared here
+    #: are carried out by actions keyed to this package's entity types, so a
+    #: root outside them cannot declare one -- and without this field a root
+    #: that registers any non-observational delete listener could never have a
+    #: policy admitted at all, since coverage would report the responsibility
+    #: as missing and the only declaration that answers it is refused.
+    accounts_for_own_listeners: bool = False
+    #: Set by a policy whose ``delete_owned_children`` walks the whole owned
+    #: sub-tree itself. The shared cleanup issues one statement per declared
+    #: edge, so it reaches one level and builds each predicate by traversing
+    #: the ownership path; the validators that refuse the shapes this breaks
+    #: are skipped only for a policy that says it does the walking. Declared
+    #: rather than inferred from which callable a policy holds: wrapping the
+    #: shared one in a ``partial`` or a logging lambda leaves its behavior in
+    #: place while defeating any identity test.
+    walks_own_subtree: bool = False
 
     @property
     def listener_responsibilities(self) -> frozenset[str]:
@@ -247,6 +292,22 @@ def _fk_key(
     )
 
 
+@dataclass
+class _Traversal:
+    """Tables already walked, split by how much each kind of walk can see.
+
+    Walking a table through its mapper yields its foreign keys *and* its
+    relationship keys; walking it as a plain table yields only the foreign
+    keys. A mapper walk therefore subsumes a table walk, but not the reverse
+    -- so a table reached first as a table must still be walkable as a
+    mapper, or relationship-only edges (a child's version shadow, say) go
+    undiscovered and read as stale declarations.
+    """
+
+    tables: set[str] = field(default_factory=set)
+    mappers: set[str] = field(default_factory=set)
+
+
 def _relationship_has_physical_edge(relationship: Any) -> bool:
     """Return whether a mapper relationship is represented by a physical FK."""
     for local, remote in relationship.local_remote_pairs:
@@ -267,11 +328,33 @@ def discover_dependencies(
     recursive_tables: frozenset[str] = frozenset(),
     visited: frozenset[str] = frozenset(),
 ) -> frozenset[DependencyKey]:
-    """Discover physical FKs and relationships, recursing through owned tables."""
+    """Discover physical FKs and relationships, recursing through owned tables.
+
+    Visited tables are tracked across the whole traversal rather than per
+    branch. Each table's edges depend only on that table, so walking it once
+    yields the same key set -- while restarting the bookkeeping per sibling
+    makes every sibling re-walk all the others, growing factorially in the
+    number of recursive tables. A root owning a dozen of them would spend
+    minutes in discovery before a single row could be purged.
+    """
+    return _discover_mapper(
+        mapper,
+        recursive_tables,
+        _Traversal(tables=set(visited), mappers=set(visited)),
+    )
+
+
+def _discover_mapper(
+    mapper: Mapper[Any],
+    recursive_tables: frozenset[str],
+    seen: _Traversal,
+) -> frozenset[DependencyKey]:
+    """Discover one mapper's edges, marking its table walked for the rest."""
     table: sa.Table = mapper.local_table
-    if table.name in visited:
+    if table.name in seen.mappers:
         return frozenset()
-    next_visited: frozenset[str] = visited | {table.name}
+    seen.mappers.add(table.name)
+    seen.tables.add(table.name)
     discovered: set[DependencyKey] = {
         _fk_key(table, constraint, "outbound")
         for constraint in table.foreign_key_constraints
@@ -283,13 +366,7 @@ def discover_dependencies(
     for relationship in mapper.relationships:
         related_mapper: Mapper[Any] = relationship.mapper
         if related_mapper.local_table.name in recursive_tables:
-            discovered.update(
-                discover_dependencies(
-                    related_mapper,
-                    recursive_tables=recursive_tables,
-                    visited=next_visited,
-                )
-            )
+            discovered.update(_discover_mapper(related_mapper, recursive_tables, seen))
         if not _relationship_has_physical_edge(relationship):
             discovered.add(
                 DependencyKey(
@@ -301,25 +378,20 @@ def discover_dependencies(
                 )
             )
     discovered.update(
-        _discover_recursive_table_dependencies(
-            table,
-            recursive_tables=recursive_tables,
-            visited=next_visited,
-        )
+        _discover_recursive_table_dependencies(table, recursive_tables, seen)
     )
     return frozenset(discovered)
 
 
 def _discover_table_dependencies(
     table: sa.Table,
-    *,
     recursive_tables: frozenset[str],
-    visited: frozenset[str],
+    seen: _Traversal,
 ) -> frozenset[DependencyKey]:
     """Discover physical edges for unmapped association and owned tables."""
-    if table.name in visited:
+    if table.name in seen.tables:
         return frozenset()
-    next_visited: frozenset[str] = visited | {table.name}
+    seen.tables.add(table.name)
     discovered: set[DependencyKey] = {
         _fk_key(table, constraint, "outbound")
         for constraint in table.foreign_key_constraints
@@ -329,34 +401,34 @@ def _discover_table_dependencies(
             if constraint.elements[0].column.table is table:
                 discovered.add(_fk_key(table, constraint, "inbound"))
     discovered.update(
-        _discover_recursive_table_dependencies(
-            table,
-            recursive_tables=recursive_tables,
-            visited=next_visited,
-        )
+        _discover_recursive_table_dependencies(table, recursive_tables, seen)
     )
     return frozenset(discovered)
 
 
 def _discover_recursive_table_dependencies(
     table: sa.Table,
-    *,
     recursive_tables: frozenset[str],
-    visited: frozenset[str],
+    seen: _Traversal,
 ) -> frozenset[DependencyKey]:
-    """Discover dependencies for named recursive tables not already visited."""
+    """Discover dependencies for named recursive tables not already visited.
+
+    Sorted so a traversal is reproducible, and driven off the shared
+    bookkeeping so each table is walked at most once per kind of walk.
+    """
     discovered: set[DependencyKey] = set()
-    for recursive_table_name in recursive_tables - visited:
+    for recursive_table_name in sorted(recursive_tables - seen.tables):
+        # Re-checked inside the loop: the set grows as the walk descends, so
+        # a table a nested call already covered is skipped rather than
+        # re-entered to return nothing.
+        if recursive_table_name in seen.tables:
+            continue
         recursive_table: sa.Table | None = table.metadata.tables.get(
             recursive_table_name
         )
         if recursive_table is not None:
             discovered.update(
-                _discover_table_dependencies(
-                    recursive_table,
-                    recursive_tables=recursive_tables,
-                    visited=visited,
-                )
+                _discover_table_dependencies(recursive_table, recursive_tables, seen)
             )
     return frozenset(discovered)
 
@@ -410,8 +482,8 @@ def compare_policy(
 
 
 @lru_cache(maxsize=1)
-def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
-    """Build the supported purge registry after model initialization."""
+def _builtin_purge_policies() -> tuple[PurgeEntityPolicy, ...]:
+    """Declare the purge roots this package owns, after model initialization."""
     # avoid circular import: model listener registration imports neutral event helpers
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.dashboard import Dashboard
@@ -860,16 +932,577 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
             cleanup_permission=cleanup_dataset_permission,
         ),
     }
-    return validate_unique_root_policies(registry.values())
+    return tuple(registry.values())
 
 
-@lru_cache(maxsize=None)
-def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
-    """Validate and return one root policy without blocking unrelated roots."""
+def _policy_label(policy: Any) -> str:
+    """A log-safe name for a payload whose shape is not yet established."""
+    model: Any = getattr(policy, "model", None)
+    return str(getattr(model, "__name__", type(model).__name__))
+
+
+def _host_policy_payload(provided: Any) -> tuple[Any, ...]:
+    """Materialize the provider's payload, or reject its shape.
+
+    Any iterable is accepted -- a list, a tuple, ``dict.values()``, a
+    generator -- since the documented contract is a sequence of policies, not
+    one particular container. Strings and bytes are excluded because they
+    iterate into characters, which would read as a sequence of bad members
+    rather than the wrong type. Materialized once: a generator cannot be
+    walked twice.
+
+    An exception raised *while reading* a lazy payload is left to propagate.
+    Walking a generator runs host code just as calling the provider does, so
+    the two are the same kind of failure and earn the same retry; only the
+    shape of a payload that arrived intact is settled for good.
+    """
+    if isinstance(provided, (str, bytes)) or not isinstance(provided, Iterable):
+        logger.error(
+            "purge_policy: %s returned %s; expected an iterable of PurgeEntityPolicy",
+            HOST_POLICIES_CONFIG_KEY,
+            type(provided).__name__,
+        )
+        return ()
+    return tuple(provided)
+
+
+@lru_cache(maxsize=1)
+def _builtin_declared_tables() -> frozenset[str]:
+    """Every table this package's own policies name, by bare name.
+
+    Wider than the three root tables on purpose. The shared cleanup turns an
+    owned or association edge into one ``DELETE`` against the named table, so
+    an edge into ``report_schedule`` removes the very rows the built-in
+    blocker exists to protect, and one into ``ab_user`` removes users --
+    neither of which is a root, and both reachable the moment a host
+    distribution adds a column pointing from such a table into its own.
+
+    Owner tables are included alongside related ones: a declaration is
+    identified by both ends, and either end naming a table of this package's
+    is the thing being refused. Synthetic keys carry an empty owner, which is
+    dropped.
+    """
+    tables: set[str] = set()
+    for policy in _builtin_purge_policies():
+        tables.add(sa.inspect(policy.model).local_table.name)
+        for dependency in policy.dependencies:
+            tables.add(dependency.key.owner_table)
+            tables.add(dependency.key.related_table)
+    tables.discard("")
+    return frozenset(tables)
+
+
+def _version_reserved_class_names() -> frozenset[str]:
+    """Class names the version cascade resolves an entity kind from.
+
+    ``_delete_version_history`` maps ``model.__name__`` through
+    ``ENTITY_KIND_BY_CLASS_NAME`` to scope the ``version_changes`` delete, so
+    the identity it keys on is the bare class name, not the model. A host
+    class that happens to share one of those names therefore deletes the
+    change rows of the built-in entity with the same id -- live rows, not
+    just archived ones. Read lazily, and an empty set where versioning is not
+    installed, so admission does not depend on it being importable.
+    """
     try:
-        policy: PurgeEntityPolicy = purge_policy_registry()[model]
-    except KeyError as ex:
-        raise ValueError(f"Unsupported purge model: {model.__name__}") from ex
+        from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
+    except ImportError:  # pragma: no cover - versioning not installed
+        return frozenset()
+    return frozenset(ENTITY_KIND_BY_CLASS_NAME)
+
+
+def _unqualified_table_conflict(policy: PurgeEntityPolicy) -> str | None:
+    """Return the first table a bare-name lookup would resolve wrongly.
+
+    Discovery records table identities by bare name while a ``MetaData`` keys
+    them by schema, so a declared ``child`` resolves to the default-schema
+    table even where the policy meant ``host.child`` -- and the cleanup would
+    delete rows belonging to unrelated roots. Carrying schema-qualified
+    identities through discovery and execution is the better fix; until then
+    the ambiguous shape is refused rather than silently mis-resolved.
+    """
+    root_table: sa.Table = sa.inspect(policy.model).local_table
+    metadata: sa.MetaData = root_table.metadata
+    keys_by_name: dict[str, list[str]] = {}
+    for table in metadata.tables.values():
+        keys_by_name.setdefault(table.name, []).append(table.key)
+    declared: set[str] = {root_table.name} | {
+        dependency.key.related_table
+        for dependency in policy.dependencies
+        # Version shadows are resolved by bare name as well, in
+        # _entity_version_targets.
+        if dependency.classification in _EXECUTABLE_CLASSIFICATIONS
+        or dependency.classification is DependencyClassification.VERSION_OWNED
+    }
+    for name in sorted(declared):
+        keys: list[str] = keys_by_name.get(name, [])
+        if len(keys) != 1 or keys[0] != name:
+            return name
+    return None
+
+
+def _claims_a_reserved_identity(
+    candidate: PurgeEntityPolicy,
+    builtin_roots: frozenset[type[Any]],
+    builtin_tables: frozenset[str],
+    builtin_types: frozenset[str],
+) -> bool:
+    """Whether *candidate* claims an identity this package reads as its own.
+
+    Four of them, each resolved somewhere a host root must not land: the
+    model, the table it is mapped onto, the bare class name the version
+    cascade turns into an entity kind, and the entity type the cascade
+    branches on. Grouped so the admission sequence stays readable; each logs
+    its own reason, since the reason is what an operator has to act on.
+    """
+    if candidate.model in builtin_roots:
+        logger.error(
+            "purge_policy: host policy for built-in root %s ignored",
+            candidate.model.__name__,
+        )
+        return True
+    root_table: sa.Table = sa.inspect(candidate.model).local_table
+    if root_table.key in builtin_tables:
+        # A different class mapped onto a built-in table -- a subclass of
+        # Slice, say -- is not the built-in root by identity, but purging it
+        # runs host cleanup against this package's own rows. It also joins the
+        # soft-delete registry through the mixin, so the scheduled task would
+        # scan it.
+        logger.error(
+            "purge_policy: host policy root %s is mapped onto built-in "
+            "table %r; ignored",
+            candidate.model.__name__,
+            root_table.key,
+        )
+        return True
+    if candidate.model.__name__ in _version_reserved_class_names():
+        # The version cascade resolves an entity kind from the bare class
+        # name, so a host class sharing one clears the change rows of the
+        # built-in entity carrying the same id -- a live one, at that.
+        logger.error(
+            "purge_policy: host policy root is named %r, which the version "
+            "cascade resolves as a built-in entity kind; ignored",
+            candidate.model.__name__,
+        )
+        return True
+    if not isinstance(candidate.entity_type, str) or not candidate.entity_type:
+        # Read as a string by the cascade, the audit record and every log line
+        # that names the root.
+        logger.error(
+            "purge_policy: host policy for %s declares entity_type %r",
+            candidate.model.__name__,
+            candidate.entity_type,
+        )
+        return True
+    if candidate.entity_type in builtin_types:
+        # Core branches on entity_type -- the dataset impact path, the tag
+        # object type, the dataset permission name -- so a host reusing one of
+        # its names would have that logic pointed at its own rows.
+        logger.error(
+            "purge_policy: host policy for %s claims the reserved entity type %r",
+            candidate.model.__name__,
+            candidate.entity_type,
+        )
+        return True
+    return False
+
+
+def _admitted_host_policy(
+    candidate: Any,
+    builtin_roots: frozenset[type[Any]],
+    builtin_tables: frozenset[str],
+    builtin_types: frozenset[str],
+) -> PurgeEntityPolicy | None:
+    """Return *candidate* if it is a usable host policy, else ``None``.
+
+    Every check runs behind one handler rather than guarding each attribute:
+    the payload is host-supplied, so reading ``model`` or hashing it may
+    itself raise -- and an exception escaping here would break
+    ``purge_policy_registry`` for the built-in roots too, which is the
+    opposite of what this boundary is for.
+    """
+    try:
+        if not isinstance(candidate, PurgeEntityPolicy):
+            logger.error(
+                "purge_policy: %s returned a %s; expected PurgeEntityPolicy",
+                HOST_POLICIES_CONFIG_KEY,
+                type(candidate).__name__,
+            )
+            return None
+        if not isinstance(candidate.model, type):
+            # Everything downstream treats the root as a mapped class:
+            # sa.inspect, the registry index, the duplicate count.
+            logger.error(
+                "purge_policy: host policy root %s is not a class",
+                _policy_label(candidate),
+            )
+            return None
+        if _claims_a_reserved_identity(
+            candidate, builtin_roots, builtin_tables, builtin_types
+        ):
+            return None
+        # Validated first, so a table the metadata simply does not contain is
+        # reported as such rather than as an ambiguous name.
+        unusable: set[str] = {
+            dependency.classification.value
+            for dependency in candidate.dependencies
+            if dependency.classification
+            in {
+                DependencyClassification.BLOCK,
+                DependencyClassification.LISTENER_EFFECT,
+            }
+        }
+        if unusable:
+            # Two different reasons, both about identities this package owns.
+            # A stock listener action decides what to delete from a built-in
+            # entity type, so declared by a host it is accepted and then never
+            # runs. A blocker *would* be applied -- validate_deletion_allowed
+            # is generic over the declarations -- but its reason code lands in
+            # the purge audit record, whose vocabulary is a closed set pinned
+            # by test. A host refuses a purge from its own validator instead,
+            # where the code it records is plainly its own.
+            raise RuntimeError(
+                f"{', '.join(sorted(unusable))} dependencies are not available "
+                "to a host root"
+            )
+        # ``Table.key`` carries a schema where there is one; the declarations
+        # are bare names, which _unqualified_table_conflict below pins to a
+        # single table each.
+        protected: frozenset[str] = _builtin_declared_tables() | {
+            key.rsplit(".", 1)[-1] for key in builtin_tables
+        }
+        into_builtin: set[str] = {
+            dependency.key.related_table
+            for dependency in candidate.dependencies
+            if dependency.classification in _EXECUTABLE_CLASSIFICATIONS
+            and dependency.key.related_table in protected
+        }
+        if into_builtin:
+            # The shared cleanup executes these as one DELETE each, so an edge
+            # into a table of this package's removes its rows with none of the
+            # frame around them: no eligibility predicate, no blocker, no
+            # audit record. A host root's references from Superset-owned
+            # tables are its own to clear in its own callbacks, which is what
+            # PRESERVE leaves it free to do.
+            raise RuntimeError(
+                f"dependencies on Superset-owned tables "
+                f"({', '.join(sorted(into_builtin))}) cannot be executed by "
+                "the shared cleanup"
+            )
+        # Before the coverage comparison, which is the order this package
+        # has always used: a declaration that would delete the wrong rows is
+        # reported as that rather than as a stale edge.
+        _validate_host_declarations(candidate)
+        _validated_policy(candidate)
+        conflict: str | None = _unqualified_table_conflict(candidate)
+        if conflict is not None:
+            raise RuntimeError(
+                f"table {conflict!r} cannot be identified unambiguously by "
+                "name; schema-qualified roots are not supported"
+            )
+    except Exception as ex:  # pylint: disable=broad-except
+        # Validated at admission rather than when a row is purged: a
+        # declaration the cleanup cannot execute would otherwise fail once per
+        # eligible row, counted as a cascade failure, and stay invisible until
+        # something aged past the window.
+        logger.error(
+            "purge_policy: host policy for %s rejected: %s",
+            _policy_label(candidate),
+            ex,
+        )
+        return None
+    return candidate
+
+
+def _host_purge_policies(
+    provider: Callable[[], Any] | None,
+) -> tuple[PurgeEntityPolicy, ...] | None:
+    """Return the purge policies a host installed for its own roots.
+
+    A host distribution can carry ``SoftDeleteMixin`` entities this package
+    cannot import. The retention task discovers those entities through the
+    mixin registry, so without a policy they reach the cascade as an
+    unsupported model. The host therefore declares their purge behavior and
+    installs it under ``PURGE_POLICIES_FUNC``.
+
+    Host boundary: everything about a host policy is settled here, where it is
+    admitted -- an unavailable provider, a payload that is not an iterable of
+    policies, a root that is not a class, a collision with a root or entity
+    type declared in this package, two declarations for one root, and a
+    declaration the shared cleanup could not execute. Each is logged and
+    dropped, so that root is reported as unsupported instead of failing row by
+    row in a scheduled run. A broken host declaration must not take the purge
+    down with it, and must never redefine how a chart, dashboard or dataset is
+    purged.
+
+    Returns ``None`` for the failures that may be transient -- the provider
+    could not be called, or a lazy payload raised while being read. The caller
+    then publishes the built-in roots with a short deadline, so the next
+    resolution after it tries again rather than treating one bad moment as the
+    answer for the life of the process. A payload that arrived intact but is
+    the wrong shape is a host bug that will not fix itself, so it is published
+    as an empty result instead.
+    """
+    if provider is None:
+        return ()
+    if not callable(provider):
+        # Static misconfiguration, not an outage: reported once rather than
+        # retried with a traceback for the life of the process.
+        logger.error(
+            "purge_policy: %s is %s, not a callable returning policies",
+            HOST_POLICIES_CONFIG_KEY,
+            type(provider).__name__,
+        )
+        return ()
+    try:
+        # Both the call and reading what it returns run host code, so a lazy
+        # payload that raises mid-walk is the same kind of failure as a
+        # provider that raises outright, and earns the same retry.
+        candidates: tuple[Any, ...] = _host_policy_payload(provider())
+    except Exception:  # pylint: disable=broad-except
+        logger.exception(
+            "purge_policy: %s is unavailable; keeping built-in roots only",
+            HOST_POLICIES_CONFIG_KEY,
+        )
+        return None
+
+    builtin_policies: tuple[PurgeEntityPolicy, ...] = _builtin_purge_policies()
+    builtin_roots: frozenset[type[Any]] = frozenset(
+        policy.model for policy in builtin_policies
+    )
+    builtin_tables: frozenset[str] = frozenset(
+        sa.inspect(policy.model).local_table.key for policy in builtin_policies
+    )
+    builtin_types: frozenset[str] = frozenset(
+        policy.entity_type for policy in builtin_policies
+    )
+    admitted: list[PurgeEntityPolicy] = [
+        policy
+        for candidate in candidates
+        if (
+            policy := _admitted_host_policy(
+                candidate, builtin_roots, builtin_tables, builtin_types
+            )
+        )
+        is not None
+    ]
+
+    # Counted after admission, where every root is known to be a class and so
+    # hashable. Which of two declarations for one root is authoritative is
+    # undecidable, and the loser would still delete rows, so both are dropped:
+    # the root is reported as unsupported, which is the recoverable outcome.
+    # It also keeps the duplicate away from validate_unique_root_policies,
+    # whose ValueError would abort the whole scheduled run.
+    counts: dict[type[Any], int] = {}
+    for policy in admitted:
+        counts[policy.model] = counts.get(policy.model, 0) + 1
+    for model, count in counts.items():
+        if count > 1:
+            logger.error(
+                "purge_policy: %s declares %d policies for %s; ignoring all of them",
+                HOST_POLICIES_CONFIG_KEY,
+                count,
+                model.__name__,
+            )
+    # Counted by table as well. Two classes mapped onto one table are two
+    # roots to the index and to the scan, which iterates models -- so the same
+    # rows are purged under whichever declarations the scan reaches them
+    # through, and a child one policy owns and the other preserves is cleaned
+    # or orphaned by that accident. Undecidable the same way two declarations
+    # for one model are, so the table is dropped the same way.
+    table_counts: dict[str, int] = {}
+    for policy in admitted:
+        key: str = sa.inspect(policy.model).local_table.key
+        table_counts[key] = table_counts.get(key, 0) + 1
+    for table_key, count in table_counts.items():
+        if count > 1:
+            logger.error(
+                "purge_policy: %s declares %d roots mapped onto table %r; "
+                "ignoring all of them",
+                HOST_POLICIES_CONFIG_KEY,
+                count,
+                table_key,
+            )
+    return tuple(
+        policy
+        for policy in admitted
+        if counts[policy.model] == 1
+        and table_counts[sa.inspect(policy.model).local_table.key] == 1
+    )
+
+
+#: Sentinel distinguishing "no index resolved yet" from an index resolved for
+#: no provider, which is the ordinary case.
+_UNRESOLVED: Any = object()
+
+
+@dataclass
+class _ResolvedRegistry:
+    """The index built for one provider, with the roots validated so far.
+
+    Matched to its provider by *identity* rather than keyed in an
+    ``lru_cache``: a cache key would have to be hashed, and a host callable
+    implemented as a mutable dataclass instance is unhashable. That raises
+    before the host boundary can isolate the host's mistake, which would
+    stop the built-in roots purging too.
+    """
+
+    provider: Any = _UNRESOLVED
+    registry: Mapping[type[Any], PurgeEntityPolicy] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    validated: set[type[Any]] = field(default_factory=set)
+    #: Set only on a snapshot published because the provider could not be
+    #: called. Until this deadline the snapshot answers reads; after it, the
+    #: provider is tried again.
+    retry_after: float | None = None
+
+
+#: Key the resolved index lives under on the Flask app. Per app rather than
+#: per process: two apps in one process have different configs, and a single
+#: global snapshot would thrash between them -- re-resolving, and re-invoking
+#: the provider, on every read.
+_REGISTRY_EXTENSION_KEY: str = "deletion_retention_purge_registry"
+
+#: How long a snapshot published after a provider failure answers reads
+#: before the provider is tried again. Bounds both extremes: a failure is
+#: neither remembered for the life of the process nor retried on every read --
+#: at roughly three reads per purged entity, retrying per read meant tens of
+#: thousands of provider calls and tracebacks in a single pass.
+_PROVIDER_RETRY_SECONDS: float = 60.0
+
+#: Per-thread marker for "this thread is already resolving". A host provider
+#: may build its policy from a built-in one -- ``replace(get_purge_policy(
+#: Slice), model=HostRoot, ...)`` is the obvious way to borrow the stock
+#: callbacks -- which re-enters resolution while the first call is still in
+#: the provider. The nested call is handed the state already published
+#: instead, which always carries the built-in roots.
+_RESOLVING: threading.local = threading.local()
+
+
+def _resolved_registry() -> _ResolvedRegistry:
+    """Return the state resolved for the installed provider, building it once.
+
+    Readers take a snapshot and a rebuild publishes a new one, so a caller
+    always sees an index and its validation record together. Publishing is a
+    single rebind, which is what makes it safe to do this without a lock: two
+    concurrent first uses may each invoke the provider and each publish, but
+    the two snapshots are equivalent and neither is ever seen half-built.
+    Paying for a duplicate provider call is the deliberate trade -- a lock
+    here deadlocks the moment a provider resolves a built-in policy of its
+    own, and a hung purge is worse than a repeated call.
+    """
+    if not has_app_context():
+        return _builtin_registry()
+    provider: Callable[[], Any] | None = current_app.config.get(
+        HOST_POLICIES_CONFIG_KEY
+    )
+    published: _ResolvedRegistry | None = current_app.extensions.get(
+        _REGISTRY_EXTENSION_KEY
+    )
+    if published is None:
+        published = _builtin_registry()
+        current_app.extensions[_REGISTRY_EXTENSION_KEY] = published
+    if published.provider is provider and (
+        published.retry_after is None or time.monotonic() < published.retry_after
+    ):
+        return published
+    if getattr(_RESOLVING, "active", False):
+        # A nested resolution: the provider is building its policy from a
+        # built-in one, so hand it the roots this package declares rather than
+        # re-entering a resolution that has not finished. Host roots cannot be
+        # in it -- the provider that would supply them has not returned -- and
+        # this is the path the documented clone pattern takes, so it is logged
+        # at debug rather than warned about.
+        logger.debug(
+            "purge_policy: nested resolution served the built-in roots; a "
+            "provider cannot read its own roots while declaring them"
+        )
+        return _builtin_registry()
+    # Not nested: the branch above returns when the marker is already set,
+    # so reaching here means this thread was not resolving.
+    _RESOLVING.active = True
+    try:
+        host_policies: tuple[PurgeEntityPolicy, ...] | None = _host_purge_policies(
+            provider
+        )
+    finally:
+        _RESOLVING.active = False
+    if host_policies is None:
+        current: _ResolvedRegistry | None = current_app.extensions.get(
+            _REGISTRY_EXTENSION_KEY
+        )
+        if (
+            current is not None
+            and current.provider is provider
+            and current.retry_after is None
+        ):
+            # Another caller resolved this provider successfully while we were
+            # failing. Publishing now would replace a good index with ours.
+            return current
+        # Otherwise publish the built-in roots with a deadline, rather than
+        # either extreme: reads in the meantime do not call the provider
+        # again, and once the deadline passes a transient failure resolves
+        # itself.
+        failed = _ResolvedRegistry(
+            provider=provider,
+            registry=validate_unique_root_policies(_builtin_purge_policies()),
+            retry_after=time.monotonic() + _PROVIDER_RETRY_SECONDS,
+        )
+        current_app.extensions[_REGISTRY_EXTENSION_KEY] = failed
+        return failed
+    rebuilt = _ResolvedRegistry(
+        provider=provider,
+        registry=validate_unique_root_policies(
+            (*_builtin_purge_policies(), *host_policies)
+        ),
+        # Host roots were validated as they were admitted. Built-in roots stay
+        # lazy, so one unusable built-in cannot block the others.
+        validated={policy.model for policy in host_policies},
+    )
+    current_app.extensions[_REGISTRY_EXTENSION_KEY] = rebuilt
+    return rebuilt
+
+
+@lru_cache(maxsize=1)
+def _builtin_registry() -> _ResolvedRegistry:
+    """A snapshot of only the roots this package declares.
+
+    Served where there is no app to resolve against, and to a nested
+    resolution -- a provider building its policy from a built-in one, which
+    needs these roots rather than an index that is not finished. A provider
+    that could not be called is handled separately: those get these same
+    roots, but published with a deadline so the call is retried.
+
+    Cached so the roots it validates stay validated.
+    """
+    return _ResolvedRegistry(
+        provider=_UNRESOLVED,
+        registry=validate_unique_root_policies(_builtin_purge_policies()),
+    )
+
+
+def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
+    """Index the built-in purge roots plus any the host installed.
+
+    Rebuilt when the installed provider changes, and once more after a
+    failed provider's retry deadline passes. Freezing at first use would pin
+    whatever happened to be installed at that moment -- including nothing at
+    all, for a call made before startup finished -- until a restart, while
+    resolving on every call would invoke the provider once per root and could
+    hand back different objects each time.
+    """
+    return _resolved_registry().registry
+
+
+def _validated_policy(policy: PurgeEntityPolicy) -> PurgeEntityPolicy:
+    """Validate one declaration.
+
+    Uncached, for the same reason the index is compared by identity: a policy
+    carrying a callable that is not hashable could not be an ``lru_cache``
+    key. Callers record which roots they have validated instead -- see
+    ``_ResolvedRegistry.validated``, which is discarded whenever the provider
+    changes, so a replaced declaration is validated afresh.
+    """
     recursive_tables: frozenset[str] = frozenset(
         dependency.key.related_table
         for dependency in policy.dependencies
@@ -879,11 +1512,22 @@ def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
             DependencyClassification.ASSOCIATION,
         }
     )
+    discovered_listeners: frozenset[str] = listener_responsibilities(policy.model)
     coverage: PolicyCoverage = compare_policy(
-        discover_dependencies(sa.inspect(model), recursive_tables=recursive_tables),
+        discover_dependencies(
+            sa.inspect(policy.model), recursive_tables=recursive_tables
+        ),
         policy.dependencies,
-        discovered_listeners=listener_responsibilities(model),
-        declared_listeners=policy.listener_responsibilities,
+        discovered_listeners=discovered_listeners,
+        # A policy that accounts for its own listeners answers every
+        # responsibility discovered for its root. Fed as declared rather than
+        # optional because only declared is subtracted from what is missing;
+        # nothing becomes stale, since each added name was discovered.
+        declared_listeners=(
+            policy.listener_responsibilities | discovered_listeners
+            if policy.accounts_for_own_listeners
+            else policy.listener_responsibilities
+        ),
         optional_declared_listeners=policy.optional_listener_responsibilities,
     )
     _validate_executable_declarations(policy)
@@ -905,32 +1549,395 @@ def _validated_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
             details = (
                 f"{details}; " if details else ""
             ) + f"stale_listeners=[{', '.join(coverage.stale_listeners)}]"
-        raise RuntimeError(f"Incomplete purge policy for {model.__name__}: {details}")
+        raise RuntimeError(
+            f"Incomplete purge policy for {policy.model.__name__}: {details}"
+        )
     return policy
 
 
-def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
-    """Reject executable classifications missing their required action metadata."""
+def _ownership_dependency(
+    policy: PurgeEntityPolicy, related_table: str
+) -> DependencyPolicy | None:
+    """The single owned/association edge attaching *related_table*, if clear."""
+    candidates: tuple[DependencyPolicy, ...] = tuple(
+        dependency
+        for dependency in policy.dependencies
+        if dependency.classification
+        in {DependencyClassification.OWNED, DependencyClassification.ASSOCIATION}
+        and dependency.key.related_table == related_table
+        and dependency.key.direction == "inbound"
+    )
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def _validate_owned_traversal(policy: PurgeEntityPolicy) -> None:
+    """Reject an owned table reachable only through an association.
+
+    The shared cleanup empties associations before owned children, while an
+    owned table's predicate selects its rows *through* its ownership path. If
+    a hop on that path is an association, its rows are already gone when the
+    owned delete runs, so the statement matches nothing.
+
+    Kept where the rest of the ordering rules were dropped because this one
+    can be silent: where foreign keys are enforced the association delete
+    fails loudly, but where they are not -- SQLite -- the root is purged and
+    its descendants are left orphaned with nothing reported. The remedy is to
+    classify the intermediate table as owned, which places it in the same
+    phase as what it leads to.
+    """
+    root_table: str = sa.inspect(policy.model).local_table.name
+    for dependency in policy.dependencies:
+        if dependency.classification is not DependencyClassification.OWNED:
+            continue
+        table_name: str = dependency.key.owner_table
+        visited: set[str] = set()
+        while table_name != root_table and table_name not in visited:
+            visited.add(table_name)
+            hop: DependencyPolicy | None = _ownership_dependency(policy, table_name)
+            if hop is None:
+                # An absent or ambiguous path is reported by coverage, and by
+                # _ownership_edge at execution; not this check's business.
+                break
+            if hop.classification is DependencyClassification.ASSOCIATION:
+                raise RuntimeError(
+                    f"Owned dependency {dependency.key.describe()} is reachable "
+                    f"only through association {hop.key.describe()}; "
+                    "associations are deleted first, so the owned rows would "
+                    "be orphaned"
+                )
+            table_name = hop.key.owner_table
+
+
+def _validate_recursive_ownership(policy: PurgeEntityPolicy) -> None:
+    """Reject an owned edge that one-level cleanup cannot execute safely.
+
+    Two shapes, both of which the shared cleanup turns into a single
+    ``DELETE`` against the named table:
+
+    * a table that owns itself is pruned one level deep. Where foreign keys
+      are enforced the root's own delete then fails and rolls back; where they
+      are not -- SQLite -- the root is purged and its grandchildren are left
+      behind with a dangling parent id and nothing reported.
+    * an edge whose related table is the root's own, reached from elsewhere --
+      the back edge of a root/child foreign-key cycle. Its predicate resolves
+      through the ownership path, so the statement reads ``DELETE FROM root
+      WHERE <fk> IN (SELECT id FROM child WHERE <fk> = :id)``: it removes
+      *other*, live root rows that happen to share a child, outside the purge
+      frame and with no audit record, and commits cleanly even where foreign
+      keys are enforced. The association spelling of the same shape is
+      refused unconditionally by ``_validate_self_referencing_association``.
+
+    A policy declaring either walks its own tree and says so with
+    ``walks_own_subtree``, which is why this runs only without it.
+    """
+    root_table: str = sa.inspect(policy.model).local_table.name
+    for dependency in policy.dependencies:
+        if dependency.classification is not DependencyClassification.OWNED:
+            continue
+        key: DependencyKey = dependency.key
+        if key.related_table not in {root_table, key.owner_table}:
+            continue
+        raise RuntimeError(
+            f"Owned dependency {key.describe()} targets "
+            f"{key.related_table!r}, which is the root's own table or its own "
+            "owner; the shared owned-child cleanup would delete one level, or "
+            "rows outside the purge, so this policy must supply its own "
+            "delete_owned_children"
+        )
+
+
+def _validate_self_referencing_association(policy: PurgeEntityPolicy) -> None:
+    """Reject an association edge pointing back at the root's own table.
+
+    The shared association cleanup turns each declared edge into one
+    ``DELETE``, and for an edge whose related table is the root's own that
+    statement reads ``DELETE FROM root WHERE <fk> IN (SELECT id FROM root
+    WHERE id = :id)``: it removes the purged row's live, unarchived children
+    outright, carrying none of the frame's eligibility predicates and leaving
+    no audit record of its own. Where foreign keys are unenforced, or the
+    child is a leaf, the purge then commits as a clean success.
+
+    Checked regardless of ``walks_own_subtree``, which says a policy walks its
+    owned sub-tree in ``delete_owned_children`` and says nothing about the
+    association phase -- so the owned variant of this shape is refused by
+    ``_validate_recursive_ownership`` under that exemption while this one has
+    none.
+    """
+    root_table: str = sa.inspect(policy.model).local_table.name
     for dependency in policy.dependencies:
         if (
-            dependency.classification is DependencyClassification.LISTENER_EFFECT
-            and dependency.listener_action is None
+            dependency.classification is DependencyClassification.ASSOCIATION
+            and dependency.key.related_table == root_table
         ):
             raise RuntimeError(
-                f"Missing listener action for {dependency.key.describe()}"
+                f"Association dependency {dependency.key.describe()} targets "
+                f"the root's own table {root_table!r}; the shared cleanup "
+                "would delete live rows outside the purge frame"
             )
-        if (
-            dependency.classification is DependencyClassification.VERSION_OWNED
-            and dependency.version_column is None
+
+
+def _validate_scanner_requirements(policy: PurgeEntityPolicy) -> None:
+    """Reject a root the scheduled scan cannot page through.
+
+    The retention task selects, windows and orders eligible rows by ``id``,
+    and the cascade pins each row by it. A root keyed on something else -- a
+    UUID primary key with no ``id`` column -- raises inside the scan, outside
+    the per-row error handling, so the run aborts before the remaining roots
+    are reached.
+    """
+    mapper: Mapper[Any] = sa.inspect(policy.model)
+    table: sa.Table = mapper.local_table
+    if "id" not in table.c:
+        raise RuntimeError(
+            f"Purge root {policy.model.__name__} has no 'id' column; the "
+            "scheduled scan pages eligible rows by id"
+        )
+    primary_key: tuple[sa.Column[Any], ...] = tuple(mapper.primary_key)
+    if (
+        len(primary_key) != 1
+        or primary_key[0].name != "id"
+        or not isinstance(primary_key[0].type, sa.Integer)
+    ):
+        # The scan pages by id and the row is then fetched with a scalar
+        # Session.get, so a composite or differently named key matches
+        # nothing: every row fails while a dry run still counts it eligible.
+        raise RuntimeError(
+            f"Purge root {policy.model.__name__} is keyed on "
+            f"({', '.join(column.name for column in primary_key)}); the "
+            "scheduled purge pages an integer 'id' watermark and looks rows "
+            "up by it"
+        )
+    if "deleted_at" not in table.c:
+        raise RuntimeError(
+            f"Purge root {policy.model.__name__} has no 'deleted_at' column; "
+            "every purge path requires the row to be archived first"
+        )
+    uuid_column: sa.Column[Any] | None = table.c.get("uuid")
+    if (
+        uuid_column is not None
+        and isinstance(uuid_column.type, sa.Uuid)
+        and not uuid_column.type.native_uuid
+    ):
+        # The third column the frame reads: the locked claim and the
+        # conditional delete both carry ``uuid == str(entity.uuid)``. A
+        # character-based UUID type binds through a processor that expects a
+        # UUID object, so every eligible row would raise and stay archived
+        # while a dry run counted it purgeable -- on every dialect, which is
+        # what makes it checkable here.
+        #
+        # ``native_uuid`` is left alone deliberately: it has no bind processor
+        # where the database has a UUID type of its own, so the string binds
+        # cleanly on Postgres and only a database without one rejects it. That
+        # is a per-row failure like any other, and the docs say so.
+        # ``sqlalchemy_utils.UUIDType`` is not a subclass of this at all and
+        # accepts the string everywhere, which is why the built-in roots are
+        # unaffected.
+        raise RuntimeError(
+            f"Purge root {policy.model.__name__} types 'uuid' as a "
+            "character-based sa.Uuid; the locked claim binds that value as a "
+            "string, which the type rejects on every dialect"
+        )
+
+
+#: Classifications the shared cleanup executes as SQL, through
+#: ``_dependency_predicates`` -- which only knows how to read an inbound
+#: foreign key.
+_EXECUTABLE_CLASSIFICATIONS: frozenset[DependencyClassification] = frozenset(
+    {
+        DependencyClassification.OWNED,
+        DependencyClassification.ASSOCIATION,
+        DependencyClassification.BLOCK,
+    }
+)
+
+
+def _validate_versioned_root(policy: PurgeEntityPolicy) -> None:
+    """Reject version targets on a root that has no version class.
+
+    ``_delete_version_history`` resolves the *root's* version class first and
+    returns as soon as that raises, so a target declared on a child's shadow
+    is never reached for an unversioned root: the root and its live child rows
+    are purged while the child's history survives, with nothing reported.
+
+    Skipped where nothing is versioned at all. The version cascade is then
+    inert for every root, including this package's own, and refusing would
+    only take those down with it.
+    """
+    try:
+        from sqlalchemy_continuum import version_class, versioning_manager
+        from sqlalchemy_continuum.exc import ClassNotVersioned
+    except ImportError:  # pragma: no cover - versioning not installed
+        return
+    if not getattr(versioning_manager, "version_class_map", None):
+        return
+    try:
+        version_class(policy.model)
+    except ClassNotVersioned:
+        raise RuntimeError(
+            f"Purge root {policy.model.__name__} has no version class, so the "
+            "version cascade returns before reaching a declared target; such "
+            "a policy declares none"
+        ) from None
+
+
+def _validate_version_target(
+    policy: PurgeEntityPolicy, dependency: DependencyPolicy, metadata: sa.MetaData
+) -> None:
+    """Reject a version target whose column does not hold the root's id.
+
+    Version cleanup compares the declared column with the root's id directly,
+    so the column has to be root-relative. Shadow tables are generated and may
+    not exist when a policy is validated, so the check reads their live
+    counterpart -- ``<table>_version`` describes ``<table>``, the naming the
+    shadow declarations already rely on -- and accepts the column when it is
+    the root's own primary key or a foreign key into the root.
+
+    A column naming an intermediate owner, a stage id under a workflow root
+    say, matches history belonging to a different root and leaves this one's
+    behind.
+    """
+    root_table: sa.Table = sa.inspect(policy.model).local_table
+    column: str = cast(str, dependency.version_column)
+    shadow_name: str = dependency.key.related_table
+    suffix: str = "_version"
+    if not shadow_name.endswith(suffix):
+        # Version cleanup resolves the declared name against the live
+        # metadata, so a target that is not a shadow resolves to a real table
+        # and the version phase deletes from it -- rows a PRESERVE declaration
+        # meant to keep, while the history the target was supposed to clear
+        # survives. The suffix is how a shadow is named and how its live
+        # counterpart is found below, so a target without it is refused.
+        raise RuntimeError(
+            f"Version target {shadow_name!r} for {dependency.key.describe()} "
+            f"is not a {suffix!r} shadow; version cleanup resolves that name "
+            "against the live metadata and would empty the real table"
+        )
+    live_name: str = shadow_name[: -len(suffix)]
+    live_table: sa.Table | None = metadata.tables.get(live_name)
+    if live_table is not None and column in live_table.c:
+        live_column: sa.Column[Any] = live_table.c[column]
+        primary_key: tuple[sa.Column[Any], ...] = tuple(root_table.primary_key.columns)
+        if live_table is root_table:
+            # On the root's own shadow only its key identifies it. A
+            # self-referencing column such as ``parent_id`` points at *other*
+            # rows of the same root, so cleanup would delete the children's
+            # history and leave the purged row's own behind.
+            if len(primary_key) == 1 and live_column.name == primary_key[0].name:
+                return
+        # Elsewhere the comparison is still against the root's id, so a
+        # foreign key to any other root column matches rows belonging to a
+        # different root.
+        elif len(primary_key) == 1 and any(
+            foreign_key.column.table is root_table
+            and foreign_key.column.name == primary_key[0].name
+            for foreign_key in live_column.foreign_keys
         ):
-            raise RuntimeError(
-                f"Missing version target column for {dependency.key.describe()}"
-            )
+            return
+    raise RuntimeError(
+        f"Version target {shadow_name}.{column} for {dependency.key.describe()} "
+        f"is not root-relative; cleanup compares it with the "
+        f"{root_table.name} id, so it must be that id or a foreign key to it"
+    )
+
+
+def _validate_dependency_declaration(dependency: DependencyPolicy) -> None:
+    """Reject one declaration missing the metadata its classification needs.
+
+    Well-formedness only, and the same for every policy: a classification the
+    cascade dispatches on carries the field that dispatch reads, or nothing
+    downstream can run at all. The rules that only a host declaration can
+    fail live in ``_validate_host_declarations``.
+    """
+    key: DependencyKey = dependency.key
+    if (
+        dependency.classification is DependencyClassification.LISTENER_EFFECT
+        and dependency.listener_action is None
+    ):
+        raise RuntimeError(f"Missing listener action for {key.describe()}")
+    if (
+        dependency.classification is DependencyClassification.VERSION_OWNED
+        and dependency.version_column is None
+    ):
+        raise RuntimeError(f"Missing version target column for {key.describe()}")
+
+
+def _validate_executable_declarations(policy: PurgeEntityPolicy) -> None:
+    """Reject a declaration the cascade could not dispatch on at all."""
+    for dependency in policy.dependencies:
+        _validate_dependency_declaration(dependency)
+
+
+def _validate_host_declarations(policy: PurgeEntityPolicy) -> None:
+    """Reject a host declaration that would delete the wrong rows.
+
+    Validation here is deliberately not an attempt to prove that an arbitrary
+    declaration executes correctly -- the space of shapes a host might write
+    is not enumerable, and every rule written to anticipate one is a rule to
+    maintain. The line drawn instead:
+
+    * a declaration whose mistake would **delete the wrong rows, or silently
+      skip cleanup**, is refused, because neither announces itself;
+    * a declaration that merely **fails loudly** is left to fail. A predicate
+      the cleanup cannot build raises per row and is counted as a cascade
+      failure; an ordering a foreign key refuses surfaces as an integrity
+      error, which the cascade reports as a blocked purge carrying the
+      ``cascade_integrity_failure`` reason code. Either way the attempt is
+      recorded, isolated to its own root by the scheduled task, and the
+      entity is retried on the next run.
+
+    Run at the host boundary and nowhere else. Every rule below is a function
+    of a policy's own declarations and its mapper, so for the roots this
+    package declares the answer is fixed at build time and a test pins it --
+    see ``test_builtin_policies_satisfy_the_host_rules``. Running them again
+    at runtime could only add a way for a built-in root to stop purging,
+    nightly and from the archive view alike, on a rule written for input this
+    package does not supply.
+    """
+    # First, so the rules below can read the fields it checks are present,
+    # and so that holds wherever this is called from rather than resting on
+    # ``_validated_policy`` having run it already.
+    _validate_executable_declarations(policy)
+    metadata: sa.MetaData = sa.inspect(policy.model).local_table.metadata
+    for dependency in policy.dependencies:
+        if dependency.classification is DependencyClassification.VERSION_OWNED:
+            # Both silent either way: a target the version cascade never
+            # reaches, and one that is not root-relative and so deletes
+            # another root's history while leaving this root's behind.
+            _validate_versioned_root(policy)
+            _validate_version_target(policy, dependency, metadata)
+    # The frame's own requirements, which the scan and the locked claim read
+    # before any policy code runs.
+    _validate_scanner_requirements(policy)
+    # Outside the exemption below: the association phase runs these edges
+    # whatever a policy says about walking its owned sub-tree.
+    _validate_self_referencing_association(policy)
+    if not policy.walks_own_subtree:
+        # Both shapes break the same way under cleanup that reaches one level
+        # and resolves each predicate through the ownership path. Only a
+        # policy that declares it walks the sub-tree itself is exempt.
+        _validate_owned_traversal(policy)
+        _validate_recursive_ownership(policy)
 
 
 def get_purge_policy(model: type[Any]) -> PurgeEntityPolicy:
-    """Resolve a complete policy or reject an unsupported purge model."""
-    return _validated_purge_policy(cast(Hashable, model))
+    """Resolve a complete policy or reject an unsupported purge model.
+
+    A root is validated once per snapshot. Recorded only on success, so a
+    declaration that fails is validated again on the next call rather than
+    remembered as broken -- which is what an ``lru_cache`` did here before,
+    since it does not cache exceptions either. Only a built-in root can take
+    that path: a host root is validated where it is admitted and is already
+    recorded by the time the index carries it.
+    """
+    resolved: _ResolvedRegistry = _resolved_registry()
+    try:
+        policy: PurgeEntityPolicy = resolved.registry[model]
+    except KeyError as ex:
+        raise ValueError(f"Unsupported purge model: {model.__name__}") from ex
+    if model not in resolved.validated:
+        _validated_policy(policy)
+        resolved.validated.add(model)
+    return policy
 
 
 def listener_responsibilities(model: type[Any]) -> frozenset[str]:
@@ -1004,7 +2011,11 @@ def dangling_chart_uuids(
 def delete_associations(
     session: Session, policy: PurgeEntityPolicy, entity_id: int
 ) -> None:
-    """Execute declared association and tag cleanup with Core DML."""
+    """Execute declared association and tag cleanup with Core DML.
+
+    A purged dataset's charts are preserved but detached as well (see
+    ``_detach_dataset_charts``).
+    """
     _delete_declared_dependencies(
         session, policy, entity_id, DependencyClassification.ASSOCIATION
     )
@@ -1014,6 +2025,34 @@ def delete_associations(
         entity_id,
         phase=ExecutionPhase.ASSOCIATIONS,
         permission_name=None,
+    )
+    if policy.entity_type == "dataset":
+        _detach_dataset_charts(session, entity_id)
+
+
+def _detach_dataset_charts(session: Session, entity_id: int) -> None:
+    """Clear the datasource reference and permission fields of a purged
+    dataset's charts, as an ORM hard delete of the dataset leaves them.
+
+    A chart kept pointing at the purged id would keep the dataset's stale
+    permission, and would adopt any later dataset that reuses the id. Only
+    ``slices`` rows are updated; no chart is deleted. Runs after the
+    dangling-chart impact snapshot, inside the purge's transaction.
+    This system purge does not advance chart history or ETag; the purge audit's
+    ``affected_referrers`` records the detached charts instead.
+    """
+    # avoid circular import: model listener registration imports neutral event helpers
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    slices: sa.Table = Slice.__table__  # pylint: disable=no-member
+    session.execute(
+        sa.update(slices)
+        .where(
+            slices.c.datasource_type == DatasourceType.TABLE.value,
+            slices.c.datasource_id == entity_id,
+        )
+        .values(datasource_id=None, perm=None, schema_perm=None, catalog_perm=None)
     )
 
 
