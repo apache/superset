@@ -1432,6 +1432,120 @@ def test_bm25_exact_name_finds_every_registered_tool(
         assert name not in results[name]
 
 
+def _production_search(
+    transform: BM25SearchTransform, catalog: list[Tool], query: str
+) -> list[str]:
+    """Rank the unpinned registered catalog the way search_tools does."""
+    pinned: set[str] = set(MCP_TOOL_SEARCH_CONFIG["always_visible"])
+    searchable = [tool for tool in catalog if tool.name not in pinned]
+    return [tool.name for tool in asyncio.run(transform._search(searchable, query))]
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("get dataset info execute sql", ["get_dataset_info", "execute_sql"]),
+        ("get chart info and list dashboards", ["get_chart_info", "list_dashboards"]),
+        ("generate chart and list dashboards", ["generate_chart", "list_dashboards"]),
+        ("get dataset info", ["get_dataset_info"]),
+        ("execute sql", ["execute_sql"]),
+        ("list dashboards", ["list_dashboards"]),
+    ],
+)
+def test_bm25_names_spelled_out_by_query_rank_first(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+    query: str,
+    expected: list[str],
+) -> None:
+    """Tools whose full names appear in the query lead the results.
+
+    The long ``get_dataset_info`` definition sat at the edge of the result
+    limit for "get dataset info execute sql" even though its name is spelled
+    out, so small catalog changes pushed it out entirely.
+    """
+    results = _production_search(production_bm25_transform, registered_catalog, query)
+
+    assert set(results[: len(expected)]) == set(expected)
+    assert len(results) <= MCP_TOOL_SEARCH_CONFIG["max_results"]
+    assert len(set(results)) == len(results)
+
+
+def test_bm25_multi_intent_query_stays_within_result_limit(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """Name matches never exceed the limit, even when more tools qualify."""
+    query = (
+        "generate chart get chart info get dataset info get dashboard info "
+        "list dashboards execute sql"
+    )
+
+    results = _production_search(production_bm25_transform, registered_catalog, query)
+
+    assert len(results) == MCP_TOOL_SEARCH_CONFIG["max_results"]
+    assert len(set(results)) == len(results)
+
+
+@pytest.mark.parametrize("query", ["charts", "create charts", "generate", "no_match"])
+def test_bm25_name_coverage_ignores_partial_name_matches(
+    bm25_transform: BM25SearchTransform,
+    crowded_catalog: list[Tool],
+    query: str,
+) -> None:
+    """A query containing only part of a name does not promote that tool."""
+    expected = asyncio.run(
+        BM25SearchTransform(max_results=5)._search(crowded_catalog, query)
+    )
+    assert asyncio.run(bm25_transform._search(crowded_catalog, query)) == expected
+
+
+def test_bm25_name_coverage_ranks_longer_names_first(
+    bm25_transform: BM25SearchTransform,
+) -> None:
+    """Among covered names, more specific (longer) names come first."""
+    catalog = [
+        Tool.from_function(
+            lambda: None, name=name, description="Report details. " * count
+        )
+        for count, name in enumerate(
+            ["list_things", "get_thing_info_detail", "get_thing_info"], start=1
+        )
+    ] + [
+        Tool.from_function(
+            lambda: None, name=f"noise_{index}", description="get thing info " * 20
+        )
+        for index in range(8)
+    ]
+
+    results = asyncio.run(
+        bm25_transform._search(catalog, "get thing info detail list things")
+    )
+
+    assert [tool.name for tool in results[:2]] == [
+        "get_thing_info_detail",
+        "get_thing_info",
+    ]
+    assert len(results) == 5
+
+
+def test_regex_does_not_use_name_coverage(
+    crowded_catalog: list[Tool],
+) -> None:
+    """Regex search keeps pattern semantics; only BM25 expands query words."""
+    server = MagicMock()
+    _apply_tool_search_transform(
+        server,
+        {"strategy": "regex", "max_results": 5, "always_visible": []},
+    )
+    transform = server.add_transform.call_args[0][0]
+    query = "generate.*chart"
+    expected = asyncio.run(
+        RegexSearchTransform(max_results=5)._search(crowded_catalog, query)
+    )
+    assert asyncio.run(transform._search(crowded_catalog, query)) == expected
+
+
 def _read_only_can_access(permission: str, _view: str) -> bool:
     """Allow only read and get permissions for the read-only test caller."""
     return permission in {"can_read", "can_get"}
