@@ -2287,6 +2287,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
             clear_password_must_change(int(userid))
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @staticmethod
     def _same_user(left: Any, right: Any) -> bool:

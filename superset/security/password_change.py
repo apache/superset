@@ -122,9 +122,15 @@ def set_password_must_change(user_id: int, value: bool = True) -> None:
     attr.password_must_change = value
 
 
-@transaction()
 def clear_password_must_change(user_id: int) -> None:
-    """Clear the forced-password-change flag for a user, if set."""
+    """Clear the forced-password-change flag for a user, if set.
+
+    Writes through the current session without committing, so a caller that is
+    already inside its own unit of work (``CurrentUserRestApi.pre_update``, the
+    self-service ``PUT /api/v1/me/``) has the change ride its own commit, the
+    same way ``invalidate_sessions_for_user`` does. Callers outside one, such as
+    ``SupersetSecurityManager.reset_password``, commit afterwards themselves.
+    """
     attr = _get_user_attribute(user_id)
     if attr and attr.password_must_change:
         attr.password_must_change = False
