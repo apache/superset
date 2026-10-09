@@ -1133,7 +1133,6 @@ def build_single_query_dict(
     return qd
 
 
-
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,

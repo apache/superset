@@ -1758,9 +1758,11 @@ def test_build_query_dicts_from_form_data_xy_bar_explore_default_grain() -> None
         queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
     assert len(queries) == 1
-    assert queries[0]["columns"] == ["category"]
+    col = queries[0]["columns"][0]
+    assert (col if isinstance(col, str) else col.get("label")) == "category"
     assert queries[0]["metrics"] == [metric]
-    assert queries[0]["orderby"] == [(metric, False)]
+    sort_op = {"operation": "sort", "options": {"ascending": False, "by": "SUM(sales)"}}
+    assert sort_op in queries[0]["post_processing"]
 
 
 def test_build_single_query_dict_x_axis_sort_ignored_when_groupby_set() -> None:
