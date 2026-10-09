@@ -53,11 +53,13 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticView
 
-VIEW_NAME = "orders"
+VIEW_NAME: str = "orders"
 
-CATEGORY = Dimension("category", "category", pa.string(), verbose_name="Category")
-REGION = Dimension("region", "region", pa.string(), verbose_name="Region")
-TOTAL_AMOUNT = Metric(
+CATEGORY: Dimension = Dimension(
+    "category", "category", pa.string(), verbose_name="Category"
+)
+REGION: Dimension = Dimension("region", "region", pa.string(), verbose_name="Region")
+TOTAL_AMOUNT: Metric = Metric(
     "total_amount",
     "total_amount",
     pa.int64(),
@@ -65,7 +67,7 @@ TOTAL_AMOUNT = Metric(
     aggregation=AggregationType.SUM,
     verbose_name="Total amount",
 )
-ORDER_COUNT = Metric(
+ORDER_COUNT: Metric = Metric(
     "order_count",
     "order_count",
     pa.int64(),
@@ -82,7 +84,7 @@ ROWS: tuple[dict[str, Any], ...] = (
     {"category": "Music", "region": "West", "amount": 3},
 )
 
-SUPPORTED_OPERATORS = frozenset(
+SUPPORTED_OPERATORS: frozenset[Operator] = frozenset(
     {Operator.EQUALS, Operator.NOT_EQUALS, Operator.IN, Operator.NOT_IN}
 )
 
@@ -99,7 +101,7 @@ def _matches(row: dict[str, Any], filter_: Filter) -> bool:
     if filter_.operator not in SUPPORTED_OPERATORS:
         raise ValueError(f"The E2E stub does not support {filter_.operator.value}")
 
-    actual = row[filter_.column.id]
+    actual: Any = row[filter_.column.id]
     values: frozenset[FilterValues] = (
         frozenset(filter_.value)
         if isinstance(filter_.value, (frozenset, tuple))
@@ -125,7 +127,7 @@ def _aggregate(metric: Metric, rows: list[dict[str, Any]]) -> int:
 class StubOrdersView(SemanticView):
     """A single fixed view: two string dimensions and two additive metrics."""
 
-    name = VIEW_NAME
+    name: str = VIEW_NAME
 
     def uid(self) -> str:
         return f"e2e-stub:{VIEW_NAME}"
@@ -141,7 +143,9 @@ class StubOrdersView(SemanticView):
         dimension: Dimension,
         filters: set[Filter] | None = None,
     ) -> SemanticResult:
-        values = sorted({row[dimension.id] for row in _filtered_rows(filters)})
+        values: list[Any] = sorted(
+            {row[dimension.id] for row in _filtered_rows(filters)}
+        )
         return SemanticResult(
             requests=[SemanticRequest("stub", f"values of {dimension.id}")],
             results=pa.table({dimension.name: pa.array(values, dimension.type)}),
@@ -157,7 +161,7 @@ class StubOrdersView(SemanticView):
         if not query.dimensions and not groups:
             groups[()] = []  # an aggregate-only query always returns one row
 
-        records = [
+        records: list[dict[str, Any]] = [
             {
                 **{d.name: key[i] for i, d in enumerate(query.dimensions)},
                 **{m.name: _aggregate(m, rows) for m in query.metrics},
@@ -177,7 +181,7 @@ class StubOrdersView(SemanticView):
         if query.limit is not None:
             records = records[: query.limit]
 
-        schema = pa.schema(
+        schema: pa.Schema = pa.schema(
             [pa.field(d.name, d.type) for d in query.dimensions]
             + [pa.field(m.name, m.type) for m in query.metrics]
         )
@@ -187,7 +191,7 @@ class StubOrdersView(SemanticView):
         )
 
     def get_row_count(self, query: SemanticQuery) -> SemanticResult:
-        count = self.get_table(query).results.num_rows
+        count: int = self.get_table(query).results.num_rows
         return SemanticResult(
             requests=[SemanticRequest("stub", f"row count of {VIEW_NAME}")],
             results=pa.table({"COUNT": pa.array([count], pa.int64())}),
@@ -214,7 +218,7 @@ class StubOrdersView(SemanticView):
     description="Test-only in-memory semantic layer",
 )
 class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
-    configuration_class = StubConfiguration
+    configuration_class: type[StubConfiguration] = StubConfiguration
 
     @classmethod
     def from_configuration(cls, configuration: dict[str, Any]) -> StubSemanticLayer:

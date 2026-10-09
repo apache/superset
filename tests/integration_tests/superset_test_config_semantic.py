@@ -27,15 +27,16 @@ Playwright suites. The stub registers through the real extension mechanism
 """
 
 from pathlib import Path
+from typing import Any
 
 from .superset_test_config import *  # noqa: F403
 
-FEATURE_FLAGS = {
+FEATURE_FLAGS: dict[str, Any] = {
     **FEATURE_FLAGS,  # noqa: F405
     "ENABLE_EXTENSIONS": True,
     "SEMANTIC_LAYERS": True,
 }
 
-LOCAL_EXTENSIONS = [
+LOCAL_EXTENSIONS: list[str] = [
     str(Path(__file__).resolve().parents[1] / "e2e_extensions" / "semantic_stub")
 ]

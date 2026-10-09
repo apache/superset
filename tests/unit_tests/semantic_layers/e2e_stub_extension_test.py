@@ -41,7 +41,7 @@ from superset.semantic_layers.registry import registry
 STUB_PATH: Path = (
     Path(__file__).resolve().parents[2] / "e2e_extensions" / "semantic_stub"
 )
-STUB_TYPE = "extensions.superset-e2e.semantic-stub.stub"
+STUB_TYPE: str = "extensions.superset-e2e.semantic-stub.stub"
 
 
 @pytest.fixture
