@@ -1892,6 +1892,9 @@ msgstr "所有维度"
 msgid "All filters"
 msgstr "所有过滤器"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "所有面板"
 
@@ -4421,6 +4424,9 @@ msgstr "要读取的列"
 
 msgid "Columns to show in the tooltip."
 msgstr "工具提示中要显示的列。"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "整合指标"
@@ -8504,6 +8510,9 @@ msgstr "分组名称"
 msgid "Group remaining as \"Others\""
 msgstr "将剩余分组保留为“其他”"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "分组"
 
@@ -9525,6 +9534,11 @@ msgid "Least recently modified"
 msgstr "最近修改时间最久"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11118,6 +11132,10 @@ msgstr "未找到"
 
 msgid "Not in"
 msgstr "不在"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "非空"
@@ -16169,6 +16187,11 @@ msgstr "用作边目标的列。"
 
 msgid "The column was deleted or renamed in the database."
 msgstr "该列已在数据库中删除或重命名。"
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

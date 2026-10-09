@@ -310,6 +310,7 @@ def test_annotation_result_key_uses_saved_source_generation(
     chart: Mock = Mock(query_context='{"datasource":{"id":17,"type":"semantic_view"}}')
     query: Mock = Mock(annotation_layers=[{"sourceType": "line", "value": 7}])
     processor: QueryContextProcessor = QueryContextProcessor(Mock())
+    get_datasource: Mock
     with (
         app.app_context(),
         patch(
@@ -522,7 +523,7 @@ def test_web_and_task_share_metadata_keys_despite_local_credentials(
     )
     view: SemanticView = SemanticView(semantic_layer=layer)
     with patch.object(session, "get_bind", return_value=bind):
-        web_key: list[object] = view.get_extra_cache_keys({})
+        web_key: list[Hashable] = view.get_extra_cache_keys({})
         session.info.clear()
         bind.engine.url = make_url(
             "postgresql://worker:new@metadata:5432/superset?application_name=celery"
@@ -561,7 +562,7 @@ def test_legacy_provider_keeps_host_invalidation(
     session.commit()
     with patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer}):
         assert view.implementation.metadata_cache_token is None
-        before: list[object] = view.get_extra_cache_keys({})
+        before: list[Hashable] = view.get_extra_cache_keys({})
         layer.clear_metadata_cache()
         session.commit()
         assert view.implementation.metadata_cache_token is None

@@ -1843,6 +1843,9 @@ msgstr "Все измерения"
 msgid "All filters"
 msgstr "Все фильтры"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Все панели"
 
@@ -4301,6 +4304,9 @@ msgstr "Столбцы для чтения"
 
 msgid "Columns to show in the tooltip."
 msgstr "Столбцы для отображения во всплывающей подсказке."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Объединить меры"
@@ -8159,6 +8165,9 @@ msgstr "Имя группы"
 msgid "Group remaining as \"Others\""
 msgstr "Группировать остальное в \"Другое\""
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "Группировка"
 
@@ -9104,6 +9113,11 @@ msgid "Least recently modified"
 msgstr "Измененные давно"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -10581,6 +10595,10 @@ msgstr "Не найдено"
 
 msgid "Not in"
 msgstr "Not in"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Не пусто"
@@ -15374,6 +15392,11 @@ msgstr "Целевой столбец для ребра графа."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Столбец был удален или переименован в базе данных"
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Настройки слоев карты"
