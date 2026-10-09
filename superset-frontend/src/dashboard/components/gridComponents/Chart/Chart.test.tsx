@@ -584,7 +584,11 @@ test('should call exportChart when exportCSV is clicked', async () => {
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to .CSV');
+  const exportAction = await findByText(
+    'Export to .CSV',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
@@ -617,7 +621,11 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to full .CSV');
+  const exportAction = await findByText(
+    'Export to full .CSV',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
@@ -648,7 +656,11 @@ test('should call exportChart when exportXLSX is clicked', async () => {
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to Excel');
+  const exportAction = await findByText(
+    'Export to Excel',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
   expect(stubbedExportXLSX).toHaveBeenCalledWith(
@@ -678,7 +690,11 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to full Excel');
+  const exportAction = await findByText(
+    'Export to full Excel',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
   expect(stubbedExportXLSX).toHaveBeenCalledWith(

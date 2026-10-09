@@ -477,3 +477,19 @@ Rollback by disabling `SEMANTIC_LAYER_CONTAINMENT_CACHE` and restarting every we
 and worker process. Confirm worker convergence with an `enabled` gauge of zero for
 each process and normal provider-query success. Cache data need not be deleted for
 rollback because disabled processes do not read or write it.
+
+#### Choosing a default time dimension
+
+A semantic view may set `preferred_temporal_dimension` to the name of a temporal
+dimension it exposes. Superset publishes that name as `main_dttm_col`, which
+Explore uses for the default time filter on new charts. The declaration is
+ignored if the name is absent or does not identify a temporal dimension.
+
+```python
+class MySemanticView(SemanticView):
+    preferred_temporal_dimension = "metric_time"
+```
+
+Providers that omit the declaration retain Explore's existing first temporal
+column fallback. This preference does not change the time dimension already
+selected on a saved chart.

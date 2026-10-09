@@ -5853,6 +5853,14 @@
             "nullable": true,
             "type": "string"
           },
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
           "column_name": {
             "maxLength": 255,
             "minLength": 1,
@@ -5889,6 +5897,10 @@
             "nullable": true,
             "type": "boolean"
           },
+          "is_certified": {
+            "nullable": true,
+            "type": "boolean"
+          },
           "is_dttm": {
             "nullable": true,
             "type": "boolean"
@@ -5909,6 +5921,10 @@
             "type": "string"
           },
           "verbose_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "warning_markdown": {
             "nullable": true,
             "type": "string"
           }
@@ -6016,6 +6032,14 @@
       },
       "DatasetMetricsPut": {
         "properties": {
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
           "currency": {
             "allOf": [
               {
@@ -6044,6 +6068,10 @@
           "id": {
             "type": "integer"
           },
+          "is_certified": {
+            "nullable": true,
+            "type": "boolean"
+          },
           "metric_name": {
             "maxLength": 255,
             "minLength": 1,
@@ -6061,6 +6089,10 @@
             "type": "string"
           },
           "verbose_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "warning_markdown": {
             "nullable": true,
             "type": "string"
           },
