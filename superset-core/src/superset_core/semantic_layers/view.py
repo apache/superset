@@ -67,8 +67,9 @@ class SemanticView(ABC):
     Uniqueness works at two levels. In the **catalog**, dimensions are unique
     per ``(name, grain)`` -- so several grain variants of one name are expected
     -- while metric names are unique on their own and must not collide with a
-    dimension name. In a **query**, at most one variant per name is selected, so
-    a result carries one column per selected member name.
+    dimension name. These are provider obligations the host does not currently
+    check. In a **query**, at most one variant per name is selected, so a result
+    carries one column per selected member name.
     """
 
     # Defaults to no optional features: providers opt in by overriding, and

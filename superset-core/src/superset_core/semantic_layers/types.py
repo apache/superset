@@ -66,17 +66,20 @@ class Grains:
        quarter, year;
     3. then any remaining grain representation, in lexical order.
 
-    That preference governs column metadata, filters and the grouping fallback.
-    An explicit supported grouping grain is always honored. Filters and time
-    bounds use the default preference **independently of grouping**: grouping by
-    month with a lower bound of January 15 still filters the raw time dimension
-    from January 15 rather than testing month buckets against that bound.
-    Sorting and series limits use the selected grouping grain.
+    This describes the intended contract. Resolving every host lookup through
+    this one preference is the work of apache/superset#44454; until it lands, the
+    host does not apply it everywhere. Filter resolution keeps whichever variant
+    of a name it sees last, and ``get_dimensions`` returns a set, so that choice
+    is arbitrary; the grouping fallback orders the remaining grains by name. A
+    provider should not rely on which variant a given lookup picks today.
 
-    Resolving every host lookup through this one preference is the work of
-    apache/superset#44454; until it lands, some host call sites still choose a
-    variant their own way, so a provider should not rely on which variant a
-    given lookup picks today.
+    Once that work lands, the preference governs column metadata, filters and the
+    grouping fallback. An explicit supported grouping grain is always honored.
+    Filters and time bounds will use the default preference **independently of
+    grouping**: grouping by month with a lower bound of January 15 will still
+    filter the raw time dimension from January 15 rather than testing month
+    buckets against that bound. Sorting and series limits use the selected
+    grouping grain.
 
     Do not order grains by ``Grain.name``: alphabetically "Day" precedes "Hour"
     and "Quarter" precedes "Week", which is the opposite of grain fineness. Use
@@ -86,6 +89,8 @@ class Grains:
     Conflicting IDs, types, definitions or descriptions for the same name and
     grain make the catalog ambiguous; that is a provider defect to fix rather
     than a tie for the host to break by picking a variant.
+    The host does not detect such a conflict: it keeps the last variant it sees
+    for a ``(name, grain)`` pair.
     """
 
     SECOND = Grain("Second", "PT1S")
@@ -138,8 +143,10 @@ class Dimension:
     at most one per ``(name, grain)`` pair: two dimensions sharing a name and
     grain are a provider defect, not a tie for the host to break silently.
     Metric names are unique on their own, and must not collide with a dimension
-    name. A query selects at most one variant per name, so a result carries one
-    column per selected member name.
+    name. Both rules are provider obligations: the host does not currently
+    detect a duplicate ``(name, grain)`` (it keeps the last variant it sees) or a
+    metric name that collides with a dimension name. A query selects at most one
+    variant per name, so a result carries one column per selected member name.
 
     Attributes:
         id: Provider-private identifier; not part of the host contract.
@@ -240,8 +247,10 @@ class Operator(str, enum.Enum):
     Splitting a ``None`` operand out into those predicates is the host's
     responsibility, so that every provider sees the same already-normalized
     filter set instead of reimplementing the rewrite. That normalization is
-    being added to the host mapper separately; until it ships, a provider that
-    already handles ``None`` correctly should keep doing so.
+    being added to the host mapper separately, in apache/superset#45133; until
+    it ships, the host still passes a ``None`` operand through with its original
+    operator, so a provider that already handles ``None`` correctly should keep
+    doing so.
     """
 
     EQUALS = "="
