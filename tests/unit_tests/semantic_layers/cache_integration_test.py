@@ -29,6 +29,9 @@ import pandas as pd
 import pyarrow as pa
 import pytest
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.errors import (
+    SemanticResultCompletenessError as ProviderCompletenessError,
+)
 from superset_core.semantic_layers.layer import (
     SemanticCacheCapabilities,
     SemanticCacheExecutionContext,
@@ -49,6 +52,10 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SemanticResultCompletenessError as HostCompletenessError,
+)
 from superset.extensions import cache_manager
 from superset.models.helpers import QueryResult
 from superset.semantic_layers import cache as semantic_cache
@@ -270,6 +277,7 @@ def datasource(provider: MagicMock) -> MagicMock:
         SemanticCacheIdentityMaterial({"type": "fixture", "catalog": "one"})
     )
     semantic_view.metadata_cache_token = HOST_GENERATION
+    semantic_view.result_cache_discriminator = None
     semantic_view.implementation = provider
     semantic_view.semantic_layer.implementation = layer
     semantic_view.uuid = "orders-view"
@@ -371,6 +379,41 @@ def test_failed_forced_refresh_does_not_replace_cached_result(
     assert provider.get_table.call_count == 2
 
 
+@pytest.mark.parametrize(
+    ("failure", "expected_type"),
+    [
+        (
+            QueryObjectValidationError("provider rejected query"),
+            QueryObjectValidationError,
+        ),
+        (ProviderCompletenessError("incomplete"), HostCompletenessError),
+    ],
+    ids=["provider-rejection", "incomplete-result"],
+)
+def test_failed_provider_miss_is_not_stored_or_swallowed(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+    failure: Exception,
+    expected_type: type[Exception],
+) -> None:
+    provider.get_table.side_effect = failure
+
+    with pytest.raises(expected_type):
+        get_results(_query(datasource))
+    assert data_cache.store == {}
+
+    provider.get_table.side_effect = None
+    provider.get_table.return_value = _result([("GB", "London", 20.0)])
+    recovered: QueryResult = get_results(_query(datasource))
+    repeated: QueryResult = get_results(_query(datasource))
+
+    assert recovered.df["revenue"].tolist() == [20.0]
+    assert recovered.semantic_cache_status == "MISS"
+    assert repeated.semantic_cache_status == "HIT"
+    assert provider.get_table.call_count == 2
+
+
 def test_forced_refresh_preserves_unrelated_query_shapes(
     data_cache: _InMemoryCache,
     provider: MagicMock,
@@ -456,6 +499,27 @@ def test_exact_reuse_matches_direct_provider_result(
     assert direct_result.semantic_cache_status == "MISS"
     assert cached_result.semantic_cache_status == "HIT"
     assert provider.get_table.call_count == 1
+
+
+def test_producer_result_discriminator_prevents_old_containment_hit(
+    data_cache: _InMemoryCache,
+    provider: MagicMock,
+    datasource: MagicMock,
+) -> None:
+    datasource.result_cache_discriminator = None
+    provider.get_table.return_value = _result([("GB", "London", 10.0)])
+    old: QueryResult = get_results(_query(datasource))
+
+    datasource.result_cache_discriminator = ("fixture", "verified-complete-v1")
+    provider.get_table.return_value = _result([("GB", "London", 20.0)])
+    updated: QueryResult = get_results(_query(datasource))
+    repeated: QueryResult = get_results(_query(datasource))
+
+    assert old.df["revenue"].tolist() == [10.0]
+    assert updated.df["revenue"].tolist() == [20.0]
+    assert updated.semantic_cache_status == "MISS"
+    assert repeated.semantic_cache_status == "HIT"
+    assert provider.get_table.call_count == 2
 
 
 def test_leftover_filter_matches_direct_provider_result(

@@ -128,6 +128,10 @@ def build_cache_configuration(
     if token is None:
         # The host generation is required; never reuse a legacy definition key.
         return None
+    discriminator: tuple[str, str] | None = cast(
+        tuple[str, str] | None,
+        getattr(datasource, "result_cache_discriminator", None),
+    )
     layer: _SemanticCacheProvider = cast(
         _SemanticCacheProvider,
         datasource.semantic_layer.implementation,
@@ -166,6 +170,11 @@ def build_cache_configuration(
     # The captured host generation changes on metadata clear, not changed_on.
     # It is an identity, not a secret; "token" keys trip the secret-material guard.
     definition_material["metadata_observation"] = token
+    if discriminator is not None:
+        definition_material["result_version"] = (
+            "semantic-result-version",
+            *discriminator,
+        )
     meta: ViewMeta | None = _view_meta(
         datasource, definition_material, provider_material, scope_material, timeout
     )

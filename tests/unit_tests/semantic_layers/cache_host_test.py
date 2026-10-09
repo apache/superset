@@ -131,6 +131,7 @@ def _datasource() -> MagicMock:
     datasource.semantic_layer.implementation = layer
     datasource.implementation.metadata_cache_token = None
     datasource.metadata_cache_token = OBSERVATION
+    datasource.result_cache_discriminator = None
     datasource.uuid = "orders"
     datasource.changed_on = None
     datasource.cache_timeout = 60
@@ -261,9 +262,13 @@ def test_secret_like_identity_material_bypasses_containment(
 OBSERVATION: str = "observation-1"
 
 
-def _definition_identity(token: object) -> object:
+def _definition_identity(
+    token: object,
+    discriminator: tuple[str, str] | None = None,
+) -> object:
     datasource: MagicMock = _datasource()
     datasource.metadata_cache_token = token
+    datasource.result_cache_discriminator = discriminator
     configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
         build_cache_configuration(datasource)
     )
@@ -280,6 +285,21 @@ def test_metadata_cache_token_is_part_of_definition_identity() -> None:
     assert first != second
     assert first != legacy
     assert _definition_identity("observation-1") == first
+
+
+def test_result_discriminator_and_host_generation_both_partition_definition() -> None:
+    unversioned: object = _definition_identity(OBSERVATION)
+    first: object = _definition_identity(OBSERVATION, ("fixture", "v1"))
+    changed_version: object = _definition_identity(OBSERVATION, ("fixture", "v2"))
+    changed_provider: object = _definition_identity(OBSERVATION, ("other", "v1"))
+    changed_generation: object = _definition_identity(
+        "observation-2", ("fixture", "v1")
+    )
+
+    assert first != unversioned
+    assert changed_version != first
+    assert changed_provider != first
+    assert changed_generation != first
 
 
 def test_missing_host_metadata_token_bypasses_containment() -> None:
