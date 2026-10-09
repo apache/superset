@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic value suggestions classify typed provider rejections as HTTP 400 with
+  host-owned guidance, and provider faults as HTTP 500 with generic text. A failed
+  server-side search no longer retries without its narrowing filter. Providers
+  should use `SemanticQueryRejectedError` only for positively identified input
+  validation failures; existing manual filter-value entry remains available.
+
 - MCP data-bearing tools enforce mandatory chart-query result limits before
   response serialization or CSV/XLSX export, independently of the configurable
   response size guard (`MCP_RESPONSE_SIZE_CONFIG`). Results are limited to 32

@@ -493,3 +493,75 @@ def test_unknown_rejection_code_is_logged_before_normalizing(
     assert error.code == SemanticQueryErrorCode.INVALID_QUERY
     assert "'INVALID_FLITER'" in caplog.text
     assert str(error) == "Semantic query rejected."
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize(
+    "code",
+    [
+        "UNSUPPORTED_QUERY",
+        "UNSUPPORTED_OFFSET",
+        "INVALID_FILTER",
+        "INVALID_QUERY",
+        "unknown-private-code",
+        None,
+    ],
+)
+def test_async_provider_error_matches_sync_chart_error(
+    app_context: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    guest: bool,
+    code: str | None,
+) -> None:
+    """The real async processor preserves host classification and public text."""
+    from superset.charts.schemas import ChartDataQueryContextSchema
+    from superset.common.query_context import QueryContext
+    from superset.common.query_serialization import serialize_query
+    from superset.exceptions import SupersetErrorException
+    from superset.semantic_layers.exceptions import (
+        SemanticLayerExecutionError,
+        SemanticLayerQueryRejectedError,
+    )
+    from superset.tasks.async_queries import execute_chart_query
+    from superset.tasks.utils import error_update
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    failure: Exception = (
+        SemanticQueryRejectedError(code)
+        if code is not None
+        else RuntimeError("private-provider-diagnostic")
+    )
+    expected: SupersetErrorException = (
+        SemanticLayerQueryRejectedError(failure.code)
+        if isinstance(failure, SemanticQueryRejectedError)
+        else SemanticLayerExecutionError()
+    )
+    date_view.get_table.side_effect = failure
+    context: QueryContext = ChartDataQueryContextSchema().load(
+        {
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        }
+    )
+    task_context: MagicMock = mocker.patch(
+        "superset.tasks.async_queries.get_context"
+    ).return_value
+    mocker.patch("superset.tasks.async_queries._resolve_user")
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query", return_value=context
+    )
+    captured: pytest.ExceptionInfo[SupersetErrorException]
+    with pytest.raises(type(expected)) as captured:
+        execute_chart_query.func(serialize_query(context, 0), user_id=7)
+
+    assert captured.value.status == expected.status
+    assert captured.value.message == expected.message
+    assert error_update(captured.value)["error_message"] == expected.message
+    assert "private" not in str(captured.value.to_dict())
+    task_context.update_task.assert_not_called()
+    date_view.get_table.assert_called_once()

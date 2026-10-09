@@ -2517,39 +2517,47 @@ def test_values_for_column_search_narrows_at_the_provider(
     assert narrowing.value == "%oo%k_%"
 
 
-def test_values_for_column_search_rejection_falls_back_unfiltered(
+@pytest.mark.parametrize("rejected", [False, True])
+def test_values_search_failure_never_retries_without_filter(
     mock_implementation: MagicMock,
-    caplog: pytest.LogCaptureFixture,
+    rejected: bool,
 ) -> None:
-    """A provider that rejects the narrowing filter degrades to the bounded
-    unfiltered page — logged, never an error and never silent."""
-    view = SemanticView()
-    mock_implementation.get_values.side_effect = [
-        RuntimeError("LIKE unsupported on this dimension"),
-        _values_result(["Books", "Clothing"]),
-    ]
+    """Both deliberate rejections and operational faults keep the search constraint."""
+    from superset_core.semantic_layers.errors import SemanticQueryRejectedError
 
+    from superset.semantic_layers.exceptions import (
+        SemanticLayerExecutionError,
+        SemanticLayerQueryRejectedError,
+    )
+
+    view: SemanticView = SemanticView()
+    failure: Exception = (
+        SemanticQueryRejectedError("INVALID_FILTER")
+        if rejected
+        else RuntimeError("private-provider-fault")
+    )
+    expected: type[Exception] = (
+        SemanticLayerQueryRejectedError if rejected else SemanticLayerExecutionError
+    )
+    mock_implementation.get_values.side_effect = [failure, _values_result(["Books"])]
     with patch.object(
         SemanticView,
         "implementation",
         new_callable=lambda: property(lambda s: mock_implementation),
     ):
-        with caplog.at_level("WARNING"):
-            values = view.values_for_column("category", search="oo")
+        with pytest.raises(expected):
+            view.values_for_column("category", search="oo")
 
-    assert values == ["Books", "Clothing"]
-    assert mock_implementation.get_values.call_count == 2
-    assert mock_implementation.get_values.call_args.args[1] is None
-    assert "rejected the value-search filter" in caplog.text
-    assert "category" in caplog.text
+    mock_implementation.get_values.assert_called_once()
+    assert mock_implementation.get_values.call_args.args[1] is not None
 
 
 @pytest.mark.parametrize("reason", ["incomplete", "unverified"])
-def test_values_fallback_translates_provider_completeness_error(
+def test_values_search_translates_provider_completeness_error(
     mock_implementation: MagicMock,
     reason: SemanticResultCompletenessReason,
 ) -> None:
-    """An unfiltered retry must retain the provider's fail-closed error."""
+    """A search failure retains the provider's fail-closed completeness error."""
     from superset_core.semantic_layers import errors as core_errors
 
     from superset.exceptions import SemanticResultCompletenessError
@@ -2558,22 +2566,20 @@ def test_values_fallback_translates_provider_completeness_error(
     failure: core_errors.SemanticResultCompletenessError = (
         core_errors.SemanticResultCompletenessError(reason)
     )
-    mock_implementation.get_values.side_effect = [
-        RuntimeError("LIKE unsupported on this dimension"),
-        failure,
-    ]
+    mock_implementation.get_values.side_effect = failure
+    captured: pytest.ExceptionInfo[SemanticResultCompletenessError]
     with patch.object(
         SemanticView,
         "implementation",
         new_callable=lambda: property(lambda s: mock_implementation),
     ):
-        with pytest.raises(SemanticResultCompletenessError) as excinfo:
+        with pytest.raises(SemanticResultCompletenessError) as captured:
             view.values_for_column("category", search="oo")
 
-    assert excinfo.value.reason == reason
-    assert excinfo.value.__cause__ is failure
-    assert mock_implementation.get_values.call_count == 2
-    assert mock_implementation.get_values.call_args.args[1] is None
+    assert captured.value.reason == reason
+    assert captured.value.__cause__ is failure
+    mock_implementation.get_values.assert_called_once()
+    assert mock_implementation.get_values.call_args.args[1] is not None
 
 
 @pytest.mark.parametrize("version", [None, "metricflow-completeness-v1"])

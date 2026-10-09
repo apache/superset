@@ -37,7 +37,7 @@ is not evidence of invalid query input. Authentication, authorization, cancellat
 and worker timeout control exceptions keep their existing behavior.
 
 Use this exception only for positively identified input validation failures in
-`get_table` and `get_row_count`. Do not translate conversion, transport, configuration,
+`get_table`, `get_row_count`, and `get_values`. Do not translate conversion, transport, configuration,
 or unexpected failures into it. Unknown codes are logged at warning level before they
 normalize, so adapter typos stay visible. Existing providers remain import-compatible, but
 must adopt the new core contract to receive actionable validation messages.
@@ -51,13 +51,15 @@ completeness validation error with fixed guidance. These errors remain HTTP 400
 and guest-sanitized regardless of whether the provider raises the core or host
 completeness type. Unclassified provider exceptions remain server faults.
 
-The rejection contract does not cover `get_values`. Value suggestions treat the
-search filter as best-effort: when a filtered `get_values` call fails, the host logs
-it and retries without the filter, so a rejection there is not shown to the user. A
-failure of the unfiltered call is reported as an unclassified error. From
-`get_values`, raise only `SemanticResultCompletenessError`.
+Value suggestions use the same translation and HTTP classification for `get_values`.
+A failed search does not retry without its filter: typed rejections return HTTP 400
+with host-owned guidance, and unclassified faults return HTTP 500 with generic text.
+No failed result is cached. Completeness failures retain their existing HTTP 400
+and guest-sanitized guidance.
 
-Asynchronous chart-data execution keeps completeness reasons: the worker publishes
-the closed reason and the client shows its fixed message. A typed rejection raised in
-an async worker still fails the task, but the client shows the generic chart-data
-failure message rather than the rejection's guidance.
+Asynchronous chart-data execution preserves the same rejection/fault classification
+and host-owned messages in worker failures. The subscriber-authorized task status
+route returns HTTP 200 for a status read and includes the sanitized failure message;
+that polling status is not the provider error's HTTP classification. The client uses
+that message for ordinary query failures without another rejection-code mapping.
+Completeness failures retain their separate closed-reason handling and fixed guidance.
