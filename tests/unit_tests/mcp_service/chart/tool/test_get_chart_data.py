@@ -35,6 +35,7 @@ import pandas as pd
 import pytest
 from dateutil import tz as dateutil_tz
 from fastmcp import Client
+from psycopg2.extras import NumericRange
 
 from superset.common.db_query_status import QueryStatus
 from superset.dataframe import df_to_records
@@ -1554,7 +1555,12 @@ async def test_saved_get_data_rejects_invalid_result_before_consumers(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "value,expected", [({1: "a"}, {"1": "a"}), ([1.0, float("inf")], [1.0, None])]
+    "value,expected",
+    [
+        ({1: "a"}, {"1": "a"}),
+        ([1.0, float("inf")], [1.0, None]),
+        ([NumericRange(1, 10)], ["[1, 10)"]),
+    ],
 )
 async def test_saved_get_data_normalizes_nested_warehouse_cells(
     mcp_server: Any,
@@ -1564,7 +1570,13 @@ async def test_saved_get_data_normalizes_nested_warehouse_cells(
     expected: Any,
 ) -> None:
     """A raw saved Table preserves nested ClickHouse map/array values at the wire."""
-    query_payload = {"data": [{"value": value}], "colnames": ["value"], "coltypes": [1]}
+    from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+        full_producer_command_result,
+    )
+
+    query_payload = full_producer_command_result(
+        pd.DataFrame({"value": [None, value]})
+    )["queries"][0]
     from fastmcp import Client
 
     module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
@@ -1616,7 +1628,7 @@ async def test_saved_get_data_normalizes_nested_warehouse_cells(
         )
 
     data = json.loads(response.content[0].text)
-    assert data["data"] == [{"value": expected}]
+    assert data["data"] == [{"value": None}, {"value": expected}]
 
 
 class TestUnsavedChartDataQueryConstruction:

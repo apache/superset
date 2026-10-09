@@ -1924,3 +1924,93 @@ def test_nested_mapping_key_coercion_still_rejects_hostile_and_oversized_keys() 
         )
         assert error is not None
         assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize("driver", ["psycopg2.extras", "psycopg.types.range"])
+@pytest.mark.parametrize(
+    "lower,upper,bounds,empty,expected",
+    [
+        (1, 10, "[)", False, "[1, 10)"),
+        (Decimal("1.25"), Decimal("2.50"), "(]", False, "(1.25, 2.50]"),
+        (date(2026, 1, 1), date(2026, 2, 1), "[)", False, "[2026-01-01, 2026-02-01)"),
+        (
+            datetime(2026, 1, 1, tzinfo=timezone.utc),
+            None,
+            "[)",
+            False,
+            "[2026-01-01 00:00:00+00:00, None)",
+        ),
+        (None, None, "()", False, "(None, None)"),
+        (None, None, "[)", True, "empty"),
+    ],
+)
+def test_postgres_ranges_normalize_within_nested_arrays(
+    driver: str, lower: Any, upper: Any, bounds: str, empty: bool, expected: str
+) -> None:
+    """Both drivers preserve bounded native range text in nullable array cells."""
+    module = pytest.importorskip(driver)
+    value = module.Range(lower, upper, bounds=bounds, empty=empty)
+    result = full_producer_command_result(pd.DataFrame({"bands": [None, [value]]}))
+    data, error = first_query_data(result)
+    assert error is None
+    assert data == [{"bands": None}, {"bands": [expected]}]
+
+
+@pytest.mark.parametrize("driver", ["psycopg2.extras", "psycopg.types.range"])
+def test_postgres_range_subclasses_and_hostile_bounds_are_rejected(driver: str) -> None:
+    """A trusted range must not make arbitrary endpoint string hooks trusted."""
+    module = pytest.importorskip(driver)
+
+    class HostileRange:
+        """Range subclass with an unsafe conversion hook."""
+
+        def __str__(self) -> str:
+            raise AssertionError("range string hook executed")
+
+    class HostileEndpoint:
+        """Endpoint whose conversion must not be called."""
+
+        def __str__(self) -> str:
+            raise AssertionError("endpoint string hook executed")
+
+    range_subclass = type("RangeSubclass", (HostileRange, module.Range), {})
+    for value in (
+        range_subclass(1, 10),
+        module.Range(HostileEndpoint(), 10),
+        module.Range(IntSubclass(1), 10),
+        module.Range(1 << 5000, 10),
+        module.Range(Decimal("1e5000"), 10),
+        module.Range("x" * (MAX_RESULT_STRING_LENGTH + 1), 10),
+    ):
+        data, error = first_query_data({"queries": [{"data": [{"bands": [value]}]}]})
+        assert data is None
+        assert error is not None
+        assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize("driver", ["psycopg2.extras", "psycopg.types.range"])
+def test_postgres_range_text_respects_cell_and_aggregate_byte_budgets(
+    driver: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Normalization charges rendered text to the existing result budgets."""
+    module = pytest.importorskip(driver)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_RESULT_STRING_LENGTH", 7
+    )
+    result = {"queries": [{"data": [{"bands": [module.Range(1, 10)]}]}]}
+    assert validate_query_result_envelope(result) is None
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_RESULT_STRING_LENGTH", 6
+    )
+    result = {"queries": [{"data": [{"bands": [module.Range(1, 10)]}]}]}
+    assert validate_query_result_envelope(result) is not None
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_RESULT_STRING_LENGTH", 100
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES", 12
+    )
+    result = {
+        "queries": [{"data": [{"bands": [module.Range(1, 10), module.Range(1, 10)]}]}]
+    }
+    assert validate_query_result_envelope(result) is not None

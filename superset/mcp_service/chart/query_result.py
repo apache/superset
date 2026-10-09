@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
+from importlib import import_module
 from numbers import Real
 from typing import Any, cast
 from uuid import UUID
@@ -130,6 +131,38 @@ _PYTZ_FIXED_TIMEZONE_TYPES = frozenset({type(pytz.FixedOffset(1))})
 _MAX_DATEUTIL_TRANSITIONS = 4_096
 _MAX_DATEUTIL_TTINFOS = 256
 _MAX_DATEUTIL_TRANSITION_MAGNITUDE = 10**12
+
+
+def _postgres_range_types() -> tuple[type[Any], ...]:
+    """Discover concrete range scalars only for installed PostgreSQL drivers."""
+    range_types: list[type[Any]] = []
+    for module_name, names in (
+        (
+            "psycopg2.extras",
+            ("Range", "NumericRange", "DateRange", "DateTimeRange", "DateTimeTZRange"),
+        ),
+        (
+            "psycopg.types.range",
+            (
+                "Range",
+                "Int4Range",
+                "Int8Range",
+                "NumericRange",
+                "DateRange",
+                "TimestampRange",
+                "TimestamptzRange",
+            ),
+        ),
+    ):
+        try:
+            module = import_module(module_name)
+        except ImportError:
+            continue
+        range_types.extend(getattr(module, name) for name in names)
+    return tuple(range_types)
+
+
+_POSTGRES_RANGE_TYPES = _postgres_range_types()
 
 
 @dataclass
@@ -873,6 +906,51 @@ def _canonical_binary(
     return text, None
 
 
+def _canonical_postgres_range(value: Any) -> tuple[str | None, str | None]:
+    """Render exact driver ranges after bounding and validating their endpoints.
+
+    Never invoke a range's string hook: even a concrete range can contain a
+    hostile endpoint. Only exact numeric and temporal bounds are supported.
+    """
+    try:
+        bounds = object.__getattribute__(value, "_bounds")
+        lower = object.__getattribute__(value, "_lower")
+        upper = object.__getattribute__(value, "_upper")
+    except AttributeError:
+        return None, "an invalid PostgreSQL range"
+    if bounds is None or (type(bounds) is str and bounds == ""):
+        return "empty", None
+    if type(bounds) is not str or bounds not in {"[)", "(]", "()", "[]"}:
+        return None, "an invalid PostgreSQL range"
+    endpoints: list[str] = []
+    for endpoint in (lower, upper):
+        if endpoint is None:
+            endpoints.append("None")
+            continue
+        if not any(
+            type(endpoint) is trusted
+            for trusted in (int, float, Decimal, date, datetime)
+        ):
+            return None, "an unsupported PostgreSQL range endpoint"
+        normalized, reason = _normalize_scalar(endpoint)
+        if reason or normalized is None:
+            return None, reason or "an invalid PostgreSQL range endpoint"
+        # Canonical temporal text has already validated timezone state; ranges
+        # use the driver's space separator instead of datetime's ISO 'T'.
+        text = (
+            normalized.replace("T", " ", 1)
+            if type(endpoint) is datetime
+            else str(normalized)
+        )
+        if _bounded_utf8_length(text, MAX_RESULT_STRING_LENGTH) is None:
+            return None, "an oversized PostgreSQL range"
+        endpoints.append(text)
+    text = f"{bounds[0]}{endpoints[0]}, {endpoints[1]}{bounds[1]}"
+    if _bounded_utf8_length(text, MAX_RESULT_STRING_LENGTH) is None:
+        return None, "an oversized PostgreSQL range"
+    return text, None
+
+
 def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
     """Convert one exact trusted producer scalar to a JSON-safe scalar."""
     value_type = type(value)
@@ -949,6 +1027,8 @@ def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
             return pd.Timedelta(value).isoformat(), None
         except (OverflowError, TypeError, ValueError):
             return None, "an invalid NumPy duration"
+    if any(value_type is trusted for trusted in _POSTGRES_RANGE_TYPES):
+        return _canonical_postgres_range(value)
     return None, "an unsupported or subclassed value"
 
 

@@ -289,10 +289,11 @@ def test_table_inherited_custom_offset_preserves_other_comparisons(
         "echarts_timeseries_bar",
         "echarts_area",
         "echarts_timeseries_scatter",
+        "mixed_timeseries",
     ],
 )
 @pytest.mark.parametrize("dimensions", [{}, {"width": 800, "height": 200}])
-def test_saved_xy_preview_honors_dimensions_and_description(
+def test_saved_timeseries_preview_honors_dimensions_and_description(
     viz_type: str, dimensions: dict[str, int]
 ) -> None:
     """Saved plugin previews keep the framing contract of the saved fallback."""

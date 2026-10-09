@@ -1890,6 +1890,11 @@ _MODELED_UPDATE_CONTROL_PATHS: dict[str, dict[str, tuple[tuple[str, ...], ...]]]
             "granularity_sqla",
         )
     },
+    "BubbleChartConfig": {
+        "series": (("series",),),
+        "row_limit": (("row_limit",),),
+        "color_scheme": (("color_scheme",),),
+    },
     "PieChartConfig": {
         "color_scheme": (("color_scheme",),),
         "show_labels": (("show_labels",),),

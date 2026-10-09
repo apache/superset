@@ -40,6 +40,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
+    MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
     SunburstChartConfig,
@@ -1012,3 +1013,54 @@ def test_compile_sample_skips_rolling_and_forecast(
     assert {"rolling", "prophet"} <= {
         step["operation"] for step in full["post_processing"]
     }
+
+
+@pytest.mark.parametrize("run_compile_check", [False, True])
+@pytest.mark.parametrize(
+    "clause,subject,error_code",
+    [
+        ("HAVING", "sum_boys", "UNSUPPORTED_FILTER_CLAUSE"),
+        (None, "gender", "INVALID_FILTER_CLAUSE"),
+        ("WHERE", "missing_column", "CHART_VALIDATION_FAILED"),
+        ("WHERE", "gender", None),
+    ],
+)
+def test_mixed_secondary_filters_receive_tier_one_validation(
+    clause: str | None, subject: str, error_code: str | None, run_compile_check: bool
+) -> None:
+    """Query B must not silently drop filters that query A would reject."""
+    from superset.mcp_service.chart.chart_utils import map_mixed_timeseries_config
+
+    config = MixedTimeseriesChartConfig.model_validate(
+        {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "ds"},
+            "y": [{"name": "num", "aggregate": "SUM"}],
+            "y_secondary": [{"name": "num", "aggregate": "AVG"}],
+            "adhoc_filters_b": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": clause,
+                    "subject": subject,
+                    "operator": ">",
+                    "comparator": 100,
+                }
+            ],
+        }
+    )
+    with patch(
+        "superset.mcp_service.chart.compile._compile_chart",
+        return_value=CompileResult(success=True),
+    ) as compile_chart:
+        result = validate_and_compile(
+            config,
+            map_mixed_timeseries_config(config),
+            _orm_dataset(),
+            run_compile_check=run_compile_check,
+        )
+    assert result.success == (error_code is None)
+    if error_code:
+        assert result.tier == "validation"
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == error_code
+        compile_chart.assert_not_called()

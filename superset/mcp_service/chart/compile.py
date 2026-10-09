@@ -280,10 +280,19 @@ def _validate_adhoc_filter_columns(  # noqa: C901
     ``ChartConfig`` and only sees ``config.filters``. Tools like
     ``update_chart_preview`` and ``update_chart`` (preview path) also merge
     *previously cached* ``adhoc_filters`` into ``form_data`` that aren't
-    represented on the new config — those would otherwise bypass validation
+    represented on the new config. Secondary-query filters receive the same
+    check — otherwise these filters would bypass validation
     and surface only when Explore tries to run the query.
     """
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
     adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    secondary = plugin.secondary_query_form_data(form_data) if plugin else None
+    if secondary is not None:
+        adhoc_filters.extend(
+            _active_adhoc_filters(secondary.get("adhoc_filters") or [])
+        )
     # Keep the clause for reference validation; SIMPLE HAVING is unsupported,
     # so saved metrics must not be offered as corrective suggestions.
     invalid: list[tuple[str, str]] = []

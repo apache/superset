@@ -42,6 +42,7 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
     """Plugin for mixed_timeseries chart type."""
 
     query_role_keys = BaseChartPlugin.query_role_keys
+    resizes_saved_preview = True
     chart_type = "mixed_timeseries"
     display_name = "Mixed Timeseries"
     native_viz_types: ClassVar[Mapping[str, str]] = {

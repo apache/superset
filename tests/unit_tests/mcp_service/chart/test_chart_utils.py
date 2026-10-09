@@ -40,6 +40,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_table_config,
     map_xy_config,
     merge_chart_form_data,
+    merge_form_data_for_update,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
     validate_chart_dataset,
@@ -2674,3 +2675,66 @@ class TestDatasetValidatorSkipsSqlMetrics:
         )
         assert normalized.y[0].sql_expression == _SQL_EXPR
         assert normalized.y[0].name is None
+
+
+@pytest.mark.parametrize(
+    "updates,expected",
+    [
+        ({}, {"series": "region", "row_limit": 42, "color_scheme": "lyftColors"}),
+        (
+            {
+                "series": {"name": "country"},
+                "row_limit": 200,
+                "color_scheme": "googleCategory10c",
+            },
+            {
+                "series": "country",
+                "row_limit": 200,
+                "color_scheme": "googleCategory10c",
+            },
+        ),
+        (
+            {"series": None, "color_scheme": None},
+            {"row_limit": 42, "color_scheme": "supersetColors"},
+        ),
+    ],
+)
+def test_bubble_update_preserves_omitted_controls_and_applies_clears(
+    updates: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    """The update tool's shared merge must distinguish omission from clearing."""
+    from superset.mcp_service.chart.chart_utils import map_bubble_config
+    from superset.mcp_service.chart.schemas import BubbleChartConfig
+
+    config = BubbleChartConfig.model_validate(
+        {
+            "chart_type": "bubble_v2",
+            "entity": {"name": "product"},
+            "x": {"name": "profit", "aggregate": "SUM"},
+            "y": {"name": "revenue", "aggregate": "AVG"},
+            "size": {"name": "revenue", "aggregate": "COUNT"},
+            **updates,
+        }
+    )
+    saved = {
+        "viz_type": "bubble_v2",
+        "entity": "product",
+        "series": "region",
+        "row_limit": 42,
+        "color_scheme": "lyftColors",
+    }
+    merged = merge_form_data_for_update(saved, map_bubble_config(config), config)
+    assert {key: merged[key] for key in expected} == expected
+    assert ("series" in merged) == ("series" in expected)
+    assert merged["x"]["column"]["column_name"] == "profit"
+
+    rebound = merge_form_data_for_update(
+        saved, map_bubble_config(config), config, dataset_rebind=True
+    )
+    if "series" not in updates:
+        assert "series" not in rebound
+    cross_viz = merge_form_data_for_update(
+        {**saved, "viz_type": "table"}, map_bubble_config(config), config
+    )
+    if "series" not in updates:
+        assert "series" not in cross_viz
