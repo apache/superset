@@ -213,6 +213,37 @@ def test_preview_refuses_a_range_when_the_transform_is_not_monotonic(
     assert "preserves ordering" in result["error"]
 
 
+def test_preview_names_the_comparison_when_text_equality_cannot_mirror(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    On an engine whose string comparison is not byte-exact, `=` and `IN` on a
+    text column are withdrawn whatever the owner declares about ordering. The
+    reason has to say so, or it sends them to a checkbox that changes nothing.
+    """
+    with patch.object(
+        dataset.database.db_engine_spec, "binary_string_comparison", False
+    ):
+        with patch(PROBE, side_effect=AssertionError("probe must not run")):
+            response = client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={
+                    "mapped_column": "country",
+                    "partition_column": "region_key",
+                    "value_transform": "lower(:value)",
+                    "sample_values": ["US"],
+                    "operator": "IN",
+                    "is_monotonic": True,
+                },
+            )
+
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "operator"
+    assert "preserves ordering" not in result["error"]
+    assert "case or trailing spaces" in result["error"]
+
+
 def test_preview_mirrors_in_element_wise(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:
