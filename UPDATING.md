@@ -31,6 +31,11 @@ assists people when migrating to a new version.
   such as `Last week`. An empty string is invalid; use `No filter` for no time
   filter. Omitted `time_range` values still support legacy `since`/`until` bounds.
 
+- Semantic-view providers may declare `SemanticView.preferred_temporal_dimension`
+  to choose the default exposed temporal dimension for new charts. The declaration
+  is optional; absent, unknown or non-temporal names retain the existing fallback.
+  Saved chart selections are preserved.
+
 - MCP data-bearing tools enforce mandatory chart-query result limits before
   response serialization or CSV/XLSX export, independently of the configurable
   response size guard (`MCP_RESPONSE_SIZE_CONFIG`). Results are limited to 32
