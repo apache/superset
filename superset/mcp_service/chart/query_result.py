@@ -1531,6 +1531,15 @@ def _csv_temporal_cell(value: Any, normalized: str) -> str:
     return normalized
 
 
+def _is_infinite_float(value: Any) -> bool:
+    """Return whether an exact builtin or NumPy float is infinite."""
+    if type(value) is float:
+        return math.isinf(value)
+    if any(type(value) is type_ for type_ in _NUMPY_FLOAT_TYPES):
+        return bool(np.isinf(value))
+    return False
+
+
 def _normalize_row_value(  # noqa: C901
     value: Any,
     budget: _ResultBudget,
@@ -1680,6 +1689,10 @@ def _normalize_row_value(  # noqa: C901
             and not math.isfinite(item)
         ):
             normalized, reason = item, None
+        elif depth > 1 and _is_infinite_float(item):
+            # Producers null top-level infinities but not values nested in a
+            # cell (e.g. a float8[] holding 'Infinity'); null them like NaN.
+            normalized, reason = None, None
         elif temporal_json_numbers and _is_chart_data_temporal_scalar(item):
             normalized, reason = _chart_data_temporal_number(item)
         elif temporal_json_numbers and _is_chart_data_duration_scalar(item):

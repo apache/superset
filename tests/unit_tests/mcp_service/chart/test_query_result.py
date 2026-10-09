@@ -1216,6 +1216,25 @@ def test_query_result_rejects_infinity_outside_the_producer_boundary() -> None:
 
 
 @pytest.mark.parametrize(
+    ("cell", "expected"),
+    [
+        ([1.5, float("inf")], [1.5, None]),
+        (np.array([1.5, np.inf, -np.inf]), [1.5, None, None]),
+        ({"nested": [np.float32("-inf")]}, {"nested": [None]}),
+    ],
+)
+def test_query_result_nulls_infinity_nested_in_a_cell(cell: Any, expected: Any) -> None:
+    """A float8[] holding 'Infinity' cannot reject every row of the result."""
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": cell, "id": 1}], "rowcount": 1}]}
+    )
+
+    assert failure is None
+    assert data is not None
+    assert data[0][0] == {"value": expected, "id": 1}
+
+
+@pytest.mark.parametrize(
     "row",
     [
         {"value": "x" * (1024 * 1024)},

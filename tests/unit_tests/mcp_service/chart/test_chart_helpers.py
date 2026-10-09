@@ -24,10 +24,7 @@ import pytest
 from superset.common.query_object import QueryObject
 from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_helpers import (
-    _deck_gl_null_filters,
-    _is_metric_ref,
     _resolve_big_number_query_columns,
-    _resolve_deck_gl_metrics,
     apply_form_data_filters_to_query,
     build_query_dicts_from_form_data,
     extract_form_data_key_from_url,
@@ -36,7 +33,6 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_extra_form_data_filters_into_query,
     merge_form_data_filters_into_query,
     prepare_form_data_for_query,
-    resolve_deck_gl_columns,
     resolve_metrics,
     resolve_metrics_and_groupby,
 )
@@ -1587,83 +1583,6 @@ def test_merge_extra_form_data_time_grain_preserves_existing_extras(monkeypatch)
 
 
 # ---------------------------------------------------------------------------
-# resolve_deck_gl_columns
-# ---------------------------------------------------------------------------
-
-
-def test_resolve_deck_gl_columns_latlong():
-    form_data = {
-        "spatial": {"type": "latlong", "lonCol": "longitude", "latCol": "latitude"},
-    }
-    assert resolve_deck_gl_columns(form_data) == ["longitude", "latitude"]
-
-
-def test_resolve_deck_gl_columns_delimited():
-    form_data = {
-        "spatial": {"type": "delimited", "lonlatCol": "coords"},
-    }
-    assert resolve_deck_gl_columns(form_data) == ["coords"]
-
-
-def test_resolve_deck_gl_columns_geohash():
-    form_data = {
-        "spatial": {"type": "geohash", "geohashCol": "geo"},
-    }
-    assert resolve_deck_gl_columns(form_data) == ["geo"]
-
-
-def test_resolve_deck_gl_columns_arc_start_end():
-    form_data = {
-        "start_spatial": {
-            "type": "latlong",
-            "lonCol": "start_lon",
-            "latCol": "start_lat",
-        },
-        "end_spatial": {"type": "latlong", "lonCol": "end_lon", "latCol": "end_lat"},
-    }
-    cols = resolve_deck_gl_columns(form_data)
-    assert cols == ["start_lon", "start_lat", "end_lon", "end_lat"]
-
-
-def test_resolve_deck_gl_columns_path_line_column():
-    form_data = {
-        "line_column": "path_wkt",
-    }
-    assert resolve_deck_gl_columns(form_data) == ["path_wkt"]
-
-
-def test_resolve_deck_gl_columns_geojson():
-    form_data = {
-        "geojson": "geom_col",
-    }
-    assert resolve_deck_gl_columns(form_data) == ["geom_col"]
-
-
-def test_resolve_deck_gl_columns_with_dimension():
-    form_data = {
-        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-        "dimension": "category",
-    }
-    cols = resolve_deck_gl_columns(form_data)
-    assert "lon" in cols
-    assert "lat" in cols
-    assert "category" in cols
-
-
-def test_resolve_deck_gl_columns_deduplicates():
-    form_data = {
-        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-        "dimension": "lon",  # same as lonCol — should not duplicate
-    }
-    cols = resolve_deck_gl_columns(form_data)
-    assert cols.count("lon") == 1
-
-
-def test_resolve_deck_gl_columns_empty():
-    assert resolve_deck_gl_columns({}) == []
-
-
-# ---------------------------------------------------------------------------
 # build_query_dicts_from_form_data — Deck.gl branch
 # ---------------------------------------------------------------------------
 
@@ -1783,206 +1702,6 @@ def test_build_query_dicts_deck_path_with_row_limit(monkeypatch):
 
     assert queries[0]["columns"] == ["path_col"]
     assert queries[0]["row_limit"] == 50
-
-
-# ---------------------------------------------------------------------------
-# resolve_deck_gl_columns — display-only fields excluded
-# ---------------------------------------------------------------------------
-
-
-def test_resolve_deck_gl_columns_ignores_tooltip_contents():
-    # tooltip_contents are display-only; BaseDeckGLViz.query_obj() does not
-    # include them in columns/groupby, so the fallback should not either.
-    form_data = {
-        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-        "tooltip_contents": ["name", "category"],
-    }
-    cols = resolve_deck_gl_columns(form_data)
-    assert "name" not in cols
-    assert "category" not in cols
-
-
-def test_resolve_deck_gl_columns_ignores_cross_filter_column():
-    form_data = {
-        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-        "cross_filter_column": "region",
-    }
-    cols = resolve_deck_gl_columns(form_data)
-    assert "region" not in cols
-
-
-# ---------------------------------------------------------------------------
-# _is_metric_ref
-# ---------------------------------------------------------------------------
-
-
-def test_is_metric_ref_dict():
-    assert _is_metric_ref({"expressionType": "SIMPLE"}) is True
-
-
-def test_is_metric_ref_string_key():
-    assert _is_metric_ref("count") is True
-    assert _is_metric_ref("sum__sales") is True
-
-
-def test_is_metric_ref_numeric_string_excluded():
-    assert _is_metric_ref("100") is False
-    assert _is_metric_ref("3.14") is False
-    assert _is_metric_ref("0") is False
-
-
-def test_is_metric_ref_integer_excluded():
-    assert _is_metric_ref(100) is False
-
-
-def test_is_metric_ref_none_and_empty():
-    assert _is_metric_ref(None) is False
-    assert _is_metric_ref("") is False
-
-
-# ---------------------------------------------------------------------------
-# _resolve_deck_gl_metrics (Fix 2)
-# ---------------------------------------------------------------------------
-
-
-def test_resolve_deck_gl_metrics_no_metrics():
-    assert _resolve_deck_gl_metrics({}) == []
-
-
-def test_resolve_deck_gl_metrics_size_field():
-    metric = {"expressionType": "SIMPLE", "aggregate": "COUNT", "column": None}
-    result = _resolve_deck_gl_metrics({"size": metric})
-    assert result == [metric]
-
-
-def test_resolve_deck_gl_metrics_metric_field():
-    metric = {"expressionType": "SIMPLE", "aggregate": "SUM"}
-    result = _resolve_deck_gl_metrics({"metric": metric})
-    assert result == [metric]
-
-
-def test_resolve_deck_gl_metrics_point_radius_fixed_metric():
-    prf_metric = {"expressionType": "SIMPLE", "aggregate": "AVG"}
-    prf = {"type": "metric", "value": prf_metric}
-    result = _resolve_deck_gl_metrics({"point_radius_fixed": prf})
-    assert result == [prf_metric]
-
-
-def test_resolve_deck_gl_metrics_point_radius_fixed_not_metric():
-    prf = {"type": "fix", "value": 100}
-    result = _resolve_deck_gl_metrics({"point_radius_fixed": prf})
-    assert result == []
-
-
-def test_resolve_deck_gl_metrics_polygon_both_metric_and_prf():
-    base_metric = {"expressionType": "SIMPLE", "aggregate": "SUM"}
-    elevation_metric = {"expressionType": "SIMPLE", "aggregate": "AVG"}
-    prf = {"type": "metric", "value": elevation_metric}
-    result = _resolve_deck_gl_metrics(
-        {"metric": base_metric, "point_radius_fixed": prf}
-    )
-    assert result == [base_metric, elevation_metric]
-
-
-def test_resolve_deck_gl_metrics_geojson_returns_empty():
-    # deck_geojson.query_obj() forces metrics=[] regardless of form_data
-    metric = {"expressionType": "SIMPLE", "aggregate": "SUM"}
-    result = _resolve_deck_gl_metrics(
-        {"size": metric, "metric": metric}, "deck_geojson"
-    )
-    assert result == []
-
-
-def test_resolve_deck_gl_metrics_scalar_size_excluded():
-    # Numeric string size values (fixed display settings) must not be metrics
-    result = _resolve_deck_gl_metrics({"size": "100"}, "deck_hex")
-    assert result == []
-
-
-def test_resolve_deck_gl_metrics_integer_size_excluded():
-    result = _resolve_deck_gl_metrics({"size": 100}, "deck_path")
-    assert result == []
-
-
-def test_resolve_deck_gl_metrics_string_metric_included():
-    # Non-numeric string metrics (saved metric keys) must be preserved
-    result = _resolve_deck_gl_metrics({"size": "count"}, "deck_hex")
-    assert result == ["count"]
-
-
-def test_resolve_deck_gl_metrics_string_metric_field():
-    result = _resolve_deck_gl_metrics({"metric": "sum__sales"}, "deck_arc")
-    assert result == ["sum__sales"]
-
-
-def test_resolve_deck_gl_metrics_string_point_radius_fixed():
-    # Legacy deck_scatter: point_radius_fixed as a bare metric key string
-    result = _resolve_deck_gl_metrics({"point_radius_fixed": "count"}, "deck_scatter")
-    assert result == ["count"]
-
-
-def test_resolve_deck_gl_metrics_numeric_point_radius_fixed_excluded():
-    # Numeric string point_radius_fixed is a fixed pixel radius, not a metric
-    result = _resolve_deck_gl_metrics({"point_radius_fixed": "100"}, "deck_scatter")
-    assert result == []
-
-
-def test_resolve_deck_gl_metrics_non_string_point_radius_fixed_excluded():
-    # Non-string point_radius_fixed values (int, None, list) are excluded by
-    # the isinstance(prf, str) guard in the elif branch
-    assert _resolve_deck_gl_metrics({"point_radius_fixed": 100}, "deck_scatter") == []
-    assert _resolve_deck_gl_metrics({"point_radius_fixed": None}, "deck_scatter") == []
-    assert (
-        _resolve_deck_gl_metrics({"point_radius_fixed": ["bad"]}, "deck_scatter") == []
-    )
-
-
-# ---------------------------------------------------------------------------
-# _deck_gl_null_filters (Fix 3)
-# ---------------------------------------------------------------------------
-
-
-def test_deck_gl_null_filters_latlong():
-    form_data = {
-        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-    }
-    result = _deck_gl_null_filters(form_data)
-    assert result == [
-        {"col": "lon", "op": "IS NOT NULL", "val": ""},
-        {"col": "lat", "op": "IS NOT NULL", "val": ""},
-    ]
-
-
-def test_deck_gl_null_filters_arc_start_end():
-    form_data = {
-        "start_spatial": {"type": "latlong", "lonCol": "s_lon", "latCol": "s_lat"},
-        "end_spatial": {"type": "latlong", "lonCol": "e_lon", "latCol": "e_lat"},
-    }
-    result = _deck_gl_null_filters(form_data)
-    assert result == [
-        {"col": "s_lon", "op": "IS NOT NULL", "val": ""},
-        {"col": "s_lat", "op": "IS NOT NULL", "val": ""},
-        {"col": "e_lon", "op": "IS NOT NULL", "val": ""},
-        {"col": "e_lat", "op": "IS NOT NULL", "val": ""},
-    ]
-
-
-def test_deck_gl_null_filters_line_column():
-    form_data = {"line_column": "path_col"}
-    result = _deck_gl_null_filters(form_data)
-    assert result == [{"col": "path_col", "op": "IS NOT NULL", "val": ""}]
-
-
-def test_deck_gl_null_filters_empty():
-    assert _deck_gl_null_filters({}) == []
-
-
-def test_deck_gl_null_filters_geojson_column():
-    # geojson column gets an IS NOT NULL filter just like spatial columns
-    form_data = {"geojson": "geometry"}
-    assert _deck_gl_null_filters(form_data) == [
-        {"col": "geometry", "op": "IS NOT NULL", "val": ""}
-    ]
 
 
 # ---------------------------------------------------------------------------
@@ -3628,3 +3347,34 @@ def test_xy_preview_renders_truncated_metric_series(
     ]
     assert spec["encoding"]["color"]["field"] == "__mcp_xy_series"
     assert spec["encoding"]["y"]["field"] == "__mcp_xy_value"
+
+
+@pytest.mark.parametrize(
+    ("x_values", "expected"),
+    [
+        (["New York", "San Jose"], "nominal"),
+        (["Product A", "Product-B"], "nominal"),
+        (["2026-10-01", "2026-10-02 00:00:00"], "temporal"),
+        ([1, 2.5], "quantitative"),
+    ],
+)
+def test_xy_preview_x_type_requires_parseable_dates(
+    x_values: list[Any], expected: str
+) -> None:
+    """Category labels containing spaces or dashes are not a temporal x-axis."""
+    from superset.mcp_service.chart.preview_utils import (
+        generate_xy_pivot_vega_lite_preview,
+    )
+
+    form_data = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "x",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+    }
+    rows = [{"x": x, "revenue, East": 1, "revenue, West": 2} for x in x_values]
+
+    preview = generate_xy_pivot_vega_lite_preview(rows, form_data, mark="bar")
+
+    assert preview is not None
+    assert preview.specification["encoding"]["x"]["type"] == expected

@@ -2187,10 +2187,8 @@ def merge_update_form_data(  # noqa: C901
     State never crosses a visualization boundary: a viz-type change starts from
     the mapper's output, so the previous chart's predicates are not restored.
     """
-    existing_viz_type = existing_form_data.get("viz_type")
-    if isinstance(existing_viz_type, str) and existing_viz_type != new_form_data.get(
-        "viz_type"
-    ):
+    # A missing saved viz_type is a boundary too, matching merge_chart_form_data.
+    if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
         return
     existing_form_data = _normalize_native_filter_aliases(existing_form_data)
     # The initial overlay may carry legacy keys from saved form data. Filter
@@ -2591,6 +2589,10 @@ def validate_merged_bullet_form_data(
     validation_data = dict(form_data)
     for native_query_key in ("url_params", "extra_form_data", "extra_filters"):
         validation_data.pop(native_query_key, None)
+    if not validation_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
+        # A null marker records an explicit subject clear with no binding to
+        # validate; it is not an authored physical column.
+        validation_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
     if update_config is None or isinstance(update_config, BulletChartConfig):
         if update_config is None or update_config.dimensions is None:
             validation_data.pop("groupby", None)

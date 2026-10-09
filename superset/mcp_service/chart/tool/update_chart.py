@@ -102,6 +102,11 @@ def _get_existing_form_data(chart: Any) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         logger.warning("Failed to parse existing chart.params for chart %s", chart.id)
         return {}
+    # Like Slice.form_data, the saved viz_type column is authoritative when
+    # params omit it, so every merge sees the same visualization boundary.
+    viz_type = getattr(chart, "viz_type", None)
+    if not parsed.get("viz_type") and isinstance(viz_type, str) and viz_type:
+        parsed["viz_type"] = viz_type
     return parsed
 
 

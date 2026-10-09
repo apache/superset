@@ -2413,6 +2413,30 @@ def fallback_vega_lite_preview(
     return None
 
 
+def _xy_pivot_x_type(values: list[Any]) -> str:
+    """Infer the Vega-Lite x type from every x value, not a character scan.
+
+    The renderer has no column metadata, so text is temporal only when each
+    value parses as an ISO date or datetime; labels such as ``New York`` stay
+    nominal instead of becoming unparseable dates.
+    """
+    present = [value for value in values if value is not None]
+    if not present:
+        return "nominal"
+    if all(
+        isinstance(value, (int, float)) and not isinstance(value, bool)
+        for value in present
+    ):
+        return "quantitative"
+    if all(
+        isinstance(value, (date, datetime))
+        or (isinstance(value, str) and _gantt_temporal_value(value) is not None)
+        for value in present
+    ):
+        return "temporal"
+    return "nominal"
+
+
 def generate_xy_pivot_vega_lite_preview(
     data: list[dict[str, Any]], form_data: dict[str, Any], *, mark: str
 ) -> VegaLitePreview | None:
@@ -2482,14 +2506,7 @@ def generate_xy_pivot_vega_lite_preview(
         fields = [field for field in data[0] if field != x_axis]
     if not fields:
         return None
-    sample = data[0][x_axis]
-    x_type = (
-        "temporal"
-        if isinstance(sample, str) and any(char in sample for char in "-/: ")
-        else "quantitative"
-        if isinstance(sample, (int, float))
-        else "nominal"
-    )
+    x_type = _xy_pivot_x_type([row.get(x_axis) for row in data])
     return VegaLitePreview(
         specification={
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",

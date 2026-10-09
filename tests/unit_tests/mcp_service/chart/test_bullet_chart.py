@@ -5106,3 +5106,86 @@ async def test_saved_bullet_labels_update_persists_native_query_context() -> Non
     )
     assert persisted["extra_form_data"] == extra_form_data
     assert persisted["extra_filters"] == [{"col": "Region", "op": "in", "val": ["EU"]}]
+
+
+@pytest.mark.parametrize("preview_first", [False, True])
+def test_saved_params_without_viz_type_do_not_leak_filters_across_viz_change(
+    preview_first: bool,
+) -> None:
+    """The viz_type column marks the boundary when saved params omit it."""
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Pie",
+        viz_type="pie",
+        params=__import__("json").dumps(
+            {
+                "metric": "SavedRevenue",
+                "groupby": ["Region"],
+                "adhoc_filters": [
+                    {
+                        "clause": "WHERE",
+                        "expressionType": "SIMPLE",
+                        "subject": "Region",
+                        "operator": "==",
+                        "comparator": "US",
+                    }
+                ],
+            }
+        ),
+    )
+    from superset.mcp_service.chart.schemas import TableChartConfig
+
+    request = UpdateChartRequest(
+        identifier=9,
+        config=TableChartConfig(columns=[{"name": "Region"}]),
+        generate_preview=False,
+    )
+    if preview_first:
+        merged = _build_preview_form_data(request, chart, request.config)
+        assert isinstance(merged, dict)
+    else:
+        payload = _build_update_payload(request, chart, request.config)
+        assert isinstance(payload, dict)
+        merged = __import__("json").loads(payload["params"])
+
+    assert merged["viz_type"] == "table"
+    assert not any(
+        item.get("subject") == "Region" for item in merged.get("adhoc_filters") or []
+    )
+
+
+def test_saved_bullet_params_without_viz_type_keep_native_hierarchy() -> None:
+    """A Bullet saved without params.viz_type keeps its omitted hierarchy."""
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Bullet",
+        viz_type="bullet",
+        params=__import__("json").dumps(
+            {"metric": "SavedRevenue", "groupby": ["Region"]}
+        ),
+    )
+    request = UpdateChartRequest(
+        identifier=9,
+        config=BulletChartConfig(metric=_simple_metric("Revenue")),
+        generate_preview=False,
+    )
+    payload = _build_update_payload(request, chart, request.config)
+    assert isinstance(payload, dict)
+    assert __import__("json").loads(payload["params"])["groupby"] == ["Region"]
+
+
+def test_bullet_null_time_subject_marker_validates_with_filters() -> None:
+    """An explicit subject clear is not an authored column, even with filters."""
+    config = BulletChartConfig(
+        metric=_simple_metric("Revenue"),
+        temporal_column=None,
+        filters=[{"column": "Status", "op": "=", "value": "Active"}],
+    )
+    form_data = {
+        **map_bullet_config(config),
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT: None,
+    }
+
+    assert validate_merged_bullet_form_data(form_data, config) is not None
