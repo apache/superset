@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-09 06:02+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -988,9 +988,7 @@ msgstr ""
 msgid "A rule with this name already exists."
 msgstr ""
 
-msgid ""
-"A semantic view's provider query is produced when the chart runs and "
-"returned with its data."
+msgid "A semantic view's provider query is produced when the chart runs and returned with its data."
 msgstr ""
 
 msgid "A set of parameters that become available in the query using Jinja templating syntax"
@@ -4812,6 +4810,9 @@ msgid "Date format"
 msgstr ""
 
 msgid "Date format string"
+msgstr ""
+
+msgid "Date range filter"
 msgstr ""
 
 msgid "Date/Time"
@@ -10158,6 +10159,9 @@ msgstr ""
 msgid "Plain"
 msgstr ""
 
+msgid "Plain calendar date-range filter, with no time-of-day or relative-range options"
+msgstr ""
+
 msgid "Please check your query and confirm that all template parameters are surround by double braces, for example, \"{{ ds }}\". Then, try running your query again."
 msgstr ""
 
@@ -14113,16 +14117,10 @@ msgstr ""
 msgid "The selected %s are linked to %s on %s. Deleting them will break those objects."
 msgstr ""
 
-msgid ""
-"The semantic layer could not verify that this query result is complete. "
-"Retry the query; if it continues, ask an administrator to check the "
-"semantic-layer connection."
+msgid "The semantic layer could not verify that this query result is complete. Retry the query; if it continues, ask an administrator to check the semantic-layer connection."
 msgstr ""
 
-msgid ""
-"The semantic layer returned only part of this query result. Narrow the time "
-"range or selected dimensions, or request a smaller explicit row limit, then "
-"retry. Result pagination is not supported yet."
+msgid "The semantic layer returned only part of this query result. Narrow the time range or selected dimensions, or request a smaller explicit row limit, then retry. Result pagination is not supported yet."
 msgstr ""
 
 msgid "The semantic-layer provider is unavailable."

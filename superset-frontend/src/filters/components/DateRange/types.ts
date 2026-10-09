@@ -16,9 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as SelectFilterPlugin } from './Select';
-export { default as RangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
-export { default as DateRangeFilterPlugin } from './DateRange';
-export { default as TimeColumnFilterPlugin } from './TimeColumn';
-export { default as TimeGrainFilterPlugin } from './TimeGrain';
+import { RefObject } from 'react';
+import {
+  Behavior,
+  DataRecord,
+  FilterState,
+  QueryFormData,
+} from '@superset-ui/core';
+import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
+
+interface PluginFilterDateRangeCustomizeProps {
+  defaultValue?: string | null;
+}
+
+export type PluginFilterDateRangeQueryFormData = QueryFormData &
+  PluginFilterStylesProps &
+  PluginFilterDateRangeCustomizeProps;
+
+export type PluginFilterDateRangeProps = PluginFilterStylesProps & {
+  behaviors: Behavior[];
+  data: DataRecord[];
+  formData: PluginFilterDateRangeQueryFormData;
+  filterState: FilterState;
+  inputRef: RefObject<HTMLInputElement>;
+  isOverflowingFilterBar?: boolean;
+} & PluginFilterHooks;
+
+export const DEFAULT_FORM_DATA: PluginFilterDateRangeCustomizeProps = {
+  defaultValue: null,
+};

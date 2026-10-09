@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-09 06:02+0000\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -4416,6 +4416,9 @@ msgstr "Zwiń panel danych"
 msgid "Collapse row"
 msgstr "Zwiń wiersz"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Zwiń ustawienia"
 
@@ -6055,6 +6058,9 @@ msgstr "Format daty"
 #, fuzzy
 msgid "Date format string"
 msgstr "Ciąg formatu daty"
+
+msgid "Date range filter"
+msgstr ""
 
 msgid "Date/Time"
 msgstr "Data/godzina"
@@ -8294,6 +8300,9 @@ msgstr "Nie udało się załadować danych wykresu."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -9807,6 +9816,9 @@ msgstr "Nieprawidłowy typ wyniku: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Nieprawidłowy rolling_type: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Nieprawidłowy stan."
@@ -12051,6 +12063,9 @@ msgstr "Jedna lub wiele miar do wyświetlenia"
 msgid "One or more annotation layers failed loading."
 msgstr "Nie udało się załadować jednej lub więcej warstw adnotacji."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "Jedna lub więcej kolumn już istnieje"
 
@@ -12763,6 +12778,11 @@ msgstr "Piksele"
 
 msgid "Plain"
 msgstr "Prosty"
+
+msgid ""
+"Plain calendar date-range filter, with no time-of-day or relative-range "
+"options"
+msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "
@@ -14270,6 +14290,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Zapytanie SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Wyrażenie SQL"
@@ -15880,6 +15905,9 @@ msgstr "Pokaż podsumowanie"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "Pokaż sumę całkowitą"
@@ -16441,6 +16469,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -18110,6 +18143,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "Pokaż wartości serii na wykresie"
@@ -18828,6 +18876,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -20610,6 +20670,9 @@ msgstr "Format wartości"
 #, fuzzy
 msgid "Value and Percentage"
 msgstr "Wartość i procent"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Granice wartości"
