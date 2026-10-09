@@ -202,7 +202,7 @@ def test_copy_dashboard_attaches_viewers_from_the_users_in_memory_groups(
         dashboard_module.copy_dashboard(
             MagicMock(),
             MagicMock(),
-            user,  # type: ignore[arg-type]
+            user,
         )
 
     assert created["viewers"] == [viewer]

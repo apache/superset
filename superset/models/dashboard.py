@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict, deque
+from collections.abc import Sequence
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
@@ -90,7 +91,7 @@ def _copy_dashboard_for_user(
         get_user_subject,
     )
 
-    def _rebind(subjects: list[Subject | None]) -> list[Subject]:
+    def _rebind(subjects: Sequence[Subject | None]) -> list[Subject]:
         """The helpers resolve subjects on ``db.session``; a persistent object
         cannot be cascaded into a second session."""
         ids = [s.id for s in subjects if s is not None]
