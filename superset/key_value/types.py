@@ -41,6 +41,7 @@ class KeyValueFilter(TypedDict, total=False):
 
 class KeyValueResource(StrEnum):
     APP = "app"
+    ALERT_REPORT_CONFIG = "alert_report_config"
     DASHBOARD_PERMALINK = "dashboard_permalink"
     EXCEL_EXPORT_DOWNLOAD = "excel_export_download"
     EXPLORE_PERMALINK = "explore_permalink"
@@ -48,6 +49,12 @@ class KeyValueResource(StrEnum):
     LOCK = "lock"
     PKCE_CODE_VERIFIER = "pkce_code_verifier"
     SQLLAB_PERMALINK = "sqllab_permalink"
+
+
+# Stable UUIDs for resources that keep one named row in the key-value store.
+FIXED_RESOURCE_KEYS: dict[KeyValueResource, UUID] = {
+    KeyValueResource.ALERT_REPORT_CONFIG: UUID("d4f7d2f0-bbd7-4d03-b1da-09c70f5705ec"),
+}
 
 
 class SharedKey(StrEnum):
