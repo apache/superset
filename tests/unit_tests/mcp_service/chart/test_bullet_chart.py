@@ -4857,3 +4857,93 @@ def test_bullet_null_time_subject_marker_validates_with_filters() -> None:
     }
 
     assert validate_merged_bullet_form_data(form_data, config) is not None
+
+
+@pytest.mark.parametrize(
+    ("field", "values"),
+    [
+        ("range_labels", ["r" * 200] * 100),
+        ("marker_labels", ["m" * 200] * 100),
+        ("marker_line_labels", ["l" * 200] * 100),
+        ("ranges", [-2.2250738585072014e-308] * 100),
+        ("markers", [-2.2250738585072014e-308] * 100),
+        ("marker_lines", [-2.2250738585072014e-308] * 100),
+    ],
+)
+def test_bullet_schema_maximum_presentation_controls_render(
+    field: str, values: list[Any]
+) -> None:
+    """Every config the schema accepts must survive the joined native control."""
+    config = BulletChartConfig(metric=_simple_metric(), **{field: values})
+    mapped = map_bullet_config(config)
+    assert len(mapped[field]) > 2000
+
+    model = resolve_bullet_render_model([{"SUM(revenue)": 1.0}], mapped)
+    assert getattr(model, field) == values
+
+
+def test_bullet_native_order_aliases_are_concatenated_not_shadowed() -> None:
+    config = BulletChartConfig.model_validate(
+        {
+            "viz_type": "bullet",
+            "metric": "sales",
+            "groupby": ["region"],
+            "orderby": [],
+            "order_by_cols": ['["sales", false]'],
+            "row_limit": 1,
+        }
+    )
+    assert [(item.column, item.ascending) for item in config.order_by] == [
+        ("sales", False)
+    ]
+
+    both = BulletChartConfig.model_validate(
+        {
+            "viz_type": "bullet",
+            "metric": "sales",
+            "groupby": ["region"],
+            "order_by_cols": ['["region", true]'],
+            "orderby": [["sales", False]],
+        }
+    )
+    assert [(item.column, item.ascending) for item in both.order_by] == [
+        ("region", True),
+        ("sales", False),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("request_cls", "extra"),
+    [
+        (GenerateChartRequest, {"dataset_id": 7}),
+        (UpdateChartRequest, {"identifier": 7}),
+        (UpdateChartPreviewRequest, {"dataset_id": 7, "form_data_key": "k"}),
+    ],
+)
+def test_bullet_native_numeric_controls_parse_alike_on_request_paths(
+    request_cls: Any, extra: dict[str, Any]
+) -> None:
+    native = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "markers": "0x64",
+        "ranges": "10, oops, 20",
+    }
+    direct = BulletChartConfig.model_validate(native)
+    request = request_cls.model_validate({**extra, "config": native})
+    assert isinstance(request.config, BulletChartConfig)
+    assert request.config.markers == direct.markers == [100.0]
+    assert request.config.ranges == direct.ranges == [10.0, 20.0]
+
+    # Typed requests keep strict float validation for newly authored lists.
+    with pytest.raises(ValidationError):
+        request_cls.model_validate(
+            {
+                **extra,
+                "config": {
+                    "chart_type": "bullet",
+                    "metric": "Revenue",
+                    "markers": "0x64",
+                },
+            }
+        )

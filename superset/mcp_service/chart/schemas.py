@@ -4361,7 +4361,10 @@ class BulletChartConfig(BaseChartConfig):
                 )
             # Avoid relying on AliasChoices precedence or JSON key order.
             data.pop("groupby")
-        if data.get("viz_type") == "bullet":
+        # The request normalizer maps viz_type to chart_type before this model
+        # runs and records native provenance with the shared marker instead.
+        native_marker = data.pop(_NATIVE_FORM_DATA_MARKER, False)
+        if data.get("viz_type") == "bullet" or native_marker is True:
             from superset.mcp_service.chart.preview_utils import (
                 _bullet_numeric_control_tokens,
             )
@@ -4421,9 +4424,16 @@ class BulletChartConfig(BaseChartConfig):
                     {"name": item} if isinstance(item, str) else item
                     for item in data[key]
                 ]
-        for key in ("order_by", "orderby", "order_by_cols"):
-            if key in data:
-                data[key] = cls._adapt_native_order_by(data[key])
+        # Native extractQueryFields concatenates orderby and order_by_cols in
+        # key order; AliasChoices would keep only the first alias present.
+        order_keys = [
+            key for key in data if key in ("order_by", "orderby", "order_by_cols")
+        ]
+        if order_keys:
+            ordering: list[Any] = []
+            for key in order_keys:
+                ordering.extend(cls._adapt_native_order_by(data.pop(key)))
+            data["order_by"] = ordering
         cls._adapt_native_filters(data)
         return data
 
@@ -5679,7 +5689,7 @@ def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
         # Explore form data always carries ``viz_type``; typed requests use
         # ``chart_type``. Only native payloads get native metric semantics.
         is_native_payload = isinstance(viz_type, str)
-        if viz_type == "sunburst_v2":
+        if viz_type in ("sunburst_v2", "bullet"):
             # The discriminator normalization below removes viz_type before the
             # nested model runs. Carry native provenance through that boundary
             # so saved Explore payloads retain their bounded round-trip mode.

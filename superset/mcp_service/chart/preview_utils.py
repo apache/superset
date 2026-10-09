@@ -1876,6 +1876,12 @@ _JAVASCRIPT_WHITESPACE = (
 _MAX_BULLET_TOKENS = 256
 
 
+# A comma-joined presentation control holds up to _MAX_BULLET_TOKENS tokens of
+# _MAX_BULLET_TEXT_BYTES each, so the whole-control bound must cover that many
+# tokens plus separators rather than reuse the per-token bound.
+_MAX_BULLET_CONTROL_CHARS = _MAX_BULLET_TOKENS * (_MAX_BULLET_TEXT_BYTES + 1)
+
+
 _ENUM_SCALAR_TYPES = (str, int, float, bool, Decimal)
 
 
@@ -2220,7 +2226,7 @@ def _bullet_string_tokens(value: Any) -> list[str]:
     value = _safe_enum_backing(value)
     if value is None:
         return []
-    if type(value) is not str or len(value) > _MAX_BULLET_TEXT_BYTES:
+    if type(value) is not str or len(value) > _MAX_BULLET_CONTROL_CHARS:
         raise BulletOutputError("Bullet labels must be a bounded comma-separated list")
     if not value.strip():
         return []
@@ -2514,7 +2520,7 @@ def _bullet_numeric_control_tokens(value: Any, role: str) -> list[float]:  # noq
     if value is None or (type(value) is str and value == ""):
         return []
     if type(value) is str:
-        if len(value) > _MAX_BULLET_TEXT_BYTES:
+        if len(value) > _MAX_BULLET_CONTROL_CHARS:
             raise BulletOutputError(f"Bullet {role} exceeds the size limit")
         tokens: list[Any] = value.split(",")
     elif type(value) is list:
