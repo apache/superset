@@ -46,21 +46,16 @@ export type SharedColumnConfigProp =
   | 'displayTypeIcon'
   | 'currencyFormat';
 
-const d3NumberFormatOptions: [string, string][] = [
-  ...D3_FORMAT_OPTIONS,
-  [',.0f', ',.0f (12,345)'],
-];
-
 const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   allowNewOptions: true,
   controlType: 'Select',
   label: t('D3 format'),
   description: D3_FORMAT_DOCS,
-  options: d3NumberFormatOptions.map(option => ({
+  options: D3_FORMAT_OPTIONS.map(option => ({
     value: option[0],
     label: option[1],
   })),
-  defaultValue: d3NumberFormatOptions[0][0],
+  defaultValue: D3_FORMAT_OPTIONS[0][0],
   creatable: true,
   // Keep commas out of token separators because they are valid in D3 number formats.
   tokenSeparators: ['\r\n', '\n', '\t', ';'],

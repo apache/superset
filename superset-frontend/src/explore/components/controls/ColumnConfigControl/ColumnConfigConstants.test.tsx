@@ -24,7 +24,7 @@ test('should include the comma-separated number format preset', () => {
 
   expect(options).toContainEqual({
     value: ',.0f',
-    label: ',.0f (12,345)',
+    label: ',.0f (12345.432 => 12,345)',
   });
 });
 
