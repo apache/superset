@@ -19,12 +19,20 @@
 
 from __future__ import annotations
 
+import os
 import uuid
-from typing import Any
-from unittest.mock import MagicMock, patch
+from pathlib import Path
+from typing import Any, cast
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
+from flask.testing import FlaskClient
+from pytest_mock import MockerFixture
+from sqlalchemy import inspect, select
+from sqlalchemy.engine import Connection, Engine
+from sqlalchemy.orm import Session
+from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
     Dimension,
     Grains,
@@ -35,7 +43,9 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 from superset_core.semantic_layers.view import SemanticViewFeature
+from werkzeug.test import TestResponse
 
+from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.models import (
     ColumnMetadata,
     get_column_type,
@@ -410,16 +420,80 @@ def test_semantic_view_query_language() -> None:
 
 
 def test_semantic_view_get_query_str() -> None:
-    """Test SemanticView get_query_str method."""
-    view = SemanticView()
-    result = view.get_query_str({})
-    assert result == "Not implemented for semantic layers"
+    """Reject query previews that cannot provide a semantic provider request."""
+    view: SemanticView = SemanticView()
+    with pytest.raises(
+        QueryObjectValidationError, match="produced when the chart runs"
+    ):
+        view.get_query_str({})
+
+
+def test_semantic_query_placeholder_is_absent() -> None:
+    """Keep the retired placeholder out of backend and frontend source."""
+    root: Path = Path(__file__).resolve().parents[3]
+    directory: Path
+    current: str
+    directories: list[str]
+    filenames: list[str]
+    filename: str
+    for directory in (root / "superset", root / "superset-frontend" / "src"):
+        for current, directories, filenames in os.walk(directory):
+            directories[:] = sorted(set(directories) - {"static", "__pycache__"})
+            for filename in filenames:
+                source: Path = Path(current) / filename
+                if source.suffix in {".py", ".ts", ".tsx", ".js", ".jsx"}:
+                    assert (
+                        b"Not implemented for semantic layers"
+                        not in source.read_bytes()
+                    ), str(source)
+
+
+def test_semantic_view_query_endpoint_returns_error(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Return a semantic query validation error in the chart-data envelope."""
+    view: SemanticView = SemanticView(id=1)
+    implementation: MagicMock = MagicMock()
+    implementation.get_dimensions.return_value = []
+    implementation.get_metrics.return_value = []
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=implementation,
+    )
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+    )
+    mocker.patch.object(SemanticView, "raise_for_access")
+
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 1, "type": "semantic_view"},
+            "queries": [{}],
+            "result_type": "query",
+            "result_format": "json",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"][0]["error"]
+    assert response.json["result"][0]["language"] is None
+    assert "query" not in response.json["result"][0]
 
 
 def test_semantic_view_get_extra_cache_keys() -> None:
     """Test SemanticView get_extra_cache_keys method."""
-    view = SemanticView()
-    result = view.get_extra_cache_keys({})
+    from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
+
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    with patch.dict(
+        "superset.semantic_layers.models.registry", {"fixture": ProviderLayer}
+    ):
+        result: list[Any] = view.get_extra_cache_keys({})
     assert result == []
 
 
@@ -1223,6 +1297,55 @@ def test_semantic_view_get_compatible_dimensions(
 # =============================================================================
 
 
+def test_semantic_layer_loads_all_semantic_views(session: Session) -> None:
+    """A reloaded layer exposes every stored view as a collection."""
+    assert inspect(SemanticLayer).relationships.semantic_views.uselist is True
+    SemanticView.metadata.create_all(session.get_bind())
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Orders", type="test", configuration="{}"
+    )
+    views: list[SemanticView] = [
+        SemanticView(name=name, semantic_layer=layer, configuration="{}")
+        for name in ("Daily", "Monthly")
+    ]
+    session.add_all([layer, *views])
+    session.flush()
+    session.expire(layer, ["semantic_views"])
+
+    assert isinstance(layer.semantic_views, list)
+    assert {view.name for view in layer.semantic_views} == {"Daily", "Monthly"}
+
+
+@pytest.mark.parametrize("load_before_delete", [True, False])
+def test_semantic_layer_delete_removes_multiple_views(
+    session: Session, load_before_delete: bool
+) -> None:
+    """Loaded and unloaded relationships delete all persisted child rows."""
+    engine: Engine = cast(Engine, session.get_bind())
+    connection: Connection
+    with engine.connect() as connection:
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+    SemanticView.metadata.create_all(engine)
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Orders", type="test", configuration="{}"
+    )
+    views: list[SemanticView] = [
+        SemanticView(name=name, semantic_layer=layer, configuration="{}")
+        for name in ("Daily", "Monthly")
+    ]
+    session.add_all([layer, *views])
+    session.flush()
+    view_ids: set[int] = {view.id for view in views}
+    session.expire(layer, ["semantic_views"])
+    if load_before_delete:
+        assert {view.id for view in layer.semantic_views} == view_ids
+
+    session.delete(layer)
+    session.flush()
+
+    assert session.scalars(select(SemanticView.id)).all() == []
+
+
 def test_semantic_view_compatible_dimensions_collapse_grains(
     mock_implementation: MagicMock,
 ) -> None:
@@ -1788,6 +1911,21 @@ def test_semantic_layer_after_delete_calls_security_manager() -> None:
 
     with patch.object(security_manager, "semantic_layer_after_delete") as mock_hook:
         SemanticLayer.after_delete(mapper, connection, target)
+
+    mock_hook.assert_called_once_with(mapper, connection, target)
+
+
+def test_semantic_layer_before_delete_calls_security_manager() -> None:
+    """Test SemanticLayer.before_delete delegates to security manager."""
+    from superset import security_manager
+
+    mapper: MagicMock = MagicMock()
+    connection: MagicMock = MagicMock()
+    target: MagicMock = MagicMock(spec=SemanticLayer)
+
+    mock_hook: MagicMock = MagicMock()
+    with patch.object(security_manager, "semantic_layer_before_delete", mock_hook):
+        SemanticLayer.before_delete(mapper, connection, target)
 
     mock_hook.assert_called_once_with(mapper, connection, target)
 
@@ -2404,3 +2542,386 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert mock_implementation.get_values.call_args.args[1] is None
     assert "rejected the value-search filter" in caplog.text
     assert "category" in caplog.text
+
+
+@pytest.mark.parametrize("reason", ["incomplete", "unverified"])
+def test_values_fallback_translates_provider_completeness_error(
+    mock_implementation: MagicMock,
+    reason: SemanticResultCompletenessReason,
+) -> None:
+    """An unfiltered retry must retain the provider's fail-closed error."""
+    from superset_core.semantic_layers import errors as core_errors
+
+    from superset.exceptions import SemanticResultCompletenessError
+
+    view: SemanticView = SemanticView()
+    failure: core_errors.SemanticResultCompletenessError = (
+        core_errors.SemanticResultCompletenessError(reason)
+    )
+    mock_implementation.get_values.side_effect = [
+        RuntimeError("LIKE unsupported on this dimension"),
+        failure,
+    ]
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        with pytest.raises(SemanticResultCompletenessError) as excinfo:
+            view.values_for_column("category", search="oo")
+
+    assert excinfo.value.reason == reason
+    assert excinfo.value.__cause__ is failure
+    assert mock_implementation.get_values.call_count == 2
+    assert mock_implementation.get_values.call_args.args[1] is None
+
+
+@pytest.mark.parametrize("version", [None, "metricflow-completeness-v1"])
+def test_result_generation_reads_class_without_provider_construction(
+    version: str | None,
+) -> None:
+    provider: MagicMock = MagicMock()
+    provider.result_cache_version = version
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
+        assert view.result_cache_version == version
+        assert view.get_extra_cache_keys({}) == (
+            [] if version is None else [("semantic-result-version", "fixture", version)]
+        )
+    provider.assert_not_called()
+
+
+@pytest.mark.parametrize("version", ["", " ", True, 1])
+def test_invalid_result_generation_fails_configuration(version: Any) -> None:
+    provider: MagicMock = MagicMock()
+    provider.result_cache_version = version
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
+        with pytest.raises(
+            QueryObjectValidationError, match="Invalid semantic result cache version"
+        ):
+            assert view.result_cache_version is None
+
+
+def test_completeness_failure_does_not_retry_unfiltered_values(
+    mock_implementation: MagicMock,
+) -> None:
+    from superset.exceptions import SemanticResultCompletenessError
+
+    view: SemanticView = SemanticView()
+    error: SemanticResultCompletenessError = SemanticResultCompletenessError(
+        "incomplete"
+    )
+    mock_implementation.get_values.side_effect = [error, _values_result(["Books"])]
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        with pytest.raises(SemanticResultCompletenessError):
+            view.values_for_column("category", search="oo")
+    assert mock_implementation.get_values.call_count == 1
+
+
+def test_unregistered_provider_cannot_use_guarded_result_cache() -> None:
+    """An absent provider declaration cannot downgrade to legacy cache identity."""
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    with patch.dict("superset.semantic_layers.models.registry", {}, clear=True):
+        with pytest.raises(QueryObjectValidationError, match="unavailable"):
+            view.get_extra_cache_keys({})
+
+
+@pytest.mark.parametrize("children_loaded", [False, True])
+def test_layer_delete_removes_child_view_permissions(
+    session: Any, children_loaded: bool
+) -> None:
+    """Deleting a layer removes each child view's access permission.
+
+    The permission and its role grants are removed whether or not the views
+    are loaded in the session.
+
+    Unloaded views are removed by the database ``ON DELETE CASCADE``
+    (``passive_deletes=True``), so their ORM ``after_delete`` hook never runs.
+    Superset enables SQLite foreign keys on its metadata engines; enable them
+    here so the cascade behaves as it does in production.
+    """
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+    from sqlalchemy import text
+
+    from superset import security_manager
+
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    SemanticLayer.metadata.create_all(session.get_bind())
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Deleted Layer", type="test", configuration="{}"
+    )
+    session.add(layer)
+    session.flush()
+    # Two children exercise both loaded ORM deletion and unloaded DB cascade.
+    views: list[SemanticView] = [
+        SemanticView(name=name, semantic_layer_uuid=layer.uuid, configuration="{}")
+        for name in ("Child View", "Second Child View")
+    ]
+    session.add_all(views)
+    session.flush()
+    view_perms: list[str] = [view.perm for view in views]
+    pvms: list[PermissionView | None] = [
+        security_manager.find_permission_view_menu("datasource_access", view_perm)
+        for view_perm in view_perms
+    ]
+    assert all(pvms)
+    role: Role = Role(name="child view reader", permissions=pvms)
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+
+    if children_loaded:
+        assert layer.semantic_views
+    else:
+        session.expire(layer, ["semantic_views"])
+    session.delete(layer)
+    session.commit()
+    session.expire_all()
+
+    assert session.query(SemanticView).count() == 0
+    assert all(
+        security_manager.find_permission_view_menu("datasource_access", view_perm)
+        is None
+        for view_perm in view_perms
+    )
+    assert session.get(Role, role_id).permissions == []
+
+
+def test_layer_delete_batches_permission_ownership_queries(session: Any) -> None:
+    """The unloaded layer hook batches child permission ownership checks."""
+    from sqlalchemy import event, inspect
+
+    from superset import security_manager
+
+    SemanticLayer.metadata.create_all(session.get_bind())
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Many Views", type="test", configuration="{}"
+    )
+    session.add(layer)
+    session.flush()
+    views: list[SemanticView] = [
+        SemanticView(
+            name=f"Child {number}", semantic_layer_uuid=layer.uuid, configuration="{}"
+        )
+        for number in range(30)
+    ]
+    session.add_all(views)
+    session.flush()
+    connection: Connection = session.connection()
+    selects: list[str] = []
+
+    def record_select(
+        _connection: Connection,
+        _cursor: Any,
+        statement: str,
+        _parameters: Any,
+        _context: Any,
+        _executemany: bool,
+    ) -> None:
+        """Record ownership reads during the deletion hook."""
+        if statement.lstrip().upper().startswith("SELECT"):
+            selects.append(statement)
+
+    delete_pvm: MagicMock = MagicMock()
+    event.listen(connection, "before_cursor_execute", record_select)
+    try:
+        with patch.object(security_manager, "_delete_pvm_on_sqla_event", delete_pvm):
+            security_manager.semantic_layer_before_delete(
+                inspect(SemanticLayer), connection, layer
+            )
+    finally:
+        event.remove(connection, "before_cursor_execute", record_select)
+
+    assert delete_pvm.call_count == 30
+    assert len(selects) <= 3
+    assert all("configuration" not in statement.lower() for statement in selects)
+    assert all(" IN (" not in statement.upper() for statement in selects)
+    assert all("NOT IN" not in statement.upper() for statement in selects)
+
+
+@pytest.mark.parametrize("deleted", ["layer", "view"])
+def test_view_delete_keeps_permission_another_resource_owns(
+    session: Any, deleted: str
+) -> None:
+    """Deleting a view preserves permissions owned by a live resource.
+
+    This holds for both direct view deletion and layer deletion.
+    """
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+    from sqlalchemy import text
+
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    SemanticLayer.metadata.create_all(session.get_bind())
+    database: Database = Database(database_name="shared", sqlalchemy_uri="sqlite://")
+    dataset: SqlaTable = SqlaTable(id=1, table_name="orders", database=database)
+    session.add(dataset)
+    session.flush()
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="shared", type="test", configuration="{}"
+    )
+    session.add(layer)
+    session.flush()
+    view: SemanticView = SemanticView(
+        id=1, name="orders", semantic_layer_uuid=layer.uuid, configuration="{}"
+    )
+    session.add(view)
+    session.flush()
+    assert view.perm == dataset.perm
+    key: str = dataset.perm
+    pvm: PermissionView | None = security_manager.find_permission_view_menu(
+        "datasource_access", key
+    )
+    assert pvm is not None
+    role: Role = Role(name="orders reader", permissions=[pvm])
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+
+    session.delete(layer if deleted == "layer" else view)
+    session.commit()
+    session.expire_all()
+
+    assert session.query(SemanticView).count() == 0
+    assert session.get(SqlaTable, 1) is not None
+    assert security_manager.find_permission_view_menu("datasource_access", key)
+    assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
+
+
+def test_layer_delete_keeps_permission_a_view_in_another_layer_owns(
+    session: Session,
+) -> None:
+    """Deleting one layer retains a key used by a view in another layer."""
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+    from sqlalchemy import text, update
+
+    from superset import security_manager
+
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    SemanticLayer.metadata.create_all(session.get_bind())
+    deleted_layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Deleted Layer", type="test", configuration="{}"
+    )
+    retained_layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="Retained Layer", type="test", configuration="{}"
+    )
+    session.add_all([deleted_layer, retained_layer])
+    session.flush()
+    deleted_view: SemanticView = SemanticView(
+        name="Deleted View",
+        semantic_layer_uuid=deleted_layer.uuid,
+        configuration="{}",
+    )
+    retained_view: SemanticView = SemanticView(
+        name="Retained View",
+        semantic_layer_uuid=retained_layer.uuid,
+        configuration="{}",
+    )
+    session.add_all([deleted_view, retained_view])
+    session.flush()
+    key: str = deleted_view.perm
+    pvm: PermissionView | None = security_manager.find_permission_view_menu(
+        "datasource_access", key
+    )
+    assert pvm is not None
+    role: Role = Role(name="shared view reader", permissions=[pvm])
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+    retained_view_id: int = retained_view.id
+
+    # Model a legacy shared key without invoking the view update event.
+    session.execute(
+        update(SemanticView.__table__)
+        .where(SemanticView.__table__.c.id == retained_view_id)
+        .values(perm=key)
+    )
+    session.commit()
+    session.expire(deleted_layer, ["semantic_views"])
+    session.delete(deleted_layer)
+    session.commit()
+    session.expire_all()
+
+    assert session.get(SemanticView, retained_view_id).perm == key
+    assert security_manager.find_permission_view_menu("datasource_access", key)
+    assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
+
+
+def test_dataset_delete_keeps_permission_a_semantic_view_owns(session: Any) -> None:
+    """Deleting a dataset retains grants still used by a semantic view."""
+    from flask_appbuilder.security.sqla.models import PermissionView, Role
+
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SemanticLayer.metadata.create_all(session.get_bind())
+    database: Database = Database(database_name="shared", sqlalchemy_uri="sqlite://")
+    dataset: SqlaTable = SqlaTable(id=1, table_name="orders", database=database)
+    session.add(dataset)
+    session.flush()
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid.uuid4(), name="shared", type="test", configuration="{}"
+    )
+    session.add(layer)
+    session.flush()
+    view: SemanticView = SemanticView(
+        id=1, name="orders", semantic_layer_uuid=layer.uuid, configuration="{}"
+    )
+    session.add(view)
+    session.flush()
+    assert view.perm == dataset.perm
+    key: str = view.perm
+    pvm: PermissionView | None = security_manager.find_permission_view_menu(
+        "datasource_access", key
+    )
+    assert pvm is not None
+    role: Role = Role(name="shared permission reader", permissions=[pvm])
+    session.add(role)
+    session.commit()
+    role_id: int = role.id
+
+    session.delete(dataset)
+    session.commit()
+    session.expire_all()
+
+    assert session.get(SemanticView, view.id) is not None
+    assert security_manager.find_permission_view_menu("datasource_access", key)
+    assert [p.view_menu.name for p in session.get(Role, role_id).permissions] == [key]
+
+
+@pytest.mark.parametrize("reason", ["incomplete", "unverified"])
+@pytest.mark.parametrize("search", ["oo", None], ids=["search", "page"])
+def test_public_completeness_error_in_values_is_host_error_without_retry(
+    mock_implementation: MagicMock,
+    search: str | None,
+    reason: SemanticResultCompletenessReason,
+) -> None:
+    """A docs-following provider's error must not trigger the unfiltered retry."""
+    from superset_core.semantic_layers import errors as core_errors
+
+    from superset.exceptions import SemanticResultCompletenessError
+
+    view: SemanticView = SemanticView()
+    failure: core_errors.SemanticResultCompletenessError = (
+        core_errors.SemanticResultCompletenessError(reason)
+    )
+    mock_implementation.get_values.side_effect = [failure, _values_result(["Books"])]
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        with pytest.raises(SemanticResultCompletenessError) as excinfo:
+            view.values_for_column("category", search=search)
+    assert excinfo.value.reason == reason
+    assert excinfo.value.__cause__ is failure
+    assert mock_implementation.get_values.call_count == 1

@@ -596,6 +596,7 @@ const SliceHeaderControls = (
           modalTitle={t('View query')}
           modalBody={
             <ViewQueryModal
+              chartId={props.slice.slice_id}
               latestQueryFormData={props.formData}
               ownState={props.ownState}
             />

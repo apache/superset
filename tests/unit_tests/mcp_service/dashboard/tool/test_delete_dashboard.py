@@ -58,6 +58,7 @@ def _mock_dashboard(dashboard_id: int = 1, title: str = "Sales Dashboard") -> Mo
     dashboard = Mock()
     dashboard.id = dashboard_id
     dashboard.dashboard_title = title
+    dashboard.is_managed_externally = False
     return dashboard
 
 

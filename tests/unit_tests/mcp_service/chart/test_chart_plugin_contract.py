@@ -42,7 +42,10 @@ from superset.mcp_service.chart import (
     query_result,
 )
 from superset.mcp_service.chart.chart_helpers import build_query_dicts_from_form_data
-from superset.mcp_service.chart.chart_utils import merge_chart_form_data
+from superset.mcp_service.chart.chart_utils import (
+    merge_chart_form_data,
+    merge_form_data_for_update,
+)
 from superset.mcp_service.chart.plugin import BaseChartPlugin, ChartTypePlugin
 from superset.mcp_service.chart.preview_utils import (
     _generate_ascii_preview_from_data,
@@ -75,6 +78,13 @@ EXAMPLE_IDS = [
 ]
 
 HOOKS = (
+    "prepare_query_form_data",
+    "secondary_query_form_data",
+    "table_preview",
+    "unsupported_preview",
+    "validate_form_data_state",
+    "finalize_update_form_data",
+    "normalize_saved_form_data",
     "resolve_query_fields",
     "build_query_dicts",
     "normalize_query_result",
@@ -87,6 +97,8 @@ HOOKS = (
     "validate_merged_form_data",
 )
 FLAGS = (
+    "owns_update_merge",
+    "null_data_is_empty",
     "requires_compile_check",
     "requires_config_for_dataset_rebind",
     "strict_dataset_rebind",
@@ -539,31 +551,45 @@ def _branches_on_registered_type(tree: ast.AST, names: set[str]) -> list[str]:
 # preview-format selection ("table" also names a chart). Keep whole files scanned:
 # unlike a function allowlist, this multiset rejects added or duplicated branches.
 _LEGACY_TYPE_BRANCHES = (
+    # The shared Deck.gl adapter mirrors every native layer builder, including
+    # Scatter's dimension column and radius-metric ordering.
+    "superset.mcp_service.chart.chart_helpers: viz_type == 'deck_scatter'",
+    "superset.mcp_service.chart.chart_helpers: viz_type == 'deck_scatter'",
     (
-        "superset.mcp_service.chart.query_result: form_data.get('viz_type') != "
-        "'gauge_chart'"
+        "superset.mcp_service.chart.query_result: form_data.get('viz_type') "
+        "!= 'gauge_chart'"
     ),
     (
         "superset.mcp_service.chart.preview_utils: {'bar': "
-        "_generate_safe_ascii_bar_chart, 'dist_bar': _generate_safe_ascii_bar_chart, "
-        "'column': _generate_safe_ascii_bar_chart, 'line': "
-        "_generate_safe_ascii_line_chart, 'area': _generate_safe_ascii_line_chart, "
-        "'pie': _generate_safe_ascii_pie_chart}"
+        "_generate_safe_ascii_bar_chart, 'dist_bar': "
+        "_generate_safe_ascii_bar_chart, 'column': "
+        "_generate_safe_ascii_bar_chart, 'line': "
+        "_generate_safe_ascii_line_chart, 'area': "
+        "_generate_safe_ascii_line_chart, 'pie': "
+        "_generate_safe_ascii_pie_chart}"
     ),
     (
-        "superset.mcp_service.chart.preview_utils: {'echarts_timeseries_line': 'line', "
-        "'echarts_timeseries_bar': 'bar', 'echarts_area': 'area', "
-        "'echarts_timeseries_scatter': 'point', 'bar': 'bar', 'line': 'line', 'area': "
-        "'area', 'scatter': 'point', 'pie': 'arc', 'table': 'text'}"
+        "superset.mcp_service.chart.preview_utils: "
+        "{'echarts_timeseries_line': 'line', 'echarts_timeseries_bar': 'bar',"
+        " 'echarts_area': 'area', 'echarts_timeseries_scatter': 'point', "
+        "'bar': 'bar', 'line': 'line', 'area': 'area', 'scatter': 'point', "
+        "'pie': 'arc', 'table': 'text'}"
     ),
     "superset.mcp_service.chart.preview_utils: preview_format == 'table'",
+    (
+        "superset.mcp_service.chart.chart_utils: {'gantt_chart': "
+        "_GANTT_DATASET_ROLE_KEYS, 'gantt': _GANTT_DATASET_ROLE_KEYS, "
+        "'country_map': frozenset({'entity', 'metric', 'series_columns'}), "
+        "'world_map': frozenset({'entity', 'metric', 'secondary_metric', "
+        "'series_columns'})}"
+    ),
     (
         "superset.mcp_service.chart.chart_utils: {'table': 'table chart', "
         "'ag-grid-table': 'interactive table chart'}"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: form_data.get('viz_type') != "
-        "'gantt_chart'"
+        "superset.mcp_service.chart.chart_utils: form_data.get('viz_type') !="
+        " 'gantt_chart'"
     ),
     "superset.mcp_service.chart.chart_utils: viz_type == 'big_number'",
     (
@@ -574,43 +600,52 @@ _LEGACY_TYPE_BRANCHES = (
         "superset.mcp_service.chart.chart_utils: viz_type in "
         "['echarts_timeseries_line', 'echarts_timeseries_bar']"
     ),
+    ("superset.mcp_service.chart.chart_utils: isinstance(config, SunburstChartConfig)"),
     (
-        "superset.mcp_service.chart.chart_utils: {'echarts_timeseries_line': 'Shows "
-        "trends and changes over time', 'echarts_timeseries_bar': 'Compares values "
-        "across categories or time periods', 'table': 'Displays detailed data in "
-        "tabular format', 'ag-grid-table': 'Interactive table with advanced features "
-        "like column resizing, sorting, filtering, and server-side pagination', "
+        "superset.mcp_service.chart.chart_utils: {'echarts_timeseries_line': "
+        "'Shows trends and changes over time', 'echarts_timeseries_bar': "
+        "'Compares values across categories or time periods', 'table': "
+        "'Displays detailed data in tabular format', 'ag-grid-table': "
+        "'Interactive table with advanced features like column resizing, "
+        "sorting, filtering, and server-side pagination', "
         "'country_map': 'Colors regional boundaries by an aggregated metric', "
         "'world_map': 'Colors countries by a metric with optional metric-sized "
         "bubbles', 'deck_scatter': 'Plots numeric latitude/longitude locations "
-        "with optional sized points', 'pie': "
-        "'Shows proportional relationships within a dataset', 'echarts_area': "
+        "with optional sized points', 'pie': 'Shows "
+        "proportional relationships within a dataset', 'echarts_area': "
         "'Emphasizes cumulative totals and part-to-whole relationships', "
-        "'pivot_table_v2': 'Cross-tabulates data with rows, columns, and aggregated "
-        "metrics for multi-dimensional analysis', 'ag-grid-pivot-table': "
-        "'Interactively cross-tabulates data with AG Grid row groups, pivot columns, "
-        "value aggregation, and side-panel reconfiguration', 'mixed_timeseries': "
-        "'Combines two different chart types on the same time axis for comparing "
-        "related metrics with different scales', 'handlebars': 'Renders data using a "
-        "custom Handlebars HTML template for fully flexible layouts like KPI cards, "
-        "leaderboards, and reports', 'big_number': 'Displays a key metric with a "
-        "trendline showing how the value changes over time', 'big_number_total': "
-        "'Highlights a single key metric value as a prominent number'}"
+        "'pivot_table_v2': 'Cross-tabulates data with rows, columns, and "
+        "aggregated metrics for multi-dimensional analysis', "
+        "'ag-grid-pivot-table': 'Interactively cross-tabulates data with AG "
+        "Grid row groups, pivot columns, value aggregation, and side-panel "
+        "reconfiguration', 'mixed_timeseries': 'Combines two different chart "
+        "types on the same time axis for comparing related metrics with "
+        "different scales', 'handlebars': 'Renders data using a custom "
+        "Handlebars HTML template for fully flexible layouts like KPI cards, "
+        "leaderboards, and reports', 'big_number': 'Displays a key metric "
+        "with a trendline showing how the value changes over time', "
+        "'big_number_total': 'Highlights a single key metric value as a "
+        "prominent number', 'sunburst_v2': 'Shows hierarchical part-to-whole "
+        "relationships, with each ring adding a deeper categorical level'}"
     ),
+    ("superset.mcp_service.chart.chart_utils: isinstance(config, SunburstChartConfig)"),
     (
         "superset.mcp_service.chart.chart_utils: viz_type in "
         "['echarts_timeseries_line', 'echarts_timeseries_bar']"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: previous_form_data.get('viz_type') != "
-        "'gantt_chart'"
+        "superset.mcp_service.chart.chart_utils: "
+        "previous_form_data.get('viz_type') != 'gantt_chart'"
     ),
     (
-        "superset.mcp_service.chart.chart_utils: new_form_data.get('viz_type') != "
-        "'gantt_chart'"
+        "superset.mcp_service.chart.chart_utils: "
+        "new_form_data.get('viz_type') != 'gantt_chart'"
     ),
-    "superset.mcp_service.chart.chart_utils: isinstance(config, TreemapChartConfig)",
-    "superset.mcp_service.chart.chart_utils: existing.get('viz_type') == 'treemap_v2'",
+    ("superset.mcp_service.chart.chart_utils: isinstance(config, TreemapChartConfig)"),
+    (
+        "superset.mcp_service.chart.chart_utils: existing.get('viz_type') == "
+        "'treemap_v2'"
+    ),
     (
         "superset/mcp_service/chart/tool/get_chart_preview.py {'url': "
         "URLPreviewStrategy, 'ascii': ASCIIPreviewStrategy, 'table': "
@@ -619,36 +654,39 @@ _LEGACY_TYPE_BRANCHES = (
     (
         "superset/mcp_service/chart/tool/get_chart_preview.py {'line': "
         "['echarts_timeseries_line', 'echarts_timeseries', "
-        "'echarts_timeseries_smooth', 'echarts_timeseries_step', 'line'], 'bar': "
-        "['echarts_timeseries_bar', 'echarts_timeseries_column', 'bar', 'column', "
-        "'waterfall'], 'area': ['echarts_area', 'area'], 'scatter': "
-        "['echarts_timeseries_scatter', 'scatter'], 'pie': ['pie'], 'big_number': "
-        "['big_number', 'big_number_total'], 'histogram': ['histogram', "
-        "'histogram_v2'], 'box_plot': ['box_plot'], 'heatmap': ['heatmap', "
-        "'heatmap_v2', 'cal_heatmap'], 'funnel': ['funnel'], 'mixed': "
+        "'echarts_timeseries_smooth', 'echarts_timeseries_step', 'line'], "
+        "'bar': ['echarts_timeseries_bar', 'echarts_timeseries_column', "
+        "'bar', 'column', 'waterfall'], 'area': ['echarts_area', 'area'], "
+        "'scatter': ['echarts_timeseries_scatter', 'scatter'], 'pie': "
+        "['pie'], 'big_number': ['big_number', 'big_number_total'], "
+        "'histogram': ['histogram', 'histogram_v2'], 'box_plot': "
+        "['box_plot'], 'heatmap': ['heatmap', 'heatmap_v2', 'cal_heatmap'], "
+        "'funnel': ['funnel'], 'gauge': ['gauge_chart'], 'mixed': "
         "['mixed_timeseries'], 'table': ['table']}"
     ),
     (
-        "superset/mcp_service/chart/tool/get_chart_data.py {'echarts_timeseries_line': "
-        "'line', 'echarts_timeseries_smooth': 'line', 'echarts_timeseries_step': "
-        "'line', 'echarts_timeseries': 'line', 'echarts_timeseries_bar': 'bar', "
-        "'echarts_area': 'area', 'echarts_timeseries_scatter': 'scatter', "
-        "'mixed_timeseries': 'line', 'table': 'table', 'pie': 'pie', 'big_number': "
-        "'kpi', 'big_number_total': 'kpi', 'pop_kpi': 'kpi', 'dist_bar': 'bar', "
-        "'line': 'line', 'area': 'area', 'scatter': 'scatter', 'bubble': 'bubble', "
-        "'bubble_v2': 'bubble', 'treemap_v2': 'treemap', 'sunburst_v2': 'treemap', "
-        "'heatmap_v2': 'heatmap', 'gauge_chart': 'gauge', 'funnel': 'funnel', "
-        "'histogram': 'histogram', 'histogram_v2': 'histogram', 'box_plot': "
-        "'box_plot', 'world_map': 'world_map', 'country_map': 'country_map', "
-        "'deck_scatter': 'deck_scatter', 'pivot_table_v2': 'table', "
-        "'ag-grid-pivot-table': 'table', 'waterfall': 'waterfall', 'gantt_chart': "
-        "'gantt'}"
+        "superset/mcp_service/chart/tool/get_chart_data.py "
+        "{'echarts_timeseries_line': 'line', 'echarts_timeseries_smooth': "
+        "'line', 'echarts_timeseries_step': 'line', 'echarts_timeseries': "
+        "'line', 'echarts_timeseries_bar': 'bar', 'echarts_area': 'area', "
+        "'echarts_timeseries_scatter': 'scatter', 'mixed_timeseries': 'line',"
+        " 'table': 'table', 'pie': 'pie', 'big_number': 'kpi', "
+        "'big_number_total': 'kpi', 'pop_kpi': 'kpi', 'dist_bar': 'bar', "
+        "'line': 'line', 'area': 'area', 'scatter': 'scatter', 'bubble': "
+        "'bubble', 'bubble_v2': 'bubble', 'treemap_v2': 'treemap', "
+        "'sunburst_v2': 'sunburst', 'heatmap_v2': 'heatmap', 'gauge_chart': "
+        "'gauge', 'funnel': 'funnel', 'histogram': 'histogram', "
+        "'histogram_v2': 'histogram', 'box_plot': 'box_plot', 'world_map': "
+        "'world_map', 'country_map': 'country_map', 'deck_scatter': "
+        "'deck_scatter', 'pivot_table_v2': 'table', 'ag-grid-pivot-table': "
+        "'table', 'waterfall': 'waterfall', 'gantt_chart': 'gantt'}"
     ),
     (
-        "superset/mcp_service/chart/tool/get_chart_data.py {'line chart': 'line', "
-        "'multi-line chart': 'line', 'area chart': 'area', 'bar chart': 'bar', "
-        "'scatter plot': 'scatter', 'bubble chart': 'bubble', 'pie chart': 'pie', "
-        "'treemap': 'treemap', 'heatmap': 'heatmap', 'big number / KPI': 'kpi', 'gauge "
+        "superset/mcp_service/chart/tool/get_chart_data.py {'line chart': "
+        "'line', 'multi-line chart': 'line', 'area chart': 'area', 'bar "
+        "chart': 'bar', 'scatter plot': 'scatter', 'bubble chart': 'bubble', "
+        "'pie chart': 'pie', 'treemap': 'treemap', 'sunburst chart': "
+        "'sunburst', 'heatmap': 'heatmap', 'big number / KPI': 'kpi', 'gauge "
         "chart': 'gauge', 'histogram': 'histogram', 'table': 'table', "
         "'geographic points': 'deck_scatter', 'country map': 'country_map', "
         "'world map': 'world_map'}"
@@ -720,8 +758,13 @@ def test_saved_scalar_groupby_waterfall_query(groupby: str | list[str]) -> None:
         order_desc=False,
     )
     assert queries is not None
-    assert queries[0]["columns"] == ["month", "stage"]
-    assert queries[0]["orderby"] == [("month", True), ("stage", True)]
+    from superset.utils.core import get_column_name
+
+    assert [get_column_name(column) for column in queries[0]["columns"]] == [
+        "month",
+        "stage",
+    ]
+    assert queries[0]["orderby"] == [["month", True], ["stage", True]]
 
 
 @pytest.mark.parametrize("groupby", ["stage", ["stage"]])
@@ -756,8 +799,8 @@ def test_disabled_chart_update_requires_existing_plugin(
 
     from superset.mcp_service.chart import registry
     from superset.mcp_service.chart.tool.update_chart import (
-        _build_replacement_form_data,
         _get_existing_form_data,
+        _map_replacement_config,
     )
 
     config = _config(example)
@@ -785,11 +828,11 @@ def test_disabled_chart_update_requires_existing_plugin(
         ),
     ):
         assert get_registry().get(plugin.chart_type) is None
-        updated = _build_replacement_form_data(existing, config, 1)
+        updated = _map_replacement_config(existing, config, 1)
         assert updated["viz_type"] == existing["viz_type"]
         other = "table" if plugin.chart_type != "table" else "world_map"
         with pytest.raises(ValueError, match="Unsupported config type"):
-            _build_replacement_form_data({"viz_type": other}, config, 1)
+            _map_replacement_config({"viz_type": other}, config, 1)
 
 
 @pytest.mark.parametrize(
@@ -845,3 +888,69 @@ def test_compact_schema_annotations_are_isolated(nullable: bool) -> None:
         "mutation"
         not in CHART_CONFIG_REFERENCE_SCHEMA["properties"]["chart_type"]["enum"]
     )
+
+
+@pytest.mark.parametrize("plugin", PLUGINS, ids=PLUGIN_IDS)
+def test_query_role_vocabulary_is_registered(plugin: ChartTypePlugin) -> None:
+    """Each plugin's rebind/replacement vocabulary covers the shared roles."""
+    from superset.mcp_service.chart.plugin import QUERY_ROLE_KEYS
+    from superset.mcp_service.chart.registry import query_role_keys_for_viz_type
+
+    assert isinstance(plugin.query_role_keys, frozenset)
+    assert all(isinstance(key, str) and key for key in plugin.query_role_keys)
+    assert plugin.query_role_keys >= QUERY_ROLE_KEYS
+    for viz_type in plugin.native_viz_types:
+        assert query_role_keys_for_viz_type(viz_type) == plugin.query_role_keys
+
+
+@pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
+def test_published_examples_have_valid_form_data_state(
+    plugin: ChartTypePlugin, example: dict[str, Any]
+) -> None:
+    """A plugin's own mapped example passes its final-state validation."""
+    form_data = _form_data(plugin, example)
+    assert plugin.validate_form_data_state(deepcopy(form_data)) is None
+
+
+@pytest.mark.parametrize("plugin", PLUGINS, ids=PLUGIN_IDS)
+@pytest.mark.parametrize("preview_format", ["ascii", "table", "vega_lite", "url"])
+def test_unsupported_preview_is_typed_and_consistent(
+    plugin: ChartTypePlugin, preview_format: str
+) -> None:
+    """A rejected format is a typed error, and the renderer agrees with it."""
+    unsupported = plugin.unsupported_preview(preview_format)
+    assert unsupported is None or isinstance(unsupported, ChartError)
+    if isinstance(unsupported, ChartError):
+        assert unsupported.error
+        assert unsupported.error_type
+        if preview_format == "vega_lite":
+            for example in _CHART_EXAMPLES.get(plugin.chart_type, []):
+                preview = plugin.vega_lite_preview([], _form_data(plugin, example))
+                assert isinstance(preview, ChartError)
+
+
+@pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
+@pytest.mark.parametrize("dataset_rebind", [False, True])
+def test_update_tool_merge_keeps_mapped_state_and_drops_stale_filters(
+    plugin: ChartTypePlugin, example: dict[str, Any], dataset_rebind: bool
+) -> None:
+    """The update tools' merge keeps mapped roles; a rebind drops old filters."""
+    config = _config(example)
+    form_data = _form_data(plugin, example)
+    stale_filter = {
+        "expressionType": "SIMPLE",
+        "clause": "WHERE",
+        "subject": "old_column",
+        "operator": "==",
+        "comparator": "x",
+    }
+    existing = {**deepcopy(form_data), "adhoc_filters": [stale_filter]}
+    merged = merge_form_data_for_update(
+        existing, deepcopy(form_data), config, dataset_rebind=dataset_rebind
+    )
+    assert merged["viz_type"] == form_data["viz_type"]
+    for key in ("metric", "metrics", "groupby", "x_axis", "all_columns"):
+        if form_data.get(key):
+            assert merged.get(key) == form_data[key], key
+    if dataset_rebind:
+        assert stale_filter not in merged.get("adhoc_filters", [])

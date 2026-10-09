@@ -34,6 +34,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     map_config_to_form_data,
     merge_chart_form_data,
+    merge_form_data_for_update,
 )
 from superset.mcp_service.chart.compile import _compile_chart
 from superset.mcp_service.chart.plugins.geographic import (
@@ -61,6 +62,7 @@ from superset.mcp_service.chart.tool.get_chart_type_schema import (
     _get_chart_type_schema_impl,
 )
 from superset.utils import json
+from superset.utils.core import GenericDataType
 from superset.utils.geographic import resolve_geographic_value, resolve_region
 from superset.utils.geographic_regions import REGIONS
 
@@ -244,12 +246,12 @@ def test_geographic_native_query_and_filters(kind: str) -> None:
         assert query["metrics"] == []
         assert query["is_timeseries"] is False
         assert query["orderby"] == []
-        assert {"col": "latitude", "op": "IS NOT NULL", "val": ""} in query["filters"]
+        assert {"col": "latitude", "op": "IS NOT NULL", "val": None} in query["filters"]
     else:
         assert query["columns"] == [form["entity"]]
         assert query["metrics"] == [form["metric"]]
         if kind == "world_map":
-            assert query["orderby"] == [(form["metric"], False)]
+            assert query["orderby"] == [[form["metric"], False]]
 
 
 @pytest.mark.parametrize("same", [True, False])
@@ -546,6 +548,7 @@ async def _exercise_public_geographic_entry(  # noqa: C901
     config_override: dict[str, Any] | None = None,
     expected_error: str | None = None,
     expected_form_data: dict[str, Any] | None = None,
+    invalid_error_code: str = "INVALID_GEOGRAPHIC_RESULT",
 ) -> None:
     """Run native public compile/save paths against controlled database results."""
     import importlib
@@ -601,6 +604,8 @@ async def _exercise_public_geographic_entry(  # noqa: C901
         )
         chart.params = json.dumps(old)
         request["dataset_id"] = 4
+        # The rebind target resolves to its own dataset identity.
+        dataset.id = 4
     if entry == "update_chart":
         request.update(identifier=9, generate_preview=not persist)
     else:
@@ -788,9 +793,7 @@ async def _exercise_public_geographic_entry(  # noqa: C901
                     assert saved["query_context"] is None
                     assert not json.loads(saved["params"]).get("adhoc_filters")
         else:
-            assert payload["error"]["error_code"] == "INVALID_GEOGRAPHIC_RESULT", (
-                payload
-            )
+            assert payload["error"]["error_code"] == invalid_error_code, payload
 
 
 @pytest.mark.asyncio
@@ -834,7 +837,16 @@ async def _exercise_geographic_data_export(
         rows[0] = {column: spatial_value}
     form.update(form_overrides or {})
     rows[0].update(row_overrides or {})
-    source["queries"][0].update(colnames=list(rows[0]), rowcount=len(rows))
+    source["queries"][0].update(
+        colnames=list(rows[0]),
+        coltypes=[
+            GenericDataType.NUMERIC
+            if isinstance(value, (int, float, Decimal)) and not isinstance(value, bool)
+            else GenericDataType.STRING
+            for value in rows[0].values()
+        ],
+        rowcount=len(rows),
+    )
     query = {"columns": list(rows[0]), "metrics": [], "row_limit": 10000}
     context = SimpleNamespace(
         queries=[
@@ -1277,8 +1289,20 @@ async def test_public_decimal_coordinate_invalid_values(value: object) -> None:
     """Decimal support never permits nonfinite, out-of-range, or nonreal points."""
     result = result_for("deck_scatter")
     result["queries"][0]["data"][0]["latitude"] = value
+    # The shared result contract rejects non-finite and nonreal values before
+    # the geographic coordinate checks run.
+    hostile = isinstance(value, complex) or (
+        isinstance(value, Decimal) and not value.is_finite()
+    )
     await _exercise_public_geographic_entry(
-        "deck_scatter", False, "generate_chart", False, result_override=result
+        "deck_scatter",
+        False,
+        "generate_chart",
+        False,
+        result_override=result,
+        invalid_error_code=(
+            "CHART_COMPILE_FAILED" if hostile else "INVALID_GEOGRAPHIC_RESULT"
+        ),
     )
 
 
@@ -1497,10 +1521,11 @@ def test_update_omitting_time_keeps_saved_time_column_filter(kind: str) -> None:
         assert q["granularity"] == "created_at"
         assert q["time_range"] == "2024-01-01 : 2024-02-01"
     if kind == "deck_scatter":
-        # Typed points are never time-bucketed; native Explore charts keep it.
+        # Scatter points are never time-bucketed; typed points also drop the
+        # inherited grain.
         assert query["is_timeseries"] is False
         assert "time_grain_sqla" not in (query.get("extras") or {})
-        assert native_query["is_timeseries"] is True
+        assert native_query["is_timeseries"] is False
 
 
 @pytest.mark.parametrize("kind", KINDS)
@@ -1527,17 +1552,20 @@ def test_explicit_geographic_time_update_overrides_native_granularity(
         ),
     ):
         mapped = map_config_to_form_data(config, dataset_id=3)
-    merged = merge_chart_form_data(old, mapped, config)
-    assert "granularity_sqla" not in merged
-    if temporal_column is None:
-        assert "_mcp_dashboard_time_filter_subject" not in merged
-        assert not merged.get("adhoc_filters")
-    else:
-        assert merged["_mcp_dashboard_time_filter_subject"] == temporal_column
-        assert any(
-            f["subject"] == temporal_column and f["operator"] == "TEMPORAL_RANGE"
-            for f in merged["adhoc_filters"]
-        )
+    for merged in (
+        merge_chart_form_data(old, dict(mapped), config),
+        merge_form_data_for_update(old, dict(mapped), config),
+    ):
+        assert "granularity_sqla" not in merged
+        if temporal_column is None:
+            assert "_mcp_dashboard_time_filter_subject" not in merged
+            assert not merged.get("adhoc_filters")
+        else:
+            assert merged["_mcp_dashboard_time_filter_subject"] == temporal_column
+            assert any(
+                f["subject"] == temporal_column and f["operator"] == "TEMPORAL_RANGE"
+                for f in merged["adhoc_filters"]
+            )
 
 
 @pytest.mark.asyncio

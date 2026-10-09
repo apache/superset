@@ -24,17 +24,21 @@ from form data without requiring a saved chart object.
 
 import logging
 import math
+import unicodedata
 from copy import deepcopy
 from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from numbers import Real
 from typing import Any, Dict, List
+from uuid import UUID
 
+from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
 from superset.mcp_service.chart.query_result import (
+    first_query_data,
+    MAX_RESULT_VALUE_DEPTH,
     metric_result_label,
     normalize_chart_query_result,
     normalize_gauge_query_result,
-    query_result_failure,
 )
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
@@ -42,11 +46,63 @@ from superset.mcp_service.chart.schemas import (
     TablePreview,
     VegaLitePreview,
 )
+from superset.mcp_service.chart.sunburst import (
+    normalize_and_validate_sunburst_result_data,
+    resolve_sunburst_result_roles,
+)
 from superset.utils.core import get_column_name
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
+MAX_PREVIEW_CELLS = 10_000
+MAX_PREVIEW_NESTED_ITEMS = 20
+MAX_PREVIEW_VALUE_LENGTH = 1_000
+
+
+def _canonical_preview_value(value: Any, *, depth: int = 0) -> Any:
+    """Convert validated exact values to bounded JSON-compatible primitives."""
+    value_type = type(value)
+    if value_type in {type(None), bool, int, float}:  # noqa: E721
+        return value
+    if value_type is str:
+        return value[:MAX_PREVIEW_VALUE_LENGTH]
+    if value_type is Decimal:
+        return format(value, "f")[:MAX_PREVIEW_VALUE_LENGTH]
+    if value_type in {date, datetime, time}:  # noqa: E721
+        return value.isoformat()[:MAX_PREVIEW_VALUE_LENGTH]
+    if value_type is UUID:
+        return str(value)
+    if value_type is list and depth < MAX_RESULT_VALUE_DEPTH:
+        return [
+            _canonical_preview_value(item, depth=depth + 1)
+            for item in value[:MAX_PREVIEW_NESTED_ITEMS]
+        ]
+    if value_type is dict and depth < MAX_RESULT_VALUE_DEPTH:
+        return {
+            key: _canonical_preview_value(item, depth=depth + 1)
+            for key, item in list(value.items())[:MAX_PREVIEW_NESTED_ITEMS]
+        }
+    return "[truncated]"
+
+
+def _canonical_preview_text(value: Any) -> str:
+    """Render a validated exact value with bounded nested work."""
+    canonical = _canonical_preview_value(value)
+    if type(canonical) is str:
+        return canonical
+    return repr(canonical)[:MAX_PREVIEW_VALUE_LENGTH]
+
+
+def _bounded_vega_data(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Bound the rows, cells, and nested values embedded in a Vega spec."""
+    if not data:
+        return []
+    row_limit = max(1, MAX_PREVIEW_CELLS // max(len(data[0]), 1))
+    return [
+        {key: _canonical_preview_value(value) for key, value in row.items()}
+        for row in data[:row_limit]
+    ]
 
 
 def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
@@ -74,8 +130,16 @@ def generate_preview_from_form_data(
     Returns:
         Preview object or ChartError
     """
+    if (
+        unsupported := plugin_unsupported_preview(
+            form_data.get("viz_type"), preview_format
+        )
+    ) is not None:
+        return unsupported
+
     try:
         # Execute query to get data
+        from superset.charts.data.form_data import set_query_context_form_data
         from superset.commands.chart.data.get_data_command import ChartDataCommand
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import db
@@ -92,33 +156,31 @@ def generate_preview_from_form_data(
             build_query_context_from_form_data,
         )
 
-        query_form_data = deepcopy(form_data)
+        query_form_data = canonicalize_operation_form_data(
+            deepcopy(form_data),
+            datasource_id=dataset_id,
+        )
         query_form_data["datasource"] = f"{dataset_id}__table"
-        query_form_data["datasource_id"] = dataset_id
-        query_form_data["datasource_type"] = "table"
         query_context_obj = build_query_context_from_form_data(
             query_form_data,
             row_limit=form_data.get("row_limit", 100),
             force=False,
         )
+        set_query_context_form_data(query_context_obj, dataset_id, "table")
 
         # Execute query
         command = ChartDataCommand(query_context_obj)
         command.validate()
         result = command.run()
 
-        if query_failure := query_result_failure(result):
-            return query_failure
         result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
             return result
-        if not result or not result.get("queries"):
-            return ChartError(
-                error="No data returned from query", error_type="EmptyResult"
-            )
 
-        query_result = result["queries"][0]
-        data = query_result.get("data", [])
+        data, result_error = first_query_data(result)
+        if result_error is not None:
+            return result_error
+        assert data is not None
 
         # Generate preview based on format
         if preview_format == "ascii":
@@ -141,7 +203,7 @@ def generate_preview_from_form_data(
 
 
 def plugin_ascii_preview(
-    data: List[Any], form_data: Dict[str, Any], width: int
+    data: List[Any], form_data: Dict[str, Any], width: int, height: int = 20
 ) -> str | ChartError | None:
     """Return the owning plugin's ASCII preview, or None for the generic one."""
     from superset.mcp_service.chart.registry import plugin_for_viz_type
@@ -149,7 +211,31 @@ def plugin_ascii_preview(
     plugin = plugin_for_viz_type(form_data.get("viz_type"))
     if plugin is None:
         return None
-    return plugin.ascii_preview(data, form_data, width)
+    return plugin.ascii_preview(data, form_data, width, height)
+
+
+def plugin_table_preview(
+    data: List[Any], form_data: Dict[str, Any]
+) -> TablePreview | ChartError | None:
+    """Return the owning plugin's table preview, or None for the generic one."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
+        return None
+    return plugin.table_preview(data, form_data)
+
+
+def plugin_unsupported_preview(
+    viz_type: str | None, preview_format: str
+) -> ChartError | None:
+    """Return the owning plugin's error for a format it cannot represent."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(viz_type)
+    if plugin is None:
+        return None
+    return plugin.unsupported_preview(preview_format)
 
 
 def empty_vega_lite_preview_error(
@@ -182,12 +268,16 @@ def plugin_vega_lite_preview(
 
 
 def _generate_ascii_preview_from_data(
-    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+    data: List[Dict[str, Any]],
+    form_data: Dict[str, Any],
+    *,
+    width: int = 80,
+    height: int = 20,
 ) -> ASCIIPreview | ChartError:
     """Generate ASCII preview from raw data."""
     viz_type = form_data.get("viz_type", "table")
 
-    content_or_error = plugin_ascii_preview(data, form_data, 80)
+    content_or_error = plugin_ascii_preview(data, form_data, width, height)
     if isinstance(content_or_error, ChartError):
         return content_or_error
     if content_or_error is not None:
@@ -196,9 +286,42 @@ def _generate_ascii_preview_from_data(
         renderer = _GENERIC_ASCII_RENDERERS.get(viz_type, _generate_safe_ascii_table)
         content = renderer(data)
 
-    return ASCIIPreview(
-        ascii_content=content, width=80, height=20, supports_color=False
+    content = "\n".join(
+        _truncate_display_line(line, width) for line in content.splitlines()[:height]
     )
+    return ASCIIPreview(
+        ascii_content=content, width=width, height=height, supports_color=False
+    )
+
+
+def _truncate_display_line(line: str, width: int) -> str:
+    """Bound terminal columns conservatively and mark truncated content."""
+    if width <= 0:
+        return ""
+    characters: list[str] = []
+    sizes: list[int] = []
+    columns = 0
+    for character in line:
+        # Replace terminal controls, including embedded newlines and escape codes.
+        if unicodedata.category(character).startswith("C"):
+            character = "?"
+        size = (
+            0
+            if unicodedata.combining(character)
+            else 2
+            if unicodedata.east_asian_width(character) in {"W", "F"}
+            else 1
+        )
+        if columns + size > width:
+            marker = "." * min(3, width)
+            while characters and columns + len(marker) > width:
+                characters.pop()
+                columns -= sizes.pop()
+            return "".join(characters) + marker
+        characters.append(character)
+        sizes.append(size)
+        columns += size
+    return "".join(characters)
 
 
 def _calculate_column_widths(
@@ -208,17 +331,17 @@ def _calculate_column_widths(
     column_widths = {}
     for col in display_columns:
         # Start with column name length
-        max_width = len(str(col))
+        max_width = len(col)
 
         # Check data values to determine width
         for row in data[:20]:  # Sample first 20 rows
             val = row.get(col, "")
-            if isinstance(val, float):
+            if type(val) is float:
                 val_str = f"{val:.2f}"
-            elif isinstance(val, int):
+            elif type(val) is int:
                 val_str = str(val)
             else:
-                val_str = str(val)
+                val_str = _canonical_preview_text(val)
             max_width = max(max_width, len(val_str))
 
         # Set reasonable bounds
@@ -228,7 +351,7 @@ def _calculate_column_widths(
 
 def _format_value(val: Any, width: int) -> str:
     """Format a value based on its type."""
-    if isinstance(val, float):
+    if type(val) is float:
         if math.isnan(val):
             val_str = "N/A"
         elif math.isfinite(val) and val.is_integer():
@@ -240,12 +363,12 @@ def _format_value(val: Any, width: int) -> str:
             val_str = f"{val:,.2f}"  # Thousands separator
         else:
             val_str = f"{val:g}"
-    elif isinstance(val, int):
+    elif type(val) is int:
         val_str = str(val)
     elif val is None:
         val_str = "N/A"
     else:
-        val_str = str(val)
+        val_str = _canonical_preview_text(val)
 
     # Truncate if too long
     if len(val_str) > width:
@@ -255,8 +378,15 @@ def _format_value(val: Any, width: int) -> str:
 
 def _generate_table_preview_from_data(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> TablePreview:
+) -> TablePreview | ChartError:
     """Generate table preview from raw data with improved formatting."""
+    if (plugin_preview := plugin_table_preview(data, form_data)) is not None:
+        return plugin_preview
+    return render_table_preview(data)
+
+
+def render_table_preview(data: List[Dict[str, Any]]) -> TablePreview:
+    """Render rows as the aligned, bounded form-data table preview."""
     if not data:
         return TablePreview(
             table_data="No data available", row_count=0, supports_sorting=False
@@ -280,7 +410,7 @@ def _generate_table_preview_from_data(
     separator_parts = []
     for col in display_columns:
         width = column_widths[col]
-        col_name = str(col)
+        col_name = col
         if len(col_name) > width:
             col_name = col_name[: width - 2] + ".."
         header_parts.append(f"{col_name:<{width}}")
@@ -331,9 +461,9 @@ def _generate_safe_ascii_bar_chart(data: List[Dict[str, Any]]) -> str:
         value = None
 
         for _, val in row.items():
-            if isinstance(val, (int, float)) and not _is_nan(val) and value is None:
+            if _is_finite_number(val) and value is None:
                 value = val
-            elif isinstance(val, str) and label is None:
+            elif type(val) is str and label is None:
                 label = val
 
         if value is not None:
@@ -381,7 +511,7 @@ def _extract_numeric_values_safe(data: List[Dict[str, Any]]) -> List[float]:
     values = []
     for row in data[:20]:
         for _, val in row.items():
-            if isinstance(val, (int, float)) and not _is_nan(val):
+            if _is_finite_number(val):
                 values.append(val)
                 break
     return values
@@ -440,9 +570,9 @@ def _generate_safe_ascii_pie_chart(data: List[Dict[str, Any]]) -> str:
         value = None
 
         for _, val in row.items():
-            if isinstance(val, (int, float)) and not _is_nan(val) and value is None:
+            if _is_finite_number(val) and value is None:
                 value = val
-            elif isinstance(val, str) and label is None:
+            elif type(val) is str and label is None:
                 label = val
 
         if value is not None and value > 0:
@@ -466,6 +596,92 @@ def _generate_safe_ascii_pie_chart(data: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def _generate_safe_ascii_sunburst(
+    data: List[Dict[str, Any]],
+    form_data: Dict[str, Any],
+    *,
+    height: int = 20,
+) -> str:
+    """Render hierarchy paths and both Sunburst metrics without flattening roles."""
+    if not data:
+        return "No data available for sunburst chart"
+
+    roles, error = resolve_sunburst_result_roles(form_data)
+    if error is not None or roles is None:
+        return "Malformed form data for sunburst chart"
+
+    if height < 3:
+        return f"... {len(data)} more rows" if height > 0 else ""
+    row_limit = min(20, height - 2)
+    if len(data) > row_limit:
+        row_limit = max(0, min(20, height - 3))
+    lines = _sunburst_preview_lines(
+        data[:row_limit],
+        list(roles.hierarchy),
+        roles.primary_metric,
+        roles.secondary_metric,
+    )
+    rows_rendered = len(lines) - 2
+
+    if len(data) > rows_rendered:
+        lines.append(f"... {len(data) - rows_rendered} more rows")
+    return "\n".join(lines)
+
+
+def generate_sunburst_ascii_preview(
+    data: List[Any], form_data: Dict[str, Any], width: int, height: int
+) -> str | ChartError:
+    """Validate Sunburst rows and render their bounded hierarchy paths."""
+    rows = [dict(row) if type(row) is dict else row for row in data]
+    _, error = normalize_and_validate_sunburst_result_data(rows, form_data)
+    if error is not None:
+        return error
+    content = _generate_safe_ascii_sunburst(rows, form_data, height=height)
+    return "\n".join(
+        _truncate_display_line(line, width) for line in content.splitlines()[:height]
+    )
+
+
+def generate_sunburst_table_preview(
+    data: List[Any], form_data: Dict[str, Any]
+) -> TablePreview | ChartError:
+    """Validate Sunburst rows before rendering the shared table preview."""
+    rows = [dict(row) if type(row) is dict else row for row in data]
+    _, error = normalize_and_validate_sunburst_result_data(rows, form_data)
+    if error is not None:
+        return error
+    return render_table_preview(rows)
+
+
+def _sunburst_preview_lines(
+    data: List[Dict[str, Any]],
+    hierarchy: list[str],
+    primary_label: str,
+    secondary_label: str | None,
+) -> list[str]:
+    """Build safe Sunburst hierarchy rows for the ASCII representation."""
+    lines = ["ASCII Sunburst Hierarchy", "=" * 50]
+    for row in data[:20]:
+        if not isinstance(row, dict):
+            continue
+        path = " > ".join(
+            "N/A"
+            if row.get(column) is None
+            else _canonical_preview_text(row.get(column))
+            for column in hierarchy
+        )
+        values = [
+            f"{primary_label}={_canonical_preview_text(row.get(primary_label, 'N/A'))}"
+        ]
+        if secondary_label:
+            values.append(
+                f"{secondary_label}="
+                f"{_canonical_preview_text(row.get(secondary_label, 'N/A'))}"
+            )
+        lines.append(" ".join(f"{path}: {', '.join(values)}".splitlines()))
+    return lines
+
+
 def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:
     """Generate ASCII table with safe formatting."""
     if not data:
@@ -477,13 +693,15 @@ def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:
     columns = list(data[0].keys()) if data else []
 
     # Format header
-    header = " | ".join(str(col)[:10] for col in columns[:5])
+    header = " | ".join(col[:10] for col in columns[:5])
     lines.append(header)
     lines.append("-" * len(header))
 
     # Format rows
     for row in data[:10]:
-        row_str = " | ".join(str(row.get(col, ""))[:10] for col in columns[:5])
+        row_str = " | ".join(
+            _canonical_preview_text(row.get(col, ""))[:10] for col in columns[:5]
+        )
         lines.append(row_str)
 
     if len(data) > 10:
@@ -505,12 +723,7 @@ _GENERIC_ASCII_RENDERERS = {
 
 def _is_nan(value: Any) -> bool:
     """Check if a value is NaN."""
-    try:
-        import math
-
-        return math.isnan(float(value))
-    except (ValueError, TypeError):
-        return False
+    return type(value) is float and math.isnan(value)
 
 
 def _gantt_metric_label(metric: Any) -> str | None:
@@ -1240,6 +1453,11 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
     )
 
 
+def _is_finite_number(value: Any) -> bool:
+    """Accept exact finite preview numerics without conversion hooks."""
+    return type(value) is int or (type(value) is float and math.isfinite(value))
+
+
 def generate_bubble_vega_lite_preview(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> VegaLitePreview:
@@ -1443,14 +1661,15 @@ def _resolve_y_metric_column(row: Dict[str, Any], metrics: List[Any]) -> str | N
 
 
 def _generate_vega_lite_preview_from_data(  # noqa: C901
-    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+    data: List[Dict[str, Any]], form_data: Dict[str, Any], *, use_plugin: bool = True
 ) -> VegaLitePreview | ChartError:
     """Generate Vega-Lite preview from raw data and form_data."""
     if empty_error := empty_vega_lite_preview_error(data, form_data):
         return empty_error
     viz_type = form_data.get("viz_type", "table")
-    if (plugin_preview := plugin_vega_lite_preview(data, form_data)) is not None:
-        return plugin_preview
+    if use_plugin:
+        if (plugin_preview := plugin_vega_lite_preview(data, form_data)) is not None:
+            return plugin_preview
     if (fallback := fallback_vega_lite_preview(data, form_data)) is not None:
         return fallback
 
@@ -1471,19 +1690,21 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     mark = viz_to_mark.get(viz_type, "bar")
 
     # Basic Vega-Lite spec
-    spec = {
+    preview_data = _bounded_vega_data(data)
+    spec: dict[str, Any] = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-        "data": {"values": data},
+        "data": {"values": preview_data},
         "mark": mark,
     }
 
     # Get x_axis and metrics from form_data
-    x_axis = form_data.get("x_axis")
+    axis = form_data.get("x_axis")
+    x_axis = get_column_name(axis) if axis else "__timestamp"
     metrics = form_data.get("metrics", [])
     groupby = form_data.get("groupby", [])
 
     # Build encoding based on available fields
-    encoding = {}
+    encoding: dict[str, Any] = {}
 
     # Handle X-axis
     if x_axis and x_axis in (data[0] if data else {}):
@@ -1491,13 +1712,13 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
         field_type = "nominal"  # default
         if data and len(data) > 0:
             sample_val = data[0].get(x_axis)
-            if isinstance(sample_val, str):
+            if type(sample_val) is str:
                 # Check if it's a date/time
-                if any(char in str(sample_val) for char in ["-", "/", ":"]):
+                if any(char in sample_val for char in ["-", "/", ":"]):
                     field_type = "temporal"
                 else:
                     field_type = "nominal"
-            elif isinstance(sample_val, (int, float)):
+            elif _is_finite_number(sample_val):
                 field_type = "quantitative"
 
         encoding["x"] = {
@@ -1518,11 +1739,11 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
             }
 
     # Handle color encoding for groupby
-    if groupby and len(groupby) > 0 and groupby[0] in (data[0] if data else {}):
+    if groupby and get_column_name(groupby[0]) in (data[0] if data else {}):
         encoding["color"] = {
-            "field": groupby[0],
+            "field": get_column_name(groupby[0]),
             "type": "nominal",
-            "title": groupby[0],
+            "title": get_column_name(groupby[0]),
         }
 
     # Special handling for pie charts
@@ -1545,7 +1766,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
 
     # Add responsive sizing - Vega-Lite supports "container" as a special width value
     spec["width"] = "container"
-    spec["height"] = 400  # type: ignore
+    spec["height"] = 400
 
     # Add interactivity
     if mark in ["line", "point", "bar", "area"]:
@@ -1562,3 +1783,52 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
         data_url=None,
         supports_streaming=False,
     )
+
+
+def generate_xy_vega_lite_preview(
+    data: list[dict[str, Any]], form_data: dict[str, Any]
+) -> VegaLitePreview | ChartError:
+    """Render long-form and post-processed wide timeseries results."""
+    preview = _generate_vega_lite_preview_from_data(data, form_data, use_plugin=False)
+    if isinstance(preview, ChartError):
+        return preview
+    spec = preview.specification
+    preview_data = spec["data"]["values"]
+    encoding = spec.setdefault("encoding", {})
+    x_axis = encoding.get("x", {}).get("field")
+    groupby = form_data.get("groupby", [])
+    # Timeseries post-processing pivots group-bys into flattened wide columns.
+    # Fold the complete column labels rather than splitting on commas: labels
+    # can contain escaped separators, multiple dimensions, or time offsets.
+    if (
+        groupby
+        and preview_data
+        and x_axis in preview_data[0]
+        and not any(get_column_name(column) in preview_data[0] for column in groupby)
+    ):
+        series_columns = [
+            column
+            for column in preview_data[0]
+            if column != x_axis
+            and all(
+                row.get(column) is None
+                or (
+                    isinstance(row.get(column), (Real, Decimal))
+                    and not isinstance(row.get(column), bool)
+                )
+                for row in data[: len(preview_data)]
+            )
+        ]
+        if series_columns:
+            series_field, value_field = "series", "value"
+            while series_field in preview_data[0]:
+                series_field += "_"
+            while value_field in preview_data[0]:
+                value_field += "_"
+            spec["transform"] = [
+                {"fold": series_columns, "as": [series_field, value_field]}
+            ]
+            encoding["y"] = {"field": value_field, "type": "quantitative"}
+            encoding["color"] = {"field": series_field, "type": "nominal"}
+
+    return preview

@@ -30,6 +30,8 @@ from typing import Any, ClassVar, TypeGuard
 
 from superset.mcp_service.chart.chart_utils import (
     _add_adhoc_filters,
+    _apply_geographic_temporal_update,
+    _DECK_DATASET_ROLE_KEYS,
     create_metric_object,
     merge_geographic_update_form_data,
 )
@@ -190,10 +192,12 @@ class GeographicChartPlugin(BaseChartPlugin):
     """
 
     native_viz_types: ClassVar[Mapping[str, str]] = {}
+    owned_query_roles: ClassVar[frozenset[str]] = frozenset()
     requires_compile_check = True
     requires_config_for_dataset_rebind = True
     dataset_rebind_roles = "geographic/metric roles"
     strict_dataset_rebind = True
+    owns_update_merge = True
     normalize_data_results = True
     supports_vega_lite_preview = False
     invalid_result_error_code = "INVALID_GEOGRAPHIC_RESULT"
@@ -243,6 +247,8 @@ class GeographicChartPlugin(BaseChartPlugin):
         qd = build_single_query_dict(
             form_data, groupby, metrics, row_limit=row_limit, order_desc=order_desc
         )
+        # Match the native buildQuery's ``[metric, ascending]`` pair shape.
+        qd["orderby"] = [list(item) for item in qd.get("orderby") or []]
         _bind_time_column(qd, form_data)
         return [qd]
 
@@ -319,7 +325,11 @@ class GeographicChartPlugin(BaseChartPlugin):
         return fallback
 
     def ascii_preview(
-        self, data: list[Any], form_data: dict[str, Any], width: int
+        self,
+        data: list[Any],
+        form_data: dict[str, Any],
+        width: int,
+        height: int = 20,
     ) -> str | ChartError | None:
         """Render the source rows; map geometry has no ASCII form."""
         from superset.mcp_service.chart.ascii_charts import generate_ascii_table
@@ -358,10 +368,26 @@ class GeographicChartPlugin(BaseChartPlugin):
         merged = merge_geographic_update_form_data(
             existing_form_data, new_form_data, config, dataset_rebind=dataset_rebind
         )
+        # Saved query aliases this map never reads are replaced, not inherited.
+        for key in self.query_role_keys - self.owned_query_roles:
+            if key not in new_form_data:
+                merged.pop(key, None)
         # Native query and compile validation must cover the same bounded rows.
         if merged.get("mcp_geographic"):
             merged["row_limit"] = _typed_row_limit(merged)
             _normalize_fixed_radius(merged)
+        return merged
+
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        """Let explicit time changes win over controls kept by a conversion."""
+        if merged.get("mcp_geographic"):
+            _apply_geographic_temporal_update(merged, config)
         return merged
 
     def extract_column_refs(self, config: GeographicConfig) -> list[ColumnRef]:
@@ -481,6 +507,12 @@ class CountryMapChartPlugin(GeographicChartPlugin):
     chart_type = "country_map"
     display_name = "Country Map"
     native_viz_types: ClassVar[Mapping[str, str]] = {"country_map": "Country Map"}
+    owned_query_roles: ClassVar[frozenset[str]] = frozenset({"entity", "metric"})
+    query_role_keys = BaseChartPlugin.query_role_keys | {
+        "entity",
+        "metric",
+        "series_columns",
+    }
 
     def resolve_query_fields(
         self, form_data: Mapping[str, Any], viz_type: str
@@ -524,6 +556,15 @@ class WorldMapChartPlugin(GeographicChartPlugin):
     chart_type = "world_map"
     display_name = "World Map"
     native_viz_types: ClassVar[Mapping[str, str]] = {"world_map": "World Map"}
+    owned_query_roles: ClassVar[frozenset[str]] = frozenset(
+        {"entity", "metric", "secondary_metric"}
+    )
+    query_role_keys = BaseChartPlugin.query_role_keys | {
+        "entity",
+        "metric",
+        "secondary_metric",
+        "series_columns",
+    }
 
     def resolve_query_fields(
         self, form_data: Mapping[str, Any], viz_type: str
@@ -638,6 +679,10 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "deck_scatter": "Geographic Points"
     }
+    owned_query_roles: ClassVar[frozenset[str]] = frozenset(
+        {"spatial", "dimension", "point_radius_fixed"}
+    )
+    query_role_keys = BaseChartPlugin.query_role_keys | _DECK_DATASET_ROLE_KEYS
 
     def validate_merged_form_data(
         self,
@@ -695,7 +740,6 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
             viz_type,
             row_limit=row_limit,
             order_desc=order_desc,
-            timeseries=not typed,
         )
         if not qd.get("is_timeseries"):
             _bind_time_column(qd, form_data)
@@ -703,7 +747,9 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
             return [qd]
         metrics = qd.get("metrics") or []
         qd["is_timeseries"] = False
-        qd["orderby"] = [(metric_result_label(metrics[0]), False)] if metrics else []
+        if isinstance(extras := qd.get("extras"), dict):
+            extras.pop("time_grain_sqla", None)
+        qd["orderby"] = [[metric_result_label(metrics[0]), False]] if metrics else []
         return [qd]
 
     def result_metrics(self, form_data: Mapping[str, Any]) -> list[Any]:

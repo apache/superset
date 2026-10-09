@@ -110,6 +110,37 @@ retains its call's slot rather than exhausting cancellation capacity for new
 calls. One warning with the call ID records abandonment. A timeout does not guarantee that warehouse writes were
 rolled back, so do not blindly retry mutating SQL.
 
+## Externally managed dashboards
+
+MCP dashboard mutation tools refuse changes to externally managed dashboards,
+including ownership and access-role changes, layout and filter edits, chart
+membership, certification, deletion, and restoration. Their responses set
+`managed_externally: true` and explain that the external system is the source
+of truth; changing Superset permissions or retrying does not override it.
+Read-only dashboard tools and certification's inspect-only call remain available.
+
+## Native filter defaults
+
+`manage_native_filters` accepts `default_value` for select filters. An empty
+list clears the selection. With `enable_empty_filter: true`, that explicit
+empty default matches no rows in both the dashboard UI and server-side
+dashboard chart queries, including for UI-created non-exact select filters.
+Creating a required select filter without `default_value` also stores this
+match-nothing default, unless `default_to_first_item` is enabled.
+Inverse-selection filters retain the UI's no-predicate behavior for empty
+selections. Disabling `enable_empty_filter` removes the empty default's
+match-nothing predicate without requiring another `default_value` update.
+Explicit defaults, including an empty list, cannot be combined with
+`default_to_first_item: true`. Creating a first-item filter or enabling that
+option on an existing filter leaves the stored selection unset so the dashboard
+can choose the first available item after loading options. Toggling
+`enable_empty_filter` on a first-item filter preserves that behavior rather than
+storing an explicit empty selection or match-nothing predicate. Any update to
+a first-item filter also clears a defined legacy stored selection (including
+`null`) when first-item mode remains enabled, allowing automatic selection.
+Select filters with legacy string-column
+targets support both default updates and applied selections.
+
 ## Bounding dashboard dataset metadata
 
 `get_dashboard_datasets` lists a dashboard's datasets and semantic views with
@@ -1210,10 +1241,13 @@ names do not make nonnumeric values eligible.
 
 ### Response too large
 
-- If a tool call returns an error about exceeding size limits, the response size guard is blocking an oversized result
-- Reduce `page_size` or `limit` parameters, use `select_columns` to exclude large fields, or add filters to narrow results
-- To adjust the threshold, change `max_bytes` in `MCP_RESPONSE_SIZE_CONFIG`
-- To disable the guard entirely, set `MCP_RESPONSE_SIZE_CONFIG = {"enabled": False}`
+Two independent limits can reject a large result. Check the error type to tell them apart:
+
+- **Response size guard (configurable).** An error about exceeding the response size limit comes from `ResponseSizeGuardMiddleware`, which measures the serialized tool response.
+  - Reduce `page_size` or `limit` parameters, use `select_columns` to exclude large fields, or add filters to narrow results
+  - To adjust the threshold, change `max_bytes` in `MCP_RESPONSE_SIZE_CONFIG`
+  - To disable the guard entirely, set `MCP_RESPONSE_SIZE_CONFIG = {"enabled": False}`
+- **Chart query result limits (mandatory).** An `InvalidQueryResult` error such as "Chart query returned too many rows" or "hostile or oversized row data" comes from validation of the chart query result itself, before any response is built. These limits are fixed safety bounds and are **not** affected by `MCP_RESPONSE_SIZE_CONFIG`; raising `max_bytes` or disabling the guard does not change them. They cap a result at 50,000 rows per query and 100,000 rows in total, 4,096 columns, 2,500,000 values, 16 MiB of JSON, and 65,536 UTF-8 bytes per text cell (binary cells are bounded by the same per-cell limit). To resolve them, reduce the chart's row limit, add filters, select fewer or narrower columns, or aggregate the data.
 
 ---
 
@@ -1327,7 +1361,7 @@ The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gaug
 Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
 specification instead of `NoDataError`, matching their unsaved previews.
 
-Gauge data inspection and JSON/CSV/XLSX exports preserve source groups, including NULL and non-finite metric values, using the same row-count and completeness semantics as other chart types. The default XLSX exporter writes non-finite floats as `nan`, `inf`, or `-inf` text, matching CSV and distinguishing them from blank NULL cells. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
+Gauge data inspection and JSON/CSV/XLSX exports preserve source groups using the same row-count and completeness semantics as other chart types. Shared result normalization converts non-finite floats to null before export: JSON returns null, and CSV and both XLSX writers produce blank cells. These values are indistinguishable from SQL NULL; exports do not retain `nan`, `inf`, or `-inf` text. An overflowing aggregate can therefore appear as a missing value. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
 
 Gauge previews retain data-derived automatic bounds even when configured interval thresholds extend beyond the visible range; Vega previews clip those thresholds into adjacent, non-overlapping bands. Explicit min/max bounds still constrain intervals. All-zero data with both bounds omitted uses a nondegenerate preview range of 0–1. On same-dataset Gauge updates, clearing or changing the dashboard temporal binding preserves user-authored temporal ranges; dataset rebinds discard old query roles and filters. The native `"No filter"` sentinel is a neutral dashboard temporal binding, not a conflicting restriction. Duplicate generated neutral bindings self-heal on updates without removing user-authored ranges. Restating the existing dataset ID without a config is allowed; changing the Gauge dataset still requires a complete config. Native restrictive temporal filters that conflict with the top-level range or another restrictive temporal filter are rejected rather than silently dropped. Unsupported native filter operators are rejected with an indexed error. Native `TEMPORAL_RANGE` adhoc filters require an explicit string comparator; `"No filter"`, empty strings, and whitespace represent an unrestricted range.
 
@@ -1361,6 +1395,10 @@ def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
 The callable must be cheap and in-process (consult already-loaded feature flags or request-local context) -- do not perform network I/O per call. If it raises, the registry fails closed (the plugin is hidden) and logs a warning.
 
 Disabling a plugin only stops new charts of that type from being created. Existing saved charts of that type keep their plugin's query, result-validation and preview behavior in `get_chart_data`, `get_chart_preview` and `get_chart_sql`. Updates through `update_chart` and `update_chart_preview` also retain the plugin's configuration completion, column validation, merge rules, and compile checks. Gauge and Treemap compile checks use a safe 10-row fallback for malformed (including boolean) or nonpositive saved row limits. Malformed Gantt query fields return a validation error rather than a generic data-retrieval error. Funnel Vega-Lite previews return `InvalidFormData` when a stage reference has no resolvable result label. Mixed timeseries queries keep each axis's series grouping separate from the time-axis column. Saved charts with a scalar `groupby` retain the full column name in Waterfall queries and Funnel/Histogram Vega-Lite previews.
+
+Saved Histogram and Gantt charts apply `time_range` to the date column selected
+by `granularity_sqla`. A normalized `granularity` override takes precedence,
+including an explicit clear.
 
 ## Security Best Practices
 
@@ -1420,6 +1458,11 @@ For Generic Chart Axes charts, both MCP overrides and dashboard time-grain
 filters update the `BASE_AXIS` column's `timeGrain`, regardless of its position
 in the query's `columns` list. Other columns are left untouched. Queries without
 a `BASE_AXIS` column continue to use `extras.time_grain_sqla`.
+Same-visualization updates that supply only a non-null `time_grain` preserve saved
+temporal range filters. Explicitly setting `time_grain` to null clears saved
+temporal state, including `time_range` and temporal range filters; it does not
+preserve the date restriction. Supply `time_range` or `temporal_column` to change
+the temporal restriction or binding.
 
 ### Exploring large dashboard layouts
 
@@ -1553,12 +1596,66 @@ preservation of complex SQL restrictions.
 
 ## Result serialization
 
-Data-bearing tool responses sanitize row values, column samples, and statistics
-even when Python producers supply tuples, sets, generators, or read-only mappings.
-Missing and non-finite values become JSON `null`; non-UTF-8 binary values become
-base64 strings prefixed with `base64:`. Boolean row counts are treated as
+Data-bearing tool responses sanitize row values, column samples, and statistics.
+Tuple-valued cells and NumPy arrays (including arrays materialized by Arrow) are
+returned as JSON arrays. Nested values share the same depth, item, and byte
+limits as list-valued cells; unsupported containers and subclasses are rejected.
+Nested maps stringify exact built-in string, integer, float, boolean, and null
+keys within the key-size budget; arbitrary key objects and subclasses are rejected.
+Missing and non-finite floating-point values become JSON `null`; non-UTF-8 binary
+values become base64 strings prefixed with `base64:`. Boolean row counts are treated as
 unavailable, producing `null` for nullable counts and `0` for non-nullable counts,
 rather than being interpreted as one or zero rows.
+Concrete psycopg2 and psycopg PostgreSQL ranges, including ranges nested in
+array cells, become bounded driver-style text (for example, `"[1, 10)"`).
+Range subclasses and unsupported or oversized endpoints are rejected; arbitrary
+objects are not stringified.
+Finite SQL Decimal values retain their precision during chart validation and
+CSV export, but use the existing JSON number format in rows, query results,
+column samples, and statistics. As with other floating-point JSON numbers,
+clients should not rely on exact decimal precision in that projection.
+
+Rebuilt `get_chart_data` queries retrieve the requested row limit rather than
+a saved Table's server-pagination page size. CSV and Excel exports are not
+restricted to the first Explore page, and explicit limits apply before execution.
+Same-visualization Bubble updates preserve omitted `series`, `row_limit`, and
+`color_scheme`; `series: null` explicitly removes grouping.
+Saved Mixed Timeseries Vega-Lite previews honor the requested width and height.
+Both Mixed Timeseries queries validate SIMPLE filter clauses and column references;
+unsupported SIMPLE HAVING filters are rejected rather than silently discarded.
+Same-visualization Mixed Timeseries updates preserve omitted secondary-query
+controls, including time range, row limits, time grain, rolling/resample settings,
+and saved or adhoc ranking metrics. New typed Mixed Timeseries charts default
+secondary grouping to empty rather than inheriting primary grouping.
+Omitted primary and secondary grouping on updates retain their saved values;
+`group_by: []`/`null` and `group_by_secondary: []`/`null` clear only that query's
+grouping. Explicit secondary controls and clears replace the saved values.
+Same-visualization aggregate Table updates preserve native percent-metric columns;
+raw-mode updates, visualization changes, and dataset rebinds do not carry them over.
+Same-visualization Table updates preserve saved ordering when `sort_by` is
+omitted; `sort_by: []` clears it. Same-visualization XY updates preserve saved
+series grouping when `group_by` is omitted; `group_by: []` clears it. Omitted
+`series_limit_metric` and `timeseries_limit_metric` preserve saved series ranking.
+Either spelling replaces the saved ranking when supplied; `null` clears it. Native XY
+`BASE_AXIS` SQL x-axis objects carry their `timeGrain` into the chart's
+`time_grain` unless a panel-level `time_grain` or `time_grain_sqla` is supplied.
+Table compile and preview row caps take precedence over saved row limits;
+server pagination can reduce a cap only when its page size is positive.
+Grouped Mixed Timeseries Vega-Lite previews fold all flattened series columns,
+so every primary-query group remains visible rather than only the first numeric
+column. Saved Big Number axes using `column_name` mappings retain time-range
+bindings and time-grain bucketing like string axes.
+Sort-only Timeseries metrics retain their raw values when displayed metrics
+undergo rolling or cumulative processing.
+Timeseries compile checks skip rolling windows and forecasting on their bounded
+two-row sample; full previews and data queries still apply those analytics, so
+compile success does not validate their full-history behavior.
+
+If a successful `generate_chart` or `update_chart` write produces response
+content beyond serialization limits, the response retains `success: true` and
+the saved `chart.id`, with a warning and optional content omitted. Retrieve the
+chart by that ID instead of retrying the write. Unsaved responses that exceed
+these limits still return a structured failure.
 
 ## Chart data column counts
 
@@ -1815,6 +1912,20 @@ structured errors instead of apparently successful previews, charts or exports.
 
 ## Dataset discovery and routing
 
+`list_datasets`, `get_dataset_info`, `update_dataset`, and `query_dataset`
+operate on registered **SQL datasets** (physical tables or virtual SQL queries),
+not external semantic views. `create_dataset` registers a physical table as a
+SQL dataset; it does not create or register semantic views. The `certified`
+filter in `list_datasets` selects certified SQL datasets, not external views.
+
+For existing semantic views, use `list_metrics` to discover metrics and
+`get_table` to query them, retaining the returned source and view identity.
+These tools do not provision or edit semantic views. A dataset not-found error
+offers this routing guidance without establishing whether a semantic view
+exists or is accessible. Numeric IDs can overlap across source types; do not
+reuse a semantic-view ID as a SQL-dataset ID or substitute another source.
+All tool permissions, feature flags, and datasource access checks still apply.
+
 `list_datasets` searches table name, **description**, schema, and SQL using
 escaped, case-insensitive substring matching. Write descriptions with business
 terminology to make differently named datasets discoverable. A complete UUID
@@ -1894,6 +2005,11 @@ latency.
 `filter_range` filter or changing its dataset/column target. Select filters
 continue to accept nonnumeric columns.
 
+Dividers are visual separators and are always in scope. When updating a
+`divider` with `manage_native_filters`, use `name` to change its title and
+`description` to change its description; `scope_chart_ids` is rejected.
+`apply_dashboard_filters` excludes dividers from its available-filter error lists.
+
 For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
 one datasource-supported duration (for example, `["P1D"]`). Custom engine
 durations are accepted when exposed in the datasource's time-grain options,
@@ -1915,12 +2031,13 @@ similar physical column names ("Did you mean: ..."), or explicit no-match
 guidance when nothing is close enough. Saved metrics — both names and
 expressions — are excluded from these candidates for dimension and `WHERE`
 references, because only a physical column is legal there and suggesting a
-metric leads to invalid `SUM(metric)` SQL. A `HAVING` filter subject may
-legitimately name a saved metric, so metrics are included for that slot. When a
-reference in a metric slot (`y`, `metric`, or an aggregated table column, for
-example) near-misses a saved metric name, the error adds a hint to reference it
-as `{"name": "<metric>", "saved_metric": true}` instead. Dimension references
-never receive this hint, even when they carry an `aggregate`.
+metric leads to invalid `SUM(metric)` SQL. SIMPLE `HAVING` filters are
+unsupported, so their column errors do not suggest saved metrics either. When a
+reference in a metric slot (`y`, `metric`, Sunburst `secondary_metric`, or an
+aggregated table column, for example) near-misses a saved metric name, the error
+adds a hint to reference it as `{"name": "<metric>", "saved_metric": true}`
+instead. Dimension references never receive this hint, even when they carry an
+`aggregate`.
 
 When more than one distinct column is missing, the error type is
 `multiple_invalid_columns`. The invalid names appear in escaped, length-limited
