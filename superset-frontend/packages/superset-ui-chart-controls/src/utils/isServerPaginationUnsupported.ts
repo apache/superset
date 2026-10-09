@@ -22,15 +22,27 @@ import type { ControlPanelState } from '../types';
 /** SemanticViewFeature value for providers that support row offsets. */
 export const ROW_OFFSET = 'ROW_OFFSET';
 
+/** Only selected-datasource metadata can describe its capabilities. */
+export function hasMatchingDatasourceMetadata({
+  datasource,
+  form_data,
+}: Pick<ControlPanelState, 'datasource' | 'form_data'>): boolean {
+  return Boolean(
+    datasource &&
+    'uid' in datasource &&
+    datasource.uid === form_data.datasource,
+  );
+}
+
 /** Keep semantic pagination disabled until the view declares offset support. */
 export function isServerPaginationUnsupported({
   datasource,
   form_data,
 }: ControlPanelState): boolean {
-  const metadataMatchesSelection =
-    datasource &&
-    'uid' in datasource &&
-    datasource.uid === form_data.datasource;
+  const metadataMatchesSelection = hasMatchingDatasourceMetadata({
+    datasource,
+    form_data,
+  });
   const selectedType = form_data.datasource?.split('__')[1];
   const datasourceType =
     metadataMatchesSelection ||

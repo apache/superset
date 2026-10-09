@@ -395,8 +395,45 @@ test('AG Grid fails closed while semantic datasource metadata loads', () => {
   };
   expect(
     panel.mapStateToProps?.(state, state.controls.server_pagination),
-  ).toMatchObject({ disabled: true, resetLabel: undefined });
+  ).toMatchObject({
+    disabled: true,
+    resetLabel: undefined,
+    disabledReason: undefined,
+  });
 });
+
+test.each([
+  ['1__semantic_view', '2__semantic_view'],
+  ['cube__orders', 'cube__customers'],
+])(
+  'withholds pagination advice for stale metadata %s -> %s',
+  (uid, selected) => {
+    const state = createMockExplore(undefined);
+    state.datasource = {
+      ...state.datasource,
+      uid,
+      type: 'semantic_view',
+      semantic_view_features: [],
+    } as Dataset;
+    state.form_data.datasource = selected;
+    const panel = getPaginationControl('server_pagination');
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: true,
+      resetLabel: undefined,
+      disabledReason: undefined,
+    });
+    state.datasource = { ...state.datasource, uid: selected } as Dataset;
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: true,
+      resetLabel: 'Turn off server pagination',
+      disabledReason: 'This semantic view does not support server pagination.',
+    });
+  },
+);
 
 test.each([undefined, [], ['ROW_OFFSET']])(
   'AG Grid matches opaque provider uid before parsing datasource type: %s',

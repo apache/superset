@@ -40,6 +40,7 @@ import {
   isRegularMetric,
   isPercentMetric,
   isServerPaginationUnsupported,
+  hasMatchingDatasourceMetadata,
   ConditionalFormattingConfig,
   ObjectFormattingEnum,
   ColorSchemeEnum,
@@ -391,10 +392,10 @@ const config: ControlPanelConfig = {
               shouldMapStateToProps: () => true,
               mapStateToProps: state => ({
                 disabled: isServerPaginationUnsupported(state),
-                disabledReason: t(
-                  'This semantic view does not support server pagination.',
-                ),
-                resetLabel: state.datasource
+                disabledReason: hasMatchingDatasourceMetadata(state)
+                  ? t('This semantic view does not support server pagination.')
+                  : undefined,
+                resetLabel: hasMatchingDatasourceMetadata(state)
                   ? t('Turn off server pagination')
                   : undefined,
               }),

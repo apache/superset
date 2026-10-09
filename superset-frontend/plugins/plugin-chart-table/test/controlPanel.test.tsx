@@ -627,6 +627,39 @@ test('fails closed while semantic datasource metadata is unavailable', () => {
   expect(screen.getByRole('checkbox')).toBeDisabled();
 });
 
+test.each([
+  ['1__semantic_view', '2__semantic_view'],
+  ['cube__orders', 'cube__customers'],
+])(
+  'withholds pagination advice for stale metadata %s -> %s',
+  (uid, selected) => {
+    const state = panelState([], 'semantic_view', true);
+    state.datasource = {
+      ...state.datasource,
+      uid,
+      type: 'semantic_view',
+      semantic_view_features: [],
+    } as Dataset;
+    state.form_data.datasource = selected;
+    const panel = getControl('server_pagination');
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: true,
+      resetLabel: undefined,
+      disabledReason: undefined,
+    });
+    state.datasource = { ...state.datasource, uid: selected } as Dataset;
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: true,
+      resetLabel: 'Turn off server pagination',
+      disabledReason: 'This semantic view does not support server pagination.',
+    });
+  },
+);
+
 test.each([undefined, [], ['ROW_OFFSET']])(
   'matches opaque provider uid before parsing datasource type: %s',
   features => {
@@ -703,6 +736,12 @@ test('does not offer a reset before datasource metadata arrives', () => {
     datasource: null,
   };
   renderPagination(state);
+  expect(
+    getControl('server_pagination').mapStateToProps?.(
+      state,
+      state.controls.server_pagination,
+    ),
+  ).toMatchObject({ disabledReason: undefined, resetLabel: undefined });
   expect(screen.getByRole('checkbox')).toBeDisabled();
   expect(screen.getByRole('checkbox')).toBeChecked();
   expect(
