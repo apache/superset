@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-07 14:21-0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -509,6 +509,13 @@ msgid ""
 msgstr ""
 "%s elementus nevar atzīmēt, jo jums nav rediģēšanas atļauju visiem "
 "atlasītajiem objektiem."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%s metric"
@@ -1404,6 +1411,11 @@ msgstr "Pievienot brīdinājumu"
 msgid "Add an annotation layer"
 msgstr "Pievienot anotāciju slāni"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "Pievienot ierakstu"
 
@@ -1761,6 +1773,9 @@ msgstr "Brīdinājums atrada kļūdu, izpildot vaicājumu."
 msgid "Alert is active"
 msgstr "Brīdinājums ir aktīvs"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "Brīdinājuma nosaukums"
 
@@ -1816,6 +1831,18 @@ msgstr "Brīdinājumi"
 msgid "Alerts & Reports"
 msgstr "Brīdinājumi un atskaites"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "Brīdinājumi un atskaites"
 
@@ -1825,6 +1852,9 @@ msgstr "Izlīdzināt +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Rādīt visas kolonnas"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "Visi"
@@ -1851,6 +1881,9 @@ msgstr "Dimensijas"
 
 msgid "All filters"
 msgstr "Visi filtri"
+
+msgid "All groupable columns"
+msgstr ""
 
 msgid "All panels"
 msgstr "Visi paneļi"
@@ -1928,6 +1961,9 @@ msgstr "Ļaut lietotājiem izvēlēties vairākas vērtības"
 
 msgid "Allowed Domains (comma separated)"
 msgstr "Atļautie domēni (atdalīti ar komatu)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "Alfabētiski"
@@ -2243,6 +2279,9 @@ msgstr "Noņemot tabulas shēmu, radās kļūda. Lūdzu, sazinieties ar administ
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Radās kļūda, attēlojot vizualizāciju: %s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
 msgstr "Radās kļūda, ielādējot SQL"
@@ -2451,6 +2490,9 @@ msgid ""
 msgstr ""
 "Var pievienot jebkuru datubāzi, kas atļauj savienojumus, izmantojot "
 "SQLAlchemy URI. Uzziniet, kā pievienot datubāzes draiveri "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -4050,10 +4092,17 @@ msgstr "Kods kopēts!"
 msgid "Collapse"
 msgstr "Sakļaut rindu"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr "Aizvērt visu"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4319,6 +4368,9 @@ msgstr "Lasāmās kolonnas"
 msgid "Columns to show in the tooltip."
 msgstr "Kolonnas, kas jāparāda paskaidrē."
 
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "Apvienot rādītājus"
 
@@ -4556,6 +4608,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "Satur tekstu (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 msgid "Content format"
 msgstr "Satura formāts"
 
@@ -4596,6 +4654,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -6785,6 +6846,9 @@ msgstr "Iespējot Matrixify"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -7163,6 +7227,9 @@ msgstr "Izslēgt atlasītās vērtības"
 msgid "Excluded subjects"
 msgstr "Izslēgtie subjekti"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "Izpildītais SQL"
 
@@ -7178,6 +7245,10 @@ msgstr "Izpildes žurnāls"
 msgid "Existing dataset"
 msgstr "Esoša datu kopa"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7187,8 +7258,15 @@ msgstr "Iziet no pilnekrāna režīma"
 msgid "Expand"
 msgstr "Izvērst"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Izvērst visu"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "Izvērst visu"
@@ -7998,6 +8076,9 @@ msgstr ""
 "{percent}. \\n apzīmē jaunu rindu. ECharts saderība:\n"
 "{a} (sērija), {b} (nosaukums), {c} (vērtība), {d} (procentuālā daļa)"
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 msgid ""
 "Format metrics or columns with currency symbols as prefixes or suffixes. "
 "Choose a symbol manually or use 'Auto-detect' to apply the correct symbol"
@@ -8212,6 +8293,9 @@ msgstr "Grupas nosaukums"
 msgid "Group remaining as \"Others\""
 msgstr "Grupēt atlikušos kā \"Others\""
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "Grupēšana"
 
@@ -8318,6 +8402,9 @@ msgstr "Horizontāli (augšā)"
 
 msgid "Horizontal alignment"
 msgstr "Horizontālais līdzinājums"
+
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
 
 msgid "Host"
 msgstr "Resursdators"
@@ -8523,6 +8610,9 @@ msgstr "Iekļaujiet aprakstu, kas tiks nosūtīts kopā ar jūsu atskaiti"
 msgid "Include a link back to Superset"
 msgstr ""
 
+msgid "Include attachment"
+msgstr ""
+
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "Iekļaut aprakstu nosūtīšanai kopā ar %s"
@@ -8726,6 +8816,14 @@ msgstr "Nederīgs valūtas kods saglabātajos rādītājos"
 msgid "Invalid date/timestamp format"
 msgstr "Nederīgs datuma/laikspiedola formāts"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 msgid "Invalid executor type"
 msgstr "Nederīgs izpildītāja tips"
 
@@ -8887,6 +8985,9 @@ msgstr "JSON konfigurācija"
 
 msgid "JSON Metadata"
 msgstr "JSON metadati"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "JSON metadati"
@@ -9148,6 +9249,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -9263,6 +9369,9 @@ msgstr "Līdzīgs (reģistrneatkarīgs)"
 
 msgid "Limit"
 msgstr "Limits"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "Limita tips"
@@ -10375,6 +10484,9 @@ msgstr "Nav piemērotu filtru"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "Nav pieejamu filtru."
 
@@ -10525,6 +10637,9 @@ msgstr "Nav atrasti saglabāti rādītāji"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr "Nav atrasti saglabāti rezultāti, jāpalaiž vaicājums atkārtoti"
 
@@ -10642,6 +10757,10 @@ msgstr "Diagramma nav atrasta"
 
 msgid "Not in"
 msgstr "Neietilpst"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nav tukšs"
@@ -10876,6 +10995,9 @@ msgstr "Tikai kopsumma"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Atļauti tikai `SELECT` priekšraksti"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr ""
 "Piemērojams tikai tad, kad \"Apzīmējuma veids\" nav iestatīts uz "
@@ -10885,6 +11007,9 @@ msgid "Only applies when \"Label Type\" is set to show values."
 msgstr ""
 "Piemērojams tikai tad, kad \"Apzīmējuma veids\" ir iestatīts rādīt "
 "vērtības."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10949,6 +11074,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "Atvērt datu avota cilni"
+
+msgid "Open JSON"
+msgstr ""
 
 msgid "Open SQL Lab in a new tab"
 msgstr "Atvērt SQL Lab jaunā cilnē"
@@ -11739,7 +11867,7 @@ msgid "Prefix or suffix"
 msgstr "Prefikss vai piedēklis"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -12247,6 +12375,12 @@ msgstr ""
 msgid "Replace"
 msgstr "Aizvietot"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "Atskaite"
 
@@ -12310,6 +12444,12 @@ msgstr "Atskaites grafiks vēl darbojas, atsakās pārrēķināt."
 msgid "Report Schedule log prune failed."
 msgstr "Atskaites grafika žurnāla tīrīšana neizdevās."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "Atskaites grafiks nav atrasts."
 
@@ -12333,6 +12473,9 @@ msgstr "Atskaite neizdevās"
 
 msgid "Report is active"
 msgstr "Atskaite ir aktīva"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "Atskaites nosaukums"
@@ -12368,6 +12511,9 @@ msgstr "Atskaite atjaunināta"
 
 msgid "Reports"
 msgstr "Atskaites"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "Atgrūšana"
@@ -12738,6 +12884,18 @@ msgstr "Izpildiet vaicājumu, lai parādītu vaicājumu vēsturi"
 msgid "Run a query to display results"
 msgstr "Izpildiet vaicājumu, lai parādītu rezultātus"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "Izpildīt pašreizējo vaicājumu"
 
@@ -12873,6 +13031,9 @@ msgstr "TEKSTS"
 
 msgid "SUN"
 msgstr "SV"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -13667,6 +13828,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Izvēlieties izmantojamo krāsu kopu."
 
+msgid "Select user"
+msgstr ""
+
 msgid "Select users"
 msgstr "Izvēlēties lietotājus"
 
@@ -13791,6 +13955,9 @@ msgstr "Semantiskais skats atjaunināts"
 msgid "Semantic views"
 msgstr "Semantiskie skati"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -13810,6 +13977,9 @@ msgid "Send as text"
 msgstr "Sūtīt kā tekstu"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -14400,6 +14570,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -14619,6 +14794,9 @@ msgstr "Telpiskais"
 
 msgid "Specific Date/Time"
 msgstr "Konkrēts datums/laiks"
+
+msgid "Specific user"
+msgstr ""
 
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "Norādiet nosaukumu CREATE TABLE AS shēmai: public"
@@ -15406,6 +15584,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 msgid "The annotation has been saved"
 msgstr "Anotācija ir saglabāta"
 
@@ -15511,6 +15692,11 @@ msgstr "Kolonna, kuru izmantot kā malas mērķi."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Kolonna datubāzē tika dzēsta vai pārdēvēta."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Kartes slāņu konfigurācija"
@@ -15734,6 +15920,12 @@ msgstr ""
 "filtra vērtību”\n"
 "                    un tos nevarēja ielādēt, kas traucē paneļa\n"
 "                    attēlošanu: %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 msgid "The font size of the point labels"
 msgstr "Punktu apzīmējumu fonta izmērs"
@@ -16363,6 +16555,18 @@ msgstr "Lietotājs ir veiksmīgi atjaunināts."
 msgid "The user was updated successfully"
 msgstr "Lietotājs veiksmīgi atjaunināts"
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr "Lietotāja/paroles kombinācija nav derīga (nepareiza parole lietotājam)."
 
@@ -16737,6 +16941,12 @@ msgstr "Šīs ir datu kopas, kurām šis filtrs tiks piemērots."
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -16803,6 +17013,12 @@ msgstr "Šī darbība neatgriezeniski dzēsīs lietotāja reģistrāciju."
 
 msgid "This action will permanently delete the user."
 msgstr "Šī darbība neatgriezeniski dzēsīs lietotāju."
+
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
 
 msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
@@ -17162,6 +17378,11 @@ msgstr "Šī parole ir pārāk izplatīta; lūdzu, izvēlieties grūtāk uzminam
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 msgid ""
@@ -17917,6 +18138,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Nevar ielādēt paneli"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -18207,6 +18431,9 @@ msgstr "Lietojums"
 msgid "Use %s to open in a new tab."
 msgstr "Izmantojiet %s, lai atvērtu jaunā cilnē."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "Izmantot laukuma proporcijas"
 
@@ -18245,6 +18472,12 @@ msgstr "Izmantot pašreizējo apjomu"
 
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Izmantot datuma formatēšanu pat tad, kad metrikas vērtība nav laika zīmogs"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 msgid "Use gradient"
 msgstr "Izmantojiet gradientu"
@@ -18294,6 +18527,9 @@ msgstr "Lietotājvārds"
 
 msgid "User Registrations"
 msgstr "Lietotāju reģistrācijas"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "Lietotājam nav atbilstošu atļauju."
@@ -18874,6 +19110,11 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "Atzīmējot, karte pēc katra vaicājuma tuvināsies jūsu datiem"
 
 msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
+
+msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
@@ -19429,6 +19670,19 @@ msgid ""
 "You can create a new chart or use existing ones from the panel on the "
 "right"
 msgstr "Varat izveidot jaunu diagrammu vai izmantot esošās no paneļa labajā pusē"
+
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -20252,6 +20506,9 @@ msgstr "katru minūti"
 msgid "every month"
 msgstr "katru mēnesi"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "izvērst"
 
@@ -20455,6 +20712,9 @@ msgstr "minūte"
 msgid "minute(s)"
 msgstr "minūte(-es)"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "mēnesis"
 
@@ -20625,6 +20885,10 @@ msgstr "pārstartēt"
 msgid "recent"
 msgstr "nesen"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "saņēmēji"
 
@@ -20649,11 +20913,18 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "rindu_līmeņa_drošība"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "darbojas"
 
 msgid "save"
 msgstr "saglabāt"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"

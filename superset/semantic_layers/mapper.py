@@ -59,8 +59,10 @@ from superset.common.utils.time_range_utils import (
 )
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
+from superset.semantic_layers.completeness import provider_completeness
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     FilterOperator,
@@ -150,7 +152,8 @@ def get_results(query_object: QueryObject) -> QueryResult:
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
-    main_result = dispatcher(main_query)
+    with provider_completeness():
+        main_result = dispatcher(main_query)
     main_result = _coerce_empty_result(main_result, main_query)
 
     main_df = stringify_extension_columns(main_result.results).to_pandas()
@@ -182,7 +185,8 @@ def get_results(query_object: QueryObject) -> QueryResult:
         strict=False,
     ):
         # Execute the offset query
-        result = dispatcher(offset_query)
+        with provider_completeness():
+            result = dispatcher(offset_query)
         result = _coerce_empty_result(result, offset_query)
 
         # Add this query's requests to the collection
@@ -1210,7 +1214,7 @@ def _validate_granularity(query_object: ValidatedQueryObject) -> None:
             if dimension.name == time_column and dimension.grain
         }
         if _convert_time_grain(time_grain) not in supported_time_grains:
-            raise ValueError(
+            raise QueryObjectValidationError(
                 "The time grain is not supported for the time column in the "
                 "Semantic View."
             )
