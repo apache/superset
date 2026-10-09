@@ -1900,6 +1900,9 @@ msgstr "Виміри"
 msgid "All filters"
 msgstr "Усі фільтри"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Усі панелі"
 
@@ -4370,6 +4373,9 @@ msgstr "Стовпці, які читати"
 
 msgid "Columns to show in the tooltip."
 msgstr "Стовпці, які показувати у підказках."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Поєднати показники"
@@ -8299,6 +8305,9 @@ msgstr "Назва групи"
 msgid "Group remaining as \"Others\""
 msgstr "Згрупувати решту як «Інші»"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "Групування"
 
@@ -9245,6 +9254,11 @@ msgid "Least recently modified"
 msgstr "Давно без змін"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -10747,6 +10761,10 @@ msgstr "Діаграму не знайдено"
 
 msgid "Not in"
 msgstr "Не в"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Не порожній"
@@ -15681,6 +15699,11 @@ msgstr "Стовпець, який використовується як кін�
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Стовпець вилучено або перейменовано у базі даних."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Налаштування шарів карти"
