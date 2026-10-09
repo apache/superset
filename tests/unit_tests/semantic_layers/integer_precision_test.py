@@ -47,7 +47,10 @@ def semantic_layer(mocker: MockerFixture) -> SemanticLayer:
 
 
 @pytest.mark.parametrize("value", [9007199254740993, -9007199254740993, 2**63 - 1, 7])
-@pytest.mark.parametrize("with_offset", [False, True])
+@pytest.mark.parametrize(
+    ("with_offset", "missing_prior_category"),
+    [(False, False), (True, False), (True, True)],
+)
 def test_chart_data_preserves_nullable_integer_precision(
     client: FlaskClient,
     full_api_access: None,
@@ -55,6 +58,7 @@ def test_chart_data_preserves_nullable_integer_precision(
     semantic_layer: SemanticLayer,
     value: int,
     with_offset: bool,
+    missing_prior_category: bool,
 ) -> None:
     """Serialize exact main/offset integers and nulls through the real host path."""
     provider: MagicMock = MagicMock(spec=ProviderView)
@@ -67,6 +71,9 @@ def test_chart_data_preserves_nullable_integer_precision(
     provider.get_metrics.return_value = {
         Metric("amount", "amount", pa.int64(), "SUM(amount)"),
     }
+    offset_values: list[int | None] = (
+        [value] if missing_prior_category else [None, -value]
+    )
     provider.get_table.side_effect = [
         SemanticResult(
             results=pa.table(
@@ -80,8 +87,8 @@ def test_chart_data_preserves_nullable_integer_precision(
         SemanticResult(
             results=pa.table(
                 {
-                    "category": ["A", "B"],
-                    "amount": pa.array([None, -value], type=pa.int64()),
+                    "category": ["A"] if missing_prior_category else ["A", "B"],
+                    "amount": pa.array(offset_values, type=pa.int64()),
                 }
             ),
             requests=[],
@@ -125,17 +132,24 @@ def test_chart_data_preserves_nullable_integer_precision(
         {"category": "B", "amount": None},
     ]
     if with_offset:
-        expected[0]["amount__1 week ago"] = None
-        expected[1]["amount__1 week ago"] = (
-            str(-value) if abs(value) > 2**53 - 1 else -value
-        )
+        if missing_prior_category:
+            expected[0]["amount__1 week ago"] = (
+                str(value) if abs(value) > 2**53 - 1 else value
+            )
+            expected[1]["amount__1 week ago"] = None
+        else:
+            expected[0]["amount__1 week ago"] = None
+            expected[1]["amount__1 week ago"] = (
+                str(-value) if abs(value) > 2**53 - 1 else -value
+            )
     assert response.get_json()["result"][0]["data"] == expected
     assert provider.get_table.call_count == (2 if with_offset else 1)
     if abs(value) > 2**53 - 1:
         # Check exact quoted wire values, not a numpy float/int equality comparison.
         assert f'"{value}"' in response.get_data(as_text=True)
         if with_offset:
-            assert f'"{-value}"' in response.get_data(as_text=True)
+            offset_value: int = value if missing_prior_category else -value
+            assert f'"{offset_value}"' in response.get_data(as_text=True)
 
 
 @pytest.mark.parametrize(

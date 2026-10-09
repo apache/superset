@@ -197,6 +197,14 @@ def get_results(query_object: QueryObject) -> QueryResult:
         offset_df = stringify_extension_columns(result.results).to_pandas(
             integer_object_nulls=True,
         )
+        # A missing join match would upcast int64 offset metrics to float64.
+        offset_df = offset_df.astype(
+            {
+                metric: object
+                for metric in metric_names
+                if metric in offset_df and offset_df[metric].dtype.kind == "i"
+            }
+        )
 
         # Handle empty results - add NaN columns directly instead of merging
         # This avoids dtype mismatch issues with empty DataFrames
