@@ -229,12 +229,15 @@ def test_execute_chart_query_form_data_has_body_shape(
     url_params) that the Jinja fallback reads from ``form_data['queries'][0]``."""
     from flask import g
 
+    from superset.common.query_object import QueryObject
     from superset.tasks.async_queries import execute_chart_query
 
-    query = mocker.MagicMock()
-    query.to_dict.return_value = {"metrics": ["count"], "columns": ["name"]}
-    query.filter = [{"col": "region", "op": "==", "val": "EMEA"}]
-    query.time_range = "No filter"
+    query = QueryObject(
+        metrics=["count"],
+        columns=["name"],
+        filters=[{"col": "region", "op": "==", "val": "EMEA"}],
+        time_range="No filter",
+    )
 
     query_context = mocker.MagicMock()
     query_context.datasource.id = 5
