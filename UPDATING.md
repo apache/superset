@@ -36,6 +36,35 @@ assists people when migrating to a new version.
   lists and variable-length tuples. See the
   [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
   for capability opt-in and guarded loading on older SDKs.
+- MCP data-bearing tools enforce mandatory chart-query result limits before
+  response serialization or CSV/XLSX export, independently of the configurable
+  response size guard (`MCP_RESPONSE_SIZE_CONFIG`). Results are limited to 32
+  queries, 50,000 rows per query, 100,000 rows in total, 4,096 columns per row,
+  2,500,000 values, 16 MiB of JSON, and 1 MiB of metadata. Nested cells
+  are limited to 4,096 items per container and 32 levels of nesting; text cells
+  are limited to 65,536 UTF-8 bytes. Increasing `SQL_MAX_ROW` or raising/disabling
+  the response size guard does not raise these fixed limits. Oversized results,
+  including saved Table exports, return `InvalidQueryResult`; lower row limits,
+  filter, select fewer/narrower columns, or aggregate before exporting.
+
+- MCP `update_chart` requires a complete `config` when changing `dataset_id`
+  to a different dataset, for both preview and immediate-save requests. Re-sending
+  the existing dataset ID remains an idempotent update.
+
+- Semantic-layer providers may opt into `SemanticLayer.result_cache_version` to
+  isolate chart, filter-value and chart-backed annotation results from older
+  producer guarantees. The default `None` preserves existing cache keys. Providers
+  enforcing completeness should raise the public
+  `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
+  results are incomplete or cannot be verified (an additive `apache-superset-core`
+  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  not the same-named host class in `superset.exceptions`); the host converts it to
+  its client error, and these
+  failures do not publish a successful async result cache key. A provider raising
+  `superset.exceptions.SemanticResultCompletenessError` directly is still accepted
+  for one release. Deploy compatible host/provider versions to
+  all web and worker processes and drain old deliveries before activating a new
+  guarantee. Mixed fleets and an old host with an opted-in provider are unsupported.
 
 - A chart whose datasource no longer exists (hard-deleted, or no datasource ID)
   has its denormalized `perm`, `schema_perm` and `catalog_perm` cleared when it is
