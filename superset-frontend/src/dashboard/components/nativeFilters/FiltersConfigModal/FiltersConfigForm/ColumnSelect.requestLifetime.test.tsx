@@ -89,9 +89,10 @@ test.each([false, true])(
       result: { columns: [{ column_name: 'sql_column' }] },
     });
     const { props, setFields } = propsFor();
-    const { rerender } = render(<ColumnSelect key="first" {...props} />, {
-      useRedux: true,
-    });
+    const { rerender } = render(
+      <ColumnSelect key="first" {...props} value="sql_column" />,
+      { useRedux: true },
+    );
     await waitFor(() =>
       expect(
         fetchMock.callHistory.called('glob:*/api/v1/semantic_view/2/structure'),
