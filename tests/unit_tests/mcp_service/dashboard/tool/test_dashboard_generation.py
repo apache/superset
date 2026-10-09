@@ -118,6 +118,7 @@ def _mock_dashboard(id: int = 1, title: str = "Test Dashboard") -> Mock:
     """Create a mock dashboard object."""
     dashboard = Mock()
     dashboard.id = id
+    dashboard.is_managed_externally = False
     dashboard.dashboard_title = title
     dashboard.slug = f"test-dashboard-{id}"
     dashboard.description = "Test dashboard description"

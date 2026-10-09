@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-07 14:21-0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -475,6 +475,11 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr "%s 個項目無法標記，因為您對所有選取的物件沒有編輯權限。"
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
 
 #, python-format
 msgid "%s metric"
@@ -1205,6 +1210,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr "在查詢中可用的一組参數使用 Jinja 模板語法"
@@ -1456,6 +1466,11 @@ msgstr "新增告警"
 #, fuzzy
 msgid "Add an annotation layer"
 msgstr "新增注釋層"
+
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
 
 msgid "Add an item"
 msgstr "新增一行"
@@ -1845,6 +1860,9 @@ msgstr "告警在執行查詢時發現錯誤。"
 msgid "Alert is active"
 msgstr "告警失敗"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "告警名稱"
 
@@ -1896,6 +1914,18 @@ msgstr "告警"
 msgid "Alerts & Reports"
 msgstr "告警和報告"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "告警和報告"
 
@@ -1905,6 +1935,9 @@ msgstr "對齊 +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "顯示所有列"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "所有"
@@ -2016,6 +2049,9 @@ msgstr "允許選擇多個值"
 
 msgid "Allowed Domains (comma separated)"
 msgstr "允許的域名（逗號分隔）"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "按字母順序排列"
@@ -2354,6 +2390,9 @@ msgstr "删除表結構時出錯。請與管理員聯繫。"
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "渲染可視化時發生錯誤：%s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
 msgstr "創建數據源時發生錯誤"
@@ -2567,6 +2606,9 @@ msgid ""
 "Any databases that allow connections via SQL Alchemy URIs can be added. "
 "Learn about how to connect a database driver "
 msgstr "可以增加任何允許通過 SQL AlChemy URI 進行連接的資料庫。了解如何連接資料庫驱動程序"
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -4332,11 +4374,18 @@ msgstr "SQL 複製成功！"
 msgid "Collapse"
 msgstr "折叠行"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 #, fuzzy
 msgid "Collapse All"
 msgstr "全部折叠"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4885,6 +4934,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "包含文字 (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 #, fuzzy
 msgid "Content format"
 msgstr "時間格式"
@@ -4930,6 +4985,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -7328,6 +7386,9 @@ msgstr "啟用矩陣化"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -7773,6 +7834,9 @@ msgstr "排除選定的值"
 msgid "Excluded subjects"
 msgstr "排除的主體"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "已執行的 SQL"
 
@@ -7789,6 +7853,10 @@ msgstr "執行日誌"
 msgid "Existing dataset"
 msgstr "存在的數據集"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7799,9 +7867,16 @@ msgstr "退出全螢幕"
 msgid "Expand"
 msgstr "展開"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "全部展開"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "全部展開"
@@ -8730,6 +8805,9 @@ msgstr ""
 "格式化資料標籤。使用變數：{name}、{value}、{percent}。\\n 表示換行。ECharts 相容性：\n"
 "{a}（系列）、{b}（名稱）、{c}（值）、{d}（百分比）"
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -9108,6 +9186,9 @@ msgstr "横向（頂部對齊）"
 msgid "Horizontal alignment"
 msgstr "水平對齊"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
 msgid "Host"
 msgstr "主機"
 
@@ -9335,6 +9416,9 @@ msgid "Include a description that will be sent with your report"
 msgstr "描述要發送給你的報告"
 
 msgid "Include a link back to Superset"
+msgstr ""
+
+msgid "Include attachment"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -9577,6 +9661,14 @@ msgstr "已儲存指標中的貨幣代碼無效"
 msgid "Invalid date/timestamp format"
 msgstr "無效的日期/時間戳格式"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -9766,6 +9858,9 @@ msgstr "列配置"
 
 msgid "JSON Metadata"
 msgstr "JSON 元數據"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "JSON 元數據"
@@ -10195,6 +10290,9 @@ msgstr "Like（區分大小寫）"
 #, fuzzy
 msgid "Limit"
 msgstr "行限制"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 #, fuzzy
 msgid "Limit type"
@@ -11438,6 +11536,9 @@ msgstr "没有應用過濾器"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 #, fuzzy
 msgid "No available filters."
 msgstr "没有有效的過濾器"
@@ -11557,6 +11658,9 @@ msgstr "没有找到任何紀錄"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "此看板中没有過濾條件。"
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "没有找到任何紀錄"
 
@@ -11608,6 +11712,9 @@ msgid "No saved metrics found"
 msgstr "没有已保存的指標"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -11995,6 +12102,9 @@ msgstr "僅總計"
 msgid "Only `SELECT` statements are allowed"
 msgstr "將 SELECT 語句複製到剪貼簿"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -12006,6 +12116,9 @@ msgstr "僅在「標籤類型」未設為百分比時適用。"
 #, fuzzy
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "僅在「標籤類型」設為顯示數值時適用。"
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -12077,6 +12190,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "打開數據源 tab"
+
+msgid "Open JSON"
+msgstr ""
 
 #, fuzzy
 msgid "Open SQL Lab in a new tab"
@@ -12944,7 +13060,7 @@ msgid "Prefix or suffix"
 msgstr "前缀或者後缀"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -13514,6 +13630,12 @@ msgstr "在適用時將表格儲存格呈現為 HTML 格式。例如，HTML <a> 
 msgid "Replace"
 msgstr "替换"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "報表"
 
@@ -13579,6 +13701,12 @@ msgstr "報表計劃仍在運行，拒绝重新計算。"
 msgid "Report Schedule log prune failed."
 msgstr "報表計劃日誌精简失敗。"
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "找不到報表計劃。"
 
@@ -13604,6 +13732,9 @@ msgstr "報告失敗"
 #, fuzzy
 msgid "Report is active"
 msgstr "啟用郵件報告"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "報告名稱"
@@ -13642,6 +13773,9 @@ msgstr "報告已更新"
 
 msgid "Reports"
 msgstr "報告"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "排斥力"
@@ -14046,6 +14180,18 @@ msgstr "運行一個查詢，在此會顯示结果"
 msgid "Run a query to display results"
 msgstr "運行一個查詢，在此會顯示结果"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 #, fuzzy
 msgid "Run current query"
 msgstr "運行查詢"
@@ -14188,6 +14334,9 @@ msgstr "字符串"
 
 msgid "SUN"
 msgstr "星期日"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -15065,6 +15214,9 @@ msgstr "選取用於確定每條路徑屬於哪個顏色斷點範圍的指標。
 msgid "Select the type of color scheme to use."
 msgstr "選擇颜色方案"
 
+msgid "Select user"
+msgstr ""
+
 #, fuzzy
 msgid "Select users"
 msgstr "選擇所有者"
@@ -15188,6 +15340,9 @@ msgstr "語義視圖已更新"
 msgid "Semantic views"
 msgstr "語義視圖"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -15208,6 +15363,9 @@ msgid "Send as text"
 msgstr "發送文本"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -15855,6 +16013,11 @@ msgid "Some charts did not finish loading. The export may be incomplete."
 msgstr ""
 
 msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
+msgstr ""
+
+msgid ""
 "Some features require a larger screen. Try viewing dashboards for the "
 "best mobile experience."
 msgstr ""
@@ -16086,6 +16249,9 @@ msgstr "空間"
 
 msgid "Specific Date/Time"
 msgstr "具體日期/時間"
+
+msgid "Specific user"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16964,6 +17130,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 msgid "The annotation has been saved"
 msgstr "注释已保存。"
 
@@ -17316,6 +17485,12 @@ msgstr ""
 "                    選項，但無法載入，導致儀表板\n"
 "                    無法渲染：%s"
 
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
+
 #, fuzzy
 msgid "The font size of the point labels"
 msgstr "是否顯示指示器"
@@ -17606,6 +17781,9 @@ msgstr "主計量指標用於定義弧段大小。"
 #, fuzzy
 msgid "The provided table was not found in the provided database"
 msgstr "該表在資料庫中不存在"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "與结果關聯的查詢已删除。"
@@ -17925,6 +18103,18 @@ msgstr "該看板已成功保存。"
 #, fuzzy
 msgid "The user was updated successfully"
 msgstr "該看板已成功保存。"
+
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -18323,6 +18513,12 @@ msgstr "這些是將應用此過濾的表。"
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -18388,6 +18584,12 @@ msgstr "此操作將永久删除圖層。"
 #, fuzzy
 msgid "This action will permanently delete the user."
 msgstr "此操作將永久删除圖層。"
+
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
 
 msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
@@ -18795,6 +18997,11 @@ msgstr "此密碼過於常見，請選擇一個較難猜測的密碼。"
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 #, fuzzy
@@ -19617,6 +19824,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "增加到看板"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -19935,6 +20145,9 @@ msgstr "用途"
 msgid "Use %s to open in a new tab."
 msgstr "使用 %s 打開新的選項卡。"
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "使用面積比例"
 
@@ -19979,6 +20192,12 @@ msgstr "運行查詢"
 #, fuzzy
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "即使指標值不是時間戳記，也使用日期格式"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 #, fuzzy
 msgid "Use gradient"
@@ -20032,6 +20251,9 @@ msgstr "用戶名"
 #, fuzzy
 msgid "User Registrations"
 msgstr "使用面積比例"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "您没有授權 "
@@ -20634,6 +20856,11 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "勾選後，每次查詢後地圖將自動縮放至您的數據範圍"
 
 msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
+
+msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
@@ -21205,6 +21432,19 @@ msgid ""
 "You can create a new chart or use existing ones from the panel on the "
 "right"
 msgstr "您可以創建一個新圖表，或使用右側面板中的現有的對象。"
+
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -22134,6 +22374,9 @@ msgstr "每分鐘 UTC"
 msgid "every month"
 msgstr "每個月"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 #, fuzzy
 msgid "expand"
 msgstr "展開"
@@ -22366,6 +22609,9 @@ msgstr "分"
 msgid "minute(s)"
 msgstr "分鐘"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "月"
 
@@ -22558,6 +22804,10 @@ msgstr "重啟"
 msgid "recent"
 msgstr "最近"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 #, fuzzy
 msgid "recipients"
 msgstr "最近"
@@ -22588,6 +22838,9 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "行級安全"
 
+msgid "run as"
+msgstr ""
+
 #, fuzzy
 msgid "running"
 msgstr "正在執行"
@@ -22595,6 +22848,10 @@ msgstr "正在執行"
 #, fuzzy
 msgid "save"
 msgstr "保存"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
