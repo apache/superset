@@ -22,6 +22,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import JSON, types
 from sqlalchemy.engine.url import make_url
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.starrocks import (
     ARRAY,
     BITMAP,
@@ -34,7 +35,6 @@ from superset.db_engine_specs.starrocks import (
     TINYINT,
 )
 from superset.utils.core import GenericDataType
-from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
@@ -157,7 +157,7 @@ def test_impersonation_username(mocker: MockerFixture) -> None:
 
     database = mocker.MagicMock()
     database.impersonate_user = True
-    database.get_effective_user.return_value = "alice"
+    database.get_impersonation_username.return_value = "alice"
 
     assert StarRocksEngineSpec.impersonate_user(
         database,
@@ -171,7 +171,9 @@ def test_impersonation_username(mocker: MockerFixture) -> None:
         'EXECUTE AS "alice" WITH NO REVERT;'
     ]
 
-    database.get_effective_user.return_value = 'evil" WITH NO REVERT; DROP TABLE x--'
+    database.get_impersonation_username.return_value = (
+        'evil" WITH NO REVERT; DROP TABLE x--'
+    )
     assert StarRocksEngineSpec.get_prequeries(database) == [
         'EXECUTE AS "evil"" WITH NO REVERT; DROP TABLE x--" WITH NO REVERT;'
     ]
@@ -231,8 +233,8 @@ def test_get_catalog_names(mocker: MockerFixture) -> None:
     # StarRocks returns rows with keys: ['Catalog', 'Type', 'Comment']
     mock_row_1 = mocker.MagicMock()
     mock_row_1.keys.return_value = ["Catalog", "Type", "Comment"]
-    mock_row_1.__getitem__ = (
-        lambda self, key: "default_catalog" if key == "Catalog" else None
+    mock_row_1.__getitem__ = lambda self, key: (
+        "default_catalog" if key == "Catalog" else None
     )
 
     mock_row_2 = mocker.MagicMock()
@@ -296,71 +298,45 @@ def test_adjust_engine_params_with_catalog(
     assert returned_url.database == expected_database
 
 
-@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
-def test_get_prequeries_with_email_prefix(mocker: MockerFixture) -> None:
-    """Test that get_prequeries uses email prefix when IMPERSONATE_WITH_EMAIL_PREFIX"""
-    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
-
-    user = mocker.MagicMock()
-    user.email = "alice@example.org"
-    mocker.patch(
-        "superset.db_engine_specs.starrocks.security_manager.find_user",
-        return_value=user,
-    )
-
-    database = mocker.MagicMock()
-    database.impersonate_user = True
-    database.url_object = make_url("starrocks://localhost:9030/")
-    database.get_effective_user.return_value = "alice@example.org"
-
-    assert StarRocksEngineSpec.get_prequeries(database) == [
-        'EXECUTE AS "alice" WITH NO REVERT;'
-    ]
-
-
-@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
-def test_get_prequeries_with_email_prefix_dotted_local_part(
+def test_get_prequeries_defers_impersonation_resolution(
     mocker: MockerFixture,
 ) -> None:
-    """Test that get_prequeries uses email prefix when IMPERSONATE_WITH_EMAIL_PREFIX"""
-    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+    """
+    Test that `get_prequeries` impersonates whoever `Database` resolves.
 
-    user = mocker.MagicMock()
-    user.email = "alice.doe@example.org"
-    mocker.patch(
-        "superset.db_engine_specs.starrocks.security_manager.find_user",
-        return_value=user,
-    )
+    Resolving the name here instead would mean a second implementation of the
+    email-prefix substitution, and a second metadata-DB read needing its own
+    guard. The substitution itself is covered by the
+    `Database.get_impersonation_username` tests.
+    """
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
 
     database = mocker.MagicMock()
     database.impersonate_user = True
     database.url_object = make_url("starrocks://localhost:9030/")
-    database.get_effective_user.return_value = "alice.doe@example.org"
+    database.get_impersonation_username.return_value = "alice.doe"
 
     assert StarRocksEngineSpec.get_prequeries(database) == [
         'EXECUTE AS "alice.doe" WITH NO REVERT;'
     ]
+    database.get_effective_user.assert_not_called()
 
 
-@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
-def test_get_prequeries_with_email_prefix_from_user_email_when_effective_user_differs(
-    mocker: MockerFixture,
-) -> None:
-    """Use looked-up user.email local part when effective username is different."""
+def test_time_grain_expressions_inherit_mysql() -> None:
+    """
+    Test that StarRocksEngineSpec inherits MySQL time grain expressions and
+    that the HOUR grain renders to the correct DATE_FORMAT truncation SQL.
+
+    StarRocks does not override _time_grain_expressions, so it reuses MySQL's
+    templates, including the HOUR grain. This asserts the rendered HOUR output
+    (not object identity) to guard against the HOUR-grain truncation regression.
+
+    Regression test for: ECharts HOUR grain generated invalid, over-truncated
+    SQL when the grain expression was normalized or proxied (#36798).
+    """
     from superset.db_engine_specs.starrocks import StarRocksEngineSpec
 
-    user = mocker.MagicMock()
-    user.email = "alice.doe@example.org"
-    mocker.patch(
-        "superset.db_engine_specs.starrocks.security_manager.find_user",
-        return_value=user,
+    actual = StarRocksEngineSpec._time_grain_expressions[TimeGrain.HOUR].replace(
+        "{col}", "my_col"
     )
-
-    database = mocker.MagicMock()
-    database.impersonate_user = True
-    database.url_object = make_url("starrocks://localhost:9030/")
-    database.get_effective_user.return_value = "alice"
-
-    assert StarRocksEngineSpec.get_prequeries(database) == [
-        'EXECUTE AS "alice.doe" WITH NO REVERT;'
-    ]
+    assert actual == "DATE_FORMAT(my_col, '%Y-%m-%d %H:00:00')"

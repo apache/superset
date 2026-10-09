@@ -22,21 +22,114 @@ Validates that referenced columns exist in the dataset schema.
 
 import difflib
 import logging
-from typing import Any, Dict, List, Tuple, TypeVar
+import re
+from collections.abc import Iterable, Mapping
+from itertools import zip_longest
+from typing import Any, Callable, Dict, List, Tuple, TypeVar
 
 from superset.mcp_service.chart.schemas import (
+    BubbleChartConfig,
     ChartConfig,
     ColumnRef,
+    SunburstChartConfig,
+    TableChartConfig,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
     ColumnSuggestion,
     DatasetContext,
 )
+from superset.mcp_service.utils.error_builder import (
+    MAX_DID_YOU_MEAN_CANDIDATES,
+    MAX_ERROR_SUGGESTIONS,
+)
 
 _C = TypeVar("_C", bound=ChartConfig)
+_T = TypeVar("_T")
 
 logger = logging.getLogger(__name__)
+
+_NUMERIC_TYPE_PATTERN = re.compile(
+    r"\b(?:(?:TINY|SMALL|MEDIUM|BIG)?INT(?:EGER)?|INT[248]|FLOAT[48]?|"
+    r"DOUBLE(?:\s+PRECISION)?|DECIMAL|NUMERIC|REAL|NUMBER|(?:SMALL)?MONEY)\b"
+)
+
+
+class GanttSemanticNormalizationError(ValueError):
+    """A Gantt canonicalization result violates its typed semantic contract."""
+
+
+def resolve_exact_first_casefold(
+    reference: str,
+    candidates: Iterable[_T],
+    name_getter: Callable[[_T], str],
+) -> tuple[_T | None, list[str]]:
+    """Resolve an exact name, or one and only one Unicode-casefold match.
+
+    The exact pass makes resolution independent of metadata ordering when two
+    distinct names differ only by case.  A non-exact folded reference resolves
+    only when it identifies exactly one candidate; callers reject the returned
+    ambiguity list rather than selecting whichever metadata row came first.
+    """
+    materialized = list(candidates)
+    for candidate in materialized:
+        if name_getter(candidate) == reference:
+            return candidate, []
+
+    folded_reference = reference.casefold()
+    folded_matches = [
+        candidate
+        for candidate in materialized
+        if name_getter(candidate).casefold() == folded_reference
+    ]
+    if len(folded_matches) == 1:
+        return folded_matches[0], []
+    return None, [name_getter(candidate) for candidate in folded_matches]
+
+
+def metadata_entry_name(candidate: Mapping[str, Any] | None) -> str:
+    """Return the canonical name from one dataset metadata mapping."""
+    if candidate is None:
+        raise ValueError("Dataset metadata candidates must not be null")
+    return str(candidate["name"])
+
+
+def is_numeric_column(column: Mapping[str, Any]) -> bool:
+    """Return whether dataset metadata identifies a numeric SQL column."""
+    if column.get("is_numeric", False):
+        return True
+    return bool(_NUMERIC_TYPE_PATTERN.search(str(column.get("type") or "").upper()))
+
+
+def is_dataset_column_temporal(
+    column: Any, column_name: str, db_engine_spec: Any
+) -> bool:
+    """Return whether a dataset column is safe for temporal operations."""
+    from superset.utils.core import GenericDataType
+
+    is_dttm = bool(getattr(column, "is_dttm", False))
+    column_type = column.type
+    if not column_type:
+        return is_dttm
+
+    column_spec = db_engine_spec.get_column_spec(column_type)
+    generic_type = column_spec.generic_type if column_spec else None
+    if generic_type == GenericDataType.TEMPORAL:
+        return True
+    if not is_dttm:
+        return False
+    if generic_type != GenericDataType.NUMERIC or getattr(
+        column, "python_date_format", None
+    ):
+        return True
+
+    logger.debug(
+        "Column '%s' is marked is_dttm=True but has numeric type '%s' with "
+        "no python_date_format; treating it as non-temporal",
+        column_name,
+        column_type,
+    )
+    return False
 
 
 def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
@@ -48,13 +141,19 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
     if dataset is None:
         return None
 
+    database = getattr(dataset, "database", None)
+    db_engine_spec = getattr(database, "db_engine_spec", None)
     columns: List[Dict[str, Any]] = []
     for col in getattr(dataset, "columns", []) or []:
         columns.append(
             {
                 "name": col.column_name,
                 "type": str(col.type) if col.type else "UNKNOWN",
-                "is_temporal": getattr(col, "is_temporal", False),
+                "is_temporal": (
+                    is_dataset_column_temporal(col, col.column_name, db_engine_spec)
+                    if db_engine_spec
+                    else getattr(col, "is_temporal", False)
+                ),
                 "is_numeric": getattr(col, "is_numeric", False),
             }
         )
@@ -69,7 +168,6 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
             }
         )
 
-    database = getattr(dataset, "database", None)
     database_name = getattr(database, "database_name", None) or ""
     return DatasetContext(
         id=dataset.id,
@@ -92,8 +190,76 @@ NORMALIZATION_EXCEPTIONS = (
 )
 
 
+class AmbiguousDatasetReferenceError(ValueError):
+    """A non-exact reference matches multiple names that differ only by case."""
+
+    def __init__(self, name: str, matches: list[str], reference_kind: str) -> None:
+        self.name = name
+        self.matches = sorted(matches)
+        self.reference_kind = reference_kind
+        choices = ", ".join(repr(match) for match in self.matches)
+        super().__init__(
+            f"{reference_kind.capitalize()} reference {name!r} is ambiguous because "
+            f"the dataset contains names that differ only by case: {choices}. "
+            f"Use the exact {reference_kind} name."
+        )
+
+
+def resolve_dataset_reference(
+    name: str, candidates: Iterable[str], reference_kind: str
+) -> str | None:
+    """Resolve a dataset reference deterministically.
+
+    Exact spelling wins regardless of metadata order. A single case-insensitive
+    match is canonicalized, while multiple case-insensitive matches require the
+    caller to provide exact casing.
+    """
+    candidate_names = list(candidates)
+    if name in candidate_names:
+        return name
+    matches = [
+        candidate
+        for candidate in candidate_names
+        if candidate.casefold() == name.casefold()
+    ]
+    if len(matches) > 1:
+        raise AmbiguousDatasetReferenceError(name, matches, reference_kind)
+    return matches[0] if matches else None
+
+
 class DatasetValidator:
     """Validates chart configuration against dataset schema."""
+
+    @staticmethod
+    def _resolve_metadata_entry(
+        reference: str,
+        candidates: List[Dict[str, Any]],
+    ) -> tuple[Dict[str, Any] | None, list[str]]:
+        """Resolve metadata through the shared exact-first resolver."""
+        return resolve_exact_first_casefold(reference, candidates, metadata_entry_name)
+
+    @staticmethod
+    def _ambiguous_reference_error(
+        reference: str, matches: list[str], reference_kind: str | None = None
+    ) -> ChartGenerationError:
+        """Build the common actionable error for ambiguous metadata names."""
+        joined = ", ".join(repr(name) for name in matches)
+        details = (
+            "The case-insensitive reference matches multiple candidates: "
+            f"{joined}. Use the exact dataset spelling."
+        )
+        if reference_kind:
+            details += (
+                f" Reference {reference!r} is ambiguous; use the exact "
+                f"{reference_kind} name."
+            )
+        return ChartGenerationError(
+            error_type="ambiguous_dataset_reference",
+            message=f"Dataset reference {reference!r} is ambiguous",
+            details=details,
+            suggestions=[f"Use the exact name {name!r}" for name in matches[:10]],
+            error_code="AMBIGUOUS_DATASET_REFERENCE",
+        )
 
     @staticmethod
     def validate_against_dataset(
@@ -126,6 +292,24 @@ class DatasetValidator:
         # Collect all column references
         column_refs = DatasetValidator._extract_column_references(config)
 
+        ambiguity_error = DatasetValidator._validate_unambiguous_references(
+            column_refs, dataset_context
+        )
+        if ambiguity_error:
+            return False, ambiguity_error
+
+        filter_error = DatasetValidator._validate_filter_references(
+            config, dataset_context
+        )
+        if filter_error:
+            return False, filter_error
+
+        temporal_error = DatasetValidator._validate_temporal_column(
+            config, dataset_context
+        )
+        if temporal_error:
+            return False, temporal_error
+
         # Validate saved metrics exist in dataset metrics specifically
         invalid_saved = DatasetValidator._validate_saved_metrics(
             column_refs, dataset_context
@@ -135,7 +319,9 @@ class DatasetValidator:
 
         # Validate columns exist (skip saved metrics — already validated above)
         column_error = DatasetValidator._validate_columns_exist(
-            column_refs, dataset_context
+            column_refs,
+            dataset_context,
+            DatasetValidator._extract_metric_references(config),
         )
         if column_error:
             return False, column_error
@@ -146,7 +332,9 @@ class DatasetValidator:
         # handlebars / big number slip through ``SUM(non_numeric)`` patterns
         # for the fast-path tools that skip Tier 2.
         aggregation_errors = DatasetValidator._validate_aggregations(
-            column_refs, dataset_context
+            column_refs,
+            dataset_context,
+            require_numeric_metrics=isinstance(config, SunburstChartConfig),
         )
         if aggregation_errors:
             return False, aggregation_errors[0]
@@ -154,8 +342,86 @@ class DatasetValidator:
         return True, None
 
     @staticmethod
+    def _validate_filter_references(
+        config: ChartConfig, dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Validate typed WHERE subjects through the shared resolver."""
+        filters = [
+            *(getattr(config, "filters", None) or []),
+            *(getattr(config, "filters_secondary", None) or []),
+        ]
+        for filter_ in filters:
+            candidates = list(dataset_context.available_columns)
+            match, ambiguous = resolve_exact_first_casefold(
+                filter_.column,
+                candidates,
+                metadata_entry_name,
+            )
+            if ambiguous:
+                return DatasetValidator._ambiguous_reference_error(
+                    filter_.column, ambiguous
+                )
+            if match is None:
+                return DatasetValidator._build_column_error(
+                    [ColumnRef(name=filter_.column)],
+                    {
+                        filter_.column: DatasetValidator._get_column_suggestions(
+                            filter_.column, dataset_context
+                        )
+                    },
+                    dataset_context,
+                )
+        return None
+
+    @staticmethod
+    def _validate_temporal_column(
+        config: ChartConfig, dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Require an explicitly selected dashboard time column to be temporal."""
+        temporal_column = getattr(config, "temporal_column", None)
+        if not temporal_column:
+            return None
+
+        matching_column, ambiguous_matches = DatasetValidator._resolve_metadata_entry(
+            temporal_column, dataset_context.available_columns
+        )
+        if ambiguous_matches:
+            return DatasetValidator._ambiguous_reference_error(
+                temporal_column, ambiguous_matches
+            )
+        if matching_column is None:
+            return ChartGenerationError(
+                error_type="missing_temporal_column",
+                message=f"Temporal column '{temporal_column}' does not exist",
+                details="The temporal_column must reference a physical dataset column.",
+                suggestions=[
+                    "Choose a temporal column from the dataset",
+                    "Remove temporal_column to use the dataset's default time column",
+                ],
+                error_code="MISSING_TEMPORAL_COLUMN",
+            )
+        if matching_column.get("is_temporal", False):
+            return None
+
+        return ChartGenerationError(
+            error_type="invalid_temporal_column",
+            message=f"Column '{temporal_column}' is not temporal",
+            details=(
+                "The temporal_column must reference a dataset column marked as "
+                "temporal so dashboard time-range filters can bind to the chart."
+            ),
+            suggestions=[
+                "Choose a temporal column from the dataset",
+                "Remove temporal_column to use the dataset's default time column",
+            ],
+            error_code="NON_TEMPORAL_COLUMN",
+        )
+
+    @staticmethod
     def _validate_columns_exist(  # noqa: C901
-        column_refs: List[ColumnRef], dataset_context: DatasetContext
+        column_refs: List[ColumnRef],
+        dataset_context: DatasetContext,
+        metric_refs: Iterable[ColumnRef] = (),
     ) -> ChartGenerationError | None:
         """Validate that non-saved-metric column refs exist in the dataset.
 
@@ -166,13 +432,6 @@ class DatasetValidator:
         emit ``SUM(sum_boys)`` as an ad-hoc SIMPLE metric, producing the
         broken-SQL pattern this validator is meant to prevent.
         """
-        column_names_lower = {
-            col["name"].lower() for col in dataset_context.available_columns
-        }
-        metric_names_lower = {
-            metric["name"].lower() for metric in dataset_context.available_metrics
-        }
-
         invalid_columns: List[ColumnRef] = []
         saved_metric_typo: List[ColumnRef] = []
         for col_ref in column_refs:
@@ -184,10 +443,15 @@ class DatasetValidator:
             if col_ref.name is None:
                 # Should be unreachable per validate_metric_shape; defensive.
                 continue
-            name_lower = col_ref.name.lower()
-            if name_lower in column_names_lower:
+            column, _column_ambiguity = DatasetValidator._resolve_metadata_entry(
+                col_ref.name, dataset_context.available_columns
+            )
+            if column is not None:
                 continue
-            if name_lower in metric_names_lower:
+            metric, _metric_ambiguity = DatasetValidator._resolve_metadata_entry(
+                col_ref.name, dataset_context.available_metrics
+            )
+            if metric is not None:
                 # Name matches a saved metric but the ref didn't opt into
                 # saved-metric resolution. Surface a tailored hint so the
                 # caller (typically an LLM) can flip ``saved_metric=true``.
@@ -211,8 +475,45 @@ class DatasetValidator:
             )
             suggestions_map[col_ref.name] = suggestions
 
+        # A ref in a metric slot that near-misses a saved metric name would
+        # otherwise dead-end on "No matching columns found.", because metrics
+        # are excluded from the column candidates above. Only reached when the
+        # physical-column pass found nothing, so the more direct column fix
+        # still wins when it exists.
+        metric_hints: Dict[str, List[str]] = {}
+        invalid_names = {ref.name for ref in invalid_columns}
+        for col_ref in metric_refs:
+            if col_ref.name is None or col_ref.name not in invalid_names:
+                continue
+            if suggestions_map.get(col_ref.name):
+                continue
+            matches = DatasetValidator._get_metric_suggestions(
+                col_ref.name, dataset_context
+            )
+            if matches:
+                metric_hints[col_ref.name] = matches
+
         return DatasetValidator._build_column_error(
-            invalid_columns, suggestions_map, dataset_context
+            invalid_columns, suggestions_map, dataset_context, metric_hints
+        )
+
+    @staticmethod
+    def _build_ambiguous_reference_error(
+        error: AmbiguousDatasetReferenceError,
+    ) -> ChartGenerationError:
+        """Build an actionable validation error for case-colliding metadata."""
+        return ChartGenerationError(
+            error_type="ambiguous_dataset_reference",
+            message=(
+                f"{error.reference_kind.capitalize()} reference "
+                f"'{error.name}' is ambiguous"
+            ),
+            details=str(error),
+            suggestions=[
+                f"Use one exact name: {', '.join(error.matches)}",
+                "Use get_dataset_info to inspect exact dataset casing",
+            ],
+            error_code="AMBIGUOUS_DATASET_REFERENCE",
         )
 
     @staticmethod
@@ -250,19 +551,46 @@ class DatasetValidator:
         """Fetch the ORM dataset by ID/UUID and build a :class:`DatasetContext`."""
         try:
             from superset.daos.dataset import DatasetDAO
+            from superset.mcp_service.auth import has_dataset_access
 
             if isinstance(dataset_id, int) or (
-                isinstance(dataset_id, str) and dataset_id.isdigit()
+                isinstance(dataset_id, str) and dataset_id.isdecimal()
             ):
                 dataset = DatasetDAO.find_by_id(int(dataset_id))
             else:
                 dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+            if dataset is None or not has_dataset_access(dataset):
+                return None
 
             return build_dataset_context_from_orm(dataset)
 
         except Exception as e:
             logger.error("Error getting dataset context for %s: %s", dataset_id, e)
             return None
+
+    @staticmethod
+    def _extract_metric_references(config: ChartConfig) -> List[ColumnRef]:
+        """Collect metric slots separately from dimension and filter references."""
+        refs: List[ColumnRef] = []
+        for field in (
+            "y",
+            "y_secondary",
+            "metric",
+            "secondary_metric",
+            "metrics",
+            "size",
+        ):
+            value = getattr(config, field, None)
+            if isinstance(value, ColumnRef):
+                refs.append(value)
+            elif isinstance(value, list):
+                refs.extend(ref for ref in value if isinstance(ref, ColumnRef))
+        if isinstance(config, BubbleChartConfig):
+            refs.append(config.x)
+        if isinstance(config, TableChartConfig) and config.query_mode != "raw":
+            refs.extend(ref for ref in config.columns if ref.aggregate is not None)
+        return refs
 
     @staticmethod
     def _extract_column_references(
@@ -285,29 +613,59 @@ class DatasetValidator:
         if chart_type is None:
             return []
 
-        plugin = get_registry().get(chart_type)
+        plugin = get_registry().get(chart_type, include_disabled=True)
         if plugin is None:
             logger.warning("No plugin registered for chart_type=%r", chart_type)
             return []
 
-        return plugin.extract_column_refs(config)
+        refs = plugin.extract_column_refs(config)
+        temporal_column = getattr(config, "temporal_column", None)
+        if temporal_column and not any(
+            not ref.saved_metric
+            and ref.name
+            and ref.name.casefold() == temporal_column.casefold()
+            for ref in refs
+        ):
+            refs.append(ColumnRef(name=temporal_column))
+        return refs
 
     @staticmethod
     def _column_exists(column_name: str, dataset_context: DatasetContext) -> bool:
-        """Check if column exists in dataset (case-insensitive)."""
-        column_lower = column_name.lower()
+        """Check for one exact-first physical-column or saved-metric match."""
+        column, _ = DatasetValidator._resolve_metadata_entry(
+            column_name, dataset_context.available_columns
+        )
+        if column is not None:
+            return True
+        metric, _ = DatasetValidator._resolve_metadata_entry(
+            column_name, dataset_context.available_metrics
+        )
+        return metric is not None
 
-        # Check regular columns
-        for col in dataset_context.available_columns:
-            if col["name"].lower() == column_lower:
-                return True
-
-        # Check metrics
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == column_lower:
-                return True
-
-        return False
+    @staticmethod
+    def _validate_unambiguous_references(
+        column_refs: List[ColumnRef], dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Reject non-exact case-folded references with multiple candidates."""
+        for ref in column_refs:
+            if ref.sql_expression or not ref.name:
+                continue
+            candidates = (
+                dataset_context.available_metrics
+                if ref.saved_metric
+                else dataset_context.available_columns
+            )
+            _entry, folded_matches = DatasetValidator._resolve_metadata_entry(
+                ref.name, candidates
+            )
+            if len(folded_matches) <= 1:
+                continue
+            return DatasetValidator._ambiguous_reference_error(
+                ref.name,
+                folded_matches,
+                "saved metric" if ref.saved_metric else "physical column",
+            )
+        return None
 
     @staticmethod
     def get_canonical_column_name(
@@ -316,9 +674,10 @@ class DatasetValidator:
         """
         Get the canonical column name from the dataset.
 
-        Performs case-insensitive matching and returns the actual column name
-        as stored in the dataset. This ensures column names in form_data match
-        exactly with what the frontend expects.
+        Exact spelling wins; a unique case-insensitive match returns the actual
+        physical column name as stored in the dataset. For backward-compatible
+        generic callers, saved metrics are a fallback when no column matches.
+        Ambiguous spellings fail within either namespace.
 
         Args:
             column_name: The column name to normalize
@@ -328,17 +687,34 @@ class DatasetValidator:
             The canonical column name from the dataset, or the original name
             if no match is found.
         """
-        column_lower = column_name.lower()
+        # Resolve each namespace independently. Combining columns and metrics
+        # into one exact-first pass lets an exact saved-metric spelling steal a
+        # physical role from a unique casefold column (for example physical
+        # ``Sales`` plus saved metric ``sales``). Physical roles must finish
+        # column resolution before the compatibility metric fallback begins.
+        column, folded_matches = DatasetValidator._resolve_metadata_entry(
+            column_name, dataset_context.available_columns
+        )
+        if column is not None:
+            return str(column["name"])
+        if folded_matches:
+            raise AmbiguousDatasetReferenceError(
+                column_name, folded_matches, "physical column"
+            )
 
-        # Check regular columns first
-        for col in dataset_context.available_columns:
-            if col["name"].lower() == column_lower:
-                return col["name"]
-
-        # Check metrics
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == column_lower:
-                return metric["name"]
+        # This helper predates explicit saved-metric roles, so retain its
+        # column-then-metric compatibility fallback only when no physical
+        # candidate exists. Callers with saved_metric=True must use the
+        # metric-only helper below.
+        metric, folded_matches = DatasetValidator._resolve_metadata_entry(
+            column_name, dataset_context.available_metrics
+        )
+        if metric is not None:
+            return str(metric["name"])
+        if folded_matches:
+            raise AmbiguousDatasetReferenceError(
+                column_name, folded_matches, "saved metric"
+            )
 
         # Return original if not found (validation should catch this case)
         return column_name
@@ -356,10 +732,15 @@ class DatasetValidator:
         Returns the original name when no metric matches (validation catches
         the missing-metric case separately).
         """
-        metric_lower = metric_name.lower()
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == metric_lower:
-                return metric["name"]
+        entry, folded_matches = DatasetValidator._resolve_metadata_entry(
+            metric_name, dataset_context.available_metrics
+        )
+        if entry is not None:
+            return str(entry["name"])
+        if folded_matches:
+            raise AmbiguousDatasetReferenceError(
+                metric_name, folded_matches, "saved metric"
+            )
         return metric_name
 
     @staticmethod
@@ -367,8 +748,8 @@ class DatasetValidator:
         config_dict: Dict[str, Any], dataset_context: DatasetContext
     ) -> None:
         """Normalize filter column names in a config dict in place."""
-        if "filters" in config_dict and config_dict["filters"]:
-            for filter_config in config_dict["filters"]:
+        for key in ("filters", "filters_secondary"):
+            for filter_config in config_dict.get(key) or []:
                 if filter_config and "column" in filter_config:
                     filter_config["column"] = (
                         DatasetValidator.get_canonical_column_name(
@@ -417,34 +798,53 @@ class DatasetValidator:
         if chart_type is None:
             return config
 
-        plugin = get_registry().get(chart_type)
+        plugin = get_registry().get(chart_type, include_disabled=True)
         if plugin is None:
             logger.warning(
                 "No plugin for chart_type=%r; skipping column normalization", chart_type
             )
             return config
 
-        return plugin.normalize_column_refs(config, dataset_context)
+        normalized_config = plugin.normalize_column_refs(config, dataset_context)
+        if temporal_column := getattr(normalized_config, "temporal_column", None):
+            canonical_temporal_column = DatasetValidator.get_canonical_column_name(
+                temporal_column, dataset_context
+            )
+            if canonical_temporal_column != temporal_column:
+                normalized_config = normalized_config.model_copy(
+                    update={"temporal_column": canonical_temporal_column}
+                )
+        return normalized_config
 
     @staticmethod
     def _get_column_suggestions(
-        column_name: str, dataset_context: DatasetContext, max_suggestions: int = 3
+        column_name: str,
+        dataset_context: DatasetContext,
+        max_suggestions: int = 3,
+        include_metrics: bool = False,
     ) -> List[ColumnSuggestion]:
-        """Get column name suggestions using fuzzy matching."""
+        """Get column name suggestions using fuzzy matching.
+
+        Saved metrics are excluded by default: a dimension or WHERE reference
+        can only be a physical column, and suggesting a metric there leads to
+        the broken ``SUM(metric)`` shape. Set ``include_metrics`` for slots
+        Superset does resolve metric names in, such as a HAVING subject.
+        """
         all_names = []
 
         # Collect all column names
         for col in dataset_context.available_columns:
             all_names.append((col["name"], "column", col.get("type", "UNKNOWN")))
 
-        for metric in dataset_context.available_metrics:
-            all_names.append((metric["name"], "metric", "METRIC"))
+        if include_metrics:
+            for metric in dataset_context.available_metrics:
+                all_names.append((metric["name"], "metric", "METRIC"))
 
         # Find close matches
-        column_lower = column_name.lower()
-        candidate_lookup = [name[0].lower() for name in all_names]
+        folded_column = column_name.casefold()
+        candidate_lookup = [str(name[0]).casefold() for name in all_names]
         close_matches = difflib.get_close_matches(
-            column_lower,
+            folded_column,
             candidate_lookup,
             n=max_suggestions,
             cutoff=0.6,
@@ -456,8 +856,8 @@ class DatasetValidator:
         suggestions = []
         for match in close_matches:
             for name, col_type, _data_type in all_names:
-                if name.lower() == match:
-                    score = difflib.SequenceMatcher(None, column_lower, match).ratio()
+                if str(name).casefold() == match:
+                    score = difflib.SequenceMatcher(None, folded_column, match).ratio()
                     suggestions.append(
                         ColumnSuggestion(
                             name=name,
@@ -470,45 +870,151 @@ class DatasetValidator:
         return suggestions
 
     @staticmethod
+    def _get_metric_suggestions(
+        name: str, dataset_context: DatasetContext, max_suggestions: int = 3
+    ) -> List[str]:
+        """Fuzzy-match *name* against saved metric names only."""
+        by_lowered = {
+            metric["name"].lower(): metric["name"]
+            for metric in dataset_context.available_metrics
+        }
+        return [
+            by_lowered[match]
+            for match in difflib.get_close_matches(
+                name.lower(), list(by_lowered), n=max_suggestions, cutoff=0.6
+            )
+        ]
+
+    @staticmethod
+    def _rank_candidates(
+        names: List[str],
+        suggestions_map: Dict[str, List[ColumnSuggestion]],
+    ) -> List[str]:
+        """Interleave each missing column's candidates, best match first.
+
+        The ``Did you mean`` cap is shared across every missing column, so a
+        flat in-order concatenation lets the first name consume every slot.
+        Round-robin gives each missing column a turn regardless of input order.
+        """
+        ranked: List[str] = []
+        per_name = [
+            [suggestion.name for suggestion in suggestions_map.get(name, [])]
+            for name in names
+        ]
+        for tier in zip_longest(*per_name):
+            for candidate in tier:
+                if candidate is not None and candidate not in ranked:
+                    ranked.append(candidate)
+        return ranked
+
+    @staticmethod
+    def _saved_metric_hints(metric_hints: Dict[str, List[str]]) -> List[str]:
+        """Guidance for metric-slot refs that near-miss a saved metric name.
+
+        Only the dataset's own metric names appear, never the caller's input.
+        """
+        names = list(
+            dict.fromkeys(name for matches in metric_hints.values() for name in matches)
+        )[:MAX_DID_YOU_MEAN_CANDIDATES]
+        if not names:
+            return []
+        quoted = ", ".join(f"'{name}'" for name in names)
+        return [
+            f"Did you mean the saved metric {quoted}? Reference a saved metric "
+            'as {"name": "<metric>", "saved_metric": true} rather than setting '
+            '"aggregate".'
+        ]
+
+    @staticmethod
+    def _candidates_first(all_names: List[str], candidates: List[str]) -> List[str]:
+        """Order *all_names* with the fuzzy *candidates* leading, no repeats."""
+        known = set(all_names)
+        ranked = [name for name in dict.fromkeys(candidates) if name in known]
+        leading = set(ranked)
+        return ranked + [name for name in all_names if name not in leading]
+
+    @staticmethod
+    def _bounded_error_context(
+        dataset_context: DatasetContext,
+        candidates: List[str],
+        metric_candidates: List[str] | None = None,
+    ) -> DatasetContext:
+        """Names-only dataset context for a column error.
+
+        Names are returned verbatim per the Tool Result Value Contract; only
+        the number of entries is bounded, and SQL expressions are dropped.
+        Fuzzy candidates come first so the suggested column is never cut from
+        the list by the count bound. Saved metrics get the same treatment so a
+        hinted saved metric is never missing from ``available_metrics``.
+        """
+        ranked = DatasetValidator._candidates_first(
+            [col["name"] for col in dataset_context.available_columns], candidates
+        )
+        ranked_metrics = DatasetValidator._candidates_first(
+            [metric["name"] for metric in dataset_context.available_metrics],
+            metric_candidates or [],
+        )
+        return DatasetContext(
+            id=dataset_context.id,
+            table_name=dataset_context.table_name,
+            schema=dataset_context.schema_name,
+            database_name=dataset_context.database_name,
+            available_columns=[
+                {"name": name} for name in ranked[:MAX_ERROR_SUGGESTIONS]
+            ],
+            available_metrics=[
+                {"name": name} for name in ranked_metrics[:MAX_ERROR_SUGGESTIONS]
+            ],
+        )
+
+    @staticmethod
     def _build_column_error(
         invalid_columns: List[ColumnRef],
         suggestions_map: Dict[str, List[ColumnSuggestion]],
         dataset_context: DatasetContext,
+        metric_hints: Dict[str, List[str]] | None = None,
     ) -> ChartGenerationError:
         """Build error for invalid columns."""
-        from superset.mcp_service.utils.error_builder import (
-            ChartErrorBuilder,
+        from superset.mcp_service.utils.error_builder import ChartErrorBuilder
+
+        # Count distinct names: one column referenced from two slots is a
+        # single missing column, not a "multiple columns" failure.
+        names = list(
+            dict.fromkeys(col.name or "<unknown column>" for col in invalid_columns)
         )
-
-        if len(invalid_columns) == 1:
-            col = invalid_columns[0]
-            col_name = col.name or "<unknown column>"
-            suggestions = suggestions_map.get(col_name, [])
-
-            if suggestions:
-                return ChartErrorBuilder.column_not_found_error(
-                    col_name, [s.name for s in suggestions]
-                )
-            else:
-                return ChartErrorBuilder.column_not_found_error(col_name)
+        candidates = DatasetValidator._rank_candidates(names, suggestions_map)
+        if len(names) == 1:
+            error = ChartErrorBuilder.column_not_found_error(names[0], candidates)
         else:
-            # Multiple invalid columns
-            invalid_names: list[str] = [col.name for col in invalid_columns if col.name]
-            return ChartErrorBuilder.build_error(
-                error_type="multiple_invalid_columns",
-                template_key="column_not_found",
-                template_vars={
-                    "column": ", ".join(invalid_names[:3])
-                    + ("..." if len(invalid_names) > 3 else ""),
-                    "suggestions": "Use get_dataset_info to see all available columns",
-                },
-                custom_suggestions=[
-                    f"Invalid columns: {', '.join(invalid_names)}",
-                    "Check spelling and case sensitivity",
-                    "Use get_dataset_info to list available columns",
-                ],
-                error_code="MULTIPLE_INVALID_COLUMNS",
+            error = ChartErrorBuilder.multiple_columns_not_found_error(
+                names, candidates
             )
+
+        extra = DatasetValidator._saved_metric_hints(metric_hints or {})
+        total_columns = len(dataset_context.available_columns)
+        if total_columns > MAX_ERROR_SUGGESTIONS:
+            extra.append(
+                f"Showing {MAX_ERROR_SUGGESTIONS} of {total_columns} columns; "
+                "call get_dataset_info for the full list"
+            )
+        total_metrics = len(dataset_context.available_metrics)
+        if total_metrics > MAX_ERROR_SUGGESTIONS:
+            extra.append(
+                f"Showing {MAX_ERROR_SUGGESTIONS} of {total_metrics} saved "
+                "metrics; call get_dataset_info for the full list"
+            )
+        if extra:
+            error.suggestions = (error.suggestions + extra)[:MAX_ERROR_SUGGESTIONS]
+
+        metric_candidates = list(
+            dict.fromkeys(
+                name for matches in (metric_hints or {}).values() for name in matches
+            )
+        )
+        error.dataset_context = DatasetValidator._bounded_error_context(
+            dataset_context, candidates, metric_candidates
+        )
+        return error
 
     @staticmethod
     def _validate_saved_metrics(
@@ -521,15 +1027,16 @@ class DatasetValidator:
         a regular column name marked as saved_metric would pass
         _column_exists (which checks both lists) but fail at query time.
         """
-        metric_names = {m["name"].lower() for m in dataset_context.available_metrics}
+        invalid: list[str] = []
         # ``saved_metric=True`` requires ``name`` per ColumnRef.validate_metric_shape.
-        invalid: list[str] = [
-            col_ref.name
-            for col_ref in column_refs
-            if col_ref.saved_metric
-            and col_ref.name is not None
-            and col_ref.name.lower() not in metric_names
-        ]
+        for col_ref in column_refs:
+            if not col_ref.saved_metric or col_ref.name is None:
+                continue
+            metric, _ambiguity = DatasetValidator._resolve_metadata_entry(
+                col_ref.name, dataset_context.available_metrics
+            )
+            if metric is None:
+                invalid.append(col_ref.name)
         if not invalid:
             return None
 
@@ -538,11 +1045,12 @@ class DatasetValidator:
         available = [m["name"] for m in dataset_context.available_metrics]
         return ChartErrorBuilder.build_error(
             error_type="invalid_saved_metric",
-            template_key="column_not_found",
+            template_key="saved_metric_not_found",
             template_vars={
                 "column": ", ".join(invalid),
                 "suggestions": (
-                    f"Available saved metrics: {', '.join(available[:10])}"
+                    "Available saved metrics: "
+                    f"{', '.join(available[:MAX_ERROR_SUGGESTIONS])}"
                     if available
                     else "This dataset has no saved metrics"
                 ),
@@ -557,8 +1065,11 @@ class DatasetValidator:
         )
 
     @staticmethod
-    def _validate_aggregations(
-        column_refs: List[ColumnRef], dataset_context: DatasetContext
+    def _validate_aggregations(  # noqa: C901
+        column_refs: List[ColumnRef],
+        dataset_context: DatasetContext,
+        *,
+        require_numeric_metrics: bool = False,
     ) -> List[ChartGenerationError]:
         """Validate that aggregations are appropriate for column types."""
         errors = []
@@ -575,25 +1086,41 @@ class DatasetValidator:
                 # Should be unreachable per validate_metric_shape; defensive.
                 continue
 
-            # Find column info
-            col_info = None
-            for col in dataset_context.available_columns:
-                if col["name"].lower() == col_ref.name.lower():
-                    col_info = col
-                    break
+            col_info, ambiguous_matches = DatasetValidator._resolve_metadata_entry(
+                col_ref.name, dataset_context.available_columns
+            )
+            if ambiguous_matches:
+                errors.append(
+                    DatasetValidator._ambiguous_reference_error(
+                        col_ref.name, ambiguous_matches
+                    )
+                )
+                continue
 
             if col_info:
                 # Check numeric aggregates on non-numeric columns.
-                # MIN and MAX are intentionally excluded: they work on dates
-                # and text in most SQL engines, so restricting them here would
-                # produce false-positive errors.  Leave those to the Tier-2
-                # compile check.
-                numeric_aggs = ["SUM", "AVG", "STDDEV", "VAR", "MEDIAN"]
+                # MIN and MAX remain valid on dates/text for generic charts.
+                # Sunburst metrics must size arcs numerically, so every physical
+                # aggregate other than COUNT variants requires numeric metadata.
+                numeric_aggs = {
+                    "SUM",
+                    "AVG",
+                    "STDDEV_SAMP",
+                    "VAR_SAMP",
+                    "MEDIAN",
+                    "STDDEV",
+                    "VAR",
+                }
+                if require_numeric_metrics and col_ref.aggregate not in {
+                    "COUNT",
+                    "COUNT_DISTINCT",
+                }:
+                    numeric_aggs.add(col_ref.aggregate)
+                type_name = str(col_info.get("type") or "").strip().upper()
                 if (
                     col_ref.aggregate in numeric_aggs
-                    and not col_info.get("is_numeric", False)
-                    and col_info.get("type", "").upper()
-                    not in ["INTEGER", "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC"]
+                    and type_name not in {"", "UNKNOWN"}
+                    and not is_numeric_column(col_info)
                 ):
                     from superset.mcp_service.utils.error_builder import (  # noqa: E501
                         ChartErrorBuilder,

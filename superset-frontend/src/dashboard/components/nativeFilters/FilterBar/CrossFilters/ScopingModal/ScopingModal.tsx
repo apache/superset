@@ -29,7 +29,10 @@ import {
   GLOBAL_SCOPE_POINTER,
   ChartCrossFiltersConfig,
 } from 'src/dashboard/types';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
+import {
+  createChartLayoutItemMap,
+  getChartIdsInFilterScope,
+} from 'src/dashboard/util/getChartIdsInFilterScope';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { saveChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
 import { DEFAULT_CROSS_FILTER_SCOPING } from 'src/dashboard/constants';
@@ -82,6 +85,10 @@ export const ScopingModal = ({
 }: ScopingModalProps) => {
   const dispatch = useDispatch();
   const chartLayoutItems = useChartLayoutItems();
+  const chartLayoutItemMap = useMemo(
+    () => createChartLayoutItemMap(chartLayoutItems),
+    [chartLayoutItems],
+  );
   const chartIds = useChartIds();
   const [currentChartId, setCurrentChartId] = useState(initialChartId);
   const initialChartConfig = useSelector<RootState, ChartConfiguration>(
@@ -160,7 +167,7 @@ export const ScopingModal = ({
               chartsInScope: getChartIdsInFilterScope(
                 scope,
                 chartIds,
-                chartLayoutItems,
+                chartLayoutItemMap,
               ),
             },
           },
@@ -169,7 +176,7 @@ export const ScopingModal = ({
         const globalChartsInScope = getChartIdsInFilterScope(
           scope,
           chartIds,
-          chartLayoutItems,
+          chartLayoutItemMap,
         );
         setGlobalChartConfig({
           scope,
@@ -183,7 +190,7 @@ export const ScopingModal = ({
         );
       }
     },
-    [currentChartId, chartIds, chartLayoutItems],
+    [currentChartId, chartIds, chartLayoutItemMap],
   );
 
   const removeCustomScope = useCallback(
@@ -251,7 +258,7 @@ export const ScopingModal = ({
             chartsInScope: getChartIdsInFilterScope(
               newScope,
               chartIds,
-              chartLayoutItems,
+              chartLayoutItemMap,
             ),
           },
         };
@@ -286,7 +293,7 @@ export const ScopingModal = ({
       currentChartId,
       globalChartConfig.chartsInScope,
       globalChartConfig.scope,
-      chartLayoutItems,
+      chartLayoutItemMap,
     ],
   );
 

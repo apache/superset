@@ -40,6 +40,9 @@ import {
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
+  valueAxisLabels,
   richTooltipSection,
   seriesOrderSection,
   showValueSectionWithoutStream,
@@ -246,7 +249,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           default: logAxis,
           description: t('Logarithmic axis'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isHorizontal(controls) : isVertical(controls),
+            (!controls?.stack?.value || Boolean(controls?.logAxis?.value)) &&
+            (isXAxis ? isHorizontal(controls) : isVertical(controls)),
           disableStash: true,
           resetOnHide: false,
         },
@@ -388,6 +392,9 @@ const config: ControlPanelConfig = {
           },
         ],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
+        [valueAxisLabels],
         ['zoomable'],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
@@ -402,6 +409,17 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  controlOverrides: {
+    stack: {
+      shouldMapStateToProps: () => true,
+      mapStateToProps: ({ controls }) => ({
+        disabled: Boolean(controls.logAxis?.value) && !controls.stack?.value,
+        warning: controls.logAxis?.value
+          ? t('Turn off the logarithmic axis before stacking bars')
+          : null,
+      }),
+    },
+  },
   formDataOverrides: formData => {
     // Reset stack to null if it's Stream when switching to Bar chart
     const formDataWithStack = formData as Record<string, unknown>;

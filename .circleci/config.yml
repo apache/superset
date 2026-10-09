@@ -209,6 +209,8 @@ jobs:
               .
             docker run --rm superset-frontend-tests:pr \
               npm test -- \
+                src/dashboard/actions/hydrate.test.ts \
+                src/utils/findPermission.test.ts \
                 src/features/roles/utils.test.ts \
                 src/dashboard/components/nativeFilters/FilterBar/FilterBarSettings/FilterBarSettings.test.tsx
 

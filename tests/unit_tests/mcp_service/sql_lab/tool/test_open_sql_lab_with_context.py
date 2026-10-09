@@ -27,7 +27,6 @@ from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qs, urlsplit
 
 from superset.mcp_service.sql_lab.schemas import OpenSqlLabRequest
-from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 
 
 def _force_passthrough_decorators() -> dict[str, types.ModuleType]:
@@ -130,10 +129,7 @@ class TestOpenSqlLabWithContext:
 
             assert response.database_id == 7
             assert response.schema_name == "analytics"
-            assert response.title == sanitize_for_llm_context(
-                "Review this query",
-                field_path=("title",),
-            )
+            assert response.title == ("Review this query")
 
             parsed = urlsplit(response.url)
             params = parse_qs(parsed.query)
@@ -143,16 +139,9 @@ class TestOpenSqlLabWithContext:
             assert parsed.path == "/sqllab"
             assert params["dbid"] == ["7"]
             assert params["schema"] == ["analytics"]
-            assert params["name"] == [
-                sanitize_for_llm_context("Review this query", field_path=("name",))
-            ]
+            assert params["name"] == [("Review this query")]
             assert "title" not in params
-            assert params["sql"] == [
-                sanitize_for_llm_context(
-                    "SELECT * FROM users LIMIT 10",
-                    field_path=("sql",),
-                )
-            ]
+            assert params["sql"] == [("SELECT * FROM users LIMIT 10")]
         finally:
             _restore_modules(saved_modules)
 
@@ -194,9 +183,7 @@ class TestOpenSqlLabWithContext:
             assert response.title is None
             assert params["dbid"] == ["12"]
             assert params["schema"] == ["public"]
-            assert params["sql"] == [
-                sanitize_for_llm_context(expected_sql, field_path=("sql",))
-            ]
+            assert params["sql"] == [(expected_sql)]
         finally:
             _restore_modules(saved_modules)
 
@@ -233,13 +220,11 @@ class TestOpenSqlLabWithContext:
 
             assert response.schema_name is None
             assert "schema" not in params
-            assert params["sql"] == [
-                sanitize_for_llm_context(expected_sql, field_path=("sql",))
-            ]
+            assert params["sql"] == [(expected_sql)]
         finally:
             _restore_modules(saved_modules)
 
-    def test_sanitizes_sql_lab_url_query_parameters_for_llm_context(self) -> None:
+    def test_preserves_sql_lab_url_query_parameters(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:
             url = (
@@ -247,28 +232,19 @@ class TestOpenSqlLabWithContext:
                 "dbid=7&schema=analytics&sql=SELECT+1&name=Inspect+query"
             )
 
-            response = mod._sanitize_sql_lab_response_for_llm_context(
-                mod.SqlLabResponse(
-                    url=url,
-                    database_id=7,
-                    schema="analytics",
-                    title="Inspect query",
-                )
+            response = mod.SqlLabResponse(
+                url=url,
+                database_id=7,
+                schema="analytics",
+                title="Inspect query",
             )
             params = parse_qs(urlsplit(response.url).query)
 
             assert params["dbid"] == ["7"]
             assert params["schema"] == ["analytics"]
-            assert params["sql"] == [
-                sanitize_for_llm_context("SELECT 1", field_path=("sql",))
-            ]
-            assert params["name"] == [
-                sanitize_for_llm_context("Inspect query", field_path=("name",))
-            ]
-            assert response.title == sanitize_for_llm_context(
-                "Inspect query",
-                field_path=("title",),
-            )
+            assert params["sql"] == [("SELECT 1")]
+            assert params["name"] == [("Inspect query")]
+            assert response.title == ("Inspect query")
         finally:
             _restore_modules(saved_modules)
 
@@ -326,14 +302,10 @@ class TestOpenSqlLabWithContext:
             assert response.url == ""
             assert response.database_id == 404
             assert response.schema_name == "analytics"
-            assert response.title == sanitize_for_llm_context(
-                "Missing database",
-                field_path=("title",),
-            )
-            assert response.error == sanitize_for_llm_context(
+            assert response.title == ("Missing database")
+            assert response.error == (
                 "Database with ID 404 not found."
-                " Use list_databases to get valid database IDs.",
-                field_path=("error",),
+                " Use list_databases to get valid database IDs."
             )
         finally:
             _restore_modules(saved_modules)
@@ -361,10 +333,9 @@ class TestOpenSqlLabWithContext:
             mock_find_by_id.assert_called_once_with(999999999)
             assert response.url == ""
             assert response.database_id == 999999999
-            assert response.error == sanitize_for_llm_context(
+            assert response.error == (
                 "Database with ID 999999999 not found."
-                " Use list_databases to get valid database IDs.",
-                field_path=("error",),
+                " Use list_databases to get valid database IDs."
             )
         finally:
             _restore_modules(saved_modules)
@@ -405,10 +376,9 @@ class TestOpenSqlLabWithContext:
             assert response.url == ""
             assert response.database_id == 42
             assert response.schema_name == "restricted_schema"
-            assert response.error == sanitize_for_llm_context(
+            assert response.error == (
                 "Database with ID 42 not found."
-                " Use list_databases to get valid database IDs.",
-                field_path=("error",),
+                " Use list_databases to get valid database IDs."
             )
         finally:
             _restore_modules(saved_modules)
@@ -440,9 +410,8 @@ class TestOpenSqlLabWithContext:
             mock_rollback.assert_called_once()
             assert response.url == ""
             assert response.database_id == 7
-            assert response.error == sanitize_for_llm_context(
-                "Failed to generate SQL Lab URL: connection reset",
-                field_path=("error",),
+            assert response.error == (
+                "Failed to generate SQL Lab URL: connection reset"
             )
         finally:
             _restore_modules(saved_modules)

@@ -17,6 +17,7 @@
 import runpy
 from pathlib import Path
 
+
 def test_lillio_production_config_uses_two_redis_databases(
     monkeypatch,
 ) -> None:
@@ -31,9 +32,7 @@ def test_lillio_production_config_uses_two_redis_databases(
     )
 
     assert config["CELERY_CONFIG"].broker_url.endswith("/0?ssl_cert_reqs=required")
-    assert config["CELERY_CONFIG"].result_backend.endswith(
-        "/1?ssl_cert_reqs=required"
-    )
+    assert config["CELERY_CONFIG"].result_backend.endswith("/1?ssl_cert_reqs=required")
     assert not hasattr(config["CELERY_CONFIG"], "worker_pool")
     assert config["SESSION_REDIS"].connection_pool.connection_kwargs["db"] == 1
     assert (
@@ -70,7 +69,9 @@ def test_lillio_production_config_enforces_embedding_and_security(monkeypatch) -
     )
 
     assert config["FEATURE_FLAGS"]["EMBEDDED_SUPERSET"] is True
-    assert config["GUEST_TOKEN_JWT_SECRET"] == "guest-jwt-secret"
+    assert config["FEATURE_FLAGS"]["GRANULAR_EXPORT_CONTROLS"] is True
+    assert config["FEATURE_FLAGS"]["DATE_RANGE_TIMESHIFTS_ENABLED"] is True
+    assert config["GUEST_TOKEN_JWT_SECRET"] == "guest-jwt-secret"  # noqa: S105
     assert config["AUTH_API_LOGIN_ALLOW_MULTIPLE_PROVIDERS"] is True
     assert config["FEATURE_FLAGS"]["SQLLAB_FORCE_RUN_ASYNC"] is True
     assert config["SESSION_SERVER_SIDE"] is True

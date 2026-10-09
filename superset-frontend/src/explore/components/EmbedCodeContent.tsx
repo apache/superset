@@ -106,9 +106,19 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
           shouldShowText={false}
           text={html}
           copyNode={
-            <span role="button" aria-label={t('Copy to clipboard')}>
+            <button
+              type="button"
+              css={css`
+                appearance: none;
+                border: none;
+                background: none;
+                padding: 0;
+                font: inherit;
+              `}
+              aria-label={t('Copy to clipboard')}
+            >
               <Icons.CopyOutlined />
-            </span>
+            </button>
           }
         />
         <Input.TextArea

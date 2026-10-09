@@ -29,7 +29,7 @@ EMPTY_STRING = "<empty string>"
 
 CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"  # noqa: S105
 CHANGE_ME_GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
-CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"  # noqa: S105
+CHANGE_ME_WEBSOCKET_JWT_SECRET = "test-ws-secret-change-me"  # noqa: S105
 
 SKIP_VISIBILITY_FILTER_CLASSES = "_skip_visibility_filter_classes"
 
@@ -38,10 +38,29 @@ EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
 
 PASSWORD_MASK = "X" * 10
 
+# ``python_date_format`` values that mark an integer column as a Unix epoch,
+# mapped to the number of units per second. The pandas resolution is the
+# suffix after ``epoch_`` (``s``/``ms``/``us``).
+EPOCH_FORMATS: dict[str, int] = {
+    "epoch_s": 1,
+    "epoch_ms": 1_000,
+    "epoch_us": 1_000_000,
+}
+
 NO_TIME_RANGE = "No filter"
+
+# Keep in sync with superset-frontend/src/utils/common.ts; select-filter masks
+# and dataMask hydration use this exact predicate to recognize an explicit clear.
+EMPTY_FILTER_SQL_EXPRESSION = "1 = 0"
 
 QUERY_CANCEL_KEY = "cancel_query"
 QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
+# Set once execute_sql_statements() has opened a DB connection and asked the
+# engine spec for a cancel handle, regardless of whether one came back. Lets
+# cancel_query() tell "hasn't been dispatched to the engine yet" (safe to
+# fabricate a stop) apart from "this engine just has no cancel support"
+# (must fail honestly) when no cancel ID is on record.
+QUERY_DISPATCHED_KEY = "query_dispatched"
 
 LRU_CACHE_MAX_SIZE = 256
 
@@ -134,6 +153,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "put": "write",
     "related": "read",
     "related_objects": "read",
+    "bulk_related_objects": "read",
     "tables": "read",
     "schemas": "read",
     "catalogs": "read",
@@ -239,6 +259,26 @@ class TimeGrain(StrEnum):
 class PandasAxis(int, Enum):
     ROW = 0
     COLUMN = 1
+
+
+class ShowValuesAs(StrEnum):
+    """
+    Pivot table "Show values as" modes.
+
+    Mirrors ``ShowValuesAsEnum`` in the pivot table plugin's ``types.ts``. The
+    value reaches the backend verbatim in the chart's form data, and is honored
+    by both the pandas postprocessing ``pivot`` operator and the server-side
+    render of the chart used for exports and reports.
+    """
+
+    ACTUAL = "actual"
+    PERCENT_OF_ROW = "percent_row"
+    PERCENT_OF_COLUMN = "percent_col"
+    PERCENT_OF_TOTAL = "percent_total"
+
+
+# The modes that transform values; ``ACTUAL`` (like ``None``) is a no-op.
+SHOW_VALUES_AS_PERCENT_MODES = frozenset(ShowValuesAs) - {ShowValuesAs.ACTUAL}
 
 
 class PandasPostprocessingCompare(StrEnum):

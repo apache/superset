@@ -77,7 +77,6 @@ test('View Dataset opens a single-prefixed URL under a subdirectory deployment',
   render(
     <DatasetPanel
       tableName="example_table"
-      hasError={false}
       columnList={exampleColumns}
       loading={false}
       datasets={datasetWith(`${APP_ROOT}/explore/?datasource=1__table`)}
@@ -97,7 +96,6 @@ test('View Dataset passes an external explore_url through unprefixed', async () 
   render(
     <DatasetPanel
       tableName="example_table"
-      hasError={false}
       columnList={exampleColumns}
       loading={false}
       datasets={datasetWith('https://external.example.com/custom-endpoint')}

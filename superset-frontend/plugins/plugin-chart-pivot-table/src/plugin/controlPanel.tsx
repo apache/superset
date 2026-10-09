@@ -33,7 +33,7 @@ import {
   validateNonEmpty,
   QueryFormColumn,
 } from '@superset-ui/core';
-import { MetricsLayoutEnum } from '../types';
+import { MetricsLayoutEnum, ShowValuesAsEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -121,7 +121,16 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
-        ['series_limit'],
+        [
+          {
+            name: 'series_limit',
+            config: {
+              ...sharedControls.series_limit,
+              visibility: ({ form_data }) =>
+                !form_data.datasource?.endsWith('__semantic_view'),
+            },
+          },
+        ],
         [
           {
             name: 'row_limit',
@@ -194,6 +203,23 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'collapseRows',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Collapse rows by default'),
+              default: false,
+              renderTrigger: true,
+              description: t(
+                'Start with row groups collapsed when row subtotals are shown. ' +
+                  'Each group can still be expanded with its arrow.',
+              ),
+              visibility: ({ controls }) =>
+                Boolean(controls?.rowSubTotals?.value),
+            },
+          },
+        ],
+        [
+          {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
@@ -240,6 +266,32 @@ const config: ControlPanelConfig = {
                   'opposed to each column being displayed side by side for each metric.',
               ),
               renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'showValuesAs',
+            config: {
+              type: 'SelectControl',
+              label: t('Show values as'),
+              default: ShowValuesAsEnum.ACTUAL,
+              // Not a renderTrigger: for non-additive metrics, a percent choice
+              // here can require a rollup level (see `buildGroupbyCombinations`)
+              // that a prior query never fetched, so switching it needs a real
+              // requery rather than a client-side-only re-render.
+              choices: [
+                [ShowValuesAsEnum.ACTUAL, t('Actual values')],
+                [ShowValuesAsEnum.PERCENT_OF_ROW, t('% of row total')],
+                [ShowValuesAsEnum.PERCENT_OF_COLUMN, t('% of column total')],
+                [ShowValuesAsEnum.PERCENT_OF_TOTAL, t('% of grand total')],
+              ],
+              description: t(
+                'Display each cell as a percentage of its row, column, or ' +
+                  'grand total, instead of its actual value. Totals and ' +
+                  'subtotals are still computed correctly first; this only ' +
+                  'changes how they are displayed.',
+              ),
             },
           },
         ],

@@ -19,19 +19,57 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 from collections.abc import Generator
-from types import ModuleType
+from contextlib import nullcontext
+from datetime import datetime, timezone
+from decimal import Decimal
+from types import ModuleType, SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import numpy as np
+import pandas as pd
+import pyarrow as pa
 import pytest
+import pytz
+from dateutil import tz as dateutil_tz
 from fastmcp import Client, FastMCP
+from flask import current_app
+from superset_core.semantic_layers.types import Dimension, Grains
 
+from superset.commands.exceptions import CommandException
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import security_manager
 from superset.mcp_service.app import mcp
+from superset.mcp_service.semantic_layer.schemas import (
+    GetTableRequest,
+    GetTableResponse,
+    SemanticLayerError,
+)
+from superset.security.guest_token import GuestToken, GuestTokenRlsRule, GuestUser
+from superset.semantic_layers.models import SemanticView
 from superset.utils import json
+from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+    HostileTimezone,
+)
+
+
+class HostileRuntimeError(RuntimeError):
+    calls = 0
+
+    def __str__(self) -> str:
+        type(self).calls += 1
+        return "round21-hostile-runtime-secret"
+
+    def __repr__(self) -> str:
+        type(self).calls += 1
+        return "round21-hostile-runtime-secret"
+
 
 get_table_module: ModuleType = importlib.import_module(
     "superset.mcp_service.semantic_layer.tool.get_table"
@@ -58,6 +96,285 @@ def mock_auth() -> Generator[MagicMock, None, None]:
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+def _semantic_error_at_test_limit(limit: int) -> SemanticLayerError:
+    timestamp = datetime(2026, 9, 3, tzinfo=timezone.utc)
+    empty = SemanticLayerError(message="", error_type="", timestamp=timestamp)
+    remaining = limit - len(empty.model_dump_json().encode())
+    response = SemanticLayerError(
+        message="x" * (remaining // 2),
+        error_type="e" * (remaining % 2),
+        timestamp=timestamp,
+    )
+    assert len(response.model_dump_json().encode()) == limit
+    return response
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("extra_byte", [False, True], ids=["exact", "plus-one"])
+async def test_get_table_mcp_entry_preflights_every_error_return(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    extra_byte: bool,
+) -> None:
+    """The public union preserves an exact error and bounds the next byte."""
+    query_result_module = importlib.import_module(
+        "superset.mcp_service.chart.query_result"
+    )
+    limit = 4 * 1024
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", limit)
+    response = _semantic_error_at_test_limit(limit)
+    if extra_byte:
+        response.error_type += "e"
+
+    async def error_result(*_args: Any, **_kwargs: Any) -> SemanticLayerError:
+        return response
+
+    monkeypatch.setattr(get_table_module, "_get_table", error_result)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+
+    returned = SemanticLayerError.model_validate(json.loads(result.content[0].text))
+    if extra_byte:
+        assert returned.error_type == "InvalidQueryResult"
+        assert len(returned.model_dump_json().encode()) < 1_000
+    else:
+        assert returned.error_type == response.error_type
+        assert returned.message == response.message
+
+
+@pytest.mark.asyncio
+async def test_get_table_mcp_entry_bounds_dynamic_command_error(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A dynamically amplified command error cannot bypass the finalizer."""
+    query_result_module = importlib.import_module(
+        "superset.mcp_service.chart.query_result"
+    )
+    limit = 4 * 1024
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", limit)
+    monkeypatch.setattr(
+        get_table_module,
+        "_run_get_table_query",
+        AsyncMock(side_effect=CommandException("dynamic:" + "x" * limit)),
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+
+    returned = SemanticLayerError.model_validate(json.loads(result.content[0].text))
+    assert returned.error_type == "QueryError"
+    assert len(returned.model_dump_json().encode()) < 4_096
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure_point", ["before_await", "metadata_permission", "selection_helper"]
+)
+async def test_get_table_mcp_entry_bounds_uncaught_dynamic_exception(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    failure_point: str,
+) -> None:
+    """Uncaught producer failures become one finalized, fixed-schema error."""
+    secret = "round20-semantic-secret-" + "x" * (20 * 1024)
+
+    if failure_point == "before_await":
+
+        def fail_before_await(*_args: Any, **_kwargs: Any) -> None:
+            raise RuntimeError(secret)
+
+        monkeypatch.setattr(get_table_module, "_get_table", fail_before_await)
+    elif failure_point == "metadata_permission":
+        monkeypatch.setattr(
+            get_table_module,
+            "user_can_view_data_model_metadata",
+            MagicMock(side_effect=RuntimeError(secret)),
+        )
+    else:
+        monkeypatch.setattr(
+            get_table_module,
+            "_validate_datasource_selection",
+            MagicMock(side_effect=RuntimeError(secret)),
+        )
+
+    original_finalizer = get_table_module.finalize_get_table_response
+    finalizer = MagicMock(wraps=original_finalizer)
+    log_exception = MagicMock(wraps=get_table_module.logger.exception)
+    caplog.set_level("ERROR", logger=get_table_module.__name__)
+    monkeypatch.setattr(get_table_module, "finalize_get_table_response", finalizer)
+    monkeypatch.setattr(get_table_module.logger, "exception", log_exception)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+
+    assert isinstance(result.structured_content, dict)
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = SemanticLayerError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert returned.message == (
+        "An internal error occurred while querying the semantic table."
+    )
+    assert payload["message"] == returned.message
+    assert payload["error"] == returned.message
+    assert len(wire) < 1_000
+    assert secret.encode() not in wire
+    assert secret not in repr(result.structured_content)
+    assert secret not in "".join(
+        block.text for block in result.content if hasattr(block, "text")
+    )
+    finalizer.assert_called_once()
+    log_exception.assert_called_once_with(
+        "Unhandled exception while querying a semantic table", exc_info=False
+    )
+    assert secret not in repr(log_exception.call_args)
+    assert "Unhandled exception while querying a semantic table" in caplog.text
+    assert secret not in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure_stage", ["runtime-error", "context-enter", "context-exit"]
+)
+async def test_get_table_contains_hostile_unexpected_failures_without_hooks(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    failure_stage: str,
+) -> None:
+    """Unexpected inner-stage failures reach the fixed public containment layer."""
+    failure = HostileRuntimeError("stored-secret")
+    if failure_stage == "runtime-error":
+        monkeypatch.setattr(
+            get_table_module,
+            "_resolve_builtin_dataset",
+            MagicMock(side_effect=failure),
+        )
+    else:
+
+        class FailingContextManager:
+            def __enter__(self) -> None:
+                if failure_stage == "context-enter":
+                    raise failure
+
+            def __exit__(self, *_args: Any) -> None:
+                if failure_stage == "context-exit":
+                    raise failure
+
+        monkeypatch.setattr(
+            get_table_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **_kwargs: FailingContextManager()),
+        )
+
+    original_finalizer = get_table_module.finalize_get_table_response
+    finalizer = MagicMock(wraps=original_finalizer)
+    log_exception = MagicMock(wraps=get_table_module.logger.exception)
+    monkeypatch.setattr(get_table_module, "finalize_get_table_response", finalizer)
+    monkeypatch.setattr(get_table_module.logger, "exception", log_exception)
+    caplog.set_level("ERROR", logger=get_table_module.__name__)
+    HostileRuntimeError.calls = 0
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+
+    assert isinstance(result.structured_content, dict)
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = SemanticLayerError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert len(wire) < 1_000
+    assert "stored-secret" not in repr(result.structured_content)
+    assert "round21-hostile" not in caplog.text
+    assert HostileRuntimeError.calls == 0
+    finalizer.assert_called_once()
+    log_exception.assert_called_once_with(
+        "Unhandled exception while querying a semantic table", exc_info=False
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_stage", ["finalizer", "logger"])
+async def test_get_table_contains_finalizer_and_logger_failures(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_stage: str,
+) -> None:
+    """Containment remains structured when its finalizer or logger fails."""
+    hostile = HostileRuntimeError("stored-secret")
+    if failure_stage == "finalizer":
+
+        async def known_result(*_args: Any, **_kwargs: Any) -> SemanticLayerError:
+            return SemanticLayerError.create(error="known", error_type="KnownError")
+
+        monkeypatch.setattr(get_table_module, "_get_table", known_result)
+        finalizer = MagicMock(side_effect=hostile)
+        monkeypatch.setattr(get_table_module, "finalize_get_table_response", finalizer)
+    else:
+
+        def producer_failure(*_args: Any, **_kwargs: Any) -> None:
+            raise hostile
+
+        monkeypatch.setattr(get_table_module, "_get_table", producer_failure)
+        original_finalizer = get_table_module.finalize_get_table_response
+        finalizer = MagicMock(wraps=original_finalizer)
+        monkeypatch.setattr(get_table_module, "finalize_get_table_response", finalizer)
+        monkeypatch.setattr(
+            get_table_module.logger,
+            "exception",
+            MagicMock(side_effect=RuntimeError("logger-secret")),
+        )
+    HostileRuntimeError.calls = 0
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+
+    assert isinstance(result.structured_content, dict)
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = SemanticLayerError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert len(wire) < 1_000
+    assert b"stored-secret" not in wire
+    assert b"logger-secret" not in wire
+    assert HostileRuntimeError.calls == 0
+    finalizer.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "system_failure",
+    [asyncio.CancelledError(), KeyboardInterrupt(), SystemExit(), GeneratorExit()],
+)
+async def test_get_table_preserves_base_exception_propagation(
+    monkeypatch: pytest.MonkeyPatch,
+    system_failure: BaseException,
+) -> None:
+    """The public containment boundary catches Exception, not BaseException."""
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    def fail(*_args: Any, **_kwargs: Any) -> None:
+        raise system_failure
+
+    monkeypatch.setattr(get_table_module, "_get_table", fail)
+    with pytest.raises(type(system_failure)):
+        await get_table_module._finalized_get_table(
+            GetTableRequest(dataset_id=42, metrics=["revenue"]), MagicMock()
+        )
 
 
 def _make_metric(name: str, expression: str = "COUNT(*)") -> MagicMock:
@@ -106,6 +423,173 @@ def _make_view(view_id: int = 5) -> MagicMock:
     return view
 
 
+@pytest.fixture
+def temporal_view() -> Generator[MagicMock, None, None]:
+    """Resolve a view with a temporal dimension and three queryable grains."""
+    view: MagicMock = _make_view()
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    view.columns = [
+        _make_column("metric_time", True),
+        _make_column("country_name"),
+    ]
+    view.implementation.get_dimensions.return_value = [
+        Dimension(
+            id=f"metric_time__{grain.name}",
+            name="metric_time",
+            type=pa.timestamp("us"),
+            grain=grain,
+        )
+        for grain in (Grains.DAY, Grains.WEEK, Grains.MONTH)
+    ] + [
+        # Production get_dimensions() also returns the unaggregated variant
+        # and every non-temporal dimension, both with grain=None.
+        Dimension(id="metric_time", name="metric_time", type=pa.timestamp("us")),
+        Dimension(id="country_name", name="country_name", type=pa.string()),
+    ]
+    with patch(
+        "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+    ):
+        yield view
+
+
+@pytest.mark.asyncio
+async def test_get_table_temporal_result_type(
+    mcp_server: FastMCP,
+    temporal_view: MagicMock,
+) -> None:
+    """Grain-suffixed temporal results use the shared MCP temporal vocabulary."""
+    with patch.object(
+        get_table_module,
+        "execute_tabular_query",
+        return_value={
+            "queries": [
+                {
+                    "data": [
+                        {
+                            "metric_time__day": "2024-09-01T00:00:00Z",
+                            "country_name": "Canada",
+                        }
+                    ],
+                    "colnames": ["metric_time__day", "country_name"],
+                    # Grain variants come back non-temporal; the override fixes
+                    # only the column the view declares as a grain variant.
+                    "coltypes": [
+                        int(GenericDataType.STRING),
+                        int(GenericDataType.STRING),
+                    ],
+                }
+            ]
+        },
+    ):
+        async with Client(mcp_server) as client:
+            data: dict[str, Any] = json.loads(
+                (
+                    await client.call_tool(
+                        "get_table",
+                        {
+                            "request": {
+                                "view_id": 5,
+                                "metrics": ["bookings"],
+                                "dimensions": ["metric_time", "country_name"],
+                            }
+                        },
+                    )
+                )
+                .content[0]
+                .text
+            )
+    assert data["success"] is True
+    assert data["columns"][0]["data_type"] == "temporal"
+    assert data["columns"][1]["data_type"] == "string"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("result_column", "value", "coltype", "expected_type"),
+    [
+        ("date__label", "September", GenericDataType.STRING, "string"),
+        ("date_count", 12, GenericDataType.NUMERIC, "numeric"),
+        ("date", "2024-09-01", GenericDataType.STRING, "temporal"),
+        ("date__Month", "2024-09-01", GenericDataType.STRING, "temporal"),
+        ("date__P1M", "2024-09-01", GenericDataType.STRING, "temporal"),
+        ("date__", "September", GenericDataType.STRING, "string"),
+        ("date__Year", "2024", GenericDataType.STRING, "string"),
+    ],
+)
+async def test_get_table_temporal_result_requires_known_variant(
+    mcp_server: FastMCP,
+    temporal_view: MagicMock,
+    result_column: str,
+    value: str | int,
+    coltype: GenericDataType,
+    expected_type: str,
+) -> None:
+    """Only exact temporal names and their declared grains override result typing."""
+    temporal_view.columns = [
+        _make_column("date", True),
+        _make_column("date__label"),
+        _make_column("date__"),
+        _make_column("date__Year"),
+        _make_column("other_date", True),
+    ]
+    temporal_view.metrics = [_make_metric("date_count")]
+    temporal_view.get_compatible_dimensions.return_value = [
+        "date__label",
+        "date__",
+        "date__Year",
+    ]
+    temporal_view.implementation.get_dimensions.return_value = [
+        Dimension(
+            id="date_month", name="date", type=pa.timestamp("us"), grain=Grains.MONTH
+        ),
+        Dimension(
+            id="other_year",
+            name="other_date",
+            type=pa.timestamp("us"),
+            grain=Grains.YEAR,
+        ),
+    ]
+    with patch.object(
+        get_table_module,
+        "execute_tabular_query",
+        return_value={
+            "queries": [
+                {
+                    "data": [{result_column: value}],
+                    "colnames": [result_column],
+                    "coltypes": [int(coltype)],
+                }
+            ]
+        },
+    ):
+        async with Client(mcp_server) as client:
+            response: GetTableResponse = GetTableResponse.model_validate_json(
+                (
+                    await client.call_tool(
+                        "get_table",
+                        {
+                            "request": {
+                                "view_id": 5,
+                                "metrics": ["date_count"],
+                                "dimensions": [
+                                    "date",
+                                    "date__label",
+                                    "date__",
+                                    "date__Year",
+                                ],
+                                "time_column": "date",
+                                "time_grain": "P1M",
+                            }
+                        },
+                    )
+                )
+                .content[0]
+                .text
+            )
+    assert response.success is True
+    assert response.columns[0].data_type == expected_type
+
+
 def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityException:
     return SupersetSecurityException(
         SupersetError(
@@ -116,19 +600,767 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
     )
 
 
+@pytest.mark.parametrize("grain", ["P1M", "month", " Month "])
+def test_get_table_time_grain_query(grain: str, temporal_view: MagicMock) -> None:
+    """Duration and name forms reach the existing BASE_AXIS query builder."""
+    request: GetTableRequest = GetTableRequest(
+        view_id=5, metrics=["bookings"], dimensions=["metric_time"], time_grain=grain
+    )
+    resolved: Any = get_table_module._resolve_external_view(request)
+    assert not isinstance(resolved, SemanticLayerError)
+    query: dict[str, Any] = get_table_module._build_query_dict(
+        request, resolved.time_col, resolved.grain_column
+    )
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+    assert query["columns"][0] == {
+        "label": "metric_time",
+        "sqlExpression": "metric_time",
+        "isColumnReference": True,
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+
+
+def test_get_table_unsupported_time_grain(temporal_view: MagicMock) -> None:
+    """Unsupported grains list this view's queryable durations and names."""
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(view_id=5, dimensions=["metric_time"], time_grain="PT1H")
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert all(
+        choice in result.error for choice in ("P1D (Day)", "P1W (Week)", "P1M (Month)")
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_table_grain_alias_hint_for_other_temporal_column(
+    mcp_server: FastMCP, temporal_view: MagicMock
+) -> None:
+    """A selected column's grains do not erase another column's alias hint."""
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            id="signup_date__Year",
+            name="signup_date",
+            type=pa.timestamp("us"),
+            grain=Grains.YEAR,
+        )
+    )
+    with patch.object(get_table_module, "execute_tabular_query") as execute:
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time", "signup_date__Year"],
+                        "time_grain": "P1D",
+                        "time_column": "metric_time",
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "dimension 'signup_date'" in data["error"]
+    assert "time_grain='P1Y'" in data["error"]
+    execute.assert_not_called()
+
+
+def test_get_table_grain_hints_match_each_columns_validation(
+    temporal_view: MagicMock,
+) -> None:
+    """A grain advertised for metric_time must not be suggested for signup_date."""
+    from superset.mcp_service.semantic_layer.tool.get_table import _ResolvedDatasource
+
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.implementation.get_dimensions.return_value = [
+        Dimension(
+            "metric_time_day", "metric_time", pa.timestamp("us"), grain=Grains.DAY
+        ),
+        Dimension(
+            "metric_time_month", "metric_time", pa.timestamp("us"), grain=Grains.MONTH
+        ),
+        Dimension(
+            "signup_date_day", "signup_date", pa.timestamp("us"), grain=Grains.DAY
+        ),
+    ]
+    request: GetTableRequest = GetTableRequest(
+        view_id=5, dimensions=["signup_date__Month"]
+    )
+    resolved: _ResolvedDatasource | SemanticLayerError = (
+        get_table_module._resolve_external_view(request)
+    )
+    assert not isinstance(resolved, SemanticLayerError)
+    errors: list[str] = get_table_module._validate_request_names(
+        request, resolved.valid_columns, resolved.valid_metrics, resolved.valid_grains
+    )
+    assert any("Unknown dimension" in error for error in errors)
+    assert not any("time_grain='P1M'" in error for error in errors)
+    errors = get_table_module._validate_request_names(
+        GetTableRequest(
+            view_id=5, dimensions=["signup_date__Day", "metric_time__Month"]
+        ),
+        resolved.valid_columns,
+        resolved.valid_metrics,
+        resolved.valid_grains,
+    )
+    assert any(
+        "dimension 'signup_date'" in error and "time_grain='P1D'" in error
+        for error in errors
+    )
+    assert any(
+        "dimension 'metric_time'" in error and "time_grain='P1M'" in error
+        for error in errors
+    )
+    accepted: _ResolvedDatasource | SemanticLayerError = (
+        get_table_module._resolve_external_view(
+            GetTableRequest(view_id=5, dimensions=["signup_date"], time_grain="P1D")
+        )
+    )
+    assert not isinstance(accepted, SemanticLayerError)
+    rejected: _ResolvedDatasource | SemanticLayerError = (
+        get_table_module._resolve_external_view(
+            GetTableRequest(view_id=5, dimensions=["signup_date"], time_grain="P1M")
+        )
+    )
+    assert isinstance(rejected, SemanticLayerError)
+    assert "Queryable grains: P1D (Day)" in rejected.error
+
+
+def test_get_table_grain_alias_hint(temporal_view: MagicMock) -> None:
+    """A grain-suffixed unknown dimension suggests the base and time_grain."""
+    request: GetTableRequest = GetTableRequest(
+        view_id=5, dimensions=["metric_time__month"]
+    )
+    resolved: Any = get_table_module._resolve_external_view(request)
+    errors: list[str] = get_table_module._validate_request_names(
+        request, resolved.valid_columns, resolved.valid_metrics, resolved.valid_grains
+    )
+    assert any("Unknown dimension" in error for error in errors)
+    assert any(
+        "time_grain='P1M'" in error and "'metric_time'" in error for error in errors
+    )
+
+
+@pytest.mark.parametrize("dimensions", [[], ["metric_time", "other_time"]])
+def test_get_table_grain_requires_time_column(
+    temporal_view: MagicMock,
+    dimensions: list[str],
+) -> None:
+    """Absent or ambiguous temporal selections require an explicit column."""
+    temporal_view.columns.append(_make_column("other_time", True))
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(view_id=5, dimensions=dimensions, time_grain="P1M")
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "Set time_column" in result.error
+    assert all(name in result.error for name in dimensions)
+
+
+def test_get_table_grain_explicit_time_column(temporal_view: MagicMock) -> None:
+    """An explicit temporal column disambiguates the requested grain."""
+    temporal_view.columns.append(_make_column("other_time", True))
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            id="other_time__month",
+            name="other_time",
+            type=pa.timestamp("us"),
+            grain=Grains.MONTH,
+        )
+    )
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(
+            view_id=5,
+            dimensions=["metric_time", "other_time"],
+            time_column="other_time",
+            time_grain="P1M",
+        )
+    )
+    assert not isinstance(result, SemanticLayerError)
+    assert result.grain_column == "other_time"
+
+
+def test_get_table_builtin_grain_rejected() -> None:
+    """Built-in datasets reject the unsupported grain parameter explicitly."""
+    result: Any = get_table_module._resolve_builtin_dataset(
+        GetTableRequest(dataset_id=42, time_grain="month")
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "semantic views only" in result.error
+
+
+@pytest.mark.asyncio
+async def test_get_table_seeds_virtual_dataset_jinja_before_command_construction(
+    app_context: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The final semantic query exposes URL and filter macros to virtual SQL."""
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from superset.jinja_context import ExtraCache
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    observed: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None:
+            macros = ExtraCache()
+            observed["url_param"] = macros.url_param("tenant")
+            observed["filter_values"] = macros.filter_values("region")
+            observed["get_filters"] = macros.get_filters("region")
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"region": "North", "revenue": 10}],
+                        "colnames": ["region", "revenue"],
+                        "coltypes": [1, 0],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        get_table_module,
+        "_resolve_builtin_dataset",
+        lambda _request: get_table_module._ResolvedDatasource(
+            "virtual_sales", None, {"region"}, {"revenue"}
+        ),
+    )
+    monkeypatch.setattr(
+        get_table_module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(
+        importlib.import_module("superset.common.query_context_factory"),
+        "QueryContextFactory",
+        _Factory,
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    request = GetTableRequest(
+        dataset_id=42,
+        metrics=["revenue"],
+        dimensions=["region"],
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+    )
+    with current_app.test_request_context("/?tenant=acme"):
+        response = await get_table_module._run_get_table_query(
+            request,
+            AsyncMock(),
+            is_builtin=True,
+            datasource_id=42,
+            datasource_type="table",
+        )
+
+    assert response.success is True
+    assert observed == {
+        "url_param": "acme",
+        "filter_values": ["North"],
+        "get_filters": [{"col": "region", "op": "IN", "val": ["North"]}],
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_table_incompatible_view_dimensions(mcp_server: FastMCP) -> None:
+    """Reject known-incompatible pairs before querying, with deterministic guidance."""
+    view: MagicMock = _make_view()
+    view.metrics = [_make_metric("orders"), _make_metric("bookings")]
+    view.columns = [_make_column("product__product_name"), _make_column("category")]
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(get_table_module, "execute_tabular_query") as execute,
+        patch.object(get_table_module, "_build_query_dict") as build,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["orders", "bookings"],
+                        "dimensions": ["product__product_name", "category"],
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert data["error"] == (
+        "Dimension(s) ['category', 'product__product_name'] are not compatible "
+        "with the selected metric(s) ['bookings', 'orders'] for view 'view_5'. "
+        "Call get_compatible_dimensions for the valid combinations."
+    )
+    view.get_compatible_dimensions.assert_called_once_with(["orders", "bookings"], [])
+    build.assert_not_called()
+    execute.assert_not_called()
+
+
+@pytest.mark.parametrize("backend_fails", [False, True])
+@pytest.mark.asyncio
+async def test_get_table_compatible_view_executes(
+    mcp_server: FastMCP,
+    backend_fails: bool,
+) -> None:
+    """Compatible selections execute; genuine backend failures remain InternalError."""
+    view: MagicMock = _make_view()
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    query_result: dict[str, Any] = chart_data_command_result(
+        [{"country_name": "GB", "bookings": 3}],
+        coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+    )
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(
+            get_table_module, "execute_tabular_query", return_value=query_result
+        ) as execute,
+    ):
+        if backend_fails:
+            execute.side_effect = RuntimeError("provider execution failed")
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["country_name"],
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
+    execute.assert_called_once()
+    assert execute.call_args.args[:2] == (5, "semantic_view")
+    if backend_fails:
+        assert data["success"] is False
+        assert data["error_type"] == "InternalError"
+        assert data["error"] == (
+            "An internal error occurred while querying the semantic table."
+        )
+    else:
+        assert data["success"] is True
+        assert data["data"] == [{"country_name": "GB", "bookings": 3}]
+
+
+@pytest.mark.parametrize(
+    "builtin,metrics,dimensions",
+    [
+        (True, ["revenue"], ["region"]),
+        (False, [], ["country_name"]),
+        (False, ["bookings"], []),
+    ],
+)
+@pytest.mark.asyncio
+async def test_get_table_skips_compatibility_without_join_risk(
+    mcp_server: FastMCP,
+    builtin: bool,
+    metrics: list[str],
+    dimensions: list[str],
+) -> None:
+    """Builtin datasets and empty selections never consult view compatibility."""
+    dataset: MagicMock = _make_dataset()
+    view: MagicMock = _make_view()
+    query_result: dict[str, Any] = chart_data_command_result([], columns=[])
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(
+            get_table_module, "execute_tabular_query", return_value=query_result
+        ) as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id" if builtin else "view_id": 42 if builtin else 5,
+                        "metrics": metrics,
+                        "dimensions": dimensions,
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is True
+    execute.assert_called_once()
+    dataset.get_compatible_dimensions.assert_not_called()
+    view.get_compatible_dimensions.assert_not_called()
+
+
 @pytest.mark.asyncio
 async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
     """get_table returns tabular data for a built-in dataset."""
     mock_ds = _make_dataset(42)
-    query_result = {
-        "queries": [
+    query_result = chart_data_command_result(
+        [
             {
-                "data": [{"region": "west", "revenue": 100}],
-                "colnames": ["region", "revenue"],
-                "rowcount": 1,
+                "created_at": pd.Timestamp("2026-09-02T10:11:12Z"),
+                "revenue": np.int64(100),
             }
+        ],
+        columns=["created_at", "revenue"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "dimensions": ["created_at"],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["row_count"] == 1
+    assert data["source"] == "builtin"
+    assert data["dataset_id"] == 42
+    assert data["dataset_name"] == mock_ds.table_name
+    assert data["data"] == [{"created_at": "2026-09-02T10:11:12+00:00", "revenue": 100}]
+
+
+@pytest.mark.asyncio
+async def test_get_table_normalizes_supported_producer_timezones(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    mock_ds = _make_dataset(42)
+    query_result = chart_data_command_result(
+        [
+            {
+                "created_at": pd.Timestamp(
+                    2024, 1, 2, 3, 4, 5, tz=dateutil_tz.tzoffset("IST", 19_800)
+                ),
+                "revenue": 1,
+            },
+            {
+                "created_at": pd.Timestamp(
+                    2024, 1, 2, 3, 4, 5, tz=pytz.FixedOffset(-240)
+                ),
+                "revenue": 2,
+            },
+            {
+                "created_at": pd.Timestamp(
+                    2024, 1, 2, 3, 4, 5, tz=dateutil_tz.gettz("US/Pacific")
+                ),
+                "revenue": 3,
+            },
+            {
+                "created_at": datetime(
+                    2024,
+                    10,
+                    27,
+                    1,
+                    30,
+                    0,
+                    123456,
+                    tzinfo=dateutil_tz.gettz("Europe/Dublin"),
+                    fold=1,
+                ),
+                "revenue": 4,
+            },
+            {
+                "created_at": datetime(
+                    2024,
+                    3,
+                    10,
+                    2,
+                    30,
+                    tzinfo=dateutil_tz.gettz("America/New_York"),
+                ),
+                "revenue": 5,
+            },
+            {
+                "created_at": datetime(
+                    2040,
+                    7,
+                    1,
+                    12,
+                    tzinfo=dateutil_tz.gettz("America/New_York"),
+                ),
+                "revenue": 6,
+            },
+            {
+                "created_at": datetime(
+                    2024,
+                    1,
+                    1,
+                    12,
+                    tzinfo=dateutil_tz.gettz("Etc/GMT+3"),
+                ),
+                "revenue": 7,
+            },
+        ],
+        columns=["created_at", "revenue"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
+
+    def hostile_timezone_hook(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("dateutil timezone hook executed")
+
+    for zone_name in ("Europe/Dublin", "America/New_York", "Etc/GMT+3"):
+        timezone_value = dateutil_tz.gettz(zone_name)
+        assert timezone_value is not None
+        for method_name in ("utcoffset", "dst", "tzname", "fromutc"):
+            monkeypatch.setattr(
+                type(timezone_value), method_name, hostile_timezone_hook
+            )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "dimensions": ["created_at"],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["success"] is True
+    assert data["data"] == [
+        {"created_at": "2024-01-02T03:04:05+05:30", "revenue": 1},
+        {"created_at": "2024-01-02T03:04:05-04:00", "revenue": 2},
+        {"created_at": "2024-01-02T03:04:05-08:00", "revenue": 3},
+        {
+            "created_at": "2024-10-27T01:30:00.123456+01:00",
+            "revenue": 4,
+        },
+        {"created_at": "2024-03-10T02:30:00-04:00", "revenue": 5},
+        {"created_at": "2040-07-01T12:00:00-05:00", "revenue": 6},
+        {"created_at": "2024-01-01T12:00:00-03:00", "revenue": 7},
+    ]
+    assert data["performance"]["cache_status"] == "fresh"
+    assert data["cache_status"]["cache_hit"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_table_rejects_hostile_timezone_without_hooks(
+    mcp_server: FastMCP,
+) -> None:
+    """The semantic entry point rejects an untrusted timezone without hooks."""
+    hostile = HostileTimezone()
+    mock_ds = _make_dataset(42)
+    frame = pd.DataFrame(index=range(1))
+    frame["created_at"] = pd.Series(
+        [datetime(2024, 1, 1, tzinfo=hostile)], dtype=object
+    )
+    frame["revenue"] = pd.Series([1], dtype=object)
+    query_result = chart_data_command_result(
+        columns=["created_at", "revenue"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+        frame=frame,
+    )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value=query_result,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "dimensions": ["created_at"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "InvalidQueryResult"
+    assert hostile.calls == 0
+
+
+@pytest.mark.asyncio
+async def test_get_table_uses_authoritative_coltypes_and_late_samples(
+    mcp_server: FastMCP,
+) -> None:
+    mock_ds = _make_dataset(42)
+    mock_ds.columns = [
+        _make_column("event_time", is_dttm=True),
+        _make_column("enabled"),
+        _make_column("amount"),
+        _make_column("identity"),
+    ]
+    rows: list[dict[str, Any]] = [
+        {"event_time": None, "enabled": None, "amount": None, "identity": None}
+        for _ in range(5)
+    ]
+    rows.extend(
+        [
+            {
+                "event_time": pd.Timestamp("2024-01-02T03:04:05Z"),
+                "enabled": True,
+                "amount": Decimal("1.00"),
+                "identity": True,
+            },
+            {
+                "event_time": None,
+                "enabled": False,
+                "amount": Decimal("1.0"),
+                "identity": 1,
+            },
+            {
+                "event_time": None,
+                "enabled": True,
+                "amount": Decimal("2.00"),
+                "identity": False,
+            },
+            {
+                "event_time": None,
+                "enabled": False,
+                "amount": None,
+                "identity": 0,
+            },
         ]
-    }
+    )
+    query_result = chart_data_command_result(
+        rows,
+        columns=["event_time", "enabled", "amount", "identity"],
+        coltypes=[
+            GenericDataType.TEMPORAL,
+            GenericDataType.BOOLEAN,
+            GenericDataType.NUMERIC,
+            GenericDataType.STRING,
+        ],
+    )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "dimensions": [
+                            "event_time",
+                            "enabled",
+                            "amount",
+                            "identity",
+                        ],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert [column["data_type"] for column in data["columns"]] == [
+        "temporal",
+        "boolean",
+        "numeric",
+        "string",
+    ]
+    assert data["columns"][0]["sample_values"] == ["2024-01-02T03:04:05+00:00"]
+    assert data["columns"][1]["sample_values"] == [True, False, True]
+    assert data["columns"][2]["unique_count"] == 2
+    assert data["columns"][3]["unique_count"] == 4
+
+
+def test_get_table_preserves_authoritative_coltypes_for_empty_data() -> None:
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    request = GetTableRequest(dataset_id=42, dimensions=["event_time", "enabled"])
+    response = get_table_module._build_response(
+        request,
+        True,
+        "events",
+        {
+            "data": [],
+            "colnames": ["event_time", "enabled"],
+            "coltypes": [GenericDataType.TEMPORAL, GenericDataType.BOOLEAN],
+            "is_cached": False,
+        },
+        1,
+        [],
+    )
+
+    assert response.data == []
+    assert [column.data_type for column in response.columns] == [
+        "temporal",
+        "boolean",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_table_normalizes_nan_producer_data(mcp_server: FastMCP) -> None:
+    mock_ds = _make_dataset(42)
+    query_result = chart_data_command_result(
+        [{"region": "west", "revenue": float("nan")}],
+        columns=["region", "revenue"],
+        coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+    )
 
     with (
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
@@ -153,12 +1385,162 @@ async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
                     }
                 },
             )
-        data = json.loads(result.content[0].text)
 
+    data = json.loads(result.content[0].text)
     assert data["success"] is True
-    assert data["row_count"] == 1
-    assert data["source"] == "builtin"
-    assert data["dataset_id"] == 42
+    assert data["data"] == [{"region": "west", "revenue": None}]
+    assert data["columns"][1]["null_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_get_table_rejects_oversized_projected_response(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The actual MCP entry point bounds duplicated sample metadata."""
+    mock_ds = _make_dataset(42)
+    mock_ds.columns = [_make_column("value")]
+    cell = "x" * 100
+    query_result = chart_data_command_result(
+        [{"value": cell} for _ in range(10)],
+        columns=["value"],
+        coltypes=[GenericDataType.STRING],
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        1_500,
+    )
+    assert get_table_module.validate_query_result_envelope(query_result) is None
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value=query_result,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {"request": {"dataset_id": 42, "dimensions": ["value"]}},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "InvalidQueryResult"
+    assert (
+        len(SemanticLayerError.model_validate(data).model_dump_json().encode()) < 1_000
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_table_normalizes_real_period_and_interval(
+    mcp_server: FastMCP,
+) -> None:
+    mock_ds = _make_dataset(42)
+    mock_ds.columns = [_make_column("period"), _make_column("interval")]
+    query_result = chart_data_command_result(
+        [
+            {
+                "period": pd.Period("2026-Q3", freq="Q"),
+                "interval": pd.Interval(1, 3, closed="both"),
+            }
+        ],
+        columns=["period", "interval"],
+        coltypes=[GenericDataType.STRING, GenericDataType.STRING],
+    )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value=query_result,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "dimensions": ["period", "interval"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["success"] is True
+    assert data["data"] == [{"period": "2026Q3", "interval": "[1, 3]"}]
+
+
+@pytest.mark.asyncio
+async def test_get_table_rejects_hostile_data_before_generic_consumers(
+    mcp_server: FastMCP,
+) -> None:
+    class HostileValue:
+        def __str__(self) -> str:
+            raise AssertionError("hostile formatter hook executed")
+
+    mock_ds = _make_dataset(42)
+    query_result = {
+        "query_context": object(),
+        "queries": [
+            {
+                "data": [{"region": "west", "revenue": 1}],
+                "colnames": ["region", "revenue"],
+                "coltypes": [GenericDataType.STRING, GenericDataType.NUMERIC],
+                "is_cached": False,
+            },
+            {
+                "data": [{"danger": HostileValue()}],
+                "colnames": ["danger"],
+                "coltypes": [GenericDataType.STRING],
+                "is_cached": False,
+            },
+        ],
+    }
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+        patch.object(
+            get_table_module,
+            "format_data_columns",
+            side_effect=AssertionError("generic formatter was called"),
+        ) as mock_formatter,
+        patch.object(
+            get_table_module,
+            "get_cache_status_from_result",
+            side_effect=AssertionError("cache formatter was called"),
+        ) as mock_cache_formatter,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "dimensions": ["region"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "InvalidQueryResult"
+    mock_formatter.assert_not_called()
+    mock_cache_formatter.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -223,7 +1605,7 @@ async def test_get_table_unknown_metric_validation_error(mcp_server: FastMCP) ->
 async def test_get_table_time_column_not_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
-    """get_table rejects a time_column that isn't marked as a datetime column."""
+    """get_table rejects a time_column that isn't marked as a temporal column."""
     mock_ds = _make_dataset(42)
 
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds):
@@ -242,7 +1624,7 @@ async def test_get_table_time_column_not_dttm_validation_error(
 
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
-    assert "not marked as a datetime column" in data["message"]
+    assert "not marked as a temporal column" in data["message"]
 
 
 @pytest.mark.asyncio
@@ -270,7 +1652,7 @@ async def test_get_table_external_view_access_denied(mcp_server: FastMCP) -> Non
 async def test_get_table_external_time_range_without_dttm_validation_error(
     mcp_server: FastMCP,
 ) -> None:
-    """get_table rejects time_range on a view with no datetime dimension.
+    """get_table rejects time_range on a view with no temporal dimension.
 
     Regression test: previously this silently dropped the time filter and
     ran an unfiltered query instead of erroring, which could return
@@ -297,7 +1679,7 @@ async def test_get_table_external_time_range_without_dttm_validation_error(
 
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
-    assert "no datetime dimension" in data["message"]
+    assert "no temporal dimension" in data["message"]
 
 
 @pytest.mark.asyncio
@@ -404,6 +1786,7 @@ async def test_get_table_unknown_filter_operator_passes_through(
             {
                 "data": [{"region": "west", "revenue": 100}],
                 "colnames": ["region", "revenue"],
+                "coltypes": [1, 0],
                 "rowcount": 1,
             }
         ]
@@ -456,6 +1839,7 @@ async def test_get_table_unicode_filter_value_passes_through(
             {
                 "data": [{"region": "west", "revenue": 100}],
                 "colnames": ["region", "revenue"],
+                "coltypes": [1, 0],
                 "rowcount": 1,
             }
         ]
@@ -502,8 +1886,8 @@ async def test_get_table_builtin_time_range_without_configured_dttm_validation_e
 ) -> None:
     """get_table rejects time_range on a builtin dataset with no main_dttm_col.
 
-    Mirrors the external-view "no datetime dimension" case, but for the
-    builtin path where the datetime column is inferred from
+    Mirrors the external-view "no temporal dimension" case, but for the
+    builtin path where the temporal column is inferred from
     ``dataset.main_dttm_col`` instead of scanning columns.
     """
     mock_ds = _make_dataset(42)
@@ -526,3 +1910,624 @@ async def test_get_table_builtin_time_range_without_configured_dttm_validation_e
     assert data["success"] is False
     assert data["error_type"] == "ValidationError"
     assert "no temporal column is configured" in data["message"]
+
+
+@pytest.mark.parametrize("dimensions", [[], ["country_name"]])
+@pytest.mark.asyncio
+async def test_get_table_rejects_incompatible_ordering_dimension(
+    mcp_server: FastMCP, dimensions: list[str]
+) -> None:
+    """Ordering by an unselected dimension still requires a compatible join."""
+    view: MagicMock = _make_view()
+    view.columns.append(_make_column("product_name"))
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(get_table_module, "execute_tabular_query") as execute,
+        patch.object(get_table_module, "_build_query_dict") as build,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": dimensions,
+                        "order_by": ["product_name"],
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "product_name" in data["error"]
+    view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
+    build.assert_not_called()
+    execute.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "order_by", [["country_name"], ["bookings"], ["country_name", "bookings"]]
+)
+@pytest.mark.asyncio
+async def test_get_table_preserves_compatible_and_metric_ordering(
+    mcp_server: FastMCP, order_by: list[str]
+) -> None:
+    """Metric ordering is not mistaken for a required join dimension."""
+    view: MagicMock = _make_view()
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value=chart_data_command_result([], columns=[]),
+        ) as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "order_by": order_by,
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is True
+    execute.assert_called_once()
+    assert [name for name, _ in execute.call_args.args[2]["orderby"]] == order_by
+    if "country_name" in order_by:
+        view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
+    else:
+        view.get_compatible_dimensions.assert_not_called()
+
+
+@pytest.mark.parametrize("longhand", [False, True])
+@pytest.mark.asyncio
+async def test_temporal_filter_spellings_delegate_to_execution(
+    mcp_server: FastMCP, longhand: bool
+) -> None:
+    """Both temporal spellings execute even when discovery excludes the axis."""
+    view: MagicMock = _make_view()
+    view.columns.append(_make_column("order_ts", True))
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    request: dict[str, Any] = {"view_id": 5, "metrics": ["bookings"]}
+    temporal_filter: dict[str, str] = {
+        "col": "order_ts",
+        "op": "TEMPORAL_RANGE",
+        "val": "2024-01-01 : 2024-03-01",
+    }
+    if longhand:
+        request["filters"] = [temporal_filter]
+    else:
+        request.update(time_column="order_ts", time_range=temporal_filter["val"])
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value=chart_data_command_result([], columns=[]),
+        ) as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool("get_table", {"request": request})
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is True
+    execute.assert_called_once()
+    assert execute.call_args.args[2]["filters"] == [temporal_filter]
+    view.get_compatible_dimensions.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "usage", ["ordinary_filter", "groupby", "ordering", "temporal_range"]
+)
+@pytest.mark.parametrize("temporal", [False, True])
+@pytest.mark.asyncio
+async def test_temporal_column_identity_controls_compatibility_exemption(
+    mcp_server: FastMCP, usage: str, temporal: bool
+) -> None:
+    """An undiscovered time axis remains usable; ordinary columns are rejected."""
+    view: MagicMock = _make_view()
+    view.columns.append(_make_column("order_ts", True))
+    view.get_compatible_dimensions.return_value = []
+    column: str = "order_ts" if temporal else "country_name"
+    request: dict[str, Any] = {
+        "view_id": 5,
+        "metrics": ["bookings"],
+    }
+    if usage == "ordinary_filter":
+        request["filters"] = [{"col": column, "op": "==", "val": "2024-02-01"}]
+    elif usage == "groupby":
+        request["dimensions"] = [column]
+    elif usage == "ordering":
+        request["order_by"] = [column]
+    else:
+        request["filters"] = [
+            {"col": column, "op": "TEMPORAL_RANGE", "val": "2024-01-01 : 2024-03-01"}
+        ]
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value=chart_data_command_result([], columns=[]),
+        ) as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool("get_table", {"request": request})
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is temporal
+    if temporal:
+        execute.assert_called_once()
+        view.get_compatible_dimensions.assert_not_called()
+    else:
+        assert data["error_type"] == "ValidationError"
+        assert column in data["error"]
+        execute.assert_not_called()
+
+
+class TestGetTableTimeRangeValidation:
+    """GetTableRequest.time_range rejects values get_since_until() would
+    otherwise silently resolve to an unbounded, full-table range.
+
+    See SC-114824: shared validator in
+    superset.mcp_service.common.time_range_validation.
+    """
+
+    def test_valid_relative_range_passes(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "Last 30 days"}
+        )
+        assert req.time_range == "Last 30 days"
+
+    def test_iso_range_passes(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(
+            {
+                "dataset_id": 1,
+                "metrics": ["count"],
+                "time_range": "2003-01-01 : 2004-01-01",
+            }
+        )
+        assert req.time_range == "2003-01-01 : 2004-01-01"
+
+    def test_bracket_shorthand_normalizes(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": "[quarter]"}
+        )
+        assert req.time_range == "Last quarter"
+
+    @pytest.mark.parametrize(
+        "bad_value",
+        ["banana", "this week", "this month", "last week", "yesterday", "[decade]"],
+    )
+    def test_previously_silent_values_now_raise(self, bad_value: str) -> None:
+        """Live testing against dataset 28 (cleaned_sales_data, 2823 rows)
+        showed these values returned the entire table with success: true
+        and empty warnings. They must now raise a ValidationError."""
+        from pydantic import ValidationError
+
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            GetTableRequest.model_validate(
+                {"dataset_id": 1, "metrics": ["count"], "time_range": bad_value}
+            )
+
+    def test_none_passes(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": None}
+        )
+        assert req.time_range is None
+
+
+class TestGetTableTemporalRangeFilterValidation:
+    """A TEMPORAL_RANGE spelled out longhand in `filters` gets the same
+    validation as the dedicated `time_range` field -- otherwise the
+    identical silent full-table match stays reachable through that field.
+    """
+
+    @staticmethod
+    def _request(val: Any) -> dict[str, Any]:
+        return {
+            "dataset_id": 1,
+            "metrics": ["count"],
+            "filters": [{"col": "ts", "op": "TEMPORAL_RANGE", "val": val}],
+        }
+
+    @pytest.mark.parametrize("bad_value", ["banana", "this month", "Last nonsense"])
+    def test_malformed_temporal_range_filter_rejected(self, bad_value: str) -> None:
+        from pydantic import ValidationError
+
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            GetTableRequest.model_validate(self._request(bad_value))
+
+    def test_temporal_range_filter_normalizes_like_time_range(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(self._request("Last hour"))
+        assert req.filters[0].val == (
+            "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"
+        )
+
+    def test_valid_temporal_range_filter_unchanged(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(self._request("Last 7 days"))
+        assert req.filters[0].val == "Last 7 days"
+
+    def test_non_temporal_operator_value_untouched(self) -> None:
+        from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+        req = GetTableRequest.model_validate(
+            {
+                "dataset_id": 1,
+                "metrics": ["count"],
+                "filters": [{"col": "fruit", "op": "==", "val": "banana"}],
+            }
+        )
+        assert req.filters[0].val == "banana"
+
+
+@pytest.mark.parametrize("is_builtin", [False, True])
+@pytest.mark.parametrize("empty", [False, True])
+def test_response_preserves_execution_time_bounds(
+    is_builtin: bool, empty: bool
+) -> None:
+    """Use execution metadata, including for empty results, rather than reparse."""
+    from datetime import datetime
+
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    request = GetTableRequest(
+        dataset_id=42 if is_builtin else None,
+        view_id=None if is_builtin else 1,
+        metrics=["count"],
+        time_range="Last month",
+    )
+    response = get_table_module._build_response(
+        request,
+        is_builtin,
+        "orders",
+        {
+            "data": [] if empty else [{"count": 3}],
+            "colnames": ["count"],
+            "from_dttm": datetime(2026, 6, 1),
+            "to_dttm": datetime(2026, 7, 1),
+            "is_cached": True,
+        },
+        10,
+        [],
+    )
+    data = response.model_dump(mode="json")
+    assert data["from_dttm"] == "2026-06-01T00:00:00"
+    assert data["to_dttm"] == "2026-07-01T00:00:00"
+
+
+@pytest.mark.parametrize("source_field", ["dataset_id", "view_id"])
+@pytest.mark.parametrize("expression", ["2025-01-01 : ", " : 2025-02-01"])
+@pytest.mark.asyncio
+async def test_get_table_rejects_open_ended_range_before_execution(
+    mcp_server: FastMCP, source_field: str, expression: str
+) -> None:
+    """Open-ended MCP input cannot reach the shared comparison-filter rewrite."""
+    from fastmcp.exceptions import ToolError
+
+    with patch.object(get_table_module, "execute_tabular_query") as execute:
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError, match="Unrecognized time_range"):
+                await client.call_tool(
+                    "get_table",
+                    {
+                        "request": {
+                            source_field: 1,
+                            "metrics": ["count"],
+                            "time_range": expression,
+                        }
+                    },
+                )
+    execute.assert_not_called()
+
+
+@pytest.mark.parametrize("dimensions", [[], ["country_name"]])
+@pytest.mark.asyncio
+async def test_get_table_rejects_unselected_incompatible_filter(
+    mcp_server: FastMCP,
+    dimensions: list[str],
+) -> None:
+    """Filtering still requires a join when the dimension is absent from groupby."""
+    view: MagicMock = _make_view()
+    view.columns.append(_make_column("product_name"))
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(get_table_module, "execute_tabular_query") as execute,
+        patch.object(get_table_module, "_build_query_dict") as build,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": dimensions,
+                        "filters": [
+                            {"col": "product_name", "op": "==", "val": "Widget"}
+                        ],
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "ValidationError"
+    assert "product_name" in data["error"]
+    view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
+    build.assert_not_called()
+    execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_table_compatible_filter_without_groupby(mcp_server: FastMCP) -> None:
+    """A filter-only compatible dimension is validated and retained in the query."""
+    view: MagicMock = _make_view()
+    view.get_compatible_dimensions.return_value = ["country_name"]
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value=chart_data_command_result([], columns=[]),
+        ) as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": [],
+                        "filters": [{"col": "country_name", "op": "==", "val": "GB"}],
+                    }
+                },
+            )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is True
+    view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
+    execute.assert_called_once()
+    assert execute.call_args.args[2]["filters"] == [
+        {"col": "country_name", "op": "==", "val": "GB"}
+    ]
+
+
+@pytest.mark.parametrize("explicit_column", [False, True])
+def test_grain_is_validated_for_selected_column(
+    temporal_view: MagicMock,
+    explicit_column: bool,
+) -> None:
+    """A grain supported by another temporal column is not silently substituted."""
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.implementation.get_dimensions.return_value.extend(
+        [
+            Dimension(
+                id="signup_date__day",
+                name="signup_date",
+                type=pa.timestamp("us"),
+                grain=Grains.DAY,
+            ),
+            Dimension(
+                id="signup_date__year",
+                name="signup_date",
+                type=pa.timestamp("us"),
+                grain=Grains.YEAR,
+            ),
+        ]
+    )
+    result: Any = get_table_module._resolve_external_view(
+        GetTableRequest(
+            view_id=5,
+            dimensions=["signup_date"],
+            time_grain="P1M",
+            time_column="signup_date" if explicit_column else None,
+        )
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "signup_date" in result.error
+    assert "P1D (Day)" in result.error
+    assert "P1Y (Year)" in result.error
+    assert "P1M (Month)" not in result.error
+
+
+def test_time_range_uses_the_selected_grain_axis(temporal_view: MagicMock) -> None:
+    """The filter granularity and BASE_AXIS refer to the same selected dimension."""
+    temporal_view.columns.append(_make_column("signup_date", True))
+    temporal_view.implementation.get_dimensions.return_value.append(
+        Dimension(
+            id="signup_date__month",
+            name="signup_date",
+            type=pa.timestamp("us"),
+            grain=Grains.MONTH,
+        )
+    )
+    request: GetTableRequest = GetTableRequest(
+        view_id=5,
+        dimensions=["signup_date"],
+        time_grain="P1M",
+        time_range="2024-01-01 : 2024-03-01",
+    )
+    resolved: Any = get_table_module._resolve_external_view(request)
+    assert not isinstance(resolved, SemanticLayerError)
+    query: dict[str, Any] = get_table_module._build_query_dict(
+        request,
+        resolved.time_col,
+        resolved.grain_column,
+    )
+    assert query["granularity"] == "signup_date"
+    assert query["columns"][0]["sqlExpression"] == query["granularity"]
+    assert query["columns"][0]["timeGrain"] == "P1M"
+    assert query["filters"] == [
+        {"col": "signup_date", "op": "TEMPORAL_RANGE", "val": request.time_range}
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scope", [None, "7"])
+async def test_get_table_guest_rls_denies_before_semantic_provider(
+    mcp_server: FastMCP,
+    mock_auth: MagicMock,
+    scope: str | None,
+) -> None:
+    """get_table refuses a guest with applicable RLS before calling the provider."""
+    token: GuestToken = {
+        "user": {},
+        "resources": [],
+        "iat": 0,
+        "exp": 1,
+        "rls_rules": [GuestTokenRlsRule(dataset=scope, clause="category = 'a'")],
+    }
+    mock_auth.return_value = GuestUser(token=token, roles=[])
+    view: SemanticView = SemanticView(id=7, name="rows")
+    provider: MagicMock = MagicMock()
+    with (
+        patch(
+            "superset.daos.semantic_layer.SemanticViewDAO.find_by_id", return_value=view
+        ),
+        patch.object(security_manager, "can_access_all_datasources", return_value=True),
+        patch.object(SemanticView, "implementation", property(lambda self: provider)),
+        patch.dict(current_app.config, {"MCP_GUEST_ALLOWED_TOOLS": {"get_table"}}),
+    ):
+        async with Client(mcp_server) as client:
+            data: dict[str, Any] = json.loads(
+                (
+                    await client.call_tool(
+                        "get_table",
+                        {"request": {"view_id": 7, "metrics": ["total"]}},
+                    )
+                )
+                .content[0]
+                .text
+            )
+    assert data["success"] is False
+    assert data["error_type"] == "AccessDenied"
+    assert "cannot enforce guest row-level" in data["message"]
+    provider.get_dimensions.assert_not_called()
+    provider.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize("version", [None, "stale-version"])
+def test_external_view_selection_version_is_validation_error(
+    temporal_view: MagicMock,
+    version: str | None,
+) -> None:
+    temporal_view.implementation.validate_selection_version.side_effect = ValueError(
+        "Please explicitly reselect current member IDs"
+    )
+    result: object = get_table_module._resolve_external_view(
+        GetTableRequest(
+            view_id=5, metrics=["bookings"], semantic_selection_version=version
+        )
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ValidationError"
+    assert "explicitly reselect" in result.error
+    temporal_view.implementation.validate_selection_version.assert_called_once_with(
+        version
+    )
+
+
+def test_external_view_malformed_configuration_is_sanitized(
+    temporal_view: MagicMock,
+) -> None:
+    from unittest.mock import PropertyMock
+
+    from superset.utils import json
+
+    type(temporal_view).implementation = PropertyMock(
+        side_effect=json.JSONDecodeError("PRIVATE_CONFIG", "{", 1)
+    )
+    result: object = get_table_module._resolve_external_view(
+        GetTableRequest(view_id=5, metrics=["bookings"])
+    )
+    assert isinstance(result, SemanticLayerError)
+    assert result.error_type == "ConfigurationError"
+    assert result.error == "The semantic view configuration is invalid."
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "value,expected", [({1: "a"}, {"1": "a"}), ([1.0, float("inf")], [1.0, None])]
+)
+async def test_get_table_normalizes_nested_builtin_cells(
+    mcp_server: FastMCP, value: Any, expected: Any
+) -> None:
+    """get_table returns tabular data for a built-in dataset."""
+    mock_ds = _make_dataset(42)
+    query_result = chart_data_command_result(
+        [
+            {
+                "created_at": pd.Timestamp("2026-09-02T10:11:12Z"),
+                "revenue": value,
+            }
+        ],
+        columns=["created_at", "revenue"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_command_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory_cls,
+    ):
+        mock_command_cls.return_value.run.return_value = query_result
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "dimensions": ["created_at"],
+                    }
+                },
+            )
+        data = json.loads(result.content[0].text)
+
+    assert data["data"][0]["revenue"] == expected
+    assert data["success"] is True
+    assert data["row_count"] == 1
+    assert data["source"] == "builtin"
+    assert data["dataset_id"] == 42
+    assert data["dataset_name"] == mock_ds.table_name

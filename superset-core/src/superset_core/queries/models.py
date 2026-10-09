@@ -71,9 +71,3 @@ class SavedQuery(CoreModel):
     database_id: int | None
     description: str | None
     user_id: int | None
-
-
-__all__ = [
-    "Query",
-    "SavedQuery",
-]

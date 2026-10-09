@@ -91,4 +91,20 @@ describe('chart reducers', () => {
     expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
     expect(newState[chartKey].chartStatus).toEqual('failed');
   });
+
+  test('ignores an action for a chart that is no longer in state', () => {
+    const action = actions.chartUpdateStopped(999, new AbortController());
+    expect(() => chartReducer(charts, action)).not.toThrow();
+    expect(chartReducer(charts, action)).toEqual(charts);
+  });
+
+  test('still adds a chart that is not yet in state', () => {
+    const newChartKey = 2;
+    const newState = chartReducer(
+      charts,
+      actions.addChart({ ...chart, id: newChartKey }, newChartKey),
+    );
+    expect(newState[newChartKey].id).toEqual(newChartKey);
+    expect(newState[chartKey]).toEqual(testChart);
+  });
 });

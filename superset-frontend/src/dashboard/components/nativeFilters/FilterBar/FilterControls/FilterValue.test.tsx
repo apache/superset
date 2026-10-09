@@ -16,21 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { NativeFilterType } from '@superset-ui/core';
+import { NativeFilterType, DatasourceType } from '@superset-ui/core';
 import type { Filter } from '@superset-ui/core';
 import FilterValue from './FilterValue';
 
-const mockGetChartDataRequest = jest.fn();
+const mockRequestChartData = jest.fn();
+const mockGetClientErrorObject = jest.fn();
 jest.mock('src/components/Chart/chartAction', () => ({
-  getChartDataRequest: (...args: unknown[]) => mockGetChartDataRequest(...args),
-}));
-
-jest.mock('src/middleware/asyncEvent', () => ({
-  waitForAsyncData: jest.fn(),
+  requestChartDataResolved: (...args: unknown[]) =>
+    mockRequestChartData(...args),
 }));
 
 jest.mock('@superset-ui/core', () => {
@@ -46,13 +49,8 @@ jest.mock('@superset-ui/core', () => {
       </div>
     ),
     isFeatureEnabled: () => false,
-    getClientErrorObject: (_err: unknown) =>
-      Promise.resolve({
-        message: 'Something went wrong',
-        errors: [
-          { message: 'Test error', error_type: 'GENERIC_BACKEND_ERROR' },
-        ],
-      }),
+    getClientErrorObject: (...args: unknown[]) =>
+      mockGetClientErrorObject(...args),
   };
 });
 
@@ -130,10 +128,15 @@ function renderFilterValue(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Exercise the real parsing so each rejection shape is handled as in
+  // production.
+  mockGetClientErrorObject.mockImplementation(
+    jest.requireActual('@superset-ui/core').getClientErrorObject,
+  );
 });
 
 test('renders loading spinner when filter has a data source', () => {
-  mockGetChartDataRequest.mockReturnValue(new Promise(() => {}));
+  mockRequestChartData.mockReturnValue(new Promise(() => {}));
 
   renderFilterValue();
 
@@ -142,10 +145,7 @@ test('renders loading spinner when filter has a data source', () => {
 });
 
 test('renders SuperChart after data loads successfully', async () => {
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ data: [{ country: 'US' }] }] },
-  });
+  mockRequestChartData.mockResolvedValue([{ data: [{ country: 'US' }] }]);
 
   renderFilterValue();
 
@@ -156,33 +156,118 @@ test('renders SuperChart after data loads successfully', async () => {
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
 });
 
+test('forwards the dashboard async override to the request', async () => {
+  mockRequestChartData.mockResolvedValue([{ data: [{ country: 'US' }] }]);
+
+  renderFilterValue(
+    {},
+    { dashboardInfo: { id: 1, metadata: { async_mode: 'force_off' } } },
+  );
+
+  await waitFor(() => {
+    expect(mockRequestChartData).toHaveBeenCalled();
+  });
+  // Filter requests carry the dashboard's override so they follow the same async
+  // policy as the dashboard's charts.
+  expect(mockRequestChartData).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      requestParams: { async_mode_override: 'force_off' },
+    }),
+  );
+});
+
+const FRIENDLY_MESSAGE = 'Sorry, something went wrong. Try again later.';
+const NETWORK_MESSAGE = 'Network error while attempting to fetch resource';
+
+// The compact ErrorAlert shows only its title inline; the message is in a
+// hover tooltip and a click-to-open modal. Open both so every rendered
+// surface is checked.
+async function expectErrorAlert(title: string, message: string) {
+  const trigger = await screen.findByText(title);
+  await userEvent.hover(trigger);
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    `${title}: ${message}`,
+  );
+  await userEvent.click(trigger);
+  expect(await screen.findByRole('dialog')).toHaveTextContent(message);
+}
+
+function expectNotInDocument(...fragments: string[]) {
+  fragments.forEach(fragment => {
+    expect(document.body.textContent).not.toContain(fragment);
+  });
+}
+
 test('renders error state when API call fails', async () => {
-  mockGetChartDataRequest.mockRejectedValue(
+  mockRequestChartData.mockRejectedValue(
     new Response(JSON.stringify({ message: 'Server Error' }), { status: 500 }),
   );
 
   renderFilterValue();
 
-  await waitFor(() => {
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-  });
-
-  // No ErrorMessageComponent is registered for GENERIC_BACKEND_ERROR in the
-  // test environment, so FilterValue renders its fallback ErrorAlert.
-  expect(await screen.findByText('Network error')).toBeInTheDocument();
+  await expectErrorAlert('Cannot load filter', FRIENDLY_MESSAGE);
+  expectNotInDocument('Server Error', 'Network error');
 });
+
+test('does not expose database error details without an error_type', async () => {
+  const dbError =
+    'Error: Received ClickHouse exception, code: 396, DB::Exception: Limit for temporary files size exceeded. (TOO_MANY_ROWS_OR_BYTES) (for url https://db.internal:8443)';
+  mockRequestChartData.mockRejectedValue(
+    new Response(JSON.stringify({ errors: [{ message: dbError }] }), {
+      status: 500,
+    }),
+  );
+
+  renderFilterValue();
+
+  await expectErrorAlert('Cannot load filter', FRIENDLY_MESSAGE);
+  expectNotInDocument(
+    'ClickHouse',
+    'DB::Exception',
+    'TOO_MANY_ROWS_OR_BYTES',
+    '396',
+    'db.internal',
+    'Network error',
+  );
+});
+
+test('does not expose the message of a server-side failure without a response body', async () => {
+  // e.g. the async query path rejecting after a query task failed
+  mockRequestChartData.mockRejectedValue(new Error('some server message'));
+
+  renderFilterValue();
+
+  await expectErrorAlert('Cannot load filter', FRIENDLY_MESSAGE);
+  expectNotInDocument('some server message', 'Network error');
+});
+
+test.each([
+  ['Chromium', 'Failed to fetch'],
+  ['Firefox', 'NetworkError when attempting to fetch resource.'],
+  ['Safari', 'Load failed'],
+])(
+  'shows the network error when the request gets no response (%s)',
+  async (_browser, fetchMessage) => {
+    mockRequestChartData.mockRejectedValue(new TypeError(fetchMessage));
+
+    renderFilterValue();
+
+    await expectErrorAlert('Network error', NETWORK_MESSAGE);
+    expectNotInDocument('Cannot load filter', FRIENDLY_MESSAGE);
+  },
+);
 
 test('does not fetch data when filter has not been in view', () => {
   renderFilterValue({ inView: false });
 
-  expect(mockGetChartDataRequest).not.toHaveBeenCalled();
+  expect(mockRequestChartData).not.toHaveBeenCalled();
 });
 
 test('does not render loading spinner when filter has no data source', () => {
   const filterWithoutDataSource = createMockFilter({
     targets: [{ column: { name: 'country' } }],
   });
-  mockGetChartDataRequest.mockReturnValue(new Promise(() => {}));
+  mockRequestChartData.mockReturnValue(new Promise(() => {}));
 
   renderFilterValue({ filter: filterWithoutDataSource });
 
@@ -224,14 +309,11 @@ test('guard: does not fetch while a defaultToFirstItem parent has not yet auto-s
     stateWithDefaultFirstItemParent,
   );
 
-  expect(mockGetChartDataRequest).not.toHaveBeenCalled();
+  expect(mockRequestChartData).not.toHaveBeenCalled();
 });
 
 test('guard: fetches once a defaultToFirstItem parent has set its first value', async () => {
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ data: [{ model: 'Corolla' }] }] },
-  });
+  mockRequestChartData.mockResolvedValue([{ data: [{ model: 'Corolla' }] }]);
   mockUseTransitiveParentIds.mockReturnValue(['NATIVE_FILTER-PARENT']);
   mockUseFilterDependencies.mockReturnValue({
     filters: [{ col: 'make', op: 'IN', val: ['Toyota'] }],
@@ -254,16 +336,13 @@ test('guard: fetches once a defaultToFirstItem parent has set its first value', 
   );
 
   await waitFor(() => {
-    expect(mockGetChartDataRequest).toHaveBeenCalled();
+    expect(mockRequestChartData).toHaveBeenCalled();
   });
 });
 
 test('guard: does not block fetch for a parent without defaultToFirstItem', async () => {
   // Non-defaultToFirstItem parents with values should pass the guard as before.
-  mockGetChartDataRequest.mockResolvedValue({
-    response: { status: 200 },
-    json: { result: [{ data: [] }] },
-  });
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
   mockUseTransitiveParentIds.mockReturnValue(['NATIVE_FILTER-PARENT']);
   mockUseFilterDependencies.mockReturnValue({
     filters: [{ col: 'make', op: 'IN', val: ['Toyota'] }],
@@ -295,7 +374,7 @@ test('guard: does not block fetch for a parent without defaultToFirstItem', asyn
   );
 
   await waitFor(() => {
-    expect(mockGetChartDataRequest).toHaveBeenCalled();
+    expect(mockRequestChartData).toHaveBeenCalled();
   });
 });
 
@@ -333,5 +412,38 @@ test('skips data fetch when cascade parent filters have no values selected', () 
     stateWithParent,
   );
 
-  expect(mockGetChartDataRequest).not.toHaveBeenCalled();
+  expect(mockRequestChartData).not.toHaveBeenCalled();
+});
+
+test('legacy permalink values require an explicit reset before the plugin can emit current identity', async () => {
+  mockRequestChartData.mockResolvedValue([{ data: [] }]);
+  const onFilterSelectionChange = jest.fn();
+  const filter = {
+    ...createMockFilter({
+      targets: [
+        {
+          datasetId: 7,
+          datasourceType: DatasourceType.SemanticView,
+          column: { name: 'Orders.status' },
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      ],
+    }),
+    dataMask: { filterState: { value: ['Orders.status'] }, extraFormData: {} },
+  };
+  renderFilterValue({ filter, onFilterSelectionChange });
+  expect(screen.getByText('Reselect saved filter values')).toBeInTheDocument();
+  expect(screen.queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Reset and reselect values' }),
+  );
+  expect(onFilterSelectionChange).toHaveBeenCalledWith(filter, {
+    filterState: {},
+    ownState: {},
+    extraFormData: {
+      semantic_selection_sources: [
+        { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+      ],
+    },
+  });
 });

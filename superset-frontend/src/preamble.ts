@@ -64,13 +64,22 @@ export default function initPreamble(): Promise<void> {
     // Setup SupersetClient early so we can fetch language pack
     setupClient({ appRoot: applicationRoot() });
 
+    // Initialize feature flags before the first await below. Not every
+    // entry point awaits initPreamble() before importing plugins (see
+    // webpack.config.js's addPreamble()), and plugin modules can call
+    // isFeatureEnabled() during import, which would see stale/missing
+    // flags if this ran after the language-pack fetch instead. See #37310.
+    initFeatureFlags(bootstrapData.common.feature_flags);
+
     // Load language pack before rendering.
-    // Prefer the bootstrap-injected pack (stashed on window by the inline
-    // script in spa.html, sourced from common.language_pack) so
-    // module-level `const X = t('...')` calls in code-split chunks all
-    // see a configured translator. Fall back to the async fetch only
-    // when the bootstrap payload didn't carry the pack (e.g. embedded
-    // or a legacy entry that doesn't extend spa.html). See issue #35330.
+    // Prefer the pack already on hand: either an operator-supplied
+    // common.language_pack (COMMON_BOOTSTRAP_OVERRIDES_FUNC) or the
+    // window global set by the versioned script tag spa.html loads
+    // before this bundle. Either way, module-level `const X = t('...')`
+    // calls in code-split chunks all see a configured translator. Fall
+    // back to the async fetch only when neither is present (e.g. the
+    // script tag failed to load, or a legacy entry that doesn't extend
+    // spa.html). See issue #35330.
     if (lang !== 'en') {
       const bootstrapPack =
         (bootstrapData.common as { language_pack?: LanguagePack })
@@ -113,9 +122,6 @@ export default function initPreamble(): Promise<void> {
         }
       }
     }
-
-    // Continue with rest of setup
-    initFeatureFlags(bootstrapData.common.feature_flags);
 
     setupColors(
       bootstrapData.common.extra_categorical_color_schemes,

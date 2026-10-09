@@ -17,12 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import {
-  DataMaskStateWithId,
-  FeatureFlag,
-  isFeatureEnabled,
-  JsonObject,
-} from '@superset-ui/core';
+import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -32,7 +27,7 @@ import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
 import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import { findPermission } from 'src/utils/findPermission';
+import { canDownloadData, findPermission } from 'src/utils/findPermission';
 import {
   canUserEditDashboard,
   canUserSaveAsDashboard,
@@ -60,6 +55,7 @@ import getLocationHash from 'src/dashboard/util/getLocationHash';
 import newComponentFactory, {
   DashboardEntity,
 } from 'src/dashboard/util/newComponentFactory';
+import removeUnreachableComponents from 'src/dashboard/util/removeUnreachableComponents';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -79,7 +75,7 @@ import {
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
-interface HydrateChartData {
+export interface HydrateChartData {
   slice_id: number;
   slice_url: string;
   slice_name: string;
@@ -91,7 +87,7 @@ interface HydrateChartData {
   changed_on: string;
 }
 
-interface HydrateDashboardData extends Dashboard {
+export interface HydrateDashboardData extends Dashboard {
   metadata: JsonObject;
   position_data: Record<string, LayoutItem> | null;
   [key: string]: unknown;
@@ -104,6 +100,13 @@ interface HydrateDashboardParams {
   dataMask: DataMaskStateWithId;
   activeTabs: string[] | null;
   chartStates: DashboardChartStates | null;
+  /**
+   * Forces edit mode rather than deriving it from the `edit` URL param.
+   * Version preview passes `false`: the param outlives the navigation that
+   * set it, so a dashboard opened with `?edit=true` would otherwise keep an
+   * live Save toolbar over a historical snapshot.
+   */
+  editMode?: boolean;
 }
 
 export const hydrateDashboard =
@@ -114,6 +117,7 @@ export const hydrateDashboard =
     dataMask,
     activeTabs,
     chartStates,
+    editMode: editModeOverride,
   }: HydrateDashboardParams) =>
   (dispatch: AppDispatch, getState: GetState): AnyAction => {
     const { user, common, dashboardState } = getState();
@@ -130,11 +134,13 @@ export const hydrateDashboard =
     // new dash: position_json could be {} or null
     // getEmptyLayout() includes a version string entry plus BasicLayoutItem entries
     // which lack the `meta` field; layout is mutated below to add full LayoutItem entries
-    const layout = (
-      positionData && Object.keys(positionData).length > 0
+    // Repaired before anything indexes the layout: a detached cycle crashes the
+    // filter scope modal, and a chart trapped in one would never render.
+    const layout = removeUnreachableComponents(
+      (positionData && Object.keys(positionData).length > 0
         ? positionData
-        : getEmptyLayout()
-    ) as Record<string, LayoutItem | DashboardEntity>;
+        : getEmptyLayout()) as Record<string, LayoutItem | DashboardEntity>,
+    );
 
     // create a lookup to sync layout names with slice names
     const chartIdToLayoutId: Record<number, string> = {};
@@ -238,17 +244,12 @@ export const hydrateDashboard =
       }
     });
 
-    // make sure that parents tree is built
-    if (
-      Object.values(layout).some(
-        element => element.id !== DASHBOARD_ROOT_ID && !element.parents,
-      )
-    ) {
-      updateComponentParentsList({
-        currentComponent: layout[DASHBOARD_ROOT_ID] as LayoutItem,
-        layout: layout as Record<string, LayoutItem>,
-      });
-    }
+    // buildActiveFilters reads `parents` for filter scopes before the layout
+    // reducer rebuilds them, and the repair above may have moved components
+    updateComponentParentsList({
+      currentComponent: layout[DASHBOARD_ROOT_ID] as LayoutItem,
+      layout: layout as Record<string, LayoutItem>,
+    });
 
     buildActiveFilters({
       dashboardFilters: dashboardFilters as Parameters<
@@ -374,18 +375,7 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
-          // A core migration (add_granular_export_permissions) unconditionally
-          // deletes the legacy "can_csv on Superset" permission-view when it
-          // runs, regardless of GRANULAR_EXPORT_CONTROLS. Checking only
-          // can_csv here would leave chart/dashboard export permanently
-          // ungrantable to any role on any deployment that's run that
-          // migration with the flag enabled -- mirror usePermissions.ts's
-          // canExportData branching instead.
-          superset_can_download: isFeatureEnabled(
-            FeatureFlag.GranularExportControls,
-          )
-            ? findPermission('can_export_data', 'Superset', roles)
-            : findPermission('can_csv', 'Superset', roles),
+          superset_can_download: canDownloadData(roles),
           common: {
             // legacy, please use state.common instead
             conf: common?.conf,
@@ -405,6 +395,7 @@ export const hydrateDashboard =
           directPathLastUpdated: Date.now(),
           focusedFilterField: null,
           expandedSlices: metadata?.expanded_slices || {},
+          expandAllSlices: metadata?.expand_all_slices || false,
           refreshFrequency: metadata?.refresh_frequency || 0,
           // dashboard viewers can set refresh frequency for the current visit,
           // only persistent refreshFrequency will be saved to backend
@@ -412,7 +403,7 @@ export const hydrateDashboard =
           css: dashboard.css || '',
           colorNamespace: metadata?.color_namespace || null,
           colorScheme: metadata?.color_scheme || null,
-          editMode: canEdit && editMode,
+          editMode: editModeOverride ?? (canEdit && editMode),
           isPublished: dashboard.published,
           hasUnsavedChanges: false,
           dashboardIsSaving: false,

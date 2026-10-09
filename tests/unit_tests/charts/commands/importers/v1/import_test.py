@@ -17,14 +17,17 @@
 # pylint: disable=unused-argument, import-outside-toplevel, unused-import, invalid-name
 
 import copy
+import logging
 from collections.abc import Generator
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 import yaml
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.session import Session
 
 from superset import security_manager
@@ -163,8 +166,37 @@ def test_filter_chart_annotations(session: Session) -> None:
     params = config["params"]
     annotation_layers = params["annotation_layers"]
 
+    # Integer IDs come from bundles exported before UUIDs were written and
+    # point at rows of the source instance, so only the formula survives.
     assert len(annotation_layers) == 1
-    assert all([al["annotationType"] == "FORMULA" for al in annotation_layers])  # noqa: C419
+    assert all(al["annotationType"] == "FORMULA" for al in annotation_layers)
+
+
+def test_filter_chart_annotations_warns_on_dropped_reference(
+    session: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    """
+    Every annotation dropped on import is logged with the chart it belonged to.
+    """
+    from superset.commands.chart.importers.v1.utils import filter_chart_annotations
+    from tests.integration_tests.fixtures.importexport import (
+        chart_config_with_mixed_annotations,
+    )
+
+    config = copy.deepcopy(chart_config_with_mixed_annotations)
+    with caplog.at_level(
+        logging.WARNING, logger="superset.commands.chart.importers.v1.utils"
+    ):
+        filter_chart_annotations(config)
+
+    dropped = [
+        record.getMessage()
+        for record in caplog.records
+        if "drops annotation" in record.getMessage()
+    ]
+    assert len(dropped) == 1
+    assert str(config["uuid"]) in dropped[0]
+    assert "integer reference" in dropped[0]
 
 
 def test_import_existing_chart_without_permission(
@@ -506,3 +538,71 @@ def test_import_tag_logic_for_charts(session_with_schema: Session):
             .all()
         )
         assert len(associated_tags) == 0
+
+
+def test_import_tag_savepoint_keeps_session_usable(
+    mocker: MockerFixture, session_with_schema: Session
+) -> None:
+    """
+    When a single tag operation fails with a SQLAlchemyError (e.g. a unique
+    constraint violation from a concurrent import), the per-tag SAVEPOINT
+    isolates the failure so the session is not left in a pending-rollback
+    state, and the remaining tags still import successfully.
+    """
+    contents = {
+        "tags.yaml": yaml.dump(
+            {
+                "tags": [
+                    {"tag_name": "tag_1", "description": "Description for tag_1"},
+                    {"tag_name": "tag_2", "description": "Description for tag_2"},
+                ]
+            }
+        )
+    }
+
+    object_id = 1
+    object_type = "chart"
+
+    # Simulate a unique-constraint violation discovered when the first
+    # TaggedObject's SAVEPOINT is flushed (e.g. a concurrent import already
+    # created the same association) -- not synchronously from Session.add().
+    # `import_tag`'s own pre-insert existence check would normally catch a
+    # real duplicate row, so the failure is injected at the point SQLAlchemy
+    # actually persists the pending row: `begin_nested()`'s implicit flush
+    # on a successful `with` exit, which calls `Session.flush()` directly
+    # (see `SessionTransaction._prepare_impl`).
+    pending_tagged_objects: list[TaggedObject] = []
+    original_add = session_with_schema.add
+
+    def tracking_add(obj: object) -> None:
+        if isinstance(obj, TaggedObject):
+            pending_tagged_objects.append(obj)
+        original_add(obj)
+
+    original_flush = session_with_schema.flush
+
+    def flaky_flush(*args: Any, **kwargs: Any) -> None:
+        # Only the first TaggedObject ever added should fail, and only while
+        # it's still pending -- once its SAVEPOINT rolls back, SQLAlchemy
+        # expunges it from the session, so this does not also fail tag_2's
+        # flush.
+        if (
+            pending_tagged_objects
+            and pending_tagged_objects[0] is not None
+            and pending_tagged_objects[0] in session_with_schema.new
+        ):
+            raise SQLAlchemyError("UNIQUE constraint failed: tagged_object")
+        original_flush(*args, **kwargs)
+
+    mocker.patch.object(session_with_schema, "add", side_effect=tracking_add)
+    mocker.patch.object(session_with_schema, "flush", side_effect=flaky_flush)
+
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
+        new_tag_ids = import_tag(
+            ["tag_1", "tag_2"], contents, object_id, object_type, session_with_schema
+        )
+
+    # tag_1 failed on the unique violation, but tag_2 succeeded.
+    assert len(new_tag_ids) == 1
+    # The session is still usable — no PendingRollbackError.
+    assert session_with_schema.query(TaggedObject).count() == 1

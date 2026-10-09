@@ -24,7 +24,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.subjects.filters import EditableFilter
 from superset.subjects.models import sqlatable_editors
 from superset.views.base import BaseFilter
-from superset.views.filters import BaseDeletedStateFilter
+from superset.views.filters import BaseDeletedRecencyFilter, BaseDeletedStateFilter
 
 
 class DatasetIsNullOrEmptyFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -64,6 +64,14 @@ class DatasetEditableFilter(EditableFilter):  # pylint: disable=too-few-public-m
     model = SqlaTable
     editors_table = sqlatable_editors
     editors_fk_column = "table_id"
+
+
+class DatasetDeletedRecencyFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedRecencyFilter
+):
+    """Archive time-range preset: rows archived within the last N days."""
+
+    arg_name = "dataset_deleted_recency"
 
 
 class DatasetDeletedStateFilter(  # pylint: disable=too-few-public-methods

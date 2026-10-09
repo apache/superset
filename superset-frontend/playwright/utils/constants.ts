@@ -40,6 +40,11 @@ export const TIMEOUT = {
   PAGE_LOAD: 10000, // 10s for page transitions (login → welcome, dataset → explore)
 
   /**
+   * Dataset-to-Explore navigation on cold CI runners
+   */
+  EXPLORE_PAGE_LOAD: 15000, // 15s for Explore to load its datasource control
+
+  /**
    * Form and UI element load timeouts
    */
   FORM_LOAD: 5000, // 5s for forms to become visible (login form, modals)
@@ -89,6 +94,24 @@ export const TIMEOUT = {
 } as const;
 
 /**
+ * Global Async Queries endpoints, as the browser calls them.
+ *
+ * Kept here rather than inline so the dashboard helpers and the SQL Lab spec
+ * assert against one definition: the SQL Lab case asserts this endpoint is
+ * *never* touched, which would silently start passing for the wrong reason if
+ * the two copies of the path ever drifted apart.
+ */
+export const GAQ = {
+  /**
+   * Task-status poll the client uses to observe completion. Replaced
+   * `/api/v1/async_event/` when GAQ moved onto the Global Task Framework.
+   */
+  TASK_STATUS_CHANGES_PATH: '/api/v1/task/status_changes',
+  /** Chart-data endpoint both chart and native-filter-value queries go to. */
+  CHART_DATA_PATH: '/api/v1/chart/data',
+} as const;
+
+/**
  * Embedded dashboard test app configuration.
  * The test app is served by a Node.js http server started in the test fixture.
  */
@@ -96,7 +119,7 @@ export const EMBEDDED = {
   /** Timeout for iframe to appear in the DOM */
   IFRAME_LOAD: 15000, // 15s
   /** Timeout for dashboard content to render inside the iframe */
-  DASHBOARD_RENDER: 30000, // 30s
+  DASHBOARD_RENDER: 60000, // 60s (embedded dashboards are slow to render on cold CI)
   /** Timeout for individual chart cells to finish rendering */
   CHART_RENDER: TIMEOUT.CHART_RENDER,
 } as const;

@@ -18,8 +18,8 @@
 """
 MCP tool: query_dataset
 
-Query a dataset using its semantic layer (saved metrics, calculated columns,
-dimensions) without requiring a saved chart.
+Query a SQL dataset using its saved metrics, calculated columns and
+dimensions without requiring a saved chart.
 """
 
 import logging
@@ -32,10 +32,23 @@ from sqlalchemy.orm import joinedload, subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
+from superset.common.tabular_query import (
+    build_query_dict,
+    execute_tabular_query,
+    validate_query_names,
+)
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.query_result import validate_query_result_envelope
+from superset.mcp_service.chart.response_preflight import (
+    bounded_exception_message,
+    finalize_query_dataset_response,
+)
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
-from superset.mcp_service.dataset.dataset_utils import resolve_dataset
+from superset.mcp_service.dataset.dataset_utils import (
+    resolve_dataset,
+    SQL_DATASET_SOURCE_GUIDANCE,
+)
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     QueryDatasetFilter,
@@ -49,7 +62,6 @@ from superset.mcp_service.privacy import (
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
-from superset.mcp_service.utils.query_utils import validate_names
 from superset.mcp_service.utils.response_utils import format_data_columns
 
 logger = logging.getLogger(__name__)
@@ -62,28 +74,24 @@ _NO_SAVED_METRICS_HINT = (
 )
 
 
-@tool(
-    tags=["data"],
-    class_permission_name="Dataset",
-    annotations=ToolAnnotations(
-        title="Query dataset",
-        readOnlyHint=True,
-        destructiveHint=False,
-    ),
-)
-@requires_data_model_metadata_access
-async def query_dataset(  # noqa: C901
+async def _query_dataset(  # noqa: C901
     request: QueryDatasetRequest, ctx: Context
 ) -> QueryDatasetResponse | DatasetError:
-    """Query a dataset using its semantic layer (saved metrics, dimensions, filters).
+    """Query SQL datasets only using saved metrics, dimensions and filters.
+
+    For semantic views, use list_metrics for discovery and get_table for queries.
 
     Returns tabular data without requiring a saved chart. Use this when you want
     to compute saved metrics, group by dimensions, or apply filters directly
-    against a dataset's curated semantic layer.
+    against a SQL dataset's curated metrics and columns.
 
     Metrics must be saved metric names from get_dataset_info; ad-hoc
     expressions such as "SUM(col)" are not accepted. When the dataset has no
     saved metric for the aggregate you need, use execute_sql instead.
+
+    When reporting results, state the returned from_dttm (inclusive) and
+    to_dttm (exclusive) primary bounds rather than guessing dates from the
+    relative expression. Additional filters can further constrain the range.
 
     Workflow:
     1. list_datasets -> find a dataset
@@ -113,8 +121,6 @@ async def query_dataset(  # noqa: C901
     )
 
     try:
-        from superset.commands.chart.data.get_data_command import ChartDataCommand
-        from superset.common.query_context_factory import QueryContextFactory
         from superset.connectors.sqla.models import SqlaTable
 
         # ------------------------------------------------------------------
@@ -152,6 +158,7 @@ async def query_dataset(  # noqa: C901
                 error=(
                     f"No dataset found with identifier: {request.dataset_id}."
                     " Use list_datasets to get valid dataset IDs."
+                    f" {SQL_DATASET_SOURCE_GUIDANCE}"
                 ),
                 error_type="NotFound",
             )
@@ -174,30 +181,48 @@ async def query_dataset(  # noqa: C901
         valid_columns = {c.column_name for c in dataset.columns}
         valid_metrics = {m.metric_name for m in dataset.metrics}
 
-        validation_errors: list[str] = []
-        validation_errors.extend(
-            validate_names(request.columns, valid_columns, "column")
+        validation_errors: list[str] = validate_query_names(
+            valid_metrics,
+            valid_columns,
+            metrics=request.metrics,
+            dimensions=request.columns,
+            filters=[{"col": f.col} for f in request.filters],
+            order_names=request.order_by,
+            metrics_empty_hint=_NO_SAVED_METRICS_HINT,
         )
-        validation_errors.extend(
-            validate_names(
-                request.metrics,
-                valid_metrics,
-                "metric",
-                empty_hint=_NO_SAVED_METRICS_HINT,
-                list_valid_on_miss=True,
+
+        missing_dimensions = [
+            name for name in request.columns if name not in valid_columns
+        ]
+        if missing_dimensions:
+            available = ", ".join(sorted(valid_columns)[:10]) or "(none)"
+            remaining = max(0, len(valid_columns) - 10)
+            if remaining:
+                available += f" (and {remaining} more)"
+            validation_errors.append(
+                f"Dataset '{dataset_name}' (id={dataset.id}). "
+                f"Available columns: {available}. "
+                "Use get_dataset_info with this dataset_id for the full column list."
             )
-        )
-        # Validate filter column names against dataset columns
-        filter_cols = [f.col for f in request.filters]
-        validation_errors.extend(
-            validate_names(filter_cols, valid_columns, "filter column")
-        )
-        # Validate order_by names against columns + metrics
-        if request.order_by:
-            valid_orderby = valid_columns | valid_metrics
-            validation_errors.extend(
-                validate_names(request.order_by, valid_orderby, "order_by")
-            )
+            dotted_missing = [name for name in missing_dimensions if "." in name]
+            if dotted_missing:
+                names = ", ".join(f"'{name}'" for name in dotted_missing)
+                registration = (
+                    "is not registered as a column"
+                    if len(dotted_missing) == 1
+                    else "are not registered as columns"
+                )
+                validation_errors.append(
+                    f"{names} {registration} on this dataset. "
+                    "query_dataset requires exact registered column names; "
+                    "registering a parent struct does not expose its "
+                    "nested fields. "
+                    "Refresh the dataset columns if the database exposes "
+                    "this field, "
+                    "or add a calculated column using the warehouse's field-access "
+                    "expression and query its registered name. "
+                    "Use execute_sql if you need an ad-hoc nested-field expression."
+                )
 
         if validation_errors:
             error_msg = "; ".join(validation_errors)
@@ -273,20 +298,17 @@ async def query_dataset(  # noqa: C901
         # Step 4: Build query dict
         # ------------------------------------------------------------------
         await ctx.report_progress(3, 5, "Building query")
-        query_dict: dict[str, Any] = {
-            "filters": query_filters,
-            "columns": request.columns,
-            "metrics": request.metrics,
-            "row_limit": request.row_limit,
-            "order_desc": request.order_desc,
-        }
-        if granularity:
-            query_dict["granularity"] = granularity
-        if request.order_by:
-            # OrderBy = tuple[Metric | Column, bool] where bool is ascending
-            query_dict["orderby"] = [
-                (col, not request.order_desc) for col in request.order_by
-            ]
+        # time_range is not passed through: the TEMPORAL_RANGE clause is already
+        # in query_filters above, alongside the effective_filters bookkeeping.
+        query_dict: dict[str, Any] = build_query_dict(
+            time_column=granularity,
+            metrics=request.metrics,
+            dimensions=request.columns,
+            filters=query_filters,
+            limit=request.row_limit,
+            order=[(name, request.order_desc) for name in (request.order_by or [])],
+            order_desc=request.order_desc,
+        )
 
         await ctx.debug("Query dict keys: %s" % (sorted(query_dict.keys()),))
 
@@ -297,30 +319,22 @@ async def query_dataset(  # noqa: C901
         start_time = time.time()
 
         with event_logger.log_context(action="mcp.query_dataset.execute"):
-            factory = QueryContextFactory()
-            # datasource_type is "table" because this tool queries SqlaTable
-            # datasets (Superset's built-in semantic layer). External semantic
-            # layers (dbt, Snowflake Cortex, etc.) use "semantic_view" and have
-            # a different query path — see SemanticView + mapper.py.
-            query_context = factory.create(
-                datasource={"id": dataset.id, "type": "table"},
-                queries=[query_dict],
-                form_data={},
-                force=not request.use_cache or request.force_refresh,
-                custom_cache_timeout=request.cache_timeout,
+            result = execute_tabular_query(
+                dataset.id,
+                "table",
+                query_dict,
+                use_cache=request.use_cache,
+                force=request.force_refresh,
+                cache_timeout=request.cache_timeout,
             )
-
-            command = ChartDataCommand(query_context)
-            command.validate()
-            result = command.run()
 
         query_duration_ms = int((time.time() - start_time) * 1000)
 
-        if not result or "queries" not in result or len(result["queries"]) == 0:
-            await ctx.warning("Query returned no results for dataset %s" % dataset.id)
+        if result_error := validate_query_result_envelope(result):
+            await ctx.warning("Query returned an invalid result envelope")
             return DatasetError.create(
-                error="Query returned no results.",
-                error_type="EmptyQuery",
+                error=result_error.error,
+                error_type=result_error.error_type,
             )
 
         # ------------------------------------------------------------------
@@ -330,12 +344,18 @@ async def query_dataset(  # noqa: C901
         query_result = result["queries"][0]
         data = query_result.get("data", [])
         raw_columns = query_result.get("colnames", [])
+        coltypes = query_result.get("coltypes", [])
+        columns_meta: list[DataColumn] = format_data_columns(
+            data, raw_columns, coltypes
+        )
 
         if not data:
             return QueryDatasetResponse(
+                from_dttm=query_result.get("from_dttm"),
+                to_dttm=query_result.get("to_dttm"),
                 dataset_id=dataset.id,
                 dataset_name=dataset_name,
-                columns=[],
+                columns=columns_meta,
                 data=[],
                 row_count=0,
                 total_rows=0,
@@ -350,8 +370,6 @@ async def query_dataset(  # noqa: C901
                 applied_filters=effective_filters,
                 warnings=warnings,
             )
-
-        columns_meta: list[DataColumn] = format_data_columns(data, raw_columns)
 
         cache_status = get_cache_status_from_result(
             query_result, force_refresh=request.force_refresh
@@ -369,6 +387,8 @@ async def query_dataset(  # noqa: C901
         )
 
         return QueryDatasetResponse(
+            from_dttm=query_result.get("from_dttm"),
+            to_dttm=query_result.get("to_dttm"),
             dataset_id=dataset.id,
             dataset_name=dataset_name,
             columns=columns_meta,
@@ -394,34 +414,121 @@ async def query_dataset(  # noqa: C901
         )
 
     except OAuth2Error as exc:
-        await ctx.error("OAuth2 error: %s" % (str(exc),))
+        error_text = bounded_exception_message(exc)
+        await ctx.error("OAuth2 error: %s" % (error_text,))
         return DatasetError.create(
-            error=f"OAuth2 authentication error: {exc}",
+            error=f"OAuth2 authentication error: {error_text}",
             error_type="OAuth2Error",
         )
 
     except (CommandException, SupersetException) as exc:
-        await ctx.error("Query failed: %s" % (str(exc),))
+        error_text = bounded_exception_message(exc)
+        await ctx.error("Query failed: %s" % (error_text,))
         return DatasetError.create(
-            error=f"Query execution failed: {exc}",
+            error=f"Query execution failed: {error_text}",
             error_type="QueryError",
         )
 
     except SQLAlchemyError as exc:
-        await ctx.error("Database error: %s" % (str(exc),))
+        error_text = bounded_exception_message(exc)
+        logger.error("Database error while querying dataset")
+        await ctx.error("Database error: %s" % (error_text,))
         return DatasetError.create(
-            error=f"Database error: {exc}",
+            error=f"Database error: {error_text}",
             error_type="DatabaseError",
         )
 
-    except Exception as exc:
-        logger.exception(
-            "Unexpected error while querying dataset: %s: %s",
-            type(exc).__name__,
-            str(exc),
-        )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
+    except ValueError as exc:
+        # Expected user/agent-input validation (e.g. a reversed time_range where
+        # since > until raises "From date cannot be larger than to date" from
+        # date_parser.get_since_until). Return an actionable ValidationError
+        # without a full-traceback log — this is not a bug.
+        error_text = str(exc)
+        await ctx.error("Invalid request: %s" % (error_text,))
         return DatasetError.create(
-            error="An unexpected error occurred while querying the dataset.",
-            error_type="UnexpectedError",
+            error=error_text,
+            error_type="ValidationError",
         )
+
+
+def _dataset_internal_error() -> DatasetError:
+    """Build the static public fallback for unexpected dataset failures."""
+    return DatasetError.create(
+        error="An internal error occurred while querying the dataset.",
+        error_type="InternalError",
+    )
+
+
+def _log_dataset_failure(message: str) -> None:
+    """Write a fixed best-effort log record without exception formatting."""
+    try:
+        logger.exception(message, exc_info=False)
+    except Exception:  # noqa: S110 - containment logging is best effort
+        pass
+
+
+async def _finalized_query_dataset(
+    request: QueryDatasetRequest, ctx: Context
+) -> QueryDatasetResponse | DatasetError:
+    """Contain and preflight one dataset producer invocation."""
+    try:
+        response = await _query_dataset(request, ctx)
+    except Exception:
+        _log_dataset_failure("Unhandled exception while querying a dataset")
+        response = _dataset_internal_error()
+    try:
+        return finalize_query_dataset_response(response)
+    except Exception:
+        _log_dataset_failure("Unhandled exception while finalizing a dataset response")
+        return _dataset_internal_error()
+
+
+@tool(
+    tags=["data"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="Query dataset",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+    ),
+)
+@requires_data_model_metadata_access
+async def query_dataset(
+    request: QueryDatasetRequest, ctx: Context
+) -> QueryDatasetResponse | DatasetError:
+    """Query SQL datasets only using saved metrics, dimensions and filters.
+
+    For semantic views, use list_metrics for discovery and get_table for queries.
+
+    Preflight every public response branch.
+
+    Returns tabular data without requiring a saved chart. Use this when you want
+    to compute saved metrics, group by dimensions, or apply filters directly
+    against a SQL dataset's curated metrics and columns.
+
+    Metrics must be saved metric names from get_dataset_info; ad-hoc
+    expressions such as "SUM(col)" are not accepted. When the dataset has no
+    saved metric for the aggregate you need, use execute_sql instead.
+
+    When reporting results, state the returned from_dttm (inclusive) and
+    to_dttm (exclusive) primary bounds rather than guessing dates from the
+    relative expression. Additional filters can further constrain the range.
+
+    Workflow:
+    1. list_datasets -> find a dataset
+    2. get_dataset_info -> discover available columns and metrics
+    3. query_dataset -> query using metric names and column names
+
+    Example:
+    ```json
+    {
+        "dataset_id": 123,
+        "metrics": ["count", "avg_revenue"],
+        "columns": ["product_category"],
+        "time_range": "Last 7 days",
+        "row_limit": 100
+    }
+    ```
+    """
+    return await _finalized_query_dataset(request, ctx)

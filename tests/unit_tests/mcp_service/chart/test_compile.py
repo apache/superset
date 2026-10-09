@@ -23,11 +23,16 @@ path so fast-path tools (``generate_explore_link``, ``update_chart_preview``)
 that only use Tier-1 validation are exercised end-to-end.
 """
 
+from typing import Any
 from unittest.mock import Mock, patch
 
+import numpy as np
+import pandas as pd
 import pytest
 
+from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.compile import (
+    _compile_chart,
     CompileResult,
     validate_and_compile,
 )
@@ -35,13 +40,19 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
+    MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SunburstChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
+)
+from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
 )
 
 
@@ -82,6 +93,36 @@ def _orm_dataset(
     else:
         dataset.database = None
     return dataset
+
+
+def _assert_saved_metric_hint(error: Any) -> None:
+    """A metric-slot typo is steered at the saved metric, not SUM(column).
+
+    ``num_boys`` is neither a column nor an exact metric name, so the physical
+    column pass finds nothing. Without the metric near-miss hint the caller
+    dead-ends on "No matching columns found." and its likely next move is
+    ``SUM(num)`` — a valid chart answering a different question.
+    """
+    assert error.error_type == "column_not_found"
+    hint: str = next(
+        s for s in error.suggestions if s.startswith("Did you mean the saved metric")
+    )
+    assert "'sum_boys'" in hint
+    assert '"saved_metric": true' in hint
+    # Never suggest the broken SUM(metric) shape.
+    assert all("SUM(sum_boys)" not in s for s in error.suggestions)
+    assert error.dataset_context is not None
+    assert {c["name"] for c in error.dataset_context.available_columns} == {
+        "ds",
+        "gender",
+        "name",
+        "num",
+    }
+    # The dataset's saved metrics are listed, so an empty list means "none".
+    assert {m["name"] for m in error.dataset_context.available_metrics} == {
+        "sum_boys",
+        "sum_girls",
+    }
 
 
 class TestBuildDatasetContextFromOrm:
@@ -126,7 +167,7 @@ class TestValidateAndCompileChartTypeCoverage:
         assert not result.success
         assert result.tier == "validation"
         assert result.error_obj is not None
-        assert any("sum_boys" in s for s in (result.error_obj.suggestions or []))
+        _assert_saved_metric_hint(result.error_obj)
 
     def test_pie_bad_metric_column_rejected(self):
         ds = _orm_dataset()
@@ -138,7 +179,7 @@ class TestValidateAndCompileChartTypeCoverage:
         assert not result.success, "Pie chart with bad metric column should fail"
         assert result.tier == "validation"
         assert result.error_obj is not None
-        assert any("sum_boys" in s for s in (result.error_obj.suggestions or []))
+        _assert_saved_metric_hint(result.error_obj)
 
     def test_pie_valid_dimension_and_saved_metric_passes(self):
         ds = _orm_dataset()
@@ -224,6 +265,46 @@ class TestValidateAndCompileChartTypeCoverage:
         result = validate_and_compile(config, {}, ds, run_compile_check=False)
         assert not result.success
         assert result.error_obj is not None
+
+    def test_inert_stale_filter_column_is_ignored(self):
+        """A No filter placeholder produces no predicate and cannot block edits."""
+        ds = _orm_dataset()
+        config = TableChartConfig(columns=[ColumnRef(name="gender")])
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "dropped_column",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "No filter",
+                }
+            ]
+        }
+
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+
+        assert result.success
+
+    def test_no_filter_literal_with_non_temporal_operator_is_validated(self):
+        """A literal value of No filter is not generally an inert predicate."""
+        ds = _orm_dataset()
+        config = TableChartConfig(columns=[ColumnRef(name="gender")])
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "dropped_column",
+                    "operator": "==",
+                    "comparator": "No filter",
+                }
+            ]
+        }
+
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_type == "invalid_column"
 
 
 class TestSavedMetricNotMarked:
@@ -341,8 +422,7 @@ class TestAdhocFiltersFromFormData:
     def test_where_filter_with_metric_name_rejected(self):
         """A saved-metric name used as a WHERE filter subject must be rejected.
 
-        WHERE filters need a physical column; metric names are only valid in
-        HAVING clauses where Superset can resolve them.
+        WHERE filters need a physical column; a saved metric cannot satisfy it.
         """
         ds = _orm_dataset()
         config = TableChartConfig(
@@ -366,12 +446,8 @@ class TestAdhocFiltersFromFormData:
         assert result.error_obj is not None
         assert "sum_boys" in (result.error_obj.message or "")
 
-    def test_having_filter_with_metric_name_passes(self):
-        """A saved-metric name used in a HAVING filter must be accepted.
-
-        HAVING filters are aggregate-level conditions; Superset resolves metric
-        names there so they are valid references.
-        """
+    def test_simple_having_filter_is_rejected_without_where_coercion(self):
+        """SIMPLE HAVING is unsupported and must never become a WHERE filter."""
         ds = _orm_dataset()
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="gender")]
@@ -388,9 +464,59 @@ class TestAdhocFiltersFromFormData:
             ]
         }
         result = validate_and_compile(config, form_data, ds, run_compile_check=False)
-        assert result.success, (
-            "A saved-metric name in a HAVING filter should pass Tier-1 validation"
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "UNSUPPORTED_FILTER_CLAUSE"
+
+    @pytest.mark.parametrize("clause", [None, 7, "where", "", "GROUP"])
+    def test_malformed_simple_filter_clause_is_rejected(self, clause):
+        ds = _orm_dataset()
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="gender")]
         )
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": clause,
+                    "subject": "gender",
+                    "operator": "==",
+                    "comparator": "boy",
+                }
+            ]
+        }
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "INVALID_FILTER_CLAUSE"
+
+    @pytest.mark.parametrize(
+        ("clause", "suggested"),
+        [("HAVING", False), ("WHERE", False)],
+    )
+    def test_metric_suggestions_follow_the_filter_clause(
+        self, clause: str, suggested: bool
+    ) -> None:
+        """Unsupported HAVING and physical-only WHERE must not suggest metrics."""
+        ds = _orm_dataset()
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="gender")]
+        )
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": clause,
+                    "subject": "sum_boy",  # near-miss of the saved metric
+                    "operator": ">",
+                    "comparator": "0",
+                }
+            ]
+        }
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+        assert not result.success
+        assert result.error_obj is not None
+        assert ("sum_boys" in result.error_obj.suggestions) is suggested
 
 
 class TestValidateAndCompileTier2:
@@ -425,11 +551,12 @@ class TestValidateAndCompileTier2:
         assert result.error_code == "DATASET_NOT_FOUND"
 
 
+@patch("superset.charts.data.form_data.set_query_context_form_data")
 @patch("superset.daos.dataset.DatasetDAO")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
 def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
-    mock_factory, mock_cmd_cls, mock_dataset_dao
+    mock_factory, mock_cmd_cls, mock_dataset_dao, mock_set_form_data
 ):
     """ChartDataCommand converts OperationalError to a string inside
     ChartDataQueryFailedError (no __cause__ set). _classify_as_database_error
@@ -478,10 +605,11 @@ def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
     mock_db.db_engine_spec.extract_errors.assert_called_once()
 
 
+@patch("superset.charts.data.form_data.set_query_context_form_data")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
 def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
-    mock_factory, mock_cmd_cls
+    mock_factory, mock_cmd_cls, mock_set_form_data
 ):
     """When SQLAlchemyError escapes unwrapped, _compile_chart should
     catch it and return a database_connection_error."""
@@ -513,6 +641,94 @@ def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
 
 
 @pytest.mark.parametrize(
+    "query_payload",
+    [
+        {"status": "FAILED", "message": "top-level failure", "queries": []},
+        {"error_message": "top-level failure", "queries": []},
+        {"queries": [{"status": "failed", "message": "boom", "data": []}]},
+        {
+            "queries": [
+                {"status": "success", "data": [{"value": 1}]},
+                {"status": "ERROR", "error_message": "second failed", "data": []},
+            ]
+        },
+    ],
+)
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_rejects_embedded_query_failures(
+    mock_factory, mock_cmd_cls, query_payload
+):
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = query_payload
+
+    result = _compile_chart({"viz_type": "table", "columns": ["value"]}, 1)
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert result.tier == "compile"
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_allows_success_message_with_valid_empty_data(
+    mock_factory, mock_cmd_cls
+):
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "status": "success",
+        "message": "served from cache",
+        "queries": [{"status": "SUCCESS", "message": "no rows", "data": []}],
+    }
+
+    result = _compile_chart({"viz_type": "table", "columns": ["value"]}, 1)
+
+    assert result.success
+    assert result.row_count == 0
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_big_number_uses_temporal_query_contract(
+    mock_factory, mock_cmd_cls
+):
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {"queries": [{"data": []}]}
+    form_data = {
+        "viz_type": "big_number",
+        "granularity_sqla": "event_time",
+        "metric": "count",
+        "aggregation": "LAST_VALUE",
+        "time_range": "Last week",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+    }
+
+    result = _compile_chart(form_data, 1)
+
+    assert result.success
+    query = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+    assert query["metrics"] == ["count"]
+    assert query["time_range"] == "Last week"
+    assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
+    assert query["row_limit"] == 2
+    # A legacy granularity trendline keeps its temporal dimension through the
+    # granularity binding rather than a groupby column, matching buildQuery.
+    assert query["columns"] == []
+    assert query["granularity"] == "event_time"
+    assert query["is_timeseries"] is True
+
+
+@pytest.mark.parametrize(
     "config_factory",
     [
         lambda: PieChartConfig(
@@ -532,3 +748,319 @@ def test_valid_configs_pass_tier1(config_factory):
     ds = _orm_dataset()
     result = validate_and_compile(config_factory(), {}, ds, run_compile_check=False)
     assert result.success, result.error
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_seeds_form_data_before_query_execution(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    """Virtual-dataset Jinja sees the programmatic query before execution."""
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    query_context = Mock()
+    mock_factory.return_value.create.return_value = query_context
+    mock_cmd_cls.return_value.validate.return_value = None
+    call_order: list[str] = []
+    mock_set_form_data.side_effect = lambda *args: call_order.append("seed")
+    producer_result = chart_data_command_result(
+        [{"event_time": pd.Timestamp("2026-09-02T10:11:12Z"), "value": np.int64(1)}],
+        columns=["event_time", "value"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+    )
+    mock_cmd_cls.return_value.run.side_effect = lambda: (
+        call_order.append("run") or producer_result
+    )
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert result.success, result.error
+    mock_set_form_data.assert_called_once_with(query_context, 42, "table")
+    assert call_order == ["seed", "run"]
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_strictly_validates_every_query_result(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    """A valid primary result cannot hide hostile secondary query data."""
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    class HostileList(list):
+        def __iter__(self):
+            raise AssertionError("hostile secondary list hook executed")
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [{"data": [{"value": 1}]}, {"data": HostileList()}]
+    }
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert "query 2 result data" in (result.error or "").lower()
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_rejects_hostile_enum_without_dispatching_hooks(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    from enum import Enum
+
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    class HostileEnum(Enum):
+        VALUE = "hostile"
+
+        def __getattribute__(self, name):
+            if name == "value":
+                raise AssertionError("hostile enum value hook executed")
+            return object.__getattribute__(self, name)
+
+        def __str__(self):
+            raise AssertionError("hostile enum string hook executed")
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [{"data": [{"value": HostileEnum.VALUE}]}]
+    }
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert "hostile" in (result.error or "").lower()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [10**5000, b"\xff" * 65_537, QueryStatus.SUCCESS],
+    ids=["huge-int", "oversized-bytes", "query-status"],
+)
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_rejects_unbounded_or_noncanonical_scalars(
+    mock_set_form_data, mock_factory, mock_cmd_cls, value
+):
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [
+            {
+                "data": [{"value": value}],
+                "colnames": ["value"],
+                "coltypes": [0],
+            }
+        ]
+    }
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_canonicalizes_dataframe_nan_to_null(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    query = {
+        "data": [{"value": float("nan")}],
+        "colnames": ["value"],
+        "coltypes": [0],
+    }
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {"queries": [query]}
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert result.success
+    assert query["data"] == [{"value": None}]
+
+
+@pytest.mark.parametrize("having_first", [True, False])
+def test_simple_having_is_rejected_with_multiple_filters(having_first: bool) -> None:
+    """Keep HAVING rejection independent of the order of valid filter subjects."""
+    filters = [
+        {
+            "expressionType": "SIMPLE",
+            "clause": "HAVING",
+            "subject": "sum_boys",
+            "operator": ">",
+            "comparator": "0",
+        },
+        {
+            "expressionType": "SIMPLE",
+            "clause": "WHERE",
+            "subject": "gender",
+            "operator": "==",
+            "comparator": "boy",
+        },
+    ]
+    if not having_first:
+        filters.reverse()
+    result = validate_and_compile(
+        TableChartConfig(chart_type="table", columns=[ColumnRef(name="gender")]),
+        {"adhoc_filters": filters},
+        _orm_dataset(),
+        run_compile_check=False,
+    )
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "UNSUPPORTED_FILTER_CLAUSE"
+
+
+@pytest.mark.parametrize("slot", ["metric", "secondary_metric"])
+def test_sunburst_metric_slot_typo_gets_saved_metric_hint(slot: str) -> None:
+    """Both sunburst metric slots guide near misses toward saved metrics."""
+    config = SunburstChartConfig.model_validate(
+        {
+            "chart_type": "sunburst",
+            "columns": [{"name": "gender"}],
+            "metric": {"name": "num", "aggregate": "SUM"},
+            slot: {"name": "num_boys", "aggregate": "SUM"},
+        }
+    )
+    result = validate_and_compile(config, {}, _orm_dataset(), run_compile_check=False)
+    assert not result.success
+    assert result.tier == "validation"
+    assert result.error_obj is not None
+    _assert_saved_metric_hint(result.error_obj)
+
+
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_sample_skips_rolling_and_forecast(
+    mock_factory: Mock, mock_command: Mock, mock_seed: Mock
+) -> None:
+    """A two-row compile sample cannot validate seven-period analytics."""
+    from copy import deepcopy
+
+    from superset.utils import pandas_postprocessing as pp
+
+    form_data = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "time_grain_sqla": "P1D",
+        "rolling_type": "mean",
+        "rolling_periods": 7,
+        "min_periods": 7,
+        "forecastEnabled": True,
+        "forecastPeriods": 10,
+        "forecastInterval": 0.8,
+    }
+    original = deepcopy(form_data)
+
+    def run_sample() -> dict[str, Any]:
+        """Execute the real query operators against the bounded sample."""
+        query = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+        assert query["row_limit"] == 2
+        frame = pd.DataFrame(
+            {"ds": pd.date_range("2026-01-01", periods=2), "revenue": [1.0, 2.0]}
+        )
+        for step in query["post_processing"]:
+            frame = getattr(pp, step["operation"])(frame, **step.get("options", {}))
+        return chart_data_command_result(frame.to_dict("records"))
+
+    mock_command.return_value.run.side_effect = run_sample
+    result = _compile_chart(form_data, 7)
+    assert result.success, result.error
+    assert result.row_count == 2
+    assert form_data == original
+    sampled = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+    assert not {"rolling", "prophet"} & {
+        step["operation"] for step in sampled["post_processing"]
+    }
+
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+
+    full = build_query_dicts_from_form_data(
+        {**form_data, "datasource": "7__table"}, 7, "table"
+    )[0]
+    assert {"rolling", "prophet"} <= {
+        step["operation"] for step in full["post_processing"]
+    }
+
+
+@pytest.mark.parametrize("run_compile_check", [False, True])
+@pytest.mark.parametrize(
+    "clause,subject,error_code",
+    [
+        ("HAVING", "sum_boys", "UNSUPPORTED_FILTER_CLAUSE"),
+        (None, "gender", "INVALID_FILTER_CLAUSE"),
+        ("WHERE", "missing_column", "CHART_VALIDATION_FAILED"),
+        ("WHERE", "gender", None),
+    ],
+)
+def test_mixed_secondary_filters_receive_tier_one_validation(
+    clause: str | None, subject: str, error_code: str | None, run_compile_check: bool
+) -> None:
+    """Query B must not silently drop filters that query A would reject."""
+    from superset.mcp_service.chart.chart_utils import map_mixed_timeseries_config
+
+    config = MixedTimeseriesChartConfig.model_validate(
+        {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "ds"},
+            "y": [{"name": "num", "aggregate": "SUM"}],
+            "y_secondary": [{"name": "num", "aggregate": "AVG"}],
+            "adhoc_filters_b": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": clause,
+                    "subject": subject,
+                    "operator": ">",
+                    "comparator": 100,
+                }
+            ],
+        }
+    )
+    with patch(
+        "superset.mcp_service.chart.compile._compile_chart",
+        return_value=CompileResult(success=True),
+    ) as compile_chart:
+        result = validate_and_compile(
+            config,
+            map_mixed_timeseries_config(config),
+            _orm_dataset(),
+            run_compile_check=run_compile_check,
+        )
+    assert result.success == (error_code is None)
+    if error_code:
+        assert result.tier == "validation"
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == error_code
+        compile_chart.assert_not_called()

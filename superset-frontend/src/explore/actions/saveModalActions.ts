@@ -21,6 +21,8 @@ import { Dispatch } from 'redux';
 import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
+  FeatureFlag,
+  isFeatureEnabled,
   type QueryFormData,
   SimpleAdhocFilter,
   SupersetClient,
@@ -30,11 +32,22 @@ import { isEmpty } from 'lodash-es';
 import { Slice } from 'src/dashboard/types';
 import { Operators } from '../constants';
 import { buildV1ChartDataPayload } from '../exploreUtils';
+import { nanoid } from 'nanoid';
+import {
+  beginChartNormalizationSave,
+  completeChartNormalizationSave,
+} from 'src/features/versionHistory/reducer';
+import type {
+  AutomaticNormalizationTransitions,
+  ChartNormalizationTrackingState,
+} from 'src/features/versionHistory/types';
+import { matchingAutomaticNormalizationTransitions } from 'src/features/versionHistory/normalization';
 
 export interface PayloadSlice extends Slice {
   params: string;
   dashboards: number[];
   query_context: string;
+  normalization_changes?: AutomaticNormalizationTransitions[string][];
 }
 const ADHOC_FILTER_REGEX = /^adhoc_filters/;
 
@@ -233,21 +246,79 @@ export const updateSlice =
       new?: boolean;
     },
   ) =>
-  async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
+  async (
+    dispatch: Dispatch,
+    getState: () => Partial<QueryFormData> & {
+      versionHistory?: {
+        chartNormalization?: ChartNormalizationTrackingState | null;
+      };
+      explore?: {
+        form_data?: QueryFormData;
+        hiddenFormData?: Record<string, unknown>;
+      };
+    },
+  ) => {
     const { slice_id: sliceId, editors, form_data: formDataFromSlice } = slice;
-    const formData = getState().explore?.form_data;
+    const initialState = getState();
+    // Controls hidden by a form-section's visibility rule are stashed out of
+    // form_data so they don't affect the live query, but that hiding must not
+    // permanently delete the user's saved configuration when they save.
+    const formData = JSON.parse(
+      JSON.stringify({
+        ...initialState.explore?.hiddenFormData,
+        ...initialState.explore?.form_data,
+      }),
+    ) as QueryFormData;
+    const tracking = initialState.versionHistory?.chartNormalization;
+    const saveAttemptId = nanoid();
+    const shouldAttachNormalization =
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      tracking?.chartId === sliceId;
+    if (shouldAttachNormalization) {
+      dispatch(
+        beginChartNormalizationSave(
+          sliceId,
+          tracking.hydrationSessionId,
+          saveAttemptId,
+        ),
+      );
+    }
     try {
+      const payload = await getSlicePayload(
+        sliceName,
+        formData,
+        dashboards,
+        editors as [],
+        formDataFromSlice,
+      );
+      const savedFormData = JSON.parse(payload.params ?? '{}') as QueryFormData;
+      // Hydration-time transitions that still hold. Stashed values are now
+      // always merged back into the saved payload above, so a save can no
+      // longer drop a hidden control's value.
+      const matchingTransitions = shouldAttachNormalization
+        ? matchingAutomaticNormalizationTransitions(tracking, savedFormData)
+        : {};
+      if (
+        shouldAttachNormalization &&
+        Object.keys(matchingTransitions).length
+      ) {
+        payload.normalization_changes = Object.values(matchingTransitions);
+      }
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
-        jsonPayload: await getSlicePayload(
-          sliceName,
-          formData,
-          dashboards,
-          editors as [],
-          formDataFromSlice,
-        ),
+        jsonPayload: payload,
       });
 
+      if (shouldAttachNormalization) {
+        dispatch(
+          completeChartNormalizationSave(
+            sliceId,
+            tracking.hydrationSessionId,
+            saveAttemptId,
+            {},
+          ),
+        );
+      }
       dispatch(saveSliceSuccess(response.json));
       addToasts(false, sliceName, addedToDashboard).map(dispatch);
       return response.json;
@@ -266,8 +337,25 @@ export const createSlice =
       new?: boolean;
     },
   ) =>
-  async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
-    const formData = getState().explore?.form_data;
+  async (
+    dispatch: Dispatch,
+    getState: () => Partial<QueryFormData> & {
+      explore?: {
+        form_data?: QueryFormData;
+        hiddenFormData?: Record<string, unknown>;
+      };
+    },
+  ) => {
+    const exploreState = getState().explore;
+    // See the comment in updateSlice: stashed values from a hidden control
+    // section must not be dropped from the saved chart just because the
+    // section is currently hidden.
+    const formData = JSON.parse(
+      JSON.stringify({
+        ...exploreState?.hiddenFormData,
+        ...exploreState?.form_data,
+      }),
+    ) as QueryFormData;
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,

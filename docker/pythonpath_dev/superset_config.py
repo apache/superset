@@ -22,7 +22,6 @@
 #
 import logging
 import os
-import sys
 from typing import Any
 
 from celery.schedules import crontab
@@ -85,6 +84,7 @@ class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
     imports = (
         "superset.sql_lab",
+        "superset.tasks.deletion_retention",
         "superset.tasks.scheduler",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
@@ -102,6 +102,13 @@ class CeleryConfig:
             "task": "reports.prune_log",
             "schedule": crontab(minute=10, hour=0),
         },
+        # Gated on the SOFT_DELETE feature flag, which is off by default: the
+        # task is scheduled either way, but purges nothing while the flag is
+        # unset. Enable it in FEATURE_FLAGS below to exercise retention locally.
+        "deletion_retention.purge_soft_deleted": {
+            "task": "deletion_retention.purge_soft_deleted",
+            "schedule": crontab(minute=0, hour=0),
+        },
     }
 
 
@@ -113,6 +120,7 @@ FEATURE_FLAGS = {
     "EMBEDDED_SUPERSET": True,
     "ENABLE_EXTENSIONS": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
+    "MOBILE_CONSUMPTION_MODE": True,
     "SEMANTIC_LAYERS": True,
 }
 
@@ -167,7 +175,13 @@ def GUEST_TOKEN_VALIDATOR_HOOK(body: dict[str, Any]) -> bool:  # noqa: N802
 
 EXTENSIONS_PATH = "/app/docker/extensions"
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
-WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
+# The Docker Compose app service is named "superset" and listens on 8088. Report
+# paths are root-relative, so urljoin drops the base path; only the scheme, host,
+# and port must be correct here. SUPERSET_APP_ROOT is kept for consumers that
+# concatenate paths directly (e.g. cache warm-up). For screenshots in the dev
+# stack (unbuilt static assets) point this at the nginx service instead:
+# http://nginx{SUPERSET_APP_ROOT}/
+WEBDRIVER_BASEURL = f"http://superset:8088{os.environ.get('SUPERSET_APP_ROOT', '/')}/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = (
     f"http://localhost:8888/{os.environ.get('SUPERSET_APP_ROOT', '/')}/"
@@ -176,18 +190,6 @@ SQLLAB_CTAS_NO_LIMIT = True
 
 log_level_text = os.getenv("SUPERSET_LOG_LEVEL", "INFO")
 LOG_LEVEL = getattr(logging, log_level_text.upper(), logging.INFO)
-
-if os.getenv("CYPRESS_CONFIG") == "true":
-    # When running the service as a cypress backend, we need to import the config
-    # located @ tests/integration_tests/superset_test_config.py
-    base_dir = os.path.dirname(__file__)
-    module_folder = os.path.abspath(
-        os.path.join(base_dir, "../../tests/integration_tests/")
-    )
-    sys.path.insert(0, module_folder)
-    from superset_test_config import *  # noqa
-
-    sys.path.pop(0)
 
 #
 # Optionally import superset_config_docker.py (which will have been included on

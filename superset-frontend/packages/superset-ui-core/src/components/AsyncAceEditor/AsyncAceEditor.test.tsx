@@ -18,7 +18,11 @@
  */
 import { createRef } from 'react';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
-import { supersetTheme } from '@apache-superset/core/theme';
+import {
+  supersetTheme,
+  ThemeProvider,
+  type SupersetTheme,
+} from '@apache-superset/core/theme';
 import type AceEditor from 'react-ace';
 import {
   AsyncAceEditor,
@@ -30,6 +34,7 @@ import {
   JsonEditor,
   ConfigEditor,
   aceCompletionHighlightStyles,
+  aceSelectedWordStyles,
 } from '.';
 
 import type { AceModule, AsyncAceEditorOptions } from './types';
@@ -53,6 +58,81 @@ test('themes the autocomplete completion highlight from the theme', () => {
 
   expect(styles).toContain('.ace_completion-highlight');
   expect(styles).toContain(supersetTheme.colorPrimaryText);
+});
+
+test('themes the selected-word occurrence markers from the theme', () => {
+  // The light `github` theme hardcodes a near-white box for the markers Ace
+  // paints on every other occurrence of the selected token, which makes the
+  // recolored token glyphs unreadable in dark mode. The shared editor overrides
+  // the marker to reuse the dark-aware selection color so it stays legible.
+  const { styles } = aceSelectedWordStyles(supersetTheme);
+
+  expect(styles).toContain('.ace_selected-word');
+  // The default theme leaves `colorEditorSelection` unset, so the marker uses
+  // the documented `colorPrimaryBgHover` fallback.
+  expect(styles).toContain(supersetTheme.colorPrimaryBgHover);
+  // The override also restyles the marker border from the theme...
+  expect(styles).toContain(supersetTheme.colorBorder);
+  // ...and carries `!important`, which is what lets it win over Ace's bundled
+  // non-important `.ace-github .ace_marker-layer .ace_selected-word` near-white
+  // rule regardless of stylesheet order (the effective-cascade guarantee that
+  // jsdom cannot verify by computed style).
+  expect(styles).toContain('!important');
+});
+
+// Collect every CSS rule the render injected: emotion's Global styles land in
+// <style> tags (non-speedy in test) while Ace's bundled theme uses the CSSOM,
+// so read both to reliably observe what actually reached the document.
+function getInjectedCss(): string {
+  const fromTags = Array.from(document.querySelectorAll('style'))
+    .map(tag => tag.textContent ?? '')
+    .join('\n');
+  const fromSheets = Array.from(document.styleSheets)
+    .map(sheet => {
+      try {
+        return Array.from(sheet.cssRules)
+          .map(rule => rule.cssText)
+          .join('\n');
+      } catch {
+        return '';
+      }
+    })
+    .join('\n');
+  return `${fromTags}\n${fromSheets}`;
+}
+
+test('wires the dark-aware selected-word marker into the editor Global styles', async () => {
+  // Guards the actual regression: Ace's bundled `github` theme already injects
+  // a near-white `.ace-github ... .ace_selected-word` rule, so the fix is only
+  // effective if the editor's own Global block also emits a `.ace_selected-word`
+  // override driven by the theme. Render with a distinctive `colorEditorSelection`
+  // and assert that value reaches the injected selected-word rule — this fails if
+  // the `${aceSelectedWordStyles(token)}` interpolation is dropped from <Global>.
+  const markerColor = '#010203';
+  const darkTheme: SupersetTheme = {
+    ...supersetTheme,
+    colorEditorSelection: markerColor,
+  };
+
+  // The shared `render` helper injects its own default `SupersetThemeProvider`,
+  // so nest the dark theme around the editor itself: the innermost emotion
+  // `ThemeProvider` is what the editor's `useTheme()` resolves.
+  const { container } = render(
+    <ThemeProvider theme={darkTheme}>
+      <SQLEditor />
+    </ThemeProvider>,
+  );
+
+  await waitFor(() => {
+    expect(container.querySelector('[id="ace-editor"]')).toBeInTheDocument();
+  });
+
+  const css = getInjectedCss();
+  // The dark-aware color is tied specifically to the selected-word marker
+  // (not just the plain `.ace_selection`), so the occurrence markers inherit it.
+  expect(css).toMatch(
+    new RegExp(`\\.ace_selected-word[^}]*${markerColor}`, 'i'),
+  );
 });
 
 test('SQLEditor uses fontFamilyCode from theme', async () => {
@@ -269,6 +349,39 @@ test('renders FullSQLEditor', async () => {
   await waitFor(() => {
     expect(container.querySelector(selector)).toBeInTheDocument();
   });
+});
+
+test.each([
+  ['SQLEditor', SQLEditor],
+  ['FullSQLEditor', FullSQLEditor],
+])('%s folds SQL blocks without changing the query', async (_, Editor) => {
+  const ref = createRef<AceEditor>();
+  const sql = [
+    'WITH nested_query AS (',
+    '  SELECT 1 AS value',
+    ')',
+    'SELECT * FROM nested_query;',
+    '/* multi-line',
+    '   comment */',
+  ].join('\n');
+  render(<Editor ref={ref as React.Ref<never>} defaultValue={sql} />);
+  await waitFor(() => expect(ref.current).not.toBeNull());
+
+  const { session } = ref.current!.editor;
+  expect(session.getFoldWidget(0)).toBe('start');
+  expect(session.getFoldWidget(4)).toBe('start');
+  session.foldAll();
+  expect(session.getAllFolds().map(fold => fold.start.row)).toEqual([0, 4]);
+  expect(session.getValue()).toBe(sql);
+
+  session.unfold();
+  expect(session.getAllFolds()).toHaveLength(0);
+  expect(session.getValue()).toBe(sql);
+  expect(session.getTokens(3)).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ type: 'keyword', value: 'SELECT' }),
+    ]),
+  );
 });
 
 test('renders MarkdownEditor', async () => {
@@ -522,6 +635,61 @@ test('cleans up event listeners on unmount', async () => {
   expect(offSpy).toHaveBeenCalledWith('afterExec', expect.any(Function));
 
   offSpy.mockRestore();
+});
+
+test('re-applies annotations only when their content actually changes across renders (react-ace 15 fast-equals regression guard)', async () => {
+  // react-ace's componentDidUpdate decides whether to call
+  // session.setAnnotations() by deep-comparing the new/old `annotations`
+  // prop (lib/ace.js, using an internal deep-equality helper -- lodash's
+  // isEqual through react-ace 14.x, fast-equals's deepEqual from 15.0.0
+  // onward). Superset's own AceEditorProvider/EditorWrapper always pass a
+  // freshly `.map()`-derived annotations array on every render, so this
+  // guards the actual behavior Superset relies on: a same-content-but-
+  // different-reference array must NOT re-trigger setAnnotations (or the
+  // editor would thrash on every keystroke-driven re-render), while a
+  // genuinely different array must still update the editor.
+  const ref = createRef<AceEditor>();
+  const annotationsV1 = [{ row: 0, column: 0, type: 'error', text: 'oops' }];
+
+  const { rerender, container } = render(
+    <SQLEditor ref={ref as React.Ref<never>} annotations={annotationsV1} />,
+  );
+
+  await waitFor(() => {
+    expect(container.querySelector(selector)).toBeInTheDocument();
+  });
+
+  const session = ref.current?.editor?.getSession();
+  expect(session).toBeDefined();
+  if (!session) return;
+
+  // The initial mount already applies annotations via componentDidMount,
+  // not componentDidUpdate, so start observing only from the first update.
+  const setAnnotationsSpy = jest.spyOn(session, 'setAnnotations');
+
+  // Same content, new array/object references -- must be a no-op.
+  const annotationsV1SameContent = [
+    { row: 0, column: 0, type: 'error', text: 'oops' },
+  ];
+  rerender(
+    <SQLEditor
+      ref={ref as React.Ref<never>}
+      annotations={annotationsV1SameContent}
+    />,
+  );
+  expect(setAnnotationsSpy).not.toHaveBeenCalled();
+
+  // Genuinely different content -- must update, with the new value.
+  const annotationsV2 = [
+    { row: 1, column: 2, type: 'warning', text: 'different' },
+  ];
+  rerender(
+    <SQLEditor ref={ref as React.Ref<never>} annotations={annotationsV2} />,
+  );
+  expect(setAnnotationsSpy).toHaveBeenCalledTimes(1);
+  expect(setAnnotationsSpy).toHaveBeenCalledWith(annotationsV2);
+
+  setAnnotationsSpy.mockRestore();
 });
 
 test('does not move autocomplete popup if target container is document.body', async () => {

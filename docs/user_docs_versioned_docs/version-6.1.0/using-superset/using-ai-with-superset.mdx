@@ -47,6 +47,7 @@ Ask your AI assistant to browse what's available in your Superset instance:
 - **Get chart and dashboard details** -- understand what a chart shows, its query, and configuration
 
 **Example prompts:**
+
 > "What datasets are available?"
 > "Show me the columns in the sales_orders dataset"
 > "Find dashboards related to revenue"
@@ -62,6 +63,7 @@ Describe the visualization you want and AI creates it for you:
 - **Get Explore links** -- open any chart in Superset's Explore view for further refinement
 
 **Example prompts:**
+
 > "Create a bar chart showing monthly revenue by region from the sales dataset"
 > "Update chart 42 to use a line chart instead"
 > "Give me a link to explore this chart further"
@@ -84,6 +86,7 @@ Build dashboards from a collection of charts:
 - **Add charts to existing dashboards** -- place a chart on an existing dashboard with automatic positioning
 
 **Example prompts:**
+
 > "Create a dashboard called 'Q4 Sales Overview' with charts 10, 15, and 22"
 > "Add the revenue trend chart to the executive dashboard"
 
@@ -95,6 +98,7 @@ Discover what database connections are configured in your Superset instance:
 - **Get database details** -- name, backend type (PostgreSQL, Snowflake, etc.), and connection status
 
 **Example prompts:**
+
 > "What databases are connected to Superset?"
 > "Show me details about the data warehouse connection"
 
@@ -106,6 +110,7 @@ Build ad-hoc SQL datasets that can be used as the basis for charts:
 - **Use immediately in charts** -- the returned dataset ID can be passed directly to chart creation
 
 **Example prompts:**
+
 > "Create a dataset from: SELECT region, SUM(revenue) as total_revenue FROM orders GROUP BY region"
 > "Make a virtual dataset called 'monthly_signups' from the users table filtered to last 12 months"
 
@@ -118,6 +123,7 @@ Execute SQL directly through your AI assistant:
 - **Save queries** -- save a SQL query to SQL Lab's Saved Queries for later reuse
 
 **Example prompts:**
+
 > "Run this query: SELECT region, SUM(revenue) FROM sales GROUP BY region"
 > "Open SQL Lab with a query to show the top 10 customers by order count"
 > "Save this query as 'Weekly Revenue Report'"
@@ -130,6 +136,7 @@ Pull the raw data behind any chart:
 - **Inspect results** -- useful for verifying what a visualization shows or feeding data into other tools
 
 **Example prompts:**
+
 > "Get the data behind chart 42"
 > "Export chart 15 data as CSV"
 
@@ -139,6 +146,7 @@ Pull the raw data behind any chart:
 - **Instance info** -- get high-level statistics about your Superset instance (number of datasets, charts, dashboards)
 
 **Example prompts:**
+
 > "Is Superset healthy?"
 > "How many dashboards are in this instance?"
 
@@ -232,56 +240,56 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 
 ### Exploration & Discovery
 
-| Tool | Description |
-|------|-------------|
-| `health_check` | Verify the MCP server is running and connected |
-| `get_instance_info` | Get instance statistics (dataset, chart, dashboard counts) |
-| `get_schema` | Discover available charts, datasets, and dashboards with schema info |
+| Tool                | Description                                                          |
+| ------------------- | -------------------------------------------------------------------- |
+| `health_check`      | Verify the MCP server is running and connected                       |
+| `get_instance_info` | Get instance statistics (dataset, chart, dashboard counts)           |
+| `get_schema`        | Discover available charts, datasets, and dashboards with schema info |
 
 ### Datasets
 
-| Tool | Description |
-|------|-------------|
-| `list_datasets` | List datasets with filtering and search |
-| `get_dataset_info` | Get dataset metadata (columns, metrics, filters) |
-| `create_virtual_dataset` | Create a virtual dataset from a SQL query |
+| Tool                     | Description                                      |
+| ------------------------ | ------------------------------------------------ |
+| `list_datasets`          | List datasets with filtering and search          |
+| `get_dataset_info`       | Get dataset metadata (columns, metrics, filters) |
+| `create_virtual_dataset` | Create a virtual dataset from a SQL query        |
 
 ### Charts
 
-| Tool | Description |
-|------|-------------|
-| `list_charts` | List charts with filtering and search |
-| `get_chart_info` | Get chart metadata and configuration |
-| `get_chart_data` | Retrieve chart data (JSON, CSV, or Excel) |
-| `get_chart_preview` | Generate a chart preview (URL, ASCII, table, or Vega-Lite) |
-| `get_chart_type_schema` | Get the configuration schema for a chart type |
-| `generate_chart` | Create a new chart from a specification (defaults to preview mode — review before saving) |
-| `update_chart` | Modify an existing chart's configuration (pass `generate_preview=False` to persist immediately instead of returning a preview URL) |
-| `update_chart_preview` | Update a cached chart preview without saving |
-| `generate_explore_link` | Generate an Explore URL for interactive visualization |
+| Tool                    | Description                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `list_charts`           | List charts with filtering and search                                                                                              |
+| `get_chart_info`        | Get chart metadata and configuration                                                                                               |
+| `get_chart_data`        | Retrieve chart data (JSON, CSV, or Excel)                                                                                          |
+| `get_chart_preview`     | Generate a chart preview (URL, ASCII, table, or Vega-Lite)                                                                         |
+| `get_chart_type_schema` | Get the configuration schema for a chart type                                                                                      |
+| `generate_chart`        | Create a new chart from a specification (defaults to preview mode — review before saving)                                          |
+| `update_chart`          | Modify an existing chart's configuration (pass `generate_preview=False` to persist immediately instead of returning a preview URL) |
+| `update_chart_preview`  | Update a cached chart preview without saving                                                                                       |
+| `generate_explore_link` | Generate an Explore URL for interactive visualization                                                                              |
 
 ### Dashboards
 
-| Tool | Description |
-|------|-------------|
-| `list_dashboards` | List dashboards with filtering and search |
-| `get_dashboard_info` | Get dashboard metadata and layout |
-| `generate_dashboard` | Create a new dashboard with specified charts |
-| `add_chart_to_existing_dashboard` | Add a chart to an existing dashboard |
+| Tool                              | Description                                  |
+| --------------------------------- | -------------------------------------------- |
+| `list_dashboards`                 | List dashboards with filtering and search    |
+| `get_dashboard_info`              | Get dashboard metadata and layout            |
+| `generate_dashboard`              | Create a new dashboard with specified charts |
+| `add_chart_to_existing_dashboard` | Add a chart to an existing dashboard         |
 
 ### SQL
 
-| Tool | Description |
-|------|-------------|
-| `execute_sql` | Run a SQL query with RBAC enforcement |
-| `save_sql_query` | Persist a SQL query to SQL Lab's saved queries |
-| `open_sql_lab_with_context` | Open SQL Lab with a pre-populated query |
+| Tool                        | Description                                    |
+| --------------------------- | ---------------------------------------------- |
+| `execute_sql`               | Run a SQL query with RBAC enforcement          |
+| `save_sql_query`            | Persist a SQL query to SQL Lab's saved queries |
+| `open_sql_lab_with_context` | Open SQL Lab with a pre-populated query        |
 
 ### Databases
 
-| Tool | Description |
-|------|-------------|
-| `list_databases` | List configured database connections |
+| Tool                | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| `list_databases`    | List configured database connections             |
 | `get_database_info` | Get details about a specific database connection |
 
 ---

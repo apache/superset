@@ -29,9 +29,75 @@ means "open-ended (current)" and behaves like positive infinity.
 
 from __future__ import annotations
 
+from itertools import groupby
 from typing import Any
 
 from superset.versioning.activity.kinds import EntityWindows, Window
+
+# ``operation_type`` values on a Continuum association shadow row
+# (sqlalchemy_continuum.operation.Operation): INSERT attaches, DELETE detaches.
+# UPDATE never occurs for a pure M2M association (there is nothing to update on
+# a (dashboard, slice) pair); if it ever appeared it is ignored — neither
+# opening nor closing a window — so an open attachment simply continues.
+# These mirror the library enum's numeric values; ``test_m2m_op_constants_match_
+# continuum`` pins them so a Continuum renumber fails loudly rather than silently.
+M2M_OP_INSERT = 0
+M2M_OP_DELETE = 2
+
+
+def attachment_windows(
+    rows: list[tuple[int, int, int]],
+) -> list[tuple[int, Window]]:
+    """Pair INSERT / DELETE association-version rows into ``[attach, detach)``
+    windows, one per attachment episode.
+
+    Each row is ``(assoc_id, transaction_id, operation_type)``. Continuum
+    **never closes** an association shadow row's ``end_transaction_id`` — its
+    unit-of-work only *inserts* association versions
+    (``create_association_versions``); the validity backfill that sets
+    ``end_transaction_id`` runs for parent objects, not for M2M links. So the
+    detach boundary lives on the DELETE row's ``transaction_id``, not on the
+    attach row's ``end_transaction_id`` (which stays NULL for the association's
+    whole life). An INSERT opens a window; the next DELETE closes it at its
+    transaction id; an attachment with no following DELETE stays open (the
+    association is still live). A DELETE at the same transaction as its open
+    (add-and-remove in one save) yields no window — the association was never
+    on a committed state. That last case is a deliberate divergence from
+    Continuum's own ``association_subquery`` reverter, which (selecting the
+    ``MAX(tx) <= T`` row and excluding only DELETEs) would treat such a pair as
+    a member; the never-committed reading is the safer one for restore.
+
+    This is the M2M-correct counterpart to
+    :func:`~superset.versioning.changes.shadow_queries.shadow_rows_valid_at`,
+    whose ``end_transaction_id`` validity filter is right for parent/child
+    shadows but silently re-includes a detached association.
+    """
+    result: list[tuple[int, Window]] = []
+    # operation_type is part of the sort key so that, within one transaction,
+    # INSERT (0) sorts before DELETE (2): an add-and-remove in a single save is
+    # then seen open-before-close and collapses to no window (the DELETE finds
+    # ``tx == open_tx``, not ``>``). Do not drop it from the key.
+    #
+    # Corollary / assumption: because INSERT is forced before DELETE within a
+    # transaction, this cannot represent a *remove-then-re-add* of the same
+    # association in one transaction (it would read the same as add-then-remove
+    # → no window). That relies on no write path emitting DELETE-then-INSERT
+    # for the same association within a single transaction — which holds today
+    # (a chart is detached or attached in a save, not both), so the case is
+    # latent, not live. Revisit this pairing if such a write path is added.
+    rows_sorted = sorted(rows, key=lambda r: (r[0], r[1], r[2]))
+    for assoc_id, group in groupby(rows_sorted, key=lambda r: r[0]):
+        open_tx: int | None = None
+        for _assoc_id, tx, operation_type in group:
+            if operation_type == M2M_OP_DELETE:
+                if open_tx is not None and tx > open_tx:
+                    result.append((assoc_id, Window(open_tx, tx)))
+                open_tx = None
+            elif operation_type == M2M_OP_INSERT and open_tx is None:
+                open_tx = tx
+        if open_tx is not None:
+            result.append((assoc_id, Window(open_tx, None)))
+    return result
 
 
 def intersect_windows(outer: Window, inner: Window) -> Window | None:

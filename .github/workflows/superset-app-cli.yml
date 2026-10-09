@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  actions: read
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -40,6 +41,10 @@ jobs:
         ports:
           - 16379:6379
     steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true
+
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,15 +52,21 @@ jobs:
           submodules: recursive
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         if: steps.check.outputs.python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup Postgres
         if: steps.check.outputs.python
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-postgres
       - name: superset init

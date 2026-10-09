@@ -33,90 +33,77 @@ A tabs component for switching between different views or content sections. Supp
 <StoryWithControls
   component="Tabs"
   props={{
-  defaultActiveKey: "1",
-  type: "line",
-  tabPosition: "top",
-  size: "middle",
-  animated: true,
-  centered: false,
-  tabBarGutter: 8,
-  items: [
-    {
-      key: "1",
-      label: "Tab 1",
-      children: "Content of Tab Pane 1"
-    },
-    {
-      key: "2",
-      label: "Tab 2",
-      children: "Content of Tab Pane 2"
-    },
-    {
-      key: "3",
-      label: "Tab 3",
-      children: "Content of Tab Pane 3"
-    }
-  ]
-}}
+    defaultActiveKey: '1',
+    type: 'line',
+    tabPosition: 'top',
+    size: 'middle',
+    animated: true,
+    centered: false,
+    tabBarGutter: 8,
+    items: [
+      {
+        key: '1',
+        label: 'Tab 1',
+        children: 'Content of Tab Pane 1',
+      },
+      {
+        key: '2',
+        label: 'Tab 2',
+        children: 'Content of Tab Pane 2',
+      },
+      {
+        key: '3',
+        label: 'Tab 3',
+        children: 'Content of Tab Pane 3',
+      },
+    ],
+  }}
   controls={[
-  {
-    name: "defaultActiveKey",
-    label: "Default Active Key",
-    type: "text"
-  },
-  {
-    name: "type",
-    label: "Type",
-    type: "inline-radio",
-    options: [
-      "line",
-      "card",
-      "editable-card"
-    ],
-    description: "The style of tabs. Options: line, card, editable-card."
-  },
-  {
-    name: "tabPosition",
-    label: "Tab Position",
-    type: "inline-radio",
-    options: [
-      "top",
-      "bottom",
-      "left",
-      "right"
-    ],
-    description: "Position of tabs. Options: top, bottom, left, right."
-  },
-  {
-    name: "size",
-    label: "Size",
-    type: "inline-radio",
-    options: [
-      "small",
-      "middle",
-      "large"
-    ],
-    description: "Size of the tabs."
-  },
-  {
-    name: "animated",
-    label: "Animated",
-    type: "boolean",
-    description: "Whether to animate tab transitions."
-  },
-  {
-    name: "centered",
-    label: "Centered",
-    type: "boolean",
-    description: "Whether to center the tabs."
-  },
-  {
-    name: "tabBarGutter",
-    label: "Tab Bar Gutter",
-    type: "number",
-    description: "The gap between tabs."
-  }
-]}
+    {
+      name: 'defaultActiveKey',
+      label: 'Default Active Key',
+      type: 'text',
+    },
+    {
+      name: 'type',
+      label: 'Type',
+      type: 'inline-radio',
+      options: ['line', 'card', 'editable-card'],
+      description: 'The style of tabs. Options: line, card, editable-card.',
+    },
+    {
+      name: 'tabPosition',
+      label: 'Tab Position',
+      type: 'inline-radio',
+      options: ['top', 'bottom', 'left', 'right'],
+      description: 'Position of tabs. Options: top, bottom, left, right.',
+    },
+    {
+      name: 'size',
+      label: 'Size',
+      type: 'inline-radio',
+      options: ['small', 'middle', 'large'],
+      description: 'Size of the tabs.',
+    },
+    {
+      name: 'animated',
+      label: 'Animated',
+      type: 'boolean',
+      description: 'Whether to animate tab transitions.',
+    },
+    {
+      name: 'centered',
+      label: 'Centered',
+      type: 'boolean',
+      description: 'Whether to center the tabs.',
+    },
+    {
+      name: 'tabBarGutter',
+      label: 'Tab Bar Gutter',
+      type: 'number',
+      description: 'The gap between tabs.',
+    },
+  ]}
 />
 
 ## Try It
@@ -147,9 +134,17 @@ function CardTabs() {
       type="card"
       defaultActiveKey="1"
       items={[
-        { key: '1', label: 'Dashboards', children: 'View and manage your dashboards.' },
+        {
+          key: '1',
+          label: 'Dashboards',
+          children: 'View and manage your dashboards.',
+        },
         { key: '2', label: 'Charts', children: 'Browse all saved charts.' },
-        { key: '3', label: 'Datasets', children: 'Explore available datasets.' },
+        {
+          key: '3',
+          label: 'Datasets',
+          children: 'Explore available datasets.',
+        },
       ]}
     />
   );
@@ -186,10 +181,42 @@ function IconTabs() {
     <Tabs
       defaultActiveKey="1"
       items={[
-        { key: '1', label: <><Icons.DashboardOutlined /> Dashboards</>, children: 'Dashboard content here.' },
-        { key: '2', label: <><Icons.LineChartOutlined /> Charts</>, children: 'Chart content here.' },
-        { key: '3', label: <><Icons.DatabaseOutlined /> Datasets</>, children: 'Dataset content here.' },
-        { key: '4', label: <><Icons.ConsoleSqlOutlined /> SQL Lab</>, children: 'SQL Lab content here.' },
+        {
+          key: '1',
+          label: (
+            <>
+              <Icons.DashboardOutlined /> Dashboards
+            </>
+          ),
+          children: 'Dashboard content here.',
+        },
+        {
+          key: '2',
+          label: (
+            <>
+              <Icons.LineChartOutlined /> Charts
+            </>
+          ),
+          children: 'Chart content here.',
+        },
+        {
+          key: '3',
+          label: (
+            <>
+              <Icons.DatabaseOutlined /> Datasets
+            </>
+          ),
+          children: 'Dataset content here.',
+        },
+        {
+          key: '4',
+          label: (
+            <>
+              <Icons.ConsoleSqlOutlined /> SQL Lab
+            </>
+          ),
+          children: 'SQL Lab content here.',
+        },
       ]}
     />
   );
@@ -198,16 +225,16 @@ function IconTabs() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `defaultActiveKey` | `string` | `"1"` | - |
-| `type` | `string` | `"line"` | The style of tabs. Options: line, card, editable-card. |
-| `tabPosition` | `string` | `"top"` | Position of tabs. Options: top, bottom, left, right. |
-| `size` | `string` | `"middle"` | Size of the tabs. |
-| `animated` | `boolean` | `true` | Whether to animate tab transitions. |
-| `centered` | `boolean` | `false` | Whether to center the tabs. |
-| `tabBarGutter` | `number` | `8` | The gap between tabs. |
-| `items` | `any` | `[{"key":"1","label":"Tab 1","children":"Content of Tab Pane 1"},{"key":"2","label":"Tab 2","children":"Content of Tab Pane 2"},{"key":"3","label":"Tab 3","children":"Content of Tab Pane 3"}]` | - |
+| Prop               | Type      | Default                                                                                                                                                                                          | Description                                            |
+| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `defaultActiveKey` | `string`  | `"1"`                                                                                                                                                                                            | -                                                      |
+| `type`             | `string`  | `"line"`                                                                                                                                                                                         | The style of tabs. Options: line, card, editable-card. |
+| `tabPosition`      | `string`  | `"top"`                                                                                                                                                                                          | Position of tabs. Options: top, bottom, left, right.   |
+| `size`             | `string`  | `"middle"`                                                                                                                                                                                       | Size of the tabs.                                      |
+| `animated`         | `boolean` | `true`                                                                                                                                                                                           | Whether to animate tab transitions.                    |
+| `centered`         | `boolean` | `false`                                                                                                                                                                                          | Whether to center the tabs.                            |
+| `tabBarGutter`     | `number`  | `8`                                                                                                                                                                                              | The gap between tabs.                                  |
+| `items`            | `any`     | `[{"key":"1","label":"Tab 1","children":"Content of Tab Pane 1"},{"key":"2","label":"Tab 2","children":"Content of Tab Pane 2"},{"key":"3","label":"Tab 3","children":"Content of Tab Pane 3"}]` | -                                                      |
 
 ## Import
 

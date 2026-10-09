@@ -181,6 +181,7 @@ def _finalize_successful_query(
                     "data": data,
                     "columns": columns,
                     "row_count": result_set.size,
+                    "truncated": result_set.truncated,
                     "execution_time_ms": exec_time,
                 }
             )
@@ -323,7 +324,7 @@ def _serialize_result_set(
             data = write_ipc_buffer(result_set.pa_table).to_pybytes()
     else:
         df = result_set.to_pandas_df()
-        data = df_to_records(df) or []
+        data = df_to_records(df, convert_decimals=True) or []
 
     return (data, result_set.columns)
 
@@ -350,10 +351,17 @@ def execute_sql_task(
     with app.test_request_context():
         with override_user(security_manager.find_user(username)):
             try:
-                return _execute_sql_statements(
-                    query_id,
-                    rendered_query,
-                    start_time=start_time,
+                from superset.utils.oauth2 import execute_with_oauth2_retry
+
+                query = _get_query(query_id=query_id)
+                return execute_with_oauth2_retry(
+                    query.database,
+                    lambda: _execute_sql_statements(
+                        query_id,
+                        rendered_query,
+                        start_time=start_time,
+                    ),
+                    can_retry=lambda: not query.progress,
                 )
             except Exception as ex:
                 logger.exception("Query %d: %s", query_id, ex)

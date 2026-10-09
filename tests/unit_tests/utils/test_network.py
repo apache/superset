@@ -14,11 +14,50 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import patch
+import ipaddress
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from superset.utils.network import is_safe_host
+from superset.utils.network import (
+    get_ssrf_safe_requester,
+    is_safe_host,
+    is_safe_ip,
+    PeerValidatingHTTPAdapter,
+    SSRFProtectionError,
+)
+
+
+@pytest.mark.parametrize(
+    ("ip", "expected"),
+    [
+        # Public → safe
+        ("93.184.216.34", True),
+        ("8.8.8.8", True),
+        ("2606:2800:220:1:248:1893:25c8:1946", True),
+        # Loopback → unsafe
+        ("127.0.0.1", False),
+        ("::1", False),
+        # RFC-1918 private ranges → unsafe
+        ("10.0.0.1", False),
+        ("172.16.0.1", False),
+        ("192.168.0.1", False),
+        # Link-local / IMDS → unsafe
+        ("169.254.169.254", False),
+        # CGNAT (RFC 6598) → unsafe
+        ("100.100.100.200", False),
+        # Multicast → unsafe, despite ip.is_global being True for these
+        ("224.0.0.1", False),
+        ("ff02::1", False),
+        # IPv4-mapped IPv6 → unwrapped and checked against IPv4 ranges
+        ("::ffff:127.0.0.1", False),
+        ("::ffff:8.8.8.8", True),
+    ],
+)
+def test_is_safe_ip(ip: str, expected: bool) -> None:
+    """`is_safe_ip` must classify individual addresses directly, independent
+    of hostname resolution."""
+    assert is_safe_ip(ipaddress.ip_address(ip)) is expected
 
 
 @pytest.mark.parametrize(
@@ -131,3 +170,74 @@ def test_is_safe_host_rejects_cgnat_range() -> None:
         return_value=[(None, None, None, None, ("100.100.100.200", 0))],
     ):
         assert is_safe_host("cgnat-host") is False
+
+
+def test_peer_validating_connection_blocks_rebound_peer() -> None:
+    """
+    A hostname that passes ``is_safe_host`` at validation time and then
+    re-resolves to an internal address by the time the connection is opened
+    (DNS rebinding) must be rejected before any request bytes are sent --
+    mirrors the equivalent test for webhook dispatch and dataset-import
+    data-URI fetches, which use the same pattern.
+    """
+    from urllib3.connection import HTTPConnection
+
+    from superset.utils.network import _PeerValidatingHTTPConnection
+
+    sock = MagicMock()
+    sock.getpeername.return_value = ("169.254.169.254", 80)
+
+    with patch.object(
+        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
+    ):
+        conn = _PeerValidatingHTTPConnection("rebinder.example.com")
+        with pytest.raises(SSRFProtectionError):
+            conn.connect()
+
+
+def test_peer_validating_connection_allows_public_peer() -> None:
+    """A connection whose actual peer resolves to a public address is
+    allowed through unmodified."""
+    from urllib3.connection import HTTPConnection
+
+    from superset.utils.network import _PeerValidatingHTTPConnection
+
+    sock = MagicMock()
+    sock.getpeername.return_value = ("93.184.216.34", 80)  # example.com, public
+
+    with patch.object(
+        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
+    ):
+        conn = _PeerValidatingHTTPConnection("example.com")
+        conn.connect()  # should not raise
+
+
+def test_get_ssrf_safe_requester_returns_plain_requests_when_allowed() -> None:
+    """
+    With ``allow_unsafe_hosts=True`` (an explicit, documented operator
+    opt-in), the plain ``requests`` module is returned -- no peer pinning.
+    """
+    import requests
+
+    assert get_ssrf_safe_requester(allow_unsafe_hosts=True) is requests
+
+
+def test_get_ssrf_safe_requester_ignores_environment_proxies() -> None:
+    """
+    An environment proxy would route the request through a ProxyManager whose
+    pools bypass the peer-validating connection classes (and whose peer is the
+    proxy, not the target), leaving the rebinding check inactive -- so the
+    protected session must not honour HTTP(S)_PROXY.
+    """
+    assert get_ssrf_safe_requester().trust_env is False
+
+
+def test_get_ssrf_safe_requester_pins_peer_by_default() -> None:
+    """
+    By default, ``get_ssrf_safe_requester`` returns a session whose adapters
+    validate the connected peer address rather than the plain ``requests``
+    module.
+    """
+    requester = get_ssrf_safe_requester()
+    assert isinstance(requester.get_adapter("http://x/"), PeerValidatingHTTPAdapter)
+    assert isinstance(requester.get_adapter("https://x/"), PeerValidatingHTTPAdapter)

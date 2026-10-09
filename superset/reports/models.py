@@ -20,7 +20,6 @@ import logging
 from typing import Any, Optional
 
 import rison
-from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from sqlalchemy import (
@@ -44,6 +43,7 @@ from superset.models.helpers import AuditMixinNullable, ExtraJSONMixin
 from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
 from superset.subjects.models import report_schedule_editors, Subject
+from superset.tasks.cron_util import get_cron_description
 from superset.utils.backports import StrEnum
 from superset.utils.core import MediumText
 
@@ -77,6 +77,7 @@ class ReportState(StrEnum):
     ERROR = "Error"
     NOOP = "Not triggered"
     GRACE = "On Grace"
+    RETRYING = "Retrying"
 
 
 class ReportDataFormat(StrEnum):
@@ -85,11 +86,36 @@ class ReportDataFormat(StrEnum):
     CSV = "CSV"
     XLSX = "XLSX"
     TEXT = "TEXT"
+    # (Alerts only) Deliver the notification without any attachment
+    NONE = "NONE"
 
     @classmethod
     def tabular(cls: type["ReportDataFormat"]) -> set["ReportDataFormat"]:
         """Formats produced from tabular chart data via the chart export path."""
         return {cls.CSV, cls.XLSX}
+
+
+class ReportConfigKey(StrEnum):
+    """
+    Keys of the global Alerts & Reports configuration stored in ``key_value``.
+
+    A missing key in the stored settings document means "not configured",
+    in which case the effective value falls back to the application config or
+    feature flag (see ``ReportConfigDAO.get_effective_config``).
+    """
+
+    # Migrated from the ``ALERTS_ATTACH_REPORTS`` FF.
+    ALERTS_ATTACH_REPORTS = "alerts_attach_reports"
+    # Migrated from the ``DATE_FORMAT_IN_EMAIL_SUBJECT`` FF.
+    DATE_FORMAT_IN_EMAIL_SUBJECT = "date_format_in_email_subject"
+    # Migrated from ``ALERT_MINIMUM_INTERVAL`` (seconds).
+    ALERT_MINIMUM_INTERVAL = "alert_minimum_interval"
+    # Migrated from ``REPORT_MINIMUM_INTERVAL`` (seconds).
+    REPORT_MINIMUM_INTERVAL = "report_minimum_interval"
+    # Only e-mail addresses belonging to existing users are accepted as recipients.
+    LIMIT_RECIPIENTS_TO_USERS = "limit_recipients_to_users"
+    # Allow-list of e-mail domains accepted as recipients (empty = any domain).
+    ALLOWED_EMAIL_DOMAINS = "allowed_email_domains"
 
 
 class ReportCreationMethod(StrEnum):
@@ -141,6 +167,26 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         passive_deletes=True,
     )
 
+    # (Alerts/Reports) User whose credentials (RBAC, database OAuth2 tokens) are
+    # used when rendering the content. When both the type and user are NULL,
+    # the legacy ``ALERT_REPORTS_EXECUTORS`` resolution is used. Only honored when the
+    # ``ALERT_REPORT_DYNAMIC_EXECUTOR`` feature flag is enabled.
+    # The type survives user deletion, so a deleted fixed user cannot become
+    # an unset legacy executor.
+    run_as_type = Column(String(50), nullable=True)
+    run_as_fk = Column(
+        Integer, ForeignKey("ab_user.id", ondelete="SET NULL"), nullable=True
+    )
+    run_as = relationship("User", foreign_keys=[run_as_fk])
+
+    # (Alerts) User whose credentials are used when running the alert condition
+    # SQL query. NULL falls back to ``run_as`` and then to the legacy resolution.
+    run_alert_query_as_type = Column(String(50), nullable=True)
+    run_alert_query_as_fk = Column(
+        Integer, ForeignKey("ab_user.id", ondelete="SET NULL"), nullable=True
+    )
+    run_alert_query_as = relationship("User", foreign_keys=[run_alert_query_as_fk])
+
     # (Alerts) Stamped last observations
     last_eval_dttm = Column(DateTime)
     last_state = Column(String(50), default=ReportState.NOOP)
@@ -164,16 +210,41 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     custom_width = Column(Integer, nullable=True)
     custom_height = Column(Integer, nullable=True)
 
+    # Retry configuration — user-configurable
+    retry_on_failure = Column(
+        Boolean, default=False, nullable=False, server_default="0"
+    )
+    retry_max_attempts = Column(Integer, default=3, nullable=False, server_default="3")
+    send_failed_reports = Column(
+        Boolean, default=False, nullable=False, server_default="0"
+    )
+    retry_notify_owners = Column(
+        Boolean, default=True, nullable=False, server_default="1"
+    )
+    retry_notify_recipients = Column(
+        Boolean, default=False, nullable=False, server_default="0"
+    )
+
+    # Retry state — written by the execution engine, not user-configurable
+    retry_attempt = Column(Integer, default=0, nullable=False, server_default="0")
+    retry_scheduled_dttm = Column(DateTime, nullable=True)
+    execution_owner = Column(String(36), nullable=True)
+    execution_window = Column(DateTime, nullable=True)
+
     extra: ReportScheduleExtra  # type: ignore
 
     email_subject = Column(String(255))
+
+    # (Alerts/Reports) Include the call-to-action link back to Superset in
+    # notifications? NULL is treated as True.
+    include_cta = Column(Boolean, default=True, nullable=True)
 
     def __repr__(self) -> str:
         return str(self.name)
 
     @renders("crontab")
     def crontab_humanized(self) -> str:
-        return get_description(self.crontab)
+        return get_cron_description(self.crontab)
 
     def get_native_filters_params(self) -> tuple[str, list[str]]:
         """
@@ -368,7 +439,15 @@ class ReportRecipients(Model, AuditMixinNullable):
     )
     report_schedule = relationship(
         ReportSchedule,
-        backref=backref("recipients", cascade="all,delete,delete-orphan"),
+        backref=backref(
+            "recipients",
+            cascade="all,delete,delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `recipient.report_schedule`
+            # no longer cascades the ReportRecipients into the
+            # ReportSchedule's session; callers must add objects to a
+            # session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[report_schedule_id],
     )
 
@@ -404,7 +483,15 @@ class ReportExecutionLog(Model):  # pylint: disable=too-few-public-methods
     )
     report_schedule = relationship(
         ReportSchedule,
-        backref=backref("logs", cascade="all,delete,delete-orphan"),
+        backref=backref(
+            "logs",
+            cascade="all,delete,delete-orphan",
+            # SQLAlchemy 2.0 behavior: assigning `log.report_schedule` no
+            # longer cascades the ReportExecutionLog into the
+            # ReportSchedule's session; callers must add objects to a
+            # session explicitly.
+            cascade_backrefs=False,
+        ),
         foreign_keys=[report_schedule_id],
     )
 

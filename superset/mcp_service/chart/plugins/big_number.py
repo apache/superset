@@ -43,6 +43,9 @@ class BigNumberChartPlugin(BaseChartPlugin):
         "big_number": "Big Number with Trendline",
         "big_number_total": "Big Number",
     }
+    TRENDLINE_VIZ_TYPE = "big_number"
+    # Period-over-period KPIs share the singular-metric query contract.
+    additional_viz_types = frozenset({"pop_kpi"})
 
     def pre_validate(
         self,
@@ -202,11 +205,11 @@ class BigNumberChartPlugin(BaseChartPlugin):
         show_trendline = getattr(config, "show_trendline", False)
         temporal_column = getattr(config, "temporal_column", None)
         if show_trendline and temporal_column:
-            return "big_number"
+            return self.TRENDLINE_VIZ_TYPE
         return "big_number_total"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         if config_dict.get("metric"):
             if config_dict["metric"].get("sql_expression"):
@@ -246,3 +249,34 @@ class BigNumberChartPlugin(BaseChartPlugin):
             ],
             error_code="BIG_NUMBER_VALIDATION_ERROR",
         )
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        metric = form_data.get("metric")
+        if not metric:
+            # Some saved/migrated form_data stores the metric under the
+            # plural "metrics" key even for single-metric chart types.
+            plural_metrics = form_data.get("metrics") or []
+            metric = plural_metrics[0] if plural_metrics else None
+        columns: list[Any] = []
+        if viz_type == self.TRENDLINE_VIZ_TYPE:
+            # The query builder imports this helper after plugin loading.
+            from superset.mcp_service.chart.chart_helpers import (
+                resolve_big_number_columns,
+            )
+
+            columns = resolve_big_number_columns(dict(form_data))
+        return ([metric] if metric else []), columns
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        """Use the shared native builder for temporal and result operators."""
+        return None

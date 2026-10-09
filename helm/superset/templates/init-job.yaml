@@ -35,6 +35,7 @@ spec:
       {{- if .Values.init.podAnnotations }}
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}
+      {{- $istioDisableInject := dig "istio" "disableSidecarInjection" false .Values.init }}
       labels:
         {{- include "superset.componentSelectorLabels" (dict "component" "init" "root" .) | nindent 8 }}
         job: {{ template "superset.fullname" . }}-init-db
@@ -43,6 +44,9 @@ spec:
         {{- end }}
         {{- if .Values.init.podLabels }}
           {{- toYaml .Values.init.podLabels | nindent 8 }}
+        {{- end }}
+        {{- if $istioDisableInject }}
+        sidecar.istio.io/inject: "false"
         {{- end }}
     spec:
       {{- if .Values.init.additionalPodSpec }}

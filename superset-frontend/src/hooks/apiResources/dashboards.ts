@@ -23,7 +23,7 @@ import { Chart } from 'src/types/Chart';
 import { Currency } from '@superset-ui/core';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
 
-const DASHBOARD_GET_COLUMNS = [
+export const DASHBOARD_GET_COLUMNS = [
   'id',
   'slug',
   'url',
@@ -70,24 +70,28 @@ export const useDashboard = (idOrSlug: string | number) => {
 export const useDashboardCharts = (idOrSlug: string | number) =>
   useApiV1Resource<Chart[]>(`/api/v1/dashboard/${idOrSlug}/charts`);
 
+// A stable transform keeps dashboard dataset metadata stable across unrelated
+// renders, so consumers do not rebuild chart form data while a query is active.
+const addCurrencyFormats = (datasets: Datasource[]) =>
+  datasets.map(dataset => ({
+    ...dataset,
+    currencyFormats: Object.fromEntries(
+      (dataset.metrics ?? [])
+        .filter(metric => !!metric.currency)
+        .map((metric): [string, Currency] => [
+          metric.metric_name,
+          metric.currency!,
+        ]),
+    ),
+  }));
+
 // gets the datasets for a dashboard
 // important: this endpoint only returns the fields in the dataset
 // that are necessary for rendering the given dashboard
 export const useDashboardDatasets = (idOrSlug: string | number) =>
   useTransformedResource(
     useApiV1Resource<Datasource[]>(`/api/v1/dashboard/${idOrSlug}/datasets`),
-    datasets =>
-      datasets.map(dataset => ({
-        ...dataset,
-        currencyFormats: Object.fromEntries(
-          (dataset.metrics ?? [])
-            .filter(metric => !!metric.currency)
-            .map((metric): [string, Currency] => [
-              metric.metric_name,
-              metric.currency!,
-            ]),
-        ),
-      })),
+    addCurrencyFormats,
   );
 
 export const useEmbeddedDashboard = (idOrSlug: string | number) =>

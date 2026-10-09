@@ -1,0 +1,70 @@
+name: Python Unit Test Results
+
+on:
+  # zizmor: ignore[dangerous-triggers] - runs in base-branch context and only consumes artifacts uploaded by Python-Unit; never checks out PR code (see note below)
+  workflow_run:
+    workflows: ["Python-Unit"]
+    types: [completed]
+
+# This workflow publishes a check run annotating failing Python unit tests
+# inline on the PR diff, using JUnit XML uploaded by the Python-Unit workflow.
+# It uses the workflow_run trigger so that it always runs in the base-branch
+# context and can safely be granted write permissions, even for PRs from
+# forks or Dependabot.
+#
+# IMPORTANT: This workflow must NEVER check out code from the PR branch. All
+# data comes from artifacts uploaded by the Python-Unit workflow.
+permissions:
+  contents: read
+  checks: write
+  issues: read
+  actions: read
+
+jobs:
+  report:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    if: >
+      github.event.workflow_run.conclusion == 'success' ||
+      github.event.workflow_run.conclusion == 'failure'
+    steps:
+      # Fails soft (continue-on-error) because the source unit-tests job is
+      # itself gated on change detection: a docs-only PR skips it entirely,
+      # so there is nothing to download or report on.
+      - name: Download JUnit results
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          # merge-multiple is intentionally omitted: each matrix leg's
+          # artifact (junit-results-current, junit-results-next) uses the
+          # same XML filenames, so merging them into one directory would let
+          # one Python version's results overwrite the other's. Downloading
+          # into per-artifact subdirectories keeps both, and the glob below
+          # is recursive so it still picks up every XML file.
+          pattern: "junit-results-*"
+          path: artifacts
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download event file
+        id: download-event
+        if: steps.download.outcome == 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: "Event File"
+          path: event
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish test results
+        if: steps.download.outcome == 'success' && steps.download-event.outcome == 'success'
+        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
+        with:
+          commit: ${{ github.event.workflow_run.head_sha }}
+          event_file: event/event.json
+          event_name: ${{ github.event.workflow_run.event }}
+          files: "artifacts/**/*.xml"
+          check_name: "Python Unit Test Results"
+          comment_mode: "off"

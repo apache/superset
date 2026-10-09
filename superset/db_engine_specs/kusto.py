@@ -131,6 +131,17 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
                 "notes": "Use native Kusto Query Language for advanced analytics.",
             },
         ],
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "setup.py on the sqlalchemy-kusto main branch hard-pins "
+                    "sqlalchemy==1.4.*; no SQLAlchemy 2.0 work has started."
+                ),
+                "tracking_url": "https://github.com/dodopizza/sqlalchemy-kusto",
+                "since": "2026-07-28",
+            }
+        ],
     }
 
     _time_grain_expressions = {
@@ -212,6 +223,34 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     allows_sql_comments = False
     run_multiple_statements_as_one = True
 
+    metadata = {
+        "description": (
+            "Azure Data Explorer (Kusto) using native Kusto Query Language (KQL) "
+            "for high-performance log and telemetry analytics."
+        ),
+        "logo": "kusto.png",
+        "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
+        "categories": [
+            DatabaseCategory.CLOUD_AZURE,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-kusto"],
+        "connection_string": (
+            "kustokql+https://{cluster}.kusto.windows.net/{database}"
+            "?msi=False&azure_ad_client_id={client_id}"
+            "&azure_ad_client_secret={client_secret}"
+            "&azure_ad_tenant_id={tenant_id}"
+        ),
+        "parameters": {
+            "cluster": "Azure Data Explorer cluster name",
+            "database": "Database name",
+            "client_id": "Azure AD application (client) ID",
+            "client_secret": "Azure AD application secret",
+            "tenant_id": "Azure AD tenant ID",
+        },
+    }
+
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "bin({col},1s)",
@@ -284,6 +323,13 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         Convert from number of milliseconds since the epoch to a timestamp.
         """
         return "unixtime_milliseconds_todatetime({col})"
+
+    @classmethod
+    def epoch_us_to_dttm(cls) -> str:
+        """
+        Convert from number of microseconds since the epoch to a timestamp.
+        """
+        return "unixtime_microseconds_todatetime({col})"
 
     @classmethod
     def convert_dttm(

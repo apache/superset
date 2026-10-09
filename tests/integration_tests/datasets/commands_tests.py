@@ -95,6 +95,14 @@ class TestExportDatasetsCommand(SupersetTestCase):
         type_map = {
             column.column_name: str(column.type) for column in example_dataset.columns
         }
+        # column/metric UUIDs are exported so folder references survive import;
+        # they are assigned dynamically, so build lookups by name.
+        column_uuid_map = {
+            column.column_name: str(column.uuid) for column in example_dataset.columns
+        }
+        metric_uuid_map = {
+            metric.metric_name: str(metric.uuid) for metric in example_dataset.metrics
+        }
 
         assert metadata == {
             "cache_timeout": None,
@@ -115,6 +123,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "advanced_data_type": None,
                     "verbose_name": None,
                     "extra": None,
+                    "uuid": column_uuid_map["source"],
                 },
                 {
                     "column_name": "target",
@@ -127,6 +136,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "is_dttm": False,
                     "python_date_format": None,
                     "type": type_map["target"],
+                    "uuid": column_uuid_map["target"],
                     "advanced_data_type": None,
                     "verbose_name": None,
                     "extra": None,
@@ -145,6 +155,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "advanced_data_type": None,
                     "verbose_name": None,
                     "extra": None,
+                    "uuid": column_uuid_map["value"],
                 },
             ],
             "database_uuid": str(example_db.uuid),
@@ -165,6 +176,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "metric_type": "count",
                     "verbose_name": "COUNT(*)",
                     "warning_text": None,
+                    "uuid": metric_uuid_map["count"],
                 },
                 {
                     "currency": None,
@@ -176,6 +188,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                     "metric_type": None,
                     "verbose_name": None,
                     "warning_text": None,
+                    "uuid": metric_uuid_map["sum__value"],
                 },
             ],
             "folders": None,

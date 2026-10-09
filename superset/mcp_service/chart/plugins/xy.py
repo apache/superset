@@ -29,7 +29,12 @@ from superset.mcp_service.chart.chart_utils import (
     map_xy_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, XYChartConfig
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    VegaLitePreview,
+    XYChartConfig,
+)
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.chart.validation.runtime.cardinality_validator import (
     CardinalityValidator,
@@ -47,12 +52,24 @@ class XYChartPlugin(BaseChartPlugin):
 
     chart_type = "xy"
     display_name = "Line / Bar / Area / Scatter Chart"
+    resizes_saved_preview = True
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "echarts_timeseries_line": "Line Chart",
         "echarts_timeseries_bar": "Bar Chart",
         "echarts_area": "Area Chart",
         "echarts_timeseries_scatter": "Scatter Plot",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys | {"x_axis"}
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        """Adapt flattened timeseries series into the XY preview encoding."""
+        from superset.mcp_service.chart.preview_utils import (
+            generate_xy_vega_lite_preview,
+        )
+
+        return generate_xy_vega_lite_preview(data, form_data)
 
     def pre_validate(
         self,
@@ -98,6 +115,9 @@ class XYChartPlugin(BaseChartPlugin):
         if config.x is not None:
             refs.append(config.x)
         refs.extend(config.y)
+        for metric in (config.series_limit_metric, config.timeseries_limit_metric):
+            if metric is not None:
+                refs.append(metric)
         if config.group_by:
             refs.extend(config.group_by)
         if config.filters:
@@ -111,7 +131,7 @@ class XYChartPlugin(BaseChartPlugin):
         return map_xy_config(config, dataset_id=dataset_id)
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
         get_canonical = DatasetValidator.get_canonical_column_name
         get_canonical_metric = DatasetValidator.get_canonical_metric_name
 
@@ -119,7 +139,13 @@ class XYChartPlugin(BaseChartPlugin):
             config_dict["x"]["name"] = get_canonical(
                 config_dict["x"]["name"], dataset_context
             )
-        for y_col in config_dict.get("y") or []:
+        metrics = list(config_dict.get("y") or [])
+        metrics.extend(
+            config_dict[key]
+            for key in ("series_limit_metric", "timeseries_limit_metric")
+            if config_dict.get(key)
+        )
+        for y_col in metrics:
             if y_col.get("sql_expression"):
                 continue  # sql_expression metrics have no underlying column
             if y_col.get("saved_metric"):

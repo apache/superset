@@ -18,7 +18,12 @@
  */
 
 import { QueryFormColumn, QueryFormMetric } from '@superset-ui/core';
-import { Groupby, MetricsLayoutEnum, PivotTableQueryFormData } from '../types';
+import {
+  Groupby,
+  MetricsLayoutEnum,
+  PivotTableQueryFormData,
+  ShowValuesAsEnum,
+} from '../types';
 
 // Aggregates whose group total can be derived from per-group results
 // (decomposable): summing sub-sums, counting sub-counts, min-of-mins,
@@ -189,6 +194,12 @@ export function splitGroupingSetsResult(
  *   - intermediate column prefix         -> column subtotal       -> colSubTotals
  * A full-length prefix (the leaf level) is always emitted; when a dimension
  * list is empty, `[]` *is* the full level and is therefore always kept.
+ *
+ * A "% of row/column/grand total" `showValuesAs` selection needs its
+ * denominator level even when the corresponding Total/subtotal display
+ * toggle is off (that toggle only controls whether the totals row/column is
+ * *rendered*; see `PivotData` in `react-pivottable/utilities.ts`), so the
+ * required collapsed level(s) are forced in regardless of the toggle.
  */
 export default function buildGroupbyCombinations(
   formData: PivotTableQueryFormData,
@@ -207,14 +218,26 @@ export default function buildGroupbyCombinations(
     ...columns.map((_, i) => columns.slice(0, i + 1)),
   ];
 
+  // "% of column total" divides each cell by its column's grand total, which
+  // is computed with all rows collapsed; "% of grand total" needs the same.
+  const needsRowsCollapsed =
+    formData.showValuesAs === ShowValuesAsEnum.PERCENT_OF_COLUMN ||
+    formData.showValuesAs === ShowValuesAsEnum.PERCENT_OF_TOTAL;
+  // "% of row total" divides each cell by its row's grand total, which is
+  // computed with all columns collapsed; "% of grand total" needs the same.
+  const needsColumnsCollapsed =
+    formData.showValuesAs === ShowValuesAsEnum.PERCENT_OF_ROW ||
+    formData.showValuesAs === ShowValuesAsEnum.PERCENT_OF_TOTAL;
+
   const rowPrefixNeeded = (prefix: QueryFormColumn[]): boolean => {
     if (prefix.length === rows.length) return true; // leaf / full level
-    if (prefix.length === 0) return !!formData.colTotals; // bottom Total row
+    if (prefix.length === 0) return !!formData.colTotals || needsRowsCollapsed; // bottom Total row
     return !!formData.rowSubTotals; // row subtotal
   };
   const colPrefixNeeded = (prefix: QueryFormColumn[]): boolean => {
     if (prefix.length === columns.length) return true; // leaf / full level
-    if (prefix.length === 0) return !!formData.rowTotals; // right Total column
+    if (prefix.length === 0)
+      return !!formData.rowTotals || needsColumnsCollapsed; // right Total column
     return !!formData.colSubTotals; // column subtotal
   };
 
@@ -227,13 +250,25 @@ export default function buildGroupbyCombinations(
     );
 
   if (formData.combineMetric) {
+    // A forced-in percent-mode denominator level (above) is collapsed on the
+    // opposite axis from a "normal" subtotal, so it can be mistaken for one
+    // and stripped back out here. Exempt it explicitly so combining metrics
+    // doesn't blank out the percent denominator.
+    const isForcedDenominatorLevel = (combination: Groupby): boolean =>
+      (needsRowsCollapsed && combination.rows.length === 0) ||
+      (needsColumnsCollapsed && combination.columns.length === 0);
+
     if (formData.metricsLayout === MetricsLayoutEnum.ROWS) {
       groupbyCombinations = groupbyCombinations.filter(
-        combination => combination.rows.length === rows.length,
+        combination =>
+          combination.rows.length === rows.length ||
+          isForcedDenominatorLevel(combination),
       );
     } else {
       groupbyCombinations = groupbyCombinations.filter(
-        combination => combination.columns.length === columns.length,
+        combination =>
+          combination.columns.length === columns.length ||
+          isForcedDenominatorLevel(combination),
       );
     }
   }

@@ -20,9 +20,11 @@ MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
 import logging
-from typing import cast, TYPE_CHECKING
+from typing import Annotated, Any, cast, TYPE_CHECKING
 
 from fastmcp import Context
+from pydantic import Field
+from sqlalchemy import case, select
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -63,6 +65,109 @@ DEFAULT_CHART_COLUMNS = [
 
 _DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
 
+# Relationships that resolve a chart's live datasource. ``datasource_name`` is
+# read through them rather than from the stored ``Slice.datasource_name``
+# column, which can be stale after a dataset rename or a chart re-point.
+_LIVE_DATASOURCE_RELATIONSHIPS = ("table", "semantic_view")
+
+
+class _LiveDatasourceNameFilter:
+    """Apply name operators to the same type-guarded datasource as serialization."""
+
+    def __init__(self, filters: list[ChartFilter]) -> None:
+        """Bind the validated name filters for the DAO invocation."""
+        self.filters = filters
+
+    def apply(self, query: Any, value: Any) -> Any:
+        """Filter in SQL so counts and pagination reflect the live names."""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.slice import Slice
+        from superset.semantic_layers.models import SemanticView
+
+        # Keep this SQL expression aligned with SqlaTable.name, which supplies
+        # the table name used by resolve_chart_datasource_name during serialization.
+        table_name = case(
+            (
+                (SqlaTable.schema.isnot(None)) & (SqlaTable.schema != ""),
+                SqlaTable.schema + "." + SqlaTable.table_name,
+            ),
+            else_=SqlaTable.table_name,
+        )
+        live_name = case(
+            (
+                Slice.datasource_type == "table",
+                select(table_name)
+                .where(SqlaTable.id == Slice.datasource_id)
+                .correlate(Slice)
+                .scalar_subquery(),
+            ),
+            (
+                Slice.datasource_type == "semantic_view",
+                select(SemanticView.name)
+                .where(SemanticView.id == Slice.datasource_id)
+                .correlate(Slice)
+                .scalar_subquery(),
+            ),
+            (
+                Slice.datasource_type.in_(["query", "saved_query"]),
+                Slice.datasource_name,
+            ),
+            else_=None,
+        )
+        for name_filter in self.filters:
+            query = query.filter(name_filter.opr.apply(live_name, name_filter.value))
+        return query
+
+
+class _ChartListCore(ModelListCore[ChartList]):
+    """List core that loads the live datasource whenever its name is requested.
+
+    Requesting only plain columns makes the DAO return row tuples, which cannot
+    reach the ``table`` / ``semantic_view`` relationships. Adding them to the
+    DAO load list switches it to full model instances with the relationships
+    eager-loaded, so the live name costs no per-chart query.
+    """
+
+    def _call_dao_list(
+        self,
+        filters: Any,
+        order_column: str,
+        order_direction: str,
+        page: int,
+        page_size: int,
+        search: str | None,
+        columns_to_load: list[str],
+        custom_filters: dict[str, Any] | None = None,
+    ) -> tuple[list[Any], int]:
+        name_filters = [
+            item for item in (filters or []) if item.col == "datasource_name"
+        ]
+        if name_filters:
+            filters = [item for item in filters if item.col != "datasource_name"]
+            custom_filters = {
+                **(custom_filters or {}),
+                "live_datasource_name": _LiveDatasourceNameFilter(name_filters),
+            }
+        if "datasource_name" in columns_to_load:
+            columns_to_load = [
+                *columns_to_load,
+                *(
+                    rel
+                    for rel in _LIVE_DATASOURCE_RELATIONSHIPS
+                    if rel not in columns_to_load
+                ),
+            ]
+        return super()._call_dao_list(
+            filters=filters,
+            order_column=order_column,
+            order_direction=order_direction,
+            page=page,
+            page_size=page_size,
+            search=search,
+            columns_to_load=columns_to_load,
+            custom_filters=custom_filters,
+        )
+
 
 @tool(
     tags=["core"],
@@ -71,16 +176,28 @@ _DEFAULT_LIST_CHARTS_REQUEST = ListChartsRequest()
         title="List charts",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_charts(
-    request: ListChartsRequest | None = None,
+    request: Annotated[
+        ListChartsRequest | None,
+        Field(
+            description=(
+                'Wrap parameters as {"request": {"search": "sales"}}; omit request for defaults. '
+                "Do NOT pass search, page, page_size or filters as top-level arguments. "
+                "For people, resolve IDs with find_users and use filters, not search."
+            )
+        ),
+    ] = None,
     ctx: Context = None,
 ) -> ChartList | ChartError:
     """List charts with filtering and search.
 
     Returns chart metadata including id, name, viz_type, URL, and last
-    modified time.
+    modified time. Set ``request.certified`` to true to return only governed
+    charts; false returns only uncertified charts, while omitting it preserves
+    the unfiltered behavior.
 
     **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
     Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
@@ -100,7 +217,8 @@ async def list_charts(
 
     Sortable columns for ``order_column``:
         ``id``, ``slice_name``, ``viz_type``, ``description``,
-        ``changed_on``, ``created_on``
+        ``changed_on``, ``changed_on_delta_humanized`` (alias for ``changed_on``),
+        ``created_on``
 
     To filter by a person, call find_users to resolve the name to a user ID,
     then pass it as a filter: filters=[{"col": "created_by_fk", "opr": "eq",
@@ -124,7 +242,7 @@ async def list_charts(
         )
     )
 
-    from superset.charts.filters import ChartDeletedStateFilter
+    from superset.charts.filters import ChartCertifiedFilter, ChartDeletedStateFilter
     from superset.daos.chart import ChartDAO
     from superset.mcp_service.common.schema_discovery import (
         CHART_SORTABLE_COLUMNS,
@@ -157,9 +275,9 @@ async def list_charts(
         obj: "Slice | None", cols: list[str] | None
     ) -> ChartInfo | None:
         """Serialize chart object (field filtering handled by model_serializer)."""
-        return serialize_chart_object(cast(ChartLike | None, obj))
+        return serialize_chart_object(cast(ChartLike | None, obj), select_columns=cols)
 
-    tool = ModelListCore(
+    tool = _ChartListCore(
         dao_class=ChartDAO,
         output_schema=ChartInfo,
         item_serializer=_serialize_chart,
@@ -179,6 +297,13 @@ async def list_charts(
 
     try:
         with event_logger.log_context(action="mcp.list_charts.query"):
+            custom_filters = None
+            if request.certified is not None:
+                custom_filters = {
+                    "certified": tool.build_bound_filter(
+                        ChartCertifiedFilter, request.certified
+                    )
+                }
             result = tool.run_tool(
                 filters=request.filters,
                 search=request.search,
@@ -190,6 +315,7 @@ async def list_charts(
                 created_by_me=request.created_by_me,
                 edited_by_me=request.edited_by_me,
                 deleted_state=request.deleted_state,
+                custom_filters=custom_filters,
             )
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)
@@ -202,6 +328,14 @@ async def list_charts(
         # Always use columns_requested (either explicit select_columns or defaults)
         # This triggers ChartInfo._filter_fields_by_context for each chart
         columns_to_filter = result.columns_requested
+        # Report only fields that the serialized charts actually carry: drop
+        # model columns ChartInfo does not expose (e.g. params, perm) and
+        # dependencies loaded solely to compute another field.
+        result.columns_loaded = [
+            column
+            for column in result.columns_loaded
+            if column in columns_to_filter and column in ChartInfo.model_fields
+        ]
         await ctx.debug(
             "Applying field filtering via serialization context: columns=%s"
             % (columns_to_filter,)

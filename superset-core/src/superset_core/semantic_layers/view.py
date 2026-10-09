@@ -35,6 +35,7 @@ class SemanticViewFeature(enum.Enum):
     Custom features supported by semantic layers.
     """
 
+    ADHOC_COLUMN_EXPRESSIONS = "ADHOC_COLUMN_EXPRESSIONS"
     ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
     GROUP_LIMIT = "GROUP_LIMIT"
     GROUP_OTHERS = "GROUP_OTHERS"
@@ -45,12 +46,40 @@ class SemanticView(ABC):
     Abstract base class for semantic views.
     """
 
-    features: frozenset[SemanticViewFeature]
+    # Defaults to no optional features: providers opt in by overriding, and
+    # consumers can rely on the attribute existing and degrade to the
+    # conservative (Saved-only) picker for views that declare nothing.
+    features: frozenset[SemanticViewFeature] = frozenset()
+    selection_identity_version: str | None = None
+
+    def validate_selection_version(self, version: object) -> None:
+        """Reject selections made under a different member identity contract."""
+        if (
+            self.selection_identity_version is not None
+            and version != self.selection_identity_version
+        ):
+            raise ValueError(
+                "Saved semantic selections use an older identity format. "
+                "Reset the chart selections, explicitly reselect its metrics "
+                "and dimensions, and save the chart. Display titles cannot be "
+                "automatically mapped to member IDs."
+            )
 
     # Implementations must expose a display name for the view.
     # Declared here as a type annotation (not abstract) so that existing
     # implementations are not required to add a formal @abstractmethod.
     name: str
+
+    @property
+    def metadata_cache_token(self) -> str | None:
+        """Return the identity captured with these members, or None for legacy views.
+
+        A provider using a bound metadata store must return its observation's
+        nonempty token. The host must reject a missing token in that mode rather
+        than silently using legacy cache keys. Never look up a later identity
+        independently of the data used for discovery or compatibility.
+        """
+        return None
 
     @abstractmethod
     def uid(self) -> str:
@@ -78,18 +107,31 @@ class SemanticView(ABC):
     ) -> SemanticResult:
         """
         Return distinct values for a dimension.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
+        Do not drop ``filters`` and retry when a filtered request is incomplete.
         """
 
     @abstractmethod
     def get_table(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a semantic query and return the results.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
         """
 
     @abstractmethod
     def get_row_count(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a query and return the number of rows the result would have.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
         """
 
     @abstractmethod

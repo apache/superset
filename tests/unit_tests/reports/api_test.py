@@ -17,10 +17,46 @@
 from typing import Any
 from unittest.mock import patch
 
+import pytest
 import rison
 
-from superset.exceptions import SupersetException
+from superset.reports.api import ReportScheduleRestApi
+from superset.utils import json
+from superset.utils.slack import (
+    SlackChannelListingClientError,
+    SlackChannelListingError,
+)
 from tests.unit_tests.conftest import with_feature_flags
+
+
+@pytest.mark.parametrize("payload", [[], None])
+@with_feature_flags(ALERT_REPORTS=True)
+def test_configuration_rejects_non_object_json(
+    payload: Any, mocker: Any, client: Any, full_api_access: None
+) -> None:
+    """Malformed configuration bodies produce validation errors, not server errors."""
+    mocker.patch("superset.reports.api.security_manager.is_admin", return_value=True)
+    update = mocker.patch("superset.reports.api.UpdateReportConfigCommand")
+
+    response = client.put(
+        "/api/v1/report/configuration/",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    update.assert_not_called()
+
+
+def test_executor_related_user_search_requires_admin(mocker: Any) -> None:
+    """The executor picker must not expose user e-mails to report readers."""
+    api = object.__new__(ReportScheduleRestApi)
+    forbidden = mocker.patch.object(api, "response_403", return_value="forbidden")
+    mocker.patch("superset.reports.api.security_manager.is_admin", return_value=False)
+
+    assert api.ensure_access_list_write_access("run_as") == "forbidden"
+    assert api.ensure_access_list_write_access("run_alert_query_as") == "forbidden"
+    assert forbidden.call_count == 2
 
 
 @with_feature_flags(ALERT_REPORTS=True)
@@ -80,14 +116,43 @@ def test_slack_channels_page_without_page_size_returns_all(
 
 
 @with_feature_flags(ALERT_REPORTS=True)
+@patch("superset.reports.api.logger")
 @patch("superset.reports.api.get_channels_with_search")
-def test_slack_channels_handles_superset_exception(
+def test_slack_channels_client_error_logs_warning(
     mock_search: Any,
+    logger_mock: Any,
     client: Any,
     full_api_access: None,
 ) -> None:
-    mock_search.side_effect = SupersetException("Slack API error")
+    # A permanent token/client-setup failure (e.g. a revoked bot token) is
+    # expected, already-handled noise, so it must be logged at WARNING, not
+    # ERROR, to avoid polluting Sentry with an actionable-looking signal.
+    mock_search.side_effect = SlackChannelListingClientError("Slack API error")
     params = rison.dumps({})
     rv = client.get(f"/api/v1/report/slack_channels/?q={params}")
     assert rv.status_code == 422
     assert "Slack API error" in rv.json["message"]
+    logger_mock.error.assert_not_called()
+    logger_mock.warning.assert_called_once()
+    assert "Slack API error" in logger_mock.warning.call_args.args[1]
+
+
+@with_feature_flags(ALERT_REPORTS=True)
+@patch("superset.reports.api.logger")
+@patch("superset.reports.api.get_channels_with_search")
+def test_slack_channels_transient_error_logs_error(
+    mock_search: Any,
+    logger_mock: Any,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    # A transient listing failure (rate limits, transport errors) means Slack is
+    # unavailable, so it must stay ERROR to preserve an actionable signal.
+    mock_search.side_effect = SlackChannelListingError("Slack API error")
+    params = rison.dumps({})
+    rv = client.get(f"/api/v1/report/slack_channels/?q={params}")
+    assert rv.status_code == 422
+    assert "Slack API error" in rv.json["message"]
+    logger_mock.warning.assert_not_called()
+    logger_mock.error.assert_called_once()
+    assert "Slack API error" in logger_mock.error.call_args.args[1]

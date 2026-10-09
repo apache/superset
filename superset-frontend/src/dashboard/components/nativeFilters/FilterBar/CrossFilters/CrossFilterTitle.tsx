@@ -80,7 +80,8 @@ const CrossFilterChartTitle = (props: {
         <StyledIconSearch
           iconSize="s"
           data-test="cross-filters-highlight-emitter"
-          role="button"
+          // role is auto-computed by BaseIconComponent as "button" whenever
+          // onClick is present, so no explicit role here.
           tabIndex={0}
           aria-label={t('Locate the chart')}
           onClick={onHighlightFilterSource}

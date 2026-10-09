@@ -22,20 +22,26 @@ Supports both single-pod (in-memory) and multi-pod (Redis) deployments.
 For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 """
 
+import inspect
 import logging
 import os
+import re
 from collections.abc import Sequence
 from typing import Annotated, Any, Callable
 
 import uvicorn
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
+from pydantic.fields import FieldInfo
+from starlette.requests import ClientDisconnect
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
+    MCP_STATELESS_HTTP,
     MCP_STORE_CONFIG,
+    MCP_STRUCTURED_OUTPUT_ENABLED,
     MCP_TOOL_SEARCH_CONFIG,
 )
 from superset.mcp_service.middleware import (
@@ -43,9 +49,10 @@ from superset.mcp_service.middleware import (
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
     RBACToolVisibilityMiddleware,
-    StructuredContentStripperMiddleware,
+    ToolResultCompatibilityMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
+from superset.mcp_service.worker import run_in_metadata_thread
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -62,6 +69,8 @@ def _suppress_third_party_warnings() -> None:
     - marshmallow ``RemovedInMarshmallow4Warning`` (triggered during
       database engine schema instantiation)
     - google.api_core ``FutureWarning`` (Python version support notices)
+    - sqlalchemy-redshift ``pkg_resources`` UserWarning (see
+      superset/db_engine_specs/redshift.py for details)
     """
     import warnings
 
@@ -82,6 +91,25 @@ def _suppress_third_party_warnings() -> None:
         "ignore",
         message=r"authlib\.jose module is deprecated",
     )
+    # Same treatment for the pkg_resources warning suppressed at package
+    # init time. Confirmed non-redundant: warnings.filters can be reset
+    # between the package import and this call (e.g. pytest's warnings
+    # plugin resets it around every test -- test_suppress_third_party_warnings
+    # below fails without this line, proving the reset scenario is real,
+    # not hypothetical), so re-registering here is load-bearing, not
+    # belt-and-suspenders.
+    warnings.filterwarnings(
+        "ignore",
+        message=r"pkg_resources is deprecated as an API",
+        category=UserWarning,
+        module=r"sqlalchemy_redshift(?:\..*)?",
+    )
+
+
+def _downgrade_to_warning(record: logging.LogRecord) -> None:
+    """Mutate *record* in place to WARNING level."""
+    record.levelno = logging.WARNING
+    record.levelname = "WARNING"
 
 
 class FastMCPValidationFilter(logging.Filter):
@@ -107,8 +135,51 @@ class FastMCPValidationFilter(logging.Filter):
         if record.levelno != logging.ERROR:
             return True
         if "Error validating tool" in record.getMessage():
-            record.levelno = logging.WARNING
-            record.levelname = "WARNING"
+            _downgrade_to_warning(record)
+        return True
+
+
+class MCPTransportDisconnectFilter(logging.Filter):
+    """Downgrade MCP SDK client-disconnect transport logs from ERROR to WARNING.
+
+    When an MCP client disconnects mid-request (a cancelled or timed-out tool
+    call — normal client behavior, not a Superset bug), the ``mcp`` SDK's own
+    transport code logs it at ERROR with a full traceback, and separately
+    re-raises it into the session's message loop, which logs a second ERROR.
+    Both are expected under normal client behavior and should not page or
+    open incidents; downgrading to WARNING keeps them visible in log
+    aggregation without polluting ERROR-level alerting.
+
+    Two different loggers require two different matching strategies:
+
+    - ``mcp.server.streamable_http`` (``_handle_post_request``) catches the
+      disconnect via a broad ``except Exception`` and logs it with
+      ``logger.exception(...)``, so ``record.exc_info`` carries the actual
+      exception object — we can check its type directly.
+    - ``mcp.server.lowlevel.server`` (``_handle_message``) receives the same
+      exception secondhand, already wrapped as a bare
+      ``Exception(ClientDisconnect())`` pushed onto the read stream. The
+      original type is lost by the time it's logged, so exception-type
+      checks are impossible here. ``ClientDisconnect`` is always raised with
+      zero args, so ``str(ClientDisconnect())`` is always ``""`` — making the
+      rendered message a fixed, matchable string instead.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.levelno != logging.ERROR:
+            return True
+        if record.name == "mcp.server.streamable_http":
+            if record.exc_info and isinstance(record.exc_info[1], ClientDisconnect):
+                _downgrade_to_warning(record)
+        elif record.name == "mcp.server.lowlevel.server":
+            # NOTE: This matches the literal log message from the mcp SDK's
+            # lowlevel/server.py (``_handle_message``, line ~689 in the
+            # ``mcp==1.24.0`` pinned in requirements/development.txt):
+            # ``logger.error(f"Received exception from stream: {message}")``.
+            # If the SDK changes this f-string's wording, this filter will
+            # stop working silently.
+            if record.getMessage() == "Received exception from stream: ":
+                _downgrade_to_warning(record)
         return True
 
 
@@ -146,6 +217,17 @@ def configure_logging(debug: bool = False) -> None:
     # Downgrade these specific messages from ERROR to WARNING.
     fastmcp_server_logger = logging.getLogger("fastmcp.server.server")
     fastmcp_server_logger.addFilter(FastMCPValidationFilter())
+
+    # MCP client disconnects (cancelled/timed-out tool calls) are logged at
+    # ERROR by the mcp SDK's transport and lowlevel server loggers. These are
+    # expected client behavior, not Superset bugs — downgrade to WARNING.
+    transport_disconnect_filter = MCPTransportDisconnectFilter()
+    logging.getLogger("mcp.server.streamable_http").addFilter(
+        transport_disconnect_filter
+    )
+    logging.getLogger("mcp.server.lowlevel.server").addFilter(
+        transport_disconnect_filter
+    )
 
 
 def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
@@ -221,125 +303,80 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
     return obj
 
 
-def _simplify_optional_union(result: dict[str, Any]) -> dict[str, Any]:
-    """Collapse ``anyOf``/``oneOf`` with exactly one non-null variant.
-
-    Pydantic encodes ``Optional[X]`` as ``{"anyOf": [<X>, {"type": "null"}]}``.
-    This replaces the union with the non-null variant while preserving any
-    ``description`` or ``default`` from the parent node.
-    """
-    for union_key in ("anyOf", "oneOf"):
-        variants = result.get(union_key)
-        if not isinstance(variants, list) or len(variants) != 2:
-            continue
-        non_null = [v for v in variants if v.get("type") != "null"]
-        if len(non_null) != 1:
-            continue
-        simplified = dict(non_null[0])
-        for keep in ("description", "default"):
-            if keep in result and keep not in simplified:
-                simplified[keep] = result[keep]
-        result.pop(union_key)
-        result.pop("description", None)
-        result.pop("default", None)
-        result.update(simplified)
-    return result
+_PARAGRAPH_BREAK = re.compile(r"\n\s*\n")
+# A list item, an IMPORTANT marker, or a first line ending in a colon (heading).
+_STRUCTURED_PARAGRAPH = re.compile(
+    r"^\s*(?:[-*+]|\d+[.)])\s|^\W*IMPORTANT\b|\A[^\n]*:[ \t]*$", re.MULTILINE
+)
 
 
-def _resolve_ref(
-    obj: dict[str, Any],
-    defs: dict[str, Any],
-    resolving: frozenset[str],
-) -> Any:
-    """Resolve a ``$ref`` pointer by inlining its definition from *defs*.
-
-    Falls back to ``{"type": "object"}`` when the definition is missing
-    or would cause a circular reference.
-    """
-    ref_path: str = obj["$ref"]
-    ref_name = ref_path.rsplit("/", 1)[-1] if "/" in ref_path else ""
-    definition = defs.get(ref_name) if ref_name else None
-
-    if definition is not None and ref_name not in resolving:
-        inlined = _compact_schema(
-            definition,
-            _defs=defs,
-            _resolving=resolving | {ref_name},
-        )
-        if isinstance(inlined, dict):
-            if desc := obj.get("description"):
-                inlined.setdefault("description", desc)
-        return inlined
-
-    replacement: dict[str, Any] = {"type": "object"}
-    if desc := obj.get("description"):
-        replacement["description"] = desc
-    return replacement
+def _complete_sentences(text: str, max_length: int) -> str:
+    """Return the longest prefix of *text* made of complete sentences."""
+    if max_length <= 0:
+        return ""
+    # Look one character past the budget so a boundary exactly at the limit counts.
+    boundaries = re.finditer(r"[.!?](?=\s|$)", text[: max_length + 1])
+    ends = [match.end() for match in boundaries if match.end() <= max_length]
+    return text[: ends[-1]].strip() if ends else ""
 
 
-def _compact_schema(
-    obj: Any,
-    *,
-    _defs: dict[str, Any] | None = None,
-    _resolving: frozenset[str] | None = None,
-) -> Any:
-    """Collapse ``$defs`` and ``$ref`` pointers in a JSON Schema.
-
-    Search results only need enough schema detail for the LLM to identify
-    which tool to call and construct a basic invocation.  Full schemas
-    (with all nested model definitions) are still available when the tool
-    is actually invoked via ``call_tool``.
-
-    Transformations applied:
-
-    * ``$defs`` sections are removed entirely.
-    * ``{"$ref": "..."}`` is resolved by inlining the referenced
-      definition from ``$defs``.  If the definition cannot be found
-      (or would cause a circular reference), the ref is replaced with
-      ``{"type": "object"}``.
-    * ``anyOf``/``oneOf`` lists containing only a ``$ref`` and
-      ``{"type": "null"}`` (Pydantic's Optional encoding) are collapsed
-      to the simplified non-null variant.
-    """
-    if isinstance(obj, list):
-        return [
-            _compact_schema(item, _defs=_defs, _resolving=_resolving) for item in obj
-        ]
-    if not isinstance(obj, dict):
-        return obj
-
-    # On the first (top-level) call, extract $defs for later resolution.
-    if _defs is None:
-        _defs = obj.get("$defs", {})
-    if _resolving is None:
-        _resolving = frozenset()
-
-    if "$ref" in obj:
-        return _resolve_ref(obj, _defs, _resolving)
-
-    result: dict[str, Any] = {}
-    for key, value in obj.items():
-        if key == "$defs":
-            continue
-        result[key] = _compact_schema(value, _defs=_defs, _resolving=_resolving)
-
-    return _simplify_optional_union(result)
+def _drop_trailing_lead_in(text: str) -> str:
+    """Drop a final sentence ending in a colon, which introduces a cut-off list."""
+    if not text.endswith(":"):
+        return text
+    boundaries = list(re.finditer(r"[.!?](?=\s)", text))
+    return text[: boundaries[-1].end()].strip() if boundaries else text
 
 
 def _truncate_description(text: str, max_length: int) -> str:
-    """Truncate a tool description for search results.
+    """Keep whole paragraphs, then whole sentences of the next one, within budget.
 
-    Cuts at the last sentence boundary before *max_length*, or at
-    *max_length* with an ellipsis if no sentence boundary is found.
+    Clean docstring indentation before applying the budget so the cut point
+    is consistent across Python versions that store docstrings differently.
     """
+    if max_length <= 0:
+        return ""
+    text = inspect.cleandoc(text) if text else text
     if not text or len(text) <= max_length:
         return text
-    # Try to cut at the last sentence boundary
-    truncated = text[:max_length]
-    last_period = truncated.rfind(". ")
-    if last_period > max_length // 2:
-        return truncated[: last_period + 1]
-    return truncated.rstrip() + "..."
+    kept, rest = "", text
+    for match in _PARAGRAPH_BREAK.finditer(text):
+        if match.start() > max_length:
+            break
+        kept, rest = text[: match.start()].strip(), text[match.end() :]
+    kept = _drop_trailing_lead_in(kept)
+    following = _PARAGRAPH_BREAK.split(rest, maxsplit=1)[0]
+    # Do not leave a heading, IMPORTANT block or list workflow partly advertised.
+    if kept and _STRUCTURED_PARAGRAPH.search(following):
+        return kept
+    separator = "\n\n" if kept else ""
+    extra = _complete_sentences(following, max_length - len(kept) - len(separator))
+    return f"{kept}{separator}{extra}" if extra else kept
+
+
+def _request_instructions(tool: Any) -> str:
+    """Return calling instructions authored on the tool's ``request`` parameter.
+
+    Only ``Field(description=...)`` on the parameter itself counts. Schema
+    dereferencing also copies the request model's docstring onto the served
+    ``request`` property; that is model documentation, not calling instructions,
+    and must not be advertised or deducted from the prose budget.
+    """
+    try:
+        signature = inspect.signature(tool.fn)
+    except (AttributeError, TypeError, ValueError):
+        return ""
+    if (parameter := signature.parameters.get("request")) is None:
+        return ""
+    fields = (*getattr(parameter.annotation, "__metadata__", ()), parameter.default)
+    return next(
+        (
+            field.description
+            for field in fields
+            if isinstance(field, FieldInfo) and field.description
+        ),
+        "",
+    )
 
 
 def _extract_parameter_names(input_schema: dict[str, Any]) -> str:
@@ -382,7 +419,8 @@ def _build_summary_serializer(max_desc: int) -> Any:
 
     Returns a callable that serializes each tool to ``name``,
     ``description`` (optionally truncated), and a ``parameters_hint``
-    string listing top-level parameter names.  ``inputSchema`` and
+    string listing top-level parameter names and unabridged request instructions.
+    Instruction length is reserved from the prose budget. ``inputSchema`` and
     ``outputSchema`` are stripped entirely.
     """
 
@@ -393,12 +431,17 @@ def _build_summary_serializer(max_desc: int) -> Any:
                 mode="json", exclude_none=True, exclude={"outputSchema"}
             )
             data.pop("outputSchema", None)
+            instructions = _request_instructions(tool)
             if input_schema := data.pop("inputSchema", None):
                 hint = _extract_parameter_names(input_schema)
                 if hint:
-                    data["parameters_hint"] = hint
+                    data["parameters_hint"] = (
+                        f"{hint}: {instructions}" if instructions else hint
+                    )
             if max_desc and (desc := data.get("description")):
-                data["description"] = _truncate_description(desc, max_desc)
+                data["description"] = _truncate_description(
+                    desc, max(0, max_desc - len(instructions))
+                )
             results.append(data)
         return results
 
@@ -445,26 +488,48 @@ def _filter_tools_by_current_user_permission(tools: Sequence[Any]) -> list[Any]:
     return [tool for tool in tools if _tool_allowed_for_current_user(tool)]
 
 
+async def _filter_visible_tools_fail_open(tools: Sequence[Any]) -> Sequence[Any]:
+    """Run the permission filter in the metadata thread, failing open on error.
+
+    ``run_in_metadata_thread`` reloads the caller's ORM user itself before the
+    filter ever runs (e.g. a metadata-pool-exhaustion failure), so a bare
+    ``await run_in_metadata_thread(...)`` here would raise before any fail-open
+    handling inside the filter gets a chance to run. Call-time RBAC still
+    enforces permissions, so an unexpected failure here shows every tool
+    rather than breaking search, matching
+    ``RBACToolVisibilityMiddleware.on_list_tools``.
+    """
+    try:
+        return await run_in_metadata_thread(
+            _filter_tools_by_current_user_permission, tools
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "MCP tool search: failed to filter tools, showing all", exc_info=True
+        )
+        return tools
+
+
 def _create_search_result_serializer(
     config: dict[str, Any],
 ) -> Any:
     """Build a search-result serializer from the tool-search config.
 
-    When ``include_schemas`` is False (default), delegates to
+    When ``include_schemas`` is False, delegates to
     :func:`_build_summary_serializer`, which strips ``inputSchema``
     entirely and adds a ``parameters_hint`` field with comma-separated
     top-level parameter names.  This reduces per-search token cost by
     ~80% vs compact mode while still conveying what parameters a tool
     accepts.
 
-    When ``include_schemas`` is True, the full ``compact_schemas``/
-    ``max_description_length`` pipeline applies (existing behavior):
+    When ``include_schemas`` is True, input schemas retain their definitions,
+    references, and validation constraints. Inlining references duplicates shared
+    chart models and can make a single tool exceed client result limits.
 
-    * ``$defs`` sections and ``$ref`` pointers are collapsed when
-      ``compact_schemas`` is True (see :func:`_compact_schema`).
-    * Tool descriptions are truncated to ``max_description_length`` chars.
-
-    Full schemas remain available when the tool is invoked via ``call_tool``.
+    Titles and output schemas are stripped by the base serializer. The legacy
+    ``compact_schemas`` setting only selects the default description limit;
+    ``max_description_length`` budgets prose plus request-wrapper instructions.
+    Instructions stay in the schema even when they exceed a small prose limit.
     """
     include_schemas = config.get("include_schemas", False)
 
@@ -472,24 +537,22 @@ def _create_search_result_serializer(
         max_desc = config.get("max_description_length", 300)
         return _build_summary_serializer(max_desc)
 
-    # include_schemas=True: apply full compact_schemas/max_description_length pipeline
     compact = config.get("compact_schemas", True)
     # Description truncation defaults to 300 when compact_schemas is on,
     # but is disabled when compact_schemas is off (unless explicitly set).
-    max_desc_default = 300 if compact else 0
-    max_desc = config.get("max_description_length", max_desc_default)
+    max_desc = config.get("max_description_length", 300 if compact else 0)
 
-    if not compact and not max_desc:
+    if not max_desc:
         return _serialize_tools_without_output_schema
 
     def _serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
         results = _serialize_tools_without_output_schema(tools)
-        for data in results:
-            if compact:
-                if input_schema := data.get("inputSchema"):
-                    data["inputSchema"] = _compact_schema(input_schema)
-            if max_desc and (desc := data.get("description")):
-                data["description"] = _truncate_description(desc, max_desc)
+        for tool, data in zip(tools, results, strict=True):
+            if desc := data.get("description"):
+                instructions = _request_instructions(tool)
+                data["description"] = _truncate_description(
+                    desc, max(0, max_desc - len(instructions))
+                )
         return results
 
     return _serializer
@@ -619,7 +682,8 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
             if name in {transform._call_tool_name, transform._search_tool_name}:
                 raise ToolError(
                     f"'{name}' is a synthetic search tool and cannot be "
-                    f"called via the call_tool proxy"
+                    f"called via the call_tool proxy",
+                    log_level=logging.WARNING,
                 )
             if arguments:
                 target_tool = await ctx.fastmcp.get_tool(name)
@@ -682,6 +746,31 @@ def _create_search_transform(  # noqa: C901
         tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
         return _fix_search_tool_query(tool)
 
+    def _promote_exact_name(
+        tools: Sequence[Tool],
+        query: str,
+        ranked: Sequence[Tool],
+        max_results: int,
+    ) -> Sequence[Tool]:
+        """Promote caller-visible exact names without duplicating ranked matches."""
+        normalized_query = " ".join(query.casefold().replace("_", " ").split())
+        exact = [
+            tool
+            for tool in tools
+            if " ".join(tool.name.casefold().replace("_", " ").split())
+            == normalized_query
+        ]
+        if not exact:
+            return ranked
+        # Only inspect the caller-filtered candidates, never the full catalog.
+        # The upstream top-N contains enough non-exact results to fill the
+        # remaining slots, without changing upstream ordering or shared limits.
+        exact_names = {tool.name for tool in exact}
+        return [
+            *exact,
+            *(tool for tool in ranked if tool.name not in exact_names),
+        ][:max_results]
+
     if strategy == "regex":
         from fastmcp.server.transforms.search import RegexSearchTransform
 
@@ -691,7 +780,14 @@ def _create_search_transform(  # noqa: C901
             async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
                 """Return only tools visible to the current authenticated user."""
                 tools = await super()._get_visible_tools(ctx)
-                return _filter_tools_by_current_user_permission(tools)
+                return await _filter_visible_tools_fail_open(tools)
+
+            async def _search(
+                self, tools: Sequence[Tool], query: str
+            ) -> Sequence[Tool]:
+                """Promote visible exact names before applying the result limit."""
+                ranked = await super()._search(tools, query)
+                return _promote_exact_name(tools, query, ranked, self._max_results)
 
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
@@ -711,7 +807,14 @@ def _create_search_transform(  # noqa: C901
         async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
             """Return only tools visible to the current authenticated user."""
             tools = await super()._get_visible_tools(ctx)
-            return _filter_tools_by_current_user_permission(tools)
+            # Permission lookups need a metadata connection; see
+            # RBACToolVisibilityMiddleware.on_list_tools.
+            return await _filter_visible_tools_fail_open(tools)
+
+        async def _search(self, tools: Sequence[Tool], query: str) -> Sequence[Tool]:
+            """Promote visible exact names before applying the final result limit."""
+            ranked = await super()._search(tools, query)
+            return _promote_exact_name(tools, query, ranked, self._max_results)
 
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
@@ -731,7 +834,17 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     when either ``MCP_AUTH_ENABLED`` (JWT auth), ``MCP_API_KEY_ENABLED``, or
     ``FAB_API_KEY_ENABLED`` (API key auth) is True. The default factory builds a
     ``CompositeTokenVerifier`` that handles either or both auth modes.
+
+    Fail-closed: when auth has been explicitly configured, any error while
+    building the provider (or a configured factory yielding no provider)
+    raises ``MCPAuthConfigError`` so the service refuses to start rather
+    than coming up as an unauthenticated server.
     """
+    from superset.mcp_service.mcp_config import (
+        create_default_mcp_auth_factory,
+        MCPAuthConfigError,
+    )
+
     auth_provider = None
     if auth_factory := flask_app.config.get("MCP_AUTH_FACTORY"):
         try:
@@ -740,20 +853,37 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
                 "Auth provider created from MCP_AUTH_FACTORY: %s",
                 type(auth_provider).__name__ if auth_provider else "None",
             )
-        except Exception:
-            # Do not log the exception — it may contain secrets
-            logger.error("Failed to create auth provider from MCP_AUTH_FACTORY")
+        except MCPAuthConfigError:
+            # Operator-facing config guidance raised by the factory itself;
+            # carries no secret material. Propagate as-is.
+            raise
+        except Exception as ex:
+            # A configured MCP_AUTH_FACTORY that cannot build its provider is a
+            # misconfiguration that must fail closed: falling through would
+            # start the service unauthenticated. Unlike the default factory
+            # below, an operator-supplied factory gives no basis to classify
+            # any of its failures as benign build errors. The original
+            # exception is suppressed (from None) rather than chained because
+            # its message may contain secrets; the type name is enough to
+            # locate the failure.
+            raise MCPAuthConfigError(
+                "MCP_AUTH_FACTORY is configured but raised "
+                f"{type(ex).__name__} while building the auth provider; "
+                "refusing to start the MCP service without authentication. "
+                "Fix the factory or unset MCP_AUTH_FACTORY."
+            ) from None
+        if auth_provider is None:
+            raise MCPAuthConfigError(
+                "MCP_AUTH_FACTORY returned no auth provider; refusing to "
+                "start an unauthenticated MCP server. Return a token "
+                "verifier or unset MCP_AUTH_FACTORY."
+            )
     elif (
         flask_app.config.get("MCP_AUTH_ENABLED", False)
         or flask_app.config.get("MCP_API_KEY_ENABLED", False)
         or flask_app.config.get("FAB_API_KEY_ENABLED", False)
         or flask_app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False)
     ):
-        from superset.mcp_service.mcp_config import (
-            create_default_mcp_auth_factory,
-            MCPAuthConfigError,
-        )
-
         try:
             auth_provider = create_default_mcp_auth_factory(flask_app)
             logger.info(
@@ -767,31 +897,53 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
             # no secret material.
             raise
         except Exception:
-            # Do not log the exception — it may contain secrets
+            # Do not log or chain the exception — it may contain secrets.
+            # Auth was explicitly enabled, so a provider that cannot be built
+            # must also fail closed instead of starting unauthenticated.
             logger.error("Failed to create auth provider from default factory")
+            raise MCPAuthConfigError(
+                "Failed to build the MCP auth provider from the configured "
+                "auth settings; refusing to start an unauthenticated MCP "
+                "server. Check the MCP auth configuration."
+            ) from None
+        # ``None`` here is deliberate only when the factory itself resolved
+        # every auth mode to disabled (e.g. MCP_API_KEY_ENABLED=False
+        # explicitly overriding FAB_API_KEY_ENABLED); misconfigurations of an
+        # enabled mode raise MCPAuthConfigError inside the factory instead.
     return auth_provider
 
 
-def build_middleware_list() -> list[Middleware]:
+def build_middleware_list(
+    *, structured_output_enabled: bool = MCP_STRUCTURED_OUTPUT_ENABLED
+) -> list[Middleware]:
     """Build the core MCP middleware list in the correct order.
 
     FastMCP wraps handlers so that the FIRST-added middleware is
     outermost.  Order here is outermost → innermost:
 
-    1. StructuredContentStripper — safety net, converts exceptions
-       to safe ToolResult text for transports that can't encode errors
+    1. ToolResultCompatibility — applies the structured-output compatibility
+       setting and converts exceptions to safe ToolResult text
     2. RBACToolVisibilityMiddleware — filters tools/list by RBAC;
-       positioned inside the Stripper so it sees full tool objects
-       (with outputSchema) before stripping occurs
+       positioned inside the compatibility boundary so it sees full tool objects
+       (with outputSchema) before results are returned
     3. LoggingMiddleware — logs tool calls with success/failure status
     4. GlobalErrorHandler — catches tool exceptions, raises ToolError
     """
     return [
-        StructuredContentStripperMiddleware(),
+        ToolResultCompatibilityMiddleware(
+            structured_output_enabled=structured_output_enabled
+        ),
         RBACToolVisibilityMiddleware(),
         LoggingMiddleware(),
         GlobalErrorHandlerMiddleware(),
     ]
+
+
+def _structured_output_enabled(flask_app: Any) -> bool:
+    """Resolve the structured-output setting for server-managed startup paths."""
+    return flask_app.config.get(
+        "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
+    )
 
 
 def _build_starlette_middleware(
@@ -868,7 +1020,11 @@ def run_server(
     Uses streamable-http transport for HTTP server mode.
 
     For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL
-    to share session state across pods.
+    to share session state across pods. If MCP_STATELESS_HTTP is also set to
+    False (see its docstring in mcp_config.py), sessions are stateful and
+    multi-pod additionally requires session-affinity routing on
+    Mcp-Session-Id at the mesh/ingress layer -- otherwise a session's
+    follow-up requests can land on a pod that never created it.
 
     Args:
         host: Host to bind to
@@ -888,7 +1044,29 @@ def run_server(
         # Use factory configuration for customization
         logging.info("Creating MCP app from factory configuration...")
         factory_config = get_mcp_factory_config()
+        from superset.mcp_service.flask_singleton import (  # noqa: PLC0415
+            get_flask_app,
+        )
+
+        factory_flask_app = get_flask_app()
+        factory_middleware = factory_config.get("middleware") or ()
+        factory_config["middleware"] = [
+            *build_middleware_list(
+                structured_output_enabled=_structured_output_enabled(factory_flask_app)
+            ),
+            *factory_middleware,
+        ]
         mcp_instance = create_mcp_app(**factory_config)
+        # The factory path bypasses init_fastmcp_server(), so install the
+        # per-tool-call session scoping here as well; without it concurrent
+        # tool calls share the greenlet-scoped db.session.
+        # Lazy import mirrors init_fastmcp_server() to avoid the circular
+        # import through superset.extensions during startup.
+        from superset.mcp_service.session_scope import (  # noqa: PLC0415
+            install_mcp_session_scoping,
+        )
+
+        install_mcp_session_scoping()
         # Capture the actual auth object so the hello page reflects real auth state
         auth_provider = factory_config.get("auth")
         flask_app = None
@@ -906,7 +1084,9 @@ def run_server(
         flask_app = get_flask_app()
         auth_provider = _create_auth_provider(flask_app)
 
-        middleware_list = build_middleware_list()
+        middleware_list = build_middleware_list(
+            structured_output_enabled=_structured_output_enabled(flask_app)
+        )
 
         # Add optional middleware (innermost, closest to tool)
         size_guard_middleware = create_response_size_guard_middleware()
@@ -935,6 +1115,13 @@ def run_server(
 
     _register_health_endpoint(mcp_instance)
 
+    # Size tool admission against the metadata pool before serving traffic, so
+    # an unusable pool configuration fails at startup rather than per call.
+    from superset.mcp_service.flask_singleton import get_flask_app
+    from superset.mcp_service.worker import _get_pool
+
+    _get_pool(get_flask_app())
+
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)
 
@@ -949,13 +1136,23 @@ def run_server(
         try:
             logging.info("Starting FastMCP on %s:%s", host, port)
 
+            # See MCP_STATELESS_HTTP's docstring in mcp_config.py: stateless
+            # mode races a tool's progress notifications against the
+            # transport teardown that follows its HTTP request, crashing the
+            # session if a client disconnects mid-call.
+            stateless_http = (
+                flask_app.config.get("MCP_STATELESS_HTTP", MCP_STATELESS_HTTP)
+                if flask_app is not None
+                else MCP_STATELESS_HTTP
+            )
+
             if event_store is not None:
                 # Multi-pod: Use http_app with Redis EventStore, run with uvicorn
                 logging.info("Running in multi-pod mode with Redis EventStore")
                 app = mcp_instance.http_app(
                     transport="streamable-http",
                     event_store=event_store,
-                    stateless_http=True,
+                    stateless_http=stateless_http,
                     middleware=starlette_middleware,
                 )
                 uvicorn.run(app, host=host, port=port)
@@ -966,7 +1163,7 @@ def run_server(
                     transport="streamable-http",
                     host=host,
                     port=port,
-                    stateless_http=True,
+                    stateless_http=stateless_http,
                     middleware=starlette_middleware,
                 )
         except Exception as e:

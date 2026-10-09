@@ -9,10 +9,6 @@ on:
     types: [synchronize, opened, reopened, ready_for_review]
   workflow_dispatch:
     inputs:
-      use_dashboard:
-        description: "Use Cypress Dashboard (true/false) [paid service - trigger manually when needed]. You MUST provide a branch and/or PR number below for this to work."
-        required: false
-        default: "false"
       ref:
         description: "The branch or tag to checkout"
         required: false
@@ -25,6 +21,9 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   changes:
@@ -43,33 +42,27 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  cypress-matrix:
+  playwright-tests:
     needs: changes
-    if: (needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true') && github.event.pull_request.draft == false
+    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    # Soft-delete, Embedded and Mobile each add their own gunicorn boot +
+    # spec run on top of the Required step.
+    timeout-minutes: 40
     permissions:
       contents: read
       pull-requests: read
     strategy:
-      # when one test fails, DO NOT cancel the other
-      # parallel_id, because this will kill Cypress processes
-      # leaving the Dashboard hanging ...
-      # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        parallel_id: [0, 1]
-        browser: ["chrome"]
-        app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
-        # The /app/prefix variant (push events only) is smoke-tested on a single
-        # shard rather than the full matrix, so exclude it from the other shards.
-        exclude:
-          - parallel_id: 1
-            app_root: "/app/prefix"
+        browser: ["chromium"]
+        # Subdirectory deployment (APPLICATION_ROOT) is a required-to-pass
+        # dimension, so it runs on every event.
+        app_root: ["", "/app/prefix"]
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -77,18 +70,16 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
-      # Only use dashboard when explicitly requested via workflow_dispatch
-      USE_DASHBOARD: ${{ github.event.inputs.use_dashboard == 'true' || 'false' }}
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
         ports:
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
@@ -117,15 +108,27 @@ jobs:
           submodules: recursive
       # -------------------------------------------------------
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup postgres
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-postgres
       - name: Import test data
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
-          run: testdata
+          run: playwright_testdata
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -133,27 +136,112 @@ jobs:
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install npm dependencies
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: npm-install
       - name: Build javascript packages
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: build-instrumented-assets
-      - name: Install cypress
-        uses: ./.github/actions/cached-dependencies
+      - name: Build embedded SDK
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
-          run: cypress-install
-      - name: Run Cypress
-        uses: ./.github/actions/cached-dependencies
+          run: build-embedded-sdk
+      - name: Install Playwright
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        with:
+          run: playwright-install
+      - name: Run Playwright (Required Tests)
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         env:
-          CYPRESS_BROWSER: ${{ matrix.browser }}
-          PARALLEL_ID: ${{ matrix.parallel_id }}
-          PARALLELISM: 2
-          CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
-          run: cypress-run-all ${{ env.USE_DASHBOARD }} ${{ matrix.app_root }}
+          run: playwright-run "${{ matrix.app_root }}"
+      - name: Run Playwright (Soft-delete Tests)
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step: each playwright-run boots its own gunicorn
+          # with the step's env, so the Required Tests server above keeps
+          # master's Flask configuration while this one runs with SOFT_DELETE
+          # on — the same isolation pattern as the Embedded Tests step below.
+          # Without a flag-on server the recently-archived specs skip
+          # themselves everywhere and ship zero executed E2E coverage; in the
+          # Required run above they are collected and skipped, which is
+          # expected.
+          SUPERSET_FEATURE_SOFT_DELETE: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" recently-archived/
+      - name: Run Playwright (Embedded Tests)
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step for the same reason as Soft-delete above:
+          # embedding is a real, required feature, so its Playwright coverage
+          # now gates merges instead of running only in shadow mode.
+          SUPERSET_FEATURE_EMBEDDED_SUPERSET: "true"
+          INCLUDE_EMBEDDED: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" embedded
+      - name: Run Playwright (Mobile Tests)
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step for the same reason as Soft-delete and
+          # Embedded above: the mobile consumption mode flag must not alter
+          # Flask's configuration for the other steps' servers.
+          SUPERSET_FEATURE_MOBILE_CONSUMPTION_MODE: "true"
+          INCLUDE_MOBILE: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" mobile/
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
@@ -162,18 +250,29 @@ jobs:
         run: |
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
-      - name: Upload Artifacts
+      - name: Upload Playwright Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: failure()
         with:
-          path: ${{ github.workspace }}/superset-frontend/cypress-base/cypress/screenshots
-          name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
+          path: |
+            ${{ github.workspace }}/superset-frontend/playwright-results/
+            ${{ github.workspace }}/superset-frontend/test-results/
+          name: playwright-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
 
-  playwright-tests:
+  # GAQ runs in its own job rather than as a step in playwright-tests above.
+  # A step with no explicit `if:` implicitly inherits `if: success()`, so
+  # when GAQ was a step after the other suites in that job, a failure in
+  # either of those unrelated suites skipped GAQ entirely rather than failing it
+  # -- silently leaving that commit with zero GAQ coverage instead of a visible
+  # red check. A separate job can't share that fate: it either runs and reports
+  # for itself, or it doesn't start (e.g. the environment itself never came up),
+  # which is the only case where "no GAQ result" is actually the right outcome.
+  playwright-tests-gaq:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 30
+    continue-on-error: true
     permissions:
       contents: read
       pull-requests: read
@@ -181,29 +280,29 @@ jobs:
       fail-fast: false
       matrix:
         browser: ["chromium"]
-        app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
+        app_root: ["", "/app/prefix"]
     env:
       SUPERSET_ENV: development
-      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config_gaq
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
         ports:
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
       # -------------------------------------------------------
-      # Conditional checkout based on context (same as Cypress workflow)
+      # Conditional checkout based on context
       - name: Checkout for push or pull_request event
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -227,13 +326,25 @@ jobs:
           submodules: recursive
       # -------------------------------------------------------
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup postgres
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-postgres
       - name: Import test data
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: playwright_testdata
       - name: Setup Node.js
@@ -243,27 +354,63 @@ jobs:
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install npm dependencies
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: npm-install
       - name: Build javascript packages
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: build-instrumented-assets
-      - name: Build embedded SDK
-        uses: ./.github/actions/cached-dependencies
-        with:
-          run: build-embedded-sdk
       - name: Install Playwright
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: playwright-install
-      - name: Run Playwright (Required Tests)
-        uses: ./.github/actions/cached-dependencies
+      - name: Run Playwright (Global Async Queries Tests)
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step for the same reason as the Soft-delete, Embedded
+          # and Mobile steps in playwright-tests above: GLOBAL_ASYNC_QUERIES
+          # changes chart-data behaviour for every spec sharing a server.
+          #
+          # This suite has its own job, and is not required, because unlike the
+          # other flag-gated suites it needs a Celery worker: submissions are
+          # handed to Celery, so without one the API returns 202 and no job ever
+          # executes. Putting a background worker and its startup window on the
+          # required path would let a GAQ flake block PRs that have nothing to
+          # do with async queries.
+          #
+          # `playwright-run-gaq` starts the worker and sets INCLUDE_GAQ, which
+          # is what makes the chromium-gaq project exist at all.
+          SUPERSET_FEATURE_GLOBAL_ASYNC_QUERIES: "true"
         with:
-          run: playwright-run "${{ matrix.app_root }}"
+          # No spec list: playwright-run-gaq selects --project=chromium-gaq, whose
+          # testMatch is the single definition of what the GAQ suite contains.
+          run: playwright-run-gaq "${{ matrix.app_root }}"
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
@@ -279,46 +426,24 @@ jobs:
           path: |
             ${{ github.workspace }}/superset-frontend/playwright-results/
             ${{ github.workspace }}/superset-frontend/test-results/
-          name: playwright-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
+          name: playwright-gaq-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
 
-  # Stable required-status-check anchors. cypress-matrix and playwright-tests
-  # are matrix jobs gated on change detection (python || frontend). On a PR
-  # that touches neither — e.g. a docs-only PR — they are skipped at the job
-  # level, which happens before matrix expansion, so the per-combination
-  # contexts (`cypress-matrix (0, chrome)`, `playwright-tests (chromium)`) are
-  # never produced and branch protection waits on them forever. These
-  # always-running jobs report a single stable context that passes when the
-  # underlying matrix job succeeded or was skipped, and fails only on a real
-  # failure. Require these in .asf.yaml instead of the matrix-expanded names.
+  # Stable required-status-check anchor. playwright-tests is a matrix job
+  # gated on change detection (python || frontend). On a PR that touches
+  # neither — e.g. a docs-only PR — it is skipped at the job level, which
+  # happens before matrix expansion, so the per-combination context
+  # (`playwright-tests (chromium)`) is never produced and branch protection
+  # waits on it forever. This always-running job reports a single stable
+  # context that passes when the underlying matrix job succeeded or was
+  # skipped, and fails only on a real failure. Require it in .asf.yaml instead
+  # of the matrix-expanded name.
   #
   # A matrix job reads as "skipped" in two distinct cases, and only the first
   # is a legitimate pass: (a) change detection succeeded and gated the job off
   # (docs-only PR); (b) the `changes` job itself failed or was cancelled, in
   # which case GHA skips its dependents too. Accepting (b) would let a broken
-  # change-detector report a false green, so each anchor first requires
+  # change-detector report a false green, so the anchor first requires
   # `changes` to have succeeded before honouring a skip.
-  cypress-matrix-required:
-    needs: [changes, cypress-matrix]
-    if: always()
-    runs-on: ubuntu-26.04
-    timeout-minutes: 5
-    permissions: {}
-    steps:
-      - name: Check cypress-matrix result
-        env:
-          CHANGES: ${{ needs.changes.result }}
-          RESULT: ${{ needs.cypress-matrix.result }}
-        run: |
-          if [ "$CHANGES" != "success" ]; then
-            echo "change detection did not succeed (result: $CHANGES); refusing to pass on a skipped matrix"
-            exit 1
-          fi
-          if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
-            echo "cypress-matrix did not pass (result: $RESULT)"
-            exit 1
-          fi
-          echo "cypress-matrix result: $RESULT (changes: $CHANGES)"
-
   playwright-tests-required:
     needs: [changes, playwright-tests]
     if: always()
@@ -340,3 +465,14 @@ jobs:
             exit 1
           fi
           echo "playwright-tests result: $RESULT (changes: $CHANGES)"
+
+  actions-timeline:
+    needs: [playwright-tests, playwright-tests-required]
+    if: always()
+    runs-on: ubuntu-slim
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

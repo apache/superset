@@ -19,10 +19,12 @@
 
 import re
 from random import random
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
 import pytest
-from flask import Response, escape, url_for
+from flask import Response, url_for
+from markupsafe import escape
 from sqlalchemy import func
 
 from superset import db, security_manager
@@ -129,6 +131,27 @@ class TestDashboard(SupersetTestCase):
         created_dashboard = db.session.query(Dashboard).get(created_dashboard_id)
         db.session.delete(created_dashboard)
         db.session.commit()
+
+    def test_new_dashboard_calls_after_asset_create_hook(self):
+        self.login(ADMIN_USERNAME)
+        mock_hook = MagicMock()
+        app = self.app
+        app.config["AFTER_ASSET_CREATE"] = mock_hook
+        try:
+            url = "/dashboard/new/"
+            self.client.get(url, follow_redirects=False)
+
+            mock_hook.assert_called_once()
+            call_args = mock_hook.call_args
+            assert isinstance(call_args[0][0], Dashboard)
+            assert call_args[0][1] == "dashboard"
+
+            # Cleanup
+            created_dashboard = call_args[0][0]
+            db.session.delete(created_dashboard)
+            db.session.commit()
+        finally:
+            del app.config["AFTER_ASSET_CREATE"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("public_role_like_gamma")

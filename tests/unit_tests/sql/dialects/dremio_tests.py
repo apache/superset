@@ -30,3 +30,30 @@ def test_regexp_split() -> None:
     regenerated = ast.sql(dialect=Dremio)
 
     assert regenerated == "SELECT REGEXP_SPLIT(tags, ',', 'ALL', 1000) AS t"
+
+
+def test_inherits_sqlglot_native_type_mapping() -> None:
+    """
+    Superset's Dremio dialect is built on sqlglot's native Dremio dialect,
+    not a bare Dialect base, so it should get correct type mapping for free
+    (e.g. TINYINT, which Dremio doesn't support, maps to INT).
+    """
+    sql = "SELECT CAST(x AS TINYINT)"
+
+    ast = parse_one(sql, dialect=Dremio)
+    regenerated = ast.sql(dialect=Dremio)
+
+    assert regenerated == "SELECT CAST(x AS INT)"
+
+
+def test_inherits_sqlglot_native_current_date_utc() -> None:
+    """
+    sqlglot's native Dremio dialect round-trips CURRENT_DATE_UTC(); a bare
+    Dialect base does not understand this Dremio-specific construct.
+    """
+    sql = "SELECT CURRENT_DATE_UTC()"
+
+    ast = parse_one(sql, dialect=Dremio)
+    regenerated = ast.sql(dialect=Dremio)
+
+    assert regenerated == "SELECT CURRENT_DATE_UTC"

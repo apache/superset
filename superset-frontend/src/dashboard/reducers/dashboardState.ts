@@ -86,9 +86,11 @@ interface DashboardStateShape {
   labelsColorMapMustSync?: boolean;
   sharedLabelsColorsMustSync?: boolean;
   expandedSlices?: Record<number, boolean>;
+  expandAllSlices?: boolean;
   hasUnsavedChanges?: boolean;
   dashboardIsSaving?: boolean;
   lastModifiedTime?: number;
+  versionHistoryRevision?: number;
   refreshFrequency?: number;
   shouldPersistRefreshFrequency?: boolean;
   isRefreshing?: boolean;
@@ -258,11 +260,14 @@ export default function dashboardStateReducer(
       const updatedExpandedSlices = { ...state.expandedSlices };
       const { sliceId } = action;
       if (sliceId !== undefined) {
-        if (updatedExpandedSlices[sliceId]) {
-          delete updatedExpandedSlices[sliceId];
-        } else {
-          updatedExpandedSlices[sliceId] = true;
-        }
+        // Toggle the *effective* expanded state (per-slice override falling
+        // back to the global expandAllSlices flag), not just the raw
+        // per-slice override. Otherwise the first toggle on a slice whose
+        // description is only showing because expandAllSlices is true would
+        // flip undefined -> true and leave the description visible.
+        const currentlyExpanded =
+          updatedExpandedSlices[sliceId] ?? state.expandAllSlices;
+        updatedExpandedSlices[sliceId] = !currentlyExpanded;
       }
       return { ...state, expandedSlices: updatedExpandedSlices };
     },
@@ -290,6 +295,7 @@ export default function dashboardStateReducer(
         updatedColorScheme: false,
         // server-side returns last_modified_time for latest change
         lastModifiedTime: action.lastModifiedTime,
+        versionHistoryRevision: (state.versionHistoryRevision ?? 0) + 1,
       };
     },
     [SET_UNSAVED_CHANGES](): DashboardStateShape {
@@ -301,7 +307,7 @@ export default function dashboardStateReducer(
         ...state,
         refreshFrequency: action.refreshFrequency,
         shouldPersistRefreshFrequency: action.isPersistent,
-        hasUnsavedChanges: action.isPersistent,
+        hasUnsavedChanges: action.isPersistent || state.hasUnsavedChanges,
       };
     },
     [ON_REFRESH](): DashboardStateShape {

@@ -14,16 +14,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   changes:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
     outputs:
-      python: ${{ steps.check.outputs.python }}
-      frontend: ${{ steps.check.outputs.frontend }}
+      languages: ${{ steps.check.outputs.languages }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -31,7 +33,7 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -41,9 +43,9 @@ jobs:
     # Skip on PRs that touch neither code group (e.g. docs-only) so the
     # analysis runners don't spin up. push/schedule runs always proceed:
     # the change-detector returns "all changed" for non-PR events.
-    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
+    if: ${{ contains(fromJSON(needs.changes.outputs.languages), 'python') || contains(fromJSON(needs.changes.outputs.languages), 'javascript') }}
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
@@ -53,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["python", "javascript"]
+        language: ${{ fromJson(needs.changes.outputs.languages) }}
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 
     steps:
@@ -64,7 +66,7 @@ jobs:
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           languages: ${{ matrix.language }}
           # If you wish to specify custom queries, you can do so here or in a config file.
@@ -75,6 +77,6 @@ jobs:
           # queries: security-extended,security-and-quality
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           category: "/language:${{matrix.language}}"

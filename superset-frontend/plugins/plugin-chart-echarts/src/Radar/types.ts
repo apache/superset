@@ -85,10 +85,12 @@ export type RadarChartTransformedProps =
     CrossFilterTransformedProps;
 
 /**
- * Represents a mapping from a normalized value (as string) to an original numeric value.
+ * Represents a mapping from a normalized value (as string) to an original
+ * numeric value. A `null` entry is an explicit record of a missing metric,
+ * distinct from an absent key (which has not been recorded at all).
  */
 interface NormalizedValueMap {
-  [normalized: string]: number;
+  [normalized: string]: number | null;
 }
 
 /**

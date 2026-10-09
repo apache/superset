@@ -36,7 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
-  handleKeyboardActivation,
+  formatSpecifier,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -109,6 +109,10 @@ import {
 } from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
+import {
+  getDatasetCertification,
+  isDatasetExtraValid,
+} from './datasetCertification';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -185,6 +189,9 @@ interface DatasourceObject {
   description?: string;
   default_endpoint?: string;
   extra?: string;
+  certified_by?: string;
+  certification_details?: string;
+  dataset_certification_changed?: boolean;
   datasource_type?: string;
   type?: string;
   offset?: number;
@@ -195,6 +202,54 @@ interface DatasourceObject {
   spatials?: SpatialConfig[];
   all_cols?: string[];
   folders?: DatasourceFolder[];
+}
+
+/**
+ * Lift the certification and warning fields a metric keeps inside its `extra`
+ * JSON blob onto the metric itself, which is the shape the editor's fields bind
+ * to.
+ *
+ * Two entry points feed the editor two different metric shapes: the dataset
+ * list hands over the API payload, where `extra` is still a JSON string, while
+ * Explore hands over its bootstrap payload, where `SqlMetric.data` has already
+ * flattened `extra` into `warning_markdown` and dropped the raw string. The
+ * parsed blob is therefore only authoritative when `extra` is actually present;
+ * otherwise the already-flattened value stands, instead of being reset to an
+ * empty field.
+ *
+ * A malformed `extra` string is treated the same as an absent one (falls
+ * through to the already-flattened value) rather than throwing, mirroring
+ * the backend's own tolerance for bad `extra` JSON in
+ * `CertificationMixin.get_extra_dict()`.
+ */
+export function hydrateMetricExtra(metric: Metric): Metric {
+  const {
+    certified_by: certifiedByMetric,
+    certification_details: certificationDetails,
+  } = metric;
+  let parsedExtra;
+  if (metric.extra) {
+    try {
+      parsedExtra = JSON.parse(metric.extra) || {};
+    } catch {
+      parsedExtra = undefined;
+    }
+  }
+  const {
+    certification: {
+      details = undefined,
+      certified_by: certifiedBy = undefined,
+    } = {},
+  } = parsedExtra || {};
+  const warningMarkdown = parsedExtra
+    ? parsedExtra.warning_markdown
+    : metric.warning_markdown;
+  return {
+    ...metric,
+    certification_details: certificationDetails || details,
+    warning_markdown: warningMarkdown || '',
+    certified_by: certifiedBy || certifiedByMetric,
+  };
 }
 
 interface DatasourceEditorOwnProps {
@@ -394,6 +449,27 @@ const StyledTableTabWrapper = styled.div`
     vertical-align: middle;
   }
 
+  &.wide-sql-layout {
+    .datasource-key-cell {
+      width: 30%;
+    }
+
+    .datasource-label-cell {
+      width: 20%;
+    }
+
+    .datasource-sql-cell {
+      width: 50%;
+      min-width: 480px;
+    }
+
+    .datasource-sql-expression {
+      width: 100%;
+      min-width: 460px;
+      max-width: none;
+    }
+  }
+
   .ant-tag {
     margin-top: ${({ theme }) => theme.sizeUnit}px;
   }
@@ -435,9 +511,16 @@ const StyledButtonWrapper = styled.span`
 `;
 
 const checkboxGenerator = (
-  d: boolean,
-  onChange: (value: boolean) => void,
-): ReactNode => <CheckboxControl value={d} onChange={onChange} />;
+  d: unknown,
+  onChange: (value: unknown) => void,
+): ReactNode => (
+  <CheckboxControl
+    value={Boolean(d)}
+    onChange={value => {
+      onChange(value);
+    }}
+  />
+);
 const DATA_TYPES = [
   { value: 'STRING', label: t('STRING') },
   { value: 'NUMERIC', label: t('NUMERIC') },
@@ -506,32 +589,38 @@ function ColumnCollectionTable({
   filterTerm,
   filterFields,
 }: ColumnCollectionTableProps): JSX.Element {
+  const tableColumns = [
+    'column_name',
+    ...(showExpression ? ['expression'] : []),
+    ...(isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
+      ? ['advanced_data_type']
+      : []),
+    'type',
+    'is_dttm',
+    'filterable',
+    'groupby',
+  ];
+
+  const renderExpressionCell = (
+    v: unknown,
+    onChange: (value: unknown) => void,
+  ): ReactNode => (
+    <TextAreaControl
+      initialValue={v as string}
+      onChange={onChange}
+      className="datasource-sql-expression"
+      language="sql"
+      offerEditInModal={false}
+      minLines={5}
+      textAreaStyles={{ minWidth: '100%', maxWidth: 'none' }}
+      resize="both"
+    />
+  );
+
   return (
     <CollectionTable
-      tableColumns={
-        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-          ? [
-              'column_name',
-              'advanced_data_type',
-              'type',
-              'is_dttm',
-              'filterable',
-              'groupby',
-            ]
-          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
-      }
-      sortColumns={
-        isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
-          ? [
-              'column_name',
-              'advanced_data_type',
-              'type',
-              'is_dttm',
-              'filterable',
-              'groupby',
-            ]
-          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
-      }
+      tableColumns={tableColumns}
+      sortColumns={tableColumns}
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
@@ -627,7 +716,7 @@ function ColumnCollectionTable({
                       you will need to define an expression and type for
                       transforming the string into a date or timestamp. Note
                       currently time zones are not supported. If time is stored
-                      in epoch format, put \`epoch_s\` or \`epoch_ms\`. If no pattern
+                      in epoch format, put \`epoch_s\`, \`epoch_ms\` or \`epoch_us\`. If no pattern
                       is specified we fall back to using the optional defaults on a per
                       database/column name level via the extra parameter.`)}
                 </div>
@@ -668,6 +757,7 @@ function ColumnCollectionTable({
         isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? {
               column_name: t('Column'),
+              expression: t('SQL expression'),
               advanced_data_type: t('Advanced data type'),
               type: t('Data type'),
               groupby: t('Is dimension'),
@@ -676,6 +766,7 @@ function ColumnCollectionTable({
             }
           : {
               column_name: t('Column'),
+              expression: t('SQL expression'),
               type: t('Data type'),
               groupby: t('Is dimension'),
               is_dttm: t('Is temporal'),
@@ -683,6 +774,10 @@ function ColumnCollectionTable({
             }
       }
       onChange={onColumnsChange}
+      itemCellProps={{
+        column_name: () => ({ className: 'datasource-key-cell' }),
+        expression: () => ({ className: 'datasource-sql-cell' }),
+      }}
       itemRenderers={
         isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
           ? {
@@ -714,6 +809,7 @@ function ColumnCollectionTable({
                 ),
               type: d => (d ? <Label>{String(d)}</Label> : null),
               advanced_data_type: d => <Label>{d as string}</Label>,
+              expression: renderExpressionCell,
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,
@@ -742,6 +838,7 @@ function ColumnCollectionTable({
                   </StyledLabelWrapper>
                 ),
               type: d => (d ? <Label>{String(d)}</Label> : null),
+              expression: renderExpressionCell,
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
               groupby: checkboxGenerator,
@@ -779,6 +876,78 @@ function EditorsSelector({
 }
 const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
+
+// D3's '%' and 'p' types both multiply by 100; parsed via d3-format's own
+// grammar so garbage like "foo%" is rejected rather than matched by suffix.
+// The stored value is trimmed before parsing because
+// NumberFormatterRegistry.get() trims it the same way before rendering, so
+// this check agrees with what the renderer actually sees.
+export const isPercentD3Format = (d3format?: string): boolean => {
+  if (!d3format) {
+    return false;
+  }
+  try {
+    const { type } = formatSpecifier(d3format.trim());
+    return type === '%' || type === 'p';
+  } catch {
+    return false;
+  }
+};
+
+// Matches the outermost COUNT(...) call's parens by depth, so a ratio like
+// `COUNT(*) / COUNT(*)` isn't misclassified but a nested call like
+// `COUNT(DISTINCT COALESCE(a, b))` is still recognized. Parens inside a
+// quoted string literal (single- or double-quoted, with a doubled quote as
+// an escaped quote) are ignored so they don't desync the depth count.
+export const isCountExpression = (expression?: string): boolean => {
+  const trimmed = expression?.trim();
+  if (!trimmed || !/^count\s*\(/i.test(trimmed) || !trimmed.endsWith(')')) {
+    return false;
+  }
+  let depth = 0;
+  let stringDelimiter: string | null = null;
+  for (let i = trimmed.indexOf('('); i < trimmed.length; i += 1) {
+    const char = trimmed[i];
+    if (stringDelimiter) {
+      if (char === stringDelimiter && trimmed[i + 1] === stringDelimiter) {
+        i += 1;
+      } else if (char === stringDelimiter) {
+        stringDelimiter = null;
+      }
+    } else if (char === "'" || char === '"') {
+      stringDelimiter = char;
+    } else if (char === '(') {
+      depth += 1;
+    } else if (char === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return i === trimmed.length - 1;
+      }
+    }
+  }
+  return false;
+};
+
+function renderMetricFormatWarning(item: Record<string, any>): ReactNode {
+  if (
+    !isCountExpression(item.expression) ||
+    !isPercentD3Format(item.d3format)
+  ) {
+    return null;
+  }
+  return (
+    <Alert
+      css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}
+      type="warning"
+      showIcon
+      message={t(
+        'This metric is a count, but its D3 format is a percentage. ' +
+          'Percent formats multiply the value by 100, which will make a ' +
+          'raw count render as a misleadingly large number.',
+      )}
+    />
+  );
+}
 
 // Redux connector types
 interface QueryPayload {
@@ -852,26 +1021,9 @@ function DatasourceEditor({
   // Initialize datasource state with transformed editors and metrics
   const [datasource, setDatasource] = useState<DatasourceObject>(() => ({
     ...propsDatasource,
+    ...getDatasetCertification(propsDatasource.extra),
     editors: normalizeSubjectsToPickerValues(propsDatasource.editors || []),
-    metrics: propsDatasource.metrics?.map(metric => {
-      const {
-        certified_by: certifiedByMetric,
-        certification_details: certificationDetails,
-      } = metric;
-      const {
-        certification: {
-          details = undefined,
-          certified_by: certifiedBy = undefined,
-        } = {},
-        warning_markdown: warningMarkdown,
-      } = JSON.parse(metric.extra || '{}') || {};
-      return {
-        ...metric,
-        certification_details: certificationDetails || details,
-        warning_markdown: warningMarkdown || '',
-        certified_by: certifiedBy || certifiedByMetric,
-      };
-    }),
+    metrics: propsDatasource.metrics?.map(hydrateMetricExtra),
   }));
 
   const [errors, setErrors] = useState<string[]>([]);
@@ -1602,12 +1754,67 @@ function DatasourceEditor({
     onDatasourceChange,
   ]);
 
+  const renderCertificationFieldset = useCallback(() => {
+    const certificationError = !isDatasetExtraValid(datasource.extra)
+      ? t('Fix the Extra JSON to edit certification')
+      : undefined;
+
+    return isSqla ? (
+      <Fieldset
+        title={t('Certification')}
+        item={datasource}
+        onFieldChange={(fieldKey, value) => {
+          if (
+            fieldKey !== 'certified_by' &&
+            fieldKey !== 'certification_details'
+          ) {
+            return;
+          }
+          setDatasource(previousDatasource => ({
+            ...previousDatasource,
+            [fieldKey]: typeof value === 'string' ? value : undefined,
+            dataset_certification_changed: true,
+          }));
+        }}
+      >
+        <Field
+          fieldKey="certified_by"
+          label={t('Certified by')}
+          description={t('Person or group that has certified this dataset')}
+          errorMessage={certificationError}
+          control={
+            <TextControl
+              controlId="dataset_certified_by"
+              placeholder={t('Certified by')}
+              disabled={Boolean(certificationError)}
+            />
+          }
+        />
+        <Field
+          fieldKey="certification_details"
+          label={t('Certification details')}
+          description={t('Details of the dataset certification')}
+          errorMessage={certificationError}
+          control={
+            <TextControl
+              controlId="dataset_certification_details"
+              placeholder={t('Certification details')}
+              disabled={Boolean(certificationError)}
+            />
+          }
+        />
+      </Fieldset>
+    ) : null;
+  }, [datasource, isSqla]);
+
   const renderSettingsFieldset = useCallback(
     () => (
       <Fieldset
         title={t('Basic')}
         item={datasource}
-        onChange={onDatasourceChange}
+        onFieldChange={(fieldKey, value) =>
+          onDatasourcePropChange(String(fieldKey), value)
+        }
       >
         <Field
           fieldKey="description"
@@ -1628,9 +1835,7 @@ function DatasourceEditor({
               {t(
                 'Default URL to redirect to when accessing from the dataset list page. Accepts relative URLs such as',
               )}{' '}
-              <Typography.Text code>
-                /superset/dashboard/{'{id}'}/
-              </Typography.Text>
+              <Typography.Text code>/dashboard/{'{id}'}/</Typography.Text>
             </>
           }
           control={<TextControl controlId="default_endpoint" />}
@@ -1663,15 +1868,20 @@ function DatasourceEditor({
             }
           />
         )}
+        <EditorsSelector
+          datasource={datasource}
+          onChange={newEditors => {
+            onDatasourcePropChange('editors', newEditors);
+          }}
+        />
         {isSqla && (
           <Field
             fieldKey="extra"
             label={t('Extra')}
             description={t(
-              'Extra data to specify table metadata. Currently supports ' +
-                'metadata of the format: `{ "certification": { "certified_by": ' +
-                '"Data Platform Team", "details": "This table is the source of truth." ' +
-                '}, "warning_markdown": "This is a warning." }`.',
+              'Extra data to specify table metadata, such as ' +
+                '`{ "warning_markdown": "This is a warning." }`. ' +
+                'Use the Certification fields below for certification metadata.',
             )}
             control={
               <TextAreaControl
@@ -1683,15 +1893,9 @@ function DatasourceEditor({
             }
           />
         )}
-        <EditorsSelector
-          datasource={datasource}
-          onChange={newEditors => {
-            onDatasourceChange({ ...datasource, editors: newEditors });
-          }}
-        />
       </Fieldset>
     ),
-    [datasource, onDatasourceChange, isSqla],
+    [datasource, onDatasourcePropChange, isSqla],
   );
 
   const renderAdvancedFieldset = useCallback(
@@ -1699,7 +1903,9 @@ function DatasourceEditor({
       <Fieldset
         title={t('Advanced')}
         item={datasource}
-        onChange={onDatasourceChange}
+        onFieldChange={(fieldKey, value) =>
+          onDatasourcePropChange(String(fieldKey), value)
+        }
       >
         <Field
           fieldKey="cache_timeout"
@@ -1727,15 +1933,17 @@ function DatasourceEditor({
             control={<TextControl controlId="template_params" />}
           />
         )}
-        <Field
-          inline
-          fieldKey="normalize_columns"
-          label={t('Normalize column names')}
-          description={t(
-            'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
-          )}
-          control={<CheckboxControl />}
-        />
+        {datasourceType === DATASOURCE_TYPES.physical.key && (
+          <Field
+            inline
+            fieldKey="normalize_columns"
+            label={t('Normalize column names')}
+            description={t(
+              'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+            )}
+            control={<CheckboxControl />}
+          />
+        )}
         <Field
           inline
           fieldKey="always_filter_main_dttm"
@@ -1747,21 +1955,24 @@ function DatasourceEditor({
         />
       </Fieldset>
     ),
-    [datasource, onDatasourceChange, isSqla],
+    [datasource, onDatasourcePropChange, isSqla, datasourceType],
   );
 
   const renderSourceFieldset = useCallback(
     () => (
       <div>
         <EditLockContainer>
-          <span
+          <button
+            type="button"
             css={themeParam => css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              font: inherit;
               color: ${themeParam.colorTextTertiary};
             `}
-            role="button"
-            tabIndex={0}
             onClick={onChangeEditMode}
-            onKeyDown={handleKeyboardActivation(onChangeEditMode)}
           >
             {isEditMode ? (
               <Icons.UnlockOutlined
@@ -1778,7 +1989,7 @@ function DatasourceEditor({
                 })}
               />
             )}
-          </span>
+          </button>
           {!isEditMode && <div>{t('Click the lock to make changes.')}</div>}
           {isEditMode && (
             <div>{t('Click the lock to prevent further changes.')}</div>
@@ -1993,7 +2204,6 @@ function DatasourceEditor({
                           col => col.column_name,
                         )}
                         height={300}
-                        allowHTML
                       />
                     </>
                   )}
@@ -2141,7 +2351,7 @@ function DatasourceEditor({
           }}
           expandFieldset={
             <FormContainer>
-              <Fieldset compact>
+              <Fieldset compact renderWarning={renderMetricFormatWarning}>
                 <Field
                   fieldKey="expression"
                   label={t('SQL expression')}
@@ -2238,12 +2448,9 @@ function DatasourceEditor({
             expression: '',
           })}
           itemCellProps={{
-            expression: () => ({
-              style: {
-                maxWidth: '240px',
-                overflow: 'hidden',
-              },
-            }),
+            metric_name: () => ({ className: 'datasource-key-cell' }),
+            verbose_name: () => ({ className: 'datasource-label-cell' }),
+            expression: () => ({ className: 'datasource-sql-cell' }),
           }}
           itemRenderers={{
             metric_name: (v, onItemChange, _, record) => (
@@ -2372,7 +2579,11 @@ function DatasourceEditor({
         label: (
           <CollectionTabTitle collection={sortedMetrics} title={t('Metrics')} />
         ),
-        children: renderMetricCollection(),
+        children: (
+          <StyledTableTabWrapper className="wide-sql-layout">
+            {renderMetricCollection()}
+          </StyledTableTabWrapper>
+        ),
       },
       {
         key: TABS_KEYS.COLUMNS,
@@ -2383,7 +2594,7 @@ function DatasourceEditor({
           />
         ),
         children: (
-          <StyledTableTabWrapper>
+          <StyledTableTabWrapper className="wide-sql-layout">
             {renderDefaultColumnSettings()}
             <DefaultColumnSettingsTitle>
               {t('Column Settings')}
@@ -2429,7 +2640,7 @@ function DatasourceEditor({
           />
         ),
         children: (
-          <StyledTableTabWrapper>
+          <StyledTableTabWrapper className="wide-sql-layout">
             {renderDefaultColumnSettings()}
             <DefaultColumnSettingsTitle>
               {t('Column Settings')}
@@ -2519,7 +2730,10 @@ function DatasourceEditor({
         children: (
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <FormContainer>{renderSettingsFieldset()}</FormContainer>
+              <FormContainer>
+                {renderSettingsFieldset()}
+                {renderCertificationFieldset()}
+              </FormContainer>
             </Col>
             <Col xs={24} md={12}>
               <FormContainer>{renderAdvancedFieldset()}</FormContainer>
@@ -2549,6 +2763,7 @@ function DatasourceEditor({
       folders,
       folderCount,
       handleFoldersChange,
+      renderCertificationFieldset,
       renderSettingsFieldset,
       renderAdvancedFieldset,
       // `renderSpatialTab` is intentionally retained (see its definition above)

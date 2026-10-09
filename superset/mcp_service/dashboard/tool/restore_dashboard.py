@@ -20,7 +20,7 @@ MCP tool: restore_dashboard
 """
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -36,12 +36,14 @@ from superset.mcp_service.dashboard.schemas import (
     RestoreDashboardRequest,
     RestoreDashboardResponse,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
 )
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
 
 
 def _find_dashboard_for_restore(identifier: int | str) -> Any | None:
@@ -75,6 +77,28 @@ def _rollback() -> None:
         )
 
 
+def _pre_restore_refusal(dashboard: "Dashboard") -> RestoreDashboardResponse | None:
+    """Reject externally managed dashboards and rows not in trash."""
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is not None:
+        return RestoreDashboardResponse(
+            success=False,
+            managed_externally=True,
+            error=refusal,
+        )
+
+    if dashboard.deleted_at is None:
+        return RestoreDashboardResponse(
+            success=False,
+            error=(
+                f"Dashboard '{dashboard.dashboard_title}' (id={dashboard.id}) is not "
+                "in trash; nothing to restore."
+            ),
+            error_type="NotDeleted",
+        )
+    return None
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -82,12 +106,17 @@ def _rollback() -> None:
         title="Restore dashboard",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def restore_dashboard(
     request: RestoreDashboardRequest, ctx: Context
 ) -> RestoreDashboardResponse:
     """Restore a soft-deleted dashboard from trash.
+
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
 
     Identify the dashboard by numeric ID or UUID string (slug lookup does not
     cover trashed dashboards). Only dashboards that were soft-deleted (moved
@@ -117,26 +146,69 @@ async def restore_dashboard(
             error_type="LookupFailed",
         )
     if not dashboard:
-        safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
-        msg = f"No dashboard found with identifier: {safe_id}."
+        display_id = str(request.identifier)[:200]
+        msg = f"No dashboard found with identifier: {display_id}."
         return RestoreDashboardResponse(success=False, error=msg, error_type="NotFound")
 
     dashboard_id = dashboard.id
-    # Dashboard titles are user-controlled; wrap before composing response
-    # text so a hostile title cannot inject prompt content into the output.
-    dashboard_name = sanitize_for_llm_context(
-        dashboard.dashboard_title, field_path=("dashboard_title",)
-    )
 
-    if dashboard.deleted_at is None:
+    # The lookup above deliberately bypasses the RBAC base filter (see
+    # _find_dashboard_for_restore), so enforce the restore audience *before*
+    # composing any response that embeds the dashboard's title: without this
+    # gate, iterating identifiers would disclose the existence and exact title
+    # of dashboards the caller cannot see (the web API answers 404 for those).
+    from superset import security_manager
+    from superset.exceptions import SupersetSecurityException
+
+    try:
+        try:
+            security_manager.raise_for_editorship(dashboard)
+        except SupersetSecurityException:
+            from superset.daos.dashboard import DashboardDAO
+
+            # Distinguish "visible but not an editor" from "outside the
+            # caller's RBAC scope": the latter must be indistinguishable
+            # from a dashboard that does not exist.
+            visible = DashboardDAO.find_by_id_or_uuid(
+                str(request.identifier), skip_visibility_filter=True
+            )
+            if visible is None:
+                display_id = str(request.identifier)[:200]
+                return RestoreDashboardResponse(
+                    success=False,
+                    error=f"No dashboard found with identifier: {display_id}.",
+                    error_type="NotFound",
+                )
+            await ctx.warning(
+                "Permission denied restoring dashboard id=%s" % (dashboard_id,)
+            )
+            return RestoreDashboardResponse(
+                success=False,
+                permission_denied=True,
+                error=(
+                    f"You do not have permission to restore dashboard "
+                    f"id={dashboard_id}. Ask the user to restore it or grant "
+                    "access; do not retry."
+                ),
+                error_type="Forbidden",
+            )
+    except SQLAlchemyError:
+        _rollback()
+        logger.exception("Editorship check failed during restore_dashboard")
         return RestoreDashboardResponse(
             success=False,
-            error=(
-                f"Dashboard '{dashboard_name}' (id={dashboard_id}) is not in "
-                "trash; nothing to restore."
-            ),
-            error_type="NotDeleted",
+            error="Dashboard lookup failed due to a database error.",
+            error_type="LookupFailed",
         )
+
+    # Dashboard titles are user-controlled and must remain exact in response text.
+    dashboard_name = dashboard.dashboard_title
+
+    pre_restore_refusal: RestoreDashboardResponse | None = _pre_restore_refusal(
+        dashboard
+    )
+    if pre_restore_refusal is not None:
+        return pre_restore_refusal
 
     # The try/except sits inside log_context so failed restore attempts are
     # recorded in the audit log too — the context manager does not log when

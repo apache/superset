@@ -357,7 +357,9 @@ def test_where_latest_partition(mock_method):
             columns,
         )
     query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
-    assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
+    # SQLAlchemy 2.0 changed how select() with no columns renders - a single
+    # trailing space before the newline instead of two under 1.4.
+    assert "SELECT \nWHERE ds = '01-01-19' AND hour = 1" == query_result
 
 
 @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.latest_partition")

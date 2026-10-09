@@ -20,7 +20,7 @@ import uuid
 from typing import Any, cast, Union
 
 from sqlalchemy import and_, func, literal, or_, select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, Query as ORMQuery
 from sqlalchemy.sql import Select
 
 from superset import db, security_manager
@@ -65,7 +65,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         model = cls.sources[datasource_type]
 
-        if str(database_id_or_uuid).isdigit():
+        if str(database_id_or_uuid).isdecimal():
             filter = model.id == int(database_id_or_uuid)
         else:
             try:
@@ -91,11 +91,31 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         return datasource
 
+    @classmethod
+    def get_datasources_by_ids(
+        cls, datasource_type: str, datasource_ids: set[int]
+    ) -> dict[int, Datasource]:
+        """Fetch typed integer references in one query; omit invalid/missing IDs."""
+        if datasource_type not in cls.sources:
+            raise DatasourceTypeNotSupportedError()
+        ids: set[int] = {
+            value for value in datasource_ids if type(value) is int and value > 0
+        }
+        if not ids:
+            return {}
+        model: type[Datasource] = cls.sources[datasource_type]
+        query: ORMQuery[Datasource] = db.session.query(model)
+        if model is Query:
+            # Query.perm and schema checks read the database for every member.
+            query = query.options(joinedload(Query.database))
+        return {item.id: item for item in query.filter(model.id.in_(ids)).all()}
+
     @staticmethod
     def build_dataset_query(
         name_filter: str | None,
         sql_filter: bool | None,
         database_id: int | None = None,
+        schema_filter: str | None = None,
     ) -> Select:
         """Build a SELECT for datasets, applying access and content filters."""
         ds_table = SqlaTable.__table__
@@ -140,6 +160,9 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         if database_id is not None:
             ds_q = ds_q.where(SqlaTable.database_id == database_id)
+
+        if schema_filter is not None:
+            ds_q = ds_q.where(SqlaTable.schema == schema_filter)
 
         return ds_q
 
@@ -205,9 +228,13 @@ class DatasourceDAO(BaseDAO[Datasource]):
         sort_col = combined.c[sort_col_name]
         ordered_col = sort_col.desc() if order_direction == "desc" else sort_col.asc()
 
+        # None of the sortable columns is unique across the union (a dataset
+        # and a semantic view may share a name, two datasets may share a
+        # changed_on), so offset pagination needs a total order or rows can
+        # repeat or vanish at page boundaries.
         rows = db.session.execute(
             select(combined.c.item_id, combined.c.source_type)
-            .order_by(ordered_col)
+            .order_by(ordered_col, combined.c.source_type, combined.c.item_id)
             .offset(page * page_size)
             .limit(page_size)
         ).fetchall()

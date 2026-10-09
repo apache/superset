@@ -162,6 +162,15 @@ Metric: TypeAlias = AdhocMetric | str
 OrderBy: TypeAlias = tuple[Metric | Column, bool]
 
 
+class FetchedRows(list[tuple[Any, ...]]):
+    """List-compatible engine results carrying fetch truncation metadata."""
+
+    def __init__(self, rows: list[tuple[Any, ...]], *, truncated: bool) -> None:
+        """Keep engine truncation with the rows, independent of Flask context."""
+        super().__init__(rows)
+        self.truncated = truncated
+
+
 class QueryObjectDict(TypedDict, total=False):
     """
     TypedDict representation of query objects used throughout Superset.
@@ -301,6 +310,8 @@ class ExplorableData(TypedDict, total=False):
         normalize_columns: Whether to normalize column names
     """
 
+    semantic_selection_version: str | None
+
     # Core fields from BaseDatasource.data
     id: int | str  # String for UUID-based explorables like SemanticView
     uid: str
@@ -331,6 +342,12 @@ class ExplorableData(TypedDict, total=False):
     verbose_map: dict[str, str]
     select_star: str | None
 
+    # Semantic-view fields
+    # Stable string values of the SemanticViewFeature members the view's
+    # provider declares; consumed by the explore UI to derive picker
+    # capabilities. Absent for non-semantic explorables.
+    semantic_view_features: list[str]
+
     # Additional fields from SqlaTable and data_for_slices
     column_types: list["GenericDataType"]
     column_names: set[str] | list[str]
@@ -346,6 +363,11 @@ class ExplorableData(TypedDict, total=False):
     always_filter_main_dttm: bool
     normalize_columns: bool
     rls_filters: list[dict[str, Any]]
+    # Set by datasources that cannot return raw row samples (e.g. semantic
+    # views, which only expose pre-defined metrics and dimensions).
+    supports_samples: bool
+    # Set by datasources that cannot answer drill-to-detail requests.
+    supports_drill_to_detail: bool
 
 
 VizData: TypeAlias = list[Any] | dict[Any, Any] | None

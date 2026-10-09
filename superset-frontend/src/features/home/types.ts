@@ -48,6 +48,7 @@ export interface RightMenuProps {
     color: string;
   };
   children?: ReactNode;
+  menu?: MenuObjectProps[];
 }
 
 export enum GlobalMenuDataOptions {

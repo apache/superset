@@ -35,7 +35,7 @@ Packaging is handled by the `superset-extensions bundle` command, which:
 
 To deploy an extension, place the `.supx` file in the extensions directory configured via `EXTENSIONS_PATH` in your `superset_config.py`:
 
-``` python
+```python
 EXTENSIONS_PATH = "/path/to/extensions"
 ```
 

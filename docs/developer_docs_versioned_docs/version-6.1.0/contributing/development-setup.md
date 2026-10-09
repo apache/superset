@@ -149,6 +149,7 @@ make up
 ```
 
 This automatically:
+
 - Generates a unique project name from your directory name
 - Finds available ports (incrementing from 8088, 9000, etc. if already in use)
 - Displays the assigned URLs before starting
@@ -157,16 +158,16 @@ Each clone gets isolated containers and volumes, so you can run them side-by-sid
 
 Available commands (run from repo root):
 
-| Command | Description |
-|---------|-------------|
-| `make up` | Start services (foreground) |
-| `make up-detached` | Start services (background) |
-| `make down` | Stop all services |
-| `make ps` | Show running containers |
-| `make logs` | Follow container logs |
-| `make ports` | Show assigned URLs and ports |
-| `make open` | Open browser to dev server |
-| `make nuke` | Stop, remove volumes & local images |
+| Command            | Description                         |
+| ------------------ | ----------------------------------- |
+| `make up`          | Start services (foreground)         |
+| `make up-detached` | Start services (background)         |
+| `make down`        | Stop all services                   |
+| `make ps`          | Show running containers             |
+| `make logs`        | Follow container logs               |
+| `make ports`       | Show assigned URLs and ports        |
+| `make open`        | Open browser to dev server          |
+| `make nuke`        | Stop, remove volumes & local images |
 
 From a subdirectory, use: `make -C $(git rev-parse --show-toplevel) up`
 
@@ -177,6 +178,7 @@ Always use these commands instead of plain `docker compose down`, which won't kn
 ## GitHub Codespaces (Cloud Development)
 
 GitHub Codespaces provides a complete, pre-configured development environment in the cloud. This is ideal for:
+
 - Quick contributions without local setup
 - Consistent development environments across team members
 - Working from devices that can't run Docker locally
@@ -323,17 +325,21 @@ You can also run the pre-commit checks manually in various ways:
 ## Working with LLMs
 
 ### Environment Setup
+
 Ensure Docker Compose is running before starting LLM sessions:
+
 ```bash
 docker compose up
 ```
 
 Validate your environment:
+
 ```bash
 curl -f http://localhost:8088/health && echo "✅ Superset ready"
 ```
 
 ### LLM Session Best Practices
+
 - Always validate environment setup first using the health checks above
 - Use focused validation commands: `pre-commit run` (not `--all-files`)
 - **Read [LLMS.md](https://github.com/apache/superset/blob/master/LLMS.md) first** - Contains comprehensive development guidelines, coding standards, and critical refactor information
@@ -345,6 +351,7 @@ curl -f http://localhost:8088/health && echo "✅ Superset ready"
 - Follow the TypeScript migration guidelines and avoid deprecated patterns listed in LLMS.md
 
 ### Key Development Commands
+
 ```bash
 # Frontend development
 cd superset-frontend
@@ -645,7 +652,7 @@ If you want to use the same flag in the client code, also add it to the FeatureF
 
 ```typescript
 export enum FeatureFlag {
-  SCOPED_FILTER = "SCOPED_FILTER",
+  SCOPED_FILTER = 'SCOPED_FILTER',
 }
 ```
 
@@ -814,6 +821,7 @@ If Jest tests hang with "Jest did not exit one second after the test run has com
 **To verify if still needed**: Remove the MessageChannel mocking lines and run `npm test -- --shard=4/8`. If tests hang, the workaround is still required.
 
 **Future removal conditions**: This workaround can be removed when:
+
 - rc-overflow updates to properly clean up MessagePorts in test environments
 - Jest updates to handle MessageChannel/MessagePort cleanup better
 - Ant Design switches away from rc-overflow
@@ -958,9 +966,9 @@ VSCode will not stop on breakpoints right away. We've attached to PID 6 however 
 To debug Flask running in POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
 
 ```yaml
-  securityContext:
-    capabilities:
-      add: ["SYS_PTRACE"]
+securityContext:
+  capabilities:
+    add: ['SYS_PTRACE']
 ```
 
 See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.

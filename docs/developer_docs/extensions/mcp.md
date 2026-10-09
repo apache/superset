@@ -28,24 +28,41 @@ under the License.
 
 Model Context Protocol (MCP) integration allows extensions to register custom AI agent capabilities that integrate seamlessly with Superset's MCP service. Extensions can provide both **tools** (executable functions) and **prompts** (interactive guidance) that AI agents can discover and use.
 
+## Chart dataset changes
+
+The built-in `update_chart` tool requires a complete `config` when rebinding
+a chart to a different `dataset_id`. Specify the chart type and all column and
+metric roles valid on the target dataset. This applies to both previews and
+immediate saves; dataset-only rebinds return a validation error instead of
+clearing saved query roles. Sending the existing dataset ID does not require
+a replacement config.
+
 ## What is MCP?
 
 MCP enables extensions to extend Superset's AI capabilities in two ways:
 
 ### MCP Tools
+
 Tools are Python functions that AI agents can call to perform specific tasks. They provide executable functionality that extends Superset's capabilities.
 
 **Examples of MCP tools:**
+
 - Data processing and transformation functions
 - Custom analytics calculations
 - Integration with external APIs
 - Specialized report generation
 - Business-specific operations
 
+Sanitization notices are returned in tool response `warnings`. The internal
+`sanitization_warnings` request attribute is not advertised in input schemas;
+caller-supplied values are discarded rather than echoed in responses.
+
 ### MCP Prompts
+
 Prompts provide interactive guidance and context to AI agents. They help agents understand how to better assist users with specific workflows or domain knowledge.
 
 **Examples of MCP prompts:**
+
 - Step-by-step workflow guidance
 - Domain-specific context and knowledge
 - Interactive troubleshooting assistance
@@ -76,6 +93,7 @@ This creates a tool that AI agents can call by name. The tool name defaults to t
 The `@tool` decorator accepts several optional parameters:
 
 **Parameter details:**
+
 - **`name`**: Tool identifier (AI agents use this to call your tool)
 - **`description`**: Explains what the tool does (helps AI agents decide when to use it)
 - **`tags`**: Categories for organization and discovery
@@ -213,6 +231,7 @@ Agent: I generated the number 42 for you.
 ```
 
 The AI agent sees your tool's:
+
 - **Name**: How to call it
 - **Description**: What it does and when to use it
 - **Parameters**: What inputs it expects (from Pydantic schema)
@@ -227,6 +246,23 @@ The AI agent sees your tool's:
 3. **Extension loading**: Confirm your extension is installed and enabled
 
 ### Input Validation Errors
+
+Argument-validation failures return MCP `isError: true`, with schema field paths
+(such as `request.page_size`) and safe reasons (such as `Expected an integer`).
+Supply required wrappers such as `request` rather than passing their fields at
+the top level. An unexpected top-level argument declared directly under `request`
+gets its expected schema path and a wrapper hint, for example:
+`Validation error in list_datasets: request.page_size: Unexpected top-level argument (place under request)`.
+Diagnostics omit received values and custom validator messages. Undeclared fields
+and dynamic dictionary keys appear as `[field]`; dictionary keys and nested
+extras remain masked even when they match a field declared elsewhere in the
+schema. Apart from the top-level wrapper hint, only fields declared at the
+corresponding schema path are shown. Responses include at most eight validation
+errors with at most eight path segments each. Failures with more than 128 errors
+return an input-free summary instead of individual details, avoiding eager
+materialization of the entire error collection for diagnostics.
+Already-structured tool errors retain their content and error flag; this
+validation formatter does not reinterpret domain-error payloads.
 
 1. **Pydantic models**: Ensure field types match expected inputs
 2. **Field constraints**: Check min/max values and string lengths are reasonable
@@ -377,18 +413,21 @@ async def troubleshoot_charts(ctx: Context) -> str:
 ### Prompt Best Practices
 
 #### Content Structure
+
 - **Use clear headings** and sections for easy navigation
 - **Provide actionable steps** rather than just theory
 - **Include examples** relevant to the user's domain
 - **Offer next steps** to continue the workflow
 
 #### Interactive Design
+
 - **Ask questions** to engage the user
 - **Provide options** for different scenarios
 - **Reference specific Superset features** by name
 - **Link to related tools** when appropriate
 
 #### Context Awareness
+
 ```python
 @prompt("analytics_extension.context_aware_guide")
 async def context_aware_guide(ctx: Context) -> str:

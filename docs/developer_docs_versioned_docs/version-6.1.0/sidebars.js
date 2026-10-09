@@ -45,9 +45,7 @@ module.exports = {
           type: 'category',
           label: 'Extension Points',
           collapsed: true,
-          items: [
-            'extensions/extension-points/sqllab',
-          ],
+          items: ['extensions/extension-points/sqllab'],
         },
         'extensions/development',
         'extensions/deployment',
@@ -61,9 +59,7 @@ module.exports = {
       type: 'category',
       label: 'Testing',
       collapsed: true,
-      items: [
-        'testing/overview',
-      ],
+      items: ['testing/overview'],
     },
     {
       type: 'category',

@@ -39,6 +39,8 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  getHeaderGroupsControlProps,
+  getTimeComparisonColumnKeys,
   ConditionalFormattingConfig,
   ObjectFormattingEnum,
   ColorSchemeEnum,
@@ -46,6 +48,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
+  DatasourceType,
   isAdhocColumn,
   isPhysicalColumn,
   validateInteger,
@@ -66,7 +69,8 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
     return mode as QueryMode;
   }
   const rawColumns = controls?.all_columns?.value as
-    QueryFormColumn[] | undefined;
+    | QueryFormColumn[]
+    | undefined;
   const hasRawColumns = rawColumns && rawColumns.length > 0;
   return hasRawColumns ? QueryMode.Raw : QueryMode.Aggregate;
 }
@@ -125,6 +129,7 @@ const allColumnsControl: typeof sharedControls.groupby = {
   }),
   visibility: isRawMode,
   resetOnHide: false,
+  rerender: ['order_by_cols'],
 };
 
 const percentMetricsControl: typeof sharedControls.metrics = {
@@ -157,12 +162,8 @@ const percentMetricsControl: typeof sharedControls.metrics = {
 /**
  * Generate comparison column names for a given column.
  */
-const generateComparisonColumns = (colname: string) => [
-  `${t('Main')} ${colname}`,
-  `# ${colname}`,
-  `△ ${colname}`,
-  `% ${colname}`,
-];
+const generateComparisonColumns = (colname: string) =>
+  getTimeComparisonColumnKeys(colname);
 
 /**
  * Generate column types for the comparison columns.
@@ -269,6 +270,12 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.time_grain_sqla,
               visibility: ({ controls }) => {
+                // Time grain only applies to the aggregate query, so the
+                // control must follow the query mode like its siblings do.
+                if (!isAggMode({ controls })) {
+                  return false;
+                }
+
                 const dttmLookup = Object.fromEntries(
                   ensureIsArray(controls?.groupby?.options).map(option => [
                     (option.column_name || '').toLowerCase(),
@@ -290,7 +297,26 @@ const config: ControlPanelConfig = {
               },
             },
           },
-          'temporal_columns_lookup',
+          {
+            name: 'temporal_columns_lookup',
+            config: {
+              ...sharedControls.temporal_columns_lookup,
+              // A missing entry is unknown, not evidence of a non-temporal
+              // column when classifying a dormant semantic grain.
+              initialValue: (
+                control: ControlState,
+                state: ControlPanelState | null,
+              ) =>
+                Object.fromEntries(
+                  (state?.datasource?.columns ?? [])
+                    .filter(column => typeof column.is_dttm === 'boolean')
+                    .map(column => [
+                      column.column_name ?? column.name,
+                      column.is_dttm,
+                    ]),
+                ),
+            },
+          },
         ],
         [
           {
@@ -347,11 +373,36 @@ const config: ControlPanelConfig = {
               description: t('Order results by selected columns'),
               multi: true,
               default: [],
-              mapStateToProps: ({ datasource }) => ({
-                choices: datasource?.hasOwnProperty('order_by_choices')
-                  ? (datasource as Dataset)?.order_by_choices
-                  : datasource?.columns || [],
-              }),
+              mapStateToProps: ({ datasource, controls }) => {
+                if (datasource?.type === DatasourceType.SemanticView) {
+                  const selectedColumns = [
+                    ...new Set(
+                      ensureIsArray(
+                        controls?.all_columns?.value as
+                          | QueryFormColumn[]
+                          | undefined,
+                      ).filter(isPhysicalColumn),
+                    ),
+                  ];
+                  return {
+                    choices: selectedColumns.flatMap(column => [
+                      [
+                        JSON.stringify([column, true]),
+                        `${column} ${t('[asc]')}`,
+                      ],
+                      [
+                        JSON.stringify([column, false]),
+                        `${column} ${t('[desc]')}`,
+                      ],
+                    ]),
+                  };
+                }
+                return {
+                  choices: datasource?.hasOwnProperty('order_by_choices')
+                    ? (datasource as Dataset)?.order_by_choices
+                    : datasource?.columns || [],
+                };
+              },
               visibility: isRawMode,
               resetOnHide: false,
             },
@@ -467,6 +518,35 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'totals_aggregate',
+            config: {
+              type: 'SelectControl',
+              label: t('Summary aggregation'),
+              description: t(
+                'Aggregation used for the summary row. By default each metric ' +
+                  'keeps its own aggregation; Sum and Average override it for ' +
+                  'the summary row only. The override applies to simple ' +
+                  'metrics (a metric built from custom SQL always keeps its ' +
+                  'own aggregation). Overriding a count or a distinct count ' +
+                  'sums the counted column instead, which fails outright on a ' +
+                  'non-numeric column.',
+              ),
+              default: 'ORIGINAL',
+              clearable: false,
+              choices: [
+                ['ORIGINAL', t("Each metric's own")],
+                ['SUM', t('Sum')],
+                ['AVG', t('Average')],
+              ],
+              visibility: ({ controls }) =>
+                isAggMode({ controls }) &&
+                Boolean(controls?.show_totals?.value),
+              resetOnHide: false,
+            },
+          },
+        ],
       ],
     },
     {
@@ -529,7 +609,8 @@ const config: ControlPanelConfig = {
                 "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
               ),
               visibility: ({ controls }) =>
-                isEmpty(controls?.time_compare?.value),
+                isEmpty(controls?.time_compare?.value) &&
+                isEmpty(controls?.header_groups?.value),
             },
           },
         ],
@@ -544,6 +625,29 @@ const config: ControlPanelConfig = {
               description: t(
                 'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
               ),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Multi-level header'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'header_groups',
+            config: {
+              type: 'HeaderGroupsControl',
+              label: t('Column groups'),
+              default: [],
+              renderTrigger: true,
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                return getHeaderGroupsControlProps(explore, chart);
+              },
             },
           },
         ],
@@ -756,12 +860,8 @@ const config: ControlPanelConfig = {
                 const extraColorChoices = hasTimeComparison
                   ? [
                       {
-                        value: ColorSchemeEnum.Green,
-                        label: t('Green for increase, red for decrease'),
-                      },
-                      {
-                        value: ColorSchemeEnum.Red,
-                        label: t('Red for increase, green for decrease'),
+                        label: t('Trend colors'),
+                        colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
                       },
                     ]
                   : [];
@@ -773,6 +873,7 @@ const config: ControlPanelConfig = {
                     (item: ConditionalFormattingConfig, index, array) => {
                       if (
                         item.colorScheme &&
+                        typeof item.colorScheme === 'string' &&
                         !['Green', 'Red'].includes(item.colorScheme)
                       ) {
                         if (item.columnFormatting === undefined) {
@@ -861,6 +962,9 @@ const config: ControlPanelConfig = {
                   verboseMap,
                   allColumns,
                   extraColorChoices,
+                  serverPagination: Boolean(
+                    explore?.controls?.server_pagination?.value,
+                  ),
                 };
               },
             },
@@ -874,7 +978,7 @@ const config: ControlPanelConfig = {
         showCalculationType: false,
         showFullChoices: false,
       }),
-      visibility: isAggMode,
+      visibility: ({ controls }) => isAggMode({ controls }),
     },
     sections.matrixifyRowSection,
     sections.matrixifyColumnSection,

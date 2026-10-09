@@ -32,7 +32,8 @@ export function rankedSearchCompare(a: string, b: string, search: string) {
     Number(bLower.startsWith(searchLower)) -
       Number(aLower.startsWith(searchLower)) ||
     Number(b.includes(search)) - Number(a.includes(search)) ||
-    Number(bLower.includes(searchLower)) - Number(a.includes(searchLower)) ||
+    Number(bLower.includes(searchLower)) -
+      Number(aLower.includes(searchLower)) ||
     a.localeCompare(b)
   );
 }

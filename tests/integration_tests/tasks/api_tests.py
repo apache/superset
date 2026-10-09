@@ -18,14 +18,21 @@
 
 from contextlib import contextmanager
 from typing import Generator
+from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 import rison
+from flask import current_app, g, request, Response
+from flask_appbuilder.security.sqla.models import PermissionView, Role
 from superset_core.tasks.types import TaskStatus
 
-from superset import db
+from superset import db, security_manager
 from superset.models.tasks import Task
+from superset.security.guest_token import GuestTokenResourceType
+from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     GAMMA_USERNAME,
@@ -231,6 +238,64 @@ class TestTaskApi(SupersetTestCase):
             for task in data["result"]:
                 assert task["task_type"] == "test_type"
 
+    def test_get_task_types_distinct(self):
+        """
+        Task API: Test /distinct/task_type powers the Type filter dropdown
+        """
+        with self._create_tasks():
+            self.login(ADMIN_USERNAME)
+            uri = f"{self.TASK_API_BASE}/distinct/task_type"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+
+            data = json.loads(rv.data.decode("utf-8"))
+            values = {item["value"] for item in data["result"]}
+            assert "test_type" in values
+
+    def test_get_task_distinct_rejects_disallowed_field(self):
+        """
+        Task API: Test /distinct only exposes allowed_distinct_fields
+        """
+        self.login(ADMIN_USERNAME)
+        uri = f"{self.TASK_API_BASE}/distinct/status"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+
+    def test_related_subscribers_scoped_to_visible_tasks(self):
+        """
+        Task API: /related/subscribers only lists subscribers of visible tasks.
+
+        Gamma sees only its own tasks (TaskFilter), so the admin who created the
+        other fixture tasks must not appear in Gamma's subscriber dropdown, while
+        the admin (who can see all tasks) sees both.
+        """
+        with self._create_tasks():
+            admin = self.get_user("admin")
+            gamma = self.get_user("gamma")
+            uri = f"{self.TASK_API_BASE}/related/subscribers"
+
+            # Log out before each login: the test client reuses one session, and
+            # POST /login/ while already authenticated redirects without switching
+            # users, so the second login would otherwise leave the request scoped
+            # to the first user.
+            self.logout()
+            self.login(GAMMA_USERNAME)
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            gamma_ids = {
+                item["value"] for item in json.loads(rv.data.decode("utf-8"))["result"]
+            }
+            assert gamma.id in gamma_ids
+            assert admin.id not in gamma_ids
+
+            self.logout()
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get(uri)
+            admin_ids = {
+                item["value"] for item in json.loads(rv.data.decode("utf-8"))["result"]
+            }
+            assert {admin.id, gamma.id} <= admin_ids
+
     def test_get_task_list_ordered(self):
         """
         Task API: Test get task list with ordering
@@ -348,6 +413,125 @@ class TestTaskApi(SupersetTestCase):
             assert "status" in data
             assert data["status"] == task.status
 
+    def test_chart_task_status_includes_sanitized_failure_message(self) -> None:
+        """Terminal chart tasks expose only the request-sanitized public message."""
+        from superset.tasks.async_queries import CHART_QUERY_TASK
+
+        terminal_status: TaskStatus
+        tasks: list[Task]
+        sanitize: MagicMock
+        response: Response
+        for terminal_status in (
+            TaskStatus.FAILURE,
+            TaskStatus.ABORTED,
+            TaskStatus.TIMED_OUT,
+        ):
+            with self._create_tasks() as tasks:
+                self.login(ADMIN_USERNAME)
+                task: Task = tasks[0]
+                task.task_type = CHART_QUERY_TASK
+                task.set_status(TaskStatus.IN_PROGRESS)
+                task.set_status(terminal_status)
+                task.update_properties(
+                    {
+                        "error_message": "A time column must be specified.",
+                        "private": {"framework": {"stack_trace": "private trace"}},
+                    }
+                )
+                db.session.commit()
+
+                with patch(
+                    "superset.tasks.api.sanitize_error_message",
+                    return_value="Safe chart failure",
+                ) as sanitize:
+                    response = self.client.get(
+                        f"{self.TASK_API_BASE}/{task.uuid}/status"
+                    )
+
+                assert response.status_code == 200
+                assert json.loads(response.data) == {
+                    "status": terminal_status.value,
+                    "error_message": "Safe chart failure",
+                }
+                sanitize.assert_called_once_with("A time column must be specified.")
+
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_guest_chart_task_status_redacts_failure_message(self) -> None:
+        """A subscribed guest receives the generic error through the public route."""
+        from superset.daos.tasks import TaskDAO
+        from superset.tasks.async_queries import CHART_QUERY_TASK
+
+        guest_role: Role | None = security_manager.find_role(
+            current_app.config["GUEST_ROLE_NAME"]
+        )
+        read_permission: PermissionView | None = (
+            security_manager.find_permission_view_menu("can_read", "Task")
+        )
+        assert guest_role is not None
+        assert read_permission is not None
+        permission_added: bool = read_permission not in guest_role.permissions
+        if permission_added:
+            security_manager.add_permission_role(guest_role, read_permission)
+
+        try:
+            with self._create_tasks() as tasks:
+                task: Task = tasks[0]
+                task.task_type = CHART_QUERY_TASK
+                task.set_status(TaskStatus.IN_PROGRESS)
+                task.set_status(TaskStatus.FAILURE)
+                task.update_properties({"error_message": "private engine detail"})
+                db.session.commit()
+
+                token: bytes = security_manager.create_guest_access_token(
+                    user={"username": "task_guest"},
+                    resources=[
+                        {
+                            "type": GuestTokenResourceType.DASHBOARD,
+                            "id": str(uuid4()),
+                        }
+                    ],
+                    rls=[],
+                )
+                headers: dict[str, bytes] = {
+                    current_app.config["GUEST_TOKEN_HEADER_NAME"]: token
+                }
+                with self.app.test_request_context(headers=headers):
+                    g.user = security_manager.get_guest_user_from_request(request)
+                    guest_key: str | None = get_current_guest_subscriber_key()
+                assert guest_key is not None
+                assert TaskDAO.add_guest_subscriber(task.id, guest_key)
+                db.session.commit()
+
+                response: Response = self.client.get(
+                    f"{self.TASK_API_BASE}/{task.uuid}/status", headers=headers
+                )
+
+                assert response.status_code == 200, response.json
+                assert json.loads(response.data) == {
+                    "status": TaskStatus.FAILURE.value,
+                    "error_message": "An error occurred while fetching the data.",
+                }
+                assert b"private engine detail" not in response.data
+        finally:
+            if permission_added:
+                security_manager.del_permission_role(guest_role, read_permission)
+
+    def test_non_chart_task_status_omits_failure_detail(self) -> None:
+        """The additive detail field is limited to chart-query tasks."""
+        tasks: list[Task]
+        response: Response
+        with self._create_tasks() as tasks:
+            self.login(ADMIN_USERNAME)
+            task: Task = tasks[0]
+            task.set_status(TaskStatus.FAILURE)
+            task.update_properties({"error_message": "private task detail"})
+            db.session.commit()
+
+            response = self.client.get(f"{self.TASK_API_BASE}/{task.uuid}/status")
+
+            assert response.status_code == 200
+            assert json.loads(response.data) == {"status": TaskStatus.FAILURE.value}
+
     def test_get_task_status_not_found(self):
         """
         Task API: Test get task status not found with non-existent UUID
@@ -392,6 +576,123 @@ class TestTaskApi(SupersetTestCase):
 
             data = json.loads(rv.data.decode("utf-8"))
             assert data["status"] == task.status
+
+    def test_status_changes_baseline_then_change_round_trip(self):
+        """
+        Task API: Test /status_changes baseline → change → cursor round trip
+        """
+        with self._create_tasks():
+            self.login(ADMIN_USERNAME)
+            admin = self.get_user("admin")
+
+            # No cursor: establishes a baseline (no statuses, fresh watermark) so a
+            # client never has to pull every task in the metastore.
+            rv = self.client.get(f"{self.TASK_API_BASE}/status_changes")
+            assert rv.status_code == 200
+            baseline = json.loads(rv.data.decode("utf-8"))
+            assert baseline["statuses"] == {}
+            assert baseline["cursor"] is not None
+
+            # A transition after the baseline is surfaced on the next poll.
+            task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
+            assert task is not None
+            task.set_status(TaskStatus.IN_PROGRESS)
+            task.update_properties({"progress_percent": 0.5})
+            db.session.commit()
+
+            uri = f"{self.TASK_API_BASE}/status_changes?cursor={baseline['cursor']}"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            changed = json.loads(rv.data.decode("utf-8"))
+            assert changed["statuses"][str(task.uuid)] == {
+                "status": TaskStatus.IN_PROGRESS.value,
+                "progress": 0.5,
+            }
+            # The returned cursor advances, so an idle task is not re-delivered
+            # forever.
+            assert changed["cursor"] >= baseline["cursor"]
+
+    def test_status_changes_rejects_invalid_cursor(self):
+        """
+        Task API: Test /status_changes rejects an unparseable cursor
+        """
+        self.login(ADMIN_USERNAME)
+        uri = f"{self.TASK_API_BASE}/status_changes?cursor=not-a-timestamp"
+        rv = self.client.get(uri)
+        assert rv.status_code == 400
+
+    def test_status_changes_narrows_by_task_type(self):
+        """
+        Task API: Test /status_changes only returns the requested task_type
+        """
+        from superset_core.tasks.types import TaskScope
+
+        from superset.daos.tasks import TaskDAO
+
+        with self._create_tasks():
+            self.login(ADMIN_USERNAME)
+            admin = self.get_user("admin")
+
+            rv = self.client.get(f"{self.TASK_API_BASE}/status_changes")
+            baseline_cursor = json.loads(rv.data.decode("utf-8"))["cursor"]
+
+            other = TaskDAO.create_task(
+                task_type="other_type",
+                task_key="other_type_task",
+                task_name="Other Type Task",
+                scope=TaskScope.PRIVATE,
+                user_id=admin.id,
+            )
+            db.session.commit()
+            try:
+                task = (
+                    db.session.query(Task)
+                    .filter_by(created_by_fk=admin.id, task_type="test_type")
+                    .first()
+                )
+                assert task is not None
+                task.set_status(TaskStatus.IN_PROGRESS)
+                db.session.commit()
+
+                uri = (
+                    f"{self.TASK_API_BASE}/status_changes"
+                    f"?cursor={baseline_cursor}&task_type=other_type"
+                )
+                rv = self.client.get(uri)
+                assert rv.status_code == 200
+                statuses = json.loads(rv.data.decode("utf-8"))["statuses"]
+
+                assert str(other.uuid) in statuses
+                assert str(task.uuid) not in statuses
+            finally:
+                db.session.delete(other)
+                db.session.commit()
+
+    def test_status_changes_scoped_to_the_polling_principal(self):
+        """
+        Task API: Test /status_changes only returns tasks the caller can see
+        """
+        with self._create_tasks():
+            self.login(GAMMA_USERNAME)
+            admin = self.get_user("admin")
+
+            rv = self.client.get(f"{self.TASK_API_BASE}/status_changes")
+            baseline_cursor = json.loads(rv.data.decode("utf-8"))["cursor"]
+
+            admin_task = (
+                db.session.query(Task).filter_by(created_by_fk=admin.id).first()
+            )
+            assert admin_task is not None
+            admin_task.set_status(TaskStatus.IN_PROGRESS)
+            db.session.commit()
+
+            uri = f"{self.TASK_API_BASE}/status_changes?cursor={baseline_cursor}"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            statuses = json.loads(rv.data.decode("utf-8"))["statuses"]
+
+            # Gamma is not subscribed to admin's task, so the transition is hidden.
+            assert str(admin_task.uuid) not in statuses
 
     def test_get_task_list_user_sees_own_tasks(self):
         """
@@ -463,6 +764,8 @@ class TestTaskApi(SupersetTestCase):
                 "scope",
                 "subscriber_count",
                 "subscribers",
+                "depends_on",
+                "required_by",
             ]
 
             for field in expected_fields:
@@ -471,6 +774,59 @@ class TestTaskApi(SupersetTestCase):
             # Verify properties is a dict with expected structure
             properties = result["properties"]
             assert isinstance(properties, dict)
+
+            # A task with no declared prerequisites serializes an empty depends_on
+            assert result["depends_on"] == []
+            assert result["required_by"] == []
+
+    def test_task_depends_on_serialization(self):
+        """
+        Task API: Test depends_on serializes prerequisite tasks (uuid/name/status)
+        """
+        from superset.commands.tasks import SubmitTaskCommand
+
+        self.login(ADMIN_USERNAME)
+
+        prerequisite = SubmitTaskCommand(
+            data={
+                "task_type": "test_type",
+                "task_key": "api_dep_prereq",
+                "task_name": "Prerequisite Task",
+            }
+        ).run()
+        dependent = None
+        try:
+            dependent = SubmitTaskCommand(
+                data={
+                    "task_type": "test_type",
+                    "task_key": "api_dep_child",
+                    "depends_on": [prerequisite.uuid],
+                }
+            ).run()
+
+            rv = self.client.get(f"{self.TASK_API_BASE}/{dependent.uuid}")
+            assert rv.status_code == 200
+            result = json.loads(rv.data.decode("utf-8"))["result"]
+
+            assert len(result["depends_on"]) == 1
+            dep = result["depends_on"][0]
+            assert dep["uuid"] == str(prerequisite.uuid)
+            assert dep["task_name"] == "Prerequisite Task"
+            assert dep["status"] == prerequisite.status
+
+            # The reverse edge: the prerequisite lists the dependent under
+            # `required_by`, so the DAG is available from both directions.
+            rv = self.client.get(f"{self.TASK_API_BASE}/{prerequisite.uuid}")
+            assert rv.status_code == 200
+            prereq_result = json.loads(rv.data.decode("utf-8"))["result"]
+            assert prereq_result["depends_on"] == []
+            assert len(prereq_result["required_by"]) == 1
+            assert prereq_result["required_by"][0]["uuid"] == str(dependent.uuid)
+        finally:
+            if dependent is not None:
+                db.session.delete(dependent)
+            db.session.delete(prerequisite)
+            db.session.commit()
 
     def test_task_payload_serialization(self):
         """

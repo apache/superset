@@ -18,7 +18,9 @@ DECKGL_BASE_MAP = [
     ['tile://https://your_personal_url/{z}/{x}/{y}.png', 'MyTile']
 ]
 ```
+
 Openstreetmap tiles url can be added without prefix.
+
 ```python
 DECKGL_BASE_MAP = [
     ['https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
@@ -53,6 +55,7 @@ DECKGL_BASE_MAP = [
 ```
 
 Default values are:
+
 ```python
 DECKGL_BASE_MAP = [
     ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
@@ -73,6 +76,7 @@ Setting `DECKGL_BASE_MAP` overwrite default values
 :::
 
 After defining your map tiles, set them in these variables:
+
 - `CORS_OPTIONS`
 - `connect-src` of `TALISMAN_CONFIG` and `TALISMAN_CONFIG_DEV` variables.
 

@@ -180,12 +180,19 @@ def _parse_iso_datetime(value: str) -> datetime | None:
 def _record_matches(record: dict[str, Any], q: str) -> bool:
     """Case-insensitive substring match for the ``q`` search filter,
     over the human-meaningful surfaces of a decorated activity record:
-    ``summary``, ``entity_name``, ``kind``, the joined ``path`` segments,
-    and the JSON form of ``from_value`` / ``to_value`` (JSON, not Python
+    ``summary``, ``entity_name``, ``kind``, the change author's display
+    name (``changed_by`` first/last), the joined ``path`` segments, and
+    the JSON form of ``from_value`` / ``to_value`` (JSON, not Python
     ``str()``: the client searches the serialized text it renders, so
     ``false`` / ``null`` / double-quoted keys must match — and falsy
     values like ``False`` / ``0`` must not collapse to unsearchable
     empty strings).
+
+    The author name comes from the projected ``changed_by`` DTO, which
+    decoration redacts to ``None`` for a tombstoned related entity
+    (whose editor identity must not be disclosed) — so a redacted
+    record contributes no author text and stays unsearchable by author,
+    preserving that security contract.
     """
 
     def _value_text(value: Any) -> str:
@@ -196,11 +203,19 @@ def _record_matches(record: dict[str, Any], q: str) -> bool:
         except (TypeError, ValueError):
             return str(value)
 
+    changed_by = record.get("changed_by") or {}
+    author_name = " ".join(
+        str(part)
+        for part in (changed_by.get("first_name"), changed_by.get("last_name"))
+        if part
+    )
+
     needle = q.lower()
     haystacks = (
         record.get("summary") or "",
         record.get("entity_name") or "",
         record.get("kind") or "",
+        author_name,
         " ".join(str(seg) for seg in (record.get("path") or [])),
         _value_text(record.get("from_value")),
         _value_text(record.get("to_value")),
@@ -235,7 +250,7 @@ def get_activity(
 
     *resolved_entity*, when supplied, is the already-resolved live path
     entity (the endpoint resolves it once via ``resolve_endpoint_path_entity``
-    for the ``raise_for_access`` gate); passing it here skips a second
+    for the editorship gate); passing it here skips a second
     identical ``find_active_by_uuid`` lookup and the TOCTOU window between
     them. The count is post-visibility (silent visibility filter),
     post-include-filter, and — when ``q`` is supplied — post-
@@ -299,6 +314,38 @@ def get_activity(
     # so the filter adds no extra query.
     if q:
         records = [r for r in records if _record_matches(r, q)]
+
+    # Synthetic starting-version row (sc-120488): op=0 transactions emit
+    # zero change records by design, so the entity's creation — INSERT,
+    # import, or retroactive pre-tracking baseline — never rides the
+    # stream above. Appended as the OLDEST entry, and only when the
+    # stream truly ends here: never on a truncated stream (older records
+    # exist beyond the clamp, so the end was not reached), never for
+    # include="related" (it is a self record), and honoring the same
+    # since/until bounds and search filter as every fetched record. It
+    # rides the list BEFORE ``total`` so the count endpoint agrees with
+    # the page contents (+1) and pagination places it on the final page.
+    # Gating is inherited, not re-implemented: the endpoint access-gated
+    # the path entity before calling here (requiring edit access),
+    # and the record only ever describes that same path entity.
+    if include != "related" and not truncated:
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.activity.creation import build_creation_record
+        from superset.versioning.activity.kinds import NAME_COLUMN
+
+        name_attr: str | None = NAME_COLUMN.get(path_kind, (None, None))[1]
+        creation: dict[str, Any] | None = build_creation_record(
+            model_cls,
+            path_entity,
+            getattr(path_entity, name_attr) if name_attr else None,
+        )
+        if (
+            creation is not None
+            and (since is None or creation["issued_at"] >= since)
+            and (until is None or creation["issued_at"] < until)
+            and (not q or _record_matches(creation, q))
+        ):
+            records.append(creation)
 
     total = len(records)
     bounded_size = max(1, min(page_size, _MAX_PAGE_SIZE))

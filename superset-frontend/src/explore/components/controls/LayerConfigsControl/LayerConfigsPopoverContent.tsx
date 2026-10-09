@@ -301,7 +301,8 @@ export const LayerConfigsPopoverContent: FC<
       const wfsParser = new WfsDataParser();
       try {
         let requestParams: RequestParams1_1_0 | RequestParams2_0_0 = {} as
-          RequestParams1_1_0 | RequestParams2_0_0;
+          | RequestParams1_1_0
+          | RequestParams2_0_0;
         if (conf.version.startsWith('1.')) {
           requestParams = {
             version: conf.version as RequestParams1_1_0['version'],

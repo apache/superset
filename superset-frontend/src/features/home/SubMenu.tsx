@@ -37,6 +37,7 @@ import {
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import { Typography } from '@superset-ui/core/components/Typography';
 
 const StyledHeader = styled.div<{ backgroundColor?: string }>`
@@ -109,13 +110,44 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
   .btn-link {
     padding: 10px 0;
   }
-  @media (max-width: 767px) {
-    .header,
-    .nav-right {
-      position: relative;
-      margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
-    }
-  }
+  ${({ theme }) =>
+    isMobileConsumptionEnabled()
+      ? css`
+          @media (max-width: ${theme.screenSMMax}px) {
+            .header {
+              position: relative;
+              margin-left: 0;
+              flex: 1;
+              text-align: center;
+            }
+
+            /* Consumption mode: hide all buttons on mobile */
+            .nav-right,
+            .nav-right-collapse {
+              display: none !important;
+            }
+
+            /* Compact horizontal tabs on mobile (segmented-control style) */
+            .menu > .ant-menu {
+              padding-left: 0;
+
+              .ant-menu-item {
+                padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+                margin-right: ${theme.sizeUnit / 2}px;
+                font-size: ${theme.fontSizeSM}px;
+              }
+            }
+          }
+        `
+      : css`
+          @media (max-width: ${theme.screenSMMax}px) {
+            .header,
+            .nav-right {
+              position: relative;
+              margin-left: ${theme.sizeUnit * 2}px;
+            }
+          }
+        `}
 `;
 
 const styledDisabled = (theme: SupersetTheme) => css`
@@ -165,6 +197,10 @@ export interface SubMenuProps {
   dropDownLinks?: Array<MenuObjectProps>;
   backgroundColor?: string;
   children?: ReactNode;
+  /** Left icon for mobile - shown before the header */
+  leftIcon?: ReactNode;
+  /** Right icon for mobile - shown after the header */
+  rightIcon?: ReactNode;
 }
 
 const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
@@ -186,8 +222,16 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
 
     function handleResize() {
       if (!isMounted) return;
-      if (window.innerWidth <= 767) setMenu('inline');
-      else setMenu('horizontal');
+      // In consumption mode the tabs stay horizontal on mobile (the CSS
+      // renders them compact); otherwise fall back to the inline layout.
+      if (
+        !isMobileConsumptionEnabled() &&
+        window.innerWidth <= theme.screenSMMax
+      ) {
+        setMenu('inline');
+      } else {
+        setMenu('horizontal');
+      }
 
       if (
         props.buttons &&
@@ -211,126 +255,130 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
       resize.cancel();
       window.removeEventListener('resize', resize);
     };
-  }, [props.buttons]);
+  }, [props.buttons, theme.screenSMMax]);
 
   return (
     <StyledHeader backgroundColor={props.backgroundColor}>
-      <Row className="menu" role="navigation" aria-label={t('Page navigation')}>
-        {props.name && <div className="header">{props.name}</div>}
-        <Menu
-          mode={showMenu}
-          disabledOverflow
-          role="tablist"
-          items={props.tabs?.map(tab => {
-            if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
+      <nav aria-label={t('Page navigation')}>
+        <Row className="menu">
+          {props.leftIcon}
+          {props.name && <div className="header">{props.name}</div>}
+          {props.rightIcon}
+          <Menu
+            mode={showMenu}
+            disabledOverflow
+            role="tablist"
+            items={props.tabs?.map(tab => {
+              if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
+                return {
+                  key: tab.label,
+                  label: (
+                    <Link
+                      to={tab.url || ''}
+                      role="tab"
+                      id={tab.id || tab.name}
+                      data-test={tab['data-test']}
+                      aria-selected={tab.name === props.activeChild}
+                      aria-controls={tab['aria-controls'] || ''}
+                      className={tab.name === props.activeChild ? 'active' : ''}
+                    >
+                      {tab.label}
+                    </Link>
+                  ),
+                };
+              }
               return {
                 key: tab.label,
                 label: (
-                  <Link
-                    to={tab.url || ''}
+                  <div
+                    className={cx('no-router', {
+                      active: tab.name === props.activeChild,
+                    })}
                     role="tab"
-                    id={tab.id || tab.name}
-                    data-test={tab['data-test']}
                     aria-selected={tab.name === props.activeChild}
-                    aria-controls={tab['aria-controls'] || ''}
-                    className={tab.name === props.activeChild ? 'active' : ''}
                   >
-                    {tab.label}
-                  </Link>
+                    <Typography.Link href={tab.url} onClick={tab.onClick}>
+                      {tab.label}
+                    </Typography.Link>
+                  </div>
                 ),
               };
-            }
-            return {
-              key: tab.label,
-              label: (
-                <div
-                  className={cx('no-router', {
-                    active: tab.name === props.activeChild,
-                  })}
-                  role="tab"
-                  aria-selected={tab.name === props.activeChild}
-                >
-                  <Typography.Link href={tab.url} onClick={tab.onClick}>
-                    {tab.label}
-                  </Typography.Link>
-                </div>
-              ),
-            };
-          })}
-        />
-        <div className={navRightStyle}>
-          <Menu
-            mode="horizontal"
-            triggerSubMenuAction="click"
-            disabledOverflow
-            css={css`
-              [data-icon='caret-down'] {
-                color: ${theme.colorIcon};
-                font-size: ${theme.fontSizeXS}px;
-                margin-left: ${theme.sizeUnit}px;
-              }
-            `}
-            items={props.dropDownLinks?.map((link, i) => ({
-              key: `dropdown-${i}`,
-              label: link.label,
-              icon: <Icons.CaretDownOutlined />,
-              popupOffset: [10, 20],
-              className: 'dropdown-menu-links',
-              children: link.childs
-                ?.filter(
-                  (item): item is Exclude<typeof item, string> =>
-                    typeof item === 'object',
-                )
-                .map(item =>
-                  item.disable
-                    ? {
-                        key: item.label,
-                        disabled: true,
-                        label: (
-                          <Tooltip
-                            placement="top"
-                            title={t(
-                              "Enable 'Allow file uploads to database' in any database's settings",
-                            )}
-                          >
-                            <span css={styledDisabled(theme)}>
-                              {item.label}
-                            </span>
-                          </Tooltip>
-                        ),
-                      }
-                    : {
-                        key: item.label,
-                        label: (
-                          <Typography.Link
-                            href={item.url}
-                            onClick={item.onClick}
-                          >
-                            {item.label}
-                          </Typography.Link>
-                        ),
-                      },
-                ),
-            }))}
+            })}
           />
-          {props.buttons?.map((btn, i) =>
-            btn.component ? (
-              <span key={i}>{btn.component}</span>
-            ) : (
-              <Button
-                key={i}
-                buttonStyle={btn.buttonStyle}
-                icon={btn.icon}
-                onClick={btn.onClick}
-                data-test={btn['data-test']}
-                loading={btn.loading ?? false}
-              >
-                {btn.name}
-              </Button>
-            ),
-          )}
-        </div>
-      </Row>
+          <div className={navRightStyle}>
+            <Menu
+              mode="horizontal"
+              triggerSubMenuAction="click"
+              disabledOverflow
+              css={css`
+                [data-icon='caret-down'] {
+                  color: ${theme.colorIcon};
+                  font-size: ${theme.fontSizeXS}px;
+                  margin-left: ${theme.sizeUnit}px;
+                }
+              `}
+              items={props.dropDownLinks?.map((link, i) => ({
+                key: `dropdown-${i}`,
+                label: link.label,
+                icon: <Icons.CaretDownOutlined />,
+                popupOffset: [10, 20],
+                className: 'dropdown-menu-links',
+                children: link.childs
+                  ?.filter(
+                    (item): item is Exclude<typeof item, string> =>
+                      typeof item === 'object',
+                  )
+                  .map(item =>
+                    item.disable
+                      ? {
+                          key: item.label,
+                          disabled: true,
+                          label: (
+                            <Tooltip
+                              placement="top"
+                              title={t(
+                                "Enable 'Allow file uploads to database' in any database's settings",
+                              )}
+                            >
+                              <span css={styledDisabled(theme)}>
+                                {item.label}
+                              </span>
+                            </Tooltip>
+                          ),
+                        }
+                      : {
+                          key: item.label,
+                          label: (
+                            <Typography.Link
+                              href={item.url}
+                              onClick={item.onClick}
+                            >
+                              {item.label}
+                            </Typography.Link>
+                          ),
+                        },
+                  ),
+              }))}
+            />
+            {props.buttons?.map((btn, i) =>
+              btn.component ? (
+                <span key={i}>{btn.component}</span>
+              ) : (
+                <Button
+                  key={i}
+                  buttonStyle={btn.buttonStyle}
+                  icon={btn.icon}
+                  onClick={btn.onClick}
+                  data-test={btn['data-test']}
+                  loading={btn.loading ?? false}
+                >
+                  {btn.name}
+                </Button>
+              ),
+            )}
+          </div>
+        </Row>
+      </nav>
       {props.children}
     </StyledHeader>
   );

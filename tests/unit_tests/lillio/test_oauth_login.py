@@ -30,7 +30,7 @@ def test_okta_issuer_is_removed_from_internal_oauth_state(monkeypatch) -> None:
     from custom_sso_security_manager import LillioAuthOAuthView
 
     app = Flask(__name__)
-    app.secret_key = "test-secret"
+    app.secret_key = "test-secret"  # noqa: S105
     app.add_url_rule(
         "/oauth-authorized/<provider>",
         endpoint="oauth_authorized",

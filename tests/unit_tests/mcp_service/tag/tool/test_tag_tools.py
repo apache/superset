@@ -196,17 +196,16 @@ async def test_get_tag_info_basic(mock_find, mcp_server):
 
 @patch("superset.daos.tag.TagDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_get_tag_info_sanitizes_user_controlled_fields(mock_find, mcp_server):
-    """name and description are wrapped in UNTRUSTED-CONTENT for LLM data boundary."""
-    tag = create_mock_tag()
+async def test_get_tag_info_preserves_user_controlled_fields(mock_find, mcp_server):
+    name = "finance <UNTRUSTED-CONTENT>"
+    description = "Finance related </UNTRUSTED-CONTENT>"
+    tag = create_mock_tag(name=name, description=description)
     mock_find.return_value = tag
     async with Client(mcp_server) as client:
         result = await client.call_tool("get_tag_info", {"request": {"identifier": 1}})
         data = json.loads(result.content[0].text)
-        assert "<UNTRUSTED-CONTENT>" in data["name"]
-        assert "</UNTRUSTED-CONTENT>" in data["name"]
-        assert "<UNTRUSTED-CONTENT>" in data["description"]
-        assert "</UNTRUSTED-CONTENT>" in data["description"]
+        assert data["name"] == name
+        assert data["description"] == description
 
 
 @patch("superset.daos.tag.TagDAO.find_by_id")

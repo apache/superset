@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import pytest
@@ -52,6 +53,17 @@ def _make_model(
     model.crontab = "0 9 * * *"
     model.last_state = "noop"
     model.editors = []
+    model.recipients = []
+    model.chart_id = None
+    model.dashboard_id = None
+    model.extra_json = None
+    model.report_format = "PNG"
+    model.run_as = None
+    model.run_as_type = None
+    model.run_alert_query_as = None
+    model.run_alert_query_as_type = None
+    model.retry_on_failure = False
+    model.send_failed_reports = False
     return model
 
 
@@ -79,6 +91,13 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         UpdateReportScheduleCommand,
         "validate_report_frequency",
     )
+    # Alert-query validation has dedicated coverage in base_test.py; these
+    # tests focus on database-presence handling, so stub it out here.
+    mocker.patch.object(
+        UpdateReportScheduleCommand,
+        "validate_alert_query",
+    )
+    mocker.patch.object(UpdateReportScheduleCommand, "_validate_executors")
     mocker.patch(
         "superset.commands.report.update.compute_subjects",
     )
@@ -174,6 +193,40 @@ def test_alert_no_database_in_payload_model_has_db_accepted(
 
     cmd = UpdateReportScheduleCommand(model_id=1, data={})
     cmd.validate()  # should not raise
+
+
+@pytest.mark.parametrize("feature_enabled", [False, True])
+@pytest.mark.parametrize(
+    ("payload", "should_validate"),
+    [
+        ({"name": "renamed", "sql": "SELECT 1", "database": 5}, False),
+        ({"sql": "SELECT 2", "database": 5}, True),
+        ({"sql": "SELECT 1", "database": 6}, True),
+    ],
+)
+def test_alert_query_validation_requires_a_condition_change(
+    mocker: MockerFixture,
+    feature_enabled: bool,
+    payload: dict[str, Any],
+    should_validate: bool,
+) -> None:
+    """Resubmitted SQL and database do not recheck the editor's data access."""
+    model = _make_model(mocker, model_type=ReportScheduleType.ALERT, database_id=5)
+    model.sql = "SELECT 1"
+    model.database = mocker.Mock()
+    _setup_mocks(mocker, model)
+    mocker.patch(
+        "superset.commands.report.update.is_feature_enabled",
+        return_value=feature_enabled,
+    )
+
+    UpdateReportScheduleCommand(model_id=1, data=payload).validate()
+
+    validate_query = cast(Mock, UpdateReportScheduleCommand.validate_alert_query)
+    if should_validate:
+        validate_query.assert_called_once()
+    else:
+        validate_query.assert_not_called()
 
 
 def test_alert_no_database_anywhere_rejected(mocker: MockerFixture) -> None:
@@ -500,3 +553,45 @@ def test_alert_with_nonexistent_database_rejected(mocker: MockerFixture) -> None
     messages = _get_validation_messages(exc_info)
     assert "database" in messages
     assert "does not exist" in messages["database"].lower()
+
+
+# --- Retry config validation on update ---
+
+
+_PATCH_RETRY_FLAG = "superset.commands.report.update.is_feature_enabled"
+
+
+def test_update_accepts_retry_on_alert(mocker: MockerFixture) -> None:
+    """Alerts opt into the same bounded retry configuration as reports."""
+    model = _make_model(mocker, model_type=ReportScheduleType.ALERT, database_id=5)
+    _setup_mocks(mocker, model)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+
+    cmd = UpdateReportScheduleCommand(model_id=1, data={"retry_on_failure": True})
+    cmd.validate()
+    assert cmd._properties["retry_on_failure"] is True
+
+
+def test_update_rejects_send_failed_without_retry(mocker: MockerFixture) -> None:
+    """send_failed_reports=True requires retry_on_failure=True."""
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    _setup_mocks(mocker, model)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+
+    cmd = UpdateReportScheduleCommand(model_id=1, data={"send_failed_reports": True})
+    with pytest.raises(ReportScheduleInvalidError) as exc_info:
+        cmd.validate()
+    messages = _get_validation_messages(exc_info)
+    assert "send_failed_reports" in messages
+
+
+def test_update_accepts_retry_on_report(mocker: MockerFixture) -> None:
+    """Enabling retries on a report schedule is accepted."""
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    _setup_mocks(mocker, model)
+    mocker.patch(_PATCH_RETRY_FLAG, return_value=True)
+
+    cmd = UpdateReportScheduleCommand(
+        model_id=1, data={"retry_on_failure": True, "retry_max_attempts": 5}
+    )
+    cmd.validate()  # should not raise

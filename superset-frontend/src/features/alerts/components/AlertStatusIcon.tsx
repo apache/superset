@@ -39,6 +39,8 @@ function getStatusColor(status: string, theme: SupersetTheme) {
       return theme.colorTextSecondary;
     case AlertState.Grace:
       return theme.colorErrorText;
+    case AlertState.Retrying:
+      return theme.colorPrimaryText;
     default:
       return theme.colorText;
   }
@@ -92,13 +94,19 @@ export default function AlertStatusIcon({
       lastStateConfig.label = t('Alert Triggered, In Grace Period');
       lastStateConfig.status = AlertState.Grace;
       break;
+    case AlertState.Retrying:
+      lastStateConfig.icon = Icons.Running;
+      lastStateConfig.label = t('Report retrying');
+      lastStateConfig.status = AlertState.Retrying;
+      break;
     default:
       lastStateConfig.icon = Icons.CalendarOutlined;
       lastStateConfig.label = noopLabel;
       lastStateConfig.status = AlertState.Noop;
   }
   const Icon = lastStateConfig.icon;
-  const isRunningIcon = state === AlertState.Working;
+  const isRunningIcon =
+    state === AlertState.Working || state === AlertState.Retrying;
   return (
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
       <span

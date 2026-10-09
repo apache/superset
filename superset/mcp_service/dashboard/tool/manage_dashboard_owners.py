@@ -47,6 +47,7 @@ from superset.mcp_service.dashboard.schemas import (
 from superset.mcp_service.dashboard.tool.governance_utils import (
     dashboard_url,
     find_and_authorize_dashboard,
+    managed_dashboard_refusal,
 )
 from superset.mcp_service.system.schemas import serialize_subject_object
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
@@ -248,6 +249,8 @@ def _build_owner_warnings(
         title="Manage dashboard owners",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def manage_dashboard_owners(
@@ -255,6 +258,9 @@ def manage_dashboard_owners(
 ) -> ManageDashboardOwnersResponse:
     """
     Add or remove dashboard owners with explicit, safe operations.
+
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
 
     Owners can edit the dashboard, manage its charts, and delete it. Unlike
     ``update_dashboard``'s dropped ``owners`` field, this tool never accepts
@@ -299,6 +305,10 @@ def manage_dashboard_owners(
     if auth_error is not None:
         return auth_error
     assert dashboard is not None  # narrows for mypy
+
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is not None:
+        return ManageDashboardOwnersResponse(managed_externally=True, error=refusal)
 
     try:
         current_owner_ids = _owner_user_ids(dashboard)

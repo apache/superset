@@ -22,6 +22,7 @@ from typing import Any, Optional
 
 from flask_babel import gettext as _
 from marshmallow import ValidationError
+from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -147,6 +148,16 @@ class SupersetGenericDBErrorException(SupersetErrorFromParamsException):
         )
 
 
+class SupersetVirtualTableParseException(SupersetGenericDBErrorException):
+    """Raised when a virtual dataset's SQL cannot be parsed/templated.
+
+    Distinct from generic DB errors so callers can soften template/parse
+    failures (which cannot be validated at save time without runtime
+    context) without also swallowing genuine driver, connection, or
+    permission errors from the same code path. See #38012.
+    """
+
+
 class SupersetTemplateParamsErrorException(SupersetErrorFromParamsException):
     status = 400
 
@@ -196,7 +207,26 @@ class SpatialException(SupersetException):
 
 
 class CertificateException(SupersetException):
-    message = _("Invalid certificate")
+    def __init__(
+        self,
+        message: str = "",
+        exception: Optional[Exception] = None,
+        error_type: Optional[SupersetErrorType] = None,
+    ) -> None:
+        """Translate the default certificate error when constructing the exception.
+
+        Replaces this subclass's class-level ``message`` default with
+        construction-time translation, which resolves to a
+        plain ``str`` inside the request that raises, so no LazyString
+        can leak into ``to_dict()`` / JSON error bodies (the degradation
+        class fixed for ``json_error_response``). The class-level
+        ``message`` falls back to the base's empty default.
+        """
+        super().__init__(
+            message=message or _("Invalid certificate"),
+            exception=exception,
+            error_type=error_type,
+        )
 
 
 class DatabaseNotFound(SupersetException):
@@ -209,6 +239,31 @@ class MissingUserContextException(SupersetException):
 
 class QueryObjectValidationError(SupersetException):
     status = 400
+
+
+class SemanticResultCompletenessError(QueryObjectValidationError):
+    """Reject incomplete or unverifiable semantic results with safe guidance."""
+
+    def __init__(self, reason: SemanticResultCompletenessReason) -> None:
+        self.reason: SemanticResultCompletenessReason = reason
+        # Keep fixed guidance aligned with frontend middleware/asyncQueryError.ts.
+        message: str
+        if reason == "incomplete":
+            message = _(
+                "The semantic layer returned only part of this query result. "
+                "Narrow the time range or selected dimensions, or request a "
+                "smaller explicit row limit, then retry. "
+                "Result pagination is not supported yet."
+            )
+        elif reason == "unverified":
+            message = _(
+                "The semantic layer could not verify that this query result "
+                "is complete. Retry the query; if it continues, ask an "
+                "administrator to check the semantic-layer connection."
+            )
+        else:
+            raise ValueError("Unknown completeness reason")
+        super().__init__(message)
 
 
 class AdvancedDataTypeResponseError(SupersetException):
@@ -373,18 +428,23 @@ class OAuth2TokenRefreshError(OAuth2RedirectError):
     Raised when an OAuth2 refresh token request fails with a 400/401/403 error.
     The stored token is no longer valid and the user must re-authenticate.
 
-    Subclasses OAuth2RedirectError so that existing oauth2_exception checks
-    match it automatically, triggering start_oauth2_dance() via check_for_oauth2.
+    Subclasses OAuth2RedirectError as a sanitized re-authentication marker.
+    ``check_for_oauth2`` recognizes it independently of vendor-specific exception
+    classifiers and calls ``start_oauth2_dance`` to attach the authorization metadata.
+    The optional provider response is accepted for compatibility but discarded so
+    provider payloads cannot reach logs or API responses through the exception.
     """
 
-    def __init__(self, response_text: str) -> None:
+    def __init__(  # pylint: disable=unused-argument
+        self,
+        response_text: str | None = None,
+    ) -> None:
         SupersetErrorException.__init__(
             self,
             SupersetError(
                 message="OAuth2 token refresh failed, re-authentication required.",
                 error_type=SupersetErrorType.OAUTH2_REDIRECT,
                 level=ErrorLevel.WARNING,
-                extra={"error": response_text},
             ),
         )
 
@@ -401,6 +461,29 @@ class OAuth2Error(SupersetErrorException):
                 error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={"error": error},
+            )
+        )
+
+
+class OAuth2RejectedError(SupersetErrorException):
+    """
+    Exception for when the OAuth2 callback itself can't be completed.
+
+    Raised when the provider denies authorization or the callback request
+    can't be trusted (missing/invalid state, no authenticated session).
+    These are conditions the caller could correct by retrying the OAuth2
+    flow, so unlike ``OAuth2Error`` this maps to a 4xx response instead of
+    a 500.
+    """
+
+    status = 400
+
+    def __init__(self, error: str):
+        super().__init__(
+            SupersetError(
+                message=error,
+                error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR,
+                level=ErrorLevel.WARNING,
             )
         )
 
@@ -429,6 +512,24 @@ class SupersetDisallowedSQLTableException(SupersetErrorException):
         super().__init__(
             SupersetError(
                 message=f"SQL statement references disallowed table(s): {tables}",
+                error_type=SupersetErrorType.SYNTAX_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+
+class SupersetDisallowedClientFileTransferException(SupersetErrorException):
+    """
+    Client-side file-transfer command found in SQL statement
+    """
+
+    def __init__(self, commands: list[str]):
+        super().__init__(
+            SupersetError(
+                message=(
+                    "SQL statement contains disallowed client-side "
+                    f"file-transfer command(s): {', '.join(commands)}"
+                ),
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
             )

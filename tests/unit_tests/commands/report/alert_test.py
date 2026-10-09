@@ -20,10 +20,12 @@ from uuid import uuid4
 import numpy as np
 import pandas as pd
 import pytest
+from jinja2.exceptions import TemplateError
 from pytest_mock import MockerFixture
 
 from superset.commands.report.alert import AlertCommand
 from superset.commands.report.exceptions import (
+    AlertQueryError,
     AlertValidatorConfigError,
     ReportScheduleExecutorNotFoundError,
 )
@@ -509,8 +511,11 @@ def test_execute_query_raises_when_executor_user_missing(
     username, rather than swallowing it into an opaque ``AlertQueryError`` (or
     surfacing a NoneType/AttributeError from the downstream auth flow).
     """
+    template_processor_mock = mocker.Mock()
+    template_processor_mock.process_template.return_value = "SELECT value FROM metrics"
     mocker.patch(
         "superset.commands.report.alert.jinja_context.get_template_processor",
+        return_value=template_processor_mock,
     )
     mocker.patch(
         "superset.commands.report.alert.get_executor",
@@ -523,7 +528,11 @@ def test_execute_query_raises_when_executor_user_missing(
 
     report_schedule_mock = mocker.Mock()
     report_schedule_mock.id = 1
+    report_schedule_mock.run_as_type = None
+    report_schedule_mock.run_alert_query_as_type = None
     report_schedule_mock.sql = "SELECT value FROM metrics"
+    report_schedule_mock.database.backend = "sqlite"
+    report_schedule_mock.database.allow_dml = False
 
     command = AlertCommand(
         report_schedule=report_schedule_mock,
@@ -532,3 +541,87 @@ def test_execute_query_raises_when_executor_user_missing(
 
     with pytest.raises(ReportScheduleExecutorNotFoundError, match="ghost_user"):
         command._execute_query()
+
+
+def test_execute_query_wraps_template_rendering_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A Jinja rendering error raised while templating the alert's SQL (e.g. an
+    undefined variable in the alert query) must surface as the documented
+    ``AlertQueryError``, not propagate as a raw ``jinja2.exceptions.TemplateError``.
+    """
+    template_processor_mock = mocker.Mock()
+    template_processor_mock.process_template.side_effect = TemplateError(
+        "'foo' is undefined"
+    )
+    mocker.patch(
+        "superset.commands.report.alert.jinja_context.get_template_processor",
+        return_value=template_processor_mock,
+    )
+    mocker.patch(
+        "superset.commands.report.alert.get_executor",
+        return_value=("fixed_user", "template_user"),
+    )
+    executor_user = mocker.Mock(is_active=True)
+    mocker.patch(
+        "superset.commands.report.alert.security_manager.find_user",
+        return_value=executor_user,
+    )
+
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.id = 1
+    report_schedule_mock.run_as_type = None
+    report_schedule_mock.run_alert_query_as_type = None
+    report_schedule_mock.editors = []
+    report_schedule_mock.sql = "SELECT {{ foo }} FROM metrics"
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    with pytest.raises(AlertQueryError) as exc:
+        command._execute_query()
+
+    assert isinstance(exc.value.__cause__, TemplateError)
+    template_processor_mock.process_template.assert_called_once_with(
+        "SELECT {{ foo }} FROM metrics"
+    )
+
+
+@pytest.mark.parametrize("allow_dml", [False, True])
+@pytest.mark.parametrize(
+    "sql, rejected_head",
+    [
+        ("PUT file:///tmp/data.csv @my_stage", "PUT"),
+        ("SELECT value FROM metrics", None),
+    ],
+)
+def test_validate_rendered_sql_client_file_transfer_gate(
+    mocker: MockerFixture,
+    allow_dml: bool,
+    sql: str,
+    rejected_head: str | None,
+) -> None:
+    """
+    A client-side file-transfer command in an alert query is rejected whether
+    or not the database allows DML: it does file I/O on the host running the
+    query rather than reading or writing table data, so `allow_dml` does not
+    govern it. An ordinary read-only query is left alone either way.
+    """
+    report_schedule_mock = mocker.Mock()
+    report_schedule_mock.database.backend = "snowflake"
+    report_schedule_mock.database.allow_dml = allow_dml
+
+    command = AlertCommand(
+        report_schedule=report_schedule_mock,
+        execution_id=uuid4(),
+    )
+
+    if rejected_head is None:
+        command._validate_rendered_sql(sql)
+        return
+
+    with pytest.raises(AlertQueryError, match=rejected_head):
+        command._validate_rendered_sql(sql)

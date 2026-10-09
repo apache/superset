@@ -20,6 +20,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
+import pytest
 import yaml
 
 
@@ -204,3 +205,22 @@ def test_load_examples_from_configs_defaults(
         force_data=False,
     )
     mock_command.run.assert_called_once()
+
+
+def test_load_configs_from_directory_rejects_unsafe_yaml_metadata():
+    """metadata.yaml must be parsed with a safe YAML loader.
+
+    A bundle whose metadata.yaml carries a python/object/apply payload must be
+    rejected on parse instead of instantiating arbitrary Python objects.
+    """
+    from superset.examples.utils import load_configs_from_directory
+
+    with TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        (root / "metadata.yaml").write_text("!!python/object/apply:os.getcwd []\n")
+
+        with patch("superset.examples.utils.ImportExamplesCommand") as mock_command_cls:
+            with pytest.raises(yaml.YAMLError):
+                load_configs_from_directory(root)
+
+        mock_command_cls.return_value.run.assert_not_called()

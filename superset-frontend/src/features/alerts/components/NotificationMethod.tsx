@@ -33,11 +33,15 @@ import {
   JsonResponse,
   SupersetClient,
   isFeatureEnabled,
-  handleKeyboardActivation,
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { AsyncSelect, Input, Select } from '@superset-ui/core/components';
+import {
+  ActionButton,
+  AsyncSelect,
+  Input,
+  Select,
+} from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
 import {
   NotificationMethodOption,
@@ -85,6 +89,11 @@ const StyledNotificationMethod = styled.div`
     }
 
     .ghost-button {
+      appearance: none;
+      border: none;
+      background: none;
+      padding: 0;
+      font: inherit;
       color: ${theme.colorPrimaryText};
       display: inline-flex;
       align-items: center;
@@ -575,16 +584,12 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               loading={methodOptionsLoading}
             />
             {index !== 0 && !!onRemove ? (
-              <span
-                role="button"
-                tabIndex={0}
+              <ActionButton
+                label={t('Remove notification method')}
                 className="delete-button"
+                icon={<Icons.DeleteOutlined iconSize="l" />}
                 onClick={() => onRemove(index)}
-                onKeyDown={handleKeyboardActivation(() => onRemove(index))}
-                aria-label={t('Remove notification method')}
-              >
-                <Icons.DeleteOutlined iconSize="l" />
-              </span>
+              />
             ) : null}
           </div>
         </StyledInputContainer>
@@ -778,30 +783,24 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               )}
               {/* New buttons container */}
               <div className="ghost-button">
-                <span
+                <button
+                  type="button"
                   className="ghost-button"
-                  role="button"
-                  tabIndex={0}
                   onClick={() => setCcVisible(true)}
-                  onKeyDown={handleKeyboardActivation(() => setCcVisible(true))}
                   style={{ display: ccVisible ? 'none' : 'inline-flex' }}
                 >
                   <Icons.MailOutlined iconSize="xs" className="icon" />
                   {t('Add CC Recipients')}
-                </span>
-                <span
+                </button>
+                <button
+                  type="button"
                   className="ghost-button"
-                  role="button"
-                  tabIndex={0}
                   onClick={() => setBccVisible(true)}
-                  onKeyDown={handleKeyboardActivation(() =>
-                    setBccVisible(true),
-                  )}
                   style={{ display: bccVisible ? 'none' : 'inline-flex' }}
                 >
                   <Icons.MailOutlined iconSize="xs" className="icon" />
                   {t('Add BCC Recipients')}
-                </span>
+                </button>
               </div>
             </StyledInputContainer>
           )}

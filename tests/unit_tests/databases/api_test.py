@@ -28,6 +28,7 @@ from uuid import UUID
 import pytest
 import yaml
 from flask import current_app
+from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
@@ -120,6 +121,98 @@ def test_post_with_uuid(
 
     database = session.query(Database).one()
     assert database.uuid == UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb")
+
+
+@pytest.mark.parametrize("method", ["POST", "PUT"])
+@pytest.mark.parametrize("engine", ["bigquery", "gsheets"])
+@pytest.mark.parametrize("credential_type", ["oauth2", "service_account"])
+def test_write_response_masks_encrypted_extra(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    method: str,
+    engine: str,
+    credential_type: str,
+) -> None:
+    """Mask write responses without changing stored or round-tripped credentials."""
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    # Keep the real commands and persistence, but avoid external connections and
+    # permission synchronization, which require a live database and user.
+    mocker.patch("superset.commands.database.create.TestConnectionDatabaseCommand.run")
+    mocker.patch("superset.commands.database.create.add_permissions")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value=engine)
+
+    if credential_type == "oauth2":
+        credential_key = "oauth2_client_info"
+        sensitive_field = "secret"
+        credentials = {
+            "id": "test-client",
+            "secret": "test-client-secret",
+            "scope": "test-scope",
+            "authorization_request_uri": "https://example.com/authorize",
+            "token_request_uri": "https://example.com/token",
+        }
+    else:
+        credential_key = (
+            "credentials_info" if engine == "bigquery" else "service_account_info"
+        )
+        sensitive_field = "private_key"
+        credentials = {
+            "type": "service_account",
+            "project_id": "test-project",
+            "private_key": "test-private-key",
+        }
+    encrypted_extra = {credential_key: credentials}
+    payload = {
+        "database_name": "test_database",
+        "sqlalchemy_uri": f"{engine}://",
+        "masked_encrypted_extra": json.dumps(encrypted_extra),
+    }
+    url = "/api/v1/database/"
+    if method == "PUT":
+        database = Database(
+            database_name="test_database",
+            sqlalchemy_uri=f"{engine}://",
+            encrypted_extra="{}",
+        )
+        session.add(database)
+        session.commit()
+        url += str(database.id)
+
+    response = client.open(url, method=method, json=payload)
+    assert response.status_code == (201 if method == "POST" else 200)
+    database_id = response.json["id"]
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == encrypted_extra
+
+    masked_extra = response.json["result"]["masked_encrypted_extra"]
+    assert json.loads(masked_extra) == {
+        credential_key: {**credentials, sensitive_field: "XXXXXXXXXX"}
+    }
+    assert credentials[sensitive_field] not in response.get_data(as_text=True)
+
+    # Saving the masked response must preserve the original secret.
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={"masked_encrypted_extra": masked_extra},
+    )
+    assert response.status_code == 200
+    assert json.loads(response.json["result"]["masked_encrypted_extra"]) == json.loads(
+        masked_extra
+    )
+    session.expire_all()
+    assert json.loads(stored.encrypted_extra) == encrypted_extra
 
 
 def test_password_mask(
@@ -245,6 +338,11 @@ def test_database_connection(
                 "supports_oauth2": True,
                 "supports_offset": True,
                 "supports_schemas": True,
+                "identifier_quote": {
+                    "start": '"',
+                    "end": '"',
+                    "escape_by_doubling": True,
+                },
             },
             "expose_in_sqllab": True,
             "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
@@ -336,6 +434,11 @@ def test_database_connection(
                 "supports_oauth2": True,
                 "supports_offset": True,
                 "supports_schemas": True,
+                "identifier_quote": {
+                    "start": '"',
+                    "end": '"',
+                    "escape_by_doubling": True,
+                },
             },
             "expose_in_sqllab": True,
             "force_ctas_schema": None,
@@ -345,6 +448,83 @@ def test_database_connection(
             "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
         },
     }
+
+
+@pytest.mark.parametrize("full_payload", [False, True])
+@pytest.mark.parametrize("change", [None, "password", "database_name"])
+@pytest.mark.parametrize("with_tunnel", [False, True])
+def test_update_unreachable_database(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    full_payload: bool,
+    change: str | None,
+    with_tunnel: bool,
+) -> None:
+    """Persist offline metadata edits, but roll back changed credentials or names."""
+    from superset import security_manager
+    from superset.databases.api import DatabaseRestApi
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(
+        database_name="Druid",
+        expose_in_sqllab=True,
+        encrypted_extra='{"connect_args": {"jwt": "original-token"}}',
+    )
+    database.set_sqlalchemy_uri("druid://user:secret@localhost:8082/druid/v2/sql/")
+    if with_tunnel:
+        database.ssh_tunnel = SSHTunnel(
+            server_address="localhost",
+            server_port=22,
+            username="ssh-user",
+            password="ssh-secret",  # noqa: S106
+        )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(security_manager, "get_user_by_username")
+    mocker.patch.object(Database, "get_sqla_engine")
+    ping = mocker.patch(
+        "superset.commands.database.sync_permissions.ping",
+        side_effect=ConnectionError("Database unavailable"),
+    )
+    properties: dict[str, Any] = {}
+    if full_payload:
+        response = client.get(f"/api/v1/database/{database_id}/connection")
+        assert response.status_code == 200
+        properties = response.json["result"]
+    properties["expose_in_sqllab"] = False
+    if change == "password":
+        properties["sqlalchemy_uri"] = (
+            "druid://user:changed@localhost:8082/druid/v2/sql/"
+        )
+    elif change == "database_name":
+        properties["database_name"] = "Renamed"
+
+    response = client.put(f"/api/v1/database/{database_id}", json=properties)
+
+    assert response.status_code == (422 if change else 200)
+    if change:
+        assert response.json == {
+            "message": "Connection failed, please check your connection settings"
+        }
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert stored.expose_in_sqllab is bool(change)
+    assert stored.database_name == "Druid"
+    assert stored.password == "secret"  # noqa: S105
+    assert json.loads(stored.encrypted_extra)["connect_args"]["jwt"] == "original-token"
+    if with_tunnel:
+        assert stored.ssh_tunnel.password == "ssh-secret"  # noqa: S105
+    ping.assert_called_once()
 
 
 @pytest.mark.skip(reason="Works locally but fails on CI")
@@ -700,6 +880,10 @@ def test_oauth2_happy_path(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -776,6 +960,10 @@ def test_oauth2_permissions(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -857,6 +1045,10 @@ def test_oauth2_multiple_tokens(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -908,14 +1100,14 @@ def test_oauth2_error(
         },
     )
 
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert response.json == {
         "errors": [
             {
-                "message": "Something went wrong while doing OAuth2",
+                "message": "The OAuth2 provider denied the request",
                 "error_type": "OAUTH2_REDIRECT_ERROR",
-                "level": "error",
-                "extra": {"error": "Something bad hapened"},
+                "level": "warning",
+                "extra": None,
             }
         ]
     }
@@ -930,6 +1122,58 @@ def test_oauth2_error(
                 "file": (create_csv_file(), "out.csv"),
                 "table_name": "table1",
                 "delimiter": ",",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "type": "csv",
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            # an unset schema stringified by a broken client must be treated
+            # as absent (see #36305)
+            {
+                "type": "csv",
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "schema": "undefined",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "type": "csv",
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            {
+                "type": "csv",
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "schema": "",
             },
             (
                 1,
@@ -1043,6 +1287,38 @@ def test_csv_upload(
     assert response.json == {"message": "OK"}
     init_mock.assert_called_with(*upload_called_with)
     reader_mock.assert_called_with(*reader_called_with)
+
+
+@pytest.mark.parametrize(
+    "schema_in,schema_out",
+    [
+        ("", None),
+        ("  ", None),
+        ("undefined", None),
+        ("null", None),
+        (None, None),
+        # only the exact JS stringification artifacts are dropped — a quoted
+        # schema actually named ``NULL``/``Undefined`` or an identifier with
+        # surrounding whitespace is preserved verbatim
+        ("NULL", "NULL"),
+        ("Undefined", "Undefined"),
+        (" public ", " public "),
+        ("myschema", "myschema"),
+    ],
+)
+def test_upload_post_schema_normalizes_schema(
+    schema_in: str | None,
+    schema_out: str | None,
+) -> None:
+    """
+    Empty/whitespace-only values and the exact stringified-unset artifacts
+    ("undefined"/"null") are dropped; every other value is preserved verbatim.
+    """
+    from superset.databases.schemas import UploadPostSchema
+
+    data = {} if schema_in is None else {"schema": schema_in}
+    result = UploadPostSchema().load(data, partial=True)
+    assert result.get("schema") == schema_out
 
 
 @pytest.mark.parametrize(
@@ -2564,3 +2840,120 @@ def test_import_includes_configuration_method(
         f"'configuration_method' not found in database list response: {db_obj_api}"
     )
     assert db_obj_api["configuration_method"] == "dynamic_form"
+
+
+def test_related_objects_includes_datasets(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """The delete confirmation reads its dependents from this endpoint.
+
+    ``DeleteDatabaseCommand`` refuses to delete a database while any dataset
+    references it, so a response without a datasets block leaves the modal
+    reporting no dependents for a database that cannot be deleted.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="related_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.add(SqlaTable(table_name="qa_orders", database=database))
+    db.session.commit()
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    payload = response.json
+    assert payload["datasets"]["count"] == 1
+    assert payload["datasets"]["result"][0]["table_name"] == "qa_orders"
+
+
+def test_related_objects_datasets_filtered_by_access(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Dataset names are access-filtered; the blocking count is not.
+
+    This route only requires ``can_read`` on Database, and ``DatabaseFilter``
+    admits a caller holding ``datasource_access`` on a single dataset in the
+    database. Returning every dataset name would let such a caller enumerate
+    datasets they hold no permission on. The count stays unfiltered because it
+    is what explains the delete being blocked, and a bare number discloses far
+    less than a name and schema.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi
+    from superset.extensions import security_manager
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="mixed_access_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.add(SqlaTable(table_name="visible", database=database))
+    db.session.add(SqlaTable(table_name="secret", database=database))
+    db.session.commit()
+
+    mocker.patch.object(
+        security_manager,
+        "can_access_datasource",
+        side_effect=lambda datasource: datasource.table_name == "visible",
+    )
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    payload = response.json
+    # Both datasets block the delete, so both are counted...
+    assert payload["datasets"]["count"] == 2
+    # ...but only the accessible one is named.
+    assert [d["table_name"] for d in payload["datasets"]["result"]] == ["visible"]
+
+
+def test_related_objects_limits_dataset_details(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """The response returns only the dataset details the modal can display."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi, MAX_RELATED_DATASETS
+    from superset.extensions import security_manager
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="large_related_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.add_all(
+        SqlaTable(table_name=f"table_{index:02}", database=database)
+        for index in range(MAX_RELATED_DATASETS + 2)
+    )
+    db.session.commit()
+
+    can_access = mocker.patch.object(
+        security_manager,
+        "can_access_datasource",
+        return_value=True,
+    )
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    payload = response.json["datasets"]
+    assert payload["count"] == MAX_RELATED_DATASETS + 2
+    assert len(payload["result"]) == MAX_RELATED_DATASETS
+    assert can_access.call_count == MAX_RELATED_DATASETS

@@ -491,6 +491,7 @@ def test_base_parameters_mixin():
                 "minimum": 0,
                 "maximum": 65536,
                 "description": "Database port",
+                "nullable": True,
             },
             "password": {"type": "string", "nullable": True, "description": "Password"},
             "username": {"type": "string", "nullable": True, "description": "Username"},
@@ -504,7 +505,9 @@ def test_base_parameters_mixin():
                 "type": "boolean",
             },
         },
-        "required": ["database", "host", "port", "username"],
+        # ``port`` is intentionally not required: a blank port falls back to
+        # Postgres's own default (5432) in ``PostgresEngineSpec.build_sqlalchemy_uri``.
+        "required": ["database", "host", "username"],
     }
 
 

@@ -2,6 +2,7 @@
 hide_title: true
 sidebar_position: 1
 ---
+
 <!--
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
@@ -51,7 +52,7 @@ A modern, enterprise-ready business intelligence web application.
 [**Why Superset?**](#why-superset) |
 [**Supported Databases**](#supported-databases) |
 [**Installation and Configuration**](#installation-and-configuration) |
-[**Release Notes**](https://github.com/apache/superset/blob/master/RELEASING/README.md#release-notes-for-recent-releases) |
+[**Release Notes**](https://github.com/apache/superset/releases) |
 [**Get Involved**](#get-involved) |
 [**Contributor Guide**](#contributor-guide) |
 [**Resources**](#resources) |

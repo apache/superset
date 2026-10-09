@@ -39,7 +39,11 @@ from superset.commands.report.exceptions import (
     AlertValidatorConfigError,
     ReportScheduleExecutorNotFoundError,
 )
+from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
+from superset.reports.utils import get_dynamic_executor
+from superset.sql.parse import SQLScript
+from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.utils import get_executor
 from superset.utils import json
 from superset.utils.core import override_user
@@ -181,6 +185,28 @@ class AlertCommand(BaseCommand):
             "execution_id": self._execution_id,
         }
 
+    def _validate_rendered_sql(self, rendered_sql: str) -> None:
+        """
+        Enforce SQL-level constraints on the rendered alert query: a single
+        statement, no client-side file transfer, and no mutations unless the
+        database allows DML.
+        """
+        database = self._report_schedule.database
+        script = SQLScript(rendered_sql, engine=database.backend)
+        if len(script.statements) != 1:
+            raise AlertQueryError(message=_("Alert query must be a single statement"))
+        # Rejected regardless of `allow_dml`: these do host file I/O, not DML.
+        if commands := script.get_client_file_transfer_commands():
+            raise AlertQueryError(
+                message=_(
+                    "Alert query must not contain the file-transfer "
+                    "command(s): %(commands)s",
+                    commands=", ".join(commands),
+                )
+            )
+        if script.has_mutation() and not database.allow_dml:
+            raise AlertQueryError(message=_("Alert query must be read-only"))
+
     @logs_context(context_func=_get_alert_metadata_from_object)
     def _execute_query(self) -> pd.DataFrame:
         """
@@ -190,36 +216,53 @@ class AlertCommand(BaseCommand):
         :raises AlertQueryError: SQL query is not valid
         :raises AlertQueryTimeout: The SQL query received a celery soft timeout
         """
-        sql_template = jinja_context.get_template_processor(
-            database=self._report_schedule.database
-        )
-        rendered_sql = sql_template.process_template(self._report_schedule.sql)
-
         try:
-            limited_rendered_sql = self._report_schedule.database.apply_limit_to_sql(
-                rendered_sql, ALERT_SQL_LIMIT
-            )
-
-            if app.config["MUTATE_ALERT_QUERY"]:
-                limited_rendered_sql = (
-                    self._report_schedule.database.mutate_sql_based_on_config(
-                        limited_rendered_sql
-                    )
+            user = get_dynamic_executor(self._report_schedule, alert_query=True)
+            if user is not None:
+                username = user.username
+            else:
+                executor, username = get_executor(  # pylint: disable=unused-variable
+                    executors=app.config["ALERT_REPORTS_EXECUTORS"],
+                    model=self._report_schedule,
                 )
-
-            executor, username = get_executor(  # pylint: disable=unused-variable
-                executors=app.config["ALERT_REPORTS_EXECUTORS"],
-                model=self._report_schedule,
-            )
-            user = security_manager.find_user(username)
+                user = security_manager.find_user(username)
             # A deleted/disabled executor user makes find_user return None. Raise
             # the dedicated error so the handler below re-surfaces it instead of
             # masking it as an opaque AlertQueryError (or letting the missing user
             # surface as a NoneType error from the downstream auth flow).
-            if user is None:
+            if user is None or not user.is_active:
                 raise ReportScheduleExecutorNotFoundError(username)
 
             with override_user(user):
+                sql_template = jinja_context.get_template_processor(
+                    database=self._report_schedule.database
+                )
+                rendered_sql = sql_template.process_template(self._report_schedule.sql)
+                self._validate_rendered_sql(rendered_sql)
+                limited_rendered_sql = (
+                    self._report_schedule.database.apply_limit_to_sql(
+                        rendered_sql, ALERT_SQL_LIMIT
+                    )
+                )
+
+                if app.config["MUTATE_ALERT_QUERY"]:
+                    limited_rendered_sql = (
+                        self._report_schedule.database.mutate_sql_based_on_config(
+                            limited_rendered_sql
+                        )
+                    )
+                # Run table-level authorization as the executing user against
+                # the rendered SQL.
+                try:
+                    security_manager.raise_for_access(
+                        database=self._report_schedule.database,
+                        sql=rendered_sql,
+                        force_dataset_match=True,
+                    )
+                except SupersetSecurityException as ex:
+                    raise AlertQueryError(
+                        message=_("Alert query failed the authorization check")
+                    ) from ex
                 start = default_timer()
                 df = self._report_schedule.database.get_df(sql=limited_rendered_sql)
                 stop = default_timer()
@@ -232,9 +275,15 @@ class AlertCommand(BaseCommand):
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
+        except ExecutorNotFoundError as ex:
+            raise ReportScheduleExecutorNotFoundError() from ex
         except ReportScheduleExecutorNotFoundError:
             # A missing executor user is a configuration problem, not a transient
             # query error; surface the typed error rather than masking it.
+            raise
+        except AlertQueryError:
+            # Re-raise the typed validation/authorization errors as-is instead
+            # of masking them behind the generic error below.
             raise
         except Exception as ex:
             logger.warning("An error occurred when running alert query")

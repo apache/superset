@@ -20,8 +20,9 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, TYPE_CHECKING, TypedDict
 
+import sqlalchemy as sa
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app as app
@@ -30,10 +31,11 @@ from marshmallow import fields, Schema
 from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType, get_user_agent, QuerySource
 
@@ -125,7 +127,11 @@ class DuckDBParametersMixin:
         ):
             return MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
 
-        return str(URL(drivername=cls.engine, database=database, query=query))
+        # SQLAlchemy 2.0 made URL a strict NamedTuple - the raw URL(...)
+        # constructor now requires username/password/host/port to be passed
+        # explicitly (they used to default to None). URL.create() keeps
+        # those optional, matching the pre-2.0 URL(...) behavior used here.
+        return str(URL.create(drivername=cls.engine, database=database, query=query))
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
@@ -197,6 +203,18 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
     sqlalchemy_uri_placeholder = "duckdb:////path/to/duck.db"
     supports_multivalues_insert = True
+
+    # Verified against a live duckdb instance (in-process, no server needed),
+    # including under GROUPING SETS: the grand total correctly reflects every
+    # row, not an aggregate-of-aggregates. STDDEV_SAMP/VAR_SAMP values match
+    # postgres/mysql exactly for the same inputs; MEDIAN matches postgres
+    # (mysql has no native MEDIAN to compare against). Inherited by
+    # MotherDuckEngineSpec.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
+    }
 
     metadata = {
         "description": (
@@ -310,39 +328,6 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         return None
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-        """
-        Override fetch_data to work around duckdb-engine cursor.description bug.
-
-        The duckdb-engine SQLAlchemy driver has a bug where cursor.description
-        becomes None after calling fetchall(), even though the native DuckDB cursor
-        preserves this information correctly.
-
-        See: https://github.com/Mause/duckdb_engine/issues/1322
-
-        This method captures the cursor description before fetchall() and restores
-        it afterward to prevent downstream processing failures.
-        """
-        # Capture description BEFORE fetchall() invalidates it
-        description = cursor.description
-
-        # Execute fetchall() (which will clear cursor.description in duckdb-engine)
-        if cls.arraysize:
-            cursor.arraysize = cls.arraysize
-        try:
-            if cls.limit_method == LimitMethod.FETCH_MANY and limit:
-                data = cursor.fetchmany(limit)
-            else:
-                data = cursor.fetchall()
-        except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex) from ex
-
-        # Restore the captured description for downstream processing
-        cursor.description = description
-
-        return data
-
-    @classmethod
     def get_table_names(
         cls, database: Database, inspector: Inspector, schema: str | None
     ) -> set[str]:
@@ -368,6 +353,45 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         config.setdefault("custom_user_agent", user_agent)
 
         return extra
+
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        # duckdb-engine passes a username in the URL to connect() as a kwarg
+        # that duckdb rejects, so it must never survive: neither the one the
+        # base implementation sets (hence never calling it) nor one already
+        # configured in the SQLAlchemy URI.
+        url = url._replace(username=None)
+
+        # Local DuckDB has no user concept. Note that md: databases also
+        # resolve to this spec (spec lookup is by backend name only, and
+        # MotherDuck shares the duckdb:// scheme).
+        if username is None or not (url.database or "").startswith("md:"):
+            return url, engine_kwargs
+
+        # Identify the logged-in user to MotherDuck for per-user session
+        # attribution. The parameter is embedded in the md: path rather than
+        # the SQLAlchemy URL query: the setting must reach MotherDuck at
+        # connection initialization, and duckdb-engine applies unknown URL
+        # query parameters via SET after connecting, which is rejected.
+        # MotherDuck reads path parameter values literally (no URL decoding),
+        # so only the characters structural to the path are escaped.
+        session_name = (
+            username.replace("%", "%25").replace("&", "%26").replace("=", "%3D")
+        )
+        # The impersonated user replaces any session_name configured in the path.
+        base, _, params = url.database.partition("?")
+        kept = [p for p in params.split("&") if p and not p.startswith("session_name=")]
+        query = "&".join([*kept, f"session_name={session_name}"])
+        url = url.set(database=f"{base}?{query}")
+
+        return url, engine_kwargs
 
 
 class MotherDuckEngineSpec(DuckDBEngineSpec):
@@ -443,8 +467,14 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
                 f"Need MotherDuck token to connect to database '{database}'."
             )
 
+        # SQLAlchemy 2.0 made URL a strict NamedTuple - the raw URL(...)
+        # constructor now requires username/password/host/port to be passed
+        # explicitly (they used to default to None). URL.create() keeps
+        # those optional, matching the pre-2.0 URL(...) behavior used here.
         return str(
-            URL(drivername=DuckDBEngineSpec.engine, database=database, query=query)
+            URL.create(
+                drivername=DuckDBEngineSpec.engine, database=database, query=query
+            )
         )
 
     @classmethod

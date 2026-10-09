@@ -211,3 +211,50 @@ def test_non_string_cursor_type_unaffected_by_druid_spec() -> None:
 
     col = result_set.columns[0]
     assert col["type"] == "INT"
+
+
+def test_mask_encrypted_extra() -> None:
+    """
+    Only the credentials inside `connect_args` should be masked, not the whole object.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+    from superset.utils import json
+
+    config = json.dumps(
+        {
+            "connect_args": {
+                "scheme": "https",
+                "jwt": "my-secret-token",
+                "password": "my-password",
+            },
+        }
+    )
+
+    assert DruidEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "connect_args": {
+                "scheme": "https",
+                "jwt": "XXXXXXXXXX",
+                "password": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Masked credentials are reused from the previous value; edited ones are kept.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+    from superset.utils import json
+
+    old = json.dumps(
+        {"connect_args": {"scheme": "https", "jwt": "old-token", "password": "old"}}
+    )
+    new = json.dumps(
+        {"connect_args": {"scheme": "http", "jwt": "XXXXXXXXXX", "password": "new"}}
+    )
+
+    assert DruidEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {"connect_args": {"scheme": "http", "jwt": "old-token", "password": "new"}}
+    )

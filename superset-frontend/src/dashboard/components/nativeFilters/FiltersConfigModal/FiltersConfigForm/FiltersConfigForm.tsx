@@ -17,15 +17,18 @@
  * under the License.
  */
 /* eslint-disable react-hooks/rules-of-hooks */
-import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  D3_TIME_FORMAT_DOCS,
+  D3_TIME_FORMAT_OPTIONS,
+  Metric,
+} from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
   Behavior,
   ChartDataResponseResult,
   Column,
   DatasourceType,
-  isFeatureEnabled,
-  FeatureFlag,
   Filter,
   ChartCustomization,
   ChartCustomizationType,
@@ -52,14 +55,16 @@ import {
   memo,
 } from 'react';
 import rison from 'rison';
+import { Alert } from '@apache-superset/core/components';
 import {
   PluginFilterSelectCustomizeProps,
   SelectFilterOperatorType,
 } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import {
   Constants,
+  Button,
   FormItem,
   type FormInstance,
   Collapse,
@@ -85,7 +90,7 @@ import {
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import type AdhocFilterClass from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import { SingleValueType } from 'src/filters/components/Range/SingleValueType';
 import { RangeDisplayMode } from 'src/filters/components/Range/types';
 import {
@@ -94,7 +99,7 @@ import {
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
 import {
-  ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
+  filterSupportsDependencies,
   getFiltersConfigModalTestId,
 } from '../FiltersConfigModal';
 import { FilterRemoval, NativeFiltersForm } from '../types';
@@ -114,7 +119,8 @@ import {
   setNativeFilterFieldValues,
   shouldShowTimeRangePicker,
   useForceUpdate,
-  mapSemanticTypeToGenericDataType,
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
   doesChartMatchFilterDatasource,
 } from './utils';
 import {
@@ -319,6 +325,7 @@ const FiltersConfigForm = (
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+  const asyncModeOverride = useAsyncModeOverride();
   const [undoFormValues, setUndoFormValues] = useState<Record<
     string,
     any
@@ -468,13 +475,15 @@ const FiltersConfigForm = (
   const hasFilledDataset =
     !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
 
-  const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
-    formFilter?.filterType,
-  );
+  // Use itemTypeField, not formFilter?.filterType directly: the latter can
+  // be undefined on the first render before the antd Form hydrates (see
+  // itemTypeField's own fallback chain above), which would otherwise hide
+  // this section and the cascade-dependency section for a filter type that
+  // does support them.
+  const hasAdditionalFilters =
+    FILTERS_WITH_ADHOC_FILTERS.includes(itemTypeField);
 
-  const canDependOnOtherFilters = TYPES_SUPPORT_DEPENDENCIES.includes(
-    formFilter?.filterType,
-  );
+  const canDependOnOtherFilters = filterSupportsDependencies(itemTypeField);
 
   const isDataDirty = formFilter?.isDataDirty ?? true;
 
@@ -526,45 +535,20 @@ const FiltersConfigForm = (
         defaultValueQueriesData: null,
         isDataDirty: false,
       });
-      getChartDataRequest({
+      requestChartDataResolved({
         formData,
         force,
+        requestParams: { async_mode_override: asyncModeOverride },
       })
-        .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-            // deal with getChartDataRequest transforming the response data
-            const result = 'result' in json ? json.result[0] : json;
-
-            if (response.status === 200) {
-              setNativeFilterFieldValuesWrapper({
-                defaultValueQueriesData: [result as ChartDataResponseResult],
-              });
-            } else if (response.status === 202) {
-              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
-                .then((asyncResult: ChartDataResponseResult[]) => {
-                  setNativeFilterFieldValuesWrapper({
-                    defaultValueQueriesData: asyncResult,
-                  });
-                })
-                .catch((error: Response) => {
-                  getClientErrorObject(error).then(clientErrorObject => {
-                    setErrorWrapper(clientErrorObject);
-                  });
-                });
-            } else {
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-            }
-          } else {
-            setNativeFilterFieldValuesWrapper({
-              defaultValueQueriesData: json.result,
-            });
-          }
+        .then(queriesResponse => {
+          setNativeFilterFieldValuesWrapper({
+            defaultValueQueriesData:
+              queriesResponse as ChartDataResponseResult[],
+          });
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
-            setError(clientErrorObject);
+            setErrorWrapper(clientErrorObject);
           });
         });
     },
@@ -593,8 +577,17 @@ const FiltersConfigForm = (
 
   newFormData.extra_form_data = dependenciesDefaultValues;
 
+  const selectionsReset =
+    !!formFilter?.semantic_selection_version &&
+    formFilter.semantic_selection_version !==
+      (filterToEdit ?? customizationToEdit)?.targets?.[0]
+        ?.semantic_selection_version;
   const [hasDefaultValue, isRequired, defaultValueTooltip, setHasDefaultValue] =
-    useDefaultValue(formFilter, filterToEdit, customizationToEdit);
+    useDefaultValue(
+      formFilter,
+      selectionsReset ? undefined : filterToEdit,
+      selectionsReset ? undefined : customizationToEdit,
+    );
 
   const showDataset =
     !datasetId || datasetDetails || formFilter?.dataset?.label;
@@ -608,13 +601,14 @@ const FiltersConfigForm = (
   );
 
   const hasPreFilter =
-    !!formFilter?.adhoc_filters ||
+    !!formFilter?.adhoc_filters?.length ||
     !!formFilter?.time_range ||
-    !!filterToEdit?.adhoc_filters?.length ||
-    !!filterToEdit?.time_range;
+    (!selectionsReset &&
+      (!!filterToEdit?.adhoc_filters?.length || !!filterToEdit?.time_range));
 
   const hasTimeGrainPreFilter = !!(
-    formFilterWithTimeGrains?.time_grains?.length || savedTimeGrains?.length
+    formFilterWithTimeGrains?.time_grains?.length ||
+    (!selectionsReset && savedTimeGrains?.length)
   );
 
   const hasEnableSingleValue =
@@ -671,6 +665,10 @@ const FiltersConfigForm = (
     filterToEdit?.controlValues?.operatorType ??
     SelectFilterOperatorType.Exact;
 
+  const currentDisplayFormat: string | undefined =
+    formFilter?.controlValues?.displayFormat ??
+    filterToEdit?.controlValues?.displayFormat;
+
   const selectedColumnIsString = useMemo(() => {
     const columnName = formFilter?.column;
     if (!columnName || !datasetDetails?.columns) return true;
@@ -689,6 +687,18 @@ const FiltersConfigForm = (
         operatorType: value,
       },
       defaultDataMask: null,
+    });
+    formChanged();
+    forceUpdate();
+  };
+
+  const onDisplayFormatChanged = (value?: string) => {
+    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    setNativeFilterFieldValues(form, filterId, {
+      controlValues: {
+        ...previous,
+        displayFormat: value || undefined,
+      },
     });
     formChanged();
     forceUpdate();
@@ -727,10 +737,11 @@ const FiltersConfigForm = (
   const defaultToFirstItem = formFilter?.controlValues?.defaultToFirstItem;
 
   const initialDefaultValue =
+    !selectionsReset &&
     itemTypeField ===
-    (isChartCustomization
-      ? customizationToEdit?.filterType
-      : filterToEdit?.filterType)
+      (isChartCustomization
+        ? customizationToEdit?.filterType
+        : filterToEdit?.filterType)
       ? isChartCustomization
         ? customizationToEdit?.defaultDataMask
         : filterToEdit?.defaultDataMask
@@ -763,48 +774,41 @@ const FiltersConfigForm = (
   useEffect(() => {
     if (datasetId) {
       if (datasourceType === DatasourceType.SemanticView) {
-        cachedSupersetGet({
-          endpoint: `/api/v1/semantic_view/${datasetId}/structure`,
-        })
-          .then((response: JsonResponse) => {
-            const {
+        fetchSemanticViewStructure(datasetId)
+          .then(
+            ({
               name: svName,
-              dimensions = [],
-              metrics: svMetrics = [],
-            } = response.json?.result ?? {};
-            const columns = dimensions.map(
-              (dim: { name: string; type: string }) => {
-                const mappedType = mapSemanticTypeToGenericDataType(dim.type);
-                return {
-                  column_name: dim.name,
-                  type: dim.type,
-                  is_dttm: mappedType === GenericDataType.Temporal,
-                  filterable: true,
-                  type_generic: mappedType,
-                };
-              },
-            );
-            const mappedMetrics = svMetrics.map(
-              (m: { name: string; definition: string }) => ({
-                metric_name: m.name,
-                expression: m.definition,
-                verbose_name: null,
-              }),
-            );
-            setMetrics(mappedMetrics);
-            setDatasetDetails({
-              columns,
-              metrics: mappedMetrics,
-              datasource_type: DatasourceType.SemanticView,
-              type: DatasourceType.SemanticView,
-              filter_select: true,
-              filter_select_enabled: true,
-              time_grain_sqla: [],
-              main_dttm_col: null,
-              id: datasetId,
-              table_name: svName,
-            });
-          })
+              dimensions,
+              metrics: svMetrics,
+              semantic_selection_version,
+            }) => {
+              const columns = semanticViewDimensionsToColumns(dimensions);
+              // The /structure wire carries no metric uuid, and this state's
+              // consumers key on metric_name/verbose_name without reading
+              // uuid — so the cast is narrowed to exactly that one absent
+              // property; every other field stays compiler-checked.
+              const mappedMetrics = svMetrics.map(
+                (m: { name: string; definition: string }) => ({
+                  metric_name: m.name,
+                  expression: m.definition,
+                }),
+              ) as Omit<Metric, 'uuid'>[] as Metric[];
+              setMetrics(mappedMetrics);
+              setDatasetDetails({
+                semantic_selection_version,
+                columns,
+                metrics: mappedMetrics,
+                datasource_type: DatasourceType.SemanticView,
+                type: DatasourceType.SemanticView,
+                filter_select: true,
+                filter_select_enabled: true,
+                time_grain_sqla: [],
+                main_dttm_col: null,
+                id: datasetId,
+                table_name: svName,
+              });
+            },
+          )
           .catch((response: SupersetApiError) => {
             addDangerToast(response.message);
           });
@@ -980,6 +984,52 @@ const FiltersConfigForm = (
           forceRender: true,
           children: (
             <>
+              <FormItem
+                hidden
+                name={['filters', filterId, 'semantic_selection_version']}
+                initialValue={
+                  (filterToEdit ?? customizationToEdit)?.targets?.[0]
+                    ?.semantic_selection_version
+                }
+              />
+              {datasetDetails?.semantic_selection_version &&
+                formFilter?.semantic_selection_version !==
+                  datasetDetails.semantic_selection_version && (
+                  <Alert
+                    type="warning"
+                    message={t('Choose current semantic filter fields')}
+                    description={t(
+                      'Start field selection using current member IDs. This clears any existing field selections, pre-filters, sorting, defaults and dependencies. Saved display titles cannot be recovered automatically.',
+                    )}
+                    action={
+                      <Button
+                        onClick={() => {
+                          setNativeFilterFieldValues(form, filterId, {
+                            semantic_selection_version:
+                              datasetDetails.semantic_selection_version,
+                            column: undefined,
+                            adhoc_filters: [],
+                            time_range: undefined,
+                            time_grains: [],
+                            preFilter: false,
+                            preFilterTimegrain: false,
+                            granularity_sqla: undefined,
+                            sortMetric: null,
+                            defaultDataMask: {},
+                            dependencies: [],
+                            defaultValue: undefined,
+                            controlValues: {},
+                          });
+                          setHasDefaultValue(false);
+                          forceUpdate();
+                          formChanged();
+                        }}
+                      >
+                        {t('Start field selection')}
+                      </Button>
+                    }
+                  />
+                )}
               <StyledSettings>
                 <StyledContainer>
                   <StyledFormItem
@@ -1192,6 +1242,7 @@ const FiltersConfigForm = (
                                 datasourceType: newDatasourceType,
                                 defaultDataMask: null,
                                 column: null,
+                                semantic_selection_version: undefined,
                               });
                             }
                             forceUpdate();
@@ -1275,6 +1326,7 @@ const FiltersConfigForm = (
                                     name={['filters', filterId, 'preFilter']}
                                   >
                                     <CollapsibleControl
+                                      key={`pre-filter-${selectionsReset}`}
                                       initialValue={hasPreFilter}
                                       title={t('Pre-filter available values')}
                                       tooltip={t(`Add filter clauses to control the filter's source query,
@@ -1357,7 +1409,8 @@ const FiltersConfigForm = (
                                             </StyledLabel>
                                           }
                                           initialValue={
-                                            filterToEdit?.time_range ||
+                                            (!selectionsReset &&
+                                              filterToEdit?.time_range) ||
                                             t('No filter')
                                           }
                                           required={!hasAdhoc}
@@ -1404,6 +1457,7 @@ const FiltersConfigForm = (
                                       ]}
                                     >
                                       <CollapsibleControl
+                                        key={`time-grain-filter-${selectionsReset}`}
                                         initialValue={hasTimeGrainPreFilter}
                                         title={t('Pre-filter available values')}
                                         tooltip={t(
@@ -1427,7 +1481,11 @@ const FiltersConfigForm = (
                                             filterId,
                                             'time_grains',
                                           ]}
-                                          initialValue={savedTimeGrains}
+                                          initialValue={
+                                            selectionsReset
+                                              ? undefined
+                                              : savedTimeGrains
+                                          }
                                           {...getFiltersConfigModalTestId(
                                             'time-grain-allowlist',
                                           )}
@@ -1817,6 +1875,44 @@ const FiltersConfigForm = (
                                       value as SelectFilterOperatorType,
                                     );
                                   }}
+                                />
+                              </StyledRowFormItem>
+                            )}
+                          {!isChartCustomization &&
+                            itemTypeField === 'filter_time' && (
+                              <StyledRowFormItem
+                                expanded={expanded}
+                                name={[
+                                  'filters',
+                                  filterId,
+                                  'controlValues',
+                                  'displayFormat',
+                                ]}
+                                initialValue={currentDisplayFormat}
+                                label={
+                                  <>
+                                    <StyledLabel>
+                                      {t('Display format')}
+                                    </StyledLabel>
+                                    &nbsp;
+                                    <InfoTooltip
+                                      placement="top"
+                                      tooltip={D3_TIME_FORMAT_DOCS}
+                                    />
+                                  </>
+                                }
+                              >
+                                <Select
+                                  allowClear
+                                  allowNewOptions
+                                  ariaLabel={t('Display format')}
+                                  options={D3_TIME_FORMAT_OPTIONS.map(
+                                    ([value, label]) => ({ value, label }),
+                                  )}
+                                  placeholder={t('Default')}
+                                  onChange={value =>
+                                    onDisplayFormatChanged(value as string)
+                                  }
                                 />
                               </StyledRowFormItem>
                             )}

@@ -2,24 +2,31 @@
 
 Apache Superset is a data visualization platform with Flask/Python backend and React/TypeScript frontend.
 
-## ⚠️ CRITICAL: Always Run Pre-commit Before Pushing
+## Run Pre-commit Before Pushing
 
-**ALWAYS run `pre-commit run --all-files` before pushing commits.** CI will fail if pre-commit checks don't pass. This is non-negotiable.
+Always run pre-commit against the files changed by the current branch before
+pushing. This matches CI and keeps unrelated failures already present on
+`master` from blocking otherwise independent work.
 
 ```bash
 # Stage your changes first
 git add .
 
-# Run pre-commit on all files
-pre-commit run --all-files
+# Run pre-commit on staged files
+pre-commit run
 
 # If there are auto-fixes, stage them and commit
 git add .
 git commit --amend  # or new commit
 ```
 
+Use `pre-commit run --all-files` when auditing or repairing the repository-wide
+baseline. If that check finds failures in files untouched by the current branch,
+fix them in a separate branch rather than adding unrelated changes to the
+current pull request.
+
 Common pre-commit failures:
-- **Formatting** - black, prettier, eslint will auto-fix
+- **Formatting** - black, oxfmt, eslint will auto-fix
 - **Type errors** - mypy failures need manual fixes
 - **Linting** - ruff, pylint issues need manual fixes
 
@@ -37,8 +44,7 @@ Common pre-commit failures:
 ### Testing Strategy Migration
 - **Prefer unit tests** over integration tests
 - **Prefer integration tests** over end-to-end tests
-- **Use Playwright for E2E tests** - Migrating from Cypress
-- **Cypress is deprecated** - Will be removed once migration is completed
+- **Use Playwright for E2E tests** - Cypress has been removed
 - **Use Jest + React Testing Library** for component testing
 - **Use `test()` instead of `describe()`** - Follow [avoid nesting when testing](https://kentcdodds.com/blog/avoid-nesting-when-youre-testing) principles
 
@@ -160,7 +166,7 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 ### Generator Location
 - Script: `docs/scripts/generate-superset-components.mjs`
 - Wrapper: `docs/src/components/StorybookWrapper.jsx`
-- Output: `docs/developer_portal/components/`
+- Output: `docs/developer_docs/components/`
 
 ## Architecture Patterns
 
@@ -195,17 +201,12 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 npm run test                           # All tests
 npm run test -- filename.test.tsx     # Single file
 
-# E2E Tests (Playwright - NEW)
+# E2E Tests (Playwright)
 npm run playwright:test                # All Playwright tests
 npm run playwright:ui                  # Interactive UI mode
 npm run playwright:headed              # See browser during tests
 npx playwright test tests/auth/login.spec.ts  # Single file
 npm run playwright:debug tests/auth/login.spec.ts  # Debug specific file
-
-# E2E Tests (Cypress - DEPRECATED)
-cd superset-frontend/cypress-base
-npm run cypress-run-chrome             # All Cypress tests (headless)
-npm run cypress-debug                  # Interactive Cypress UI
 
 # Backend  
 pytest                                 # All tests
@@ -263,7 +264,7 @@ git add .                        # Pre-commit only checks staged files
 # Quick validation (faster than --all-files)
 pre-commit run                   # Staged files only
 pre-commit run mypy              # Python type checking
-pre-commit run prettier          # Code formatting
+pre-commit run format            # Code formatting
 pre-commit run eslint            # Frontend linting
 ```
 
@@ -305,3 +306,10 @@ pre-commit run eslint            # Frontend linting
 ---
 
 **LLM Note**: This codebase is actively modernizing toward full TypeScript and type safety. Always run `pre-commit run` to validate changes. Follow the ongoing refactors section to avoid deprecated patterns.
+
+## Active Technologies
+- TypeScript (React 17-style functional components, Node 24 toolchain); Python 3.11+ + Redux chart store (`state.charts`), `@superset-ui/core/components` (`CodeSyntaxHighlighter`, `Loading`), `@apache-superset/core` (translation, theme, `Alert`), `src/components` `CopyToClipboard`; backend `QueryObjectValidationError` + `_get_query` result-type handler (sc-104912-semantic-view-show-sql)
+- N/A — no persisted change; displays data already carried on the chart-data response (sc-104912-semantic-view-show-sql)
+
+## Recent Changes
+- sc-104912-semantic-view-show-sql: Added TypeScript (React 17-style functional components, Node 24 toolchain); Python 3.11+ + Redux chart store (`state.charts`), `@superset-ui/core/components` (`CodeSyntaxHighlighter`, `Loading`), `@apache-superset/core` (translation, theme, `Alert`), `src/components` `CopyToClipboard`; backend `QueryObjectValidationError` + `_get_query` result-type handler

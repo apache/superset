@@ -33,7 +33,7 @@ Understanding Superset's continuous integration and deployment pipelines.
 - GitHub Actions workflows
 - Pre-commit hooks configuration
 - Automated testing pipelines
-- Code quality checks (ESLint, Prettier, Black, MyPy)
+- Code quality checks (Oxlint, Oxfmt, Black, MyPy)
 - Security scanning (Dependabot, CodeQL)
 - Docker image building and publishing
 - Release automation
@@ -59,6 +59,7 @@ pre-commit run --all-files
 ## GitHub Actions
 
 Key workflows:
+
 - `test-frontend.yml` - Frontend tests
 - `test-backend.yml` - Backend tests
 - `docker.yml` - Docker image builds
@@ -67,4 +68,4 @@ Key workflows:
 
 ---
 
-*This documentation is under active development. Check back soon for updates!*
+_This documentation is under active development. Check back soon for updates!_

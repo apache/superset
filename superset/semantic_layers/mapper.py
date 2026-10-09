@@ -24,6 +24,7 @@ single dataframe.
 
 """
 
+import logging
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
@@ -58,8 +59,10 @@ from superset.common.utils.time_range_utils import (
 )
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
+from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
+from superset.semantic_layers.completeness import provider_completeness
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     FilterOperator,
@@ -67,6 +70,32 @@ from superset.utils.core import (
     TIME_COMPARISON,
 )
 from superset.utils.date_parser import get_past_or_future
+
+logger: logging.Logger = logging.getLogger(__name__)
+
+OPERATOR_MAP = {
+    FilterOperator.EQUALS.value: Operator.EQUALS,
+    FilterOperator.NOT_EQUALS.value: Operator.NOT_EQUALS,
+    FilterOperator.GREATER_THAN.value: Operator.GREATER_THAN,
+    FilterOperator.LESS_THAN.value: Operator.LESS_THAN,
+    FilterOperator.GREATER_THAN_OR_EQUALS.value: Operator.GREATER_THAN_OR_EQUAL,
+    FilterOperator.LESS_THAN_OR_EQUALS.value: Operator.LESS_THAN_OR_EQUAL,
+    FilterOperator.IN.value: Operator.IN,
+    FilterOperator.NOT_IN.value: Operator.NOT_IN,
+    FilterOperator.LIKE.value: Operator.LIKE,
+    FilterOperator.NOT_LIKE.value: Operator.NOT_LIKE,
+    # Case-insensitive matching is passed through to the provider, which
+    # resolves it per its own collation rules. There is no capability flag for
+    # this yet, so a provider that cannot express it will surface an error.
+    FilterOperator.ILIKE.value: Operator.ILIKE,
+    FilterOperator.NOT_ILIKE.value: Operator.NOT_ILIKE,
+    FilterOperator.IS_NULL.value: Operator.IS_NULL,
+    FilterOperator.IS_NOT_NULL.value: Operator.IS_NOT_NULL,
+}
+
+SUPPORTED_FILTER_OPERATORS = frozenset(OPERATOR_MAP) | {
+    FilterOperator.TEMPORAL_RANGE.value
+}
 
 
 class ValidatedQueryObjectFilterClause(QueryObjectFilterClause):
@@ -123,7 +152,8 @@ def get_results(query_object: QueryObject) -> QueryResult:
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
-    main_result = dispatcher(main_query)
+    with provider_completeness():
+        main_result = dispatcher(main_query)
     main_result = _coerce_empty_result(main_result, main_query)
 
     main_df = stringify_extension_columns(main_result.results).to_pandas()
@@ -155,7 +185,8 @@ def get_results(query_object: QueryObject) -> QueryResult:
         strict=False,
     ):
         # Execute the offset query
-        result = dispatcher(offset_query)
+        with provider_completeness():
+            result = dispatcher(offset_query)
         result = _coerce_empty_result(result, offset_query)
 
         # Add this query's requests to the collection
@@ -322,11 +353,13 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     visualization and more on semantics.
     """
     semantic_view = query_object.datasource.implementation
+    # The SemanticView ABC contract is the get_metrics()/get_dimensions()
+    # methods; never read undeclared attributes off the provider view.
+    view_metrics = semantic_view.get_metrics()
+    view_dimensions = semantic_view.get_dimensions()
 
-    all_metrics = {metric.name: metric for metric in semantic_view.metrics}
-    all_dimensions = {
-        dimension.name: dimension for dimension in semantic_view.dimensions
-    }
+    all_metrics = {metric.name: metric for metric in view_metrics}
+    all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
 
     # Normalize columns (may be dicts with isColumnReference=True for time-series)
     dimension_names = set(all_dimensions.keys())
@@ -349,7 +382,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     seen_non_axis: dict[str, Dimension] = {}
     axis_variants: list[Dimension] = []
     axis_match: Dimension | None = None
-    for dimension in semantic_view.dimensions:
+    for dimension in view_dimensions:
         if dimension.name not in normalized_columns:
             continue
         if dimension.name == time_axis_column:
@@ -401,6 +434,9 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
                 limit=limit,
                 offset=offset,
                 group_limit=group_limit,
+                selection_identity_version=query_object.extras.get(
+                    "semantic_selection_version"
+                ),
             )
         )
 
@@ -470,11 +506,17 @@ def _get_filters_from_query_object(
 
 def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
     """
-    Extract filters from the extras dict.
+    Convert SQL extras into ADHOC filters for direct mapper callers.
+
+    The chart-data path rejects non-empty SQL WHERE/HAVING extras for semantic
+    views before reaching this mapper. This conversion is therefore unreachable
+    through that validated path; it does not establish provider support for
+    arbitrary SQL predicates. Exposing it there would require a provider-specific
+    sanitization contract.
 
     The extras dict can contain various keys that affect query behavior:
 
-    Supported keys (converted to filters):
+    Direct mapper inputs (converted to filters, not chart-data support):
     - "where": SQL WHERE clause expression (e.g., "customer_id > 100")
     - "having": SQL HAVING clause expression (e.g., "SUM(sales) > 1000")
 
@@ -482,8 +524,8 @@ def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
     - "time_grain_sqla": Time granularity (e.g., "P1D", "PT1H")
       Handled in _convert_time_grain() and used for dimension grain matching
 
-    Note: The WHERE and HAVING clauses from extras are SQL expressions that
-    are passed through as-is to the semantic layer as adhoc Filter objects.
+    For direct mapper calls, WHERE and HAVING text is passed unchanged into
+    ADHOC Filter objects; this helper does not sanitize it.
     """
     filters: set[Filter] = set()
 
@@ -699,36 +741,7 @@ def _convert_query_object_filter(
 
     value = _coerce_filter_value(value, dimension)
 
-    # Map QueryObject operators to semantic layer operators. The Operator enum
-    # exposes only LIKE (case-sensitive), so case-insensitive variants are
-    # rejected up front rather than silently collapsed: doing so leaves the
-    # actual case handling at the mercy of the semantic backend's collation
-    # and silently diverges from the operator the dashboard author chose.
-    if operator_str in {
-        FilterOperator.ILIKE.value,
-        FilterOperator.NOT_ILIKE.value,
-    }:
-        raise ValueError(
-            f"Operator {operator_str} (case-insensitive match) is not supported "
-            "by Semantic Views; use the case-sensitive LIKE/NOT_LIKE instead."
-        )
-
-    operator_mapping = {
-        FilterOperator.EQUALS.value: Operator.EQUALS,
-        FilterOperator.NOT_EQUALS.value: Operator.NOT_EQUALS,
-        FilterOperator.GREATER_THAN.value: Operator.GREATER_THAN,
-        FilterOperator.LESS_THAN.value: Operator.LESS_THAN,
-        FilterOperator.GREATER_THAN_OR_EQUALS.value: Operator.GREATER_THAN_OR_EQUAL,
-        FilterOperator.LESS_THAN_OR_EQUALS.value: Operator.LESS_THAN_OR_EQUAL,
-        FilterOperator.IN.value: Operator.IN,
-        FilterOperator.NOT_IN.value: Operator.NOT_IN,
-        FilterOperator.LIKE.value: Operator.LIKE,
-        FilterOperator.NOT_LIKE.value: Operator.NOT_LIKE,
-        FilterOperator.IS_NULL.value: Operator.IS_NULL,
-        FilterOperator.IS_NOT_NULL.value: Operator.IS_NOT_NULL,
-    }
-
-    operator = operator_mapping.get(operator_str)
+    operator = OPERATOR_MAP.get(operator_str)
     if not operator:
         # Unknown operator - raise error to prevent unauthorized access
         raise ValueError(f"Unsupported filter operator: {operator_str}")
@@ -920,6 +933,13 @@ def _get_group_limit_from_query_object(
     all_metrics: dict[str, Metric],
     all_dimensions: dict[str, Dimension],
 ) -> GroupLimit | None:
+    if query_object.series_limit > 0 and not query_object.series_columns:
+        logger.debug(
+            "Treating semantic series_limit=%s as 0 without series columns",
+            query_object.series_limit,
+        )
+        return None
+
     # no limit
     if query_object.series_limit == 0 or not query_object.columns:
         return None
@@ -1109,6 +1129,9 @@ def validate_query_object(
 
     query_object = cast(ValidatedQueryObject, query_object)
 
+    query_object.datasource.implementation.validate_selection_version(
+        query_object.extras.get("semantic_selection_version")
+    )
     _validate_metrics(query_object)
     _validate_dimensions(query_object)
     _validate_filters(query_object)
@@ -1128,7 +1151,7 @@ def _validate_metrics(query_object: ValidatedQueryObject) -> None:
     if any(not isinstance(metric, str) for metric in (query_object.metrics or [])):
         raise ValueError("Adhoc metrics are not supported in Semantic Views.")
 
-    metric_names = {metric.name for metric in semantic_view.metrics}
+    metric_names = {metric.name for metric in semantic_view.get_metrics()}
     if not set(query_object.metrics or []) <= metric_names:
         raise ValueError("All metrics must be defined in the Semantic View.")
 
@@ -1138,7 +1161,7 @@ def _validate_dimensions(query_object: ValidatedQueryObject) -> None:
     Make sure all dimensions are defined in the semantic view.
     """
     semantic_view = query_object.datasource.implementation
-    dimension_names = {dimension.name for dimension in semantic_view.dimensions}
+    dimension_names = {dimension.name for dimension in semantic_view.get_dimensions()}
 
     # Normalize all columns to dimension names
     normalized_columns = [
@@ -1167,9 +1190,8 @@ def _validate_granularity(query_object: ValidatedQueryObject) -> None:
     Make sure time column and time grain are valid.
     """
     semantic_view = query_object.datasource.implementation
-    all_dimensions = {
-        dimension.name: dimension for dimension in semantic_view.dimensions
-    }
+    view_dimensions = semantic_view.get_dimensions()
+    all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
     dimension_names = set(all_dimensions.keys())
 
     if (legacy_time_column := query_object.granularity) and (
@@ -1188,11 +1210,11 @@ def _validate_granularity(query_object: ValidatedQueryObject) -> None:
 
         supported_time_grains = {
             dimension.grain
-            for dimension in semantic_view.dimensions
+            for dimension in view_dimensions
             if dimension.name == time_column and dimension.grain
         }
         if _convert_time_grain(time_grain) not in supported_time_grains:
-            raise ValueError(
+            raise QueryObjectValidationError(
                 "The time grain is not supported for the time column in the "
                 "Semantic View."
             )
@@ -1208,6 +1230,9 @@ def _validate_group_limit(query_object: ValidatedQueryObject) -> None:
     if query_object.series_limit == 0:
         return
 
+    if query_object.series_limit > 0 and not query_object.series_columns:
+        return
+
     if (
         query_object.series_columns
         and SemanticViewFeature.GROUP_LIMIT not in semantic_view.features
@@ -1217,7 +1242,7 @@ def _validate_group_limit(query_object: ValidatedQueryObject) -> None:
     if any(not isinstance(col, str) for col in query_object.series_columns):
         raise ValueError("Adhoc dimensions are not supported in series columns.")
 
-    metric_names = {metric.name for metric in semantic_view.metrics}
+    metric_names = {metric.name for metric in semantic_view.get_metrics()}
     if query_object.series_limit_metric and (
         not isinstance(query_object.series_limit_metric, str)
         or query_object.series_limit_metric not in metric_names
@@ -1226,7 +1251,7 @@ def _validate_group_limit(query_object: ValidatedQueryObject) -> None:
             "The series limit metric must be defined in the Semantic View."
         )
 
-    dimension_names = {dimension.name for dimension in semantic_view.dimensions}
+    dimension_names = {dimension.name for dimension in semantic_view.get_dimensions()}
     if not set(query_object.series_columns) <= dimension_names:
         raise ValueError("All series columns must be defined in the Semantic View.")
 
@@ -1256,7 +1281,7 @@ def _validate_orderby(query_object: ValidatedQueryObject) -> None:
         )
 
     elements = {orderby[0] for orderby in query_object.orderby}
-    metric_names = {metric.name for metric in semantic_view.metrics}
-    dimension_names = {dimension.name for dimension in semantic_view.dimensions}
+    metric_names = {metric.name for metric in semantic_view.get_metrics()}
+    dimension_names = {dimension.name for dimension in semantic_view.get_dimensions()}
     if not elements <= metric_names | dimension_names:
         raise ValueError("All order by elements must be defined in the Semantic View.")

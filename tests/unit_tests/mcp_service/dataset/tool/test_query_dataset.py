@@ -19,19 +19,50 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 from collections.abc import Generator
+from datetime import datetime, timezone
+from decimal import Decimal
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
+from uuid import UUID
 
+import numpy as np
+import pandas as pd
 import pytest
+import pytz
+from dateutil import tz as dateutil_tz
 from fastmcp import Client, FastMCP
+from fastmcp.exceptions import ToolError
 
+from superset.commands.exceptions import CommandException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import is_tool_visible_to_current_user
+from superset.mcp_service.dataset.schemas import DatasetError
+from superset.mcp_service.dataset_scope import OUT_OF_SCOPE_ERROR
 from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
+from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_since_until
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+    HostileTimezone,
+)
+
+
+class HostileRuntimeError(RuntimeError):
+    calls = 0
+
+    def __str__(self) -> str:
+        type(self).calls += 1
+        return "round21-hostile-runtime-secret"
+
+    def __repr__(self) -> str:
+        type(self).calls += 1
+        return "round21-hostile-runtime-secret"
+
 
 query_dataset_module = importlib.import_module(
     "superset.mcp_service.dataset.tool.query_dataset"
@@ -112,6 +143,286 @@ def _make_dataset(
     return ds
 
 
+def _dataset_error_at_test_limit(limit: int) -> DatasetError:
+    timestamp = datetime(2026, 9, 3, tzinfo=timezone.utc)
+    empty = DatasetError(error="", error_type="", timestamp=timestamp)
+    response = DatasetError(
+        error="x" * (limit - len(empty.model_dump_json().encode())),
+        error_type="",
+        timestamp=timestamp,
+    )
+    assert len(response.model_dump_json().encode()) == limit
+    return response
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("extra_byte", [False, True], ids=["exact", "plus-one"])
+async def test_query_dataset_mcp_entry_preflights_every_error_return(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    extra_byte: bool,
+) -> None:
+    """The public union preserves an exact error and bounds the next byte."""
+    query_result_module = importlib.import_module(
+        "superset.mcp_service.chart.query_result"
+    )
+    limit = 4 * 1024
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", limit)
+    response = _dataset_error_at_test_limit(limit)
+    if extra_byte:
+        response.error += "x"
+
+    async def error_result(*_args: Any, **_kwargs: Any) -> DatasetError:
+        return response
+
+    monkeypatch.setattr(query_dataset_module, "_query_dataset", error_result)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "query_dataset",
+            {"request": {"dataset_id": 1, "metrics": ["count"]}},
+        )
+
+    returned = DatasetError.model_validate(json.loads(result.content[0].text))
+    if extra_byte:
+        assert returned.error_type == "InvalidQueryResult"
+        assert len(returned.model_dump_json().encode()) < 1_000
+    else:
+        assert returned.error_type == response.error_type
+        assert returned.error == response.error
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_mcp_entry_bounds_dynamic_command_error(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A dynamically amplified command error cannot bypass the finalizer."""
+    query_result_module = importlib.import_module(
+        "superset.mcp_service.chart.query_result"
+    )
+    limit = 4 * 1024
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", limit)
+    monkeypatch.setattr(
+        query_dataset_module,
+        "resolve_dataset",
+        MagicMock(side_effect=CommandException("dynamic:" + "x" * limit)),
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "query_dataset",
+            {"request": {"dataset_id": 1, "metrics": ["count"]}},
+        )
+
+    returned = DatasetError.model_validate(json.loads(result.content[0].text))
+    assert returned.error_type == "QueryError"
+    assert len(returned.model_dump_json().encode()) < 4_096
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_point", ["before_await", "startup_logging"])
+async def test_query_dataset_mcp_entry_bounds_uncaught_dynamic_exception(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    failure_point: str,
+) -> None:
+    """Uncaught producer failures become one finalized, fixed-schema error."""
+    secret = "round20-dataset-secret-" + "x" * (20 * 1024)
+
+    if failure_point == "before_await":
+
+        def fail_before_await(*_args: Any, **_kwargs: Any) -> None:
+            raise RuntimeError(secret)
+
+        monkeypatch.setattr(query_dataset_module, "_query_dataset", fail_before_await)
+    else:
+
+        async def fail_startup_logging(*_args: Any, **_kwargs: Any) -> None:
+            raise RuntimeError(secret)
+
+        monkeypatch.setattr(query_dataset_module.Context, "info", fail_startup_logging)
+
+    original_finalizer = query_dataset_module.finalize_query_dataset_response
+    finalizer = MagicMock(wraps=original_finalizer)
+    log_exception = MagicMock(wraps=query_dataset_module.logger.exception)
+    caplog.set_level("ERROR", logger=query_dataset_module.__name__)
+    monkeypatch.setattr(
+        query_dataset_module, "finalize_query_dataset_response", finalizer
+    )
+    monkeypatch.setattr(query_dataset_module.logger, "exception", log_exception)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "query_dataset",
+            {"request": {"dataset_id": 1, "metrics": ["count"]}},
+        )
+
+    assert isinstance(result.structured_content, dict)
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = DatasetError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert returned.error == "An internal error occurred while querying the dataset."
+    assert payload["error"] == returned.error
+    assert len(wire) < 1_000
+    assert secret.encode() not in wire
+    assert secret not in repr(result.structured_content)
+    assert secret not in "".join(
+        block.text for block in result.content if hasattr(block, "text")
+    )
+    finalizer.assert_called_once()
+    log_exception.assert_called_once_with(
+        "Unhandled exception while querying a dataset", exc_info=False
+    )
+    assert secret not in repr(log_exception.call_args)
+    assert "Unhandled exception while querying a dataset" in caplog.text
+    assert secret not in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure_stage", ["runtime-error", "context-enter", "context-exit"]
+)
+async def test_query_dataset_contains_hostile_unexpected_failures_without_hooks(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    failure_stage: str,
+) -> None:
+    """Unexpected inner-stage failures reach the fixed public containment layer."""
+    failure = HostileRuntimeError("stored-secret")
+    if failure_stage == "runtime-error":
+        monkeypatch.setattr(
+            query_dataset_module,
+            "resolve_dataset",
+            MagicMock(side_effect=failure),
+        )
+    else:
+
+        class FailingContextManager:
+            def __enter__(self) -> None:
+                if failure_stage == "context-enter":
+                    raise failure
+
+            def __exit__(self, *_args: Any) -> None:
+                if failure_stage == "context-exit":
+                    raise failure
+
+        monkeypatch.setattr(
+            query_dataset_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **_kwargs: FailingContextManager()),
+        )
+
+    original_finalizer = query_dataset_module.finalize_query_dataset_response
+    finalizer = MagicMock(wraps=original_finalizer)
+    log_exception = MagicMock(wraps=query_dataset_module.logger.exception)
+    monkeypatch.setattr(
+        query_dataset_module, "finalize_query_dataset_response", finalizer
+    )
+    monkeypatch.setattr(query_dataset_module.logger, "exception", log_exception)
+    caplog.set_level("ERROR", logger=query_dataset_module.__name__)
+    HostileRuntimeError.calls = 0
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "query_dataset",
+            {"request": {"dataset_id": 1, "metrics": ["count"]}},
+        )
+
+    assert isinstance(result.structured_content, dict)
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = DatasetError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert len(wire) < 1_000
+    assert "stored-secret" not in repr(result.structured_content)
+    assert "round21-hostile" not in caplog.text
+    assert HostileRuntimeError.calls == 0
+    finalizer.assert_called_once()
+    log_exception.assert_called_once_with(
+        "Unhandled exception while querying a dataset", exc_info=False
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_stage", ["finalizer", "logger"])
+async def test_query_dataset_contains_finalizer_and_logger_failures(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_stage: str,
+) -> None:
+    """Containment remains structured when its finalizer or logger fails."""
+    hostile = HostileRuntimeError("stored-secret")
+    if failure_stage == "finalizer":
+
+        async def known_result(*_args: Any, **_kwargs: Any) -> DatasetError:
+            return DatasetError.create(error="known", error_type="KnownError")
+
+        monkeypatch.setattr(query_dataset_module, "_query_dataset", known_result)
+        finalizer = MagicMock(side_effect=hostile)
+        monkeypatch.setattr(
+            query_dataset_module, "finalize_query_dataset_response", finalizer
+        )
+    else:
+
+        def producer_failure(*_args: Any, **_kwargs: Any) -> None:
+            raise hostile
+
+        monkeypatch.setattr(query_dataset_module, "_query_dataset", producer_failure)
+        original_finalizer = query_dataset_module.finalize_query_dataset_response
+        finalizer = MagicMock(wraps=original_finalizer)
+        monkeypatch.setattr(
+            query_dataset_module, "finalize_query_dataset_response", finalizer
+        )
+        monkeypatch.setattr(
+            query_dataset_module.logger,
+            "exception",
+            MagicMock(side_effect=RuntimeError("logger-secret")),
+        )
+    HostileRuntimeError.calls = 0
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "query_dataset",
+            {"request": {"dataset_id": 1, "metrics": ["count"]}},
+        )
+
+    assert isinstance(result.structured_content, dict)
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = DatasetError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert len(wire) < 1_000
+    assert b"stored-secret" not in wire
+    assert b"logger-secret" not in wire
+    assert HostileRuntimeError.calls == 0
+    finalizer.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "system_failure",
+    [asyncio.CancelledError(), KeyboardInterrupt(), SystemExit(), GeneratorExit()],
+)
+async def test_query_dataset_preserves_base_exception_propagation(
+    monkeypatch: pytest.MonkeyPatch,
+    system_failure: BaseException,
+) -> None:
+    """The public containment boundary catches Exception, not BaseException."""
+    from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+    def fail(*_args: Any, **_kwargs: Any) -> None:
+        raise system_failure
+
+    monkeypatch.setattr(query_dataset_module, "_query_dataset", fail)
+    with pytest.raises(type(system_failure)):
+        await query_dataset_module._finalized_query_dataset(
+            QueryDatasetRequest(dataset_id=1, metrics=["count"]), MagicMock()
+        )
+
+
 def _mock_command_result(
     data: list[dict[str, Any]] | None = None,
     colnames: list[str] | None = None,
@@ -122,19 +433,14 @@ def _mock_command_result(
         {"category": "Clothing", "count": 17},
     ]
     colnames = colnames or ["category", "count"]
-    return {
-        "queries": [
-            {
-                "data": data,
-                "colnames": colnames,
-                "rowcount": len(data),
-                "cache_key": "abc123",
-                "is_cached": False,
-                "cached_dttm": None,
-                "cache_timeout": 300,
-            }
-        ]
-    }
+    return chart_data_command_result(
+        data,
+        columns=colnames,
+        coltypes=[
+            GenericDataType.STRING if column == "category" else GenericDataType.NUMERIC
+            for column in colnames
+        ],
+    )
 
 
 @pytest.mark.asyncio
@@ -176,9 +482,661 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     data = json.loads(result.content[0].text)
     assert data["dataset_id"] == 1
     assert data["dataset_name"] == "orders"
+    assert data["from_dttm"] is None
+    assert data["to_dttm"] is None
     assert data["row_count"] == 2
     assert len(data["data"]) == 2
     assert data["data"][0]["category"] == "Electronics"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_normalizes_supported_producer_timezones(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dataset = _make_dataset(
+        columns=[_make_column("created_at", is_dttm=True)],
+    )
+    result_data = chart_data_command_result(
+        [
+            {
+                "created_at": pd.Timestamp(
+                    2024, 1, 2, 3, 4, 5, tz=dateutil_tz.tzoffset("IST", 19_800)
+                )
+            },
+            {
+                "created_at": pd.Timestamp(
+                    2024, 1, 2, 3, 4, 5, tz=pytz.FixedOffset(-240)
+                )
+            },
+            {
+                "created_at": pd.Timestamp(
+                    2024, 1, 2, 3, 4, 5, tz=dateutil_tz.gettz("US/Pacific")
+                )
+            },
+            {
+                "created_at": datetime(
+                    2024,
+                    10,
+                    27,
+                    1,
+                    30,
+                    0,
+                    123456,
+                    tzinfo=dateutil_tz.gettz("Europe/Dublin"),
+                    fold=1,
+                )
+            },
+            {
+                "created_at": datetime(
+                    2024,
+                    3,
+                    10,
+                    2,
+                    30,
+                    tzinfo=dateutil_tz.gettz("America/New_York"),
+                )
+            },
+            {
+                "created_at": datetime(
+                    2040,
+                    7,
+                    1,
+                    12,
+                    tzinfo=dateutil_tz.gettz("America/New_York"),
+                )
+            },
+            {
+                "created_at": datetime(
+                    2024,
+                    1,
+                    1,
+                    12,
+                    tzinfo=dateutil_tz.gettz("Etc/GMT+3"),
+                )
+            },
+        ],
+        columns=["created_at"],
+        coltypes=[GenericDataType.TEMPORAL],
+    )
+
+    def hostile_timezone_hook(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("dateutil timezone hook executed")
+
+    for zone_name in ("Europe/Dublin", "America/New_York", "Etc/GMT+3"):
+        timezone_value = dateutil_tz.gettz(zone_name)
+        assert timezone_value is not None
+        for method_name in ("utcoffset", "dst", "tzname", "fromutc"):
+            monkeypatch.setattr(
+                type(timezone_value), method_name, hostile_timezone_hook
+            )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "columns": ["created_at"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [
+        {"created_at": "2024-01-02T03:04:05+05:30"},
+        {"created_at": "2024-01-02T03:04:05-04:00"},
+        {"created_at": "2024-01-02T03:04:05-08:00"},
+        {"created_at": "2024-10-27T01:30:00.123456+01:00"},
+        {"created_at": "2024-03-10T02:30:00-04:00"},
+        {"created_at": "2040-07-01T12:00:00-05:00"},
+        {"created_at": "2024-01-01T12:00:00-03:00"},
+    ]
+    assert data["performance"]["cache_status"] == "fresh"
+    assert data["cache_status"]["cache_hit"] is False
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_rejects_hostile_timezone_without_hooks(
+    mcp_server: FastMCP,
+) -> None:
+    """The dataset entry point rejects an untrusted timezone without hooks."""
+    hostile = HostileTimezone()
+    dataset = _make_dataset(columns=[_make_column("created_at", is_dttm=True)])
+    frame = pd.DataFrame(index=range(1))
+    frame["created_at"] = pd.Series(
+        [datetime(2024, 1, 1, tzinfo=hostile)], dtype=object
+    )
+    result_data = chart_data_command_result(
+        columns=["created_at"],
+        coltypes=[GenericDataType.TEMPORAL],
+        frame=frame,
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {"request": {"dataset_id": 1, "columns": ["created_at"]}},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "InvalidQueryResult"
+    assert hostile.calls == 0
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_uses_authoritative_coltypes_and_late_samples(
+    mcp_server: FastMCP,
+) -> None:
+    dataset = _make_dataset(
+        columns=[
+            _make_column("event_time", is_dttm=True),
+            _make_column("enabled"),
+            _make_column("amount"),
+            _make_column("identity"),
+        ],
+    )
+    rows: list[dict[str, Any]] = [
+        {"event_time": None, "enabled": None, "amount": None, "identity": None}
+        for _ in range(5)
+    ]
+    rows.extend(
+        [
+            {
+                "event_time": pd.Timestamp("2024-01-02T03:04:05Z"),
+                "enabled": True,
+                "amount": Decimal("1.00"),
+                "identity": True,
+            },
+            {
+                "event_time": None,
+                "enabled": False,
+                "amount": Decimal("1.0"),
+                "identity": 1,
+            },
+            {
+                "event_time": None,
+                "enabled": True,
+                "amount": Decimal("2.00"),
+                "identity": False,
+            },
+            {
+                "event_time": None,
+                "enabled": False,
+                "amount": None,
+                "identity": 0,
+            },
+        ]
+    )
+    result_data = chart_data_command_result(
+        rows,
+        columns=["event_time", "enabled", "amount", "identity"],
+        coltypes=[
+            GenericDataType.TEMPORAL,
+            GenericDataType.BOOLEAN,
+            GenericDataType.NUMERIC,
+            GenericDataType.STRING,
+        ],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "columns": ["event_time", "enabled", "amount", "identity"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert [column["data_type"] for column in data["columns"]] == [
+        "temporal",
+        "boolean",
+        "numeric",
+        "string",
+    ]
+    assert data["columns"][0]["sample_values"] == ["2024-01-02T03:04:05+00:00"]
+    assert data["columns"][1]["sample_values"] == [True, False, True]
+    assert data["columns"][2]["unique_count"] == 2
+    assert data["columns"][3]["unique_count"] == 4
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_preserves_authoritative_coltypes_for_empty_data(
+    mcp_server: FastMCP,
+) -> None:
+    dataset = _make_dataset(
+        columns=[
+            _make_column("event_time", is_dttm=True),
+            _make_column("enabled"),
+        ],
+    )
+    result_data = chart_data_command_result(
+        rows=[],
+        columns=["event_time", "enabled"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.BOOLEAN],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "columns": ["event_time", "enabled"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["data"] == []
+    assert [column["data_type"] for column in data["columns"]] == [
+        "temporal",
+        "boolean",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_normalizes_post_materialization_infinity(
+    mcp_server: FastMCP,
+) -> None:
+    dataset = _make_dataset()
+    result_data = chart_data_command_result(
+        [{"category": "Electronics", "count": 1.0}],
+        columns=["category", "count"],
+        coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+    )
+    result_data["queries"][0]["data"][0]["count"] = float("inf")
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [{"category": "Electronics", "count": None}]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_normalizes_nan_producer_data(
+    mcp_server: FastMCP,
+) -> None:
+    dataset = _make_dataset()
+    result_data = chart_data_command_result(
+        [{"category": "Electronics", "count": np.float64("nan")}],
+        columns=["category", "count"],
+        coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [{"category": "Electronics", "count": None}]
+    assert data["columns"][1]["null_count"] == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "value,expected", [({1: "a"}, {"1": "a"}), ([1.0, float("inf")], [1.0, None])]
+)
+async def test_query_dataset_normalizes_nested_warehouse_cells(
+    mcp_server: FastMCP,
+    value: Any,
+    expected: Any,
+) -> None:
+    """Return nested ClickHouse maps and arrays without losing the whole query."""
+    dataset = _make_dataset()
+    result_data = chart_data_command_result(
+        [{"category": "Electronics", "count": value}],
+        columns=["category", "count"],
+        coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [{"category": "Electronics", "count": expected}]
+    assert data["columns"][1]["sample_values"] == [expected]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_rejects_oversized_projected_response(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The source may fit while repeated column samples exceed the budget."""
+    dataset = _make_dataset(columns=[_make_column("value")])
+    cell = "x" * 100
+    result_data = chart_data_command_result(
+        [{"value": cell} for _ in range(10)],
+        columns=["value"],
+        coltypes=[GenericDataType.STRING],
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        1_500,
+    )
+    assert query_dataset_module.validate_query_result_envelope(result_data) is None
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(
+            query_dataset_module,
+            "execute_tabular_query",
+            return_value=result_data,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "columns": ["value"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "InvalidQueryResult"
+    assert len(DatasetError.model_validate(data).model_dump_json().encode()) < 1_000
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_normalizes_real_period_and_interval(
+    mcp_server: FastMCP,
+) -> None:
+    dataset = _make_dataset(columns=[_make_column("period"), _make_column("interval")])
+    result_data = chart_data_command_result(
+        [
+            {
+                "period": pd.Period("2026-09", freq="M"),
+                "interval": pd.Interval(1, 3, closed="right"),
+            }
+        ],
+        columns=["period", "interval"],
+        coltypes=[GenericDataType.STRING, GenericDataType.STRING],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(
+            query_dataset_module,
+            "execute_tabular_query",
+            return_value=result_data,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {"request": {"dataset_id": 1, "columns": ["period", "interval"]}},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [{"period": "2026-09", "interval": "(1, 3]"}]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_rejects_hostile_data_before_generic_consumers(
+    mcp_server: FastMCP,
+) -> None:
+    class HostileValue:
+        def __str__(self) -> str:
+            raise AssertionError("hostile formatter hook executed")
+
+    dataset = _make_dataset()
+    result_data = {
+        "query_context": object(),
+        "queries": [
+            {
+                "data": [{"category": "Electronics", "count": 1}],
+                "colnames": ["category", "count"],
+                "coltypes": [GenericDataType.STRING, GenericDataType.NUMERIC],
+                "is_cached": False,
+            },
+            {
+                "data": [{"danger": HostileValue()}],
+                "colnames": ["danger"],
+                "coltypes": [GenericDataType.STRING],
+                "is_cached": False,
+            },
+        ],
+    }
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+        patch.object(
+            query_dataset_module,
+            "format_data_columns",
+            side_effect=AssertionError("generic formatter was called"),
+        ) as mock_formatter,
+        patch.object(
+            query_dataset_module,
+            "get_cache_status_from_result",
+            side_effect=AssertionError("cache formatter was called"),
+        ) as mock_cache_formatter,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "InvalidQueryResult"
+    mock_formatter.assert_not_called()
+    mock_cache_formatter.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_exposes_filters_to_jinja_macros(
+    mcp_server: FastMCP,
+) -> None:
+    """The MCP query path populates the form data read by dataset Jinja macros."""
+    from superset.common.query_object import QueryObject
+
+    dataset = _make_dataset()
+    query = QueryObject(
+        filters=[{"col": "category", "op": "IN", "val": ["Electronics"]}],
+        columns=["category"],
+        metrics=["count"],
+    )
+    query_context = SimpleNamespace(queries=[query], form_data={})
+    observed: dict[str, Any] = {}
+
+    def run_query() -> dict[str, Any]:
+        from superset.jinja_context import ExtraCache, get_dataset_id_from_context
+
+        extra_cache = ExtraCache()
+        observed["filter_values"] = extra_cache.filter_values("category")
+        observed["get_filters"] = extra_cache.get_filters("category")
+        # metric() without an explicit dataset ID uses this same context lookup.
+        observed["metric_dataset_id"] = get_dataset_id_from_context("count")
+        return _mock_command_result()
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=query_context,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            side_effect=run_query,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                        "filters": [
+                            {
+                                "col": "category",
+                                "op": "IN",
+                                "val": ["Electronics"],
+                            }
+                        ],
+                    }
+                },
+            )
+
+    assert not result.is_error
+    assert observed["filter_values"] == ["Electronics"]
+    assert observed["get_filters"] == [
+        {"col": "category", "op": "IN", "val": ["Electronics"]}
+    ]
+    assert observed["metric_dataset_id"] == 1
 
 
 @pytest.mark.asyncio
@@ -366,6 +1324,58 @@ async def test_query_dataset_time_range_no_temporal_column(mcp_server: FastMCP) 
 
 
 @pytest.mark.asyncio
+async def test_query_dataset_reversed_time_range(mcp_server: FastMCP) -> None:
+    """A reversed explicit time_range (since > until) resolves to a clean
+    ValidationError rather than a generic UnexpectedError.
+
+    An explicit ``"<start> : <end>"`` range where start > end passes the
+    pydantic-level validate_time_range guard unchanged (by design) and reaches
+    the real get_since_until(), which raises
+    ``ValueError("From date cannot be larger than to date")``. The tool must
+    surface that as an actionable ValidationError, not swallow it into the
+    catch-all UnexpectedError arm.
+    """
+    dataset = _make_dataset(main_dttm_col="order_date")
+    reversed_range = "2024-01-01T00:00:00 : 2020-01-01T00:00:00"
+
+    def create_with_real_parser(**kwargs):
+        # Exercise the real parser on the reversed range exactly as the query
+        # pipeline would, letting its genuine ValueError propagate.
+        for query in kwargs.get("queries", []):
+            for filt in query.get("filters", []):
+                if filt.get("op") == "TEMPORAL_RANGE":
+                    get_since_until(time_range=filt["val"])
+        return MagicMock()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=create_with_real_parser,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "time_range": reversed_range,
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert "From date cannot be larger than to date" in data["error"]
+
+
+@pytest.mark.asyncio
 async def test_query_dataset_with_filters(mcp_server: FastMCP) -> None:
     """User-provided filters are passed through to the query."""
     dataset = _make_dataset()
@@ -420,18 +1430,7 @@ async def test_query_dataset_with_filters(mcp_server: FastMCP) -> None:
 async def test_query_dataset_empty_results(mcp_server: FastMCP) -> None:
     """Query that returns no data gives a response with row_count=0."""
     dataset = _make_dataset()
-    empty_result = {
-        "queries": [
-            {
-                "data": [],
-                "colnames": [],
-                "rowcount": 0,
-                "is_cached": False,
-                "cached_dttm": None,
-                "cache_timeout": 300,
-            }
-        ]
-    }
+    empty_result = chart_data_command_result(rows=[], columns=[])
 
     with (
         patch.object(
@@ -950,10 +1949,12 @@ class TestQueryDatasetBracketShorthandNormalization:
     def test_hour_bracket_normalized(self) -> None:
         """'[hour]' maps to an explicit DATEADD/DATETIME expression.
 
-        'Last hour' is deliberately not used: get_since_until() resolves its
-        since-expression against 'now' but its default until-expression
+        A bare 'Last hour' can't be used as-is: get_since_until() resolves
+        its since-expression against 'now' but its default until-expression
         against 'today' (midnight), so since ends up after until and raises
-        a "From date cannot be larger than to date" error.
+        a "From date cannot be larger than to date" error. The validator
+        applies the same rewrite to both spellings -- see
+        test_bare_sub_day_last_normalized below.
         """
         from superset.mcp_service.dataset.schemas import QueryDatasetRequest
 
@@ -981,6 +1982,34 @@ class TestQueryDatasetBracketShorthandNormalization:
         assert (
             req.time_range == "DATEADD(DATETIME('now'), -1, SECOND) : DATETIME('now')"
         )
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("Last hour", "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"),
+            (
+                "Last 15 minutes",
+                "DATEADD(DATETIME('now'), -15, MINUTE) : DATETIME('now')",
+            ),
+            (
+                "Last 30 seconds",
+                "DATEADD(DATETIME('now'), -30, SECOND) : DATETIME('now')",
+            ),
+        ],
+    )
+    def test_bare_sub_day_last_normalized(self, value: str, expected: str) -> None:
+        """Sub-day 'Last ...' gets the same rewrite as its bracket form.
+
+        Without it these reach get_since_until() as-is and raise "From date
+        cannot be larger than to date" from deep in the query path, rather
+        than being resolved to the range the caller asked for.
+        """
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {"dataset_id": 1, "metrics": ["count"], "time_range": value}
+        )
+        assert req.time_range == expected
 
     def test_bracket_uppercase_normalized(self) -> None:
         from superset.mcp_service.dataset.schemas import QueryDatasetRequest
@@ -1068,6 +2097,104 @@ class TestQueryDatasetBracketShorthandNormalization:
             {"dataset_id": 1, "metrics": ["count"], "time_range": None}
         )
         assert req.time_range is None
+
+
+class TestQueryDatasetTimeRangeValidation:
+    """QueryDatasetRequest.time_range rejects values get_since_until()
+    would otherwise silently resolve to an unbounded, full-table range.
+
+    See SC-114824: shared validator in
+    superset.mcp_service.common.time_range_validation. Complements
+    TestQueryDatasetBracketShorthandNormalization above, which only
+    covers the eight recognized bracket tokens -- this class covers the
+    open class of previously-silent, non-bracket values the shared
+    validator now rejects.
+    """
+
+    @pytest.mark.parametrize(
+        "bad_value",
+        ["banana", "this week", "this month", "last week", "yesterday", "[decade]"],
+    )
+    def test_previously_silent_values_now_raise(self, bad_value: str) -> None:
+        """These values used to silently return an unfiltered, full-table
+        result (empty warnings, success: true). They must now raise a
+        ValidationError instead."""
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            QueryDatasetRequest.model_validate(
+                {"dataset_id": 1, "metrics": ["count"], "time_range": bad_value}
+            )
+
+
+class TestQueryDatasetTemporalRangeFilterValidation:
+    """A TEMPORAL_RANGE spelled out longhand in `filters` gets the same
+    validation as the dedicated `time_range` field.
+
+    query_dataset forwards request.filters into the query verbatim, and
+    TEMPORAL_RANGE values resolve through get_since_until() just like
+    time_range does -- so validating only time_range would leave the
+    identical silent full-table match reachable through this field.
+    """
+
+    @staticmethod
+    def _request(val: Any) -> dict[str, Any]:
+        return {
+            "dataset_id": 1,
+            "metrics": ["count"],
+            "filters": [{"col": "ts", "op": "TEMPORAL_RANGE", "val": val}],
+        }
+
+    @pytest.mark.parametrize(
+        "bad_value",
+        ["banana", "this month", "last week", "[decade]", "Last nonsense"],
+    )
+    def test_malformed_temporal_range_filter_rejected(self, bad_value: str) -> None:
+        from pydantic import ValidationError
+
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        with pytest.raises(ValidationError, match="Unrecognized time_range"):
+            QueryDatasetRequest.model_validate(self._request(bad_value))
+
+    def test_temporal_range_filter_normalizes_like_time_range(self) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(self._request("Last hour"))
+        assert req.filters[0].val == (
+            "DATEADD(DATETIME('now'), -1, HOUR) : DATETIME('now')"
+        )
+
+    @pytest.mark.parametrize("good_value", ["Last 7 days", "2024-01-01 : 2024-12-31"])
+    def test_valid_temporal_range_filter_unchanged(self, good_value: str) -> None:
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(self._request(good_value))
+        assert req.filters[0].val == good_value
+
+    def test_non_temporal_operator_value_untouched(self) -> None:
+        """Only TEMPORAL_RANGE goes through the time grammar -- 'banana' is
+        a perfectly good value to compare a text column against."""
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(
+            {
+                "dataset_id": 1,
+                "metrics": ["count"],
+                "filters": [{"col": "fruit", "op": "==", "val": "banana"}],
+            }
+        )
+        assert req.filters[0].val == "banana"
+
+    def test_non_string_temporal_value_left_to_downstream(self) -> None:
+        """A non-string val isn't a time_range expression at all; the time
+        grammar has nothing to say about it."""
+        from superset.mcp_service.dataset.schemas import QueryDatasetRequest
+
+        req = QueryDatasetRequest.model_validate(self._request(None))
+        assert req.filters[0].val is None
 
 
 @pytest.mark.asyncio
@@ -1210,3 +2337,411 @@ async def test_query_dataset_bracket_hour_resolves_without_parse_error(
     assert since is not None
     assert until is not None
     assert since < until
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected_start", "expected_end"),
+    [
+        ("Last month", "2026-06-17T00:00:00", "2026-07-17T00:00:00"),
+        ("Last year", "2025-07-17T00:00:00", "2026-07-17T00:00:00"),
+        ("previous calendar month", "2026-06-01T00:00:00", "2026-07-01T00:00:00"),
+        ("Current year", "2026-01-01T00:00:00", "2027-01-01T00:00:00"),
+        ("2025-06-01 : 2025-07-01", "2025-06-01T00:00:00", "2025-07-01T00:00:00"),
+        ("No filter", None, None),
+    ],
+)
+@pytest.mark.parametrize("use_filter", [False, True])
+@pytest.mark.parametrize("result_kind", ["fresh", "cached", "empty"])
+@pytest.mark.asyncio
+async def test_query_dataset_returns_engine_time_bounds(
+    mcp_server: FastMCP,
+    expression: str,
+    expected_start: str | None,
+    expected_end: str | None,
+    use_filter: bool,
+    result_kind: str,
+) -> None:
+    """Resolve MCP inputs with the real factory and serialize execution bounds."""
+
+    from flask import current_app
+    from freezegun import freeze_time
+
+    from superset.common.chart_data import ChartDataResultType
+    from superset.common.query_object_factory import QueryObjectFactory
+    from superset.mcp_service.chart import query_result as query_result_module
+
+    dataset = _make_dataset(main_dttm_col="order_date")
+
+    def execute(
+        datasource_id: int, datasource_type: str, query_dict: dict[str, Any], **_: Any
+    ) -> dict[str, Any]:
+        """Use production date resolution in place of database execution."""
+        factory = QueryObjectFactory(current_app.config, MagicMock())
+        query = factory.create(
+            parent_result_type=ChartDataResultType.FULL,
+            **query_dict,
+        )
+        payload = _mock_command_result()
+        result = payload["queries"][0]
+
+        def plain_datetime(value: datetime | None) -> datetime | None:
+            if value is None:
+                return None
+            # Match the validator's exact datetime type, which freezegun swaps
+            # for its own class while the clock is frozen.
+            return query_result_module.datetime(
+                value.year,
+                value.month,
+                value.day,
+                value.hour,
+                value.minute,
+                value.second,
+                value.microsecond,
+                value.tzinfo,
+            )
+
+        result.update(
+            from_dttm=plain_datetime(query.from_dttm),
+            to_dttm=plain_datetime(query.to_dttm),
+        )
+        result["is_cached"] = result_kind == "cached"
+        if result_kind == "empty":
+            result.update(data=[], colnames=[], coltypes=[], rowcount=0)
+        return payload
+
+    request: dict[str, Any] = {"dataset_id": 1, "metrics": ["count"]}
+    if use_filter:
+        request["filters"] = [
+            {"col": "order_date", "op": "TEMPORAL_RANGE", "val": expression}
+        ]
+    else:
+        request["time_range"] = expression
+
+    # Freeze for the whole request, not temporarily inside the worker: changing
+    # a process-wide clock mid-call also changes another thread's deadline clock.
+    with (
+        freeze_time("2026-07-17 12:34:56", real_asyncio=True),
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(
+            query_dataset_module, "execute_tabular_query", side_effect=execute
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("query_dataset", {"request": request})
+
+    data = json.loads(result.content[0].text)
+    assert data["from_dttm"] == expected_start
+    assert data["to_dttm"] == expected_end
+    assert data["applied_filters"][0]["val"] == expression.strip()
+
+
+@pytest.mark.parametrize("empty", [False, True])
+@pytest.mark.asyncio
+async def test_query_dataset_reexecutes_across_rollover(
+    mcp_server: FastMCP, empty: bool
+) -> None:
+    """A relative range that rolls over re-executes, so bounds match the rows.
+
+    Sharing one cache entry across the rollover reported the requesting range
+    while serving the earlier range's rows.
+    """
+    from datetime import timedelta
+
+    from flask import current_app
+    from flask_caching import Cache
+    from freezegun import freeze_time
+    from pandas import DataFrame
+
+    from superset.common.chart_data import ChartDataResultType
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.common.query_object import QueryObject
+    from superset.common.query_object_factory import QueryObjectFactory
+    from superset.constants import CacheRegion
+    from superset.models.helpers import QueryResult
+
+    dataset = _make_dataset(main_dttm_col="order_date")
+    dataset.column_names = ["count"]
+    context = MagicMock(datasource=dataset, force=False)
+    processor = QueryContextProcessor(context)
+    cache = Cache(current_app, config={"CACHE_TYPE": "SimpleCache"})
+    rows = [] if empty else [{"count": 3}]
+    source_result = QueryResult(
+        df=DataFrame(rows, columns=["count"]),
+        query="SELECT COUNT(*) AS count FROM orders",
+        duration=timedelta(0),
+        applied_filter_columns=["order_date"],
+    )
+    keys: list[str] = []
+
+    def execute(
+        datasource_id: int, datasource_type: str, query_dict: dict[str, Any], **_: Any
+    ) -> dict[str, Any]:
+        """Acquire through production cache handling; adapt its dataframe payload."""
+        query = QueryObjectFactory(current_app.config, MagicMock()).create(
+            parent_result_type=ChartDataResultType.FULL, **query_dict
+        )
+        keys.append(query.cache_key())
+        payload = processor.get_df_payload(query)
+        frame = payload.pop("df")
+        payload.update(
+            data=frame.to_dict(orient="records"),
+            colnames=list(frame.columns),
+            coltypes=[GenericDataType.NUMERIC for _ in frame.columns],
+        )
+        return {"queries": [payload]}
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(
+            query_dataset_module, "execute_tabular_query", side_effect=execute
+        ),
+        patch.dict(
+            "superset.common.utils.query_cache_manager._cache",
+            {CacheRegion.DATA: cache},
+        ),
+        patch.object(processor, "query_cache_key", side_effect=QueryObject.cache_key),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "get_annotation_data", return_value={}),
+        patch.object(
+            processor, "get_query_result", return_value=source_result
+        ) as get_query_result,
+    ):
+        async with Client(mcp_server) as client:
+            request = {
+                "request": {
+                    "dataset_id": 1,
+                    "metrics": ["count"],
+                    "time_range": "Last month",
+                }
+            }
+            with freeze_time("2026-07-17 23:59:59"):
+                fresh = await client.call_tool("query_dataset", request)
+            with freeze_time("2026-07-18 00:00:01"):
+                cached = await client.call_tool("query_dataset", request)
+                stored = cache.get(keys[0])
+                assert stored is not None
+                assert "from_dttm" not in stored
+                assert "to_dttm" not in stored
+
+    assert get_query_result.call_count == 2
+    assert keys[0] != keys[1]
+    fresh_data = json.loads(fresh.content[0].text)
+    cached_data = json.loads(cached.content[0].text)
+    assert fresh_data["data"] == cached_data["data"] == rows
+    assert fresh_data["cache_status"]["cache_hit"] is False
+    assert cached_data["cache_status"]["cache_hit"] is False
+    assert fresh_data["from_dttm"] == "2026-06-17T00:00:00"
+    assert fresh_data["to_dttm"] == "2026-07-17T00:00:00"
+    assert cached_data["from_dttm"] == "2026-06-18T00:00:00"
+    assert cached_data["to_dttm"] == "2026-07-18T00:00:00"
+    assert cached_data["performance"]["cache_status"] == (
+        "no_data" if empty else "fresh"
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "dimensions",
+    [
+        ["address.city.name"],
+        ["event_name"],
+        ["address.city.name", "address.postal_code"],
+        ["address.city.name", "event_name", "address.postal_code"],
+    ],
+)
+async def test_query_dataset_unregistered_dimension_is_actionable(
+    mcp_server: FastMCP, dimensions: list[str]
+) -> None:
+    """Unregistered struct paths and wrong-dataset names explain how to recover."""
+    dataset = _make_dataset(
+        table_name="example_events",
+        columns=[_make_column("address"), _make_column("channel")],
+    )
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": dimensions,
+                    }
+                },
+            )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    for dimension in dimensions:
+        assert dimension in data["error"]
+    assert "example_events" in data["error"]
+    assert "Available columns: address, channel" in data["error"]
+    assert "get_dataset_info" in data["error"]
+    dotted_dimensions = [name for name in dimensions if "." in name]
+    if dotted_dimensions:
+        assert "not registered" in data["error"]
+        for guidance in (
+            "query_dataset requires exact registered column names",
+            "registering a parent struct does not expose its nested fields",
+            "Refresh the dataset columns",
+            "add a calculated column",
+            "Use execute_sql",
+        ):
+            assert data["error"].count(guidance) == 1
+    else:
+        assert "nested fields" not in data["error"]
+    execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("engine", ["sqlite", "bigquery"])
+async def test_query_dataset_registered_dotted_groupby(
+    mcp_server: FastMCP, engine: str
+) -> None:
+    """Registered dotted names reach SQL generation without MCP sanitization.
+
+    SQLite treats the dot as part of a literal identifier, not a struct path.
+    Splitting every dotted dimension into SQL identifiers would break this case.
+    """
+    from sqlalchemy.dialects.sqlite import dialect
+
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    sql_dialect = (
+        pytest.importorskip("sqlalchemy_bigquery").BigQueryDialect()
+        if engine == "bigquery"
+        else dialect()
+    )
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://test-project"
+        if engine == "bigquery"
+        else "sqlite://",
+    )
+    mock_engine = MagicMock()
+    mock_engine.dialect = sql_dialect
+    engine_context = MagicMock()
+    engine_context.__enter__.return_value = mock_engine
+    dimension = "address.city.name"
+    dataset = SqlaTable(
+        id=1,
+        table_name="example_locations",
+        database=database,
+        columns=[TableColumn(column_name=dimension, type="TEXT")],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+    compiled: list[str] = []
+
+    def compile_query(
+        dataset_id: int, datasource_type: str, query: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """Exercise the real dataset SQL builder without a warehouse connection."""
+        assert query["columns"] == [dimension]
+        sqla_query = dataset.get_sqla_query(
+            groupby=query["columns"], metrics=query["metrics"], is_timeseries=False
+        )
+        compiled.append(str(sqla_query.sqla_query.compile(dialect=sql_dialect)))
+        return _mock_command_result(
+            data=[{dimension: "Sports", "count": 2}], colnames=[dimension, "count"]
+        )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(database, "get_sqla_engine", return_value=engine_context),
+        patch.object(dataset, "get_sqla_row_level_filters", return_value=[]),
+        patch.object(
+            query_dataset_module, "execute_tabular_query", side_effect=compile_query
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": [dimension],
+                    }
+                },
+            )
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [{dimension: "Sports", "count": 2}]
+    assert len(compiled) == 1
+    if engine == "bigquery":
+        assert "`address`.`city`.`name`" in compiled[0]
+        assert "GROUP BY" in compiled[0]
+    else:
+        assert 'GROUP BY "address.city.name"' in compiled[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("column_count", [0, 12])
+async def test_query_dataset_available_columns_preview(
+    mcp_server: FastMCP, column_count: int
+) -> None:
+    """Dimension errors bound the preview and handle datasets without columns."""
+    dataset = _make_dataset()
+    dataset.columns = [_make_column(f"col_{i:02}") for i in range(column_count)]
+    with patch.object(query_dataset_module, "resolve_dataset", return_value=dataset):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {"request": {"dataset_id": 1, "columns": ["missing"]}},
+            )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    if column_count:
+        assert "col_00" in data["error"]
+        assert "col_09" in data["error"]
+        assert "col_10" not in data["error"]
+        assert "(and 2 more)" in data["error"]
+    else:
+        assert "Available columns: (none)" in data["error"]
+    assert "get_dataset_info with this dataset_id" in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("identifier", [1, "1", "00000000-0000-0000-0000-000000000001"])
+@pytest.mark.parametrize("in_scope", [True, False])
+async def test_scope_refuses_out_of_scope_query_and_admits_in_scope_one(
+    mcp_server: FastMCP,
+    identifier: int | str,
+    in_scope: bool,
+) -> None:
+    """The authenticated MCP entry point refuses rather than queries a substitute.
+
+    The in-scope case is what proves the refusal is a decision and not a
+    wholesale block: an implementation reading the wrong identifier field would
+    refuse both ways and still satisfy the negative case alone.
+    """
+    dataset_uuid: UUID = UUID("00000000-0000-0000-0000-000000000001")
+    dataset: MagicMock = _make_dataset()
+    dataset.uuid = dataset_uuid
+    scope: frozenset[UUID] = frozenset({dataset_uuid}) if in_scope else frozenset()
+    with (
+        patch(
+            "superset.mcp_service.dataset_scope.get_dataset_scope",
+            return_value=scope,
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            if in_scope:
+                await client.call_tool(
+                    "query_dataset",
+                    {"request": {"dataset_id": identifier, "metrics": ["count"]}},
+                )
+            else:
+                # The client re-raises the base ToolError across the
+                # transport; what matters is that the explanation survives it.
+                with pytest.raises(ToolError) as excinfo:
+                    await client.call_tool(
+                        "query_dataset",
+                        {"request": {"dataset_id": identifier, "metrics": ["count"]}},
+                    )
+                assert OUT_OF_SCOPE_ERROR in str(excinfo.value)
+        assert execute.called is in_scope

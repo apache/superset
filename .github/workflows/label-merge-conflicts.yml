@@ -1,0 +1,54 @@
+name: Label Merge Conflicts
+
+# Sweeps every open PR and labels the ones GitHub reports as CONFLICTING with
+# `requires:rebase` (removing it once a rebase makes the PR mergeable again),
+# so the label can be used to filter the PR backlog for the ones that need a
+# rebase before they can be reviewed/merged.
+#
+# The action itself always re-checks *every* open PR via GraphQL on each run
+# regardless of what triggered it (see eps1lon/actions-label-merge-conflict's
+# sources/main.ts) - there's no way to scope it to "just this PR". The
+# project's own README suggests triggering on `push` (to the default branch)
+# plus `pull_request_target: [synchronize]`, but on a repo with Superset's PR
+# volume that combination would re-sweep the entire open-PR list on every
+# merge to master *and* every push to *any* open PR - many times an hour.
+# A schedule bounds that to a fixed, predictable cadence instead; adjust it
+# if 2 hours turns out to be too slow or too chatty in practice.
+on:
+  schedule:
+    - cron: "0 */2 * * *"
+  workflow_dispatch:
+
+# Avoid two full backlog sweeps racing (a manual workflow_dispatch landing
+# mid-schedule-tick, say); queue rather than cancel so an in-progress
+# paginated sweep always runs to completion.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  label-merge-conflicts:
+    # Scheduled/dispatch workflows still run on forks that carry this file;
+    # skip anywhere but the canonical repo.
+    if: github.repository == 'apache/superset'
+    name: Label Merge Conflicts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # to add/remove requires:rebase and need:merge
+    steps:
+      # ASF Infra allowlists this whole action via a wildcard
+      # (eps1lon/actions-label-merge-conflict@*), so any pinned SHA/version
+      # is already fine here - no Infra ticket needed for future bumps.
+      - uses: eps1lon/actions-label-merge-conflict@0273be72a0bbd58fcd71d0d6c02c209b50d1e5e1 # v3.1.0
+        with:
+          dirtyLabel: "requires:rebase"
+          # A conflicting PR isn't actually ready to merge; strip that signal
+          # if it was previously set so reviewers don't act on a stale one.
+          removeOnDirtyLabel: "need:merge"
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          # Intentionally no commentOnDirty/commentOnClean: the label alone is
+          # the signal (matches the label's existing description, and avoids
+          # a one-time comment storm across the whole backlog on first run).

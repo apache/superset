@@ -19,24 +19,34 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
-from typing import Any, ClassVar
+from typing import Any, cast, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
     map_histogram_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, HistogramChartConfig
-from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    DEFAULT_HISTOGRAM_BINS,
+    HistogramChartConfig,
+    VegaLitePreview,
+)
+from superset.mcp_service.chart.validation.dataset_validator import (
+    DatasetValidator,
+    is_numeric_column,
+)
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
 class HistogramChartPlugin(BaseChartPlugin):
     """Plugin for histogram chart type."""
 
+    query_role_keys = BaseChartPlugin.query_role_keys | {"column"}
     chart_type = "histogram"
+    allows_empty_result = True
     display_name = "Histogram"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "histogram_v2": "Histogram",
@@ -104,39 +114,20 @@ class HistogramChartPlugin(BaseChartPlugin):
         if dataset_context is None:
             return None
 
-        col_info = next(
-            (
-                col
-                for col in dataset_context.available_columns
-                if col["name"].lower() == (config.column.name or "").lower()
-            ),
-            None,
+        col_info, _ambiguity = DatasetValidator._resolve_metadata_entry(
+            config.column.name or "", dataset_context.available_columns
         )
         if col_info is None:
             # Column existence is validated separately; don't double-report.
             return None
 
-        def _is_numeric(col: dict[str, Any]) -> bool:
-            if col.get("is_numeric", False):
-                return True
-            # Backends report many spellings (BIGINT, SMALLINT, REAL, NUMBER,
-            # DOUBLE PRECISION); match numeric tokens at word boundaries so
-            # INTERVAL/POINT (which merely contain "INT") stay non-numeric.
-            type_upper = str(col.get("type", "")).upper()
-            return bool(
-                re.search(
-                    r"\b(?:TINY|SMALL|MEDIUM|BIG)?INT(?:EGER)?\b"
-                    r"|\bFLOAT\b|\bDOUBLE\b|\bDECIMAL\b"
-                    r"|\bNUMERIC\b|\bREAL\b|\bNUMBER\b",
-                    type_upper,
-                )
-            )
-
-        if _is_numeric(col_info):
+        if is_numeric_column(col_info):
             return None
 
         numeric_columns = sorted(
-            col["name"] for col in dataset_context.available_columns if _is_numeric(col)
+            col["name"]
+            for col in dataset_context.available_columns
+            if is_numeric_column(col)
         )
         return ChartGenerationError(
             error_type="non_numeric_histogram_column",
@@ -163,7 +154,7 @@ class HistogramChartPlugin(BaseChartPlugin):
         return "histogram_v2"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         column = config_dict.get("column")
         if column and not column.get("sql_expression"):
@@ -195,3 +186,90 @@ class HistogramChartPlugin(BaseChartPlugin):
             ],
             error_code="HISTOGRAM_VALIDATION_ERROR",
         )
+
+    def resolve_query_fields(
+        self, form_data: Mapping[str, Any], viz_type: str
+    ) -> tuple[list[Any], list[Any]] | None:
+        raw_groupby = form_data.get("groupby") or []
+        groupby = [raw_groupby] if isinstance(raw_groupby, str) else list(raw_groupby)
+        column = form_data.get("column")
+        columns = [*groupby, column] if column else groupby
+        # Frontend buildQuery adds an aggregate for adhoc HAVING filters.
+        # MCP also honors the top-level having expression.
+        has_having = bool(form_data.get("having")) or any(
+            isinstance(filter_, Mapping) and filter_.get("clause") == "HAVING"
+            for filter_ in form_data.get("adhoc_filters") or []
+        )
+        metrics: list[Any] = (
+            [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "COUNT(*)",
+                    "label": "COUNT(*)",
+                }
+            ]
+            if has_having
+            else []
+        )
+        return metrics, columns
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        from superset.mcp_service.chart.chart_helpers import build_single_query_dict
+        from superset.mcp_service.chart.query_result import column_result_label
+
+        metrics, columns = cast(
+            tuple[list[Any], list[Any]],
+            self.resolve_query_fields(form_data, viz_type),
+        )
+        query = build_single_query_dict(
+            form_data,
+            columns,
+            metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        if (
+            form_data.get("column")
+            and columns
+            and (column := column_result_label(columns[-1]))
+        ):
+            # Mirror histogramOperator so rows are the binned chart output.
+            try:
+                bins = int(float(form_data.get("bins", DEFAULT_HISTOGRAM_BINS)))
+            except (TypeError, ValueError, OverflowError):
+                bins = DEFAULT_HISTOGRAM_BINS
+            groupby = [
+                label
+                for value in columns[:-1]
+                if (label := column_result_label(value)) is not None
+            ]
+            query["post_processing"] = [
+                {
+                    "operation": "histogram",
+                    "options": {
+                        "column": column,
+                        "groupby": groupby,
+                        "bins": bins,
+                        "cumulative": bool(form_data.get("cumulative")),
+                        "normalize": bool(form_data.get("normalize")),
+                    },
+                }
+            ]
+        return [query]
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        from superset.mcp_service.chart.preview_utils import (
+            generate_histogram_vega_lite_preview,
+        )
+
+        return generate_histogram_vega_lite_preview(data, form_data)

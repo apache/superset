@@ -53,6 +53,27 @@ test('LRU operations', () => {
   expect(cache.capacity).toBe(3);
 });
 
+test('overwriting an existing key does not evict another entry', () => {
+  const cache = lruCache<string>(2);
+  cache.set('a', 'a');
+  cache.set('b', 'b');
+  cache.set('b', 'b2');
+  expect(cache.size).toBe(2);
+  expect(cache.has('a')).toBe(true);
+  expect(cache.get('b')).toBe('b2');
+});
+
+test('overwriting an existing key refreshes its recency', () => {
+  const cache = lruCache<string>(2);
+  cache.set('a', 'a');
+  cache.set('b', 'b');
+  // `a` becomes the most recently used, so `b` is evicted next
+  cache.set('a', 'a2');
+  cache.set('c', 'c');
+  expect(cache.has('b')).toBe(false);
+  expect(cache.values()).toEqual(['a2', 'c']);
+});
+
 test('LRU handle null and undefined', () => {
   const cache = lruCache();
   cache.set('a', null);

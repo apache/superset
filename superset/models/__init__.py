@@ -14,4 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import core, dynamic_plugins, sql_lab, user_attributes  # noqa: F401
+from . import (  # noqa: F401
+    core,
+    dynamic_plugins,
+    purge_audit_log,
+    sql_lab,
+    user_attributes,
+)

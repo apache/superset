@@ -19,6 +19,7 @@ from types import SimpleNamespace
 
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.sql.elements import ColumnElement, False_
 
 from superset.extensions import security_manager
 from superset.utils.filters import (
@@ -50,7 +51,7 @@ def test_get_dataset_access_filters(mocker: MockerFixture) -> None:
     )
 
     clause = get_dataset_access_filters(SqlaTable)
-    engine = create_engine("sqlite://", future=True)
+    engine = create_engine("sqlite://")
     compiled_query = clause.compile(engine, compile_kwargs={"literal_binds": True})
     assert str(compiled_query) == (
         "dbs.id IN (1, 3) "
@@ -58,6 +59,47 @@ def test_get_dataset_access_filters(mocker: MockerFixture) -> None:
         "OR tables.catalog_perm IN ('[db].[catalog2]') OR "
         "tables.schema_perm IN ('[db].[catalog1].[schema2]')"
     )
+
+
+def test_get_dataset_access_filters_extra_clauses(mocker: MockerFixture) -> None:
+    """Named ``extra_access_clauses`` are OR-ed into the filter (the seam the
+    dashboard and chart list filters use for the semantic-layer grant
+    clause, SC-119500)."""
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy import column
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.extensions import security_manager
+
+    mocker.patch.object(security_manager, "get_accessible_databases", return_value=[1])
+    mocker.patch.object(
+        security_manager,
+        "user_view_menu_names",
+        side_effect=[{"[db].[t](id:1)"}, set(), set()],
+    )
+
+    clause: "ColumnElement[bool]" = get_dataset_access_filters(
+        SqlaTable, column("x") == 1
+    )
+    assert " OR x = :x_1" in str(clause)
+
+
+def test_get_dataset_access_filters_include_all(mocker: MockerFixture) -> None:
+    """``include_all`` yields an explicit always-true clause (and skips the
+    grant lookups) for callers that already established
+    ``all_datasource_access``."""
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.extensions import security_manager
+
+    mocker.patch.object(security_manager, "get_accessible_databases", return_value=[1])
+    mocker.patch.object(
+        security_manager,
+        "user_view_menu_names",
+        side_effect=[{"[db].[t](id:1)"}, set(), set()],
+    )
+
+    assert str(get_dataset_access_filters(SqlaTable, include_all=True)) == "true"
 
 
 def _guest_with_dashboards(*ids: object) -> SimpleNamespace:
@@ -89,8 +131,6 @@ def test_guest_embedded_dashboard_filter_no_dashboard_resources(
 ) -> None:
     """A guest with no dashboard resources is denied all charts (fail closed),
     not left to fall back to the role-based access path (which None would do)."""
-    from sqlalchemy.sql.elements import False_
-
     mocker.patch("superset.is_feature_enabled", return_value=True)
     guest = SimpleNamespace(resources=[{"type": "dataset", "id": 1}])
     mocker.patch.object(
@@ -117,7 +157,7 @@ def test_guest_embedded_dashboard_filter_uuid_resources(
     # structure (an EXISTS against embedded_dashboards.uuid) rather than the value.
     clause = guest_embedded_dashboard_filter()
     assert clause is not None
-    compiled = str(clause.compile(create_engine("sqlite://", future=True)))
+    compiled = str(clause.compile(create_engine("sqlite://")))
     assert "EXISTS" in compiled
     assert "embedded_dashboards" in compiled
     assert "uuid" in compiled
@@ -139,7 +179,7 @@ def test_guest_embedded_dashboard_filter_int_resources(
     assert clause is not None
     compiled = str(
         clause.compile(
-            create_engine("sqlite://", future=True),
+            create_engine("sqlite://"),
             compile_kwargs={"literal_binds": True},
         )
     )
@@ -166,7 +206,45 @@ def test_guest_embedded_dashboard_filter_mixed_uuid_and_int_ids(
     assert clause is not None
     # uuid column is BINARY(16), so compile without literal_binds and assert
     # structure: an EXISTS on embedded_dashboards OR a dashboards.id filter.
-    compiled = str(clause.compile(create_engine("sqlite://", future=True)))
+    compiled = str(clause.compile(create_engine("sqlite://")))
     assert "embedded_dashboards" in compiled
     assert "dashboards.id IN" in compiled
     assert " OR " in compiled
+
+
+def test_guest_embedded_dashboard_filter_slug_only_denies(
+    mocker: MockerFixture,
+) -> None:
+    """A slug-only token yields deny-all: has_guest_access authorizes the data
+    path only by dashboard id/uuid, never slug, so the list filter must not widen
+    past it (else a slug dashboard would list but its data would be denied)."""
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    mocker.patch.object(
+        security_manager,
+        "get_current_guest_user_if_guest",
+        return_value=_guest_with_dashboards("sales-overview"),
+    )
+
+    clause = guest_embedded_dashboard_filter()
+    assert isinstance(clause, False_)
+
+
+def test_guest_embedded_dashboard_filter_ignores_slug_in_mixed_token(
+    mocker: MockerFixture,
+) -> None:
+    """A token mixing uuid, int, and slug ids matches only the uuid and int ids;
+    the slug is dropped (fail-closed on the data path, so never surfaced)."""
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    uuid = "51e44e1c-ffd1-425d-8993-919177955270"
+    mocker.patch.object(
+        security_manager,
+        "get_current_guest_user_if_guest",
+        return_value=_guest_with_dashboards(uuid, 7, "sales-overview"),
+    )
+
+    clause = guest_embedded_dashboard_filter()
+    assert clause is not None
+    compiled = str(clause.compile(create_engine("sqlite://")))
+    assert "embedded_dashboards" in compiled
+    assert "dashboards.id IN" in compiled
+    assert "dashboards.slug" not in compiled

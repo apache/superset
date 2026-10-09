@@ -246,6 +246,34 @@ test('wraps component with proper container div', () => {
   expect(wrapper).toHaveAttribute('data-themed-ag-grid', 'true');
 });
 
+test('applies non-transparent backgrounds to native menus, tooltips and overlays', () => {
+  const customTheme = {
+    ...supersetTheme,
+    colorBgElevated: '#f2f2f2',
+  };
+
+  render(
+    <ThemeProvider theme={customTheme}>
+      <ThemedAgGridReact rowData={mockRowData} columnDefs={mockColumnDefs} />
+    </ThemeProvider>,
+  );
+
+  const agGrid = screen.getByTestId('ag-grid-react');
+  const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
+
+  // ag-grid's own context/column menus, side bar, tooltips and overlays are
+  // rendered against these params rather than `backgroundColor` (which is
+  // intentionally 'transparent' so the surrounding app shows through the
+  // grid body). Without explicit values they inherit transparency too,
+  // making native menus/popups unreadable.
+  expect(theme.chromeBackgroundColor).toBe('#f2f2f2');
+  expect(theme.menuBackgroundColor).toBe('#f2f2f2');
+  expect(theme.menuBorder).toBe(true);
+  expect(theme.sideBarBackgroundColor).toBe('#f2f2f2');
+  expect(theme.tooltipBackgroundColor).toBe('#f2f2f2');
+  expect(theme.modalOverlayBackgroundColor).toBe('#f2f2f2');
+});
+
 test('handles missing theme gracefully', () => {
   const incompleteTheme = {
     ...supersetTheme,

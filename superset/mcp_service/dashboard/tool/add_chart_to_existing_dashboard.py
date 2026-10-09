@@ -22,7 +22,6 @@ This tool adds a chart to an existing dashboard with automatic layout positionin
 """
 
 import logging
-import re
 from typing import Any, Dict
 
 from fastmcp import Context
@@ -36,165 +35,27 @@ from superset.mcp_service.dashboard.constants import (
     GRID_COLUMN_COUNT,
     GRID_DEFAULT_CHART_WIDTH,
 )
+from superset.mcp_service.dashboard.layout_placement import (
+    collect_available_tab_names,
+    ensure_layout_structure,
+    find_next_row_position,
+    find_tab_insert_target,
+)
+from superset.mcp_service.dashboard.layout_validation import rebuild_parent_chains
 from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
     DashboardInfo,
     serialize_chart_summary,
 )
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
+)
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-# Compiled regex for stripping common emoji Unicode ranges from tab text.
-# Uses specific Unicode blocks to avoid overly permissive ranges.
-_EMOJI_RE = re.compile(
-    "["
-    "\U0001f300-\U0001f5ff"  # Misc Symbols and Pictographs
-    "\U0001f600-\U0001f64f"  # Emoticons
-    "\U0001f680-\U0001f6ff"  # Transport and Map Symbols
-    "\U0001f900-\U0001f9ff"  # Supplemental Symbols and Pictographs
-    "\U0001fa70-\U0001faff"  # Symbols and Pictographs Extended-A
-    "\u2600-\u26ff"  # Misc Symbols
-    "\u2700-\u27bf"  # Dingbats
-    "\ufe00-\ufe0f"  # Variation Selectors
-    "\u200d"  # Zero-width joiner
-    "]+"
-)
-
-
-def _find_next_row_position(layout: Dict[str, Any]) -> str:
-    """
-    Generate a unique ROW ID for a new row in the dashboard layout.
-
-    Uses UUID-based IDs (e.g. ``ROW-a1b2c3d4``) instead of numeric indices
-    so that the IDs are compatible with real dashboard layouts that use
-    nanoid-style identifiers.
-
-    Returns:
-        A new unique ROW ID string.
-    """
-    row_key = generate_id("ROW")
-    # Ensure uniqueness (extremely unlikely collision, but safe)
-    while row_key in layout:
-        row_key = generate_id("ROW")
-    return row_key
-
-
-def _normalize_tab_text(text: str | None) -> str:
-    """Strip emoji and extra whitespace from tab text for flexible matching."""
-    if not text:
-        return ""
-    cleaned = _EMOJI_RE.sub("", text)
-    return cleaned.strip().lower()
-
-
-def _match_tab_in_children(
-    layout: Dict[str, Any],
-    tabs_children: list[str],
-    target_tab: str,
-) -> str | None:
-    """Search tabs_children for a tab matching target_tab by ID or name.
-
-    Matching is flexible: exact ID match, exact text match, or
-    case-insensitive text match after stripping emoji characters.
-    """
-    target_normalized = _normalize_tab_text(target_tab)
-    for tab_id in tabs_children:
-        tab = layout.get(tab_id)
-        if not tab or tab.get("type") != "TAB":
-            continue
-        tab_text = (tab.get("meta") or {}).get("text", "")
-        # Exact match on ID or text
-        if target_tab in (tab_id, tab_text):
-            return tab_id
-        # Flexible match: case-insensitive, emoji-stripped
-        if target_normalized and _normalize_tab_text(tab_text) == target_normalized:
-            return tab_id
-    return None
-
-
-def _collect_tabs_groups(layout: Dict[str, Any]) -> list[list[str]]:
-    """Collect all TABS groups from ROOT_ID and GRID_ID children.
-
-    Superset dashboards can place TABS under either ROOT_ID or GRID_ID
-    depending on how the layout was constructed.
-    """
-    groups: list[list[str]] = []
-    for parent_key in ("ROOT_ID", "GRID_ID"):
-        parent = layout.get(parent_key)
-        if not parent:
-            continue
-        for child_id in parent.get("children", []):
-            child = layout.get(child_id)
-            if not child or child.get("type") != "TABS":
-                continue
-            tabs_children = child.get("children", [])
-            if tabs_children:
-                groups.append(tabs_children)
-    return groups
-
-
-def _first_tab_from_groups(
-    layout: Dict[str, Any], groups: list[list[str]]
-) -> str | None:
-    """Return the first valid TAB ID from the collected groups."""
-    for tabs_children in groups:
-        first_tab_id = tabs_children[0]
-        first_tab = layout.get(first_tab_id)
-        if first_tab and first_tab.get("type") == "TAB":
-            return first_tab_id
-    return None
-
-
-def _collect_available_tab_names(layout: Dict[str, Any]) -> list[str]:
-    """Collect display entries (label + component ID) for all TAB components.
-
-    Always includes the component ID so callers can retry unambiguously even
-    when multiple tabs share the same display name or a label is blank.
-    """
-    entries: list[str] = []
-    for tabs_children in _collect_tabs_groups(layout):
-        for tab_id in tabs_children:
-            tab = layout.get(tab_id)
-            if not tab or tab.get("type") != "TAB":
-                continue
-            text = (tab.get("meta") or {}).get("text", "")
-            entries.append(f"{text} ({tab_id})" if text else tab_id)
-    return entries
-
-
-def _find_tab_insert_target(
-    layout: Dict[str, Any], target_tab: str | None = None
-) -> str | None:
-    """
-    Detect if the dashboard uses tabs and return the appropriate tab's ID.
-
-    When *target_tab* is ``None`` the function returns the first TAB child so
-    that new rows are placed inside the tab structure rather than directly
-    under ``GRID_ID``.
-
-    When *target_tab* is provided the function tries to match it against tab
-    ``meta.text`` (display name) or the raw component ID.  If no match is
-    found ``None`` is returned — the caller is responsible for surfacing an
-    error rather than silently placing the chart in the wrong tab.
-
-    Returns:
-        The ID of the matched (or first) TAB component, or ``None``.
-    """
-    groups = _collect_tabs_groups(layout)
-
-    if target_tab is not None:
-        for tabs_children in groups:
-            matched = _match_tab_in_children(layout, tabs_children, target_tab)
-            if matched:
-                return matched
-        # target_tab specified but not found — signal mismatch to the caller.
-        return None
-
-    return _first_tab_from_groups(layout, groups)
 
 
 def _add_chart_to_layout(
@@ -208,7 +69,10 @@ def _add_chart_to_layout(
     Add chart, column, and row components to the dashboard layout.
 
     Creates the proper ``ROW > COLUMN > CHART`` hierarchy that the
-    frontend expects for rendering.
+    frontend expects for rendering. ``parents`` is left empty on each new
+    node — the caller rebuilds it for the whole layout via
+    ``rebuild_parent_chains`` after this function links the new row into
+    its parent container's ``children``.
 
     Args:
         layout: The mutable layout dict to update.
@@ -225,19 +89,6 @@ def _add_chart_to_layout(
     chart_width = GRID_DEFAULT_CHART_WIDTH
     chart_height = 50  # Good height for most chart types
 
-    # Build the parents chain up to the parent container
-    if (parent_component := layout.get(parent_id)) is not None:
-        parent_parents = parent_component.get("parents", [])
-    elif parent_id == "GRID_ID":
-        # Empty layout: GRID_ID will be created by _ensure_layout_structure
-        # with parents=["ROOT_ID"], so mirror that here.
-        parent_parents = ["ROOT_ID"]
-    else:
-        parent_parents = []
-    row_parents = list(parent_parents) + [parent_id]
-    column_parents = row_parents + [row_key]
-    chart_parents = column_parents + [column_key]
-
     # Add chart component
     layout[chart_key] = {
         "children": [],
@@ -249,7 +100,7 @@ def _add_chart_to_layout(
             "uuid": str(chart.uuid) if chart.uuid else f"chart-{chart_id}",
             "width": chart_width,
         },
-        "parents": chart_parents,
+        "parents": [],
         "type": "CHART",
     }
 
@@ -261,7 +112,7 @@ def _add_chart_to_layout(
             "background": "BACKGROUND_TRANSPARENT",
             "width": GRID_COLUMN_COUNT,
         },
-        "parents": column_parents,
+        "parents": [],
         "type": "COLUMN",
     }
 
@@ -270,71 +121,11 @@ def _add_chart_to_layout(
         "children": [column_key],
         "id": row_key,
         "meta": {"background": "BACKGROUND_TRANSPARENT"},
-        "parents": row_parents,
+        "parents": [],
         "type": "ROW",
     }
 
     return chart_key, column_key, row_key
-
-
-def _ensure_layout_structure(
-    layout: Dict[str, Any], row_key: str, parent_id: str
-) -> None:
-    """
-    Ensure the dashboard layout has proper GRID and ROOT structure,
-    and add the new row to the correct parent container.
-
-    Args:
-        layout: The mutable layout dict to update.
-        row_key: The ROW component ID to insert.
-        parent_id: The container to add the row to (GRID_ID or a TAB ID).
-    """
-    # Ensure GRID structure exists
-    if "GRID_ID" not in layout:
-        layout["GRID_ID"] = {
-            "children": [],
-            "id": "GRID_ID",
-            "parents": ["ROOT_ID"],
-            "type": "GRID",
-        }
-
-    # Add row to the target parent container
-    if parent := layout.get(parent_id):
-        if "children" not in parent:
-            parent["children"] = []
-        parent["children"].append(row_key)
-    else:
-        # Fallback: add to GRID_ID
-        if "children" not in layout["GRID_ID"]:
-            layout["GRID_ID"]["children"] = []
-        layout["GRID_ID"]["children"].append(row_key)
-
-    # Update ROOT_ID if it exists, or create it
-    if "ROOT_ID" in layout:
-        if "children" not in layout["ROOT_ID"]:
-            layout["ROOT_ID"]["children"] = []
-        # Only add GRID_ID to ROOT_ID when TABS are not already a direct
-        # child of ROOT_ID.  Real Superset dashboards with tabs place a
-        # TABS container directly under ROOT_ID (ROOT_ID → TABS → TABs).
-        # Adding GRID_ID as a sibling of TABS confuses the frontend layout
-        # engine and makes charts invisible.
-        root_children = layout["ROOT_ID"]["children"]
-        has_tabs_under_root = any(
-            layout.get(c, {}).get("type") == "TABS" for c in root_children
-        )
-        if not has_tabs_under_root and "GRID_ID" not in root_children:
-            root_children.append("GRID_ID")
-    else:
-        # Create ROOT_ID if it doesn't exist
-        layout["ROOT_ID"] = {
-            "children": ["GRID_ID"],
-            "id": "ROOT_ID",
-            "type": "ROOT",
-        }
-
-    # Ensure dashboard version
-    if "DASHBOARD_VERSION_KEY" not in layout:
-        layout["DASHBOARD_VERSION_KEY"] = "v2"
 
 
 def _resolve_parent_container(
@@ -347,10 +138,10 @@ def _resolve_parent_container(
     When *target_tab* is specified and not found the caller receives a
     descriptive error listing available tabs rather than a silent fallback.
     """
-    tab_target = _find_tab_insert_target(layout, target_tab=target_tab)
+    tab_target = find_tab_insert_target(layout, target_tab=target_tab)
 
     if target_tab is not None and tab_target is None:
-        available = _collect_available_tab_names(layout)
+        available = collect_available_tab_names(layout)
         if available:
             tab_list = ", ".join(available)
             return None, AddChartToDashboardResponse(
@@ -427,6 +218,8 @@ def _find_and_authorize_dashboard(
         title="Add chart to dashboard",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural (layout traversal + multi-step authorization), not accidental
@@ -435,6 +228,8 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
     """
     Add chart to existing dashboard. Auto-positions in 2-column grid.
     Returns updated dashboard info.
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
     """
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand
@@ -444,6 +239,12 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
             dashboard, auth_error = _find_and_authorize_dashboard(request.dashboard_id)
             if auth_error is not None:
                 return auth_error
+
+            refusal: str | None = managed_dashboard_refusal(dashboard)
+            if refusal is not None:
+                return AddChartToDashboardResponse(
+                    managed_externally=True, error=refusal
+                )
 
             # Get chart object for SQLAlchemy relationships and validation
             from superset import db
@@ -501,7 +302,7 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
                 current_layout = {}
 
             # Generate a unique ROW ID for the new row
-            row_key = _find_next_row_position(current_layout)
+            row_key = find_next_row_position(current_layout)
 
             # Detect tabbed dashboards and resolve target_tab by name or ID.
             parent_id, tab_error = _resolve_parent_container(
@@ -520,7 +321,15 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
             )
 
             # Ensure proper layout structure
-            _ensure_layout_structure(current_layout, row_key, parent_id)
+            ensure_layout_structure(current_layout, row_key, parent_id)
+
+            # The new row/column/chart nodes were added with empty
+            # ``parents`` (see ``_add_chart_to_layout``); rebuild every
+            # reachable component's parents from the actual children edges
+            # so filter-scope derivation sees a correct tree, regardless of
+            # what the stored layout carried beforehand. See
+            # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+            current_layout = rebuild_parent_chains(current_layout)
 
         # Update the dashboard
         with event_logger.log_context(action="mcp.add_chart_to_dashboard.db_write"):

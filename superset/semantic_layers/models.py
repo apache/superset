@@ -19,24 +19,32 @@
 
 from __future__ import annotations
 
+import logging
+import math
 import uuid
 from collections.abc import Hashable
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, TYPE_CHECKING
 
+import pandas as pd
 import pyarrow as pa
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, relationship
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy_utils import UUIDType
 from sqlalchemy_utils.types.json import JSONType
 from superset_core.semantic_layers.layer import (
     SemanticLayer as SemanticLayerABC,
+)
+from superset_core.semantic_layers.types import (
+    Filter,
+    Operator,
+    PredicateType,
 )
 from superset_core.semantic_layers.view import (
     SemanticView as SemanticViewABC,
@@ -46,10 +54,13 @@ from superset.common.query_object import QueryObject
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,
+    SemanticResultCompletenessError,
 )
 from superset.explorables.base import TimeGrainDict
 from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
+from superset.result_set import stringify_extension_columns
+from superset.semantic_layers.completeness import provider_completeness
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -57,6 +68,44 @@ from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.superset_typing import ExplorableData, QueryObjectDict
+
+
+logger = logging.getLogger(__name__)
+
+
+# Known grains ranked finest to coarsest by their ISO-8601 durations, so that
+# collapsing same-named grain variants picks the least-aggregated one
+# deterministically. Grains outside this table rank after every known one.
+_GRAIN_FINENESS: dict[str, int] = {
+    "PT1S": 0,
+    "PT1M": 1,
+    "PT1H": 2,
+    "P1D": 3,
+    "P1W": 4,
+    "P1M": 5,
+    "P3M": 6,
+    "P1Y": 7,
+}
+
+
+def _grain_preference(dimension: Any) -> tuple[int, int, str]:
+    """Sort key for choosing among same-named grain variants.
+
+    The unaggregated variant (``grain is None``) always wins; otherwise the
+    finest grain does, with the grain's representation as a deterministic
+    tie-break. ``get_dimensions()`` returns an unordered set, so without an
+    explicit preference the collapsed pick — and with it column metadata and
+    value suggestions — would vary run to run.
+    """
+    grain = getattr(dimension, "grain", None)
+    if grain is None:
+        return (0, 0, "")
+    representation = str(getattr(grain, "representation", grain))
+    return (
+        1,
+        _GRAIN_FINENESS.get(representation, len(_GRAIN_FINENESS)),
+        representation,
+    )
 
 
 def get_column_type(semantic_type: pa.DataType) -> GenericDataType:
@@ -77,6 +126,18 @@ def get_column_type(semantic_type: pa.DataType) -> GenericDataType:
     if pa.types.is_boolean(semantic_type):
         return GenericDataType.BOOLEAN
     return GenericDataType.STRING
+
+
+def _feature_value(feature: object) -> str:
+    """Normalize a declared semantic-view feature to its stable string value.
+
+    Features are typed ``frozenset[SemanticViewFeature]``, but a third-party
+    provider may hand back a raw string (or any object) instead of the enum
+    member. Fall back to the value itself rather than 500-ing Explore for that
+    datasource, so a new provider stays safe by default.
+    """
+    value = getattr(feature, "value", feature)
+    return value if isinstance(value, str) else str(value)
 
 
 @dataclass(frozen=True)
@@ -134,7 +195,7 @@ class SemanticLayer(AuditMixinNullable, Model):
     perm = Column(String(1000), nullable=True)
 
     # Semantic views relationship
-    semantic_views: list[SemanticView] = relationship(
+    semantic_views: Mapped[list[SemanticView]] = relationship(
         "SemanticView",
         back_populates="semantic_layer",
         cascade="all, delete-orphan",
@@ -147,6 +208,26 @@ class SemanticLayer(AuditMixinNullable, Model):
     def get_perm(self) -> str:
         """Compute the permission string for this semantic layer."""
         return f"[{self.name}](id:{self.uuid.hex})"
+
+    def raise_for_access(self) -> None:
+        """Check that the user has access to this semantic layer."""
+        from superset import security_manager
+        from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+        from superset.exceptions import SupersetSecurityException
+
+        if security_manager.can_access_all_datasources():
+            return
+
+        if self.perm and security_manager.can_access("datasource_access", self.perm):
+            return
+
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message=str(_("You don't have access to this semantic layer.")),
+                level=ErrorLevel.ERROR,
+            )
+        )
 
     @staticmethod
     def after_insert(
@@ -167,6 +248,16 @@ class SemanticLayer(AuditMixinNullable, Model):
         from superset import security_manager
 
         security_manager.semantic_layer_before_update(mapper, connection, target)
+
+    @staticmethod
+    def before_delete(
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        from superset import security_manager
+
+        security_manager.semantic_layer_before_delete(mapper, connection, target)
 
     @staticmethod
     def after_delete(
@@ -199,6 +290,12 @@ class SemanticView(AuditMixinNullable, Model):
     """
 
     __tablename__ = "semantic_views"
+
+    # Semantic views expose pre-defined metrics and dimensions, not raw rows,
+    # so neither the "Samples" tab in Explore nor the "Drill to detail"
+    # affordance from the chart 3-dots menu can return anything meaningful.
+    supports_samples: bool = False
+    supports_drill_to_detail: bool = False
 
     # Use integer as the primary key for cross-database auto-increment
     # compatibility (sa.Identity() is not supported in MySQL or SQLite).
@@ -285,16 +382,148 @@ class SemanticView(AuditMixinNullable, Model):
     # =========================================================================
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
-        result = get_results(query_object)
+        """Execute a semantic query only when guest row restrictions are enforceable."""
+        from superset import security_manager
+
+        security_manager.raise_for_unsupported_guest_rls(self)
+        result: QueryResult = get_results(query_object)
         if query_object.post_processing and not result.df.empty:
             try:
                 result.df = query_object.exec_post_processing(result.df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            except (TypeError, pd.errors.DataError) as ex:
+                raise QueryObjectValidationError(str(ex)) from ex
         return result
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
-        return "Not implemented for semantic layers"
+        """Reject previews because provider queries are returned with chart data."""
+        raise QueryObjectValidationError(
+            _(
+                "A semantic view's provider query is produced when the chart runs "
+                "and returned with its data."
+            )
+        )
+
+    @property
+    def normalize_columns(self) -> bool:
+        """Dimension names are provider-verbatim; nothing to (de)normalize.
+
+        Exists for the datasource values endpoint, which reads it before
+        requesting filter-value suggestions.
+        """
+        return False
+
+    def values_for_column(
+        self,
+        column_name: str,
+        limit: int = 10000,
+        denormalize_column: bool = False,  # pylint: disable=unused-argument
+        array_elements: bool = False,  # pylint: disable=unused-argument
+        search: str | None = None,
+    ) -> list[Any]:
+        """Return the distinct values of one dimension for filter suggestions.
+
+        Delegates to the provider ABC's purpose-built ``get_values`` — an
+        abstract member every provider implements, consumed here for the
+        first time. ``search`` narrows at the provider with a containment
+        ``LIKE`` filter on the dimension, so values beyond the first page are
+        findable. Two documented parity gaps with datasets, both inherent to
+        the standard filter model: case sensitivity follows the provider's
+        collation (no case-folding operator), and ``%``/``_`` in the search
+        term act as wildcards (no portable escape declaration; over-matching
+        is the safe failure for suggestions). A provider that rejects the
+        narrowing filter — a non-text dimension, say — falls back to the
+        unfiltered bounded page with a logged warning rather than an error.
+
+        ``get_values`` takes no limit or order, so both are applied here:
+        sorted ascending (nulls first) and then truncated, so the page is
+        deterministic and not an arbitrary provider-order subset.
+        ``denormalize_column`` and ``array_elements`` are dataset concepts
+        (dialect name denormalization, array-element explosion) with no
+        semantic-view counterpart; they are accepted for endpoint signature
+        compatibility and ignored.
+
+        Raises ``KeyError`` for a name that is not a dimension of the view —
+        a metric name included — which the endpoint reports as the caller's
+        error naming the column, exactly as a dataset does.
+        """
+        dimensions = {
+            dimension.name: dimension for dimension in self._unique_dimensions
+        }
+        if column_name not in dimensions:
+            raise KeyError(column_name)
+        dimension = dimensions[column_name]
+
+        if search:
+            narrowing = Filter(
+                type=PredicateType.WHERE,
+                column=dimension,
+                operator=Operator.LIKE,
+                value=f"%{search}%",
+            )
+            try:
+                with provider_completeness():
+                    result = self.implementation.get_values(dimension, {narrowing})
+            except SemanticResultCompletenessError:
+                raise
+            except Exception:  # pylint: disable=broad-exception-caught
+                # The narrowing filter is best-effort: a provider that cannot
+                # apply it must degrade to the bounded first page (the picker
+                # still narrows within it), never to an error — but say so,
+                # or the degradation is the next silent failure.
+                logger.warning(
+                    "Semantic view %s rejected the value-search filter on "
+                    "dimension %s; returning the unfiltered page",
+                    self.uuid,
+                    dimension.name,
+                    exc_info=True,
+                )
+                with provider_completeness():
+                    result = self.implementation.get_values(dimension, None)
+        else:
+            with provider_completeness():
+                result = self.implementation.get_values(dimension, None)
+
+        # Some drivers report zero rows as ``results is None``.
+        if result.results is None or result.results.num_rows == 0:
+            return []
+        table = stringify_extension_columns(result.results)
+        if dimension.name in table.column_names:
+            column = table.column(dimension.name)
+        elif table.num_columns == 1:
+            column = table.column(0)
+        else:
+            # A provider-contract violation is the server's fault, not the
+            # caller's; surface it rather than mislabeling it a bad column.
+            raise ValueError(
+                f"Provider result is missing the requested dimension {dimension.name}"
+            )
+        # Non-finite floats must not leave the model: NaN/Infinity render the
+        # endpoint's body as invalid strict JSON (the browser's JSON.parse
+        # throws and the picker silently empties, with nothing in the server
+        # log), and NaN defeats the ascending sort (every comparison is
+        # False). Collapse them to None -- the same outcome the dataset path
+        # produces by replacing NaN after the query.
+        values = [
+            None if isinstance(value, float) and not math.isfinite(value) else value
+            for value in column.to_pylist()
+        ]
+        try:
+            values.sort(key=lambda value: (value is not None, value))
+        except TypeError:
+            # Non-scalar dimension values have no natural order: a STRUCT
+            # column arrives as dicts, and a LIST column may hold null
+            # elements ([None, "a"] vs ["a"]), either of which makes ``<``
+            # raise. Fall back to a canonical-string order -- deterministic,
+            # so the truncated page is still stable -- keeping nulls first.
+            values.sort(
+                key=lambda value: (
+                    value is not None,
+                    json.dumps(value, sort_keys=True, default=str),
+                )
+            )
+        return values[:limit]
 
     @property
     def table_name(self) -> str:
@@ -318,7 +547,9 @@ class SemanticView(AuditMixinNullable, Model):
             MetricMetadata(
                 metric_name=metric.name,
                 expression=metric.definition,
+                verbose_name=metric.verbose_name,
                 description=metric.description,
+                d3format=metric.d3format,
             )
             for metric in self.implementation.get_metrics()
         ]
@@ -329,10 +560,18 @@ class SemanticView(AuditMixinNullable, Model):
         # same ``name`` but different grains (one variant per supported time
         # grain). For column-list purposes we collapse these into a single
         # entry; the available grains are surfaced separately via
-        # ``get_time_grains`` and ``data["time_grain_sqla"]``.
+        # ``get_time_grains`` and ``data["time_grain_sqla"]``. The variant
+        # kept is chosen by ``_grain_preference`` (unaggregated, else finest
+        # grain) rather than by encounter order: ``get_dimensions()`` is an
+        # unordered set, and both the column metadata and the filter-value
+        # suggestions built from this list must not vary run to run.
         seen: dict[str, Any] = {}
         for dimension in self.implementation.get_dimensions():
-            seen.setdefault(dimension.name, dimension)
+            incumbent = seen.get(dimension.name)
+            if incumbent is None or (
+                _grain_preference(dimension) < _grain_preference(incumbent)
+            ):
+                seen[dimension.name] = dimension
         return list(seen.values())
 
     @property
@@ -351,6 +590,7 @@ class SemanticView(AuditMixinNullable, Model):
                 is_dttm=pa.types.is_date(dimension.type)
                 or pa.types.is_time(dimension.type)
                 or pa.types.is_timestamp(dimension.type),
+                verbose_name=dimension.verbose_name,
                 description=dimension.description,
                 expression=None,
                 extra=json.dumps(
@@ -366,11 +606,34 @@ class SemanticView(AuditMixinNullable, Model):
 
     @property
     def data(self) -> ExplorableData:
+        dimensions = self._unique_dimensions
+        metrics = list(self.implementation.get_metrics())
+        verbose_map = {
+            **{metric.name: metric.verbose_name or metric.name for metric in metrics},
+            **{
+                dimension.name: dimension.verbose_name or dimension.name
+                for dimension in dimensions
+            },
+        }
+        column_formats: dict[str, str | None] = {
+            metric.name: metric.d3format for metric in metrics if metric.d3format
+        }
+
         return {
             # core
             "id": self.id,
             "uid": self.uid,
             "type": "semantic_view",
+            # Sorted for a deterministic payload; values are the stable
+            # SemanticViewFeature strings, never provider identity.
+            # ``_feature_value`` tolerates a provider that hands back a raw
+            # string instead of the enum member (see its docstring).
+            "semantic_view_features": sorted(
+                _feature_value(feature) for feature in self.implementation.features
+            ),
+            "semantic_selection_version": (
+                self.implementation.selection_identity_version
+            ),
             "name": self.name,
             "columns": [
                 {
@@ -393,16 +656,16 @@ class SemanticView(AuditMixinNullable, Model):
                     "python_date_format": None,
                     "type": str(dimension.type),
                     "type_generic": get_column_type(dimension.type),
-                    "verbose_name": None,
+                    "verbose_name": dimension.verbose_name,
                     "warning_markdown": None,
                 }
-                for dimension in self._unique_dimensions
+                for dimension in dimensions
             ],
             "metrics": [
                 {
                     "certification_details": None,
                     "certified_by": None,
-                    "d3format": None,
+                    "d3format": metric.d3format,
                     "description": metric.description,
                     "expression": metric.definition,
                     "id": None,
@@ -411,28 +674,30 @@ class SemanticView(AuditMixinNullable, Model):
                     "metric_name": metric.name,
                     "warning_markdown": None,
                     "warning_text": None,
-                    "verbose_name": None,
+                    "verbose_name": metric.verbose_name,
                 }
-                for metric in self.implementation.get_metrics()
+                for metric in metrics
             ],
             "database": {},
             "parent": {"name": self.semantic_layer.name},
             # UI features
-            "verbose_map": {},
+            "verbose_map": verbose_map,
             "order_by_choices": [],
             "filter_select": True,
             "filter_select_enabled": True,
             "sql": None,
             "select_star": None,
             "editors": [],
+            "supports_samples": self.supports_samples,
+            "supports_drill_to_detail": self.supports_drill_to_detail,
             "description": self.description,
             "table_name": self.name,
             "column_types": [
-                get_column_type(dimension.type) for dimension in self._unique_dimensions
+                get_column_type(dimension.type) for dimension in dimensions
             ],
-            "column_names": [dimension.name for dimension in self._unique_dimensions],
+            "column_names": [dimension.name for dimension in dimensions],
             # rare
-            "column_formats": {},
+            "column_formats": column_formats,
             "datasource_name": self.name,
             "perm": self.perm,
             "offset": self.offset,
@@ -464,8 +729,34 @@ class SemanticView(AuditMixinNullable, Model):
     def data_for_slices(self, slices: list[Any]) -> ExplorableData:
         return self.data
 
+    @property
+    def result_cache_version(self) -> str | None:
+        """Read the producer guarantee without constructing its implementation."""
+        layer_class: type[SemanticLayerABC[Any, Any]] | None = registry.get(
+            self.semantic_layer.type
+        )
+        if layer_class is None:
+            raise QueryObjectValidationError(
+                _("The semantic-layer provider is unavailable.")
+            )
+        version: str | None = layer_class.result_cache_version
+        if version is not None and (
+            not isinstance(version, str) or not version.strip()
+        ):
+            raise QueryObjectValidationError(_("Invalid semantic result cache version"))
+        return version
+
+    @property
+    def result_cache_discriminator(self) -> tuple[str, str] | None:
+        """Namespace the producer guarantee consistently across result caches."""
+        version: str | None = self.result_cache_version
+        return (self.semantic_layer.type, version) if version is not None else None
+
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
-        return []
+        discriminator: tuple[str, str] | None = self.result_cache_discriminator
+        if discriminator is None:
+            return []
+        return [("semantic-result-version", *discriminator)]
 
     @property
     def catalog_perm(self) -> str | None:
@@ -526,6 +817,8 @@ class SemanticView(AuditMixinNullable, Model):
         from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
         from superset.exceptions import SupersetSecurityException
 
+        security_manager.raise_for_unsupported_guest_rls(self)
+
         if security_manager.can_access_all_datasources():
             return
 
@@ -576,6 +869,8 @@ class SemanticView(AuditMixinNullable, Model):
 
         Translates string names to semantic-layer objects, delegates to the
         view implementation, and translates the result back to names.
+        Collapse grain variants into sorted unique names, also bounding
+        the shared list_metrics projection.
         """
         metric_map = {m.name: m for m in self.implementation.get_metrics()}
         dim_map = {d.name: d for d in self.implementation.get_dimensions()}
@@ -584,11 +879,12 @@ class SemanticView(AuditMixinNullable, Model):
         compatible = self.implementation.get_compatible_dimensions(
             sel_metrics, sel_dims
         )
-        return [d.name for d in compatible]
+        return sorted({d.name for d in compatible})
 
 
 sa.event.listen(SemanticLayer, "after_insert", SemanticLayer.after_insert)
 sa.event.listen(SemanticLayer, "before_update", SemanticLayer.before_update)
+sa.event.listen(SemanticLayer, "before_delete", SemanticLayer.before_delete)
 sa.event.listen(SemanticLayer, "after_delete", SemanticLayer.after_delete)
 
 sa.event.listen(SemanticView, "after_insert", SemanticView.after_insert)

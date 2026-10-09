@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { createElement } from 'react';
 import { PickingInfo } from '@deck.gl/core';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import {
@@ -129,6 +130,32 @@ describe('commonLayerProps', () => {
       x: 10,
       y: 20,
     });
+  });
+
+  test('clears a custom tooltip on hover-out instead of trailing the cursor', () => {
+    // Regression test for a custom (Handlebars) deck.gl tooltip that stayed
+    // visible and followed the mouse after leaving a feature.
+    const setTooltip = jest.fn();
+    const customContent = createElement('div', {
+      'data-tooltip-type': 'custom',
+    });
+    const props = commonLayerProps({
+      formData: { ...partialformData } as QueryFormData,
+      setTooltip: setTooltip as any,
+      setTooltipContent: (() => customContent) as any,
+    });
+
+    // Hovering a feature shows the custom tooltip.
+    props.onHover?.({ picked: true, x: 10, y: 20 } as any);
+    expect(setTooltip).toHaveBeenLastCalledWith({
+      content: customContent,
+      x: 10,
+      y: 20,
+    });
+
+    // Moving off the feature must dismiss it, not keep repositioning it.
+    props.onHover?.({ picked: false, x: 30, y: 40 } as any);
+    expect(setTooltip).toHaveBeenLastCalledWith(null);
   });
 
   test('calls onSelect when table_filter is enabled', () => {

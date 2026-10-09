@@ -41,8 +41,13 @@ const MainPanel = styled.div`
   flex-direction: column;
 `;
 
-const AddFilter = styled.div`
+const AddFilter = styled.button`
   ${({ theme }) => `
+    appearance: none;
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
     display: inline-flex;
     flex-direction: row;
     align-items: center;
@@ -175,7 +180,7 @@ const List = ({
         />
       ))}
       {availableFilters.length > rows.length && (
-        <AddFilter role="button" tabIndex={0} onClick={onAdd}>
+        <AddFilter type="button" onClick={onAdd}>
           <Icons.PlusOutlined iconSize="xs" />
           {t('Add filter')}
         </AddFilter>
