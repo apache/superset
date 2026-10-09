@@ -340,14 +340,14 @@ the backend would reject. Unknown feature strings and payloads with no
 
 #### Choosing a default time dimension
 
-A semantic view may set `preferred_time_dimension` to the name of a temporal
+A semantic view may set `preferred_temporal_dimension` to the name of a temporal
 dimension it exposes. Superset publishes that name as `main_dttm_col`, which
 Explore uses for the default time filter on new charts. The declaration is
 ignored if the name is absent or does not identify a temporal dimension.
 
 ```python
 class MySemanticView(SemanticView):
-    preferred_time_dimension = "metric_time"
+    preferred_temporal_dimension = "metric_time"
 ```
 
 Providers that omit the declaration retain Explore's existing first temporal
