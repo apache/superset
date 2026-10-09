@@ -38,6 +38,7 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_metrics,
     resolve_metrics_and_groupby,
 )
+from superset.utils import json
 
 
 def test_extract_form_data_key_from_url_with_key():
@@ -1856,7 +1857,7 @@ def test_build_applied_dashboard_filters_malformed_json_metadata(
 ):
     _setup_dashboard_mock(mock_db, json_metadata="not valid json {{{")
     result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
-    assert result == []
+    assert result is None
 
 
 @patch("superset.security_manager", MagicMock())
@@ -1866,7 +1867,7 @@ def test_build_applied_dashboard_filters_json_metadata_is_array(
 ):
     _setup_dashboard_mock(mock_db, json_metadata="[1, 2, 3]")
     result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
-    assert result == []
+    assert result is None
 
 
 @patch("superset.security_manager", MagicMock())
@@ -1876,7 +1877,7 @@ def test_build_applied_dashboard_filters_json_metadata_is_string(
 ):
     _setup_dashboard_mock(mock_db, json_metadata='"just a string"')
     result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
-    assert result == []
+    assert result is None
 
 
 @patch("superset.security_manager", MagicMock())
@@ -1884,10 +1885,19 @@ def test_build_applied_dashboard_filters_json_metadata_is_string(
 def test_build_applied_dashboard_filters_malformed_position_json(
     mock_db,
 ):
+    native_filter = {
+        "id": "NATIVE_FILTER-1",
+        "name": "Country",
+        "type": "NATIVE_FILTER",
+        "filterType": "filter_select",
+        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+        "targets": [{"column": {"name": "country"}, "datasetId": 7}],
+    }
     _setup_dashboard_mock(
         mock_db,
-        json_metadata='{"native_filter_configuration": []}',
+        json_metadata=json.dumps({"native_filter_configuration": [native_filter]}),
         position_json="not valid json {{{",
     )
     result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
-    assert result == []
+    assert result is not None
+    assert [flt.id for flt in result] == ["NATIVE_FILTER-1"]

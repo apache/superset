@@ -278,7 +278,13 @@ async def _attach_dashboard_filters(
             await ctx.warning("Dashboard not accessible: %s" % (str(exc),))
             return ChartError(error=str(exc), error_type="DashboardNotAccessible")
 
-        if dashboard_filters:
+        if dashboard_filters is None:
+            await ctx.warning(
+                "Dashboard %s native filter configuration is malformed; "
+                "dashboard filters applied to this chart could not be resolved."
+                % (dashboard_id,)
+            )
+        elif dashboard_filters:
             if result.filters is None:
                 result.filters = ChartFiltersInfo(dashboard_filters=dashboard_filters)
             else:

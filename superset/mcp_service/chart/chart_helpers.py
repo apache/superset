@@ -1299,30 +1299,34 @@ def _resolve_filter_operator_and_value(
 def _safe_json_loads_dict(
     raw: str | None, field_name: str, dashboard_id: int
 ) -> dict[str, Any] | None:
-    """Parse a JSON string expected to be an object, returning *None* on failure."""
+    """Parse a JSON string expected to be an object.
+
+    Returns *None* and logs a warning when the value is not valid JSON or does
+    not decode to an object.
+    """
     from superset.utils import json
 
     try:
         value = json.loads(raw or "{}")
     except (TypeError, ValueError):
-        logger.warning(
-            "Failed to parse %s for dashboard %s, skipping native filter resolution.",
-            field_name,
-            dashboard_id,
-        )
-        return None
-    return value if isinstance(value, dict) else None
+        value = None
+    if isinstance(value, dict):
+        return value
+    logger.warning("Ignoring malformed %s for dashboard %s.", field_name, dashboard_id)
+    return None
 
 
 def build_applied_dashboard_filters(
     dashboard_id: int, chart_id: int
-) -> list[AppliedDashboardFilter]:
+) -> list[AppliedDashboardFilter] | None:
     """Resolve dashboard-level native filters in scope for a chart.
 
     Validates that the dashboard exists, the caller has access, and the chart
     is on the dashboard. Returns one AppliedDashboardFilter per non-DIVIDER
     native filter whose scope includes the chart, populated with the filter's
-    default operator and value.
+    default operator and value. Returns None when the dashboard's native filter
+    configuration cannot be read, so callers can distinguish that from a
+    dashboard with no filters in scope.
 
     Raises DashboardNotFoundError if the dashboard is missing,
     ChartNotOnDashboardError if the chart is not on it, and
@@ -1355,10 +1359,10 @@ def build_applied_dashboard_filters(
         dashboard.json_metadata, "json_metadata", dashboard_id
     )
     if metadata is None:
-        return []
+        return None
     native_filter_config = metadata.get("native_filter_configuration", [])
     if not isinstance(native_filter_config, list):
-        return []
+        return None
     position_json = (
         _safe_json_loads_dict(dashboard.position_json, "position_json", dashboard_id)
         or {}

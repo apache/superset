@@ -389,6 +389,24 @@ class TestBuildAppliedDashboardFilters:
         assert result == []
 
 
+@pytest.mark.asyncio
+async def test_attach_dashboard_filters_warns_when_metadata_unreadable() -> None:
+    """Unreadable filter config is reported to the caller, not just the log."""
+    result = ChartInfo(id=1, slice_name="c")
+    ctx = SimpleNamespace(warning=AsyncMock())
+    with patch.object(
+        get_chart_info_module, "build_applied_dashboard_filters", return_value=None
+    ):
+        error = await get_chart_info_module._attach_dashboard_filters(
+            result, dashboard_id=10, ctx=ctx
+        )
+
+    assert error is None
+    assert result.filters is None or not result.filters.dashboard_filters
+    ctx.warning.assert_awaited_once()
+    assert "malformed" in ctx.warning.await_args.args[0]
+
+
 def _json(native_filter_list):
     """Serialize a native_filter list as JSON string for embedding in
     json_metadata fixtures without escaping issues."""
