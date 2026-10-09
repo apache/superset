@@ -188,7 +188,7 @@ export default function PartitionColumnFields({
       )}
       <Typography.Text type="secondary">
         {t(
-          "Column used for partition pruning on this table. Selecting one hides it from Explore's dimension and filter pickers by default.",
+          'Column used for partition pruning on this table. Its Is filterable and Is dimension settings decide whether Explore offers it.',
         )}
       </Typography.Text>
 
