@@ -113,6 +113,13 @@ chart requires access to its datasource; overwriting an existing chart also
 requires chart edit permission. SQL Lab queries must first be saved as datasets
 before they can be used as persistent chart datasources.
 
+For a semantic view, Pivot Table hides **Series limit** because it has no series
+columns to limit. Existing Pivot Table charts with a saved Series limit still
+run without applying that limit. Programmatic semantic-view queries with a
+positive `series_limit` and no series columns run without a series limit.
+Timeseries queries with metrics and at least one `columns` value infer series
+columns from `columns` and keep the limit.
+
 To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
 - Select the **Save as**

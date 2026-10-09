@@ -478,6 +478,19 @@ def _is_user_error(error: Exception) -> bool:
     return False
 
 
+def _is_user_error_for_reporting(error: Exception) -> bool:
+    """:func:`_is_user_error`, refined by :func:`_datasource_error_is_user_error`.
+
+    The single classification every ``MCP_ERROR_HOOK`` call site gates on, so
+    a failure is paged (or not) the same way whichever handler catches it.
+    """
+    # A datasource failure's severity follows what actually broke, not the
+    # 500 status a bare SupersetErrorException inherits.
+    if (datasource_is_user := _datasource_error_is_user_error(error)) is not None:
+        return datasource_is_user
+    return _is_user_error(error)
+
+
 _SENSITIVE_PARAM_KEYS = frozenset(
     {
         "password",
@@ -1116,15 +1129,29 @@ class ToolResultCompatibilityMiddleware(Middleware):
             except Exception:  # noqa: BLE001
                 sanitized_message = type(e).__name__
             error_text = f"Error: {sanitized_message}"
-            if not isinstance(e, ToolError):
+            # Classification inspects attributes of an arbitrary exception
+            # (e.g. an unhashable ``error_type`` or a non-int ``status``) and
+            # can itself raise. Treat a classification failure as
+            # system-class so the hook still fires and this catch never
+            # propagates.
+            try:
+                is_user_error = _is_user_error_for_reporting(e)
+            except Exception:  # noqa: BLE001
+                is_user_error = False
+            if not isinstance(e, ToolError) and not is_user_error:
                 # GlobalErrorHandlerMiddleware converts every exception it
                 # sees into ToolError (and already invokes MCP_ERROR_HOOK
                 # for system-class errors there). A non-ToolError reaching
                 # this final catch means it slipped past that handler
-                # entirely — invoke the hook here as the true last-resort
-                # capture point. All contract keys are populated so hooks
-                # can index them unconditionally; user_id and duration_ms
-                # are unknown at this layer and passed as None.
+                # entirely — e.g. when this middleware is registered inside
+                # it — so invoke the hook here as the true last-resort
+                # capture point. Only system-class errors are reported,
+                # matching GlobalErrorHandlerMiddleware: user errors (bad
+                # arguments, permission denials) are expected MCP traffic
+                # and would otherwise flood an error tracker. All contract
+                # keys are populated so hooks can index them
+                # unconditionally; user_id and duration_ms are unknown at
+                # this layer and passed as None.
                 await _invoke_error_hook_off_loop(
                     e,
                     {
@@ -1305,13 +1332,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
         # Log with appropriate level: user errors (expected) → WARNING,
         # system errors (unexpected) → ERROR
         sanitized_error = _sanitize_error_for_logging(error)
-        is_user = _is_user_error(error)
-        # A datasource failure's severity follows what actually broke, not the
-        # 500 status a bare SupersetErrorException inherits. See
-        # _datasource_error_is_user_error.
-        datasource_is_user = _datasource_error_is_user_error(error)
-        if datasource_is_user is not None:
-            is_user = datasource_is_user
+        is_user = _is_user_error_for_reporting(error)
         log_fn = logger.warning if is_user else logger.error
         log_fn(
             "MCP tool call failed: tool=%s, user_id=%s, "
