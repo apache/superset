@@ -17,6 +17,7 @@
 """Check whether denied chart-data requests call semantic provider metadata."""
 
 from collections.abc import Callable
+from typing import Any
 from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
@@ -24,8 +25,11 @@ import sqlalchemy as sa
 from flask import current_app, g, Response
 
 from superset.connectors.sqla.models import SqlaTable
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
+from superset.security.manager import SupersetSecurityManager
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -215,6 +219,74 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 )
             assert response.status_code == 200, response.json
         finally:
+            db.session.rollback()
+            db.session.delete(view)
+            db.session.delete(layer)
+            db.session.commit()
+
+    def test_overridden_access_check_still_sees_queries(self) -> None:
+        """A custom security manager's raise_for_access keeps receiving the
+        request's real queries, so the preflight does not run for it."""
+        self.login("gamma")
+        layer: SemanticLayer = SemanticLayer(
+            name="override-metadata-layer", type="test"
+        )
+        view: SemanticView = SemanticView(
+            name="override-metadata-view", semantic_layer=layer
+        )
+        db.session.add(view)
+        db.session.commit()
+        provider: Mock = Mock()
+        provider.get_dimensions.return_value = set()
+        provider.get_metrics.return_value = set()
+        manager: SupersetSecurityManager = security_manager._get_current_object()  # noqa: SLF001
+        stock_class: type[SupersetSecurityManager] = type(manager)
+        original_can_access: Callable[[str, str], bool] = security_manager.can_access
+
+        class QueryCheckingSecurityManager(stock_class):  # type: ignore[valid-type, misc]
+            """Authorizes per requested query, like a column or metric check."""
+
+            def raise_for_access(self, **kwargs: Any) -> None:
+                query_context: Any = kwargs.get("query_context")
+                if query_context is not None and not query_context.queries:
+                    raise SupersetSecurityException(
+                        SupersetError(
+                            message="No requested queries to authorize",
+                            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
+                super().raise_for_access(**kwargs)
+
+        def can_access(permission_name: str, view_name: str) -> bool:
+            """Give Gamma this view's datasource grant for the request."""
+            if permission_name == "datasource_access" and view_name == view.perm:
+                return True
+            return original_can_access(permission_name, view_name)
+
+        # patch.object cannot restore __class__, so swap and restore it here.
+        manager.__class__ = QueryCheckingSecurityManager
+        try:
+            with (
+                patch.object(
+                    SemanticView,
+                    "implementation",
+                    new_callable=PropertyMock,
+                    return_value=provider,
+                ),
+                patch.object(security_manager, "can_access", side_effect=can_access),
+            ):
+                response: Response = self.client.post(
+                    "/api/v1/chart/data",
+                    json={
+                        "datasource": {"id": view.id, "type": "semantic_view"},
+                        "queries": [{"columns": [], "metrics": []}],
+                        "result_type": "query",
+                    },
+                )
+            assert response.status_code == 200, response.json
+        finally:
+            manager.__class__ = stock_class
             db.session.rollback()
             db.session.delete(view)
             db.session.delete(layer)

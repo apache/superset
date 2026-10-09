@@ -243,6 +243,9 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS: int = 0
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
+# A manager that overrides raise_for_access receives the complete query context,
+# so it turns off the semantic-view chart-data check that otherwise denies before
+# provider metadata is loaded.
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 

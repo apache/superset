@@ -29,11 +29,25 @@ from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
 from superset.extensions import security_manager
 from superset.models.slice import Slice
+from superset.security.manager import SupersetSecurityManager
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+
+
+def _uses_stock_raise_for_access() -> bool:
+    """Whether the security manager keeps the stock ``raise_for_access``.
+
+    The semantic preflight passes an empty ``queries`` list, which only the
+    stock check is known not to read. ``__class__`` resolves through the
+    security manager proxy to the configured manager's class.
+    """
+    return (
+        security_manager.__class__.raise_for_access
+        is SupersetSecurityManager.raise_for_access
+    )
 
 
 def create_query_object_factory() -> QueryObjectFactory:
@@ -81,10 +95,13 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             and DatasourceType(datasource["type"]) == DatasourceType.SEMANTIC_VIEW
         ):
             # Guest dashboard and payload checks need the completed query context,
-            # and an operator EXTRA_RAISE_FOR_ACCESS_BYPASS hook may read the
-            # request's queries; keep their authorization path and timing unchanged.
-            if not security_manager.is_guest_user() and not current_app.config.get(
-                "EXTRA_RAISE_FOR_ACCESS_BYPASS"
+            # and an operator EXTRA_RAISE_FOR_ACCESS_BYPASS hook or a custom
+            # security manager's raise_for_access may read the request's queries;
+            # keep their authorization path and timing unchanged.
+            if (
+                not security_manager.is_guest_user()
+                and not current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
+                and _uses_stock_raise_for_access()
             ):
                 QueryContext(
                     datasource=datasource_model_instance,
