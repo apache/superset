@@ -2199,6 +2199,9 @@ msgstr "Sve dimenzije"
 msgid "All filters"
 msgstr "Svi filteri"
 
+msgid "All groupable columns"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "All panels"
 msgstr "Svi paneli"
@@ -5239,6 +5242,9 @@ msgstr "Kolone za čitanje"
 # ru, uk]
 msgid "Columns to show in the tooltip."
 msgstr "Kolone za prikaz u oblačiću."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Combine metrics"
@@ -10061,6 +10067,9 @@ msgstr "Naziv grupe"
 msgid "Group remaining as \"Others\""
 msgstr "Grupiši preostale kao \"Ostalo\""
 
+msgid "Groupable columns"
+msgstr ""
+
 # ru, uk]
 msgid "Grouping"
 msgstr "Grupisanje"
@@ -11247,6 +11256,11 @@ msgid "Least recently modified"
 msgstr "Najmanje nedavno izmenjeno"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -13055,6 +13069,10 @@ msgstr "Nije pronađeno"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Not in"
 msgstr "Nije u"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Not null"
@@ -18980,6 +18998,11 @@ msgstr "Kolona koja se koristi kao odredište grane."
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The column was deleted or renamed in the database."
 msgstr "Kolona je obrisana ili preimenovana u bazi podataka."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "The configuration for the map layers"
