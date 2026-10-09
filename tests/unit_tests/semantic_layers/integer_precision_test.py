@@ -33,7 +33,17 @@ from superset_core.semantic_layers.types import (
 from superset_core.semantic_layers.view import SemanticView as ProviderView
 from werkzeug.test import TestResponse
 
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import SemanticLayer, SemanticView
+
+
+@pytest.fixture
+def semantic_layer(mocker: MockerFixture) -> SemanticLayer:
+    """Give chart-data views the registered layer required by cache keys."""
+    mocker.patch.dict(
+        "superset.semantic_layers.models.registry",
+        {"fixture": MagicMock(result_cache_version=None)},
+    )
+    return SemanticLayer(type="fixture")
 
 
 @pytest.mark.parametrize("value", [9007199254740993, -9007199254740993, 2**63 - 1, 7])
@@ -42,6 +52,7 @@ def test_chart_data_preserves_nullable_integer_precision(
     client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
+    semantic_layer: SemanticLayer,
     value: int,
     with_offset: bool,
 ) -> None:
@@ -76,7 +87,9 @@ def test_chart_data_preserves_nullable_integer_precision(
             requests=[],
         ),
     ]
-    view: SemanticView = SemanticView(id=7, name="Amounts", configuration="{}")
+    view: SemanticView = SemanticView(
+        id=7, name="Amounts", configuration="{}", semantic_layer=semantic_layer
+    )
     view.__dict__["implementation"] = provider
     mocker.patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
@@ -168,6 +181,7 @@ def test_post_processing_receives_numeric_nullable_integer_metrics(
     client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
+    semantic_layer: SemanticLayer,
     post_processing: list[dict[str, object]],
     time_offsets: list[str],
     expected: dict[str, list[float | None]],
@@ -203,7 +217,9 @@ def test_post_processing_receives_numeric_nullable_integer_metrics(
             requests=[],
         ),
     ]
-    view: SemanticView = SemanticView(id=7, name="Amounts", configuration="{}")
+    view: SemanticView = SemanticView(
+        id=7, name="Amounts", configuration="{}", semantic_layer=semantic_layer
+    )
     view.__dict__["implementation"] = provider
     mocker.patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
@@ -256,6 +272,7 @@ def test_contribution_with_separate_totals_query(
     client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
+    semantic_layer: SemanticLayer,
     dtype: pa.DataType,
     values: list[Decimal | int | float | None],
 ) -> None:
@@ -289,7 +306,9 @@ def test_contribution_with_separate_totals_query(
         return main_result if query.dimensions else totals_result
 
     provider.get_table.side_effect = get_table
-    view: SemanticView = SemanticView(id=7, name="Amounts", configuration="{}")
+    view: SemanticView = SemanticView(
+        id=7, name="Amounts", configuration="{}", semantic_layer=semantic_layer
+    )
     view.__dict__["implementation"] = provider
     mocker.patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
