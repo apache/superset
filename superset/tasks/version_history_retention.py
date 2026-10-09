@@ -40,7 +40,9 @@ otherwise-expired history. Every other prunable transaction is dropped, and
 its ``version_changes`` rows cascade via the FK.
 
 Registered via ``CeleryConfig.beat_schedule`` in ``superset/config.py``.
-Idempotent: a second run prunes nothing.
+Safe to repeat: each capped run prunes at most the configured number of
+transactions. Successive runs converge by draining the remaining prunable
+backlog; newly eligible transactions can add to that backlog.
 """
 
 from __future__ import annotations

@@ -21,9 +21,10 @@ that ages out version rows while keeping the live entity, this removes
 entities that are already soft-deleted. For each
 ``SoftDeleteMixin`` model with a purge policy it selects rows whose
 ``deleted_at`` is older than the per-workspace window and runs the shared
-cascade per entity, in bounded id-ordered batches. Convergent, not strictly
-idempotent: a re-run with the same clock and data removes nothing, but rows
-that have since crossed the cutoff are purged on a later run.
+cascade per entity, in bounded id-ordered batches. Safe to repeat: each capped
+run purges at most the configured number of root entities. Successive runs
+converge by draining the purgeable backlog; blocked roots can remain, and
+newly eligible rows can add to that backlog.
 """
 
 from __future__ import annotations
