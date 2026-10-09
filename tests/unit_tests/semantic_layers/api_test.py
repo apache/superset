@@ -389,6 +389,10 @@ def test_configuration_schema_with_partial_config(
         {"snowflake": mock_cls},
         clear=True,
     )
+    mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        return_value=True,
+    )
 
     response = client.post(
         "/api/v1/semantic_layer/schema/configuration",
@@ -396,6 +400,75 @@ def test_configuration_schema_with_partial_config(
     )
 
     assert response.status_code == 200
+    mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
+
+
+@SEMANTIC_LAYERS_APP
+def test_configuration_schema_read_only_user_gets_static_schema(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Without write access the submitted configuration is not used at all."""
+    mock_cls: MagicMock = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {"type": "object"}
+
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"metricflow": mock_cls},
+        clear=True,
+    )
+    can_access: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        side_effect=lambda permission, view: permission != "can_write",
+    )
+
+    response: TestResponse = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "metricflow", "configuration": {"admin_host": "example"}},
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"] == {"type": "object"}
+    can_access.assert_any_call("can_write", "SemanticLayer")
+    mock_cls.configuration_class.model_validate.assert_not_called()
+    mock_cls.get_configuration_schema.assert_called_once_with(None)
+
+
+@SEMANTIC_LAYERS_APP
+def test_configuration_schema_writer_gets_enriched_schema(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """With write access the submitted configuration enriches the schema."""
+    mock_config_obj: MagicMock = MagicMock()
+    mock_cls: MagicMock = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {"properties": {}}
+    mock_cls.configuration_class.model_validate.return_value = mock_config_obj
+    mock_cls.get_configuration_schema.return_value = {
+        "type": "object",
+        "properties": {"account": {"enum": ["a1"]}},
+    }
+
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"metricflow": mock_cls},
+        clear=True,
+    )
+    can_access: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        return_value=True,
+    )
+
+    response: TestResponse = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "metricflow", "configuration": {"admin_host": "example"}},
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"]["properties"] == {"account": {"enum": ["a1"]}}
+    can_access.assert_any_call("can_write", "SemanticLayer")
     mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
 
 
@@ -1482,6 +1555,10 @@ def test_configuration_schema_enrichment_error_fallback(
         "superset.semantic_layers.api.registry",
         {"snowflake": mock_cls},
         clear=True,
+    )
+    mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        return_value=True,
     )
 
     response = client.post(
