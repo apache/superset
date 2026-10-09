@@ -113,9 +113,11 @@ class SemanticView(ABC):
         never return a partial result instead.
         Do not drop ``filters`` and retry when a filtered request is incomplete.
 
-        ``SemanticQueryRejectedError`` is not part of this method's contract: the
-        host treats a search filter as best-effort and retries without it, so a
-        rejection would not reach the user.
+        Raise SemanticQueryRejectedError for deliberate input rejection, such as a
+        search filter the dimension cannot apply; the host returns it to the user
+        as a client error with host-owned guidance. Leave operational and
+        unexpected failures unclassified; the host reports them as server errors.
+        The host never retries a failed request without its ``filters``.
         """
 
     @abstractmethod
