@@ -1273,24 +1273,45 @@ def test_purge_budget_remaining_after_first_model(app_context: None) -> None:
     ]
 
 
+@pytest.mark.parametrize("rollback_fails", [False, True])
 def test_partial_scan_failure_preserves_counts_and_shared_budget(
     app_context: None,
+    rollback_fails: bool,
 ) -> None:
-    """A failed page keeps committed purges and leaves budget for another root."""
+    """A failed scan/rollback cannot give the next model spent purge budget."""
+    from superset.commands.deletion_retention.purge_cascade import CascadeResult
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.tasks import deletion_retention as task
 
+    def partial_scan() -> Iterator[list[int]]:
+        """Return a committed root's page, then fail fetching the next page."""
+        yield [1]
+        raise RuntimeError("scan failed")
+
+    purge_one: MagicMock
+    rollback: MagicMock
     with (
         patch.object(task, "_ordered_purge_models", return_value=[Slice, Dashboard]),
         patch.object(
             task,
-            "_purge_model",
-            side_effect=[
-                task._PurgeModelResult(1, 0, 0, 0, 1),
-                task._PurgeModelResult(1, 0, 0, 0, 0),
-            ],
-        ) as purge,
+            "_iter_eligible_ids",
+            side_effect=[partial_scan(), iter([[2, 3]])],
+        ),
+        patch.object(
+            task,
+            "_purge_one",
+            return_value=CascadeResult(
+                purged=True, entity_type="chart", entity_uuid="x"
+            ),
+        ) as purge_one,
+        patch.object(
+            task.db.session,
+            "rollback",
+            side_effect=[RuntimeError("rollback failed"), None]
+            if rollback_fails
+            else None,
+        ) as rollback,
         patch.object(task.stats_logger_manager.instance, "incr"),
     ):
         scan: task._PurgeScan = task._scan_purge_models(
@@ -1300,7 +1321,11 @@ def test_partial_scan_failure_preserves_counts_and_shared_budget(
     assert scan.purged == {"slices": 1, "dashboards": 1}
     assert scan.scan_failures == 1
     assert scan.remaining_budget == 0
-    assert [entry.kwargs["max_per_run"] for entry in purge.call_args_list] == [2, 1]
+    assert [entry.args[:2] for entry in purge_one.call_args_list] == [
+        (Slice, 1),
+        (Dashboard, 2),
+    ]
+    rollback.assert_called_once()
 
 
 def test_purge_model_priority_rotates_across_days() -> None:

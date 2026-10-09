@@ -472,9 +472,15 @@ def _purge_model(  # noqa: C901
             if commit_uncertain or (max_per_run is not None and purged >= max_per_run):
                 break
     except Exception:  # pylint: disable=broad-except
-        db.session.rollback()  # pylint: disable=consider-using-transaction
         scan_failures = 1
         logger.exception("deletion_retention: scan failed for %s", entity_type)
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except Exception:  # pylint: disable=broad-except
+            # Earlier roots already committed; preserve their budget accounting.
+            logger.exception(
+                "deletion_retention: scan rollback failed for %s", entity_type
+            )
     return _PurgeModelResult(
         purged, would, failures, blocked, scan_failures, commit_uncertain
     )
