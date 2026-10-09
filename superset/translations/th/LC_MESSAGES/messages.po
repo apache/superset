@@ -2758,6 +2758,9 @@ msgstr "มิติข้อมูล"
 msgid "All filters"
 msgstr "ตัวกรองทั้งหมด"
 
+msgid "All groupable columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -6882,6 +6885,9 @@ msgstr "คอลัมน์ที่จะอ่าน"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "คอลัมน์ที่จะแสดงในคำอธิบาย"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -13478,6 +13484,9 @@ msgstr "ชื่อกลุ่ม"
 msgid "Group remaining as \"Others\""
 msgstr "จัดกลุ่มที่เหลือเป็น \"อื่นๆ\""
 
+msgid "Groupable columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -15149,6 +15158,11 @@ msgid "Least recently modified"
 msgstr "แก้ไขเมื่อนานที่สุด"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -17685,6 +17699,10 @@ msgstr "ไม่พบแผนภูมิ"
 #, fuzzy
 msgid "Not in"
 msgstr "ไม่อยู่ใน"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -25838,6 +25856,11 @@ msgstr "คอลัมน์ที่จะใช้เป็นปลายท
 #, fuzzy
 msgid "The column was deleted or renamed in the database."
 msgstr "คอลัมน์ถูกลบหรือเปลี่ยนชื่อในฐานข้อมูล"
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
