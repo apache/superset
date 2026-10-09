@@ -1094,11 +1094,13 @@ class TestOnCallToolStatsMetrics:
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
     @pytest.mark.asyncio
-    async def test_metric_uses_resolved_tool_name_for_call_tool_proxy(
-        self, mock_get_user_id, mock_event_logger, mock_stats
+    async def test_forwarded_success_is_not_recounted_by_call_tool_proxy(
+        self,
+        mock_get_user_id: MagicMock,
+        mock_event_logger: MagicMock,
+        mock_stats: MagicMock,
     ) -> None:
-        """When invoked via the call_tool search proxy, the metric key
-        must use the real tool name, not the literal 'call_tool'."""
+        """The outer proxy must not repeat the inner tool's success metrics."""
         middleware = LoggingMiddleware()
         ctx = _make_context(
             name="call_tool",
@@ -1108,8 +1110,43 @@ class TestOnCallToolStatsMetrics:
 
         await middleware.on_call_tool(ctx, call_next)
 
+        mock_stats.instance.incr.assert_not_called()
+        mock_stats.instance.timing.assert_not_called()
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("error", "outcome"),
+        [(ValueError("bad arguments"), "warning"), (RuntimeError("boom"), "error")],
+    )
+    async def test_proxy_level_exception_is_still_counted(
+        self,
+        mock_get_user_id: MagicMock,
+        mock_event_logger: MagicMock,
+        mock_stats: MagicMock,
+        error: Exception,
+        outcome: str,
+    ) -> None:
+        """De-duplication must not suppress an exception raised by the proxy."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(
+            name="call_tool",
+            params={"name": "list_datasets", "arguments": {}},
+        )
+        call_next = AsyncMock(side_effect=error)
+
+        with pytest.raises(type(error), match=str(error)):
+            await middleware.on_call_tool(ctx, call_next)
+
         mock_stats.instance.incr.assert_called_once_with(
-            "mcp.tool.list_datasets.success"
+            f"mcp.tool.list_datasets.{outcome}"
+        )
+        mock_stats.instance.timing.assert_called_once()
+        assert (
+            mock_stats.instance.timing.call_args.args[0]
+            == "mcp.tool.list_datasets.time"
         )
 
     @patch("superset.mcp_service.middleware.logger")

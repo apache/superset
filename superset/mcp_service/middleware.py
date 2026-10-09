@@ -864,11 +864,11 @@ class LoggingMiddleware(Middleware):
     ) -> None:
         """Emit the per-tool outcome counter and timing for one call.
 
-        A failure the ``call_tool`` proxy merely forwards (``mcp_tool`` set,
-        not ``success``, nothing raised) was already counted, with its own
+        An outcome the ``call_tool`` proxy merely forwards (``mcp_tool`` set,
+        nothing raised) was already counted and timed, with its own
         user/system classification, when the proxied tool ran through this
-        middleware. Counting it again here would report one failure twice,
-        the second time as a system error, so it is skipped.
+        middleware. Skip the redundant proxy emission for both successes
+        and failures, but still count exceptions raised by the proxy itself.
 
         Single emission point for the per-tool outcome counters —
         GlobalErrorHandlerMiddleware (inner) re-raises every failure as
@@ -879,7 +879,7 @@ class LoggingMiddleware(Middleware):
         free-form error_type that cannot be reliably classified, so they
         count as error (the parsed error_type is in the curated payload).
         """
-        if mcp_tool is not None and not success and raised_is_user_error is None:
+        if mcp_tool is not None and raised_is_user_error is None:
             return
         metric_tool = await self._resolve_metric_tool_name(context, tool_name, mcp_tool)
         if success:

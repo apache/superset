@@ -833,14 +833,46 @@ async def test_proxied_success_metrics_are_unchanged() -> None:
     _, compatibility = await build_both()
     arguments = {"chart_type": "table", "include_examples": False}
 
-    direct, direct_keys, _ = await call_and_count(
+    direct, direct_keys, direct_timing = await call_and_count(
         compatibility, "get_chart_type_schema", arguments, proxied=False
     )
-    proxied, proxied_keys, _ = await call_and_count(
+    proxied, proxied_keys, proxied_timing = await call_and_count(
         compatibility, "get_chart_type_schema", arguments, proxied=True
     )
 
     assert direct.is_error is False
     assert proxied.is_error is False
     assert direct_keys == ["mcp.tool.get_chart_type_schema.success"]
-    assert set(proxied_keys) == {"mcp.tool.get_chart_type_schema.success"}
+    assert proxied_keys == direct_keys
+    assert direct_timing == ["mcp.tool.get_chart_type_schema.time"]
+    assert proxied_timing == direct_timing
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("unprivileged_user")
+@pytest.mark.parametrize("proxy_name", [CALL_TOOL, "invoke_tool"])
+async def test_proxied_success_is_counted_once_under_any_configured_proxy_name(
+    proxy_name: str,
+) -> None:
+    """A forwarded success emits one counter and timing, even with a renamed proxy."""
+    search_config = {**MCP_TOOL_SEARCH_CONFIG, "call_tool_name": proxy_name}
+    flask_app = MagicMock()
+    flask_app.config = {"MCP_TOOL_SEARCH_CONFIG": search_config}
+    with patch("superset.mcp_service.flask_singleton.get_flask_app") as get_app:
+        get_app.return_value = flask_app
+        compatibility = await build_server(
+            structured_output_enabled=False,
+            compatibility=True,
+            search_config=search_config,
+        )
+        proxied, keys, timings = await call_and_count(
+            compatibility,
+            "get_chart_type_schema",
+            {"chart_type": "table", "include_examples": False},
+            proxied=True,
+            proxy_name=proxy_name,
+        )
+
+    assert proxied.is_error is False
+    assert keys == ["mcp.tool.get_chart_type_schema.success"]
+    assert timings == ["mcp.tool.get_chart_type_schema.time"]
