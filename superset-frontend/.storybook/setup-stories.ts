@@ -73,7 +73,7 @@ export default async function globalSetup() {
   }
 
   mkdirSync(dirname(indexFile), { recursive: true });
-  writeFileSync(indexFile, await response.json());
+  writeFileSync(indexFile, await response.text());
   appendFileSync(indexFile, EOL);
 }
 
