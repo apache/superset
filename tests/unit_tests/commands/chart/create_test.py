@@ -21,9 +21,11 @@ objects must be rejected before datasource lookup, not fail with an opaque
 500. Table and semantic-view datasources are supported chart sources.
 """
 
-from unittest.mock import Mock
+from datetime import datetime
+from unittest.mock import MagicMock, Mock
 
 import pytest
+from flask import g
 from pytest_mock import MockerFixture
 
 from superset.commands.chart.create import CreateChartCommand
@@ -300,3 +302,249 @@ def test_create_chart_query_context_without_datasource_is_allowed(
     _mock_table_datasource(mocker)
 
     CreateChartCommand(_create_payload(query_context)).validate()
+
+
+def test_create_chart_updates_dashboard_changed_on(mocker: MockerFixture) -> None:
+    """Issue #44305: Creating a chart linked to dashboards must touch audit metadata."""
+    _mock_table_datasource(mocker)
+    user = MagicMock()
+    g.user = user
+
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    dashboard = MagicMock(
+        is_managed_externally=False, changed_on=seeded_changed_on, changed_by=None
+    )
+    mocker.patch(
+        "superset.commands.chart.create.DashboardDAO.find_by_ids",
+        return_value=[dashboard],
+    )
+    mocker.patch(
+        "superset.commands.chart.create.security_manager.is_editor",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "New Chart",
+            "viz_type": "table",
+            "dashboards": [101],
+        }
+    )
+    cmd.run()
+
+    assert dashboard.changed_on > seeded_changed_on
+    assert dashboard.changed_by == user
+
+
+def test_create_chart_updates_multiple_dashboards_changed_on(
+    mocker: MockerFixture,
+) -> None:
+    """Ensure all dashboards linked to the newly created chart get touched."""
+    _mock_table_datasource(mocker)
+    user = MagicMock()
+    g.user = user
+
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    d1 = MagicMock(
+        is_managed_externally=False, changed_on=seeded_changed_on, changed_by=None
+    )
+    d2 = MagicMock(
+        is_managed_externally=False, changed_on=seeded_changed_on, changed_by=None
+    )
+    mocker.patch(
+        "superset.commands.chart.create.DashboardDAO.find_by_ids",
+        return_value=[d1, d2],
+    )
+    mocker.patch(
+        "superset.commands.chart.create.security_manager.is_editor",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "Multi-Dash Chart",
+            "viz_type": "table",
+            "dashboards": [101, 102],
+        }
+    )
+    cmd.run()
+
+    assert d1.changed_on > seeded_changed_on
+    assert d1.changed_by == user
+    assert d2.changed_on > seeded_changed_on
+    assert d2.changed_by == user
+
+
+def test_create_chart_updates_dashboard_changed_on_without_user_preserves_attribution(
+    mocker: MockerFixture,
+) -> None:
+    """Issue #44305: In no-user contexts, audit metadata attribution is preserved."""
+    _mock_table_datasource(mocker)
+    g.user = None
+
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    prior_user = MagicMock()
+    dashboard = MagicMock(
+        is_managed_externally=False,
+        changed_on=seeded_changed_on,
+        changed_by=prior_user,
+        changed_by_fk=42,
+    )
+    mocker.patch(
+        "superset.commands.chart.create.DashboardDAO.find_by_ids",
+        return_value=[dashboard],
+    )
+    mocker.patch(
+        "superset.commands.chart.create.security_manager.is_editor",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "New Chart Without User",
+            "viz_type": "table",
+            "dashboards": [101],
+        }
+    )
+    cmd.run()
+
+    assert dashboard.changed_on > seeded_changed_on
+    assert dashboard.changed_by == prior_user
+    assert dashboard.changed_by_fk == 42
+
+
+def test_create_chart_without_dashboards_runs_cleanly(
+    mocker: MockerFixture,
+) -> None:
+    """Creating a chart with no attached dashboards runs smoothly without error."""
+    _mock_table_datasource(mocker)
+    g.user = MagicMock()
+    create_mock = mocker.patch(
+        "superset.commands.chart.create.ChartDAO.create",
+        return_value=MagicMock(),
+    )
+
+    cmd = CreateChartCommand(
+        {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "Standalone Chart",
+            "viz_type": "table",
+        }
+    )
+    chart = cmd.run()
+    create_mock.assert_called_once()
+    assert chart == create_mock.return_value
+
+
+def test_touch_dashboards_with_no_user() -> None:
+    """When g.user is None, changed_on is updated while changed_by remains untouched."""
+    from superset.commands.chart.utils import touch_dashboards
+
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    dashboard = MagicMock(changed_on=seeded_changed_on, changed_by=None)
+    g.user = None
+
+    touch_dashboards([dashboard])
+
+    assert dashboard.changed_on > seeded_changed_on
+    assert dashboard.changed_by is None
+
+
+def test_touch_dashboards_with_no_user_preserves_existing_attribution() -> None:
+    """When g.user is None, changed_on is updated while pre-existing
+    attribution is preserved.
+    """
+    from superset.commands.chart.utils import touch_dashboards
+
+    seeded_changed_on: datetime = datetime(2020, 1, 1)
+    prior_user = MagicMock()
+    dashboard = MagicMock(
+        changed_on=seeded_changed_on,
+        changed_by=prior_user,
+        changed_by_fk=42,
+    )
+    g.user = None
+
+    touch_dashboards([dashboard])
+
+    assert dashboard.changed_on > seeded_changed_on
+    assert dashboard.changed_by == prior_user
+    assert dashboard.changed_by_fk == 42
+
+
+def test_touch_dashboards_persisted_model_preserves_audit() -> None:
+    """Issue #44305: Ensure SQLAlchemy onupdate=get_user_id does not clear
+    changed_by_fk on a real persisted model in no-user contexts.
+    """
+    import sqlalchemy as sa
+    from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+
+    from superset.commands.chart.utils import touch_dashboards
+
+    base = declarative_base()
+
+    def mock_get_user_id() -> int | None:
+        return None
+
+    class User(base):
+        __tablename__ = "test_user"
+        id = sa.Column(sa.Integer, primary_key=True)
+        username = sa.Column(sa.String)
+
+    class PersistedDashboard(base):
+        __tablename__ = "test_dashboard"
+        id = sa.Column(sa.Integer, primary_key=True)
+        changed_on = sa.Column(sa.DateTime, default=datetime.now, onupdate=datetime.now)
+        changed_by_fk = sa.Column(
+            sa.Integer,
+            sa.ForeignKey("test_user.id"),
+            default=mock_get_user_id,
+            onupdate=mock_get_user_id,
+            nullable=True,
+        )
+        changed_by = relationship("User", foreign_keys=[changed_by_fk])
+
+    engine = sa.create_engine("sqlite:///:memory:")
+    base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine)
+    session = session_factory()
+
+    user = User(id=1, username="admin")
+    session.add(user)
+    session.commit()
+
+    initial_time: datetime = datetime(2020, 1, 1)
+    d = PersistedDashboard(id=10, changed_on=initial_time, changed_by=user)
+    session.add(d)
+    session.commit()
+
+    assert d.changed_by_fk == 1
+    assert d.changed_by.username == "admin"
+
+    g.user = None
+    touch_dashboards([d])
+    session.commit()
+
+    assert d.changed_on > initial_time
+    assert d.changed_by_fk == 1
+    assert d.changed_by is not None
+    assert d.changed_by.username == "admin"
