@@ -26,6 +26,7 @@ from superset.db_engine_specs.base import (
     DatabaseCategory,
 )
 from superset.errors import SupersetErrorType
+from superset.sql.parse import RLSMethod
 
 
 # Internal class for defining error message patterns (for translation)
@@ -57,6 +58,8 @@ class _ErrorPatterns:  # pylint: disable=too-few-public-methods
 class DenodoEngineSpec(BaseEngineSpec, BasicParametersMixin):
     engine = "denodo"
     engine_name = "Denodo"
+
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (
