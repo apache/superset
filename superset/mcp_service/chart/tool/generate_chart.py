@@ -107,6 +107,10 @@ async def generate_chart(  # noqa: C901
 ) -> GenerateChartResponse:
     """Preview a chart; optionally save.
 
+    Call get_chart_type_schema(chart_type) for the fields, required fields,
+    and working examples of a chart type before building config. It also
+    confirms whether host-gated types such as interactive_pivot are available.
+
     IMPORTANT BEHAVIOR:
     - Charts are NOT saved by default (save_chart=False) - preview only
     - Set save_chart=True to permanently save the chart
@@ -121,67 +125,10 @@ async def generate_chart(  # noqa: C901
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
     other fields in your configuration. Values such as 'line', 'bar', 'area',
-    and 'scatter' are 'kind' values WITHIN chart_type='xy', not chart_type
-    values themselves. Call get_chart_type_schema to confirm host-gated types:
-
-    - chart_type='xy' for charts with x and y axes (line, bar, area, scatter).
-      Required fields: y (x is optional — defaults to dataset's primary
-      datetime column). Use 'kind' to pick line/bar/area/scatter
-      (default kind='line').
-
-    - chart_type='table' for tabular visualizations.
-      Required fields: columns
-
-    - chart_type='pie' for pie/donut charts.
-      Required fields: dimension, metric
-
-    - chart_type='sunburst' for multi-ring hierarchical part-to-whole charts.
-      Required fields: hierarchy, metric. When supplied, secondary_metric divided
-      by metric drives a sequential color scale; omit it for categorical colors.
-
-    - chart_type='pivot_table' for pivot table visualizations.
-      Required fields: rows, metrics (columns is optional, for cross-tabs)
-
-    - chart_type='interactive_pivot' for an extension-provided AG Grid pivot.
-      Required fields: rows, metrics (columns is optional). This is distinct
-      from pivot_table/pivot_table_v2 and is rejected when its host feature is
-      unavailable. Call get_chart_type_schema('interactive_pivot') first.
-
-    - chart_type='mixed_timeseries' for dual-axis time-series charts.
-      Required fields: x, y (primary metrics), y_secondary (secondary metrics)
-
-    - chart_type='handlebars' for custom template-based visualizations.
-      Required fields: handlebars_template
-
-    - chart_type='big_number' for single KPI metric displays.
-      Required fields: metric
-
-    - chart_type='gauge_chart' for a dial/gauge display of a metric.
-      Required fields: metric; optional: groupby (one dial per value),
-      min_val, max_val
-
-    - chart_type='treemap_v2' for hierarchical part-to-whole.
-      Required fields: groupby (ordered hierarchy), metric
-
-    - chart_type='bubble_v2' for a scatter of bubbles sized by a metric.
-      Required fields: entity, x, y, size (x/y/size are metrics)
-
-    - chart_type='histogram' for value-distribution charts.
-      Required fields: column (numeric); optional: bins, groupby, normalize,
-      cumulative
-
-    - chart_type='box_plot' for statistical spread comparisons.
-      Required fields: metrics, distribute_across (the sample axis, e.g. a
-      temporal column); use dimensions to split into one box per value;
-      optional whisker_type ('tukey'|'min_max'|'percentile')
-    - Use chart_type='waterfall' for cumulative increase/decrease breakdowns
-      Required fields: x_axis, metric; optional: breakdown (single category
-      column, alias: groupby), show_total
-
-    - Use chart_type='gantt' for task intervals over time.
-      Required fields: start_time, end_time (both temporal), category;
-      optional: series, tooltip_columns, tooltip_metrics, order_by, filters,
-      time_range, subcategories, and presentation controls
+    and 'scatter' are 'kind' values WITHIN chart_type='xy' (default
+    kind='line'), not chart_type values themselves. 'interactive_pivot' is an
+    extension-provided AG Grid pivot, distinct from pivot_table, and is
+    rejected when its host feature is unavailable.
 
     Quick lookup — natural-language ask -> chart_type (+ kind if applicable):
     - "bar chart" / "line chart" / "area chart" / "scatter plot"
@@ -200,6 +147,7 @@ async def generate_chart(  # noqa: C901
     - "custom HTML template" -> chart_type='handlebars'
     - "histogram" / "distribution" -> chart_type='histogram'
     - "box plot" / "box and whisker" -> chart_type='box_plot'
+    - "waterfall" / "bridge" -> chart_type='waterfall'
     - "gantt" / "project schedule" / "task timeline" -> chart_type='gantt'
 
     Example usage for XY chart (bar/line/area/scatter):
@@ -215,72 +163,9 @@ async def generate_chart(  # noqa: C901
     }
     ```
 
-    Example usage for Table chart:
-    ```json
-    {
-        "dataset_id": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
-        "config": {
-            "chart_type": "table",
-            "columns": [
-                {"name": "product_name"},
-                {"name": "quantity", "aggregate": "SUM"},
-                {"name": "revenue", "aggregate": "SUM", "label": "Total Revenue"}
-            ]
-        }
-    }
-    ```
-
-    Example usage for Pie chart:
-    ```json
-    {
-        "dataset_id": 123,
-        "config": {
-            "chart_type": "pie",
-            "dimension": {"name": "product_category"},
-            "metric": {"name": "revenue", "aggregate": "SUM"}
-        }
-    }
-    ```
-
-    Example usage for a Sunburst hierarchy (frontend viz_type sunburst_v2):
-    ```json
-    {
-        "dataset_id": 123,
-        "config": {
-            "chart_type": "sunburst",
-            "hierarchy": [{"name": "region"}, {"name": "country"}],
-            "metric": {"name": "revenue", "aggregate": "SUM"},
-            "secondary_metric": {"name": "profit", "aggregate": "SUM"},
-            "show_labels": true
-        }
-    }
-    ```
-
-    Example usage with a custom SQL metric (ratios, conditional aggregations,
-    unit conversions). Pass 'sql_expression' instead of 'name'+'aggregate'.
-    A 'label' is required and serves as the metric's display name:
-    ```json
-    {
-        "dataset_id": 123,
-        "config": {
-            "chart_type": "xy",
-            "x": {"name": "order_date"},
-            "y": [{
-                "sql_expression":
-                    "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / "
-                    "NULLIF(COUNT(*), 0)",
-                "label": "Win Rate"
-            }],
-            "kind": "line"
-        }
-    }
-    ```
-
-    VALIDATION:
-    - 5-layer pipeline: Schema, business logic, dataset, Superset compatibility, runtime
-    - XSS/SQL injection prevention
-    - Column existence validation with fuzzy match suggestions
-    - Aggregate function type compatibility checking
+    For a custom SQL metric (ratios, conditional aggregations, unit
+    conversions), pass 'sql_expression' with a required 'label' instead of
+    'name'+'aggregate'.
 
     Returns:
     - Chart ID and metadata (if saved)

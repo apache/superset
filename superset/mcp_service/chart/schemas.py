@@ -28,7 +28,7 @@ import re
 from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime, time
-from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol
+from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol, Tuple
 
 from pydantic import (
     AliasChoices,
@@ -687,12 +687,7 @@ def serialize_chart_object(
 
 
 class ChartFilter(ColumnOperator):
-    """
-    Filter object for chart listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
+    """Filter object for chart listing."""
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "slice_name",
@@ -1094,7 +1089,7 @@ class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
         return self
 
 
-class SortByConfig(UnknownFieldCheckMixin):
+class SortByConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     """Sort specification with explicit direction.
 
     Accepts either this object or a bare column-name string in `sort_by`
@@ -1115,6 +1110,10 @@ class SortByConfig(UnknownFieldCheckMixin):
         False,
         description="Sort ascending. Defaults to False (descending) to match "
         "the typical sort-by-metric top-N use case.",
+    )
+    saved_metric: bool | None = Field(
+        None,
+        description="Whether this sort target is a saved dataset metric",
     )
 
 
@@ -3701,6 +3700,21 @@ def _metric_display_label(col: ColumnRef) -> str:
     return col.label or col.name or ""
 
 
+def _coerce_sort_item(item: Any) -> Any:
+    if isinstance(item, str):
+        return SortByConfig(column=item, ascending=False)
+    if (
+        isinstance(item, (list, tuple))
+        and len(item) == 2
+        and isinstance(item[0], str)
+        and isinstance(item[1], bool)
+    ):
+        return SortByConfig(column=item[0], ascending=item[1])
+    if isinstance(item, dict):
+        return SortByConfig(**item)
+    return item
+
+
 def _same_metric_query_reference(left: ColumnRef, right: ColumnRef) -> bool:
     """Compare validated metric query semantics, excluding presentation labels."""
     if left.sql_expression is not None or right.sql_expression is not None:
@@ -3809,6 +3823,38 @@ class XYChartConfig(BaseChartConfig):
         ge=1,
         le=10000,
     )
+    sort_by: (
+        SortByConfig
+        | str
+        | Tuple[str, bool]
+        | Annotated[List[SortByConfig | str], Field(max_length=1)]
+        | None
+    ) = Field(
+        None,
+        description=(
+            "Sort by the x column or one y metric; a bare name sorts "
+            "descending, or pass [column, ascending]."
+        ),
+        validation_alias=AliasChoices(
+            "sort_by", "x_axis_sort", "order_by", "order_by_cols"
+        ),
+    )
+
+    @field_validator("sort_by", mode="before")
+    @classmethod
+    def coerce_sort_by(cls, v: Any) -> Any:
+        """Coerce bare string, dict, pair, or single-item list into SortByConfig."""
+        if v is None:
+            return None
+        if isinstance(v, (list, tuple)):
+            if not v:
+                return None
+            if len(v) == 2 and isinstance(v[0], str) and isinstance(v[1], bool):
+                return _coerce_sort_item(v)
+            if len(v) > 1:
+                raise ValueError("XY charts support only a single sort column")
+            return _coerce_sort_item(v[0])
+        return _coerce_sort_item(v)
 
     series_limit_metric: ColumnRef | None = Field(
         None,
@@ -5292,11 +5338,8 @@ class ListChartsRequest(
                 "trashed charts, 'include' returns live and trashed charts "
                 "together. Omit for live charts only (default). Trashed rows "
                 "carry a non-null deleted_at and are limited to charts the "
-                "caller can edit (the same audience that can restore them, "
-                "not merely the ones they own; admins see all). This omits "
-                "EXTRA_EDITORS_RESOLVER-granted and guest role-derived "
-                "editorship, so some restorable charts may be under-"
-                "enumerated. Requires the SOFT_DELETE feature flag to have "
+                "caller can edit (admins see all); some restorable charts may "
+                "be missing. Requires the SOFT_DELETE feature flag to have "
                 "produced trashed rows."
             ),
         ),

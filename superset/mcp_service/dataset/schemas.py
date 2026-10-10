@@ -71,12 +71,7 @@ from superset.utils import json
 
 
 class DatasetFilter(ColumnOperator):
-    """
-    Filter object for dataset listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
+    """Filter object for dataset listing."""
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "uuid",
@@ -275,13 +270,12 @@ class ListDatasetsRequest(
     MetadataCacheControl,
     PaginatedListRequest[DatasetFilter],
 ):
-    """Request schema for list_datasets with clear, unambiguous types.
+    """Request schema for list_datasets with clear, unambiguous types."""
 
-    Unlike its siblings, this schema does NOT parse JSON-string `filters`/
-    `select_columns` into lists — it relies on Pydantic's native list
-    validation instead. Preserved intentionally; see
-    test_list_datasets_with_string_filters.
-    """
+    # Unlike its siblings, this schema does NOT parse JSON-string `filters`/
+    # `select_columns` into lists; it relies on Pydantic's native list
+    # validation instead. Preserved intentionally; see
+    # test_list_datasets_with_string_filters.
 
     order_column: Annotated[
         str | None,
