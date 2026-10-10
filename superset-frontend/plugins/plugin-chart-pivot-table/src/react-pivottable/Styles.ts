@@ -19,8 +19,11 @@
 
 import { css, styled } from '@apache-superset/core/theme';
 
-export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
-  ${({ theme, isDashboardEditMode }) => css`
+export const Styles = styled.div<{
+  isDashboardEditMode: boolean;
+  canFreezeRowLabels: boolean;
+}>`
+  ${({ theme, isDashboardEditMode, canFreezeRowLabels }) => css`
     table.pvtTable {
       position: ${isDashboardEditMode ? 'inherit' : 'relative'};
       width: calc(100% - ${theme.sizeUnit}px);
@@ -33,10 +36,43 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
       line-height: 1.4;
     }
 
+    /* The sticky thead and totals row each form their own stacking
+     * context, so a z-index on a cell inside them can't outrank the
+     * frozen row labels (z-index 1) in the body. The bands themselves
+     * carry the z-index that keeps them painting over row labels
+     * scrolling underneath. */
     table thead {
       background-color: ${theme.colorBgBase};
       position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
       top: 0;
+      z-index: 2;
+    }
+
+    /* Corner cells sitting above the frozen row-label column: the
+     * column-attribute name cell spanning the full leading block in each
+     * column-header row, and the row-attribute name cell(s) in the
+     * row-header row. Both only render when there are row dimensions.
+     * The z-index keeps them over the column labels scrolling underneath
+     * within the thead. Freezing at left: 0 only works cleanly with a
+     * single row attribute; with more, every frozen cell shares that same
+     * edge and stacks on top of the others, so this is scoped to the
+     * single-row-dimension case until a per-column offset fast-follow
+     * lands. */
+    table.pvtTable thead th.pvtCornerLabel,
+    table.pvtTable thead tr.pvtRowHeaderRow th.pvtAxisLabel {
+      position: ${
+        isDashboardEditMode || !canFreezeRowLabels ? 'inherit' : 'sticky'
+      };
+      top: 0;
+      left: 0;
+      z-index: 1;
+      background-color: ${theme.colorBgBase};
+    }
+
+    /* Keep the column-attribute name next to the column labels it names
+     * rather than at the far left of the merged corner block. */
+    table.pvtTable thead th.pvtCornerLabel {
+      text-align: right;
     }
 
     table tbody tr {
@@ -55,12 +91,29 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
     table.pvtTable tbody tr.pvtRowTotals {
       position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
       bottom: 0;
+      z-index: 2;
       background-color: ${theme.colorBgBase};
     }
 
     table.pvtTable tbody tr.pvtRowTotals th,
     table.pvtTable tbody tr.pvtRowTotals td {
       background-color: ${theme.colorBgBase};
+    }
+
+    /* The totals row's leading label freezes at the left edge like the
+     * body row labels above it. The z-index keeps it over the totals
+     * values scrolling underneath within the row's own stacking context.
+     * Scoped to the single-row-dimension case for the same reason as the
+     * corner cells above. Uses 'static' rather than 'inherit' for the
+     * non-sticky branch: this cell's direct parent is tr.pvtRowTotals,
+     * which is unconditionally sticky, so 'inherit' would pick up that
+     * stickiness and leave the label pinned at left: 0 anyway. */
+    table.pvtTable tbody tr.pvtRowTotals th.pvtRowTotalLabel {
+      position: ${
+        isDashboardEditMode || !canFreezeRowLabels ? 'static' : 'sticky'
+      };
+      left: 0;
+      z-index: 1;
     }
 
     table.pvtTable thead tr:last-of-type th,
@@ -85,14 +138,6 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
     table.pvtTable tbody tr td:last-of-type,
     table.pvtTable thead tr th:last-of-type:not(.pvtSubtotalLabel) {
       border-right: 1px solid ${theme.colorSplit};
-    }
-
-    table.pvtTable
-      thead
-      tr:last-of-type:not(:only-child)
-      th.pvtAxisLabel
-      + .pvtTotalLabel {
-      border-right: none;
     }
 
     table.pvtTable tr th.active {
@@ -120,6 +165,29 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
 
     table.pvtTable tbody tr th.pvtRowLabel {
       vertical-align: baseline;
+      position: ${
+        isDashboardEditMode || !canFreezeRowLabels ? 'inherit' : 'sticky'
+      };
+      left: 0;
+      z-index: 1;
+      background-color: ${theme.colorBgBase};
+    }
+
+    /* The frozen-cell background above is more specific than the generic
+     * .hoverable:hover and th.active rules, so restate those states here
+     * to keep hover and cross-filter highlighting visible on row labels.
+     * The hover tint is layered as a background-image over the opaque
+     * base so scrolled-under cells don't bleed through a translucent
+     * fill token. */
+    table.pvtTable tbody tr th.pvtRowLabel.hoverable:hover {
+      background-image: linear-gradient(
+        ${theme.colorFillContentHover},
+        ${theme.colorFillContentHover}
+      );
+    }
+
+    table.pvtTable tbody tr th.pvtRowLabel.active {
+      background-color: ${theme.colorPrimaryBg};
     }
 
     table.pvtTable tbody tr th.pvtRowLabel.pvtRowLabelLast {
