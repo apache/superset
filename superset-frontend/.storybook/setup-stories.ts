@@ -59,7 +59,9 @@ export interface StoryPage {
 const storybookURL = 'http://localhost:6006';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const indexFile = resolve(join(__dirname, './storybook-tests.json'));
+const indexFile = resolve(
+  join(__dirname, '../node_modules/.cache/storybook-playwright/index.json'),
+);
 
 export default async function globalSetup() {
   const response = await fetch(`${storybookURL}/index.json`);
@@ -70,10 +72,8 @@ export default async function globalSetup() {
     );
   }
 
-  const formattedData = await response.json();
-
   mkdirSync(dirname(indexFile), { recursive: true });
-  writeFileSync(indexFile, JSON.stringify(formattedData, null, 2));
+  writeFileSync(indexFile, await response.json());
   appendFileSync(indexFile, EOL);
 }
 
