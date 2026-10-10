@@ -236,6 +236,10 @@ Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
 - list_tasks: List background tasks with status filtering and pagination
 - get_task_info: Get task details by integer ID or UUID
 
+Widgets (requires CANVAS feature flag):
+- list_widgets: List saved widgets with filtering and search (1-based pagination)
+- get_widget_info: Get a saved widget's type, description and props by ID or UUID
+
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - find_users: Resolve a person's name to user IDs for use as a filter value
@@ -930,6 +934,10 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,
     list_users,
 )
+from superset.mcp_service.widget.tool import (  # noqa: F401, E402
+    get_widget_info,
+    list_widgets,
+)
 
 #: Tool names exempt from the mcp_auth_hook protection check. Adding a tool
 #: here is a security-significant choice — review carefully. Entries are tools
@@ -1033,6 +1041,8 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
       the GLOBAL_TASK_FRAMEWORK feature flag via feature_flag_manager so that
       all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
       IS_FEATURE_ENABLED_FUNC, etc.) are respected.
+    - Widget tools: mirror WidgetRestApi, whose endpoints answer 404 unless the
+      CANVAS feature flag is enabled.
     """
     removed: set[str] = set()
 
@@ -1041,6 +1051,11 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
     if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
         for tool_name in ("list_tasks", "get_task_info"):
             _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK not enabled")
+            removed.add(tool_name)
+
+    if not feature_flag_manager.is_feature_enabled("CANVAS"):
+        for tool_name in ("list_widgets", "get_widget_info"):
+            _remove_tool_quietly(tool_name, "CANVAS not enabled")
             removed.add(tool_name)
 
     return removed
