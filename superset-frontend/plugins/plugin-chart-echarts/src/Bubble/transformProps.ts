@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { EChartsCoreOption } from "echarts/core";
-import type { ScatterSeriesOption } from "echarts/charts";
-import { extent } from "d3-array";
+import type { EChartsCoreOption } from 'echarts/core';
+import type { ScatterSeriesOption } from 'echarts/charts';
+import { extent } from 'd3-array';
 import {
   CategoricalColorNamespace,
   getNumberFormatter,
@@ -27,25 +27,25 @@ import {
   getMetricLabel,
   NumberFormatter,
   tooltipHtml,
-} from "@superset-ui/core";
-import { EchartsBubbleChartProps, EchartsBubbleFormData } from "./types";
-import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from "./constants";
-import { defaultGrid } from "../defaults";
+} from '@superset-ui/core';
+import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
+import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
+import { defaultGrid } from '../defaults';
 import {
   getLegendProps,
   getLegendScrollDataIndex,
   getMinAndMaxFromBounds,
-} from "../utils/series";
-import { resolveLegendLayout } from "../utils/legendLayout";
-import { Refs } from "../types";
-import { parseAxisBound } from "../utils/controls";
-import { getDefaultTooltip } from "../utils/tooltip";
-import { getPadding } from "../Timeseries/transformers";
-import { convertInteger } from "../utils/convertInteger";
-import { NULL_STRING } from "../constants";
+} from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
+import { Refs } from '../types';
+import { parseAxisBound } from '../utils/controls';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { getPadding } from '../Timeseries/transformers';
+import { convertInteger } from '../utils/convertInteger';
+import { NULL_STRING } from '../constants';
 
 const isIterable = (obj: any): obj is Iterable<any> =>
-  obj != null && typeof obj[Symbol.iterator] === "function";
+  obj != null && typeof obj[Symbol.iterator] === 'function';
 
 function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
@@ -53,10 +53,10 @@ function normalizeSymbolSize(
 ) {
   const [bubbleMinValue, bubbleMaxValue] = extent<ScatterSeriesOption, number>(
     nodes,
-    (x) => {
+    x => {
       const tmpValue = x.data?.[0];
       const result = isIterable(tmpValue) ? tmpValue[2] : null;
-      if (typeof result === "number") {
+      if (typeof result === 'number') {
         return result;
       }
       return null;
@@ -64,10 +64,10 @@ function normalizeSymbolSize(
   );
   if (bubbleMinValue !== undefined && bubbleMaxValue !== undefined) {
     const nodeSpread = bubbleMaxValue - bubbleMinValue;
-    nodes.forEach((node) => {
+    nodes.forEach(node => {
       const tmpValue = node.data?.[0];
       const calculated = isIterable(tmpValue) ? tmpValue[2] : null;
-      if (typeof calculated === "number") {
+      if (typeof calculated === 'number') {
         // eslint-disable-next-line no-param-reassign
         node.symbolSize =
           (((calculated - bubbleMinValue) / nodeSpread) *
@@ -162,7 +162,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
 
   const refs: Refs = {};
 
-  data.forEach((datum) => {
+  data.forEach(datum => {
     const dataName = seriesLabel ? datum[seriesLabel] : datum[entityLabel];
     const name = dataName ? String(dataName) : NULL_STRING;
     const bubbleSeriesValue = seriesLabel ? datum[seriesLabel] : null;
@@ -178,7 +178,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
           bubbleSeriesValue as any,
         ],
       ],
-      type: "scatter",
+      type: 'scatter',
       itemStyle: {
         color: colorFn(name, sliceId),
         opacity,
@@ -194,7 +194,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const tooltipSizeFormatter = getNumberFormatter(tooltipSizeFormat);
   const legendData = Array.from(legends).sort((a: string, b: string) => {
     if (!legendSort) return 0;
-    return legendSort === "asc" ? a.localeCompare(b) : b.localeCompare(a);
+    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
   });
   const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,
@@ -203,6 +203,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -217,7 +218,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     false,
     effectiveLegendMargin,
     true,
-    "Left",
+    'Left',
     convertInteger(yAxisTitleMargin),
     convertInteger(xAxisTitleMargin),
   );
@@ -233,14 +234,14 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       },
       splitLine: {
         lineStyle: {
-          type: "dashed",
+          type: 'dashed',
         },
       },
       scale: true,
       name: bubbleXAxisTitle,
-      nameLocation: "middle",
+      nameLocation: 'middle',
       nameTextStyle: {
-        fontWeight: "bolder",
+        fontWeight: 'bolder',
       },
       nameGap: convertInteger(xAxisTitleMargin),
       type: xAxisType,
@@ -250,14 +251,14 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       axisLabel: { formatter: yAxisFormatter, rotate: yAxisLabelRotation },
       splitLine: {
         lineStyle: {
-          type: "dashed",
+          type: 'dashed',
         },
       },
       scale: truncateYAxis,
       name: bubbleYAxisTitle,
-      nameLocation: "middle",
+      nameLocation: 'middle',
       nameTextStyle: {
-        fontWeight: "bolder",
+        fontWeight: 'bolder',
       },
       nameGap: convertInteger(yAxisTitleMargin),
       min: yAxisMin,
@@ -270,9 +271,9 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
-        showSelectorLegend,
       ),
       scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,

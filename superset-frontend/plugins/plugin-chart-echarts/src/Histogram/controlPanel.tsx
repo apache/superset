@@ -34,7 +34,7 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   showLegendControl,
-  showSelectorlegendControl,
+  showSelectorLegendControl,
   showValueControl,
 } from '../controls';
 
@@ -119,7 +119,7 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         [showValueControl],
         [showLegendControl],
-        [showSelectorlegendControl],
+        [showSelectorLegendControl],
         [
           {
             name: 'x_axis_title',

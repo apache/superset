@@ -16,41 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AxisType, ChartProps } from "@superset-ui/core";
-import { supersetTheme } from "@apache-superset/core/theme";
-import type { LegendComponentOption } from "echarts/components";
+import { AxisType, ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
+import type { LegendComponentOption } from 'echarts/components';
 import {
   LegendOrientation,
   LegendType,
-} from "@superset-ui/plugin-chart-echarts";
-import transformProps from "../../src/Gantt/transformProps";
+} from '@superset-ui/plugin-chart-echarts';
+import transformProps from '../../src/Gantt/transformProps';
 import {
   EchartsGanttChartProps,
   EchartsGanttFormData,
-} from "../../src/Gantt/types";
+} from '../../src/Gantt/types';
 
 const formData: EchartsGanttFormData = {
-  viz_type: "gantt_chart",
-  datasource: "1__table",
+  viz_type: 'gantt_chart',
+  datasource: '1__table',
 
-  startTime: "startTime",
-  endTime: "endTime",
+  startTime: 'startTime',
+  endTime: 'endTime',
   yAxis: {
-    label: "Y Axis",
-    sqlExpression: "y_axis",
-    expressionType: "SQL",
+    label: 'Y Axis',
+    sqlExpression: 'y_axis',
+    expressionType: 'SQL',
   },
-  tooltipMetrics: ["tooltip_metric"],
-  tooltipColumns: ["tooltip_column"],
-  series: "series",
-  xAxisTimeFormat: "%H:%M",
-  tooltipTimeFormat: "%H:%M",
-  tooltipValuesFormat: "DURATION_SEC",
-  colorScheme: "bnbColors",
+  tooltipMetrics: ['tooltip_metric'],
+  tooltipColumns: ['tooltip_column'],
+  series: 'series',
+  xAxisTimeFormat: '%H:%M',
+  tooltipTimeFormat: '%H:%M',
+  tooltipValuesFormat: 'DURATION_SEC',
+  colorScheme: 'bnbColors',
   zoomable: true,
   xAxisTitleMargin: undefined,
   yAxisTitleMargin: undefined,
-  xAxisTimeBounds: [null, "19:00:00"],
+  xAxisTimeBounds: [null, '19:00:00'],
   subcategories: true,
   legendMargin: 0,
   legendOrientation: LegendOrientation.Top,
@@ -66,19 +66,19 @@ const queriesData = [
       {
         startTime: Date.UTC(2025, 1, 1, 13, 0, 0),
         endTime: Date.UTC(2025, 1, 1, 14, 0, 0),
-        "Y Axis": "first",
-        tooltip_column: "tooltip value 1",
-        series: "series value 1",
+        'Y Axis': 'first',
+        tooltip_column: 'tooltip value 1',
+        series: 'series value 1',
       },
       {
         startTime: Date.UTC(2025, 1, 1, 18, 0, 0),
         endTime: Date.UTC(2025, 1, 1, 20, 0, 0),
-        "Y Axis": "second",
-        tooltip_column: "tooltip value 2",
-        series: "series value 2",
+        'Y Axis': 'second',
+        tooltip_column: 'tooltip value 2',
+        series: 'series value 2',
       },
     ],
-    colnames: ["startTime", "endTime", "Y Axis", "tooltip_column", "series"],
+    colnames: ['startTime', 'endTime', 'Y Axis', 'tooltip_column', 'series'],
   },
 ];
 const chartPropsConfig = {
@@ -87,8 +87,8 @@ const chartPropsConfig = {
   theme: supersetTheme,
 };
 
-describe("Gantt transformProps", () => {
-  test("should transform chart props", () => {
+describe('Gantt transformProps', () => {
+  test('should transform chart props', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     const transformedProps = transformProps(
       chartProps as EchartsGanttChartProps,
@@ -100,9 +100,9 @@ describe("Gantt transformProps", () => {
     const series1 = series[1];
 
     // exclude renderItem because it can't be serialized
-    expect(typeof series0.renderItem).toBe("function");
+    expect(typeof series0.renderItem).toBe('function');
     delete series0.renderItem;
-    expect(typeof series1.renderItem).toBe("function");
+    expect(typeof series1.renderItem).toBe('function');
     delete series1.renderItem;
     delete transformedProps.echartOptions.series;
 
@@ -111,9 +111,9 @@ describe("Gantt transformProps", () => {
         echartOptions: expect.objectContaining({
           useUTC: true,
           xAxis: {
-            name: "",
+            name: '',
             nameGap: 0,
-            nameLocation: "middle",
+            nameLocation: 'middle',
             max: Date.UTC(2025, 1, 1, 19, 0, 0),
             min: undefined,
             type: AxisType.Time,
@@ -123,9 +123,9 @@ describe("Gantt transformProps", () => {
             },
           },
           yAxis: {
-            name: "",
+            name: '',
             nameGap: 0,
-            nameLocation: "middle",
+            nameLocation: 'middle',
             type: AxisType.Value,
             // always 0
             min: 0,
@@ -140,10 +140,10 @@ describe("Gantt transformProps", () => {
           },
           legend: expect.objectContaining({
             show: true,
-            type: "scroll",
+            type: 'scroll',
             selector: [
-              { type: "all", title: "All" },
-              { type: "inverse", title: "Inv" },
+              { type: 'all', title: 'All' },
+              { type: 'inverse', title: 'Inv' },
             ],
           }),
           tooltip: {
@@ -151,8 +151,8 @@ describe("Gantt transformProps", () => {
           },
           dataZoom: [
             expect.objectContaining({
-              type: "slider",
-              filterMode: "none",
+              type: 'slider',
+              filterMode: 'none',
             }),
           ],
         }),
@@ -160,8 +160,8 @@ describe("Gantt transformProps", () => {
     );
 
     expect(series0).toEqual({
-      name: "series value 1",
-      type: "custom",
+      name: 'series value 1',
+      type: 'custom',
       progressive: 0,
       itemStyle: {
         color: expect.anything(),
@@ -175,22 +175,22 @@ describe("Gantt transformProps", () => {
             2,
             Date.UTC(2025, 1, 1, 13, 0, 0),
             Date.UTC(2025, 1, 1, 14, 0, 0),
-            "first",
-            "tooltip value 1",
-            "series value 1",
+            'first',
+            'tooltip value 1',
+            'series value 1',
           ],
         },
       ],
       dimensions: [
-        "startTime",
-        "endTime",
-        "index",
-        "seriesCount",
-        "startTime",
-        "endTime",
-        "Y Axis",
-        "tooltip_column",
-        "series",
+        'startTime',
+        'endTime',
+        'index',
+        'seriesCount',
+        'startTime',
+        'endTime',
+        'Y Axis',
+        'tooltip_column',
+        'series',
       ],
       encode: {
         x: [0, 1],
@@ -198,8 +198,8 @@ describe("Gantt transformProps", () => {
     });
 
     expect(series1).toEqual({
-      name: "series value 2",
-      type: "custom",
+      name: 'series value 2',
+      type: 'custom',
       progressive: 0,
       itemStyle: {
         color: expect.anything(),
@@ -213,22 +213,22 @@ describe("Gantt transformProps", () => {
             2,
             Date.UTC(2025, 1, 1, 18, 0, 0),
             Date.UTC(2025, 1, 1, 20, 0, 0),
-            "second",
-            "tooltip value 2",
-            "series value 2",
+            'second',
+            'tooltip value 2',
+            'series value 2',
           ],
         },
       ],
       dimensions: [
-        "startTime",
-        "endTime",
-        "index",
-        "seriesCount",
-        "startTime",
-        "endTime",
-        "Y Axis",
-        "tooltip_column",
-        "series",
+        'startTime',
+        'endTime',
+        'index',
+        'seriesCount',
+        'startTime',
+        'endTime',
+        'Y Axis',
+        'tooltip_column',
+        'series',
       ],
       encode: {
         x: [0, 1],
@@ -236,7 +236,7 @@ describe("Gantt transformProps", () => {
     });
     expect(series[2]).toEqual({
       // just for markLines
-      type: "line",
+      type: 'line',
       animation: false,
       markLine: {
         data: [{ yAxis: 1 }, { yAxis: 0 }],
@@ -244,56 +244,56 @@ describe("Gantt transformProps", () => {
           show: false,
         },
         silent: true,
-        symbol: ["none", "none"],
+        symbol: ['none', 'none'],
         lineStyle: {
-          type: "dashed",
-          color: "#dbe0ea",
+          type: 'dashed',
+          color: '#dbe0ea',
         },
       },
     });
     expect(series[3]).toEqual({
-      type: "line",
+      type: 'line',
       animation: false,
       markLine: {
         data: [
-          { yAxis: 1.5, name: "first" },
-          { yAxis: 0.5, name: "second" },
+          { yAxis: 1.5, name: 'first' },
+          { yAxis: 0.5, name: 'second' },
         ],
         label: {
           show: true,
-          position: "start",
-          formatter: "{b}",
-          color: "rgba(0,0,0,0.88)",
+          position: 'start',
+          formatter: '{b}',
+          color: 'rgba(0,0,0,0.88)',
           fontSize: supersetTheme.fontSizeSM,
           fontFamily: supersetTheme.fontFamily,
           width: expect.any(Number),
-          overflow: "truncate",
+          overflow: 'truncate',
         },
         lineStyle: expect.objectContaining({
-          color: "#00000000",
-          type: "solid",
+          color: '#00000000',
+          type: 'solid',
         }),
         silent: true,
-        symbol: ["none", "none"],
+        symbol: ['none', 'none'],
       },
     });
   });
 });
 
-describe("category label width reservation", () => {
-  test("reserves the ink extent of the widest label, not just its narrower advance width", () => {
+describe('category label width reservation', () => {
+  test('reserves the ink extent of the widest label, not just its narrower advance width', () => {
     // Simulates a glyph whose visible ink extends past the metrics.width
     // advance value returned by measureText (e.g. italics, or glyphs whose
     // ink overhangs the pen advance).
     // The grid must grow to fit the ink extent, or the previous
     // "prevent cut off" fix (#39137) regresses back to clipped labels.
-    const getContext = jest.spyOn(HTMLCanvasElement.prototype, "getContext");
+    const getContext = jest.spyOn(HTMLCanvasElement.prototype, 'getContext');
     try {
       // "first" always measures narrower than "second" so "second" alone
       // drives maxCategoryLabelWidth in both runs below.
       getContext.mockReturnValue({
         measureText: (text: string) =>
-          text === "second"
+          text === 'second'
             ? {
                 width: 10,
                 actualBoundingBoxLeft: 0,
@@ -307,7 +307,7 @@ describe("category label width reservation", () => {
 
       getContext.mockReturnValue({
         measureText: (text: string) =>
-          text === "second"
+          text === 'second'
             ? {
                 width: 10,
                 actualBoundingBoxLeft: 5,
@@ -333,12 +333,12 @@ describe("category label width reservation", () => {
     }
   });
 
-  test("reserves the advance width when bounding-box metrics are absent", () => {
-    const getContext = jest.spyOn(HTMLCanvasElement.prototype, "getContext");
+  test('reserves the advance width when bounding-box metrics are absent', () => {
+    const getContext = jest.spyOn(HTMLCanvasElement.prototype, 'getContext');
     try {
       getContext.mockReturnValue({
         measureText: (text: string) =>
-          text === "second"
+          text === 'second'
             ? {
                 width: 10,
                 actualBoundingBoxLeft: 0,
@@ -352,7 +352,7 @@ describe("category label width reservation", () => {
 
       // Same advance widths, but no actualBoundingBox* fields at all.
       getContext.mockReturnValue({
-        measureText: (text: string) => ({ width: text === "second" ? 10 : 5 }),
+        measureText: (text: string) => ({ width: text === 'second' ? 10 : 5 }),
       } as never);
       const withoutMetrics = transformProps(
         new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
@@ -372,9 +372,9 @@ describe("category label width reservation", () => {
     }
   });
 
-  test("reserves an approximate width when canvas is unavailable", () => {
+  test('reserves an approximate width when canvas is unavailable', () => {
     const getContext = jest
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
       .mockReturnValue(null);
     try {
       const transformed = transformProps(
@@ -384,27 +384,27 @@ describe("category label width reservation", () => {
         transformed.echartOptions.series as Array<{
           markLine?: { label?: { show?: boolean; width?: number } };
         }>
-      ).find((series) => series.markLine?.label?.show);
+      ).find(series => series.markLine?.label?.show);
 
       // "second" is the widest category name (6 chars) at ~0.62em per char,
       // plus the 1px ECharts reserves before truncating.
       expect(categoryLabelSeries?.markLine?.label?.width).toBe(
-        Math.ceil("second".length * supersetTheme.fontSizeSM * 0.62) + 1,
+        Math.ceil('second'.length * supersetTheme.fontSizeSM * 0.62) + 1,
       );
     } finally {
       getContext.mockRestore();
     }
   });
 
-  test("sizes the label box so ECharts does not truncate the widest name", () => {
+  test('sizes the label box so ECharts does not truncate the widest name', () => {
     // ECharts' `overflow: 'truncate'` only keeps text that fits in
     // `width - 1`, so a box exactly as wide as the text cuts off its last
     // glyph. The widest name here measures an integral 142px.
     const getContext = jest
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
       .mockReturnValue({
         measureText: (text: string) =>
-          text === "second"
+          text === 'second'
             ? {
                 width: 142,
                 actualBoundingBoxLeft: 0,
@@ -427,7 +427,7 @@ describe("category label width reservation", () => {
         transformed.echartOptions.series as Array<{
           markLine?: { label?: { show?: boolean; width?: number } };
         }>
-      ).find((series) => series.markLine?.label?.show);
+      ).find(series => series.markLine?.label?.show);
       const labelWidth = categoryLabelSeries?.markLine?.label?.width ?? 0;
 
       expect(labelWidth - 1).toBeGreaterThanOrEqual(142);
@@ -436,9 +436,9 @@ describe("category label width reservation", () => {
     }
   });
 
-  test("measures label width using the exact font the label is rendered in", () => {
-    let capturedFont = "";
-    const getContext = jest.spyOn(HTMLCanvasElement.prototype, "getContext");
+  test('measures label width using the exact font the label is rendered in', () => {
+    let capturedFont = '';
+    const getContext = jest.spyOn(HTMLCanvasElement.prototype, 'getContext');
     try {
       getContext.mockReturnValue({
         set font(value: string) {
@@ -472,7 +472,7 @@ describe("category label width reservation", () => {
             };
           };
         }>
-      ).find((series) => series.markLine?.label?.show);
+      ).find(series => series.markLine?.label?.show);
 
       // The rendered label must use the same font as the measurement, or the
       // reserved grid space can fall out of sync with the painted text again.
@@ -486,7 +486,7 @@ describe("category label width reservation", () => {
   });
 });
 
-describe("legend sorting", () => {
+describe('legend sorting', () => {
   const createChartProps = (overrides = {}) =>
     new ChartProps({
       ...chartPropsConfig,
@@ -496,31 +496,31 @@ describe("legend sorting", () => {
       },
     });
 
-  test("preserves original data order when no sort specified", () => {
+  test('preserves original data order when no sort specified', () => {
     const props = createChartProps({ legendSort: null });
     const result = transformProps(props as EchartsGanttChartProps);
 
     const legendData = (result.echartOptions.legend as any).data;
-    expect(legendData).toEqual(["series value 1", "series value 2"]);
+    expect(legendData).toEqual(['series value 1', 'series value 2']);
   });
 
   test('sorts alphabetically ascending when legendSort is "asc"', () => {
-    const props = createChartProps({ legendSort: "asc" });
+    const props = createChartProps({ legendSort: 'asc' });
     const result = transformProps(props as EchartsGanttChartProps);
 
     const legendData = (result.echartOptions.legend as any).data;
-    expect(legendData).toEqual(["series value 1", "series value 2"]);
+    expect(legendData).toEqual(['series value 1', 'series value 2']);
   });
 
   test('sorts alphabetically descending when legendSort is "desc"', () => {
-    const props = createChartProps({ legendSort: "desc" });
+    const props = createChartProps({ legendSort: 'desc' });
     const result = transformProps(props as EchartsGanttChartProps);
 
     const legendData = (result.echartOptions.legend as any).data;
-    expect(legendData).toEqual(["series value 2", "series value 1"]);
+    expect(legendData).toEqual(['series value 2', 'series value 1']);
   });
 
-  test("honors an explicit List selection for plain legends with an overlong legend item", () => {
+  test('honors an explicit List selection for plain legends with an overlong legend item', () => {
     const props = new ChartProps({
       ...chartPropsConfig,
       width: 320,
@@ -534,25 +534,25 @@ describe("legend sorting", () => {
             {
               startTime: Date.UTC(2025, 1, 1, 13, 0, 0),
               endTime: Date.UTC(2025, 1, 1, 14, 0, 0),
-              "Y Axis": "first",
-              tooltip_column: "tooltip value 1",
+              'Y Axis': 'first',
+              tooltip_column: 'tooltip value 1',
               series:
-                "This is a ridiculously long legend label that stays a plain List",
+                'This is a ridiculously long legend label that stays a plain List',
             },
             {
               startTime: Date.UTC(2025, 1, 1, 18, 0, 0),
               endTime: Date.UTC(2025, 1, 1, 20, 0, 0),
-              "Y Axis": "second",
-              tooltip_column: "tooltip value 2",
-              series: "short label",
+              'Y Axis': 'second',
+              tooltip_column: 'tooltip value 2',
+              series: 'short label',
             },
           ],
           colnames: [
-            "startTime",
-            "endTime",
-            "Y Axis",
-            "tooltip_column",
-            "series",
+            'startTime',
+            'endTime',
+            'Y Axis',
+            'tooltip_column',
+            'series',
           ],
         },
       ],
@@ -565,18 +565,18 @@ describe("legend sorting", () => {
     );
   });
 
-  test("keeps legend visibility driven by showLegend for single-series charts", () => {
+  test('keeps legend visibility driven by showLegend for single-series charts', () => {
     const props = new ChartProps({
       ...chartPropsConfig,
       queriesData: [
         {
           data: [queriesData[0].data[0]],
           colnames: [
-            "startTime",
-            "endTime",
-            "Y Axis",
-            "tooltip_column",
-            "series",
+            'startTime',
+            'endTime',
+            'Y Axis',
+            'tooltip_column',
+            'series',
           ],
         },
       ],
@@ -588,18 +588,18 @@ describe("legend sorting", () => {
   });
 });
 
-test("reserves grid room for category names so they are not clipped (#38844)", () => {
+test('reserves grid room for category names so they are not clipped (#38844)', () => {
   // The names are drawn as markLine labels, which `grid.containLabel` ignores.
-  const longCategory = "A very long category name that would be clipped";
+  const longCategory = 'A very long category name that would be clipped';
   const props = new ChartProps({
     ...chartPropsConfig,
     width: 800,
     queriesData: [
       {
         ...queriesData[0],
-        data: queriesData[0].data.map((datum) => ({
+        data: queriesData[0].data.map(datum => ({
           ...datum,
-          "Y Axis": longCategory,
+          'Y Axis': longCategory,
         })),
       },
     ],
@@ -608,7 +608,7 @@ test("reserves grid room for category names so they are not clipped (#38844)", (
   const result = transformProps(props as EchartsGanttChartProps);
   const grid = result.echartOptions.grid as { left: number };
   const categoryMarkLine = (result.echartOptions.series as any[]).find(
-    (series) => series.markLine?.label?.formatter === "{b}",
+    series => series.markLine?.label?.formatter === '{b}',
   );
 
   const baseline = transformProps(
@@ -618,9 +618,9 @@ test("reserves grid room for category names so they are not clipped (#38844)", (
       queriesData: [
         {
           ...queriesData[0],
-          data: queriesData[0].data.map((datum) => ({
+          data: queriesData[0].data.map(datum => ({
             ...datum,
-            "Y Axis": "a",
+            'Y Axis': 'a',
           })),
         },
       ],
@@ -632,7 +632,7 @@ test("reserves grid room for category names so they are not clipped (#38844)", (
     (baseline.echartOptions.grid as { left: number }).left,
   );
   // and the label truncates instead of overflowing whatever was reserved
-  expect(categoryMarkLine.markLine.label.overflow).toBe("truncate");
+  expect(categoryMarkLine.markLine.label.overflow).toBe('truncate');
   expect(categoryMarkLine.markLine.label.width).toBeGreaterThan(0);
   expect(categoryMarkLine.markLine.label.width).toBeLessThanOrEqual(800 * 0.25);
   // the label must render at the font size used for measurement above,

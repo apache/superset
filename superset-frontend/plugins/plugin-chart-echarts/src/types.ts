@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject, Ref } from "react";
+import { RefObject, Ref } from 'react';
 
 import {
   ChartDataResponseResult,
@@ -31,11 +31,11 @@ import {
   ChartPlugin,
   SqlaFormData,
   ChartMetadata,
-} from "@superset-ui/core";
-import type { EChartsCoreOption, EChartsType } from "echarts/core";
-import type { TooltipMarker } from "echarts/types/src/util/format";
-import type { ECElementEvent } from "echarts/types/src/util/types";
-import { StackControlsValue } from "./constants";
+} from '@superset-ui/core';
+import type { EChartsCoreOption, EChartsType } from 'echarts/core';
+import type { TooltipMarker } from 'echarts/types/src/util/format';
+import type { ECElementEvent } from 'echarts/types/src/util/types';
+import { StackControlsValue } from './constants';
 
 export type EchartsStylesProps = {
   height: number;
@@ -65,10 +65,10 @@ export interface EchartsHandler {
 }
 
 export enum ForecastSeriesEnum {
-  Observation = "",
-  ForecastTrend = "__yhat",
-  ForecastUpper = "__yhat_upper",
-  ForecastLower = "__yhat_lower",
+  Observation = '',
+  ForecastTrend = '__yhat',
+  ForecastUpper = '__yhat_upper',
+  ForecastLower = '__yhat_lower',
 }
 
 export type ForecastSeriesContext = {
@@ -77,15 +77,15 @@ export type ForecastSeriesContext = {
 };
 
 export enum LegendOrientation {
-  Top = "top",
-  Bottom = "bottom",
-  Left = "left",
-  Right = "right",
+  Top = 'top',
+  Bottom = 'bottom',
+  Left = 'left',
+  Right = 'right',
 }
 
 export enum LegendType {
-  Scroll = "scroll",
-  Plain = "plain",
+  Scroll = 'scroll',
+  Plain = 'plain',
 }
 
 export type ForecastValue = {
@@ -102,7 +102,7 @@ export type LegendFormData = {
   legendOrientation: LegendOrientation;
   legendType: LegendType;
   showLegend: boolean;
-  legendSort: "asc" | "desc" | null;
+  legendSort: 'asc' | 'desc' | null;
   showSelectorLegend: boolean;
 };
 
@@ -115,19 +115,19 @@ export type QueryEventHandlers = {
 }[];
 
 export enum LabelPositionEnum {
-  Top = "top",
-  Left = "left",
-  Right = "right",
-  Bottom = "bottom",
-  Inside = "inside",
-  InsideLeft = "insideLeft",
-  InsideRight = "insideRight",
-  InsideTop = "insideTop",
-  InsideBottom = "insideBottom",
-  InsideTopLeft = "insideTopLeft",
-  InsideBottomLeft = "insideBottomLeft",
-  InsideTopRight = "insideTopRight",
-  InsideBottomRight = "insideBottomRight",
+  Top = 'top',
+  Left = 'left',
+  Right = 'right',
+  Bottom = 'bottom',
+  Inside = 'inside',
+  InsideLeft = 'insideLeft',
+  InsideRight = 'insideRight',
+  InsideTop = 'insideTop',
+  InsideBottom = 'insideBottom',
+  InsideTopLeft = 'insideTopLeft',
+  InsideBottomLeft = 'insideBottomLeft',
+  InsideTopRight = 'insideTopRight',
+  InsideBottomRight = 'insideBottomRight',
 }
 
 export interface BaseChartProps<T extends PlainObject> extends ChartProps<T> {
@@ -197,11 +197,11 @@ export class EchartsChartPlugin<
     super({
       ...restProps,
       metadata: new ChartMetadata({
-        parseMethod: "json",
+        parseMethod: 'json',
         ...metadata,
       }),
     });
   }
 }
 
-export * from "./Timeseries/types";
+export * from './Timeseries/types';

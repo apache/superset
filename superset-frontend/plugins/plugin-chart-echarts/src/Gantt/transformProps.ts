@@ -420,6 +420,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });

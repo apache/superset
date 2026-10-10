@@ -36,8 +36,17 @@ import { legendSection } from '../controls';
 const { labelType, numberFormat, showLabels, defaultTooltipLabel } =
   DEFAULT_FORM_DATA;
 
-const funnelLegendSection = [...legendSection];
-funnelLegendSection.splice(3, 1);
+// Funnel keeps legend type and drops orientation; the row is matched by name
+// so inserting another legend control does not remove the wrong one.
+const funnelLegendSection = legendSection.filter(row => {
+  const [control] = row;
+  return (
+    !control ||
+    typeof control !== 'object' ||
+    !('name' in control) ||
+    control.name !== 'legendOrientation'
+  );
+});
 
 const config: ControlPanelConfig = {
   controlPanelSections: [

@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { LegendPaddingType, SortSeriesType } from "@superset-ui/chart-controls";
+import { LegendPaddingType, SortSeriesType } from '@superset-ui/chart-controls';
 import {
   AxisType,
   DataRecord,
   getNumberFormatter,
   getTimeFormatter,
   TimeGranularity,
-} from "@superset-ui/core";
-import { supersetTheme as theme } from "@apache-superset/core/theme";
-import { GenericDataType } from "@apache-superset/core/common";
+} from '@superset-ui/core';
+import { supersetTheme as theme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   calculateLowerLogTick,
   dedupSeries,
@@ -51,19 +51,19 @@ import {
   sortAndFilterSeries,
   sortRows,
   getTimeCompareStackId,
-} from "../../src/utils/series";
+} from '../../src/utils/series';
 import {
   EchartsTimeseriesSeriesType,
   LegendOrientation,
   LegendType,
-} from "../../src/types";
-import { defaultLegendPadding } from "../../src/defaults";
+} from '../../src/types';
+import { defaultLegendPadding } from '../../src/defaults';
 import {
   NULL_STRING,
   ONE_DAY_MS,
   StackControlsValue,
   TIMEGRAIN_TO_TIMESTAMP,
-} from "../../src/constants";
+} from '../../src/constants';
 
 const {
   getHorizontalLegendAvailableWidth,
@@ -97,7 +97,7 @@ const {
     effectiveMargin?: number;
     effectiveType: LegendType;
   };
-} = require("../../src/utils/series");
+} = require('../../src/utils/series');
 
 const {
   resolveLegendLayout,
@@ -128,12 +128,12 @@ const {
       effectiveType: LegendType;
     };
   };
-} = require("../../src/utils/legendLayout");
+} = require('../../src/utils/legendLayout');
 
 const expectedThemeProps = {
   selector: [
-    { type: "all", title: "All" },
-    { type: "inverse", title: "Inv" },
+    { type: 'all', title: 'All' },
+    { type: 'inverse', title: 'Inv' },
   ],
   selected: {},
   selectorLabel: {
@@ -151,353 +151,353 @@ const expectedScrollThemeProps = {
 };
 
 const sortData: DataRecord[] = [
-  { my_x_axis: "abc", x: 1, y: 0, z: 2 },
-  { my_x_axis: "foo", x: null, y: 10, z: 5 },
+  { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+  { my_x_axis: 'foo', x: null, y: 10, z: 5 },
   { my_x_axis: null, x: 4, y: 3, z: 7 },
 ];
 
 const sortDataWithNumbers: DataRecord[] = [
   {
-    my_x_axis: "my_axis",
-    "9. September": 6,
+    my_x_axis: 'my_axis',
+    '9. September': 6,
     6: 1,
-    "11. November": 8,
+    '11. November': 8,
     8: 2,
-    "10. October": 1,
+    '10. October': 1,
     10: 4,
-    "3. March": 2,
-    "8. August": 6,
+    '3. March': 2,
+    '8. August': 6,
     2: 1,
     12: 3,
     9: 1,
-    "1. January": 1,
-    "4. April": 12,
-    "2. February": 9,
+    '1. January': 1,
+    '4. April': 12,
+    '2. February': 9,
     5: 4,
     3: 1,
     11: 2,
-    "12. December": 4,
+    '12. December': 4,
     1: 7,
-    "6. June": 1,
+    '6. June': 1,
     4: 5,
     7: 2,
     c: 0,
-    "7. July": 2,
+    '7. July': 2,
     d: 0,
-    "5. May": 4,
+    '5. May': 4,
     a: 1,
   },
 ];
 
 const totalStackedValues = [3, 15, 14];
 
-test("sortRows by name ascending", () => {
+test('sortRows by name ascending', () => {
   expect(
     sortRows(
       sortData,
       totalStackedValues,
-      "my_x_axis",
+      'my_x_axis',
       SortSeriesType.Name,
       true,
     ),
   ).toEqual([
-    { row: { my_x_axis: "abc", x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
-    { row: { my_x_axis: "foo", x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
   ]);
 });
 
-test("sortRows by name descending", () => {
+test('sortRows by name descending', () => {
   expect(
     sortRows(
       sortData,
       totalStackedValues,
-      "my_x_axis",
+      'my_x_axis',
       SortSeriesType.Name,
       false,
     ),
   ).toEqual([
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
-    { row: { my_x_axis: "foo", x: null, y: 10, z: 5 }, totalStackedValue: 15 },
-    { row: { my_x_axis: "abc", x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
   ]);
 });
 
-test("sortRows by sum ascending", () => {
+test('sortRows by sum ascending', () => {
   expect(
     sortRows(
       sortData,
       totalStackedValues,
-      "my_x_axis",
+      'my_x_axis',
       SortSeriesType.Sum,
       true,
     ),
   ).toEqual([
-    { row: { my_x_axis: "abc", x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
-    { row: { my_x_axis: "foo", x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
   ]);
 });
 
-test("sortRows by sum descending", () => {
+test('sortRows by sum descending', () => {
   expect(
     sortRows(
       sortData,
       totalStackedValues,
-      "my_x_axis",
+      'my_x_axis',
       SortSeriesType.Sum,
       false,
     ),
   ).toEqual([
-    { row: { my_x_axis: "foo", x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
-    { row: { my_x_axis: "abc", x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
   ]);
 });
 
-test("sortRows by avg ascending", () => {
+test('sortRows by avg ascending', () => {
   expect(
     sortRows(
       sortData,
       totalStackedValues,
-      "my_x_axis",
+      'my_x_axis',
       SortSeriesType.Avg,
       true,
     ),
   ).toEqual([
-    { row: { my_x_axis: "abc", x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
-    { row: { my_x_axis: "foo", x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
   ]);
 });
 
-test("sortRows by avg descending", () => {
+test('sortRows by avg descending', () => {
   expect(
     sortRows(
       sortData,
       totalStackedValues,
-      "my_x_axis",
+      'my_x_axis',
       SortSeriesType.Avg,
       false,
     ),
   ).toEqual([
-    { row: { my_x_axis: "foo", x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
-    { row: { my_x_axis: "abc", x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
   ]);
 });
 
-test("sortRows by min ascending", () => {
+test('sortRows by min ascending', () => {
   expect(
     sortRows(
       sortData,
       totalStackedValues,
-      "my_x_axis",
+      'my_x_axis',
       SortSeriesType.Min,
       true,
     ),
   ).toEqual([
-    { row: { my_x_axis: "abc", x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
-    { row: { my_x_axis: "foo", x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
   ]);
 });
 
-test("sortRows by min descending", () => {
+test('sortRows by min descending', () => {
   expect(
     sortRows(
       sortData,
       totalStackedValues,
-      "my_x_axis",
+      'my_x_axis',
       SortSeriesType.Min,
       false,
     ),
   ).toEqual([
-    { row: { my_x_axis: "foo", x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
-    { row: { my_x_axis: "abc", x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
   ]);
 });
 
-test("sortRows by max ascending", () => {
+test('sortRows by max ascending', () => {
   expect(
     sortRows(
       sortData,
       totalStackedValues,
-      "my_x_axis",
+      'my_x_axis',
       SortSeriesType.Max,
       true,
     ),
   ).toEqual([
-    { row: { my_x_axis: "abc", x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
-    { row: { my_x_axis: "foo", x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
   ]);
 });
 
-test("sortRows by max descending", () => {
+test('sortRows by max descending', () => {
   expect(
     sortRows(
       sortData,
       totalStackedValues,
-      "my_x_axis",
+      'my_x_axis',
       SortSeriesType.Max,
       false,
     ),
   ).toEqual([
-    { row: { my_x_axis: "foo", x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
     { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
-    { row: { my_x_axis: "abc", x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
   ]);
 });
 
-test("sortAndFilterSeries by min ascending", () => {
+test('sortAndFilterSeries by min ascending', () => {
   expect(
-    sortAndFilterSeries(sortData, "my_x_axis", [], SortSeriesType.Min, true),
-  ).toEqual(["y", "x", "z"]);
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Min, true),
+  ).toEqual(['y', 'x', 'z']);
 });
 
-test("sortAndFilterSeries by min descending", () => {
+test('sortAndFilterSeries by min descending', () => {
   expect(
-    sortAndFilterSeries(sortData, "my_x_axis", [], SortSeriesType.Min, false),
-  ).toEqual(["z", "x", "y"]);
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Min, false),
+  ).toEqual(['z', 'x', 'y']);
 });
 
-test("sortAndFilterSeries by max ascending", () => {
+test('sortAndFilterSeries by max ascending', () => {
   expect(
-    sortAndFilterSeries(sortData, "my_x_axis", [], SortSeriesType.Max, true),
-  ).toEqual(["x", "z", "y"]);
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Max, true),
+  ).toEqual(['x', 'z', 'y']);
 });
 
-test("sortAndFilterSeries by max descending", () => {
+test('sortAndFilterSeries by max descending', () => {
   expect(
-    sortAndFilterSeries(sortData, "my_x_axis", [], SortSeriesType.Max, false),
-  ).toEqual(["y", "z", "x"]);
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Max, false),
+  ).toEqual(['y', 'z', 'x']);
 });
 
-test("sortAndFilterSeries by avg ascending", () => {
+test('sortAndFilterSeries by avg ascending', () => {
   expect(
-    sortAndFilterSeries(sortData, "my_x_axis", [], SortSeriesType.Avg, true),
-  ).toEqual(["x", "y", "z"]);
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Avg, true),
+  ).toEqual(['x', 'y', 'z']);
 });
 
-test("sortAndFilterSeries by avg descending", () => {
+test('sortAndFilterSeries by avg descending', () => {
   expect(
-    sortAndFilterSeries(sortData, "my_x_axis", [], SortSeriesType.Avg, false),
-  ).toEqual(["z", "y", "x"]);
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Avg, false),
+  ).toEqual(['z', 'y', 'x']);
 });
 
-test("sortAndFilterSeries by sum ascending", () => {
+test('sortAndFilterSeries by sum ascending', () => {
   expect(
-    sortAndFilterSeries(sortData, "my_x_axis", [], SortSeriesType.Sum, true),
-  ).toEqual(["x", "y", "z"]);
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Sum, true),
+  ).toEqual(['x', 'y', 'z']);
 });
 
-test("sortAndFilterSeries by sum descending", () => {
+test('sortAndFilterSeries by sum descending', () => {
   expect(
-    sortAndFilterSeries(sortData, "my_x_axis", [], SortSeriesType.Sum, false),
-  ).toEqual(["z", "y", "x"]);
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Sum, false),
+  ).toEqual(['z', 'y', 'x']);
 });
 
-test("sortAndFilterSeries by name ascending", () => {
+test('sortAndFilterSeries by name ascending', () => {
   expect(
-    sortAndFilterSeries(sortData, "my_x_axis", [], SortSeriesType.Name, true),
-  ).toEqual(["x", "y", "z"]);
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Name, true),
+  ).toEqual(['x', 'y', 'z']);
 });
 
-test("sortAndFilterSeries by name descending", () => {
+test('sortAndFilterSeries by name descending', () => {
   expect(
-    sortAndFilterSeries(sortData, "my_x_axis", [], SortSeriesType.Name, false),
-  ).toEqual(["z", "y", "x"]);
+    sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Name, false),
+  ).toEqual(['z', 'y', 'x']);
 });
-test("sortAndFilterSeries by name with numbers asc", () => {
+test('sortAndFilterSeries by name with numbers asc', () => {
   expect(
     sortAndFilterSeries(
       sortDataWithNumbers,
-      "my_x_axis",
+      'my_x_axis',
       [],
       SortSeriesType.Name,
       true,
     ),
   ).toEqual([
-    "1",
-    "1. January",
-    "2",
-    "2. February",
-    "3",
-    "3. March",
-    "4",
-    "4. April",
-    "5",
-    "5. May",
-    "6",
-    "6. June",
-    "7",
-    "7. July",
-    "8",
-    "8. August",
-    "9",
-    "9. September",
-    "10",
-    "10. October",
-    "11",
-    "11. November",
-    "12",
-    "12. December",
-    "a",
-    "c",
-    "d",
+    '1',
+    '1. January',
+    '2',
+    '2. February',
+    '3',
+    '3. March',
+    '4',
+    '4. April',
+    '5',
+    '5. May',
+    '6',
+    '6. June',
+    '7',
+    '7. July',
+    '8',
+    '8. August',
+    '9',
+    '9. September',
+    '10',
+    '10. October',
+    '11',
+    '11. November',
+    '12',
+    '12. December',
+    'a',
+    'c',
+    'd',
   ]);
 });
-test("sortAndFilterSeries by name with numbers desc", () => {
+test('sortAndFilterSeries by name with numbers desc', () => {
   expect(
     sortAndFilterSeries(
       sortDataWithNumbers,
-      "my_x_axis",
+      'my_x_axis',
       [],
       SortSeriesType.Name,
       false,
     ),
   ).toEqual([
-    "d",
-    "c",
-    "a",
-    "12. December",
-    "12",
-    "11. November",
-    "11",
-    "10. October",
-    "10",
-    "9. September",
-    "9",
-    "8. August",
-    "8",
-    "7. July",
-    "7",
-    "6. June",
-    "6",
-    "5. May",
-    "5",
-    "4. April",
-    "4",
-    "3. March",
-    "3",
-    "2. February",
-    "2",
-    "1. January",
-    "1",
+    'd',
+    'c',
+    'a',
+    '12. December',
+    '12',
+    '11. November',
+    '11',
+    '10. October',
+    '10',
+    '9. September',
+    '9',
+    '8. August',
+    '8',
+    '7. July',
+    '7',
+    '6. June',
+    '6',
+    '5. May',
+    '5',
+    '4. April',
+    '4',
+    '3. March',
+    '3',
+    '2. February',
+    '2',
+    '1. January',
+    '1',
   ]);
 });
 
-test("extractDataTotalValues excludes extraMetricLabels from the stacked total (#42701)", () => {
+test('extractDataTotalValues excludes extraMetricLabels from the stacked total (#42701)', () => {
   const data: DataRecord[] = [
-    { category: "1-3d", A: 32, B: 0, Sort: 2 },
-    { category: "4-6d", A: 10, B: 5, Sort: 1 },
+    { category: '1-3d', A: 32, B: 0, Sort: 2 },
+    { category: '4-6d', A: 10, B: 5, Sort: 1 },
   ];
   const withoutExclusion = extractDataTotalValues(data, {
     stack: true,
     percentageThreshold: 0,
-    xAxisCol: "category",
+    xAxisCol: 'category',
   });
   // Reproduces the bug: the sort-only metric leaks into the total.
   expect(withoutExclusion.totalStackedValues).toEqual([34, 16]);
@@ -505,39 +505,39 @@ test("extractDataTotalValues excludes extraMetricLabels from the stacked total (
   const withExclusion = extractDataTotalValues(data, {
     stack: true,
     percentageThreshold: 0,
-    xAxisCol: "category",
-    extraMetricLabels: ["Sort"],
+    xAxisCol: 'category',
+    extraMetricLabels: ['Sort'],
   });
   expect(withExclusion.totalStackedValues).toEqual([32, 15]);
 });
 
-test("extractDataTotalValues still respects legendState alongside extraMetricLabels", () => {
-  const data: DataRecord[] = [{ category: "1-3d", A: 32, B: 8, Sort: 2 }];
+test('extractDataTotalValues still respects legendState alongside extraMetricLabels', () => {
+  const data: DataRecord[] = [{ category: '1-3d', A: 32, B: 8, Sort: 2 }];
   const result = extractDataTotalValues(data, {
     stack: true,
     percentageThreshold: 0,
-    xAxisCol: "category",
-    extraMetricLabels: ["Sort"],
+    xAxisCol: 'category',
+    extraMetricLabels: ['Sort'],
     legendState: { A: true, B: false },
   });
   expect(result.totalStackedValues).toEqual([32]);
 });
 
-describe("extractSeries", () => {
-  test("should generate a valid ECharts timeseries series object", () => {
+describe('extractSeries', () => {
+  test('should generate a valid ECharts timeseries series object', () => {
     const data = [
       {
-        __timestamp: "2000-01-01",
+        __timestamp: '2000-01-01',
         Hulk: null,
         abc: 2,
       },
       {
-        __timestamp: "2000-02-01",
+        __timestamp: '2000-02-01',
         Hulk: 2,
         abc: 10,
       },
       {
-        __timestamp: "2000-03-01",
+        __timestamp: '2000-03-01',
         Hulk: 1,
         abc: 5,
       },
@@ -546,21 +546,21 @@ describe("extractSeries", () => {
     expect(extractSeries(data, { totalStackedValues })).toEqual([
       [
         {
-          id: "Hulk",
-          name: "Hulk",
+          id: 'Hulk',
+          name: 'Hulk',
           data: [
-            ["2000-01-01", null],
-            ["2000-02-01", 2],
-            ["2000-03-01", 1],
+            ['2000-01-01', null],
+            ['2000-02-01', 2],
+            ['2000-03-01', 1],
           ],
         },
         {
-          id: "abc",
-          name: "abc",
+          id: 'abc',
+          name: 'abc',
           data: [
-            ["2000-01-01", 2],
-            ["2000-02-01", 10],
-            ["2000-03-01", 5],
+            ['2000-01-01', 2],
+            ['2000-02-01', 10],
+            ['2000-03-01', 5],
           ],
         },
       ],
@@ -575,11 +575,11 @@ describe("extractSeries", () => {
   // In "Expand" (100%/contribution) stacking mode, the raw datum value is
   // divided by the row's total, which throws if the datum is still a
   // BigInt at that point even though the total itself is a Number.
-  test("normalizes a BigInt datum value before dividing in Expand stack mode", () => {
+  test('normalizes a BigInt datum value before dividing in Expand stack mode', () => {
     const data = [
       {
-        __timestamp: "2000-01-01",
-        metric_a: BigInt("9007199254740993"),
+        __timestamp: '2000-01-01',
+        metric_a: BigInt('9007199254740993'),
         metric_b: 10,
       },
     ];
@@ -596,7 +596,7 @@ describe("extractSeries", () => {
       totalStackedValues,
       stack: StackControlsValue.Expand,
     });
-    const metricA = series.find((s) => s.id === "metric_a");
+    const metricA = series.find(s => s.id === 'metric_a');
     const expandedValue = (
       metricA?.data as [string, number][] | undefined
     )?.[0]?.[1];
@@ -608,14 +608,14 @@ describe("extractSeries", () => {
   // row's metric value was parsed as BigInt and another row's value for
   // the same series is a Number, summing them throws before extractSeries
   // ever reaches the Expand-mode conversion.
-  test("sorts series by sum without throwing when rows mix BigInt and Number values for the same series", () => {
+  test('sorts series by sum without throwing when rows mix BigInt and Number values for the same series', () => {
     const data = [
       {
-        __timestamp: "2000-01-01",
-        a: BigInt("9007199254740993"),
+        __timestamp: '2000-01-01',
+        a: BigInt('9007199254740993'),
       },
       {
-        __timestamp: "2000-02-01",
+        __timestamp: '2000-02-01',
         a: 5,
       },
     ];
@@ -629,17 +629,17 @@ describe("extractSeries", () => {
     });
     expect(series).toEqual([
       {
-        id: "a",
-        name: "a",
+        id: 'a',
+        name: 'a',
         data: [
-          ["2000-01-01", 9007199254740992],
-          ["2000-02-01", 5],
+          ['2000-01-01', 9007199254740992],
+          ['2000-02-01', 5],
         ],
       },
     ]);
   });
 
-  test("should remove rows that have a null x-value", () => {
+  test('should remove rows that have a null x-value', () => {
     const data = [
       {
         x: 1,
@@ -661,19 +661,19 @@ describe("extractSeries", () => {
     expect(
       extractSeries(data, {
         totalStackedValues,
-        xAxis: "x",
+        xAxis: 'x',
         removeNulls: true,
       }),
     ).toEqual([
       [
         {
-          id: "Hulk",
-          name: "Hulk",
+          id: 'Hulk',
+          name: 'Hulk',
           data: [[2, 1]],
         },
         {
-          id: "abc",
-          name: "abc",
+          id: 'abc',
+          name: 'abc',
           data: [
             [1, 2],
             [2, 5],
@@ -685,10 +685,10 @@ describe("extractSeries", () => {
     ]);
   });
 
-  test("should convert NULL x-values to NULL_STRING for categorical axis", () => {
+  test('should convert NULL x-values to NULL_STRING for categorical axis', () => {
     const data = [
       {
-        browser: "Firefox",
+        browser: 'Firefox',
         count: 5,
       },
       {
@@ -696,24 +696,24 @@ describe("extractSeries", () => {
         count: 10,
       },
       {
-        browser: "Chrome",
+        browser: 'Chrome',
         count: 8,
       },
     ];
     expect(
       extractSeries(data, {
-        xAxis: "browser",
+        xAxis: 'browser',
         xAxisType: AxisType.Category,
       }),
     ).toEqual([
       [
         {
-          id: "count",
-          name: "count",
+          id: 'count',
+          name: 'count',
           data: [
-            ["Firefox", 5],
+            ['Firefox', 5],
             [NULL_STRING, 10],
-            ["Chrome", 8],
+            ['Chrome', 8],
           ],
         },
       ],
@@ -722,46 +722,46 @@ describe("extractSeries", () => {
     ]);
   });
 
-  test("should do missing value imputation", () => {
+  test('should do missing value imputation', () => {
     const data = [
       {
-        __timestamp: "2000-01-01",
+        __timestamp: '2000-01-01',
         abc: null,
       },
       {
-        __timestamp: "2000-02-01",
+        __timestamp: '2000-02-01',
         abc: null,
       },
       {
-        __timestamp: "2000-03-01",
+        __timestamp: '2000-03-01',
         abc: 1,
       },
       {
-        __timestamp: "2000-04-01",
+        __timestamp: '2000-04-01',
         abc: null,
       },
       {
-        __timestamp: "2000-05-01",
+        __timestamp: '2000-05-01',
         abc: null,
       },
       {
-        __timestamp: "2000-06-01",
+        __timestamp: '2000-06-01',
         abc: null,
       },
       {
-        __timestamp: "2000-07-01",
+        __timestamp: '2000-07-01',
         abc: 2,
       },
       {
-        __timestamp: "2000-08-01",
+        __timestamp: '2000-08-01',
         abc: 3,
       },
       {
-        __timestamp: "2000-09-01",
+        __timestamp: '2000-09-01',
         abc: null,
       },
       {
-        __timestamp: "2000-10-01",
+        __timestamp: '2000-10-01',
         abc: null,
       },
     ];
@@ -771,19 +771,19 @@ describe("extractSeries", () => {
     ).toEqual([
       [
         {
-          id: "abc",
-          name: "abc",
+          id: 'abc',
+          name: 'abc',
           data: [
-            ["2000-01-01", null],
-            ["2000-02-01", 0],
-            ["2000-03-01", 1],
-            ["2000-04-01", 0],
-            ["2000-05-01", null],
-            ["2000-06-01", 0],
-            ["2000-07-01", 2],
-            ["2000-08-01", 3],
-            ["2000-09-01", 0],
-            ["2000-10-01", null],
+            ['2000-01-01', null],
+            ['2000-02-01', 0],
+            ['2000-03-01', 1],
+            ['2000-04-01', 0],
+            ['2000-05-01', null],
+            ['2000-06-01', 0],
+            ['2000-07-01', 2],
+            ['2000-08-01', 3],
+            ['2000-09-01', 0],
+            ['2000-10-01', null],
           ],
         },
       ],
@@ -793,47 +793,47 @@ describe("extractSeries", () => {
   });
 });
 
-describe("extractGroupbyLabel", () => {
-  test("should join together multiple groupby labels", () => {
+describe('extractGroupbyLabel', () => {
+  test('should join together multiple groupby labels', () => {
     expect(
       extractGroupbyLabel({
-        datum: { a: "abc", b: "qwerty" },
-        groupby: ["a", "b"],
+        datum: { a: 'abc', b: 'qwerty' },
+        groupby: ['a', 'b'],
       }),
-    ).toEqual("abc, qwerty");
+    ).toEqual('abc, qwerty');
   });
 
-  test("should handle a single groupby", () => {
+  test('should handle a single groupby', () => {
     expect(
-      extractGroupbyLabel({ datum: { xyz: "qqq" }, groupby: ["xyz"] }),
-    ).toEqual("qqq");
+      extractGroupbyLabel({ datum: { xyz: 'qqq' }, groupby: ['xyz'] }),
+    ).toEqual('qqq');
   });
 
-  test("should handle mixed types", () => {
+  test('should handle mixed types', () => {
     expect(
       extractGroupbyLabel({
-        datum: { strcol: "abc", intcol: 123, floatcol: 0.123, boolcol: true },
-        groupby: ["strcol", "intcol", "floatcol", "boolcol"],
+        datum: { strcol: 'abc', intcol: 123, floatcol: 0.123, boolcol: true },
+        groupby: ['strcol', 'intcol', 'floatcol', 'boolcol'],
       }),
-    ).toEqual("abc, 123, 0.123, true");
+    ).toEqual('abc, 123, 0.123, true');
   });
 
-  test("should handle null and undefined groupby", () => {
+  test('should handle null and undefined groupby', () => {
     expect(
       extractGroupbyLabel({
-        datum: { strcol: "abc", intcol: 123, floatcol: 0.123, boolcol: true },
+        datum: { strcol: 'abc', intcol: 123, floatcol: 0.123, boolcol: true },
         groupby: null,
       }),
-    ).toEqual("");
-    expect(extractGroupbyLabel({})).toEqual("");
+    ).toEqual('');
+    expect(extractGroupbyLabel({})).toEqual('');
   });
 });
 
-describe("extractDataTotalValues", () => {
-  test("sums numeric metric values across a stacked datum", () => {
+describe('extractDataTotalValues', () => {
+  test('sums numeric metric values across a stacked datum', () => {
     const { totalStackedValues, thresholdValues } = extractDataTotalValues(
-      [{ __timestamp: "2000-01-01", metric_a: 10, metric_b: 20 }],
-      { stack: true, percentageThreshold: 50, xAxisCol: "__timestamp" },
+      [{ __timestamp: '2000-01-01', metric_a: 10, metric_b: 20 }],
+      { stack: true, percentageThreshold: 50, xAxisCol: '__timestamp' },
     );
     expect(totalStackedValues).toEqual([30]);
     expect(thresholdValues).toEqual([15]);
@@ -844,12 +844,12 @@ describe("extractDataTotalValues", () => {
   // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
   // Summing a BigInt datum value against the Number accumulator here
   // throws instead of producing a stacked total.
-  test("sums a stacked datum containing a BigInt metric value without throwing", () => {
+  test('sums a stacked datum containing a BigInt metric value without throwing', () => {
     const data: DataRecord[] = [
       {
-        __timestamp: "2000-01-01",
+        __timestamp: '2000-01-01',
         metric_a: 10,
-        metric_b: BigInt("9007199254740993"),
+        metric_b: BigInt('9007199254740993'),
       },
     ];
     const { totalStackedValues, thresholdValues } = extractDataTotalValues(
@@ -857,7 +857,7 @@ describe("extractDataTotalValues", () => {
       {
         stack: true,
         percentageThreshold: 50,
-        xAxisCol: "__timestamp",
+        xAxisCol: '__timestamp',
       },
     );
     // BigInt('9007199254740993') exceeds Number.MAX_SAFE_INTEGER, so
@@ -869,57 +869,57 @@ describe("extractDataTotalValues", () => {
   });
 });
 
-describe("extractShowValueIndexes", () => {
-  test("should return the latest index for stack", () => {
+describe('extractShowValueIndexes', () => {
+  test('should return the latest index for stack', () => {
     expect(
       extractShowValueIndexes(
         [
           {
-            id: "abc",
-            name: "abc",
+            id: 'abc',
+            name: 'abc',
             data: [
-              ["2000-01-01", null],
-              ["2000-02-01", 0],
-              ["2000-03-01", 1],
-              ["2000-04-01", 0],
-              ["2000-05-01", null],
-              ["2000-06-01", 0],
-              ["2000-07-01", 2],
-              ["2000-08-01", 3],
-              ["2000-09-01", null],
-              ["2000-10-01", null],
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', 1],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', 2],
+              ['2000-08-01', 3],
+              ['2000-09-01', null],
+              ['2000-10-01', null],
             ],
           },
           {
-            id: "def",
-            name: "def",
+            id: 'def',
+            name: 'def',
             data: [
-              ["2000-01-01", null],
-              ["2000-02-01", 0],
-              ["2000-03-01", null],
-              ["2000-04-01", 0],
-              ["2000-05-01", null],
-              ["2000-06-01", 0],
-              ["2000-07-01", 2],
-              ["2000-08-01", 3],
-              ["2000-09-01", null],
-              ["2000-10-01", 0],
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', null],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', 2],
+              ['2000-08-01', 3],
+              ['2000-09-01', null],
+              ['2000-10-01', 0],
             ],
           },
           {
-            id: "def",
-            name: "def",
+            id: 'def',
+            name: 'def',
             data: [
-              ["2000-01-01", null],
-              ["2000-02-01", null],
-              ["2000-03-01", null],
-              ["2000-04-01", null],
-              ["2000-05-01", null],
-              ["2000-06-01", 3],
-              ["2000-07-01", null],
-              ["2000-08-01", null],
-              ["2000-09-01", null],
-              ["2000-10-01", null],
+              ['2000-01-01', null],
+              ['2000-02-01', null],
+              ['2000-03-01', null],
+              ['2000-04-01', null],
+              ['2000-05-01', null],
+              ['2000-06-01', 3],
+              ['2000-07-01', null],
+              ['2000-08-01', null],
+              ['2000-09-01', null],
+              ['2000-10-01', null],
             ],
           },
         ],
@@ -930,56 +930,56 @@ describe("extractShowValueIndexes", () => {
     });
   });
 
-  test("should handle the negative numbers for total only", () => {
+  test('should handle the negative numbers for total only', () => {
     expect(
       extractShowValueIndexes(
         [
           {
-            id: "abc",
-            name: "abc",
+            id: 'abc',
+            name: 'abc',
             data: [
-              ["2000-01-01", null],
-              ["2000-02-01", 0],
-              ["2000-03-01", -1],
-              ["2000-04-01", 0],
-              ["2000-05-01", null],
-              ["2000-06-01", 0],
-              ["2000-07-01", -2],
-              ["2000-08-01", -3],
-              ["2000-09-01", null],
-              ["2000-10-01", null],
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', -1],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', -2],
+              ['2000-08-01', -3],
+              ['2000-09-01', null],
+              ['2000-10-01', null],
             ],
           },
           {
-            id: "def",
-            name: "def",
+            id: 'def',
+            name: 'def',
             data: [
-              ["2000-01-01", null],
-              ["2000-02-01", 0],
-              ["2000-03-01", null],
-              ["2000-04-01", 0],
-              ["2000-05-01", null],
-              ["2000-06-01", 0],
-              ["2000-07-01", 2],
-              ["2000-08-01", -3],
-              ["2000-09-01", null],
-              ["2000-10-01", 0],
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', null],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', 2],
+              ['2000-08-01', -3],
+              ['2000-09-01', null],
+              ['2000-10-01', 0],
             ],
           },
           {
-            id: "def",
-            name: "def",
+            id: 'def',
+            name: 'def',
             data: [
-              ["2000-01-01", null],
-              ["2000-02-01", 0],
-              ["2000-03-01", null],
-              ["2000-04-01", 1],
-              ["2000-05-01", null],
-              ["2000-06-01", 0],
-              ["2000-07-01", -2],
-              ["2000-08-01", 3],
-              ["2000-09-01", null],
-              ["2000-10-01", 0],
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', null],
+              ['2000-04-01', 1],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', -2],
+              ['2000-08-01', 3],
+              ['2000-09-01', null],
+              ['2000-10-01', 0],
             ],
           },
         ],
@@ -990,34 +990,34 @@ describe("extractShowValueIndexes", () => {
     });
   });
 
-  test("should track topmost series independently per stack group (stackDimension)", () => {
+  test('should track topmost series independently per stack group (stackDimension)', () => {
     // Simulates 2 stack groups: 'groupA' (series indices 0, 1) and 'groupB' (series index 2).
     // With onlyTotal, each group's topmost positive series should be flagged independently.
     expect(
       extractShowValueIndexes(
         [
           {
-            id: "A-cat1",
-            name: "A-cat1",
+            id: 'A-cat1',
+            name: 'A-cat1',
             data: [
-              ["Jan", 10],
-              ["Feb", 5],
+              ['Jan', 10],
+              ['Feb', 5],
             ],
           },
           {
-            id: "A-cat2",
-            name: "A-cat2",
+            id: 'A-cat2',
+            name: 'A-cat2',
             data: [
-              ["Jan", 20],
-              ["Feb", 15],
+              ['Jan', 20],
+              ['Feb', 15],
             ],
           },
           {
-            id: "B-cat1",
-            name: "B-cat1",
+            id: 'B-cat1',
+            name: 'B-cat1',
             data: [
-              ["Jan", 30],
-              ["Feb", 25],
+              ['Jan', 30],
+              ['Feb', 25],
             ],
           },
         ],
@@ -1025,7 +1025,7 @@ describe("extractShowValueIndexes", () => {
           stack: true,
           onlyTotal: true,
           isHorizontal: false,
-          seriesStackIds: ["groupA", "groupA", "groupB"],
+          seriesStackIds: ['groupA', 'groupA', 'groupB'],
         },
       ),
     ).toEqual({
@@ -1034,23 +1034,23 @@ describe("extractShowValueIndexes", () => {
     });
   });
 
-  test("should safely handle stack groups with prototype property names like __proto__ or constructor", () => {
+  test('should safely handle stack groups with prototype property names like __proto__ or constructor', () => {
     const result = extractShowValueIndexes(
       [
         {
-          id: "proto-series",
-          name: "proto-series",
+          id: 'proto-series',
+          name: 'proto-series',
           data: [
-            ["Jan", 10],
-            ["Feb", 20],
+            ['Jan', 10],
+            ['Feb', 20],
           ],
         },
         {
-          id: "ctor-series",
-          name: "ctor-series",
+          id: 'ctor-series',
+          name: 'ctor-series',
           data: [
-            ["Jan", 30],
-            ["Feb", 40],
+            ['Jan', 30],
+            ['Feb', 40],
           ],
         },
       ],
@@ -1058,78 +1058,78 @@ describe("extractShowValueIndexes", () => {
         stack: true,
         onlyTotal: true,
         isHorizontal: false,
-        seriesStackIds: ["__proto__", "constructor"],
+        seriesStackIds: ['__proto__', 'constructor'],
       },
     );
 
-    expect(Object.prototype.hasOwnProperty.call(result, "__proto__")).toBe(
+    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(
       true,
     );
-    expect(Object.prototype.hasOwnProperty.call(result, "constructor")).toBe(
+    expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(
       true,
     );
-    expect(Object.getOwnPropertyDescriptor(result, "__proto__")?.value).toEqual(
+    expect(Object.getOwnPropertyDescriptor(result, '__proto__')?.value).toEqual(
       [0, 0],
     );
-    expect(result["constructor"]).toEqual([1, 1]);
+    expect(result['constructor']).toEqual([1, 1]);
   });
 });
 
-describe("formatSeriesName", () => {
+describe('formatSeriesName', () => {
   const numberFormatter = getNumberFormatter();
   const timeFormatter = getTimeFormatter();
-  test("should handle missing values properly", () => {
-    expect(formatSeriesName(undefined)).toEqual("<NULL>");
-    expect(formatSeriesName(null)).toEqual("<NULL>");
+  test('should handle missing values properly', () => {
+    expect(formatSeriesName(undefined)).toEqual('<NULL>');
+    expect(formatSeriesName(null)).toEqual('<NULL>');
   });
 
-  test("should handle string values properly", () => {
-    expect(formatSeriesName("abc XYZ!")).toEqual("abc XYZ!");
+  test('should handle string values properly', () => {
+    expect(formatSeriesName('abc XYZ!')).toEqual('abc XYZ!');
   });
 
-  test("should handle boolean values properly", () => {
-    expect(formatSeriesName(true)).toEqual("true");
+  test('should handle boolean values properly', () => {
+    expect(formatSeriesName(true)).toEqual('true');
   });
 
-  test("should use default formatting for numeric values without formatter", () => {
-    expect(formatSeriesName(12345678.9)).toEqual("12345678.9");
+  test('should use default formatting for numeric values without formatter', () => {
+    expect(formatSeriesName(12345678.9)).toEqual('12345678.9');
   });
 
-  test("should use numberFormatter for numeric values when formatter is provided", () => {
-    expect(formatSeriesName(12345678.9, { numberFormatter })).toEqual("12.3M");
+  test('should use numberFormatter for numeric values when formatter is provided', () => {
+    expect(formatSeriesName(12345678.9, { numberFormatter })).toEqual('12.3M');
   });
 
-  test("should use default formatting for date values without formatter", () => {
-    expect(formatSeriesName(new Date("2020-09-11"))).toEqual(
-      "2020-09-11T00:00:00.000Z",
+  test('should use default formatting for date values without formatter', () => {
+    expect(formatSeriesName(new Date('2020-09-11'))).toEqual(
+      '2020-09-11T00:00:00.000Z',
     );
   });
 
-  test("should use timeFormatter for date values when formatter is provided", () => {
-    expect(formatSeriesName(new Date("2020-09-11"), { timeFormatter })).toEqual(
-      "2020-09-11 00:00:00",
+  test('should use timeFormatter for date values when formatter is provided', () => {
+    expect(formatSeriesName(new Date('2020-09-11'), { timeFormatter })).toEqual(
+      '2020-09-11 00:00:00',
     );
   });
 
-  test("should normalize non-UTC string based timestamp", () => {
-    const annualTimeFormatter = getTimeFormatter("%Y");
+  test('should normalize non-UTC string based timestamp', () => {
+    const annualTimeFormatter = getTimeFormatter('%Y');
     expect(
-      formatSeriesName("1995-01-01 00:00:00.000000", {
+      formatSeriesName('1995-01-01 00:00:00.000000', {
         timeFormatter: annualTimeFormatter,
         coltype: GenericDataType.Temporal,
       }),
-    ).toEqual("1995");
+    ).toEqual('1995');
   });
 });
 
-test("getLegendScrollDataIndex clamps saved scroll position to legend length", () => {
+test('getLegendScrollDataIndex clamps saved scroll position to legend length', () => {
   expect(getLegendScrollDataIndex(12, 5)).toBe(4);
   expect(getLegendScrollDataIndex(undefined, 3)).toBe(0);
   expect(getLegendScrollDataIndex(2, 0)).toBe(0);
 });
 
-describe("getLegendProps", () => {
-  test("should return the correct props for scroll type with top orientation without zoom", () => {
+describe('getLegendProps', () => {
+  test('should return the correct props for scroll type with top orientation without zoom', () => {
     expect(
       getLegendProps(
         LegendType.Scroll,
@@ -1143,13 +1143,13 @@ describe("getLegendProps", () => {
       show: true,
       top: 0,
       right: 0,
-      orient: "horizontal",
-      type: "scroll",
+      orient: 'horizontal',
+      type: 'scroll',
       ...expectedScrollThemeProps,
     });
   });
 
-  test("should return the correct props for scroll type with top orientation with zoom", () => {
+  test('should return the correct props for scroll type with top orientation with zoom', () => {
     expect(
       getLegendProps(
         LegendType.Scroll,
@@ -1163,8 +1163,8 @@ describe("getLegendProps", () => {
       show: true,
       top: 0,
       right: 90,
-      orient: "horizontal",
-      type: "scroll",
+      orient: 'horizontal',
+      type: 'scroll',
       ...expectedScrollThemeProps,
     });
   });
@@ -1173,7 +1173,7 @@ describe("getLegendProps", () => {
   // zoomable toolbox, whose dataZoom icons reach ~67px in from the chart's
   // right edge. Reserving less than that overlays the legend's All/Inv
   // selector buttons on the zoom controls.
-  test("should reserve enough width to keep the legend selector clear of the zoomable toolbox", () => {
+  test('should reserve enough width to keep the legend selector clear of the zoomable toolbox', () => {
     const { right } = getLegendProps(
       LegendType.Scroll,
       LegendOrientation.Top,
@@ -1188,7 +1188,7 @@ describe("getLegendProps", () => {
     );
   });
 
-  test("should return the correct props for plain type with left orientation", () => {
+  test('should return the correct props for plain type with left orientation', () => {
     expect(
       getLegendProps(
         LegendType.Plain,
@@ -1200,13 +1200,13 @@ describe("getLegendProps", () => {
     ).toEqual({
       show: true,
       left: 0,
-      orient: "vertical",
-      type: "plain",
+      orient: 'vertical',
+      type: 'plain',
       ...expectedThemeProps,
     });
   });
 
-  test("should return the correct props for plain type with right orientation without zoom", () => {
+  test('should return the correct props for plain type with right orientation without zoom', () => {
     expect(
       getLegendProps(
         LegendType.Plain,
@@ -1220,13 +1220,13 @@ describe("getLegendProps", () => {
       show: false,
       right: 0,
       top: 0,
-      orient: "vertical",
-      type: "plain",
+      orient: 'vertical',
+      type: 'plain',
       ...expectedThemeProps,
     });
   });
 
-  test("should return the correct props for plain type with right orientation with zoom", () => {
+  test('should return the correct props for plain type with right orientation with zoom', () => {
     expect(
       getLegendProps(
         LegendType.Plain,
@@ -1240,13 +1240,13 @@ describe("getLegendProps", () => {
       show: false,
       right: 0,
       top: 30,
-      orient: "vertical",
-      type: "plain",
+      orient: 'vertical',
+      type: 'plain',
       ...expectedThemeProps,
     });
   });
 
-  test("should return the correct props for plain type with bottom orientation", () => {
+  test('should return the correct props for plain type with bottom orientation', () => {
     expect(
       getLegendProps(
         LegendType.Plain,
@@ -1259,32 +1259,44 @@ describe("getLegendProps", () => {
       show: false,
       bottom: 0,
       right: 0,
-      orient: "horizontal",
-      type: "plain",
+      orient: 'horizontal',
+      type: 'plain',
       ...expectedThemeProps,
     });
   });
 
-  test("should return the correct props for plain type with top orientation", () => {
+  test('should return the correct props for plain type with top orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
     ).toEqual({
       show: false,
       top: 0,
       right: 0,
-      orient: "horizontal",
-      type: "plain",
+      orient: 'horizontal',
+      type: 'plain',
       ...expectedThemeProps,
     });
   });
+
+  test('hides All and Inv buttons when showSelectorLegend is false', () => {
+    expect(
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Top,
+        true,
+        theme,
+        false,
+      ).selector,
+    ).toBe(false);
+  });
 });
 
-test("getLegendLayoutResult keeps plain horizontal legends when they fit within two rows", () => {
+test('getLegendLayoutResult keeps plain horizontal legends when they fit within two rows', () => {
   expect(
     getLegendLayoutResult({
       chartHeight: 400,
       chartWidth: 800,
-      legendItems: ["Alpha", "Beta", "Gamma", "Delta"],
+      legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta'],
       legendMargin: null,
       orientation: LegendOrientation.Top,
       show: true,
@@ -1297,7 +1309,7 @@ test("getLegendLayoutResult keeps plain horizontal legends when they fit within 
   });
 });
 
-test("getLegendLayoutResult honors user-selected plain type for many horizontal legend items given ample width (#39540)", () => {
+test('getLegendLayoutResult honors user-selected plain type for many horizontal legend items given ample width (#39540)', () => {
   // Regression contract for issue #39540: a legend with enough items to be
   // scrollable must still honor a user-selected plain type when the chart is
   // wide enough, instead of being unconditionally forced to scroll.
@@ -1317,12 +1329,12 @@ test("getLegendLayoutResult honors user-selected plain type for many horizontal 
   expect(layout.effectiveMargin).toBe(20);
 });
 
-test("getLegendLayoutResult keeps user-selected plain type for bottom-oriented legends when space allows", () => {
+test('getLegendLayoutResult keeps user-selected plain type for bottom-oriented legends when space allows', () => {
   expect(
     getLegendLayoutResult({
       chartHeight: 400,
       chartWidth: 800,
-      legendItems: ["Alpha", "Beta", "Gamma", "Delta"],
+      legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta'],
       legendMargin: null,
       orientation: LegendOrientation.Bottom,
       show: true,
@@ -1335,12 +1347,12 @@ test("getLegendLayoutResult keeps user-selected plain type for bottom-oriented l
   });
 });
 
-test("getLegendLayoutResult passes a user-selected scroll type through untouched", () => {
+test('getLegendLayoutResult passes a user-selected scroll type through untouched', () => {
   expect(
     getLegendLayoutResult({
       chartHeight: 400,
       chartWidth: 800,
-      legendItems: ["Alpha", "Beta"],
+      legendItems: ['Alpha', 'Beta'],
       legendMargin: null,
       orientation: LegendOrientation.Top,
       show: true,
@@ -1352,14 +1364,14 @@ test("getLegendLayoutResult passes a user-selected scroll type through untouched
   });
 });
 
-test("getLegendLayoutResult adds extra margin for wrapped plain horizontal legends", () => {
+test('getLegendLayoutResult adds extra margin for wrapped plain horizontal legends', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
     chartWidth: 640,
     legendItems: [
-      "This is a long legend label",
-      "Another long legend label",
-      "Third long legend label",
+      'This is a long legend label',
+      'Another long legend label',
+      'Third long legend label',
     ],
     legendMargin: null,
     orientation: LegendOrientation.Top,
@@ -1376,14 +1388,14 @@ test("getLegendLayoutResult adds extra margin for wrapped plain horizontal legen
   );
 });
 
-test("getLegendLayoutResult keeps plain when horizontal plain legends exceed two rows", () => {
+test('getLegendLayoutResult keeps plain when horizontal plain legends exceed two rows', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
     chartWidth: 240,
     legendItems: [
-      "This is a long legend label",
-      "Another long legend label",
-      "Third long legend label",
+      'This is a long legend label',
+      'Another long legend label',
+      'Third long legend label',
     ],
     legendMargin: null,
     orientation: LegendOrientation.Top,
@@ -1398,7 +1410,7 @@ test("getLegendLayoutResult keeps plain when horizontal plain legends exceed two
   expect(layout.effectiveMargin).toBe(68);
 });
 
-test("getLegendLayoutResult bounds reserved margin for overflowing horizontal legends so the plot is not collapsed", () => {
+test('getLegendLayoutResult bounds reserved margin for overflowing horizontal legends so the plot is not collapsed', () => {
   const chartHeight = 200;
   const layout = getLegendLayoutResult({
     chartHeight,
@@ -1417,12 +1429,12 @@ test("getLegendLayoutResult bounds reserved margin for overflowing horizontal le
   expect(layout.effectiveMargin).toBe(80);
 });
 
-test("getLegendLayoutResult bounds reserved margin for long vertical legend labels so the plot is not collapsed", () => {
+test('getLegendLayoutResult bounds reserved margin for long vertical legend labels so the plot is not collapsed', () => {
   const chartWidth = 1000;
   const layout = getLegendLayoutResult({
     chartHeight: 400,
     chartWidth,
-    legendItems: ["A".repeat(200)],
+    legendItems: ['A'.repeat(200)],
     legendMargin: null,
     orientation: LegendOrientation.Left,
     show: true,
@@ -1435,12 +1447,12 @@ test("getLegendLayoutResult bounds reserved margin for long vertical legend labe
   expect(layout.effectiveMargin).toBe(400);
 });
 
-test("getLegendLayoutResult keeps plain when a single horizontal plain legend item exceeds available width", () => {
+test('getLegendLayoutResult keeps plain when a single horizontal plain legend item exceeds available width', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
     chartWidth: 260,
     legendItems: [
-      "This is a ridiculously long legend label that should not fit on one line",
+      'This is a ridiculously long legend label that should not fit on one line',
     ],
     legendMargin: null,
     orientation: LegendOrientation.Top,
@@ -1454,7 +1466,7 @@ test("getLegendLayoutResult keeps plain when a single horizontal plain legend it
   expect(layout.effectiveMargin).toBe(20);
 });
 
-test("getLegendLayoutResult keeps plain when reserved horizontal width reduces plain legend capacity", () => {
+test('getLegendLayoutResult keeps plain when reserved horizontal width reduces plain legend capacity', () => {
   const availableWidth = getHorizontalLegendAvailableWidth({
     chartWidth: 265,
     orientation: LegendOrientation.Top,
@@ -1466,7 +1478,7 @@ test("getLegendLayoutResult keeps plain when reserved horizontal width reduces p
     availableWidth,
     chartHeight: 400,
     chartWidth: 265,
-    legendItems: ["Alpha", "Beta", "Gamma"],
+    legendItems: ['Alpha', 'Beta', 'Gamma'],
     legendMargin: null,
     orientation: LegendOrientation.Top,
     show: true,
@@ -1479,11 +1491,11 @@ test("getLegendLayoutResult keeps plain when reserved horizontal width reduces p
   expect(layout.effectiveMargin).toBe(68);
 });
 
-test("getLegendLayoutResult keeps plain when horizontal legend selectors alone exceed available width", () => {
+test('getLegendLayoutResult keeps plain when horizontal legend selectors alone exceed available width', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
     chartWidth: 95,
-    legendItems: ["A"],
+    legendItems: ['A'],
     legendMargin: null,
     orientation: LegendOrientation.Top,
     show: true,
@@ -1496,12 +1508,12 @@ test("getLegendLayoutResult keeps plain when horizontal legend selectors alone e
   expect(layout.effectiveMargin).toBe(20);
 });
 
-test("getLegendLayoutResult keeps plain vertical legends when they fit within a single column", () => {
+test('getLegendLayoutResult keeps plain vertical legends when they fit within a single column', () => {
   expect(
     getLegendLayoutResult({
       chartHeight: 400,
       chartWidth: 800,
-      legendItems: ["Alpha", "Beta", "Gamma"],
+      legendItems: ['Alpha', 'Beta', 'Gamma'],
       legendMargin: null,
       orientation: LegendOrientation.Left,
       show: true,
@@ -1514,11 +1526,11 @@ test("getLegendLayoutResult keeps plain vertical legends when they fit within a 
   });
 });
 
-test("getLegendLayoutResult adds extra margin for wide vertical plain legends", () => {
+test('getLegendLayoutResult adds extra margin for wide vertical plain legends', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
     chartWidth: 800,
-    legendItems: ["This is a very long legend label"],
+    legendItems: ['This is a very long legend label'],
     legendMargin: null,
     orientation: LegendOrientation.Left,
     show: true,
@@ -1534,11 +1546,11 @@ test("getLegendLayoutResult adds extra margin for wide vertical plain legends", 
   );
 });
 
-test("getLegendLayoutResult keeps plain when vertical plain legends exceed one column", () => {
+test('getLegendLayoutResult keeps plain when vertical plain legends exceed one column', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 160,
     chartWidth: 800,
-    legendItems: ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"],
+    legendItems: ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon'],
     legendMargin: null,
     orientation: LegendOrientation.Left,
     show: true,
@@ -1552,11 +1564,11 @@ test("getLegendLayoutResult keeps plain when vertical plain legends exceed one c
   expect(layout.effectiveMargin).toBe(170);
 });
 
-test("getLegendLayoutResult keeps plain when vertical plain legend selectors exceed available width", () => {
+test('getLegendLayoutResult keeps plain when vertical plain legend selectors exceed available width', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
     chartWidth: 300,
-    legendItems: ["A", "B", "C"],
+    legendItems: ['A', 'B', 'C'],
     legendMargin: null,
     orientation: LegendOrientation.Left,
     show: true,
@@ -1570,7 +1582,7 @@ test("getLegendLayoutResult keeps plain when vertical plain legend selectors exc
   expect(layout.effectiveMargin).toBe(170);
 });
 
-test("getLegendLayoutResult honors an explicit List selection with many series", () => {
+test('getLegendLayoutResult honors an explicit List selection with many series', () => {
   const manyItems = Array.from({ length: 40 }, (_, i) => `Series ${i + 1}`);
 
   const horizontal = getLegendLayoutResult({
@@ -1598,11 +1610,11 @@ test("getLegendLayoutResult honors an explicit List selection with many series",
   expect(vertical.effectiveType).toBe(LegendType.Plain);
 });
 
-test("getLegendLayoutResult counts empty-string legend labels when estimating layout", () => {
+test('getLegendLayoutResult counts empty-string legend labels when estimating layout', () => {
   const layout = getLegendLayoutResult({
     chartHeight: 400,
     chartWidth: 116,
-    legendItems: ["", "A", "B", "C", "D"],
+    legendItems: ['', 'A', 'B', 'C', 'D'],
     legendMargin: null,
     orientation: LegendOrientation.Top,
     show: true,
@@ -1617,12 +1629,12 @@ test("getLegendLayoutResult counts empty-string legend labels when estimating la
   expect(layout.effectiveMargin).toBe(68);
 });
 
-test("resolveLegendLayout returns both raw and effective legend layout values", () => {
+test('resolveLegendLayout returns both raw and effective legend layout values', () => {
   expect(
     resolveLegendLayout({
       chartHeight: 400,
       chartWidth: 800,
-      legendItems: ["Alpha", "Beta"],
+      legendItems: ['Alpha', 'Beta'],
       legendMargin: null,
       orientation: LegendOrientation.Top,
       show: true,
@@ -1639,8 +1651,8 @@ test("resolveLegendLayout returns both raw and effective legend layout values", 
   });
 });
 
-describe("getChartPadding", () => {
-  test("should handle top default", () => {
+describe('getChartPadding', () => {
+  test('should handle top default', () => {
     expect(getChartPadding(true, LegendOrientation.Top)).toEqual({
       bottom: 0,
       left: 0,
@@ -1649,7 +1661,7 @@ describe("getChartPadding", () => {
     });
   });
 
-  test("should handle left default", () => {
+  test('should handle left default', () => {
     expect(getChartPadding(true, LegendOrientation.Left)).toEqual({
       bottom: 0,
       left: defaultLegendPadding[LegendOrientation.Left],
@@ -1658,7 +1670,7 @@ describe("getChartPadding", () => {
     });
   });
 
-  test("should return the default padding when show is false", () => {
+  test('should return the default padding when show is false', () => {
     expect(
       getChartPadding(false, LegendOrientation.Left, 100, {
         top: 10,
@@ -1674,7 +1686,7 @@ describe("getChartPadding", () => {
     });
   });
 
-  test("should return the correct padding for left orientation", () => {
+  test('should return the correct padding for left orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Left, 100)).toEqual({
       bottom: 0,
       left: 100,
@@ -1691,7 +1703,7 @@ describe("getChartPadding", () => {
     });
   });
 
-  test("should return the correct padding for right orientation", () => {
+  test('should return the correct padding for right orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Right, 50)).toEqual({
       bottom: 0,
       left: 0,
@@ -1708,7 +1720,7 @@ describe("getChartPadding", () => {
     });
   });
 
-  test("should return the correct padding for top orientation", () => {
+  test('should return the correct padding for top orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Top, 20)).toEqual({
       bottom: 0,
       left: 0,
@@ -1725,7 +1737,7 @@ describe("getChartPadding", () => {
     });
   });
 
-  test("should return the correct padding for bottom orientation", () => {
+  test('should return the correct padding for bottom orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Bottom, 10)).toEqual({
       bottom: 10,
       left: 0,
@@ -1743,51 +1755,51 @@ describe("getChartPadding", () => {
   });
 });
 
-describe("dedupSeries", () => {
-  test("should deduplicate ids in series", () => {
+describe('dedupSeries', () => {
+  test('should deduplicate ids in series', () => {
     expect(
       dedupSeries([
         {
-          id: "foo",
+          id: 'foo',
         },
         {
-          id: "bar",
+          id: 'bar',
         },
         {
-          id: "foo",
+          id: 'foo',
         },
         {
-          id: "foo",
+          id: 'foo',
         },
       ]),
     ).toEqual([
-      { id: "foo" },
-      { id: "bar" },
-      { id: "foo (1)" },
-      { id: "foo (2)" },
+      { id: 'foo' },
+      { id: 'bar' },
+      { id: 'foo (1)' },
+      { id: 'foo (2)' },
     ]);
   });
 });
 
-describe("sanitizeHtml", () => {
-  test("should remove html tags from series name", () => {
-    expect(sanitizeHtml(NULL_STRING)).toEqual("&lt;NULL&gt;");
+describe('sanitizeHtml', () => {
+  test('should remove html tags from series name', () => {
+    expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
   });
 });
 
-describe("getOverMaxHiddenFormatter", () => {
-  test("should hide value if greater than max", () => {
+describe('getOverMaxHiddenFormatter', () => {
+  test('should hide value if greater than max', () => {
     const formatter = getOverMaxHiddenFormatter({ max: 81000 });
-    expect(formatter.format(84500)).toEqual("");
+    expect(formatter.format(84500)).toEqual('');
   });
-  test("should show value if less or equal than max", () => {
+  test('should show value if less or equal than max', () => {
     const formatter = getOverMaxHiddenFormatter({ max: 81000 });
-    expect(formatter.format(81000)).toEqual("81000");
-    expect(formatter.format(50000)).toEqual("50000");
+    expect(formatter.format(81000)).toEqual('81000');
+    expect(formatter.format(50000)).toEqual('50000');
   });
 });
 
-test("calculateLowerLogTick", () => {
+test('calculateLowerLogTick', () => {
   expect(calculateLowerLogTick(1000000)).toEqual(1000000);
   expect(calculateLowerLogTick(456)).toEqual(100);
   expect(calculateLowerLogTick(100)).toEqual(100);
@@ -1796,7 +1808,7 @@ test("calculateLowerLogTick", () => {
   expect(calculateLowerLogTick(0.005)).toEqual(0.001);
 });
 
-test("getAxisType without forced categorical", () => {
+test('getAxisType without forced categorical', () => {
   expect(getAxisType(false, false, GenericDataType.Temporal)).toEqual(
     AxisType.Time,
   );
@@ -1814,13 +1826,13 @@ test("getAxisType without forced categorical", () => {
   );
 });
 
-test("getAxisType with forced categorical", () => {
+test('getAxisType with forced categorical', () => {
   expect(getAxisType(false, true, GenericDataType.Numeric)).toEqual(
     AxisType.Category,
   );
 });
 
-test("getAxisType treats numeric as category for bar charts", () => {
+test('getAxisType treats numeric as category for bar charts', () => {
   expect(
     (getAxisType as (...args: unknown[]) => AxisType)(
       false,
@@ -1839,7 +1851,7 @@ test("getAxisType treats numeric as category for bar charts", () => {
   ).toEqual(AxisType.Value);
 });
 
-test("getAxisType does not coerce Numeric x-axis to Time regardless of values", () => {
+test('getAxisType does not coerce Numeric x-axis to Time regardless of values', () => {
   // Regression guard for echarts-timeseries-epoch-x-axis-labels investigation:
   // getAxisType only considers the coltype reported by the query, never the
   // actual values. Numeric coltype must stay on a Value axis so a future
@@ -1855,10 +1867,10 @@ test("getAxisType does not coerce Numeric x-axis to Time regardless of values", 
   );
 });
 
-describe("getTemporalTickValues", () => {
-  const xAxisLabel = "__timestamp";
+describe('getTemporalTickValues', () => {
+  const xAxisLabel = '__timestamp';
 
-  test("returns undefined for a non-time axis", () => {
+  test('returns undefined for a non-time axis', () => {
     const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
     expect(
       getTemporalTickValues(
@@ -1870,14 +1882,14 @@ describe("getTemporalTickValues", () => {
     ).toBeUndefined();
   });
 
-  test("returns undefined when there is no time grain", () => {
+  test('returns undefined when there is no time grain', () => {
     const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
     expect(
       getTemporalTickValues(data, xAxisLabel, AxisType.Time, undefined),
     ).toBeUndefined();
   });
 
-  test("returns undefined for a non-weekly time grain", () => {
+  test('returns undefined for a non-weekly time grain', () => {
     const data: DataRecord[] = [{ [xAxisLabel]: 1712361600000 }];
     expect(
       getTemporalTickValues(
@@ -1889,7 +1901,7 @@ describe("getTemporalTickValues", () => {
     ).toBeUndefined();
   });
 
-  test("returns sorted, de-duplicated bucket timestamps for numbers and Dates", () => {
+  test('returns sorted, de-duplicated bucket timestamps for numbers and Dates', () => {
     const t0 = Date.UTC(2026, 3, 6);
     const t1 = Date.UTC(2026, 3, 13);
     const data: DataRecord[] = [
@@ -1907,8 +1919,8 @@ describe("getTemporalTickValues", () => {
     ).toEqual([t0, t1]);
   });
 
-  test("parses a zoned ISO string as the instant it names", () => {
-    const data: DataRecord[] = [{ [xAxisLabel]: "2026-04-06T00:00:00.000Z" }];
+  test('parses a zoned ISO string as the instant it names', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06T00:00:00.000Z' }];
     expect(
       getTemporalTickValues(
         data,
@@ -1919,8 +1931,8 @@ describe("getTemporalTickValues", () => {
     ).toEqual([Date.UTC(2026, 3, 6)]);
   });
 
-  test("parses a zone-less datetime string as local time, matching ECharts", () => {
-    const data: DataRecord[] = [{ [xAxisLabel]: "2026-04-06T00:00:00" }];
+  test('parses a zone-less datetime string as local time, matching ECharts', () => {
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06T00:00:00' }];
     expect(
       getTemporalTickValues(
         data,
@@ -1931,12 +1943,12 @@ describe("getTemporalTickValues", () => {
     ).toEqual([new Date(2026, 3, 6, 0, 0, 0).getTime()]);
   });
 
-  test("parses a bare date string as local midnight, matching ECharts rather than native Date", () => {
+  test('parses a bare date string as local midnight, matching ECharts rather than native Date', () => {
     // `new Date('2026-04-06')` is UTC, but ECharts parses it as local time.
     // jest.config.js fixes the test TZ to America/New_York, so they disagree.
-    const data: DataRecord[] = [{ [xAxisLabel]: "2026-04-06" }];
+    const data: DataRecord[] = [{ [xAxisLabel]: '2026-04-06' }];
     const localMidnight = new Date(2026, 3, 6).getTime();
-    expect(localMidnight).not.toEqual(new Date("2026-04-06").getTime());
+    expect(localMidnight).not.toEqual(new Date('2026-04-06').getTime());
     expect(
       getTemporalTickValues(
         data,
@@ -1947,9 +1959,9 @@ describe("getTemporalTickValues", () => {
     ).toEqual([localMidnight]);
   });
 
-  test("drops unparseable or nullish values and returns undefined when none remain", () => {
+  test('drops unparseable or nullish values and returns undefined when none remain', () => {
     const data: DataRecord[] = [
-      { [xAxisLabel]: "not-a-date" },
+      { [xAxisLabel]: 'not-a-date' },
       { [xAxisLabel]: null },
     ];
     expect(
@@ -1963,11 +1975,11 @@ describe("getTemporalTickValues", () => {
   });
 });
 
-describe("getGrainBarMaxWidth", () => {
-  const xAxisCol = "__timestamp";
+describe('getGrainBarMaxWidth', () => {
+  const xAxisCol = '__timestamp';
   const plotLengthPx = 600;
 
-  test("returns undefined for a non-time axis", () => {
+  test('returns undefined for a non-time axis', () => {
     expect(
       getGrainBarMaxWidth(
         AxisType.Category,
@@ -1979,7 +1991,7 @@ describe("getGrainBarMaxWidth", () => {
     ).toBeUndefined();
   });
 
-  test("returns undefined when there is no resolved time grain", () => {
+  test('returns undefined when there is no resolved time grain', () => {
     expect(
       getGrainBarMaxWidth(
         AxisType.Time,
@@ -1991,7 +2003,7 @@ describe("getGrainBarMaxWidth", () => {
     ).toBeUndefined();
   });
 
-  test("computes the same grain-aware width whether the x column is numbers, Dates or ISO strings", () => {
+  test('computes the same grain-aware width whether the x column is numbers, Dates or ISO strings', () => {
     // Regression: getGrainBarMaxWidth delegates to getXAxisDomain, which used
     // to only recognize `typeof === 'number'`. A Date- or ISO-string-valued
     // temporal column found no domain bounds and this returned undefined,
@@ -2021,8 +2033,8 @@ describe("getGrainBarMaxWidth", () => {
       TimeGranularity.HOUR,
       [
         [
-          { [xAxisCol]: "2024-01-01T00:00:00.000Z" },
-          { [xAxisCol]: "2024-01-01T03:00:00.000Z" },
+          { [xAxisCol]: '2024-01-01T00:00:00.000Z' },
+          { [xAxisCol]: '2024-01-01T03:00:00.000Z' },
         ],
       ],
       xAxisCol,
@@ -2034,7 +2046,7 @@ describe("getGrainBarMaxWidth", () => {
     expect(isoStrings).toBeCloseTo(expected);
   });
 
-  test("falls back to the 2-day degenerate-domain span for a single distinct Date value", () => {
+  test('falls back to the 2-day degenerate-domain span for a single distinct Date value', () => {
     const hour = TIMEGRAIN_TO_TIMESTAMP[TimeGranularity.HOUR];
     const t0 = new Date(Date.UTC(2024, 0, 1));
     const expected = (hour / (2 * ONE_DAY_MS)) * plotLengthPx;
@@ -2051,13 +2063,13 @@ describe("getGrainBarMaxWidth", () => {
   });
 });
 
-describe("capTickMarks", () => {
-  test("returns values unchanged when within the cap", () => {
+describe('capTickMarks', () => {
+  test('returns values unchanged when within the cap', () => {
     const values = [1, 2, 3];
     expect(capTickMarks(values, 60)).toEqual(values);
   });
 
-  test("downsamples to every step-th value when the last value already lands on the step", () => {
+  test('downsamples to every step-th value when the last value already lands on the step', () => {
     const values = Array.from({ length: 261 }, (_, i) => i);
     // step = ceil(261 / 60) = 5, and 260 is already a multiple of 5, so
     // nothing needs to be appended for the last bucket.
@@ -2066,7 +2078,7 @@ describe("capTickMarks", () => {
     );
   });
 
-  test("appends the last value when it does not land on the step", () => {
+  test('appends the last value when it does not land on the step', () => {
     const values = Array.from({ length: 262 }, (_, i) => i);
     // step = ceil(262 / 60) = 5, stepping lands on 0..260, and the true last
     // value (261) is appended on top since it isn't a multiple of 5.
@@ -2076,7 +2088,7 @@ describe("capTickMarks", () => {
     ]);
   });
 
-  test("maxTicks is not a hard bound once the last value has to be appended", () => {
+  test('maxTicks is not a hard bound once the last value has to be appended', () => {
     const values = Array.from({ length: 300 }, (_, i) => i);
     // step = ceil(300 / 60) = 5, which already lands on 60 stepped values
     // (0..295) plus the appended last value (299), totaling 61 — one over
@@ -2085,7 +2097,7 @@ describe("capTickMarks", () => {
   });
 });
 
-test("getMinAndMaxFromBounds returns empty object when not truncating", () => {
+test('getMinAndMaxFromBounds returns empty object when not truncating', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -2097,7 +2109,7 @@ test("getMinAndMaxFromBounds returns empty object when not truncating", () => {
   ).toEqual({});
 });
 
-test("getMinAndMaxFromBounds returns empty object for categorical axis", () => {
+test('getMinAndMaxFromBounds returns empty object for categorical axis', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Category,
@@ -2109,7 +2121,7 @@ test("getMinAndMaxFromBounds returns empty object for categorical axis", () => {
   ).toEqual({});
 });
 
-test("getMinAndMaxFromBounds returns empty object for time axis", () => {
+test('getMinAndMaxFromBounds returns empty object for time axis', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Time,
@@ -2121,7 +2133,7 @@ test("getMinAndMaxFromBounds returns empty object for time axis", () => {
   ).toEqual({});
 });
 
-test("getMinAndMaxFromBounds returns dataMin/dataMax for non-bar charts", () => {
+test('getMinAndMaxFromBounds returns dataMin/dataMax for non-bar charts', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -2131,12 +2143,12 @@ test("getMinAndMaxFromBounds returns dataMin/dataMax for non-bar charts", () => 
       EchartsTimeseriesSeriesType.Line,
     ),
   ).toEqual({
-    min: "dataMin",
-    max: "dataMax",
+    min: 'dataMin',
+    max: 'dataMax',
   });
 });
 
-test("getMinAndMaxFromBounds returns bound without scale for non-bar charts", () => {
+test('getMinAndMaxFromBounds returns bound without scale for non-bar charts', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -2147,11 +2159,11 @@ test("getMinAndMaxFromBounds returns bound without scale for non-bar charts", ()
     ),
   ).toEqual({
     min: 10,
-    max: "dataMax",
+    max: 'dataMax',
   });
 });
 
-test("getMinAndMaxFromBounds returns scale when truncating without bounds", () => {
+test('getMinAndMaxFromBounds returns scale when truncating without bounds', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -2163,7 +2175,7 @@ test("getMinAndMaxFromBounds returns scale when truncating without bounds", () =
   ).toEqual({ scale: true });
 });
 
-test("getMinAndMaxFromBounds returns automatic upper bound when truncating", () => {
+test('getMinAndMaxFromBounds returns automatic upper bound when truncating', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -2178,7 +2190,7 @@ test("getMinAndMaxFromBounds returns automatic upper bound when truncating", () 
   });
 });
 
-test("getMinAndMaxFromBounds returns automatic lower bound when truncating", () => {
+test('getMinAndMaxFromBounds returns automatic lower bound when truncating', () => {
   expect(
     getMinAndMaxFromBounds(
       AxisType.Value,
@@ -2193,81 +2205,81 @@ test("getMinAndMaxFromBounds returns automatic lower bound when truncating", () 
   });
 });
 
-describe("getTimeCompareStackId", () => {
-  test("returns the defaultId when timeCompare is empty", () => {
-    const result = getTimeCompareStackId("default", []);
-    expect(result).toEqual("default");
+describe('getTimeCompareStackId', () => {
+  test('returns the defaultId when timeCompare is empty', () => {
+    const result = getTimeCompareStackId('default', []);
+    expect(result).toEqual('default');
   });
 
-  test("returns the defaultId when no value in timeCompare is included in name", () => {
+  test('returns the defaultId when no value in timeCompare is included in name', () => {
     const result = getTimeCompareStackId(
-      "default",
-      ["compare1", "compare2"],
-      "test__name",
+      'default',
+      ['compare1', 'compare2'],
+      'test__name',
     );
-    expect(result).toEqual("default");
+    expect(result).toEqual('default');
   });
 
-  test("returns the first value in timeCompare that is included in name", () => {
+  test('returns the first value in timeCompare that is included in name', () => {
     const result = getTimeCompareStackId(
-      "default",
-      ["compare1", "compare2"],
-      "test__compare1",
+      'default',
+      ['compare1', 'compare2'],
+      'test__compare1',
     );
-    expect(result).toEqual("compare1");
+    expect(result).toEqual('compare1');
   });
 
-  test("handles name being a number", () => {
-    const result = getTimeCompareStackId("default", ["123", "456"], 123);
-    expect(result).toEqual("123");
+  test('handles name being a number', () => {
+    const result = getTimeCompareStackId('default', ['123', '456'], 123);
+    expect(result).toEqual('123');
   });
 });
 
 const forecastValue = [
   {
     data: [0, 1],
-    seriesId: "foo",
+    seriesId: 'foo',
   },
   {
     data: [0, 2],
-    seriesId: "bar",
+    seriesId: 'bar',
   },
 ];
 
-test("extractTooltipKeys with rich tooltip", () => {
+test('extractTooltipKeys with rich tooltip', () => {
   const result = extractTooltipKeys(forecastValue, 1, true, false);
-  expect(result).toEqual(["foo", "bar"]);
+  expect(result).toEqual(['foo', 'bar']);
 });
 
-test("extractTooltipKeys with rich tooltip and sorting by metrics", () => {
+test('extractTooltipKeys with rich tooltip and sorting by metrics', () => {
   const result = extractTooltipKeys(forecastValue, 1, true, true);
-  expect(result).toEqual(["bar", "foo"]);
+  expect(result).toEqual(['bar', 'foo']);
 });
 
-test("extractTooltipKeys with non-rich tooltip", () => {
+test('extractTooltipKeys with non-rich tooltip', () => {
   const result = extractTooltipKeys(forecastValue, 1, false, false);
-  expect(result).toEqual(["foo"]);
+  expect(result).toEqual(['foo']);
 });
 
-test("getAreaScaledSymbolSize maps the value extent to the size range", () => {
+test('getAreaScaledSymbolSize maps the value extent to the size range', () => {
   // smallest value renders at the minimum diameter
   expect(getAreaScaledSymbolSize(10, [10, 40], [5, 30])).toBe(5);
   // largest value renders at the maximum diameter
   expect(getAreaScaledSymbolSize(40, [10, 40], [5, 30])).toBe(30);
 });
 
-test("getAreaScaledSymbolSize scales area, not diameter", () => {
+test('getAreaScaledSymbolSize scales area, not diameter', () => {
   // the midpoint value's *area* is halfway between the min and max areas
   const midSize = getAreaScaledSymbolSize(25, [10, 40], [5, 30]);
   expect(midSize ** 2).toBeCloseTo((5 ** 2 + 30 ** 2) / 2);
 });
 
-test("getAreaScaledSymbolSize clamps values outside the extent", () => {
+test('getAreaScaledSymbolSize clamps values outside the extent', () => {
   expect(getAreaScaledSymbolSize(-100, [10, 40], [5, 30])).toBe(5);
   expect(getAreaScaledSymbolSize(1000, [10, 40], [5, 30])).toBe(30);
 });
 
-test("getAreaScaledSymbolSize handles degenerate extents and bad values", () => {
+test('getAreaScaledSymbolSize handles degenerate extents and bad values', () => {
   const midAreaSize = Math.sqrt((5 ** 2 + 30 ** 2) / 2);
   expect(getAreaScaledSymbolSize(7, [7, 7], [5, 30])).toBeCloseTo(midAreaSize);
   expect(getAreaScaledSymbolSize(NaN, [10, 40], [5, 30])).toBeCloseTo(
@@ -2275,7 +2287,7 @@ test("getAreaScaledSymbolSize handles degenerate extents and bad values", () => 
   );
 });
 
-describe("measureTextWidth caching", () => {
+describe('measureTextWidth caching', () => {
   // jsdom does not implement canvas measurement, so stub document.createElement
   // to hand back a fake 2d context whose measureText call count/args we can
   // assert on -- that's the only way to observe a cache hit vs. a recompute.
@@ -2285,9 +2297,9 @@ describe("measureTextWidth caching", () => {
   beforeEach(() => {
     measureText = jest.fn((text: string) => ({ width: text.length * 7 }));
     createElementSpy = jest
-      .spyOn(document, "createElement")
+      .spyOn(document, 'createElement')
       .mockImplementation(
-        () => ({ getContext: () => ({ font: "", measureText }) }) as never,
+        () => ({ getContext: () => ({ font: '', measureText }) }) as never,
       );
   });
 
@@ -2295,17 +2307,17 @@ describe("measureTextWidth caching", () => {
     createElementSpy.mockRestore();
   });
 
-  test("caches by [fontFamily, fontSizeSM, text] and skips remeasuring on a hit", () => {
-    expect(measureTextWidth("Category A", theme)).toBe(70);
-    expect(measureTextWidth("Category A", theme)).toBe(70);
+  test('caches by [fontFamily, fontSizeSM, text] and skips remeasuring on a hit', () => {
+    expect(measureTextWidth('Category A', theme)).toBe(70);
+    expect(measureTextWidth('Category A', theme)).toBe(70);
     expect(measureText).toHaveBeenCalledTimes(1);
 
     // A different theme is a different cache key, so it does remeasure.
-    measureTextWidth("Category A", { ...theme, fontSizeSM: 20 });
+    measureTextWidth('Category A', { ...theme, fontSizeSM: 20 });
     expect(measureText).toHaveBeenCalledTimes(2);
   });
 
-  test("evicts the least-recently-used entry once the cache is full", () => {
+  test('evicts the least-recently-used entry once the cache is full', () => {
     // Fill the cache (2000 entries) then measure one more distinct label --
     // whichever key gets evicted must be remeasured on its next lookup.
     for (let i = 0; i < 2000; i += 1) {
@@ -2313,29 +2325,29 @@ describe("measureTextWidth caching", () => {
     }
     measureText.mockClear();
 
-    measureTextWidth("one-too-many", theme);
+    measureTextWidth('one-too-many', theme);
     expect(measureText).toHaveBeenCalledTimes(1);
 
     // The oldest entry (label-0) was evicted to make room, so it recomputes.
-    measureTextWidth("label-0", theme);
+    measureTextWidth('label-0', theme);
     expect(measureText).toHaveBeenCalledTimes(2);
 
     // A more recently used entry is still cached.
-    measureTextWidth("label-1999", theme);
+    measureTextWidth('label-1999', theme);
     expect(measureText).toHaveBeenCalledTimes(2);
   });
 });
 
-describe("measureTextInkWidth", () => {
+describe('measureTextInkWidth', () => {
   let getContext: jest.SpyInstance;
 
   afterEach(() => {
     getContext.mockRestore();
   });
 
-  test("uses the ink extent when it exceeds the advance width", () => {
+  test('uses the ink extent when it exceeds the advance width', () => {
     getContext = jest
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
       .mockReturnValue({
         measureText: () => ({
           width: 10,
@@ -2343,12 +2355,12 @@ describe("measureTextInkWidth", () => {
           actualBoundingBoxRight: 45,
         }),
       } as never);
-    expect(measureTextInkWidth("label", theme)).toBe(50);
+    expect(measureTextInkWidth('label', theme)).toBe(50);
   });
 
-  test("keeps the advance width when it exceeds the ink extent", () => {
+  test('keeps the advance width when it exceeds the ink extent', () => {
     getContext = jest
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
       .mockReturnValue({
         measureText: () => ({
           width: 30,
@@ -2356,31 +2368,31 @@ describe("measureTextInkWidth", () => {
           actualBoundingBoxRight: 20,
         }),
       } as never);
-    expect(measureTextInkWidth("label", theme)).toBe(30);
+    expect(measureTextInkWidth('label', theme)).toBe(30);
   });
 
-  test("falls back to the advance width when bounding-box metrics are absent", () => {
+  test('falls back to the advance width when bounding-box metrics are absent', () => {
     getContext = jest
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
       .mockReturnValue({ measureText: () => ({ width: 42 }) } as never);
-    const width = measureTextInkWidth("label", theme);
+    const width = measureTextInkWidth('label', theme);
     expect(width).not.toBeNaN();
     expect(width).toBe(42);
   });
 
-  test("falls back to an approximate width when canvas is unavailable", () => {
+  test('falls back to an approximate width when canvas is unavailable', () => {
     getContext = jest
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
       .mockReturnValue(null);
-    expect(measureTextInkWidth("label", theme)).toBeCloseTo(
-      "label".length * theme.fontSizeSM * 0.62,
+    expect(measureTextInkWidth('label', theme)).toBeCloseTo(
+      'label'.length * theme.fontSizeSM * 0.62,
     );
   });
 
-  test("measures with the theme small font", () => {
-    let capturedFont = "";
+  test('measures with the theme small font', () => {
+    let capturedFont = '';
     getContext = jest
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
       .mockReturnValue({
         set font(value: string) {
           capturedFont = value;
@@ -2390,7 +2402,7 @@ describe("measureTextInkWidth", () => {
         },
         measureText: () => ({ width: 1 }),
       } as never);
-    measureTextInkWidth("label", theme);
+    measureTextInkWidth('label', theme);
     expect(capturedFont).toBe(`${theme.fontSizeSM}px ${theme.fontFamily}`);
   });
 });

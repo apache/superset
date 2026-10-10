@@ -27,10 +27,10 @@ import {
   tooltipHtml,
   ValueFormatter,
   VizType,
-} from "@superset-ui/core";
-import type { CallbackDataParams } from "echarts/types/src/util/types";
-import type { EChartsCoreOption } from "echarts/core";
-import type { FunnelSeriesOption } from "echarts/charts";
+} from '@superset-ui/core';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { FunnelSeriesOption } from 'echarts/charts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_FUNNEL_FORM_DATA,
   EchartsFunnelChartProps,
@@ -38,7 +38,7 @@ import {
   EchartsFunnelLabelType,
   FunnelChartTransformedProps,
   PercentCalcType,
-} from "./types";
+} from './types';
 import {
   extractGroupbyLabel,
   getChartPadding,
@@ -46,12 +46,12 @@ import {
   getLegendProps,
   getLegendScrollDataIndex,
   sanitizeHtml,
-} from "../utils/series";
-import { resolveLegendLayout } from "../utils/legendLayout";
-import { defaultGrid } from "../defaults";
-import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from "../constants";
-import { getDefaultTooltip } from "../utils/tooltip";
-import { LegendOrientation, Refs } from "../types";
+} from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
+import { defaultGrid } from '../defaults';
+import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { LegendOrientation, Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -64,12 +64,12 @@ export function parseParams({
   percentCalculationType = PercentCalcType.FirstStep,
   sanitizeName = false,
 }: {
-  params: Pick<CallbackDataParams, "name" | "value" | "percent" | "data">;
+  params: Pick<CallbackDataParams, 'name' | 'value' | 'percent' | 'data'>;
   numberFormatter: ValueFormatter;
   percentCalculationType?: PercentCalcType;
   sanitizeName?: boolean;
 }) {
-  const { name: rawName = "", value, percent: totalPercent, data } = params;
+  const { name: rawName = '', value, percent: totalPercent, data } = params;
   const name = sanitizeName ? sanitizeHtml(rawName) : rawName;
   const formattedValue = numberFormatter(value as number);
   const { firstStepPercent, prevStepPercent } = data as {
@@ -121,7 +121,7 @@ export default function transformProps(
     legendOrientation,
     legendType,
     legendSort,
-    metric = "",
+    metric = '',
     numberFormat,
     currencyFormat,
     showLabels,
@@ -144,7 +144,7 @@ export default function transformProps(
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
-  const keys = data.map((datum) =>
+  const keys = data.map(datum =>
     extractGroupbyLabel({ datum, groupby: groupbyLabels, coltypeMapping: {} }),
   );
   const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
@@ -155,7 +155,7 @@ export default function transformProps(
     });
     return {
       ...acc,
-      [label]: groupbyLabels.map((col) => datum[col] as string),
+      [label]: groupbyLabels.map(col => datum[col] as string),
     };
   }, {});
 
@@ -254,14 +254,14 @@ export default function transformProps(
   };
   const legendData = keys.sort((a: string, b: string) => {
     if (!legendSort) return 0;
-    return legendSort === "asc" ? a.localeCompare(b) : b.localeCompare(a);
+    return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
   });
   const isHorizontalLegend = [
     LegendOrientation.Top,
     LegendOrientation.Bottom,
   ].includes(legendOrientation);
   const resolvedLegendMargin =
-    typeof legendMargin !== "number" && isHorizontalLegend
+    typeof legendMargin !== 'number' && isHorizontalLegend
       ? DEFAULT_HORIZONTAL_LEGEND_MARGIN
       : legendMargin;
   const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
@@ -271,6 +271,7 @@ export default function transformProps(
     legendMargin: resolvedLegendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -280,21 +281,21 @@ export default function transformProps(
       type: VizType.Funnel,
       ...getChartPadding(showLegend, legendOrientation, effectiveLegendMargin),
       animation: true,
-      minSize: "0%",
-      maxSize: "100%",
+      minSize: '0%',
+      maxSize: '100%',
       sort,
       orient,
       gap,
-      funnelAlign: "center",
+      funnelAlign: 'center',
       labelLine: { show: !!labelLine },
       label: {
         ...defaultLabel,
-        position: labelLine ? "outer" : "inner",
+        position: labelLine ? 'outer' : 'inner',
       },
       emphasis: {
         label: {
           show: true,
-          fontWeight: "bold",
+          fontWeight: 'bold',
         },
       },
       data: transformedData,
@@ -308,7 +309,7 @@ export default function transformProps(
     tooltip: {
       ...getDefaultTooltip(refs),
       show: !inContextMenu && showTooltipLabels,
-      trigger: "item",
+      trigger: 'item',
       formatter: (params: any) => {
         const [name, formattedValue, formattedPercent] = parseParams({
           params,
@@ -317,14 +318,14 @@ export default function transformProps(
         });
         const row = [];
         const enumName = EchartsFunnelLabelType[tooltipLabelType];
-        const title = enumName.includes("Key") ? name : undefined;
-        if (enumName.includes("Value") || enumName.includes("Percent")) {
+        const title = enumName.includes('Key') ? name : undefined;
+        if (enumName.includes('Value') || enumName.includes('Percent')) {
           row.push(metricLabel);
         }
-        if (enumName.includes("Value")) {
+        if (enumName.includes('Value')) {
           row.push(formattedValue);
         }
-        if (enumName.includes("Percent")) {
+        if (enumName.includes('Percent')) {
           row.push(formattedPercent);
         }
         return tooltipHtml([row], title);
@@ -336,9 +337,9 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
-        showSelectorLegend,
       ),
       scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,

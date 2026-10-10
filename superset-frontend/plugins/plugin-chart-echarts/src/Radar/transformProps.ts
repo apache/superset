@@ -25,11 +25,11 @@ import {
   getTimeFormatter,
   NumberFormatter,
   isDefined,
-} from "@superset-ui/core";
-import type { CallbackDataParams } from "echarts/types/src/util/types";
-import type { RadarSeriesDataItemOption } from "echarts/types/src/chart/radar/RadarSeries";
-import type { EChartsCoreOption } from "echarts/core";
-import type { RadarSeriesOption } from "echarts/charts";
+} from '@superset-ui/core';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { RadarSeriesDataItemOption } from 'echarts/types/src/chart/radar/RadarSeries';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { RadarSeriesOption } from 'echarts/charts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_RADAR_FORM_DATA,
   EchartsRadarChartProps,
@@ -37,20 +37,20 @@ import {
   EchartsRadarLabelType,
   RadarChartTransformedProps,
   SeriesNormalizedMap,
-} from "./types";
-import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from "../constants";
+} from './types';
+import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import {
   extractGroupbyLabel,
   getChartPadding,
   getColtypesMapping,
   getLegendProps,
   getLegendScrollDataIndex,
-} from "../utils/series";
-import { resolveLegendLayout } from "../utils/legendLayout";
-import { defaultGrid } from "../defaults";
-import { Refs } from "../types";
-import { getDefaultTooltip } from "../utils/tooltip";
-import { findGlobalMax, renderNormalizedTooltip } from "./utils";
+} from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
+import { defaultGrid } from '../defaults';
+import { Refs } from '../types';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { findGlobalMax, renderNormalizedTooltip } from './utils';
 
 export function formatLabel({
   params,
@@ -70,7 +70,7 @@ export function formatLabel({
   metricsWithCustomBounds: Set<string>;
   metricLabels: string[];
 }): string {
-  const { name = "", value, dimensionIndex = 0 } = params;
+  const { name = '', value, dimensionIndex = 0 } = params;
   const metricLabel = metricLabels[dimensionIndex];
 
   const rawValue = metricsWithCustomBounds.has(metricLabel)
@@ -79,7 +79,7 @@ export function formatLabel({
 
   // A missing metric is preserved as null so it renders as a gap; skip
   // formatting it into a misleading "NaN" label.
-  const formattedValue = rawValue == null ? "" : numberFormatter(rawValue);
+  const formattedValue = rawValue == null ? '' : numberFormatter(rawValue);
 
   switch (labelType) {
     case EchartsRadarLabelType.Value:
@@ -166,7 +166,7 @@ export default function transformProps(
   const metricLabels = metrics.map(getMetricLabel);
 
   const metricsWithCustomBounds = new Set<string>(
-    metricLabels.filter((metricLabel) => {
+    metricLabels.filter(metricLabel => {
       const config = columnConfig?.[metricLabel];
       const hasMax = !!isDefined(config?.radarMetricMaxValue);
       const hasMin =
@@ -192,7 +192,7 @@ export default function transformProps(
   const metricLabelAndMinValueMap = new Map<string, number>();
   const columnsLabelMap = new Map<string, string[]>();
   const transformedData: RadarSeriesDataItemOption[] = [];
-  data.forEach((datum) => {
+  data.forEach(datum => {
     const joinedName = extractGroupbyLabel({
       datum,
       groupby: groupbyLabels,
@@ -202,7 +202,7 @@ export default function transformProps(
     // map(joined_name: [columnLabel_1, columnLabel_2, ...])
     columnsLabelMap.set(
       joinedName,
-      groupbyLabels.map((col) => datum[col] as string),
+      groupbyLabels.map(col => datum[col] as string),
     );
 
     // put max value of series into metricLabelAndMaxValueMap
@@ -245,7 +245,7 @@ export default function transformProps(
 
     // generate transformedData
     transformedData.push({
-      value: metricLabels.map((metricLabel) => datum[metricLabel]),
+      value: metricLabels.map(metricLabel => datum[metricLabel]),
       name: joinedName,
       itemStyle: {
         color: colorFn(joinedName, sliceId),
@@ -315,9 +315,9 @@ export default function transformProps(
     });
 
   // Normalize the transformed data
-  const normalizedTransformedData = transformedData.map((series) => {
+  const normalizedTransformedData = transformedData.map(series => {
     if (Array.isArray(series.value)) {
-      const seriesName = String(series?.name || "");
+      const seriesName = String(series?.name || '');
       denormalizedSeriesValues[seriesName] = {};
 
       return {
@@ -332,7 +332,7 @@ export default function transformProps(
     return series;
   });
 
-  const indicator = metricLabels.map((metricLabel) => {
+  const indicator = metricLabels.map(metricLabel => {
     const isMetricWithCustomBounds = metricsWithCustomBounds.has(metricLabel);
     if (!isMetricWithCustomBounds) {
       return {
@@ -367,7 +367,7 @@ export default function transformProps(
   const legendData = Array.from(columnsLabelMap.keys()).sort(
     (a: string, b: string) => {
       if (!legendSort) return 0;
-      return legendSort === "asc" ? a.localeCompare(b) : b.localeCompare(a);
+      return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
     },
   );
   const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
@@ -377,6 +377,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -389,13 +390,13 @@ export default function transformProps(
 
   const series: RadarSeriesOption[] = [
     {
-      type: "radar",
+      type: 'radar',
       ...chartPadding,
       animation: false,
       emphasis: {
         label: {
           show: true,
-          fontWeight: "bold",
+          fontWeight: 'bold',
         },
       },
       data: normalizedTransformedData,
@@ -433,7 +434,7 @@ export default function transformProps(
     tooltip: {
       ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      trigger: "item",
+      trigger: 'item',
       formatter: NormalizedTooltipFormater,
     },
     legend: {
@@ -442,16 +443,16 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
-        showSelectorLegend,
       ),
       scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     series,
     radar: {
-      shape: isCircle ? "circle" : "polygon",
+      shape: isCircle ? 'circle' : 'polygon',
       indicator,
       splitLine: {
         show: true,

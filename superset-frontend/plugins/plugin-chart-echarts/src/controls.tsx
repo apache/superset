@@ -56,14 +56,16 @@ export const showLegendControl: ControlSetItem = {
   },
 };
 
-export const showSelectorlegendControl: ControlSetItem = {
+export const showSelectorLegendControl: ControlSetItem = {
   name: 'show_selector_legend',
   config: {
     type: 'CheckboxControl',
-    label: t('Show selector legend'),
+    label: t('Show All/Invert buttons in legend'),
     renderTrigger: true,
     default: showSelectorLegend,
-    description: t('Whether to display a selector buttons in the legend'),
+    description: t(
+      'Toggle to show/hide the "All/Invert" buttons in the legend.',
+    ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.show_legend?.value),
   },
@@ -142,7 +144,7 @@ export const legendSortControl: ControlSetItem = {
 export const legendSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Legend')}</ControlSubSectionHeader>],
   [showLegendControl],
-  [showSelectorlegendControl],
+  [showSelectorLegendControl],
   [legendTypeControl],
   [legendOrientationControl],
   [legendMarginControl],

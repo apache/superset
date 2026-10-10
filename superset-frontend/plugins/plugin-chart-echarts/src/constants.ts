@@ -17,22 +17,22 @@
  * under the License.
  */
 
-import { t } from "@apache-superset/core/translation";
-import { JsonValue, TimeGranularity } from "@superset-ui/core";
-import { ReactNode } from "react";
+import { t } from '@apache-superset/core/translation';
+import { JsonValue, TimeGranularity } from '@superset-ui/core';
+import { ReactNode } from 'react';
 import {
   LegendFormData,
   LegendOrientation,
   LegendType,
   TitleFormData,
-} from "./types";
+} from './types';
 
 // eslint-disable-next-line import/prefer-default-export
-export const NULL_STRING = "<NULL>";
+export const NULL_STRING = '<NULL>';
 
 // Marks a cross-filter emitted from the x-axis value, so series-level
 // selection styling is not applied to it when the chart has dimensions.
-export const X_AXIS_CROSS_FILTER_SOURCE = "xAxis";
+export const X_AXIS_CROSS_FILTER_SOURCE = 'xAxis';
 
 export const TIMESERIES_CONSTANTS = {
   gridOffsetRight: 20,
@@ -77,31 +77,31 @@ export enum OpacityEnum {
 }
 
 export enum StackControlsValue {
-  Stack = "Stack",
-  Stream = "Stream",
-  Expand = "Expand",
+  Stack = 'Stack',
+  Stream = 'Stream',
+  Expand = 'Expand',
 }
 
 export const StackControlOptions: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [
-  [null, t("None")],
-  [StackControlsValue.Stack, t("Stack")],
-  [StackControlsValue.Stream, t("Stream")],
+  [null, t('None')],
+  [StackControlsValue.Stack, t('Stack')],
+  [StackControlsValue.Stream, t('Stream')],
 ];
 
 export const AreaChartStackControlOptions: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
-][] = [...StackControlOptions, [StackControlsValue.Expand, t("Expand")]];
+][] = [...StackControlOptions, [StackControlsValue.Expand, t('Expand')]];
 
 export const StackControlOptionsWithoutStream: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [
-  [null, t("None")],
-  [StackControlsValue.Stack, t("Stack")],
+  [null, t('None')],
+  [StackControlsValue.Stack, t('Stack')],
 ];
 
 // Grains ECharts' time axis cannot tick on; see getTemporalTickValues in
@@ -145,14 +145,14 @@ export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {
 };
 
 export const DEFAULT_TITLE_FORM_DATA: TitleFormData = {
-  xAxisTitle: "",
+  xAxisTitle: '',
   xAxisTitleMargin: 40,
-  yAxisTitle: "",
+  yAxisTitle: '',
   yAxisTitleMargin: 50,
-  yAxisTitlePosition: "Top",
+  yAxisTitlePosition: 'Top',
 };
 
-export { DEFAULT_FORM_DATA } from "./Timeseries/constants";
+export { DEFAULT_FORM_DATA } from './Timeseries/constants';
 
 // How far away from the mouse should the tooltip be
 export const TOOLTIP_POINTER_MARGIN = 10;
@@ -165,4 +165,4 @@ export const TOOLTIP_OVERFLOW_MARGIN = 5;
 // reserving space for annotation labels rendered at insideEndTop of markLines/markAreas
 export const TOOLTIP_TOP_CLEARANCE = 40;
 
-export const DEFAULT_LOCALE = "en";
+export const DEFAULT_LOCALE = 'en';

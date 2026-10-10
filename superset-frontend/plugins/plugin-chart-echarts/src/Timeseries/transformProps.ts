@@ -168,6 +168,7 @@ function buildTimeseriesCustomLegend({
   legendState,
   orientation,
   series,
+  showSelectors,
 }: {
   fallbackColor: string;
   grid: TimeseriesCustomLegend['grid'];
@@ -176,6 +177,7 @@ function buildTimeseriesCustomLegend({
   legendState?: LegendState;
   orientation: LegendOrientation.Top | LegendOrientation.Bottom;
   series: SeriesOption[];
+  showSelectors: boolean;
 }): TimeseriesCustomLegend {
   const firstSeriesByName = new Map<string, SeriesOption>();
   series.forEach(seriesOption => {
@@ -212,7 +214,7 @@ function buildTimeseriesCustomLegend({
     grid,
     items,
     orientation,
-    showSelectors: interactive,
+    showSelectors,
   };
 }
 
@@ -1426,7 +1428,7 @@ export default function transformProps(
       legendMargin: candidateLegendMargin,
       orientation: legendOrientation,
       show: nativeLegendVisible,
-      showSelectors: !usesPrimaryAxisLegend,
+      showSelectors: !usesPrimaryAxisLegend && showSelectorLegend !== false,
       theme,
       type: legendType,
     });
@@ -1931,6 +1933,7 @@ export default function transformProps(
               : padding.top,
         },
         interactive: !usesPrimaryAxisLegend,
+        showSelectors: !usesPrimaryAxisLegend && showSelectorLegend !== false,
         legendNames: resolvedLegendNames,
         legendState,
         orientation: legendOrientation,

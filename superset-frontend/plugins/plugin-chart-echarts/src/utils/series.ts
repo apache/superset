@@ -32,8 +32,8 @@ import {
   NumberFormatter,
   TimeFormatter,
   ValueFormatter,
-  t,
 } from "@superset-ui/core";
+import { t } from "@apache-superset/core/translation";
 import { SupersetTheme } from "@apache-superset/core/theme";
 import { GenericDataType } from "@apache-superset/core/common";
 import { SortSeriesType, LegendPaddingType } from "@superset-ui/chart-controls";
@@ -897,7 +897,7 @@ export function getLegendProps(
   orientation: LegendOrientation,
   show: boolean,
   theme: SupersetTheme,
-  showSelectorLegendControl?: boolean,
+  showSelectorLegend = true,
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
@@ -921,12 +921,14 @@ export function getLegendProps(
         }
       : {}),
     selected: legendState ?? {},
+    // `selectorLabel.show` only hides the button text. `selector: false` removes
+    // the All/Inv buttons themselves.
     selector: [
       { type: "all", title: t("All") },
       { type: "inverse", title: t("Inv") },
     ],
     selectorLabel: {
-      show: showSelectorLegendControl,
+      show: showSelectorLegend,
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeSM,
       color: theme.colorText,

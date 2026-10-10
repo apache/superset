@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from "@apache-superset/core/translation";
+import { t } from '@apache-superset/core/translation';
 import {
   CategoricalColorNamespace,
   getColumnLabel,
@@ -28,10 +28,10 @@ import {
   getValueFormatter,
   tooltipHtml,
   DataRecord,
-} from "@superset-ui/core";
-import type { CallbackDataParams } from "echarts/types/src/util/types";
-import type { EChartsCoreOption } from "echarts/core";
-import type { PieSeriesOption } from "echarts/charts";
+} from '@superset-ui/core';
+import type { CallbackDataParams } from 'echarts/types/src/util/types';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { PieSeriesOption } from 'echarts/charts';
 import {
   DEFAULT_FORM_DATA as DEFAULT_PIE_FORM_DATA,
   EchartsPieChartProps,
@@ -39,8 +39,8 @@ import {
   EchartsPieLabelType,
   PieChartDataItem,
   PieChartTransformedProps,
-} from "./types";
-import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from "../constants";
+} from './types';
+import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import {
   extractGroupbyLabel,
   getChartPadding,
@@ -48,13 +48,13 @@ import {
   getLegendProps,
   getLegendScrollDataIndex,
   sanitizeHtml,
-} from "../utils/series";
-import { resolveLegendLayout } from "../utils/legendLayout";
-import { defaultGrid } from "../defaults";
-import { convertInteger } from "../utils/convertInteger";
-import { getDefaultTooltip } from "../utils/tooltip";
-import { Refs } from "../types";
-import { getContributionLabel } from "./utils";
+} from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
+import { defaultGrid } from '../defaults';
+import { convertInteger } from '../utils/convertInteger';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { Refs } from '../types';
+import { getContributionLabel } from './utils';
 
 const defaultPercentFormatter = getNumberFormatter(
   NumberFormats.PERCENT_2_POINT,
@@ -66,12 +66,12 @@ export function parseParams({
   percentFormatter = defaultPercentFormatter,
   sanitizeName = false,
 }: {
-  params: Pick<CallbackDataParams, "name" | "value" | "percent">;
+  params: Pick<CallbackDataParams, 'name' | 'value' | 'percent'>;
   numberFormatter: ValueFormatter;
   percentFormatter?: ValueFormatter;
   sanitizeName?: boolean;
 }): string[] {
-  const { name: rawName = "", value, percent } = params;
+  const { name: rawName = '', value, percent } = params;
   const name = sanitizeName ? sanitizeHtml(rawName) : rawName;
   const formattedValue = numberFormatter(value as number);
   const formattedPercent = percentFormatter((percent as number) / 100);
@@ -113,7 +113,7 @@ export function getArcBoundingBox(
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const endAngle = startAngle - sweptAngle;
   const points: [number, number][] = [];
-  [startAngle, endAngle].forEach((angle) => {
+  [startAngle, endAngle].forEach(angle => {
     const x = Math.cos(toRad(angle));
     const y = Math.sin(toRad(angle));
     points.push([x, y], [innerRatio * x, innerRatio * y]);
@@ -267,7 +267,7 @@ export default function transformProps(
     legendOrientation,
     legendType,
     legendSort,
-    metric = "",
+    metric = '',
     numberFormat,
     currencyFormat,
     dateFormat,
@@ -304,7 +304,7 @@ export default function transformProps(
     currencyCodeColumn,
     detectedCurrency,
   );
-  const percentFormatter = numberFormat?.endsWith("%")
+  const percentFormatter = numberFormat?.endsWith('%')
     ? getNumberFormatter(numberFormat)
     : defaultPercentFormatter;
 
@@ -315,7 +315,7 @@ export default function transformProps(
   let otherSum = 0;
   if (thresholdForOther) {
     let contributionSum = 0;
-    data = data.filter((datum) => {
+    data = data.filter(datum => {
       const contribution = datum[contributionLabel] as number;
       if (!contribution || contribution * 100 >= thresholdForOther) {
         return true;
@@ -335,9 +335,9 @@ export default function transformProps(
       ]);
       return false;
     });
-    const otherName = t("Other");
+    const otherName = t('Other');
     otherTooltipData.push([
-      t("Total"),
+      t('Total'),
       numberFormatter(otherSum),
       percentFormatter(contributionSum),
     ]);
@@ -367,7 +367,7 @@ export default function transformProps(
     });
     return {
       ...acc,
-      [label]: groupbyLabels.map((col) => datum[col] as string),
+      [label]: groupbyLabels.map(col => datum[col] as string),
     };
   }, {});
 
@@ -383,7 +383,7 @@ export default function transformProps(
 
   let totalValue = 0;
 
-  const transformedData: PieSeriesOption[] = data.map((datum) => {
+  const transformedData: PieSeriesOption[] = data.map(datum => {
     const name = extractGroupbyLabel({
       datum,
       groupby: groupbyLabels,
@@ -395,7 +395,7 @@ export default function transformProps(
       filterState.selectedValues && !filterState.selectedValues.includes(name);
     const value = datum[metricLabel];
 
-    if (typeof value === "number" || typeof value === "string") {
+    if (typeof value === 'number' || typeof value === 'string') {
       totalValue += convertInteger(value);
     }
 
@@ -444,14 +444,14 @@ export default function transformProps(
     // \n is supported to represent a new line.
 
     const items = {
-      "{name}": formattedParams.name,
-      "{value}": formattedParams.value,
-      "{percent}": formattedParams.percent,
-      "{a}": rawParams.seriesName || "",
-      "{b}": rawParams.name,
-      "{c}": `${rawParams.value}`,
-      "{d}": `${rawParams.percent}`,
-      "\\n": "\n",
+      '{name}': formattedParams.name,
+      '{value}': formattedParams.value,
+      '{percent}': formattedParams.percent,
+      '{a}': rawParams.seriesName || '',
+      '{b}': rawParams.name,
+      '{c}': `${rawParams.value}`,
+      '{d}': `${rawParams.percent}`,
+      '\\n': '\n',
     };
 
     return Object.entries(items).reduce(
@@ -483,7 +483,7 @@ export default function transformProps(
         return `${formattedValue} (${formattedPercent})`;
       case EchartsPieLabelType.Template:
         if (!labelTemplate) {
-          return "";
+          return '';
         }
         return formatTemplate(
           labelTemplate,
@@ -505,10 +505,10 @@ export default function transformProps(
     color: theme.colorText,
   };
   const legendData = transformedData
-    .map((datum) => datum.name)
+    .map(datum => datum.name)
     .sort((a: string, b: string) => {
       if (!legendSort) return 0;
-      return legendSort === "asc" ? a.localeCompare(b) : b.localeCompare(a);
+      return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
     });
   const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,
@@ -517,6 +517,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -540,7 +541,7 @@ export default function transformProps(
 
   const series: PieSeriesOption[] = [
     {
-      type: "pie",
+      type: 'pie',
       ...chartPadding,
       animation: false,
       roseType: roseType || undefined,
@@ -554,18 +555,18 @@ export default function transformProps(
       label: labelsOutside
         ? {
             ...defaultLabel,
-            position: "outer",
-            alignTo: "none",
+            position: 'outer',
+            alignTo: 'none',
             bleedMargin: 5,
           }
         : {
             ...defaultLabel,
-            position: "inner",
+            position: 'inner',
           },
       emphasis: {
         label: {
           show: true,
-          fontWeight: "bold",
+          fontWeight: 'bold',
           backgroundColor: theme.colorBgContainer,
         },
       },
@@ -580,7 +581,7 @@ export default function transformProps(
     tooltip: {
       ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      trigger: "item",
+      trigger: 'item',
       formatter: (params: any) => {
         const [name, formattedValue, formattedPercent] = parseParams({
           params,
@@ -603,16 +604,16 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
-        showSelectorLegend,
       ),
       scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     graphic: showTotal
       ? {
-          type: "text",
+          type: 'text',
           // Donut: center the text on the pie origin (the middle of the
           // hole, or the flat edge of a partial arc). Pie: park it at the
           // top center of the padded rect so it doesn't overlap the slices.
@@ -622,11 +623,11 @@ export default function transformProps(
               (width - chartPadding.left - chartPadding.right) / 2,
           y: donut ? pieLayout.totalAnchor.y : chartPadding.top,
           style: {
-            text: t("Total: %s", numberFormatter(totalValue)),
-            align: "center",
-            verticalAlign: donut ? "middle" : "top",
+            text: t('Total: %s', numberFormatter(totalValue)),
+            align: 'center',
+            verticalAlign: donut ? 'middle' : 'top',
             fontSize: 16,
-            fontWeight: "bold",
+            fontWeight: 'bold',
             fill: theme.colorText,
           },
           z: 10,
