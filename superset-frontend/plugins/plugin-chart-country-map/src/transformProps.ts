@@ -24,6 +24,8 @@ import {
 } from '@superset-ui/core';
 import { getColorFormatters } from '@superset-ui/chart-controls';
 
+import normalizeRegions from './normalizeRegions';
+
 export default function transformProps(chartProps: ChartProps) {
   const {
     width,
@@ -60,12 +62,48 @@ export default function transformProps(chartProps: ChartProps) {
   // labels, so the rename happens here.
   const entityLabel = getColumnLabel(entity);
   const metricLabel = getMetricLabel(metric);
-  // rename only rows carrying both source labels, so pre-shaped legacy
-  // payloads pass through even when the entity column is named country_id
-  const data = (rawData ?? []).map((row: Record<string, unknown>) =>
-    entityLabel in row && metricLabel in row
-      ? { country_id: row[entityLabel], metric: row[metricLabel] }
-      : row,
+  const country = String(selectCountry).toLowerCase();
+  const displayData = formData.regionFormat
+    ? normalizeRegions(
+        rawData ?? [],
+        entityLabel,
+        country,
+        formData.regionFormat,
+      )
+    : (rawData ?? []);
+  // Every normalized region maps back to its source value, including regions
+  // whose metric is blank, so cross-filters and drills on returned regions
+  // filter on the original identifier rather than the boundary ISO.
+  const sourceValues: Record<string, string> = {};
+  if (formData.regionFormat) {
+    displayData.forEach((row: Record<string, unknown>, index: number) => {
+      sourceValues[String(row[entityLabel])] = rawData[index][entityLabel];
+    });
+  }
+  const data = displayData.flatMap(
+    (row: Record<string, unknown>, index: number) => {
+      // Validate regions even for sparse rows. A row without a finite metric
+      // is omitted from the rendered data, so its region stays unshaded.
+      if (
+        formData.regionFormat &&
+        (typeof row[metricLabel] !== 'number' ||
+          !Number.isFinite(row[metricLabel]))
+      ) {
+        return [];
+      }
+      // Pre-shaped legacy payloads already carry country_id and metric.
+      return [
+        entityLabel in row && metricLabel in row
+          ? {
+              country_id: row[entityLabel],
+              metric: row[metricLabel],
+              ...(formData.regionFormat
+                ? { source_value: rawData[index][entityLabel] }
+                : {}),
+            }
+          : row,
+      ];
+    },
   );
   const formatters = getColorFormatters(conditionalFormatting, data, theme);
 
@@ -87,7 +125,8 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    country: selectCountry ? String(selectCountry).toLowerCase() : null,
+    sourceValues: formData.regionFormat ? sourceValues : undefined,
+    country: selectCountry ? country : null,
     linearColorScheme,
     numberFormat, // left for backward compatibility
     colorScheme,

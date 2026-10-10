@@ -268,6 +268,7 @@ class HistogramChartPlugin(BaseChartPlugin):
     def vega_lite_preview(
         self, data: list[Any], form_data: dict[str, Any]
     ) -> VegaLitePreview | ChartError | None:
+        """Return the histogram-specific Vega-Lite preview."""
         from superset.mcp_service.chart.preview_utils import (
             generate_histogram_vega_lite_preview,
         )

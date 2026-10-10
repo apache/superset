@@ -238,6 +238,23 @@ def plugin_unsupported_preview(
     return plugin.unsupported_preview(preview_format)
 
 
+def empty_vega_lite_preview_error(
+    data: object, form_data: Dict[str, Any]
+) -> ChartError | None:
+    """Reject empty Vega-Lite results unless the owning plugin allows them."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    if not isinstance(data, list) or data:
+        return None
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is not None and plugin.allows_empty_result:
+        return None
+    return ChartError(
+        error="No data available for Vega-Lite visualization",
+        error_type="NoDataError",
+    )
+
+
 def plugin_vega_lite_preview(
     data: List[Any], form_data: Dict[str, Any]
 ) -> VegaLitePreview | ChartError | None:
@@ -1647,6 +1664,8 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any], *, use_plugin: bool = True
 ) -> VegaLitePreview | ChartError:
     """Generate Vega-Lite preview from raw data and form_data."""
+    if empty_error := empty_vega_lite_preview_error(data, form_data):
+        return empty_error
     viz_type = form_data.get("viz_type", "table")
     if use_plugin:
         if (plugin_preview := plugin_vega_lite_preview(data, form_data)) is not None:

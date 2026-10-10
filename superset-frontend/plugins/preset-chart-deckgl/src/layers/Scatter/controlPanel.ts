@@ -59,6 +59,8 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         [tooltipContents],
         [tooltipTemplate],
+        ['mcp_geographic'],
+        ['_mcp_dashboard_time_filter_subject'],
       ],
     },
     {

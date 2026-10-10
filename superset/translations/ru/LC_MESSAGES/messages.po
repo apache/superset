@@ -1956,6 +1956,12 @@ msgstr ""
 msgid "Always filter main datetime column"
 msgstr "Всегда фильтровать основной столбец с временем"
 
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "An Error Occurred"
 msgstr "Произошла ошибка"
 
@@ -3054,6 +3060,9 @@ msgstr "Размер маркера"
 
 msgid "Bubble size number format"
 msgstr "Числовой формат размера пузырька"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "Точки разбиения на сегменты"
@@ -7176,6 +7185,9 @@ msgstr "Развернуть строку"
 msgid "Expand settings"
 msgstr "Развернуть настройки"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7191,6 +7203,12 @@ msgstr "Экспериментальный"
 #, fuzzy
 msgid "Expired"
 msgstr "Истек"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Исследовать"
@@ -8069,6 +8087,13 @@ msgstr "Столбец GeoJson"
 msgid "GeoJson Settings"
 msgstr "Настройки GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8321,11 +8346,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Огромный"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Коды ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "URL значка"
@@ -9159,6 +9190,9 @@ msgstr "Левое значение"
 msgid "Legacy"
 msgstr "Устарел"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 msgid "Legend"
 msgstr "Легенда"
 
@@ -9617,6 +9651,11 @@ msgstr "Размер маркера"
 
 msgid "Markers"
 msgstr "Маркеры"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Тип разметки"
@@ -10114,6 +10153,12 @@ msgid ""
 msgstr ""
 "Для уточнения форматов и получения более подробной информации, посмотрите"
 " Python-библиотеку geopy.points"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "Мультипликатор"
@@ -12044,6 +12089,12 @@ msgstr "Обновление диаграмм"
 
 msgid "Refreshing columns"
 msgstr "Обновление столбцов"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "Регистрация"
@@ -17970,6 +18021,17 @@ msgstr "Открепить от панели результатов"
 msgid "Unpin from top"
 msgstr "Открепить"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "Unsafe link blocked"
 msgstr "Небезопасная ссылка заблокирована"
 
@@ -17987,6 +18049,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Неподдерживаемый оператор: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
 msgstr ""

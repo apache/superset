@@ -82,16 +82,23 @@ def _finalize_response(payload: object) -> GenerateChartResponse:
 
 
 def _get_existing_form_data(chart: Any) -> dict[str, Any]:
-    """Return a chart's saved form data, treating malformed params as empty."""
-    if not getattr(chart, "params", None):
-        return {}
-    try:
-        parsed = json.loads(chart.params)
-    except (ValueError, TypeError):
-        parsed = None
-    if not isinstance(parsed, dict):
-        logger.warning("Failed to parse existing chart.params for chart %s", chart.id)
-        return {}
+    """Return saved form data with a chart-level visualization fallback."""
+    parsed: dict[str, Any] = {}
+    if getattr(chart, "params", None):
+        try:
+            value = json.loads(chart.params)
+        except (ValueError, TypeError):
+            value = None
+        if isinstance(value, dict):
+            parsed = value
+        else:
+            logger.warning(
+                "Failed to parse existing chart.params for chart %s", chart.id
+            )
+    if not parsed.get("viz_type") and isinstance(
+        viz_type := getattr(chart, "viz_type", None), str
+    ):
+        parsed["viz_type"] = viz_type
     return parsed
 
 
@@ -235,6 +242,29 @@ def _merge_replacement_config(
     )
 
 
+def _map_replacement_config(
+    existing_form_data: dict[str, Any],
+    parsed_config: Any,
+    effective_dataset_id: int | None,
+) -> dict[str, Any]:
+    """Map a replacement config, allowing a disabled type only in place.
+
+    Disabled chart types remain editable when the saved chart already uses
+    them, but a different chart may not be converted into one.
+    """
+    saved_plugin = plugin_for_viz_type(existing_form_data.get("viz_type"))
+    new_form_data = map_config_to_form_data(
+        parsed_config,
+        dataset_id=effective_dataset_id,
+        include_disabled=(
+            saved_plugin is not None
+            and saved_plugin.chart_type == parsed_config.chart_type
+        ),
+    )
+    new_form_data.pop("_mcp_warnings", None)
+    return new_form_data
+
+
 def _is_dataset_rebind(request: UpdateChartRequest, chart: Any) -> bool:
     """Return whether a request changes the chart's datasource identity."""
     return request.dataset_id is not None and str(request.dataset_id) != str(
@@ -258,12 +288,13 @@ def _dataset_rebind_config_error(chart: Any) -> GenerateChartResponse:
     """Require complete target roles rather than returning an empty query."""
     plugin = plugin_for_viz_type(getattr(chart, "viz_type", None))
     display_name = plugin.display_name if plugin is not None else "Chart"
+    roles = plugin.dataset_rebind_roles if plugin is not None else "roles"
     return _validation_error_response(
         message=(
             f"{display_name} dataset rebind requires a complete {display_name} config."
         ),
         details=(
-            "Provide the chart type and complete roles valid on the target "
+            f"Provide the chart type and complete {roles} valid on the target "
             "dataset. This prevents stale metric, groupby, and filter roles "
             "from the previous dataset from being retained."
         ),
@@ -288,11 +319,10 @@ def _build_update_payload(  # noqa: C901
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id, include_disabled=True
-        )
-        new_form_data.pop("_mcp_warnings", None)
         existing_form_data = _get_existing_form_data(chart)
+        new_form_data = _map_replacement_config(
+            existing_form_data, parsed_config, effective_dataset_id
+        )
         dataset_rebind = _is_dataset_rebind(request, chart)
         if not dataset_rebind:
             merge_table_column_config(existing_form_data, new_form_data)
@@ -409,10 +439,9 @@ def _build_preview_form_data(  # noqa: C901
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id, include_disabled=True
+        new_form_data = _map_replacement_config(
+            existing_form_data, parsed_config, effective_dataset_id
         )
-        new_form_data.pop("_mcp_warnings", None)
         dataset_rebind = _is_dataset_rebind(request, chart)
         if not dataset_rebind:
             merge_table_column_config(existing_form_data, new_form_data)

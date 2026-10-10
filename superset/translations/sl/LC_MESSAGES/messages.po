@@ -2014,6 +2014,12 @@ msgstr ""
 msgid "Always filter main datetime column"
 msgstr "Vedno filtriraj glavni časovni stolpec"
 
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "An Error Occurred"
 msgstr "Prišlo je do napake"
 
@@ -3141,6 +3147,9 @@ msgstr "Velikost mehurčka"
 
 msgid "Bubble size number format"
 msgstr "Oblika zapisa velikosti mehurčka"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "Točke za razčlenitev razdelkov"
@@ -7390,6 +7399,9 @@ msgstr "Razširite vrstico za urejanje"
 msgid "Expand settings"
 msgstr "Razširi nastavitve"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7406,6 +7418,12 @@ msgstr "Eksperimentalno"
 
 msgid "Expired"
 msgstr "Poteklo"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Raziskovanje"
@@ -8325,6 +8343,13 @@ msgstr "GeoJson stolpec"
 msgid "GeoJson Settings"
 msgstr "GeoJson nastavitve"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8583,11 +8608,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Ogromno"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Oznake po ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "URL ikone"
@@ -9436,6 +9467,9 @@ msgstr "Leva vrednost"
 msgid "Legacy"
 msgstr "Zastarelo"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 msgid "Legend"
 msgstr "Legenda"
 
@@ -9903,6 +9937,11 @@ msgstr "Velikost markerja"
 
 msgid "Markers"
 msgstr "Markerji"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Tip označevanja"
@@ -10425,6 +10464,12 @@ msgid ""
 msgstr ""
 "Sprejema različne zapise - podrobnosti najdete v Pythonovi knjižnici "
 "geopy.points"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "Množitelj"
@@ -12381,6 +12426,12 @@ msgstr "Osveževanje grafikonov"
 
 msgid "Refreshing columns"
 msgstr "Osveževanje stolpcev"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "Registriraj se"
@@ -18505,6 +18556,17 @@ msgstr "Odpnite s plošče z rezultati"
 msgid "Unpin from top"
 msgstr "Odpni z vrha"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 msgid "Unsafe link blocked"
 msgstr "Nevarna povezava je blokirana"
@@ -18523,6 +18585,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Nepodprt tip izraza: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]

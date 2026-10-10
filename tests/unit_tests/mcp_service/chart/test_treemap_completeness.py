@@ -48,6 +48,20 @@ from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_ve
 from superset.utils import json
 
 
+def _set_treemap_enabled(monkeypatch: pytest.MonkeyPatch, enabled: bool) -> None:
+    """Configure the registry filter and confirm it governs ``treemap_v2``."""
+    from superset.mcp_service.chart import registry
+
+    monkeypatch.setattr(
+        registry,
+        "_filter_config",
+        registry._PluginFilterConfig(
+            disabled_plugins=frozenset() if enabled else frozenset({"treemap_v2"})
+        ),
+    )
+    assert registry.is_enabled("treemap_v2") is enabled
+
+
 def _treemap_query(form: dict[str, Any]) -> dict[str, Any]:
     """Build the single Treemap query through the plugin contract."""
     queries = TreemapChartPlugin().build_query_dicts(
@@ -728,6 +742,7 @@ async def test_registered_update_preview_preserves_cached_controls(
     module = importlib.import_module(
         "superset.mcp_service.chart.tool.update_chart_preview"
     )
+    _set_treemap_enabled(monkeypatch, not disabled)
     dataset = Mock(
         id=7,
         table_name="sales",
@@ -822,15 +837,7 @@ async def test_registered_saved_update_preserves_omissions(
     from superset.mcp_service.app import mcp
 
     module = importlib.import_module("superset.mcp_service.chart.tool.update_chart")
-    from superset.mcp_service.chart import registry
-
-    monkeypatch.setattr(
-        registry,
-        "_filter_config",
-        registry._PluginFilterConfig(
-            disabled_plugins=frozenset({"treemap_v2"}) if disabled else frozenset()
-        ),
-    )
+    _set_treemap_enabled(monkeypatch, not disabled)
     chart = Mock(
         id=1,
         datasource_id=7,
@@ -1430,7 +1437,6 @@ def test_disabled_treemap_retains_dataset_validation(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Disabling creation must not bypass column resolution on saved updates."""
-    from superset.mcp_service.chart import registry
     from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
     from superset.mcp_service.common.error_schemas import DatasetContext
 
@@ -1445,11 +1451,7 @@ def test_disabled_treemap_retains_dataset_validation(
         available_columns=[{"name": "Region", "type": "VARCHAR"}],
         available_metrics=[{"name": "Revenue", "expression": "SUM(amount)"}],
     )
-    monkeypatch.setattr(
-        registry,
-        "_filter_config",
-        registry._PluginFilterConfig(disabled_plugins=frozenset({"treemap_v2"})),
-    )
+    _set_treemap_enabled(monkeypatch, False)
     refs = DatasetValidator._extract_column_references(config)
     assert {ref.name for ref in refs} == {"region", "revenue"}
     normalized = DatasetValidator.normalize_column_names(config, 7, context)

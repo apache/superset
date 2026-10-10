@@ -23,6 +23,7 @@ import ast
 import inspect
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -31,7 +32,7 @@ from wcwidth import wcswidth
 from superset.mcp_service.chart import preview_utils
 from superset.mcp_service.chart.preview_utils import _canonical_preview_value
 from superset.mcp_service.chart.query_result import MAX_RESULT_VALUE_DEPTH
-from superset.mcp_service.chart.schemas import ChartError, TablePreview
+from superset.mcp_service.chart.schemas import ChartError, TablePreview, VegaLitePreview
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
 )
@@ -618,3 +619,47 @@ def test_vega_preview_y_axis_fallback_accepts_decimal() -> None:
     )
 
     assert encoding["y"]["field"] == "revenue"
+
+
+@pytest.mark.parametrize(
+    ("viz_type", "form_data", "expects_empty_preview"),
+    [
+        (
+            "bubble_v2",
+            {"entity": "name", "x": "x_metric", "y": "y_metric", "size": "size"},
+            True,
+        ),
+        ("gauge_chart", {"metric": "count"}, True),
+        ("bar", {"x_axis": "region", "metrics": ["count"]}, False),
+        (
+            "gantt_chart",
+            {"start_time": "start_time", "end_time": "end_time", "y_axis": "task"},
+            True,
+        ),
+    ],
+)
+def test_unsaved_vega_preview_empty_result_honors_allows_empty_result(
+    viz_type: str, form_data: dict[str, Any], expects_empty_preview: bool
+) -> None:
+    """Unsaved previews reject empty results unless the plugin allows them."""
+    with (
+        patch("superset.extensions.db.session.get", return_value=object()),
+        patch(
+            "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = chart_data_command_result([])
+        preview = preview_utils.generate_preview_from_form_data(
+            {**form_data, "viz_type": viz_type}, 1, "vega_lite"
+        )
+
+    if expects_empty_preview:
+        assert isinstance(preview, VegaLitePreview)
+        assert preview.specification["data"]["values"] == []
+    else:
+        assert isinstance(preview, ChartError)
+        assert preview.error_type == "NoDataError"

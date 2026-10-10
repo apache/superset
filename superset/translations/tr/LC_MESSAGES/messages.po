@@ -2003,6 +2003,12 @@ msgstr ""
 msgid "Always filter main datetime column"
 msgstr "Her zaman filtre ana datetime column"
 
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "An Error Occurred"
 msgstr "Bir Hata Oluştu"
 
@@ -3194,6 +3200,9 @@ msgstr "Bubble büyüklüğü"
 
 msgid "Bubble size number format"
 msgstr "Bubble boyut numarası formatı"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "Shell"
@@ -7589,6 +7598,9 @@ msgstr "Düzenlemek için satırı genişlet"
 msgid "Expand settings"
 msgstr "Ayarları genişlet"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7608,6 +7620,12 @@ msgstr "Deneysel"
 #, fuzzy
 msgid "Expired"
 msgstr "Süresi doldu"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Discover"
@@ -8556,6 +8574,13 @@ msgstr "GeoJson Köşesi"
 msgid "GeoJson Settings"
 msgstr "GeoJson Ayarları"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8818,11 +8843,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Büyük"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 Kod"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 #, fuzzy
 msgid "Icon URL"
@@ -9710,6 +9741,9 @@ msgstr "Sol değer"
 msgid "Legacy"
 msgstr "Mirası"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 msgid "Legend"
 msgstr "Legend"
 
@@ -10208,6 +10242,11 @@ msgstr "Marker boyutu"
 
 msgid "Markers"
 msgstr "Markers"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Markup type"
@@ -10728,6 +10767,12 @@ msgid ""
 msgstr ""
 "Çok sayıda format kabul edildi, geopy'ye bakın. Daha fazla ayrıntı için "
 "Python kütüphanesi"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "Multiplier"
@@ -12763,6 +12808,12 @@ msgstr "Grafikler yenileniyor"
 
 msgid "Refreshing columns"
 msgstr "Kolonlar yenileniyor"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "Register"
@@ -19098,6 +19149,17 @@ msgstr "Sonuç panelinden sabitlemeyi kaldır"
 msgid "Unpin from top"
 msgstr "Üstten sabitlemeyi kaldır"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -19117,6 +19179,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Desteklenen madde türü:   %(clause)s "
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
 msgstr "Desteklenen dosya türü. Lütfen CSV, Excel veya köşe dosyaları kullanın."

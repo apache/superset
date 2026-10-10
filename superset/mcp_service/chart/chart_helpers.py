@@ -1197,17 +1197,11 @@ def build_query_dicts_from_form_data(
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.
     if viz_type.startswith("deck_"):
-        from superset.common.form_data_query_context import normalize_time_column
-
-        qd = build_query_objects_from_form_data(
-            form_data,
-            viz_type=viz_type,
-            row_limit=row_limit,
-            order_desc=order_desc,
-            filters_prepared=True,
-        )[0]
-        qd = _deck_query_adapter(form_data, qd, viz_type)
-        return [normalize_time_column(form_data, qd)]
+        return [
+            build_deck_gl_query_dict(
+                form_data, viz_type, row_limit=row_limit, order_desc=order_desc
+            )
+        ]
     return build_query_objects_from_form_data(
         form_data,
         viz_type=viz_type,
@@ -1216,6 +1210,33 @@ def build_query_dicts_from_form_data(
         filters_prepared=True,
         secondary_form_data=secondary_form_data,
     )
+
+
+def build_deck_gl_query_dict(
+    form_data: dict[str, Any],
+    viz_type: str,
+    *,
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+) -> dict[str, Any]:
+    """Build the single query a Deck.gl layer issues from its spatial controls.
+
+    ``form_data`` must already be prepared for querying (filters normalized).
+    """
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+        normalize_time_column,
+    )
+
+    qd = build_query_objects_from_form_data(
+        form_data,
+        viz_type=viz_type,
+        row_limit=row_limit,
+        order_desc=order_desc,
+        filters_prepared=True,
+    )[0]
+    qd = _deck_query_adapter(form_data, qd, viz_type)
+    return normalize_time_column(form_data, qd)
 
 
 def resolve_form_data_datasource(
