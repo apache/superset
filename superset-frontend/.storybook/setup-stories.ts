@@ -161,10 +161,19 @@ Please run \`npm run test-storybook\` to initialize\x1B[0m
     entries: Record<string, Entry>;
   };
 
-  return Object.values(index.entries)
-    .filter(entry => entry.type === 'story' && entry.tags?.includes('test'))
-    .map(entry => [
-      `${entry.title} › ${entry.name}`,
-      async ({ page }) => visitStory(page, entry),
-    ]);
+  const selectedStories = Object.values(index.entries).filter(
+    entry => entry.type === 'story' && entry.tags?.includes('test'),
+  );
+
+  if (selectedStories.length === 0) {
+    console.error(`\x1B[41m
+Cannot find any generated Storybook tests.\x1B[0m]
+`);
+    process.exit(1);
+  }
+
+  return selectedStories.map(entry => [
+    `${entry.title} › ${entry.name}`,
+    async ({ page }) => visitStory(page, entry),
+  ]);
 }
