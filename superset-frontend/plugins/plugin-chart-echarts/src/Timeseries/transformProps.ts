@@ -1499,11 +1499,7 @@ export default function transformProps(
   // domain — the padding — so genuine sub-second data keeps its precision.
   const paddedExtentFormatter =
     xAxisType === AxisType.Time
-      ? createPaddedExtentFloorFormatter(
-          xAxisFormatter,
-          xDomainMin,
-          xDomainMax,
-        )
+      ? createPaddedExtentFloorFormatter(xAxisFormatter, xDomainMin, xDomainMax)
       : xAxisFormatter;
   const deduplicatedFormatter = showMaxLabel
     ? isHorizontal
