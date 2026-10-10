@@ -106,21 +106,60 @@ export function OAuth2RedirectMessage({
   const dispatch = useDispatch();
   const lastHandledTabIdRef = useRef<string>();
 
+  // `chartList` is rebuilt from `Object.keys` on every store update; keeping
+  // the listener state in a ref avoids tearing down/recreating the
+  // BroadcastChannel on each render and the race window that comes with it.
+  const latestStateRef = useRef({
+    source,
+    query,
+    chartId,
+    chartList,
+    dashboardId,
+    errorMitigationFunction,
+  });
+  latestStateRef.current = {
+    source,
+    query,
+    chartId,
+    chartList,
+    dashboardId,
+    errorMitigationFunction,
+  };
+
   useEffect(() => {
+    // Guard against duplicate dispatches if both the BroadcastChannel and the
+    // storage fallback ever deliver the same completion.
+    let handled = false;
     const handleOAuthComplete = (tabId?: string) => {
-      if (tabId !== extra.tab_id || tabId === lastHandledTabIdRef.current) {
+      if (
+        tabId !== extra.tab_id ||
+        tabId === lastHandledTabIdRef.current ||
+        handled
+      ) {
         return;
       }
-
-      if (errorMitigationFunction) {
-        errorMitigationFunction();
-      } else if (source === 'sqllab' && query) {
-        dispatch(reRunQuery(query));
-      } else if (source === 'explore') {
-        dispatch(triggerQuery(true, chartId));
-      } else if (source === 'dashboard') {
-        dispatch(onRefresh(chartList.map(Number), true, 0, dashboardId));
-      } else if (source === 'crud') {
+      const {
+        source: src,
+        query: q,
+        chartId: cId,
+        chartList: cList,
+        dashboardId: dId,
+        errorMitigationFunction: mitigate,
+      } = latestStateRef.current;
+      // `handled`/`lastHandledTabIdRef` are only set below, after this whole
+      // chain, and only reached when a branch actually dispatches — so a
+      // signal that arrives before state is ready (e.g. `query` still null
+      // in SQL Lab) falls through to the catch-all `return` and a later
+      // fallback signal can still succeed.
+      if (mitigate) {
+        mitigate();
+      } else if (src === 'sqllab' && q) {
+        dispatch(reRunQuery(q));
+      } else if (src === 'explore') {
+        dispatch(triggerQuery(true, cId));
+      } else if (src === 'dashboard') {
+        dispatch(onRefresh(cList.map(Number), true, 0, dId));
+      } else if (src === 'crud') {
         dispatch(
           api.util.invalidateTags([
             { type: 'Schemas', id: 'LIST' },
@@ -133,18 +172,22 @@ export function OAuth2RedirectMessage({
         return;
       }
 
+      handled = true;
       lastHandledTabIdRef.current = tabId;
     };
 
-    const channel =
-      typeof BroadcastChannel !== 'undefined'
-        ? new BroadcastChannel(OAUTH_CHANNEL_NAME)
-        : null;
-
-    if (channel) {
-      channel.onmessage = event => {
-        handleOAuthComplete(event.data?.tabId);
-      };
+    // `BroadcastChannel` may exist on `window` but throw at construction time
+    // in restricted contexts; fall back to the storage listener if so.
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        channel = new BroadcastChannel(OAUTH_CHANNEL_NAME);
+        channel.onmessage = event => {
+          handleOAuthComplete(event.data?.tabId);
+        };
+      } catch {
+        channel = null;
+      }
     }
 
     const handleStorage = (event: StorageEvent) => {
@@ -166,16 +209,7 @@ export function OAuth2RedirectMessage({
       window.removeEventListener('storage', handleStorage);
       channel?.close();
     };
-  }, [
-    source,
-    extra.tab_id,
-    dispatch,
-    query,
-    chartId,
-    chartList,
-    dashboardId,
-    errorMitigationFunction,
-  ]);
+  }, [extra.tab_id, dispatch]);
 
   const body = (
     <p>
