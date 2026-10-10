@@ -25,6 +25,7 @@ single dataframe.
 """
 
 import logging
+from dataclasses import replace
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
@@ -37,6 +38,7 @@ from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
     Filter,
+    FilterExpression,
     FilterValues,
     Grain,
     Grains,
@@ -45,6 +47,7 @@ from superset_core.semantic_layers.types import (
     Operator,
     OrderDirection,
     OrderTuple,
+    OrFilter,
     PredicateType,
     SemanticQuery,
     SemanticResult,
@@ -58,12 +61,12 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_time_range,
 )
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import NO_TIME_RANGE
+from superset.constants import EMPTY_STRING, NO_TIME_RANGE, NULL_STRING
 from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.completeness import provider_completeness
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, FilterValues as QueryFilterValues
 from superset.utils.core import (
     FilterOperator,
     QueryObjectFilterClause,
@@ -418,6 +421,9 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
         all_dimensions,
     )
 
+    if group_limit is not None:
+        _validate_filter_features(group_limit.filters, semantic_view.features)
+
     queries = []
     for time_offset in [None] + query_object.time_offsets:
         filters = _get_filters_from_query_object(
@@ -425,6 +431,7 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
             time_offset,
             all_dimensions,
         )
+        _validate_filter_features(filters, semantic_view.features)
         queries.append(
             SemanticQuery(
                 metrics=metrics,
@@ -447,14 +454,14 @@ def _get_filters_from_query_object(
     query_object: ValidatedQueryObject,
     time_offset: str | None,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter]:
+) -> set[FilterExpression]:
     """
     Extract all filters from the query object, including time range filters.
 
     This simplifies the complexity of from_dttm/to_dttm/inner_from_dttm/inner_to_dttm
     by converting all time constraints into filters.
     """
-    filters: set[Filter] = set()
+    filters: set[FilterExpression] = set()
 
     # 1. Add fetch values predicate if present
     if (
@@ -691,7 +698,7 @@ def _get_time_bounds(
 def _convert_query_object_filter(
     filter_: ValidatedQueryObjectFilterClause,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter] | None:
+) -> set[FilterExpression] | None:
     """
     Convert a QueryObject filter dict to a semantic layer Filter.
     """
@@ -704,21 +711,16 @@ def _convert_query_object_filter(
 
     dimension = all_dimensions[col]
 
-    val_str = filter_["val"]
-    value: FilterValues | frozenset[FilterValues]
-    if val_str is None:
-        value = None
-    elif isinstance(val_str, (list, tuple)):
-        value = frozenset(val_str)
-    else:
-        value = val_str
+    raw_value: QueryFilterValues | None = filter_["val"]
 
     # Special case for temporal range
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
-        if not isinstance(value, str) or value == NO_TIME_RANGE:
+        if not isinstance(raw_value, str) or raw_value == NO_TIME_RANGE:
             return None
-        start, end = get_since_until_from_time_range(time_range=value)
-        filters: set[Filter] = set()
+        start: datetime | None
+        end: datetime | None
+        start, end = get_since_until_from_time_range(time_range=raw_value)
+        filters: set[FilterExpression] = set()
         if start is not None:
             filters.add(
                 Filter(
@@ -739,30 +741,94 @@ def _convert_query_object_filter(
             )
         return filters or None
 
-    value = _coerce_filter_value(value, dimension)
-
-    operator = OPERATOR_MAP.get(operator_str)
+    operator: Operator | None = OPERATOR_MAP.get(operator_str)
     if not operator:
         # Unknown operator - raise error to prevent unauthorized access
         raise ValueError(f"Unsupported filter operator: {operator_str}")
 
-    return {
+    value: FilterValues | frozenset[FilterValues]
+    if operator in {Operator.IN, Operator.NOT_IN}:
+        # Coerce before deduplicating: equal raw values (0 and False) may differ
+        # in validity for the selected dimension's type.
+        value = (
+            frozenset(
+                _coerce_scalar_filter_value(item, dimension) for item in raw_value
+            )
+            if isinstance(raw_value, (list, tuple))
+            else _coerce_scalar_filter_value(raw_value, dimension)
+        )
+    elif operator in {Operator.IS_NULL, Operator.IS_NOT_NULL}:
+        value = None
+    else:
+        # Match the native datasource's scalar handling of collection inputs.
+        scalar: FilterValues = (
+            (raw_value[0] if raw_value else None)
+            if isinstance(raw_value, (list, tuple))
+            else raw_value
+        )
+        value = _coerce_scalar_filter_value(scalar, dimension)
+        if value is None and operator not in {Operator.EQUALS, Operator.NOT_EQUALS}:
+            raise QueryObjectValidationError(
+                "Must specify a value for this comparison."
+            )
+
+    return _normalize_membership_filter(
         Filter(
             type=PredicateType.WHERE,
             column=dimension,
             operator=operator,
             value=value,
         )
-    }
+    )
 
 
-def _coerce_filter_value(
-    value: FilterValues | frozenset[FilterValues],
-    dimension: Dimension,
-) -> FilterValues | frozenset[FilterValues]:
-    if isinstance(value, frozenset):
-        return frozenset(_coerce_scalar_filter_value(v, dimension) for v in value)
-    return _coerce_scalar_filter_value(value, dimension)
+def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
+    """Normalize NULL equality/membership and reject empty membership selections."""
+    negated: bool = filter_.operator in {Operator.NOT_EQUALS, Operator.NOT_IN}
+    null_filter: Filter = replace(
+        filter_,
+        operator=Operator.IS_NOT_NULL if negated else Operator.IS_NULL,
+        value=None,
+    )
+    if filter_.operator in {Operator.EQUALS, Operator.NOT_EQUALS}:
+        return {null_filter} if filter_.value is None else {filter_}
+    if filter_.operator not in {Operator.IN, Operator.NOT_IN}:
+        return {filter_}
+
+    values: frozenset[FilterValues] = (
+        frozenset(filter_.value)
+        if isinstance(filter_.value, (tuple, frozenset))
+        else frozenset({filter_.value})
+    )
+    if not values:
+        raise QueryObjectValidationError("Semantic IN/NOT IN filters cannot be empty.")
+    if None not in values:
+        return {filter_}
+
+    non_null_values: frozenset[FilterValues] = values - {None}
+    if not non_null_values:
+        return {null_filter}
+    comparison: Filter = replace(filter_, value=non_null_values)
+    if negated:
+        return {comparison, null_filter}
+    return {OrFilter(frozenset({comparison, null_filter}))}
+
+
+def _validate_filter_features(
+    filters: set[FilterExpression] | None,
+    features: frozenset[SemanticViewFeature | str],
+) -> None:
+    """Fail before provider execution rather than flattening an unsupported group."""
+    if not any(
+        (feature.value if isinstance(feature, SemanticViewFeature) else feature)
+        == SemanticViewFeature.OR_FILTERS.value
+        for feature in features
+    ) and any(isinstance(filter_, OrFilter) for filter_ in filters or ()):
+        logger.debug("Semantic provider does not declare OR_FILTERS")
+        raise QueryObjectValidationError(
+            "This data source cannot combine NULL with other selected values. "
+            "Select NULL separately or ask your administrator to upgrade the provider."
+        )
 
 
 def _timestamp_target_tz(dtype: pa.DataType) -> tzinfo | None:
@@ -781,6 +847,11 @@ def _align_tz(dt: datetime, target_tz: tzinfo | None) -> datetime:
 def _coerce_scalar_filter_value(  # noqa: C901 — type dispatch, complexity is inherent
     value: FilterValues, dimension: Dimension
 ) -> FilterValues:
+    if isinstance(value, str):
+        if value == NULL_STRING:
+            return None
+        if value == EMPTY_STRING:
+            value = ""
     if value is None:
         return None
 
@@ -971,7 +1042,7 @@ def _get_group_limit_from_query_object(
 def _get_group_limit_filters(
     query_object: ValidatedQueryObject,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter] | None:
+) -> set[FilterExpression] | None:
     """
     Get separate filters for the group limit subquery if needed.
 
@@ -994,7 +1065,7 @@ def _get_group_limit_filters(
         return None
 
     # Create separate filters for the group limit subquery
-    filters: set[Filter] = set()
+    filters: set[FilterExpression] = set()
     time_bounds_emitted = False
 
     # Add time range filter using inner bounds. The temporal column is resolved

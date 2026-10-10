@@ -30,6 +30,7 @@ from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
     Filter,
+    FilterExpression,
     Grain,
     Grains,
     GroupLimit,
@@ -468,7 +469,8 @@ def test_convert_query_object_filter_ilike(
         result = _convert_query_object_filter(filter_, all_dimensions)
         assert result is not None
         assert len(result) == 1
-        converted = next(iter(result))
+        converted: FilterExpression = next(iter(result))
+        assert isinstance(converted, Filter)
         assert converted.operator == expected
         assert converted.column == all_dimensions["category"]
         assert converted.value == "%book%"
@@ -2684,11 +2686,12 @@ def test_convert_query_object_filter_temporal_range_named_ranges(
         result = _convert_query_object_filter(filter_, all_dimensions)
 
     assert result is not None
-    assert {f.operator for f in result} == {
+    assert {f.operator for f in result if isinstance(f, Filter)} == {
         Operator.GREATER_THAN_OR_EQUAL,
         Operator.LESS_THAN,
     }
     for f in result:
+        assert isinstance(f, Filter)
         assert isinstance(f.value, datetime)
 
 
@@ -4036,14 +4039,16 @@ def test_map_query_object_shifts_time_offset_via_temporal_range_filter(
         gte = next(
             f.value
             for f in query.filters or ()
-            if f.column is not None
+            if isinstance(f, Filter)
+            and f.column is not None
             and f.column.name == "order_date"
             and f.operator == Operator.GREATER_THAN_OR_EQUAL
         )
         lt = next(
             f.value
             for f in query.filters or ()
-            if f.column is not None
+            if isinstance(f, Filter)
+            and f.column is not None
             and f.column.name == "order_date"
             and f.operator == Operator.LESS_THAN
         )
@@ -4124,7 +4129,9 @@ def test_get_group_limit_filters_uses_time_axis_from_temporal_range(
     order_date_bounds = {
         (f.operator, f.value)
         for f in result
-        if f.column is not None and f.column.name == "order_date"
+        if isinstance(f, Filter)
+        and f.column is not None
+        and f.column.name == "order_date"
     }
     # Inner bounds — not the outer 2020-01-01 / 2020-12-31 — must be present,
     # and the outer TEMPORAL_RANGE pass-through must be skipped.

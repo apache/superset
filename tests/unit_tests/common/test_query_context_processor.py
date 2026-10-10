@@ -2912,7 +2912,11 @@ def test_semantic_annotation_generation_versions_sql_parent(
         old: dict[str, Any] = processor._annotation_cache_context(query)
         provider.result_cache_version = "guarded-v1"
         new: dict[str, Any] = processor._annotation_cache_context(query)
-    assert old == {"user_id": 42, "source_rls": {"7": ["scope"]}}
+    assert old == {
+        "user_id": 42,
+        "source_rls": {"7": ["scope"]},
+        "semantic_filter_protocol": "semantic-null-filters-v1",
+    }
     assert new != old
     assert new["user_id"] == old["user_id"]
     assert new["source_rls"] == old["source_rls"]
@@ -3014,3 +3018,96 @@ def test_get_viz_annotation_data_ignores_source_chart_annotations(
 
     assert result == {"records": [{"x": 1}]}
     assert query_object.annotation_layers == []
+
+
+def test_semantic_annotation_null_protocol_versions_parent_cache(
+    app_context: Any,
+) -> None:
+    """Saved semantic annotation rows must not reuse pre-NULL-fix parent keys."""
+    from superset.common.query_context import QueryContext
+    from superset.common.query_object import QueryObject
+    from superset.models.slice import Slice
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+
+    view: SemanticView = SemanticView(
+        id=17, name="fixture", semantic_layer=SemanticLayer(type="fixture")
+    )
+    provider: MagicMock = MagicMock()
+    provider.get_dimensions.return_value = []
+    view.__dict__["implementation"] = provider
+    chart: Slice = Slice(
+        id=7,
+        datasource_id=17,
+        datasource_type="semantic_view",
+        query_context=superset_json.dumps(
+            {
+                "datasource": {"id": 17, "type": "semantic_view"},
+                "queries": [
+                    {
+                        "columns": [],
+                        "metrics": [],
+                        "filters": [
+                            {"col": "country", "op": "IN", "val": [None, "US"]}
+                        ],
+                    }
+                ],
+            }
+        ),
+    )
+    chart.semantic_view = view
+    assert chart.datasource is None
+    captured: list[QueryContext] = []
+
+    def payload(context: QueryContext, **kwargs: Any) -> dict[str, Any]:
+        """Capture real query routing while isolating provider execution."""
+        captured.append(context)
+        return {"queries": [{"data": [{"country": None}, {"country": "US"}]}]}
+
+    layer: dict[str, Any] = {
+        "sourceType": "line",
+        "annotationType": "TIME_SERIES",
+        "value": 7,
+        "name": "semantic source",
+    }
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+        ),
+        patch.object(QueryContext, "raise_for_access"),
+        patch.object(QueryContext, "get_payload", payload),
+    ):
+        result: dict[str, Any] = QueryContextProcessor.get_viz_annotation_data(
+            layer, force=False
+        )
+    assert result == {"records": [{"country": None}, {"country": "US"}]}
+    assert len(captured) == 1
+    assert captured[0].datasource is view
+    assert captured[0].queries[0].filter == [
+        {"col": "country", "op": "IN", "val": [None, "US"]}
+    ]
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    query: QueryObject = QueryObject(columns=[], metrics=[], annotation_layers=[layer])
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch("superset.common.query_context_processor.get_user_id", return_value=42),
+    ):
+        context: dict[str, Any] = processor._annotation_cache_context(query)
+    legacy_context: dict[str, Any] = {"user_id": 42, "source_rls": {"7": None}}
+    legacy_key: str = query.cache_key(
+        datasource="native-1", annotation_context=legacy_context
+    )
+    current_key: str = query.cache_key(
+        datasource="native-1", annotation_context=context
+    )
+    assert current_key != legacy_key
+    assert context == {
+        **legacy_context,
+        "semantic_filter_protocol": "semantic-null-filters-v1",
+    }

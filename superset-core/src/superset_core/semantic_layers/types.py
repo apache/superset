@@ -20,7 +20,7 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
-from typing import Any
+from typing import Any, TypeAlias
 
 import isodate
 import pyarrow as pa
@@ -169,6 +169,32 @@ class Filter:
     value: FilterValues | tuple[FilterValues, ...] | frozenset[FilterValues]
 
 
+@dataclass(frozen=True)
+class OrFilter:
+    """A parenthesized disjunction of at least two leaves in one predicate stage.
+
+    Query filter collections combine their members with AND. A group is one member
+    of that collection and combines its leaves with OR. Nested groups are unsupported.
+    Providers must declare OR_FILTERS before the host emits a group. Sort leaves
+    deterministically when rendering, keeping each bound value paired with its
+    predicate; frozenset iteration order is not stable across processes.
+    """
+
+    filters: frozenset[Filter]
+
+    def __post_init__(self) -> None:
+        """Reject mutable, empty, nested, or mixed WHERE/HAVING groups."""
+        if not isinstance(self.filters, frozenset) or len(self.filters) < 2:
+            raise ValueError("OrFilter requires a frozenset of at least two leaves")
+        if not all(isinstance(leaf, Filter) for leaf in self.filters):
+            raise ValueError("OrFilter only accepts Filter leaves")
+        if len({leaf.type for leaf in self.filters}) != 1:
+            raise ValueError("OrFilter leaves must share one predicate stage")
+
+
+FilterExpression: TypeAlias = Filter | OrFilter
+
+
 class OrderDirection(enum.Enum):
     ASC = "ASC"
     DESC = "DESC"
@@ -195,7 +221,7 @@ class GroupLimit:
     metric: Metric | None
     direction: OrderDirection = OrderDirection.DESC
     group_others: bool = False
-    filters: set[Filter] | None = None
+    filters: set[FilterExpression] | None = None
 
 
 @dataclass(frozen=True)
@@ -231,7 +257,7 @@ class SemanticQuery:
 
     metrics: list[Metric]
     dimensions: list[Dimension]
-    filters: set[Filter] | None = None
+    filters: set[FilterExpression] | None = None
     order: list[OrderTuple] | None = None
     limit: int | None = None
     offset: int | None = None

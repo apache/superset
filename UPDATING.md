@@ -24,6 +24,19 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic filters normalize UI NULL/empty-string selections. Mixed positive
+  NULL membership returns HTTP 400 unless the provider supports `OR_FILTERS`;
+  previously it could silently omit NULL rows. Empty membership and invalid NULL
+  comparison operands also return query validation errors. The semantic result
+  cache key includes a protocol version, so pre-upgrade answers are not reused
+  and semantic caches warm again after deployment.
+  Chart-backed annotation results also get a one-time cold cache after upgrade.
+- SDK adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
+  members (`Filter | OrFilter`) before reading leaf attributes. `get_values`
+  remains `set[Filter] | None`. Host filter-value typing also permits NULL within
+  lists and variable-length tuples. See the
+  [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
+  for capability opt-in and guarded loading on older SDKs.
 - Malformed explicit `time_range` values are rejected with a validation error
   (HTTP 400 on chart-data requests) instead of silently producing an upper-bound-only
   scan. Update saved charts, dashboard filters, imports, and API callers to use
