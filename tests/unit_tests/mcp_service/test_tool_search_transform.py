@@ -1376,8 +1376,9 @@ def _exact_name_search(
     *,
     can_access: bool | Callable[[str, str], bool],
     can_view_metadata: bool,
+    query_for: Callable[[str], str] = lambda name: name,
 ) -> tuple[dict[str, list[str]], set[str]]:
-    """Search each tool's exact name through search_tools as one caller.
+    """Search each tool's name (or ``query_for(name)``) through search_tools.
 
     Returns the ranked names for every query and the caller's visible names.
     """
@@ -1405,7 +1406,8 @@ def _exact_name_search(
         search = transform._make_search_tool().fn
         results = {
             tool.name: [
-                result["name"] for result in asyncio.run(search(query=tool.name))
+                result["name"]
+                for result in asyncio.run(search(query=query_for(tool.name)))
             ]
             for tool in catalog
         }
@@ -1438,6 +1440,148 @@ def test_bm25_exact_name_finds_every_registered_tool(
     assert not_first == {}
     for name in pinned:
         assert name not in results[name]
+
+
+def _production_search(
+    transform: BM25SearchTransform, catalog: list[Tool], query: str
+) -> list[str]:
+    """Rank the unpinned registered catalog the way search_tools does."""
+    pinned: set[str] = set(MCP_TOOL_SEARCH_CONFIG["always_visible"])
+    searchable = [tool for tool in catalog if tool.name not in pinned]
+    return [tool.name for tool in asyncio.run(transform._search(searchable, query))]
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("get dataset info execute sql", ["get_dataset_info", "execute_sql"]),
+        ("get chart info and list dashboards", ["get_chart_info", "list_dashboards"]),
+        ("generate chart and list dashboards", ["generate_chart", "list_dashboards"]),
+        ("get dataset info", ["get_dataset_info"]),
+        ("execute sql", ["execute_sql"]),
+        ("list dashboards", ["list_dashboards"]),
+    ],
+)
+def test_bm25_names_spelled_out_by_query_rank_first(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+    query: str,
+    expected: list[str],
+) -> None:
+    """Tools whose full names appear in the query lead the results.
+
+    The long ``get_dataset_info`` definition sat at the edge of the result
+    limit for "get dataset info execute sql" even though its name is spelled
+    out, so small catalog changes pushed it out entirely.
+    """
+    results = _production_search(production_bm25_transform, registered_catalog, query)
+
+    assert set(results[: len(expected)]) == set(expected)
+    assert len(results) <= MCP_TOOL_SEARCH_CONFIG["max_results"]
+    assert len(set(results)) == len(results)
+
+
+def test_bm25_multi_intent_query_stays_within_result_limit(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """Name matches never exceed the limit, even when more tools qualify."""
+    query = (
+        "generate chart get chart info get dataset info get dashboard info "
+        "list dashboards execute sql"
+    )
+
+    results = _production_search(production_bm25_transform, registered_catalog, query)
+
+    assert len(results) == MCP_TOOL_SEARCH_CONFIG["max_results"]
+    assert len(set(results)) == len(results)
+
+
+@pytest.mark.parametrize("query", ["charts", "create charts", "generate", "no_match"])
+def test_bm25_name_coverage_ignores_partial_name_matches(
+    bm25_transform: BM25SearchTransform,
+    crowded_catalog: list[Tool],
+    query: str,
+) -> None:
+    """A query containing only part of a name does not promote that tool."""
+    expected = asyncio.run(
+        BM25SearchTransform(max_results=5)._search(crowded_catalog, query)
+    )
+    assert asyncio.run(bm25_transform._search(crowded_catalog, query)) == expected
+
+
+def test_bm25_name_coverage_ranks_longer_names_first(
+    bm25_transform: BM25SearchTransform,
+) -> None:
+    """Among covered names, more specific (longer) names come first."""
+    catalog = [
+        Tool.from_function(
+            lambda: None, name=name, description="Report details. " * count
+        )
+        for count, name in enumerate(
+            ["list_things", "get_thing_info_detail", "get_thing_info"], start=1
+        )
+    ] + [
+        Tool.from_function(
+            lambda: None, name=f"noise_{index}", description="get thing info " * 20
+        )
+        for index in range(8)
+    ]
+
+    results = asyncio.run(
+        bm25_transform._search(catalog, "get thing info detail list things")
+    )
+
+    assert [tool.name for tool in results[:2]] == [
+        "get_thing_info_detail",
+        "get_thing_info",
+    ]
+    assert len(results) == 5
+
+
+def test_regex_does_not_use_name_coverage(
+    crowded_catalog: list[Tool],
+) -> None:
+    """Regex search keeps pattern semantics; only BM25 expands query words."""
+    server = MagicMock()
+    _apply_tool_search_transform(
+        server,
+        {"strategy": "regex", "max_results": 5, "always_visible": []},
+    )
+    transform = server.add_transform.call_args[0][0]
+    query = "generate.*chart"
+    expected = asyncio.run(
+        RegexSearchTransform(max_results=5)._search(crowded_catalog, query)
+    )
+    assert asyncio.run(transform._search(crowded_catalog, query)) == expected
+
+
+@pytest.mark.parametrize(
+    "query, unexpected",
+    [
+        ("create a dashboard from a dataset", "create_dataset"),
+        ("list all the charts on a dashboard", "list_charts"),
+    ],
+)
+def test_bm25_name_coverage_ignores_scattered_name_words(
+    bm25_transform: BM25SearchTransform,
+    query: str,
+    unexpected: str,
+) -> None:
+    """Name words scattered across the query do not promote that tool."""
+    catalog = [
+        Tool.from_function(lambda: None, name=name, description="Report details. ")
+        for name in [unexpected, "create_dashboard", "list_dashboards"]
+    ] + [
+        Tool.from_function(
+            lambda: None, name=f"noise_{index}", description=f"{query} " * 20
+        )
+        for index in range(8)
+    ]
+
+    results = asyncio.run(bm25_transform._search(catalog, query))
+
+    assert results[0].name != unexpected
 
 
 def _read_only_can_access(permission: str, _view: str) -> bool:
@@ -1473,6 +1617,28 @@ def test_bm25_exact_name_never_surfaces_unauthorized_registered_tools(
         if name in visible and ranked[:1] != [name]
     }
     assert not_first == {}
+
+
+def test_bm25_name_coverage_respects_visibility(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """A hidden tool's full name inside a longer query is never returned."""
+    results, visible = _exact_name_search(
+        production_bm25_transform,
+        registered_catalog,
+        can_access=_read_only_can_access,
+        can_view_metadata=False,
+        query_for=lambda name: f"please {name.replace('_', ' ')} for me",
+    )
+    denied: set[str] = {tool.name for tool in registered_catalog} - visible
+    assert "generate_chart" in denied
+
+    assert "generate_chart" not in results["generate_chart"]
+    leaked: dict[str, list[str]] = {
+        name: sorted(set(ranked) & denied) for name, ranked in results.items()
+    }
+    assert {name: hidden for name, hidden in leaked.items() if hidden} == {}
 
 
 @pytest.fixture

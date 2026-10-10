@@ -707,6 +707,15 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     )
 
 
+def _name_words(text: str) -> list[str]:
+    """Split a tool name or query into lowercase words for name matching.
+
+    Mirrors the BM25 tokenizer: runs of letters and digits, dropping
+    single-character fragments.
+    """
+    return [word for word in re.split(r"[^a-z0-9]+", text.lower()) if len(word) > 1]
+
+
 def _create_search_transform(  # noqa: C901
     *,
     strategy: str,
@@ -742,13 +751,31 @@ def _create_search_transform(  # noqa: C901
         tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
         return _fix_search_tool_query(tool)
 
-    def _promote_exact_name(
+    def _promote_name_matches(
         tools: Sequence[Tool],
         query: str,
         ranked: Sequence[Tool],
         max_results: int,
+        *,
+        cover_query_words: bool = False,
     ) -> Sequence[Tool]:
-        """Promote caller-visible exact names without duplicating ranked matches."""
+        """Promote tools whose names the query spells out, within ``max_results``.
+
+        BM25 indexes a tool's name as ordinary text next to its description, so
+        a tool with a long definition can rank below the result limit even when
+        the query contains every word of its name. Two kinds of name match are
+        moved ahead of the upstream ranking:
+
+        1. Exact names, which always come first.
+        2. With ``cover_query_words`` (natural-language search only), multi-word
+           names whose words appear in the query as a contiguous, in-order run,
+           for example ``get_dataset_info`` for "get dataset info execute sql",
+           ordered by name length and then by upstream rank. Words scattered
+           across the query do not count.
+
+        Only caller-visible candidates are inspected, never the full catalog,
+        and the result never exceeds ``max_results``.
+        """
         normalized_query = " ".join(query.casefold().replace("_", " ").split())
         exact = [
             tool
@@ -756,15 +783,34 @@ def _create_search_transform(  # noqa: C901
             if " ".join(tool.name.casefold().replace("_", " ").split())
             == normalized_query
         ]
-        if not exact:
-            return ranked
-        # Only inspect the caller-filtered candidates, never the full catalog.
-        # The upstream top-N contains enough non-exact results to fill the
-        # remaining slots, without changing upstream ordering or shared limits.
         exact_names = {tool.name for tool in exact}
+        covered: list[Tool] = []
+        if cover_query_words:
+            query_words = _name_words(query)
+            ranked_position = {tool.name: index for index, tool in enumerate(ranked)}
+            covered = sorted(
+                (
+                    tool
+                    for tool in tools
+                    if tool.name not in exact_names
+                    and len(words := _name_words(tool.name)) > 1
+                    and any(
+                        query_words[start : start + len(words)] == words
+                        for start in range(len(query_words) - len(words) + 1)
+                    )
+                ),
+                key=lambda tool: (
+                    -len(_name_words(tool.name)),
+                    ranked_position.get(tool.name, len(ranked_position)),
+                ),
+            )
+        promoted_names = exact_names | {tool.name for tool in covered}
+        if not promoted_names:
+            return ranked
         return [
             *exact,
-            *(tool for tool in ranked if tool.name not in exact_names),
+            *covered,
+            *(tool for tool in ranked if tool.name not in promoted_names),
         ][:max_results]
 
     if strategy == "regex":
@@ -783,7 +829,7 @@ def _create_search_transform(  # noqa: C901
             ) -> Sequence[Tool]:
                 """Promote visible exact names before applying the result limit."""
                 ranked = await super()._search(tools, query)
-                return _promote_exact_name(tools, query, ranked, self._max_results)
+                return _promote_name_matches(tools, query, ranked, self._max_results)
 
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
@@ -808,9 +854,11 @@ def _create_search_transform(  # noqa: C901
             return await _filter_visible_tools_fail_open(tools)
 
         async def _search(self, tools: Sequence[Tool], query: str) -> Sequence[Tool]:
-            """Promote visible exact names before applying the final result limit."""
+            """Promote visible exact names and contiguous name runs before the limit."""
             ranked = await super()._search(tools, query)
-            return _promote_exact_name(tools, query, ranked, self._max_results)
+            return _promote_name_matches(
+                tools, query, ranked, self._max_results, cover_query_words=True
+            )
 
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
