@@ -258,9 +258,26 @@ const AsyncSelect = forwardRef(
             ? { value: opt.value, label: opt.label }
             : { value: opt, label: String(opt) },
         );
-      return missingValues.length > 0
+      const combined = missingValues.length > 0
         ? missingValues.concat(selectOptions)
         : selectOptions;
+      
+      // Only filter if there are isNewOption entries
+      const hasNewOptions = combined.some(opt => opt.isNewOption);
+      if (!hasNewOptions) {
+        return combined;
+      }
+      
+      // Remove isNewOption entries that have a case-insensitive label match with a non-isNewOption entry
+      return combined.filter(opt => {
+        if (!opt.isNewOption) return true;
+        // Keep isNewOption only if no non-isNewOption has the same label (case-insensitive)
+        const optLabel = String(opt.label).trim().toLowerCase();
+        return !combined.some(
+          other => !other.isNewOption &&
+            String(other.label).trim().toLowerCase() === optLabel
+        );
+      });
     }, [selectOptions, selectValue]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
@@ -476,8 +493,14 @@ const AsyncSelect = forwardRef(
               // typed when the server returns no match.
               setSelectOptions(prevOptions => {
                 const dataValues = new Set(data.map(opt => opt.value));
+                const dataLabels = new Set(
+                  data.map(opt => String(opt.label).trim().toLowerCase()),
+                );
                 const preservedNew = prevOptions.filter(
-                  opt => opt.isNewOption && !dataValues.has(opt.value),
+                  opt =>
+                    opt.isNewOption &&
+                    !dataValues.has(opt.value) &&
+                    !dataLabels.has(String(opt.label).trim().toLowerCase()),
                 );
                 return preservedNew
                   .concat(data)
@@ -571,19 +594,47 @@ const AsyncSelect = forwardRef(
 
           if (allowNewOptions) {
             const unquotedSearch = stripSurroundingQuotes(searchValue);
-            const newOption = unquotedSearch &&
-              !hasOption(unquotedSearch, fullSelectOptions, true) && {
-                label: unquotedSearch,
-                value: unquotedSearch,
-                isNewOption: true,
-              };
-            const cleanSelectOptions = fullSelectOptions.filter(
-              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-            );
-            const newOptions = newOption
-              ? [newOption, ...cleanSelectOptions]
-              : cleanSelectOptions;
-            setSelectOptions(newOptions);
+            
+            setSelectOptions(prevOptions => {
+              // Filter out isNewOption entries that:
+              // 1. Have matching non-isNewOption (case-insensitive label match)
+              // 2. Are not selected
+              const cleanPrevOptions = prevOptions.filter(opt => {
+                if (!opt.isNewOption) return true;
+                // Keep isNewOption if it's selected
+                if (hasOption(opt.value, selectValue)) return true;
+                const optLabel = String(opt.label).trim().toLowerCase();
+                // Remove isNewOption if there's a non-isNewOption with same label
+                return !prevOptions.some(
+                  other => !other.isNewOption &&
+                    String(other.label).trim().toLowerCase() === optLabel
+                );
+              });
+              
+              // Check if we should create a new option based on current state
+              const prevHasMatchingLabel = unquotedSearch &&
+                cleanPrevOptions.some(opt =>
+                  String(opt.label).trim().toLowerCase() === unquotedSearch.toLowerCase()
+                );
+              const shouldCreateNew = unquotedSearch &&
+                !hasOption(unquotedSearch, cleanPrevOptions, true) &&
+                !prevHasMatchingLabel;
+              
+              if (shouldCreateNew) {
+                // Remove any previous isNewOption that's not selected before adding new one
+                const withoutUnselectedNew = cleanPrevOptions.filter(
+                  opt => !opt.isNewOption || hasOption(opt.value, selectValue)
+                );
+                const newOption = {
+                  label: unquotedSearch,
+                  value: unquotedSearch,
+                  isNewOption: true,
+                };
+                return [newOption, ...withoutUnselectedNew];
+              }
+              
+              return cleanPrevOptions;
+            });
           }
 
           if (
