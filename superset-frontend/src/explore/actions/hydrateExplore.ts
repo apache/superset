@@ -24,14 +24,18 @@ import {
   ExplorePageState,
 } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
-import { getControlsState } from 'src/explore/store';
+import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
   Currency,
+  DataMaskStateWithId,
+  JsonObject,
   ensureIsArray,
+  FeatureFlag,
   getCategoricalSchemeRegistry,
   getColumnLabel,
   getSequentialSchemeRegistry,
+  isFeatureEnabled,
   NO_TIME_RANGE,
   QueryFormColumn,
   VizType,
@@ -44,6 +48,11 @@ import { getDatasourceUid } from 'src/utils/getDatasourceUid';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import { findPermission } from 'src/utils/findPermission';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { nanoid } from 'nanoid';
+import cloneDeep from 'lodash-es/cloneDeep';
+import { hydrateChartNormalization } from 'src/features/versionHistory/reducer';
+import { automaticNormalizationTransitions } from 'src/features/versionHistory/normalization';
 
 enum ColorSchemeType {
   CATEGORICAL = 'CATEGORICAL',
@@ -58,7 +67,12 @@ export const hydrateExplore =
     dataset,
     metadata,
     saveAction = null,
-  }: ExplorePageInitialData) =>
+    dataMask,
+    chartStates,
+  }: ExplorePageInitialData & {
+    dataMask?: DataMaskStateWithId;
+    chartStates?: Record<number, JsonObject>;
+  }) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
     const { user, datasources, charts, sliceEntities, common, explore } =
       getState();
@@ -68,6 +82,14 @@ export const hydrateExplore =
     const fallbackSlice = sliceId ? sliceEntities?.slices?.[sliceId] : null;
     const initialSlice = slice ?? fallbackSlice;
     const initialFormData = form_data ?? initialSlice?.form_data;
+    const persistedFormData = cloneDeep(initialSlice?.form_data ?? {});
+    const preHydrationFormData = cloneDeep(initialFormData ?? {});
+    const isCachedFormData = getUrlParam(URL_PARAMS.formDataKey) !== null;
+    const [primarySliceNameSource, fallbackSliceNameSource] = isCachedFormData
+      ? [initialFormData, initialSlice]
+      : [initialSlice, initialFormData];
+    const initialSliceName =
+      primarySliceNameSource?.slice_name ?? fallbackSliceNameSource?.slice_name;
     if (!initialFormData.viz_type) {
       const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
       initialFormData.viz_type =
@@ -107,6 +129,12 @@ export const hydrateExplore =
         ]),
     );
 
+    // Normalize deprecated controls (e.g., migrate old per-axis matrixify
+    // flags to matrixify_enable) before form_data is stored in Redux state.
+    // getControlsState also calls this on its own copy, but state.form_data
+    // must reflect the same migration so the two stay consistent.
+    handleDeprecatedControls(initialFormData);
+
     const initialExploreState = {
       form_data: initialFormData,
       slice: initialSlice,
@@ -142,13 +170,26 @@ export const hydrateExplore =
     if (colorSchemeKey) verifyColorScheme(ColorSchemeType.CATEGORICAL);
     if (linearColorSchemeKey) verifyColorScheme(ColorSchemeType.SEQUENTIAL);
 
+    const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
+    const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
     const exploreState = {
       // note this will add `form_data` to state,
       // which will be manipulable by future reducers.
       can_add: findPermission('can_write', 'Chart', user?.roles),
-      can_download: findPermission('can_csv', 'Superset', user?.roles),
-      can_overwrite: ensureIsArray(slice?.owners).includes(
-        user?.userId as number,
+      can_download: granularExport
+        ? findPermission('can_export_data', 'Superset', user?.roles)
+        : findPermission('can_csv', 'Superset', user?.roles),
+      can_export_image: granularExport
+        ? findPermission('can_export_image', 'Superset', user?.roles)
+        : findPermission('can_csv', 'Superset', user?.roles),
+      can_copy_clipboard: granularExport
+        ? findPermission('can_copy_clipboard', 'Superset', user?.roles)
+        : findPermission('can_csv', 'Superset', user?.roles),
+      can_overwrite: ensureIsArray(slice?.editors).some(
+        (editor: { id: number } | number) =>
+          userSubjects.includes(
+            typeof editor === 'number' ? editor : editor.id,
+          ),
       ),
       isDatasourceMetaLoading: false,
       isStarred: false,
@@ -159,6 +200,7 @@ export const hydrateExplore =
       // because `bootstrapData.controls` is undefined.
       controls: initialControls,
       form_data: initialFormData,
+      sliceName: initialSliceName,
       slice: initialSlice,
       controlsTransferred: explore.controlsTransferred,
       standalone: getUrlParam(URL_PARAMS.standalone),
@@ -177,6 +219,10 @@ export const hydrateExplore =
         exploreState,
       );
     });
+    const hydratedFormData = {
+      ...initialFormData,
+      ...getFormDataFromControls(exploreState.controls),
+    };
     const sliceFormData = initialSlice
       ? getFormDataFromControls(initialControls)
       : null;
@@ -193,11 +239,11 @@ export const hydrateExplore =
       sliceFormData,
       queryController: null,
       queriesResponse: null,
-      triggerQuery: false,
+      triggerQuery: !!saveAction,
       lastRendered: 0,
     };
 
-    return dispatch({
+    const result = dispatch({
       type: HYDRATE_EXPLORE,
       data: {
         charts: {
@@ -213,12 +259,35 @@ export const hydrateExplore =
           saveModalAlert: null,
           isVisible: false,
         },
-        explore: exploreState,
+        explore: { ...exploreState, chartStates },
+        dataMask,
       },
     });
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      initialSlice?.slice_id &&
+      !isCachedFormData &&
+      !dashboardId &&
+      getUrlParam(URL_PARAMS.vizType) === null
+    ) {
+      dispatch(
+        hydrateChartNormalization({
+          chartId: initialSlice.slice_id,
+          hydrationSessionId: nanoid(),
+          transitions: automaticNormalizationTransitions(
+            persistedFormData,
+            preHydrationFormData,
+            hydratedFormData,
+          ),
+          invalidatedControls: {},
+          saveAttemptId: null,
+        }),
+      );
+    }
+    return result;
   };
 
 export type HydrateExplore = {
   type: typeof HYDRATE_EXPLORE;
-  data: ExplorePageState;
+  data: ExplorePageState & { dataMask?: DataMaskStateWithId };
 };

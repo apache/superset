@@ -19,7 +19,8 @@ from __future__ import annotations
 
 from typing import Any, Callable, TYPE_CHECKING
 
-from flask_babel import gettext as __, ngettext
+from flask_babel import gettext as __, lazy_gettext as _, ngettext
+from flask_babel.speaklater import LazyString
 from jinja2 import TemplateError
 from jinja2.meta import find_undeclared_variables
 
@@ -35,7 +36,9 @@ if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
-PARAMETER_MISSING_ERR = __(
+# Lazy on purpose: evaluated at import time, an eager constant would be
+# frozen in the default locale (see the same convention in views/core.py).
+PARAMETER_MISSING_ERR: LazyString = _(
     "Please check your template parameters for syntax errors and make sure "
     "they match across your SQL query and Set Parameters. Then, try running "
     "your query again."
@@ -66,6 +69,23 @@ class SqlQueryRenderImpl(SqlQueryRender):
         except TemplateError as ex:
             self._raise_template_exception(ex, execution_context)
             return "NOT_REACHABLE_CODE"
+        except Exception as ex:
+            from superset.jinja_context import UndefinedTemplateFunctionException
+
+            if isinstance(ex, UndefinedTemplateFunctionException):
+                return query_model.sql.strip().strip(";")
+            raise
+
+    def _strip_sql_comments(
+        self,
+        execution_context: SqlJsonExecutionContext,
+        sql: str,
+    ) -> str:
+        from superset.sql.parse import SQLScript
+
+        engine = execution_context.query.database.db_engine_spec.engine
+        script = SQLScript(sql, engine)
+        return script.format(comments=False)
 
     def _validate(
         self,
@@ -74,7 +94,11 @@ class SqlQueryRenderImpl(SqlQueryRender):
         sql_template_processor: BaseTemplateProcessor,
     ) -> None:
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-            syntax_tree = sql_template_processor.env.parse(rendered_query)
+            sql_for_validation = self._strip_sql_comments(
+                execution_context,
+                rendered_query,
+            )
+            syntax_tree = sql_template_processor.env.parse(sql_for_validation)
             undefined_parameters = find_undeclared_variables(syntax_tree)
             if undefined_parameters:
                 self._raise_undefined_parameter_exception(
@@ -93,7 +117,7 @@ class SqlQueryRenderImpl(SqlQueryRender):
                 len(undefined_parameters),
                 parameters=utils.format_list(undefined_parameters),
             ),
-            suggestion_help_msg=PARAMETER_MISSING_ERR,
+            suggestion_help_msg=str(PARAMETER_MISSING_ERR),
             extra={
                 "undefined_parameters": list(undefined_parameters),
                 "template_parameters": execution_context.template_params,

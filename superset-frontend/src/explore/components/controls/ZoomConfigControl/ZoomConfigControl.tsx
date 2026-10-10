@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { Form } from '@superset-ui/core/components';
 import { Tag } from 'src/components';
 import { FC, useState } from 'react';
@@ -37,6 +38,20 @@ export const StyledControlFormItem = styled(ControlFormItem)`
     border-radius: ${theme.borderRadius}px;
   `}
 `;
+
+/**
+ * Copy configs before assignment so ZoomConfigControl never mutates the
+ * incoming value, then recompute derived zoom-level sizes.
+ */
+const updateConfigs = <T extends ZoomConfigs>(
+  current: T,
+  configs: Partial<T['configs']>,
+): T => {
+  const newValue = { ...current };
+  newValue.configs = { ...newValue.configs, ...configs };
+  newValue.values = computeConfigValues(newValue);
+  return newValue;
+};
 
 export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
   value,
@@ -65,16 +80,11 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
   };
 
   const onBaseWidthChange = (width: number) => {
-    console.log('now in onbasewidthcahnge');
     setBaseWidth(width);
     if (!value) {
       return;
     }
-
-    const newValue = { ...value };
-    newValue.configs.width = width;
-    newValue.values = computeConfigValues(newValue);
-    onChange(newValue);
+    onChange(updateConfigs(value, { width }));
   };
 
   const onBaseHeightChange = (height: number) => {
@@ -82,30 +92,20 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
     if (!value) {
       return;
     }
-
-    const newValue = { ...value };
-    newValue.configs.height = height;
-    newValue.values = computeConfigValues(newValue);
-    onChange(newValue);
+    onChange(updateConfigs(value, { height }));
   };
 
   const onBaseSlopeChange = (slope: number) => {
     setBaseSlope(slope);
     if (value && isZoomConfigsLinear(value)) {
-      const newValue = { ...value };
-      newValue.configs.slope = slope;
-      newValue.values = computeConfigValues(newValue);
-      onChange(newValue);
+      onChange(updateConfigs(value, { slope }));
     }
   };
 
   const onBaseExponentChange = (exponent: number) => {
     setBaseExponent(exponent);
     if (value && isZoomConfigsExp(value)) {
-      const newValue = { ...value };
-      newValue.configs.exponent = exponent;
-      newValue.values = computeConfigValues(newValue);
-      onChange(newValue);
+      onChange(updateConfigs(value, { exponent }));
     }
   };
 
@@ -194,7 +194,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseWidthDescription}
           value={baseWidth}
           name="baseWidth"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseWidthChange}
           step={1}
           min={0}
@@ -206,7 +206,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseHeightDescription}
           value={baseHeight}
           name="baseHeight"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseHeightChange}
           step={1}
           min={0}
@@ -218,7 +218,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseSlopeDescription}
           value={baseSlope}
           name="slope"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseSlopeChange}
           disabled={!!(value && !isZoomConfigsLinear(value))}
           step={1}
@@ -231,14 +231,16 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseExponentDescription}
           value={baseExponent}
           name="exponent"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseExponentChange}
           disabled={!!(value && !isZoomConfigsExp(value))}
           step={0.2}
           min={0}
           max={3}
         />
-        <Tag>Current Zoom: {value?.configs.zoom}</Tag>
+        <Tag>
+          {t('Current Zoom')}: {value?.configs.zoom}
+        </Tag>
       </Form>
       <ZoomConfigsChart
         name="zoomlevels"

@@ -14,17 +14,19 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from functools import partial
 from typing import Any, Optional
 
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
-from sqlalchemy.sql import delete, insert
 
 from superset import db
+from superset.annotation_layers.schemas import ImportV1AnnotationLayerSchema
 from superset.charts.schemas import ImportV1ChartSchema
+from superset.commands.annotation_layer.importers.v1.utils import (
+    import_annotation_layer,
+)
 from superset.commands.base import BaseCommand
-from superset.commands.chart.importers.v1.utils import import_chart
+from superset.commands.chart.importers.v1.utils import import_charts
 from superset.commands.dashboard.importers.v1.utils import (
     find_chart_uuids,
     import_dashboard,
@@ -35,6 +37,7 @@ from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.commands.importers.v1.utils import (
     get_resource_mappings_batched,
+    import_tag,
     load_configs,
     load_metadata,
     validate_metadata_type,
@@ -45,12 +48,28 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.extensions import feature_flag_manager
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.core import Database
-from superset.models.dashboard import dashboard_slices
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
+from superset.semantic_layers.import_export import (
+    consume_chart_semantic_reference,
+    resolve_bundle_references,
+    restore_dashboard_references,
+    SemanticReferenceError,
+)
+from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.utils.decorators import on_error, transaction
+
+
+def _on_import_error(ex: Exception) -> None:
+    """Keep dependency validation actionable after the transaction rolls back."""
+    if isinstance(ex, SemanticReferenceError):
+        raise ex
+    on_error(ex, catches=(Exception,), reraise=ImportFailedError)
 
 
 class ImportAssetsCommand(BaseCommand):
@@ -62,6 +81,7 @@ class ImportAssetsCommand(BaseCommand):
     """
 
     schemas: dict[str, Schema] = {
+        "annotation_layers/": ImportV1AnnotationLayerSchema(),
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
@@ -82,12 +102,25 @@ class ImportAssetsCommand(BaseCommand):
         self.ssh_tunnel_priv_key_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_priv_key_passwords") or {}
         )
+        self.encrypted_extra_secrets: dict[str, dict[str, str]] = (
+            kwargs.get("encrypted_extra_secrets") or {}
+        )
         self._configs: dict[str, Any] = {}
         self.sparse = kwargs.get("sparse", False)
+        # Defaults to ``True`` for backwards compatibility: historically this
+        # command always overwrote existing assets.
+        self.overwrite: bool = kwargs.get("overwrite", True)
 
     # pylint: disable=too-many-locals
     @staticmethod
-    def _import(configs: dict[str, Any], sparse: bool = False) -> None:  # noqa: C901
+    def _import(  # noqa: C901
+        configs: dict[str, Any],
+        sparse: bool = False,
+        contents: Optional[dict[str, Any]] = None,
+        overwrite: bool = True,
+    ) -> None:
+        contents = {} if contents is None else contents
+        semantic_info: dict[str, dict[str, Any]] = resolve_bundle_references(configs)
         # import databases first
         database_ids: dict[str, int] = {}
         dataset_info: dict[str, dict[str, Any]] = {}
@@ -106,60 +139,121 @@ class ImportAssetsCommand(BaseCommand):
 
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
-                database = import_database(config, overwrite=True)
+                database = import_database(config, overwrite=overwrite)
                 database_ids[str(database.uuid)] = database.id
 
         # import saved queries
         for file_name, config in configs.items():
             if file_name.startswith("queries/"):
                 config["db_id"] = database_ids[config["database_uuid"]]
-                import_saved_query(config, overwrite=True)
+                import_saved_query(config, overwrite=overwrite)
 
         # import datasets
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(config, overwrite=True)
-                dataset_info[str(dataset.uuid)] = {
+                dataset = import_dataset(config, overwrite=overwrite)
+                # Key on the bundle's own uuid, which is what the bundle's
+                # charts reference. An import that resolves onto an existing
+                # dataset by physical identity returns a row whose uuid
+                # differs, and keying on that would strand those charts.
+                dataset_info[str(config["uuid"])] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
                     "datasource_name": dataset.table_name,
                 }
 
-        # import charts
-        charts = []
+        # Resolve the creator's default viewers once for the whole bundle
+        # rather than once per chart/dashboard (a membership query each).
+        default_viewers = get_default_viewers_for_current_user()
+
+        # import annotation layers before charts so UUID→ID maps are ready
+        annotation_layer_ids: dict[str, int] = {}
+        for file_name, config in configs.items():
+            if file_name.startswith("annotation_layers/"):
+                layer = import_annotation_layer(config, overwrite=overwrite)
+                annotation_layer_ids[str(layer.uuid)] = layer.id
+
+        # import charts; annotation source charts go before the charts using them
+        chart_configs: list[dict[str, Any]] = []
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
-                dataset_dict = dataset_info[config["dataset_uuid"]]
-                config = update_chart_config_dataset(config, dataset_dict)
-                chart = import_chart(config, overwrite=True)
-                charts.append(chart)
-                chart_ids[str(chart.uuid)] = chart.id
+                dataset_dict: dict[str, Any] | None = consume_chart_semantic_reference(
+                    config, semantic_info
+                )
+                if dataset_dict is None:
+                    dataset_dict = dataset_info[config["dataset_uuid"]]
+                chart_configs.append(update_chart_config_dataset(config, dataset_dict))
+        charts = []
+        for config, chart in import_charts(
+            chart_configs,
+            overwrite=overwrite,
+            default_viewers=default_viewers,
+            annotation_layer_ids=annotation_layer_ids,
+            chart_ids=chart_ids,
+        ):
+            charts.append(chart)
+
+            # Handle tags using import_tag function
+            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                if "tags" in config:
+                    import_tag(config["tags"], contents, chart.id, "chart", db.session)
 
         # import dashboards
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
+                restore_dashboard_references(
+                    config.get("metadata") or {}, semantic_info
+                )
                 config = update_id_refs(config, chart_ids, dataset_info)
-                dashboard = import_dashboard(config, overwrite=True)
+                dashboard = import_dashboard(
+                    config, overwrite=overwrite, default_viewers=default_viewers
+                )
 
                 # set ref in the dashboard_slices table
-                dashboard_chart_ids: list[dict[str, int]] = []
+                # Use ORM-level reassignment instead of Core
+                # delete()/insert() so SQLAlchemy-Continuum's M2M tracker
+                # sees per-row changes through the ORM. Bulk DML via Core
+                # would emit a malformed INSERT into
+                # ``dashboard_slices_version`` (missing the composite-PK
+                # columns) — see the parallel rewrite in
+                # ``DatasetDAO.update_columns`` and the test-factory's
+                # ``delete_dashboard_slices_associations`` for the same
+                # reason.
+                slice_ids: list[int] = []
                 for uuid in find_chart_uuids(config["position"]):
+                    # Skip charts that weren't part of this import; ``continue``
+                    # (not ``break``) so a single missing/unresolved chart uuid
+                    # doesn't truncate the rest. ``find_chart_uuids`` returns a
+                    # set, so a ``break`` here would drop a non-deterministic
+                    # subset of the dashboard's charts.
                     if uuid not in chart_ids:
-                        break
-                    chart_id = chart_ids[uuid]
-                    dashboard_chart_id = {
-                        "dashboard_id": dashboard.id,
-                        "slice_id": chart_id,
-                    }
-                    dashboard_chart_ids.append(dashboard_chart_id)
+                        continue
+                    slice_ids.append(chart_ids[uuid])
 
-                db.session.execute(
-                    delete(dashboard_slices).where(
-                        dashboard_slices.c.dashboard_id == dashboard.id
-                    )
+                dashboard.slices = (
+                    db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+                    if slice_ids
+                    else []
                 )
-                db.session.execute(insert(dashboard_slices).values(dashboard_chart_ids))
+                # Flush eagerly so the M2M rows land in
+                # ``dashboard_slices`` before any subsequent autoflush
+                # fires an inner-flush event handler that would reset
+                # the relationship change (cf. the SAWarning at
+                # ``superset/models/helpers.py`` re. "attribute history
+                # events accumulated ... have been reset").
+                db.session.flush()
+
+                # Handle tags using import_tag function
+                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                    if "tags" in config:
+                        import_tag(
+                            config["tags"],
+                            contents,
+                            dashboard.id,
+                            "dashboard",
+                            db.session,
+                        )
 
                 # Migrate any filter-box charts to native dashboard filters.
                 migrate_dashboard(dashboard)
@@ -169,16 +263,76 @@ class ImportAssetsCommand(BaseCommand):
             if chart.viz_type == "filter_box":
                 db.session.delete(chart)
 
-    @transaction(
-        on_error=partial(
-            on_error,
-            catches=(Exception,),
-            reraise=ImportFailedError,
-        )
-    )
+    @transaction(on_error=_on_import_error)
     def run(self) -> None:
         self.validate()
-        self._import(self._configs, self.sparse)
+        self._import(self._configs, self.sparse, self.contents, self.overwrite)
+
+    # Maps asset file prefixes to the model class used to look up UUIDs for
+    # the "already exists" validation check when ``overwrite`` is ``False``.
+    _MODEL_BY_PREFIX: dict[str, Any] = {
+        "databases/": Database,
+        "datasets/": SqlaTable,
+        "charts/": Slice,
+        "dashboards/": Dashboard,
+        "queries/": SavedQuery,
+    }
+
+    def _bundle_entries_by_prefix(self) -> dict[str, list[tuple[str, str]]]:
+        """Group ``(file_name, uuid)`` pairs from the bundle by asset prefix."""
+        bundle_by_prefix: dict[str, list[tuple[str, str]]] = {
+            prefix: [] for prefix in self._MODEL_BY_PREFIX
+        }
+        for file_name, config in self._configs.items():
+            uuid = config.get("uuid")
+            if not uuid:
+                continue
+            for prefix in bundle_by_prefix:
+                if file_name.startswith(prefix):
+                    bundle_by_prefix[prefix].append((file_name, str(uuid)))
+                    break
+        return bundle_by_prefix
+
+    def _prevent_overwrite_existing_assets(
+        self, exceptions: list[ValidationError]
+    ) -> None:
+        """
+        When ``overwrite`` is ``False``, raise a clear validation error for any
+        asset in the bundle whose UUID already exists in the database.
+
+        Only the UUIDs present in the import bundle are queried (per prefix),
+        so the cost scales with the bundle size rather than with the total
+        number of stored assets.
+        """
+        if self.overwrite:
+            return
+
+        for prefix, entries in self._bundle_entries_by_prefix().items():
+            if not entries:
+                continue
+            model_cls = self._MODEL_BY_PREFIX[prefix]
+            incoming_uuids = [uuid for _, uuid in entries]
+            existing_uuids = {
+                str(uuid)
+                for (uuid,) in db.session.query(model_cls.uuid)
+                .filter(model_cls.uuid.in_(incoming_uuids))
+                .all()
+            }
+            if not existing_uuids:
+                continue
+            model_name = model_cls.__name__
+            for file_name, uuid in entries:
+                if uuid in existing_uuids:
+                    exceptions.append(
+                        ValidationError(
+                            {
+                                file_name: (
+                                    f"{model_name} already exists "
+                                    "and `overwrite=true` was not passed"
+                                ),
+                            }
+                        )
+                    )
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
@@ -199,7 +353,9 @@ class ImportAssetsCommand(BaseCommand):
             self.ssh_tunnel_passwords,
             self.ssh_tunnel_private_keys,
             self.ssh_tunnel_priv_key_passwords,
+            self.encrypted_extra_secrets,
         )
+        self._prevent_overwrite_existing_assets(exceptions)
 
         if exceptions:
             raise CommandInvalidError(

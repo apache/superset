@@ -1,0 +1,180 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+always_filter_main_dttm: false
+cache_timeout: null
+catalog: null
+columns:
+- advanced_data_type: null
+  column_name: year
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: true
+  python_date_format: '%Y'
+  type: BIGINT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: na_sales
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: FLOAT64
+  verbose_name: null
+- advanced_data_type: null
+  column_name: eu_sales
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: FLOAT64
+  verbose_name: null
+- advanced_data_type: null
+  column_name: global_sales
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: FLOAT64
+  verbose_name: null
+- advanced_data_type: null
+  column_name: jp_sales
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: FLOAT64
+  verbose_name: null
+- advanced_data_type: null
+  column_name: other_sales
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: FLOAT64
+  verbose_name: null
+- advanced_data_type: null
+  column_name: rank
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: BIGINT
+  verbose_name: null
+- advanced_data_type: null
+  column_name: genre
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: null
+- advanced_data_type: null
+  column_name: name
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: null
+- advanced_data_type: null
+  column_name: platform
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: null
+- advanced_data_type: null
+  column_name: publisher
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: null
+  is_dttm: false
+  python_date_format: null
+  type: STRING
+  verbose_name: null
+data_file: data.parquet
+database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
+default_endpoint: null
+description: null
+extra: null
+fetch_values_predicate: null
+filter_select_enabled: true
+folders: null
+main_dttm_col: null
+metrics:
+- currency: null
+  d3format: null
+  description: null
+  expression: COUNT(*)
+  extra: null
+  metric_name: count
+  metric_type: null
+  verbose_name: COUNT(*)
+  warning_text: null
+normalize_columns: false
+offset: 0
+params: null
+schema: null
+sql: null
+table_name: video_game_sales
+template_params: null
+uuid: 53d47c0c-c03d-47f0-b9ac-81225f808283
+version: 1.0.0

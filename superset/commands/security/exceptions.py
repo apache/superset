@@ -17,12 +17,20 @@
 
 from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import CommandException, DeleteFailedError
+from superset.commands.exceptions import (
+    CommandException,
+    DeleteFailedError,
+    ForbiddenError,
+)
 
 
 class RLSRuleNotFoundError(CommandException):
     status = 404
     message = _("RLS Rule not found.")
+
+
+class RLSDatasourceForbiddenError(ForbiddenError):
+    message = _("You don't have access to one or more of the referenced datasources.")
 
 
 class RuleDeleteFailedError(DeleteFailedError):

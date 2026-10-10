@@ -20,22 +20,24 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, TYPE_CHECKING, TypedDict
 
+import sqlalchemy as sa
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.utils.core import get_user_agent, QuerySource
+from superset.utils.core import GenericDataType, get_user_agent, QuerySource
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -125,7 +127,11 @@ class DuckDBParametersMixin:
         ):
             return MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
 
-        return str(URL(drivername=cls.engine, database=database, query=query))
+        # SQLAlchemy 2.0 made URL a strict NamedTuple - the raw URL(...)
+        # constructor now requires username/password/host/port to be passed
+        # explicitly (they used to default to None). URL.create() keeps
+        # those optional, matching the pre-2.0 URL(...) behavior used here.
+        return str(URL.create(drivername=cls.engine, database=database, query=query))
 
     @classmethod
     def get_parameters_from_uri(  # pylint: disable=unused-argument
@@ -196,6 +202,96 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
     default_driver = "duckdb_engine"
 
     sqlalchemy_uri_placeholder = "duckdb:////path/to/duck.db"
+    supports_multivalues_insert = True
+
+    # Verified against a live duckdb instance (in-process, no server needed),
+    # including under GROUPING SETS: the grand total correctly reflects every
+    # row, not an aggregate-of-aggregates. STDDEV_SAMP/VAR_SAMP values match
+    # postgres/mysql exactly for the same inputs; MEDIAN matches postgres
+    # (mysql has no native MEDIAN to compare against). Inherited by
+    # MotherDuckEngineSpec.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": sa.func.stddev_samp,
+        "VAR_SAMP": sa.func.var_samp,
+    }
+
+    metadata = {
+        "description": (
+            "DuckDB is an in-process OLAP database designed for fast "
+            "analytical queries on local data. Supports CSV, Parquet, JSON, "
+            "and many other file formats."
+        ),
+        "logo": "duckdb.png",
+        "homepage_url": "https://duckdb.org/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["duckdb-engine"],
+        "connection_string": "duckdb:////path/to/duck.db",
+        "drivers": [
+            {
+                "name": "duckdb-engine",
+                "pypi_package": "duckdb-engine",
+                "connection_string": "duckdb:////path/to/duck.db",
+                "is_recommended": True,
+            },
+        ],
+        "notes": (
+            "DuckDB supports both local file and in-memory databases. "
+            "Use `:memory:` for in-memory database."
+        ),
+        "compatible_databases": [
+            {
+                "name": "MotherDuck",
+                "description": (
+                    "MotherDuck is a serverless cloud analytics platform "
+                    "built on DuckDB, offering collaborative data sharing "
+                    "and cloud-native scalability."
+                ),
+                "logo": "motherduck.png",
+                "homepage_url": "https://motherduck.com/",
+                "pypi_packages": ["duckdb", "duckdb-engine"],
+                "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+                "parameters": {
+                    "database": "MotherDuck database name",
+                    "motherduck_token": "Service token from MotherDuck dashboard",
+                },
+                "notes": "Cloud-hosted DuckDB with collaboration features.",
+                "categories": [DatabaseCategory.HOSTED_OPEN_SOURCE],
+            },
+        ],
+    }
+
+    # DuckDB-specific column type mappings to ensure float/double types are recognized
+    column_type_mappings = (
+        (
+            re.compile(r"^hugeint", re.IGNORECASE),
+            types.BigInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^ubigint", re.IGNORECASE),
+            types.BigInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^uinteger", re.IGNORECASE),
+            types.Integer(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^usmallint", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^utinyint", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+    )
 
     _time_grain_expressions = {
         None: "{col}",
@@ -258,11 +354,84 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
 
         return extra
 
+    @classmethod
+    def impersonate_user(
+        cls,
+        database: Database,
+        username: str | None,
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        # duckdb-engine passes a username in the URL to connect() as a kwarg
+        # that duckdb rejects, so it must never survive: neither the one the
+        # base implementation sets (hence never calling it) nor one already
+        # configured in the SQLAlchemy URI.
+        url = url._replace(username=None)
+
+        # Local DuckDB has no user concept. Note that md: databases also
+        # resolve to this spec (spec lookup is by backend name only, and
+        # MotherDuck shares the duckdb:// scheme).
+        if username is None or not (url.database or "").startswith("md:"):
+            return url, engine_kwargs
+
+        # Identify the logged-in user to MotherDuck for per-user session
+        # attribution. The parameter is embedded in the md: path rather than
+        # the SQLAlchemy URL query: the setting must reach MotherDuck at
+        # connection initialization, and duckdb-engine applies unknown URL
+        # query parameters via SET after connecting, which is rejected.
+        # MotherDuck reads path parameter values literally (no URL decoding),
+        # so only the characters structural to the path are escaped.
+        session_name = (
+            username.replace("%", "%25").replace("&", "%26").replace("=", "%3D")
+        )
+        # The impersonated user replaces any session_name configured in the path.
+        base, _, params = url.database.partition("?")
+        kept = [p for p in params.split("&") if p and not p.startswith("session_name=")]
+        query = "&".join([*kept, f"session_name={session_name}"])
+        url = url.set(database=f"{base}?{query}")
+
+        return url, engine_kwargs
+
 
 class MotherDuckEngineSpec(DuckDBEngineSpec):
+    """MotherDuck cloud analytics platform engine spec."""
+
     engine = "motherduck"
     engine_name = "MotherDuck"
     engine_aliases: set[str] = {"duckdb"}
+
+    metadata = {
+        "description": (
+            "MotherDuck is a serverless cloud analytics platform "
+            "built on DuckDB. It combines the simplicity of DuckDB with "
+            "cloud-scale data sharing and collaboration."
+        ),
+        "logo": "motherduck.png",
+        "homepage_url": "https://motherduck.com/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["duckdb", "duckdb-engine"],
+        "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+        "parameters": {
+            "database": "MotherDuck database name",
+            "token": "Service token from MotherDuck dashboard",
+        },
+        "docs_url": "https://motherduck.com/docs/getting-started/",
+        "drivers": [
+            {
+                "name": "duckdb-engine",
+                "pypi_package": "duckdb-engine",
+                "connection_string": (
+                    "duckdb:///md:{database}?motherduck_token={token}"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
 
     supports_catalog = True
     supports_dynamic_catalog = True
@@ -298,8 +467,14 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
                 f"Need MotherDuck token to connect to database '{database}'."
             )
 
+        # SQLAlchemy 2.0 made URL a strict NamedTuple - the raw URL(...)
+        # constructor now requires username/password/host/port to be passed
+        # explicitly (they used to default to None). URL.create() keeps
+        # those optional, matching the pre-2.0 URL(...) behavior used here.
         return str(
-            URL(drivername=DuckDBEngineSpec.engine, database=database, query=query)
+            URL.create(
+                drivername=DuckDBEngineSpec.engine, database=database, query=query
+            )
         )
 
     @classmethod
@@ -325,9 +500,10 @@ class MotherDuckEngineSpec(DuckDBEngineSpec):
         database: Database,
         inspector: Inspector,
     ) -> set[str]:
-        return {
-            catalog
-            for (catalog,) in inspector.bind.execute(
-                "SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;"
-            )
-        }
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    text("SELECT alias FROM MD_ALL_DATABASES() WHERE is_attached;")
+                )
+            }

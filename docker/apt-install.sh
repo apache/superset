@@ -18,7 +18,7 @@
 set -euo pipefail
 
 # Ensure this script is run as root
-if [[ $EUID -ne 0 ]]; then
+if [[ ${EUID} -ne 0 ]]; then
   echo "This script must be run as root" >&2
   exit 1
 fi
@@ -38,11 +38,19 @@ RESET='\033[0m'
 echo -e "${GREEN}Updating package lists...${RESET}"
 apt-get update -qq
 
-echo -e "${GREEN}Installing packages: $@${RESET}"
+# The base image's already-installed packages can lag behind the latest
+# point release available in its own configured repos between rebuilds of
+# that image tag. Applying available updates at build time, not just
+# whatever shipped with the base image, keeps every already-installed
+# package current too, not only the ones this call adds.
+echo -e "${GREEN}Applying available package updates...${RESET}"
+apt-get upgrade -yqq
+
+echo -e "${GREEN}Installing packages: $*${RESET}"
 apt-get install -yqq --no-install-recommends "$@"
 
 echo -e "${GREEN}Autoremoving unnecessary packages...${RESET}"
-apt-get autoremove -y
+apt-get autoremove -yqq --purge
 
 echo -e "${GREEN}Cleaning up package cache and metadata...${RESET}"
 apt-get clean

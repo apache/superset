@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type Owner from 'src/types/Owner';
+import type User from 'src/types/User';
 
-export type ModifiedInfoProps = {
-  user?: Owner;
+export type AuditInfoProps = {
+  user?: User;
   date: string;
 };

@@ -17,7 +17,7 @@
 import logging
 from functools import partial
 
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from superset import db
 from superset.commands.dashboard.permalink.base import BaseDashboardPermalinkCommand
@@ -29,7 +29,13 @@ from superset.key_value.exceptions import (
     KeyValueCodecEncodeException,
     KeyValueUpsertFailedError,
 )
-from superset.key_value.utils import encode_permalink_key, get_deterministic_uuid
+from superset.key_value.types import RowLock
+from superset.key_value.utils import (
+    encode_permalink_key,
+    get_deterministic_uuid,
+    get_deterministic_uuid_with_algorithm,
+    get_fallback_algorithms,
+)
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
@@ -71,13 +77,59 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
             "state": self.state,
         }
         user_id = get_user_id()
-        entry = KeyValueDAO.upsert_entry(
-            resource=self.resource,
-            key=get_deterministic_uuid(self.salt, (user_id, value)),
-            value=value,
-            codec=self.codec,
-        )
-        db.session.flush()
+        payload = (user_id, value)
+
+        # Try to find existing entry with current algorithm
+        uuid_key = get_deterministic_uuid(self.salt, payload)
+        entry = KeyValueDAO.get_entry(self.resource, uuid_key)
+
+        # Fallback: check configured fallback algorithms for backward compatibility
+        if not entry:
+            for fallback_algo in get_fallback_algorithms():
+                uuid_fallback = get_deterministic_uuid_with_algorithm(
+                    self.salt, payload, fallback_algo
+                )
+                entry = KeyValueDAO.get_entry(self.resource, uuid_fallback)
+                if entry:
+                    break
+
+        if entry:
+            # Return existing entry
+            assert entry.id  # for type checks
+            return encode_permalink_key(key=entry.id, salt=self.salt)
+
+        # Create new entry with current algorithm.
+        #
+        # The uuid is deterministic, so concurrent identical requests (same user,
+        # dashboard and state) all try to insert the same uuid. The lookup above and
+        # this insert are not atomic, so the unique index is the ultimate arbiter:
+        # the insert runs inside a SAVEPOINT and, if a concurrent request won the
+        # race, we join the winner's entry instead of failing the request.
+        try:
+            with db.session.begin_nested():
+                entry = KeyValueDAO.create_entry(
+                    resource=self.resource,
+                    key=uuid_key,
+                    value=value,
+                    codec=self.codec,
+                )
+                db.session.flush()
+        except IntegrityError:
+            # The SAVEPOINT is rolled back and the session is still usable. The
+            # winner's row is committed by now, so re-read it. Use a locking read:
+            # under REPEATABLE READ (e.g. MySQL's default) a plain SELECT keeps
+            # using the snapshot taken by the lookup above and would not see the
+            # row the winner just committed. The lock must be shared, not exclusive:
+            # on InnoDB each loser's failed insert already holds a shared lock on
+            # the duplicate index record, so with 3+ concurrent losers exclusive
+            # (FOR UPDATE) re-reads wait on each other's shared locks and deadlock.
+            # Nothing below writes to the row. If nothing is found, this was not
+            # the expected duplicate, so re-raise.
+            entry = KeyValueDAO.get_entry(
+                self.resource, uuid_key, lock=RowLock(read=True)
+            )
+            if entry is None:
+                raise
         assert entry.id  # for type checks
         return encode_permalink_key(key=entry.id, salt=self.salt)
 

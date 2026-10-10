@@ -1,0 +1,625 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { useDroppable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { DndColumnMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndColumnMetricSelect';
+import { DndItemType } from 'src/explore/components/DndItemType';
+import {
+  CapturedDroppable,
+  CapturedSortables,
+  captureDroppableData,
+  captureSortableData,
+  simulateDrop,
+  simulateFolderDrop,
+  simulateReorder,
+} from './dndTestUtils';
+
+const captured: CapturedDroppable = { current: undefined };
+const sortables: CapturedSortables = { items: [] };
+
+jest.mock('@dnd-kit/core', () => ({
+  ...jest.requireActual('@dnd-kit/core'),
+  useDroppable: jest.fn(),
+}));
+
+jest.mock('@dnd-kit/sortable', () => ({
+  ...jest.requireActual('@dnd-kit/sortable'),
+  useSortable: jest.fn(),
+}));
+
+beforeEach(() => {
+  captured.current = undefined;
+  sortables.items = [];
+  (useDroppable as jest.Mock).mockImplementation(
+    captureDroppableData(captured),
+  );
+  (useSortable as jest.Mock).mockImplementation(captureSortableData(sortables));
+});
+
+const defaultProps = {
+  name: 'test-control',
+  actions: {},
+  savedMetrics: [
+    {
+      metric_name: 'metric_a',
+      expression: 'expression_a',
+      verbose_name: 'metric_a',
+    },
+    {
+      metric_name: 'metric_b',
+      expression: 'expression_b',
+      verbose_name: 'Metric B',
+    },
+  ],
+  columns: [
+    {
+      column_name: 'column_a',
+    },
+    {
+      column_name: 'column_b',
+      verbose_name: 'Column B',
+    },
+  ],
+  selectedMetrics: [
+    {
+      metric_name: 'metric_a',
+      expression: 'expression_a',
+      verbose_name: 'metric_a',
+    },
+    {
+      metric_name: 'metric_b',
+      expression: 'expression_b',
+      verbose_name: 'Metric B',
+    },
+  ],
+  onChange: () => {},
+} as any;
+
+test('renders with default props', () => {
+  render(<DndColumnMetricSelect {...defaultProps} />, {
+    useDndKit: true,
+    useRedux: true,
+  });
+  expect(
+    screen.getByText('Drop columns/metrics here or click'),
+  ).toBeInTheDocument();
+});
+
+test('renders with default props and multi = true', () => {
+  render(<DndColumnMetricSelect {...defaultProps} multi />, {
+    useDndKit: true,
+    useRedux: true,
+  });
+  expect(
+    screen.getByText('Drop columns/metrics here or click'),
+  ).toBeInTheDocument();
+});
+
+test('render selected columns and metrics correctly', () => {
+  const values = ['column_a', 'metric_a'];
+  render(<DndColumnMetricSelect {...defaultProps} value={values} multi />, {
+    useDndKit: true,
+    useRedux: true,
+  });
+  expect(screen.getByText('column_a')).toBeVisible();
+  expect(screen.getByText('metric_a')).toBeVisible();
+});
+
+// Drop behavior is exercised through `resolveDragEnd` (the production drag-end
+// dispatcher) because @dnd-kit's PointerSensor needs real layout that jsdom
+// cannot provide. See ./dndTestUtils and ExploreDndContext.test.tsx.
+
+test('can drop columns and metrics', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a', 'metric_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateDrop(captured, {
+    type: DndItemType.Column,
+    value: { column_name: 'column_b' } as any,
+  });
+  expect(onChange).toHaveBeenLastCalledWith([
+    'column_a',
+    'metric_a',
+    'column_b',
+  ]);
+
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_b' } as any,
+  });
+  expect(onChange).toHaveBeenLastCalledWith([
+    'column_a',
+    'metric_a',
+    'metric_b',
+  ]);
+});
+
+test('cannot drop duplicate items', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a', 'metric_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateDrop(captured, {
+    type: DndItemType.Column,
+    value: { column_name: 'column_a' } as any,
+  });
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_a' } as any,
+  });
+
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('can drop only selected metrics', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // metric_c is not in selectedMetrics -> rejected
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_c' } as any,
+  });
+  expect(onChange).not.toHaveBeenCalled();
+
+  // metric_a is in selectedMetrics -> accepted
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_a' } as any,
+  });
+  expect(onChange).toHaveBeenLastCalledWith(['column_a', 'metric_a']);
+});
+
+test('can drag and reorder items', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a', 'metric_a', 'column_b']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // Reorder is dispatched via the active sortable item's onShiftOptions,
+  // which the control registers on each OptionWrapper. Drag index 0
+  // (column_a) onto index 2 (column_b) and verify the arrayMove: column_a is
+  // removed from the front and reinserted at index 2, shifting the rest left.
+  simulateReorder(sortables, 0, 2);
+  expect(onChange).toHaveBeenLastCalledWith([
+    'metric_a',
+    'column_b',
+    'column_a',
+  ]);
+});
+
+test('shows warning for aggregated DeckGL charts', () => {
+  const values = ['column_a'];
+  const formData = { viz_type: 'deck_heatmap', datasource: 'test' };
+
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={values}
+      multi
+      formData={formData}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  const columnItem = screen.getByText('column_a');
+  expect(columnItem).toBeVisible();
+});
+
+test('handles single selection mode', () => {
+  const values = ['column_a'];
+  const onChange = jest.fn();
+
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={values}
+      multi={false}
+      onChange={onChange}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  expect(screen.getByText('column_a')).toBeVisible();
+  expect(
+    screen.queryByText('Drop columns/metrics here or click'),
+  ).not.toBeInTheDocument();
+});
+
+test('handles custom ghost button text', () => {
+  const customText = 'Custom drop text';
+
+  render(
+    <DndColumnMetricSelect {...defaultProps} ghostButtonText={customText} />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  expect(screen.getByText(customText)).toBeInTheDocument();
+});
+
+test('can remove items by clicking close button', () => {
+  const values = ['column_a', 'metric_a'];
+  const onChange = jest.fn();
+
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={values}
+      multi
+      onChange={onChange}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // Use testId instead of role selector - @dnd-kit sortable wrapper adds extra button elements
+  const closeButtons = screen.getAllByTestId('remove-control-button');
+  expect(closeButtons).toHaveLength(2);
+
+  fireEvent.click(closeButtons[0]);
+
+  expect(onChange).toHaveBeenCalledWith(['metric_a']);
+});
+
+test('handles adhoc metric with error', () => {
+  const errorMetric = {
+    metric_name: 'error_metric',
+    error_text: 'This metric has an error',
+    uuid: 'error-uuid',
+  };
+  const values = [errorMetric];
+
+  render(<DndColumnMetricSelect {...defaultProps} value={values} multi />, {
+    useDndKit: true,
+    useRedux: true,
+  });
+
+  const metricItem = screen.getByText('error_metric');
+  expect(metricItem).toBeVisible();
+});
+
+test('handles adhoc column values', () => {
+  const values = ['column_a'];
+
+  render(<DndColumnMetricSelect {...defaultProps} value={values} multi />, {
+    useDndKit: true,
+    useRedux: true,
+  });
+
+  expect(screen.getByText('column_a')).toBeVisible();
+});
+
+test('handles mixed value types correctly', () => {
+  const mixedValues = ['column_a', 'metric_a'];
+
+  render(
+    <DndColumnMetricSelect {...defaultProps} value={mixedValues} multi />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  expect(screen.getByText('column_a')).toBeVisible();
+  expect(screen.getByText('metric_a')).toBeVisible();
+});
+
+// --- folder drops -----------------------------------------------------
+// Dragging a whole folder from the DatasourcePanel expands into its
+// columns/metrics, handled in bulk by onDropFolder. Driven through the
+// production `resolveDragEnd` dispatcher since jsdom cannot simulate real
+// @dnd-kit pointer drags.
+
+test('folder drop appends all accepted columns and metrics for a multi control', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: { column_name: 'column_b' } as any },
+    { type: DndItemType.Metric, value: { metric_name: 'metric_a' } as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledWith(['column_a', 'column_b', 'metric_a']);
+});
+
+test('folder drop replaces (not appends) the existing value for a single-value control', () => {
+  // Regression test: onDropFolder used to append the dropped items and then
+  // send the stale first (pre-drop) value to onChange for non-multi
+  // controls, silently ignoring the drop. It must send the first newly
+  // dropped item instead, matching the single-item onDrop's replace
+  // behavior.
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a']}
+      onChange={onChange}
+      multi={false}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Metric, value: { metric_name: 'metric_a' } as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledWith('metric_a');
+});
+
+test('folder drop deduplicates a column and same-named metric within the batch', () => {
+  // Regression test: canDrop gates each folder item against the pre-drop
+  // value, so a column and a same-named metric both pass individually. If
+  // onDropFolder doesn't dedupe as it builds the batch, the value ends up
+  // with two identical strings, both rendered as the column.
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      selectedMetrics={[
+        ...defaultProps.selectedMetrics,
+        {
+          metric_name: 'column_a',
+          expression: 'expression_column_a',
+          verbose_name: 'column_a',
+        },
+      ]}
+      value={[]}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: { column_name: 'column_a' } as any },
+    { type: DndItemType.Metric, value: { metric_name: 'column_a' } as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledWith(['column_a']);
+});
+
+test('folder drop is a no-op when no item is accepted', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a', 'metric_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // Both items already selected -> canDrop rejects them both.
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: { column_name: 'column_a' } as any },
+    { type: DndItemType.Metric, value: { metric_name: 'metric_a' } as any },
+  ]);
+
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+const SEMANTIC_METRIC_PROPS = {
+  ...defaultProps,
+  columns: [
+    { column_name: 'order_date', verbose_name: 'Order Date' },
+    { column_name: 'category', verbose_name: 'Product Category' },
+  ],
+  datasource: {
+    type: 'semantic_view',
+    id: 1,
+    semantic_view_features: [],
+  },
+};
+
+test('saved-only semantic view disables Simple and Custom SQL in the combined picker', async () => {
+  render(<DndColumnMetricSelect {...SEMANTIC_METRIC_PROPS} value={[]} />, {
+    useDndKit: true,
+    useRedux: true,
+    initialState: {
+      explore: {
+        datasource: {
+          type: 'semantic_view',
+          id: 1,
+          semantic_view_features: [],
+        },
+      },
+    },
+  });
+
+  fireEvent.click(screen.getByText('Drop columns/metrics here or click'));
+
+  expect(await screen.findByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('semantic view declaring adhoc expressions keeps Simple enabled in the combined picker', async () => {
+  render(
+    <DndColumnMetricSelect
+      {...SEMANTIC_METRIC_PROPS}
+      datasource={{
+        type: 'semantic_view',
+        id: 1,
+        semantic_view_features: ['ADHOC_COLUMN_EXPRESSIONS'],
+      }}
+      value={[]}
+    />,
+    {
+      useDndKit: true,
+      useRedux: true,
+      initialState: {
+        explore: {
+          datasource: {
+            type: 'semantic_view',
+            id: 1,
+            semantic_view_features: ['ADHOC_COLUMN_EXPRESSIONS'],
+          },
+        },
+      },
+    },
+  );
+
+  fireEvent.click(screen.getByText('Drop columns/metrics here or click'));
+
+  expect(
+    await screen.findByRole('tab', { name: 'Simple' }),
+  ).not.toHaveAttribute('aria-disabled', 'true');
+  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('Sort by entry point commits a compatible Cube dimension through the picker', async () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...SEMANTIC_METRIC_PROPS}
+      onChange={onChange}
+      value={[]}
+    />,
+    {
+      useDndKit: true,
+      useRedux: true,
+      initialState: {
+        explore: {
+          datasource: {
+            type: 'semantic_view',
+            id: 1,
+            semantic_view_features: [],
+          },
+        },
+      },
+    },
+  );
+
+  fireEvent.click(screen.getByText('Drop columns/metrics here or click'));
+
+  const combobox = await screen.findByRole('combobox', { name: 'Dimensions' });
+  fireEvent.mouseDown(combobox);
+  const option = await screen.findByRole('option', { name: /Order Date/i });
+  fireEvent.click(option);
+
+  const saveButton = await screen.findByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  fireEvent.click(saveButton);
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalledWith(['order_date']);
+  });
+});
+
+test('Cube saved metrics remain listed and selectable when Simple is disabled', async () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...SEMANTIC_METRIC_PROPS}
+      selectedMetrics={['metric_a', 'metric_b']}
+      onChange={onChange}
+      value={[]}
+    />,
+    {
+      useDndKit: true,
+      useRedux: true,
+      initialState: {
+        explore: {
+          datasource: {
+            type: 'semantic_view',
+            id: 1,
+            semantic_view_features: [],
+          },
+        },
+      },
+    },
+  );
+
+  fireEvent.click(screen.getByText('Drop columns/metrics here or click'));
+
+  // Simple is disabled for saved-only semantic views, so the combined
+  // control's metrics must remain reachable from the Saved mode.
+  expect(await screen.findByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
+  const combobox = await screen.findByRole('combobox', {
+    name: 'Dimensions and metrics',
+  });
+  fireEvent.mouseDown(combobox);
+
+  const option = await screen.findByRole('option', { name: /Metric B/i });
+  fireEvent.click(option);
+
+  const saveButton = await screen.findByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  fireEvent.click(saveButton);
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalledWith(['metric_b']);
+  });
+});

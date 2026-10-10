@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -28,6 +29,7 @@ export default class FilterTimeGrainPlugin extends ChartPlugin {
       name: t('Time grain'),
       description: t('Time grain filter plugin'),
       behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
+      supportsCascadeDependencies: false,
       tags: [t('Experimental')],
       thumbnail,
     });

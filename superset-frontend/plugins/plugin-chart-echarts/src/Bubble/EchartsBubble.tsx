@@ -18,15 +18,30 @@
  */
 import { BubbleChartTransformedProps } from './types';
 import Echart from '../components/Echart';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 
 export default function EchartsBubble(props: BubbleChartTransformedProps) {
-  const { height, width, echartOptions, refs } = props;
+  const {
+    height,
+    width,
+    echartOptions,
+    refs,
+    formData,
+    onLegendStateChanged,
+    onLegendScroll,
+  } = props;
+  const eventHandlers = useLegendEventHandlers(
+    onLegendStateChanged,
+    onLegendScroll,
+  );
   return (
     <Echart
       height={height}
       width={width}
       echartOptions={echartOptions}
+      eventHandlers={eventHandlers}
       refs={refs}
+      vizType={formData.vizType}
     />
   );
 }

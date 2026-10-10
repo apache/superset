@@ -17,14 +17,14 @@
  * under the License.
  */
 
-import Markdown from 'markdown-to-jsx';
+import MarkdownToJsx from 'markdown-to-jsx';
 
 export default {
   title: 'Design System/Components/DropdownContainer/Overview',
 };
 
 export const Overview = () => (
-  <Markdown>
+  <MarkdownToJsx>
     {`
 # Usage
 
@@ -41,5 +41,5 @@ The component accepts any React element which ensures a high level of variabilit
 To check the component in detail and its interactions, check the [DropdownContainer](/story/design-system-components-dropdowncontainer--component) page.
 
     `}
-  </Markdown>
+  </MarkdownToJsx>
 );

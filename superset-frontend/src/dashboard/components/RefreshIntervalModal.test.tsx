@@ -16,230 +16,136 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isValidElement } from 'react';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import fetchMock from 'fetch-mock';
-import { Icons } from '@superset-ui/core/components/Icons';
-
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
-import { useHeaderActionsMenu } from './Header/useHeaderActionsDropdownMenu';
 
-const createProps = () => ({
+const defaultProps = {
+  show: true,
+  onHide: jest.fn(),
+  refreshFrequency: 60,
+  onChange: jest.fn(),
+  editMode: true,
   addSuccessToast: jest.fn(),
-  addDangerToast: jest.fn(),
-  customCss:
-    '.header-with-actions .right-button-panel .ant-dropdown-trigger{margin-left: 100px;}',
-  dashboardId: 1,
-  dashboardInfo: {
-    id: 1,
-    dash_edit_perm: true,
-    dash_save_perm: true,
-    userId: '1',
-    metadata: {},
-    common: {
-      conf: {
-        DASHBOARD_AUTO_REFRESH_INTERVALS: [
-          [0, "Don't refresh"],
-          [10, '10 seconds'],
-          [30, '30 seconds'],
-          [60, '1 minute'],
-          [300, '5 minutes'],
-          [1800, '30 minutes'],
-          [3600, '1 hour'],
-          [21600, '6 hours'],
-          [43200, '12 hours'],
-          [86400, '24 hours'],
-        ],
-      },
+  pauseOnInactiveTab: false,
+  onPauseOnInactiveTabChange: jest.fn(),
+};
+
+const setup = (
+  props: Partial<typeof defaultProps> = {},
+  refreshLimitConf: Record<string, unknown> = {},
+) =>
+  render(<RefreshIntervalModal {...defaultProps} {...props} />, {
+    useRedux: true,
+    initialState: {
+      dashboardInfo: { common: { conf: refreshLimitConf } },
     },
-  },
-  dashboardTitle: 'Title',
-  editMode: false,
-  expandedSlices: {},
-  forceRefreshAllCharts: jest.fn(),
-  hasUnsavedChanges: false,
-  isLoading: false,
-  layout: {},
-  dataMask: {},
-  onChange: jest.fn(),
-  onSave: jest.fn(),
-  refreshFrequency: 0,
-  setRefreshFrequency: jest.fn(),
-  shouldPersistRefreshFrequency: false,
-  showPropertiesModal: jest.fn(),
-  startPeriodicRender: jest.fn(),
-  updateCss: jest.fn(),
-  userCanEdit: false,
-  userCanSave: false,
-  userCanShare: false,
-  lastModifiedTime: 0,
-  isDropdownVisible: true,
-});
-
-const editModeOnProps = {
-  ...createProps(),
-  editMode: true,
-};
-
-const mockStore = configureStore([thunk]);
-const store = mockStore({
-  dashboardState: {
-    dashboardInfo: createProps().dashboardInfo,
-  },
-});
-
-const HeaderActionsMenu = (props: any) => {
-  const [menu] = useHeaderActionsMenu(props);
-
-  return <>{menu}</>;
-};
-
-const setup = (overrides?: any) => (
-  <Provider store={store}>
-    <div className="dashboard-header">
-      <HeaderActionsMenu {...editModeOnProps} {...overrides} />
-    </div>
-  </Provider>
-);
-
-fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
-
-const openRefreshIntervalModal = async () => {
-  const autoRefreshOption = screen.getByText('Set auto-refresh interval');
-  userEvent.click(autoRefreshOption);
-};
-
-const displayOptions = async () => {
-  // Click default refresh interval option to display other options
-  userEvent.click(screen.getByText(/don't refresh/i));
-};
-
-const defaultRefreshIntervalModalProps = {
-  triggerNode: <Icons.EditOutlined />,
-  refreshFrequency: 0,
-  onChange: jest.fn(),
-  editMode: true,
-  addSuccessToast: jest.fn(),
-  refreshIntervalOptions: [],
-};
-
-test('is valid', () => {
-  expect(
-    isValidElement(
-      <RefreshIntervalModal {...defaultRefreshIntervalModalProps} />,
-    ),
-  ).toBe(true);
-});
-
-test('renders refresh interval modal', async () => {
-  render(setup(editModeOnProps), { useTheme: true });
-
-  expect(screen.queryByText('Refresh Interval')).not.toBeInTheDocument();
-  await openRefreshIntervalModal();
-
-  // Assert that modal exists by checking for the modal title
-  expect(screen.getByText('Refresh interval')).toBeInTheDocument();
-});
-
-test('renders refresh interval options', async () => {
-  render(setup(editModeOnProps), { useTheme: true });
-  await openRefreshIntervalModal();
-  await displayOptions();
-
-  // Assert that both "Don't refresh" instances exist
-  // - There will be two at this point, the default option and the dropdown option
-  const dontRefreshInstances = screen.getAllByText(/don't refresh/i);
-  expect(dontRefreshInstances).toHaveLength(2);
-  dontRefreshInstances.forEach(option => {
-    expect(option).toBeInTheDocument();
   });
 
-  // Assert that all the other options exist
-  const options = [
-    screen.getByText(/10 seconds/i),
-    screen.getByText(/30 seconds/i),
-    screen.getByText(/1 minute/i),
-    screen.getByText(/5 minutes/i),
-    screen.getByText(/30 minutes/i),
-    screen.getByText(/1 hour/i),
-    screen.getByText(/6 hours/i),
-    screen.getByText(/12 hours/i),
-    screen.getByText(/24 hours/i),
-  ];
-  options.forEach(option => {
-    expect(option).toBeInTheDocument();
-  });
+beforeEach(() => {
+  jest.clearAllMocks();
 });
 
-test('should change selected value', async () => {
-  render(setup(editModeOnProps), { useTheme: true });
-  await openRefreshIntervalModal();
+test('selecting an interval and saving persists it in edit mode', async () => {
+  setup();
 
-  // Initial selected value should be "Don't refresh"
-  const selectedValue = screen.getByText(/don't refresh/i);
-  expect(selectedValue.title).toMatch(/don't refresh/i);
+  await userEvent.click(screen.getByRole('radio', { name: '5 minutes' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-  // Display options and select "10 seconds"
-  await displayOptions();
-  userEvent.click(screen.getByText(/10 seconds/i));
-
-  // Selected value should now be "10 seconds"
-  expect(selectedValue.title).toMatch(/10 seconds/i);
-  expect(selectedValue.title).not.toMatch(/don't refresh/i);
-});
-
-test('should change selected value to custom value', async () => {
-  render(setup(editModeOnProps), { useTheme: true });
-  await openRefreshIntervalModal();
-
-  // Initial selected value should be "Don't refresh"
-  const selectedValue = screen.getByText(/don't refresh/i);
-  expect(selectedValue.title).toMatch(/don't refresh/i);
-
-  // Display options and select "Custom interval"
-  await displayOptions();
-  userEvent.click(screen.getByText(/Custom interval/i));
-
-  // Selected value should now be "Custom interval"
-  expect(selectedValue.title).toMatch(/Custom interval/i);
-  expect(selectedValue.title).not.toMatch(/don't refresh/i);
-});
-
-test('should save a newly-selected value', async () => {
-  render(setup(editModeOnProps), { useTheme: true });
-  await openRefreshIntervalModal();
-  await displayOptions();
-
-  // Select a new interval and click save
-  userEvent.click(screen.getByText(/10 seconds/i));
-  userEvent.click(screen.getByRole('button', { name: /save/i }));
-
-  expect(editModeOnProps.setRefreshFrequency).toHaveBeenCalled();
-  expect(editModeOnProps.setRefreshFrequency).toHaveBeenCalledWith(
-    10,
-    editModeOnProps.editMode,
+  expect(defaultProps.onChange).toHaveBeenCalledWith(300, true);
+  expect(defaultProps.onPauseOnInactiveTabChange).toHaveBeenCalledWith(false);
+  expect(defaultProps.onHide).toHaveBeenCalledTimes(1);
+  expect(defaultProps.addSuccessToast).toHaveBeenCalledWith(
+    'Refresh interval saved',
   );
-  expect(editModeOnProps.addSuccessToast).toHaveBeenCalled();
 });
 
-test('should show warning message', async () => {
-  const warningProps = {
-    ...editModeOnProps,
-    refreshLimit: 3600,
-    refreshWarning: 'Show warning',
-  };
+test('saving outside edit mode reports a session-only save', async () => {
+  setup({ editMode: false });
 
-  const { getByRole, queryByRole } = render(setup(warningProps), {
-    useTheme: true,
-  });
-  await openRefreshIntervalModal();
-  await displayOptions();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Save for this session' }),
+  );
 
-  userEvent.click(screen.getByText(/30 seconds/i));
-  expect(getByRole('alert')).toBeInTheDocument();
-  userEvent.click(screen.getByText(/6 hours/i));
-  expect(queryByRole('alert')).not.toBeInTheDocument();
+  expect(defaultProps.onChange).toHaveBeenCalledWith(60, false);
+  expect(defaultProps.addSuccessToast).toHaveBeenCalledWith(
+    'Refresh interval set for this session',
+  );
+});
+
+test('an interval below the configured limit blocks save with an error', async () => {
+  setup({}, { SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60 });
+
+  await userEvent.click(screen.getByRole('radio', { name: '10 seconds' }));
+
+  expect(
+    screen.getByText('Refresh frequency must be at least 60 seconds'),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(defaultProps.onChange).not.toHaveBeenCalled();
+});
+
+test('an interval below the limit shows the configured warning alongside the error', async () => {
+  setup(
+    {},
+    {
+      SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60,
+      SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE:
+        'Frequent refreshes put load on the database',
+    },
+  );
+
+  await userEvent.click(screen.getByRole('radio', { name: '10 seconds' }));
+
+  expect(
+    screen.getByText('Refresh frequency must be at least 60 seconds'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText('Frequent refreshes put load on the database'),
+  ).toBeInTheDocument();
+});
+
+test('the configured warning is hidden when the interval meets the limit', async () => {
+  setup(
+    {},
+    {
+      SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60,
+      SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE:
+        'Frequent refreshes put load on the database',
+    },
+  );
+
+  await userEvent.click(screen.getByRole('radio', { name: '5 minutes' }));
+
+  expect(
+    screen.queryByText('Frequent refreshes put load on the database'),
+  ).not.toBeInTheDocument();
+});
+
+test('an interval at or above the configured limit does not block save', async () => {
+  setup({}, { SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 60 });
+
+  await userEvent.click(screen.getByRole('radio', { name: '5 minutes' }));
+
+  expect(
+    screen.queryByText(/Refresh frequency must be at least/),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+});
+
+test('cancel resets the selection back to the original frequency and does not save', async () => {
+  // defaultProps.refreshFrequency (60) maps to the "1 minute" preset.
+  setup();
+  expect(screen.getByRole('radio', { name: '1 minute' })).toBeChecked();
+
+  await userEvent.click(screen.getByRole('radio', { name: '1 hour' }));
+  expect(screen.getByRole('radio', { name: '1 hour' })).toBeChecked();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+  expect(defaultProps.onChange).not.toHaveBeenCalled();
+  expect(defaultProps.onHide).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole('radio', { name: '1 minute' })).toBeChecked();
+  expect(screen.getByRole('radio', { name: '1 hour' })).not.toBeChecked();
 });

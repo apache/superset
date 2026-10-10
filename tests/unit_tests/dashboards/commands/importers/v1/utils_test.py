@@ -121,3 +121,722 @@ def test_update_native_filter_config_scope_excluded():
         },
         "metadata": {"native_filter_configuration": [{"scope": {"excluded": [1, 2]}}]},
     }
+
+
+def test_update_native_filter_config_preserves_rootpath_and_remaps_excluded():
+    """
+    Regression guard for #19944: a native filter's ``scope`` has two parts that
+    must both survive an export/import roundtrip:
+
+    - ``rootPath`` controls *which* dashboard sections (tabs/rows) the filter
+      applies to. It uses position keys (``ROOT_ID``, ``TAB-xxx``), not chart
+      IDs, so ``update_id_refs`` must leave it untouched.
+    - ``excluded`` is a list of chart IDs the filter does NOT apply to within
+      its rootPath. Those IDs must be remapped to destination-env IDs.
+
+    The original bug report — "filters are automatically applied to all charts,
+    even if a different scoping was defined before the export" — describes a
+    rootPath silently being collapsed back to ``["ROOT_ID"]`` (i.e. "apply
+    everywhere"). This test pins the post-refactor contract: the import path
+    must not mutate or drop ``rootPath``.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+            "CHART3": {
+                "id": "CHART3",
+                "meta": {"chartId": 103, "uuid": "uuid3"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-region",
+                    "name": "Region",
+                    "scope": {
+                        # Filter applies only to charts under TAB-revenue,
+                        # except chart 102 which is explicitly excluded.
+                        "rootPath": ["TAB-revenue"],
+                        "excluded": [102],
+                    },
+                },
+                {
+                    "id": "NATIVE_FILTER-product",
+                    "name": "Product",
+                    "scope": {
+                        # Different filter, different rootPath; must not be
+                        # cross-contaminated with the first filter's scope.
+                        "rootPath": ["TAB-inventory", "TAB-revenue"],
+                        "excluded": [101, 103],
+                    },
+                },
+            ],
+        },
+    }
+    chart_ids = {"uuid1": 1, "uuid2": 2, "uuid3": 3}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    filters = fixed["metadata"]["native_filter_configuration"]
+
+    # rootPath uses position keys, not chart IDs — must pass through unchanged.
+    assert filters[0]["scope"]["rootPath"] == ["TAB-revenue"]
+    assert filters[1]["scope"]["rootPath"] == ["TAB-inventory", "TAB-revenue"]
+
+    # excluded uses chart IDs — must be remapped to destination-env IDs.
+    assert filters[0]["scope"]["excluded"] == [2]
+    assert filters[1]["scope"]["excluded"] == [1, 3]
+
+
+def test_update_native_filter_config_default_rootpath_preserved():
+    """
+    The "apply everywhere" default — ``rootPath: ["ROOT_ID"]`` — must also
+    survive untouched. A regression that special-cased this value (e.g. by
+    deleting it) would silently change "apply everywhere" into "apply nowhere"
+    on import, since downstream consumers treat a missing rootPath as empty
+    rather than as the default.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-global",
+                    "name": "Global",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                }
+            ],
+        },
+    }
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    scope = fixed["metadata"]["native_filter_configuration"][0]["scope"]
+
+    assert scope["rootPath"] == ["ROOT_ID"]
+    assert scope["excluded"] == []
+
+
+def test_update_id_refs_remaps_charts_in_scope():
+    """
+    Regression for #26338: ``chartsInScope`` on a native filter holds chart
+    IDs and must be remapped from source-env IDs to destination-env IDs
+    during import.
+
+    The export side already converts ``chartsInScope`` IDs to UUIDs (see
+    ``export_example.py:325``). The import side must symmetrically convert
+    them back to the destination environment's chart IDs. Without that
+    remap, the field carries stale source IDs into the imported dashboard
+    and breaks ``filtersInScope`` / ``filtersOutScope`` computation —
+    filters end up applied to the wrong charts (or none at all).
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-region",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    # chartsInScope contains source-env chart IDs.
+                    "chartsInScope": [101, 102, 103],
+                }
+            ],
+        },
+    }
+    chart_ids = {"uuid1": 1, "uuid2": 2}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    filter_config = fixed["metadata"]["native_filter_configuration"][0]
+
+    # Resolved IDs are remapped; unknown IDs (103) are dropped rather than
+    # left to silently bind to whatever chart owns that integer in the
+    # destination environment.
+    assert filter_config["chartsInScope"] == [1, 2]
+
+
+def test_update_id_refs_remaps_cross_filter_charts_in_scope():
+    """
+    Companion to test_update_id_refs_remaps_charts_in_scope. Cross-filter
+    config also stores ``chartsInScope`` (under ``crossFilters`` per chart)
+    and must be remapped on import for the same reason.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "chart_configuration": {
+                "101": {
+                    "id": 101,
+                    "crossFilters": {
+                        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                        "chartsInScope": [101, 102, 103],
+                    },
+                },
+            },
+        },
+    }
+    chart_ids = {"uuid1": 1, "uuid2": 2}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    cross_filters = fixed["metadata"]["chart_configuration"]["1"]["crossFilters"]
+
+    assert cross_filters["chartsInScope"] == [1, 2]
+
+
+def test_update_id_refs_remaps_global_chart_configuration_charts_in_scope():
+    """
+    Per-chart and native-filter ``chartsInScope`` are remapped by their own
+    branches; ``global_chart_configuration.chartsInScope`` lives next to
+    ``global_chart_configuration.scope.excluded`` and needs the same treatment
+    so the global cross-filter scope cache doesn't keep stale source-env IDs.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "global_chart_configuration": {
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                "chartsInScope": [101, 102, 103],
+            },
+        },
+    }
+    chart_ids = {"uuid1": 1, "uuid2": 2}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    assert fixed["metadata"]["global_chart_configuration"]["chartsInScope"] == [1, 2]
+
+
+def test_update_id_refs_cross_filter_chart_configuration_key_and_excluded_mapping():
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    # Build a minimal dashboard position with uuids -> old ids
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "chart_configuration": {
+                "101": {
+                    "id": 101,
+                    "crossFilters": {"scope": {"excluded": [102, 103]}},
+                },
+                "104": {"crossFilters": {"scope": {"excluded": [105]}}},
+            },
+            "global_chart_configuration": {"scope": {"excluded": [102, 999]}},
+        },
+    }
+
+    chart_ids = {"uuid1": 1, "uuid2": 2}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    metadata = fixed["metadata"]
+    # Expect top-level key remapped from "101" to "1"
+    assert "1" in metadata["chart_configuration"]
+    assert "101" not in metadata["chart_configuration"]
+
+    chart_config = metadata["chart_configuration"]["1"]
+    # Expect inner id updated to new id
+    assert chart_config.get("id") == 1
+    # Expect excluded list remapped and unknown ids dropped
+    assert chart_config["crossFilters"]["scope"]["excluded"] == [2]
+
+    # Expect entries without id_map mapping to be dropped
+    assert "104" not in metadata["chart_configuration"]
+
+    # Expect global scope excluded remapped too
+    assert metadata["global_chart_configuration"]["scope"]["excluded"] == [2]
+
+
+def test_update_id_refs_cross_filter_handles_string_excluded():
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "chart_configuration": {
+                "101": {"crossFilters": {"scope": {"excluded": "all"}}}
+            }
+        },
+    }
+
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    # Should not raise and should remap key
+    assert "1" in fixed["metadata"]["chart_configuration"]
+
+
+def test_update_id_refs_preserves_time_grains_in_native_filters():
+    """
+    Test that time_grains allowlist is preserved during dashboard import.
+
+    The time_grains field is a top-level filter configuration key that should
+    survive the update_id_refs transformation without modification.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-abc123",
+                    "filterType": "filter_timegrain",
+                    "name": "Time Grain",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "targets": [{"datasetId": 201, "column": {"name": "dttm"}}],
+                    "controlValues": {},
+                    "time_grains": ["P1D", "P1W", "P1M"],
+                }
+            ]
+        },
+    }
+
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    # Verify time_grains is preserved unchanged
+    filter_config = fixed["metadata"]["native_filter_configuration"][0]
+    assert filter_config.get("time_grains") == ["P1D", "P1W", "P1M"]
+    assert filter_config.get("filterType") == "filter_timegrain"
+
+
+def test_find_native_filter_datasets_includes_display_controls():
+    """
+    Test that find_native_filter_datasets also returns dataset UUIDs
+    from chart_customization_config (display controls).
+    """
+    from superset.commands.dashboard.importers.v1.utils import (
+        find_native_filter_datasets,
+    )
+
+    metadata = {
+        "native_filter_configuration": [
+            {"targets": [{"datasetUuid": "uuid-native-1"}]},
+        ],
+        "chart_customization_config": [
+            {"targets": [{"datasetUuid": "uuid-display-1"}]},
+            {"targets": [{"datasetUuid": "uuid-display-2"}]},
+            {"targets": []},
+        ],
+    }
+
+    uuids = find_native_filter_datasets(metadata)
+    assert uuids == {"uuid-native-1", "uuid-display-1", "uuid-display-2"}
+
+
+def test_update_id_refs_fixes_display_control_dataset_references():
+    """
+    Test that update_id_refs converts datasetUuid back to datasetId in
+    chart_customization_config (display controls) during import.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "native_filter_configuration": [],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-abc",
+                    "type": "CHART_CUSTOMIZATION",
+                    # dual-write format: both fields present in exported bundle
+                    "targets": [
+                        {
+                            "datasetId": 99,
+                            "datasetUuid": "ds-uuid-1",
+                            "column": {"name": "col"},
+                        }
+                    ],
+                },
+                {
+                    "id": "CUSTOMIZATION-divider",
+                    "type": "CHART_CUSTOMIZATION_DIVIDER",
+                    "targets": [],
+                },
+            ],
+        },
+    }
+
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {
+        "ds-uuid-1": {"datasource_id": 42},
+    }
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    customizations = fixed["metadata"]["chart_customization_config"]
+    target = customizations[0]["targets"][0]
+    assert target["datasetId"] == 42  # updated to destination-env ID
+    assert "datasetUuid" not in target  # consumed by import
+    assert customizations[1]["targets"] == []
+
+
+def test_update_id_refs_removes_stale_dataset_id_when_uuid_unresolvable():
+    """
+    When a target has both datasetId and datasetUuid but the UUID is absent
+    from dataset_info, the stale datasetId must also be removed. A visibly
+    broken control is safer than one silently bound to whatever dataset
+    happens to own that integer ID in the destination environment.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {},
+        "metadata": {
+            "native_filter_configuration": [],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-abc",
+                    "type": "CHART_CUSTOMIZATION",
+                    "targets": [{"datasetId": 99, "datasetUuid": "uuid-missing"}],
+                },
+            ],
+        },
+    }
+
+    fixed = update_id_refs(config, {}, {})
+
+    target = fixed["metadata"]["chart_customization_config"][0]["targets"][0]
+    assert "datasetUuid" not in target
+    assert "datasetId" not in target
+
+
+def test_update_id_refs_skips_display_control_target_on_missing_uuid():
+    """
+    When a display control target's datasetUuid is absent from dataset_info
+    (e.g. a partially corrupt export bundle), update_id_refs skips the target
+    silently rather than raising KeyError — the datasetUuid is popped and no
+    datasetId is written, leaving the target without a dataset reference.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {},
+        "metadata": {
+            "native_filter_configuration": [],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-abc",
+                    "type": "CHART_CUSTOMIZATION",
+                    "targets": [{"datasetUuid": "uuid-missing-from-bundle"}],
+                },
+            ],
+        },
+    }
+
+    fixed = update_id_refs(config, {}, {})
+
+    target = fixed["metadata"]["chart_customization_config"][0]["targets"][0]
+    assert "datasetUuid" not in target
+    assert "datasetId" not in target
+
+
+def test_update_id_refs_handles_missing_time_grains():
+    """
+    Test backward compatibility when time_grains is not present.
+
+    Existing filters without time_grains should not break during import.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-legacy",
+                    "filterType": "filter_timegrain",
+                    "name": "Legacy Time Grain",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "targets": [{"datasetId": 201, "column": {"name": "dttm"}}],
+                    "controlValues": {},
+                    # Note: no time_grains key (legacy filter)
+                }
+            ]
+        },
+    }
+
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    # Verify filter is still valid and legacy payload keeps time_grains absent
+    filter_config = fixed["metadata"]["native_filter_configuration"][0]
+    assert filter_config.get("filterType") == "filter_timegrain"
+    assert "time_grains" not in filter_config
+
+
+def test_update_id_refs_cross_filter_uuid_keyed_config_remapped() -> None:
+    """
+    Test that UUID-keyed chart_configuration entries (from example exports) are
+    properly remapped to new integer IDs during import, including UUID values in
+    chartsInScope.
+
+    export_example.remap_chart_configuration produces chart_configuration keyed by
+    chart UUIDs with UUID values in crossFilters.chartsInScope.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "chart_configuration": {
+                # UUID-keyed format from export_example
+                "uuid1": {
+                    "id": "uuid1",
+                    "crossFilters": {
+                        "chartsInScope": ["uuid2"],  # UUID reference
+                        "scope": {"excluded": []},
+                    },
+                },
+                "uuid2": {
+                    "id": "uuid2",
+                    "crossFilters": {
+                        "chartsInScope": ["uuid1"],  # UUID reference
+                        "scope": {"excluded": []},
+                    },
+                },
+            }
+        },
+    }
+
+    chart_ids = {"uuid1": 1, "uuid2": 2}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    chart_cfg = fixed["metadata"]["chart_configuration"]
+    # UUID keys should be remapped to new integer keys
+    assert "1" in chart_cfg
+    assert "2" in chart_cfg
+    assert "uuid1" not in chart_cfg
+    assert "uuid2" not in chart_cfg
+    # Inner id fields should be new integer IDs
+    assert chart_cfg["1"]["id"] == 1
+    assert chart_cfg["2"]["id"] == 2
+    # chartsInScope UUIDs should be remapped to new integer IDs
+    assert chart_cfg["1"]["crossFilters"]["chartsInScope"] == [2]
+    assert chart_cfg["2"]["crossFilters"]["chartsInScope"] == [1]
+
+
+def test_update_id_refs_cross_filter_uuid_keyed_unknown_preserved() -> None:
+    """
+    Test that UUID-keyed chart_configuration entries with no matching position
+    entry are preserved unchanged rather than silently dropped.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    unknown_uuid = "ffffffff-0000-0000-0000-000000000000"
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "chart_configuration": {
+                "101": {"id": 101, "crossFilters": {"scope": {"excluded": []}}},
+                unknown_uuid: {"id": unknown_uuid, "crossFilters": {}},
+            }
+        },
+    }
+
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    chart_cfg = fixed["metadata"]["chart_configuration"]
+    # Integer-keyed entry should be remapped
+    assert "1" in chart_cfg
+    assert "101" not in chart_cfg
+    # Unknown UUID-keyed entry should be preserved unchanged
+    assert unknown_uuid in chart_cfg
+
+
+def test_update_id_refs_cross_filter_charts_in_scope() -> None:
+    """
+    Test that chartsInScope references in cross-filter configurations are updated.
+
+    This is a fix for issue #26338 - chartsInScope references in chart_configuration
+    and global_chart_configuration were not being updated during dashboard import.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+            "CHART3": {
+                "id": "CHART3",
+                "meta": {"chartId": 103, "uuid": "uuid3"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "chart_configuration": {
+                "101": {
+                    "id": 101,
+                    "crossFilters": {
+                        "chartsInScope": [102, 103],
+                        "scope": {"excluded": [101]},
+                    },
+                },
+                "102": {
+                    "id": 102,
+                    "crossFilters": {
+                        "chartsInScope": [101, 103, 999],  # 999 should be dropped
+                        "scope": {"excluded": []},
+                    },
+                },
+            },
+            "global_chart_configuration": {
+                "chartsInScope": [101, 102, 103, 999],  # 999 should be dropped
+                "scope": {"excluded": [103]},
+            },
+        },
+    }
+
+    chart_ids = {"uuid1": 1, "uuid2": 2, "uuid3": 3}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    metadata = fixed["metadata"]
+
+    # Check chart_configuration chartsInScope is updated
+    assert metadata["chart_configuration"]["1"]["crossFilters"]["chartsInScope"] == [
+        2,
+        3,
+    ]
+    assert metadata["chart_configuration"]["2"]["crossFilters"]["chartsInScope"] == [
+        1,
+        3,
+    ]
+
+    # Check global_chart_configuration chartsInScope is updated
+    assert metadata["global_chart_configuration"]["chartsInScope"] == [1, 2, 3]
+    assert metadata["global_chart_configuration"]["scope"]["excluded"] == [3]

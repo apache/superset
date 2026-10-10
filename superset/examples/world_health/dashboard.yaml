@@ -1,0 +1,205 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+certification_details: null
+certified_by: null
+css: null
+dashboard_title: World Bank's Data
+description: null
+metadata:
+  chart_configuration: {}
+  color_scheme: ''
+  color_scheme_domain: []
+  cross_filters_enabled: false
+  default_filters: '{}'
+  expanded_slices: {}
+  global_chart_configuration: {}
+  label_colors: {}
+  map_label_colors: {}
+  native_filter_configuration: []
+  refresh_frequency: 0
+  shared_label_colors: []
+  timed_refresh_immune_slices: []
+position:
+  CHART-0fd0d252:
+    children: []
+    id: CHART-0fd0d252
+    meta:
+      chartId: 126
+      height: 50
+      sliceName: Life Expectancy VS Rural %
+      uuid: c18faec9-ec43-4d36-8b66-4c8b1372020f
+      width: 8
+    type: CHART
+  CHART-17e0f8d8:
+    children: []
+    id: CHART-17e0f8d8
+    meta:
+      chartId: 123
+      height: 92
+      sliceName: Most Populated Countries
+      uuid: ef1d1d69-4da6-4654-adc5-c78586b07c92
+      width: 3
+    type: CHART
+  CHART-2d5b6871:
+    children: []
+    id: CHART-2d5b6871
+    meta:
+      chartId: 125
+      height: 52
+      sliceName: '% Rural'
+      uuid: ba225b63-1ae2-4bf5-b995-1d83740365c1
+      width: 7
+    type: CHART
+  CHART-2ee52f30:
+    children: []
+    id: CHART-2ee52f30
+    meta:
+      chartId: 124
+      height: 38
+      sliceName: Growth Rate
+      uuid: 6cf742ee-281a-4673-a37c-587d6f29726a
+      width: 6
+    type: CHART
+  CHART-37982887:
+    children: []
+    id: CHART-37982887
+    meta:
+      chartId: 122
+      height: 52
+      sliceName: World's Population
+      uuid: 78422cf9-f149-4491-b552-2ab0e3afffcf
+      width: 2
+    type: CHART
+  CHART-97f4cb48:
+    children: []
+    id: CHART-97f4cb48
+    meta:
+      chartId: 127
+      height: 38
+      sliceName: Rural Breakdown
+      uuid: cdac97d6-28a2-4cff-a1d0-c8b81dcf29a6
+      width: 3
+    type: CHART
+  CHART-a4808bba:
+    children: []
+    id: CHART-a4808bba
+    meta:
+      chartId: 130
+      height: 50
+      sliceName: Treemap
+      uuid: 71a12856-38a5-4978-be65-d0f4fde98aae
+      width: 8
+    type: CHART
+  CHART-b5e05d6f:
+    children: []
+    id: CHART-b5e05d6f
+    meta:
+      chartId: 128
+      height: 50
+      sliceName: World's Pop Growth
+      uuid: 6f7e8cc4-c850-4992-85a4-b161a782abc6
+      width: 4
+    type: CHART
+  CHART-e76e9f5f:
+    children: []
+    id: CHART-e76e9f5f
+    meta:
+      chartId: 129
+      height: 50
+      sliceName: Box plot
+      uuid: 53c450c6-98bf-435a-8ebb-2a237bccfd09
+      width: 4
+    type: CHART
+  COLUMN-071bbbad:
+    children:
+    - ROW-1e064e3c
+    - ROW-afdefba9
+    id: COLUMN-071bbbad
+    meta:
+      background: BACKGROUND_TRANSPARENT
+      width: 9
+    type: COLUMN
+  COLUMN-fe3914b8:
+    children:
+    - CHART-37982887
+    id: COLUMN-fe3914b8
+    meta:
+      background: BACKGROUND_TRANSPARENT
+      width: 2
+    type: COLUMN
+  DASHBOARD_VERSION_KEY: v2
+  GRID_ID:
+    children:
+    - ROW-46632bc2
+    - ROW-3fa26c5d
+    - ROW-812b3f13
+    id: GRID_ID
+    type: GRID
+  HEADER_ID:
+    id: HEADER_ID
+    meta:
+      text: World's Bank Data
+    type: HEADER
+  ROOT_ID:
+    children:
+    - GRID_ID
+    id: ROOT_ID
+    type: ROOT
+  ROW-1e064e3c:
+    children:
+    - COLUMN-fe3914b8
+    - CHART-2d5b6871
+    id: ROW-1e064e3c
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-3fa26c5d:
+    children:
+    - CHART-b5e05d6f
+    - CHART-0fd0d252
+    id: ROW-3fa26c5d
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-46632bc2:
+    children:
+    - COLUMN-071bbbad
+    - CHART-17e0f8d8
+    id: ROW-46632bc2
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-812b3f13:
+    children:
+    - CHART-a4808bba
+    - CHART-e76e9f5f
+    id: ROW-812b3f13
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-afdefba9:
+    children:
+    - CHART-2ee52f30
+    - CHART-97f4cb48
+    id: ROW-afdefba9
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+published: true
+slug: world_health
+uuid: be064106-05ab-4501-9695-c2f11547bddc
+version: 1.0.0

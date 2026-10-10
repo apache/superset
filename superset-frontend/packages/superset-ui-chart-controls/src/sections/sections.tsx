@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { ControlPanelSectionConfig } from '../types';
 
 // A few standard controls sections that are used internally.
@@ -45,6 +45,13 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
     ['datasource'],
     ['viz_type'],
     [
+      {
+        name: 'semantic_selection_version',
+        config: {
+          type: 'HiddenControl',
+          hidden: true,
+        },
+      },
       {
         name: 'slice_id',
         config: {

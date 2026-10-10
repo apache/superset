@@ -18,15 +18,25 @@
  */
 /* eslint camelcase: 0 */
 import rison from 'rison';
+import { clearDataMask } from 'src/dataMask/actions';
 import { Dataset } from '@superset-ui/chart-controls';
-import { t, SupersetClient, QueryFormData } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   addDangerToast,
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
-import { SaveActionType } from 'src/explore/types';
+import { CompatibilityResult, SaveActionType } from 'src/explore/types';
+
+export const RESET_SEMANTIC_SELECTIONS = 'RESET_SEMANTIC_SELECTIONS';
+export function resetSemanticSelections(sliceId?: number) {
+  return (dispatch: Dispatch) => {
+    if (sliceId !== undefined) dispatch(clearDataMask(sliceId));
+    dispatch({ type: RESET_SEMANTIC_SELECTIONS });
+  };
+}
 
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 export function updateFormDataByDatasource(
@@ -97,8 +107,23 @@ export function setControlValue(
   controlName: string,
   value: any,
   validationErrors?: any[],
+  options?: {
+    /**
+     * Marks a dispatch that no user gesture produced — effects rewriting
+     * transferred controls, derived values set alongside another control,
+     * and similar. The version-history session log skips these so an
+     * untouched chart never reports unsaved changes the user didn't make.
+     */
+    programmatic?: boolean;
+  },
 ) {
-  return { type: SET_FIELD_VALUE, controlName, value, validationErrors };
+  return {
+    type: SET_FIELD_VALUE,
+    controlName,
+    value,
+    validationErrors,
+    programmatic: options?.programmatic ?? false,
+  };
 }
 
 export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';
@@ -152,6 +177,83 @@ export function setForceQuery(force: boolean) {
   };
 }
 
+export const UPDATE_EXPLORE_CHART_STATE = 'UPDATE_EXPLORE_CHART_STATE';
+export function updateExploreChartState(
+  chartId: number,
+  chartState: Record<string, unknown>,
+) {
+  return {
+    type: UPDATE_EXPLORE_CHART_STATE,
+    chartId,
+    chartState,
+    lastModified: Date.now(),
+  };
+}
+
+export const SET_COMPATIBILITY = 'SET_COMPATIBILITY';
+export function setCompatibility(compatibility: CompatibilityResult) {
+  return { type: SET_COMPATIBILITY, compatibility };
+}
+
+let compatibilityRequestSeq = 0;
+
+/**
+ * Fetch compatible metrics and dimensions for the current selection.
+ *
+ * Only fires for semantic views — SQL datasets always have full compatibility
+ * so we short-circuit to `null` (no filtering) for everything else.
+ *
+ * Covers both real-time selection changes (M3) and saved-chart loading (M4):
+ * call this thunk on mount as well as whenever the metric / dimension
+ * selection changes in Explore.
+ */
+export function fetchCompatibility(
+  datasourceType: string,
+  datasourceId: number,
+  selectedMetrics: string[],
+  selectedDimensions: string[],
+) {
+  return async (dispatch: Dispatch) => {
+    compatibilityRequestSeq += 1;
+    const requestSeq = compatibilityRequestSeq;
+
+    if (datasourceType !== 'semantic_view') {
+      dispatch(setCompatibility({ status: 'idle' }));
+      return;
+    }
+
+    dispatch(setCompatibility({ status: 'loading' }));
+
+    try {
+      const { json } = await SupersetClient.post({
+        endpoint: `/api/v1/datasource/${datasourceType}/${datasourceId}/compatible`,
+        jsonPayload: {
+          selected_metrics: selectedMetrics,
+          selected_dimensions: selectedDimensions,
+        },
+      });
+      if (requestSeq !== compatibilityRequestSeq) {
+        return;
+      }
+      dispatch(
+        setCompatibility({
+          status: 'verified',
+          metrics: json.result.compatible_metrics ?? [],
+          dimensions: json.result.compatible_dimensions ?? [],
+        }),
+      );
+    } catch {
+      // A failed request must stay distinguishable from loading and from a
+      // valid empty result; consumers fall back to no filtering so the user
+      // is never blocked.
+      if (requestSeq !== compatibilityRequestSeq) {
+        return;
+      }
+      dispatch(setCompatibility({ status: 'failed' }));
+    }
+  };
+}
+
 export const SET_STASH_FORM_DATA = 'SET_STASH_FORM_DATA';
 export function setStashFormData(
   isHidden: boolean,
@@ -180,6 +282,7 @@ export function syncDatasourceMetadata(datasource: Dataset) {
 }
 
 export const exploreActions = {
+  resetSemanticSelections,
   ...toastActions,
   fetchDatasourcesStarted,
   fetchDatasourcesSucceeded,
@@ -194,6 +297,7 @@ export const exploreActions = {
   sliceUpdated,
   setForceQuery,
   syncDatasourceMetadata,
+  fetchCompatibility,
 };
 
 export type ExploreActions = typeof exploreActions;

@@ -27,7 +27,7 @@ import { PivotTableChartPlugin } from '../src';
  * properly transform the data and/or any resulting props).
  */
 describe('@superset-ui/plugin-chart-pivot-table', () => {
-  it('exists', () => {
+  test('exists', () => {
     expect(PivotTableChartPlugin).toBeDefined();
   });
 });

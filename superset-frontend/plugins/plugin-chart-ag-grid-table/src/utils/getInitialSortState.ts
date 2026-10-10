@@ -17,7 +17,10 @@
  * under the License.
  */
 // All ag grid sort related stuff
-import { GridState, SortModelItem } from 'ag-grid-community';
+import {
+  GridState,
+  SortModelItem,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import { SortByItem } from '../types';
 
 const getInitialSortState = (sortBy?: SortByItem[]): SortModelItem[] => {
@@ -40,7 +43,7 @@ export const shouldSort = ({
   gridInitialState,
 }: {
   colId: string;
-  sortDir: string;
+  sortDir: string | null;
   percentMetrics: string[];
   serverPagination: boolean;
   gridInitialState: GridState;

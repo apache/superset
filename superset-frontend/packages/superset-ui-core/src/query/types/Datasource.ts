@@ -26,6 +26,7 @@ export enum DatasourceType {
   Dataset = 'dataset',
   SlTable = 'sl_table',
   SavedQuery = 'saved_query',
+  SemanticView = 'semantic_view',
 }
 
 export interface Currency {
@@ -40,6 +41,20 @@ export interface Datasource {
   id: number;
   name: string;
   type: DatasourceType;
+  /**
+   * The parent resource that owns this datasource.
+   * For SQL-based datasets this is the database; for semantic views it is the
+   * semantic layer.  Use this field instead of the legacy `database` field when
+   * you only need the display name.
+   */
+  parent?: { name: string };
+  /**
+   * Stable string values of the features a semantic view's provider declares
+   * (for example "ADHOC_COLUMN_EXPRESSIONS"). Only present for semantic
+   * views; absent for tables, queries, and older payloads. Consumed by the
+   * explore picker-capability adapter — carries no provider identity.
+   */
+  semantic_view_features?: string[];
   columns: Column[];
   metrics: Metric[];
   description?: string;
@@ -53,6 +68,7 @@ export interface Datasource {
   verboseMap?: {
     [key: string]: string;
   };
+  currencyCodeColumn?: string;
 }
 
 export const DEFAULT_METRICS: Metric[] = [
@@ -62,5 +78,3 @@ export const DEFAULT_METRICS: Metric[] = [
     uuid: nanoid(),
   },
 ];
-
-export default {};

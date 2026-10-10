@@ -19,11 +19,11 @@
 import { getColumnLabel } from '@superset-ui/core';
 
 describe('getColumnLabel', () => {
-  it('should handle physical column', () => {
+  test('should handle physical column', () => {
     expect(getColumnLabel('gender')).toEqual('gender');
   });
 
-  it('should handle adhoc columns with label', () => {
+  test('should handle adhoc columns with label', () => {
     expect(
       getColumnLabel({
         sqlExpression: "case when 1 then 'a' else 'b' end",
@@ -33,7 +33,7 @@ describe('getColumnLabel', () => {
     ).toEqual('my col');
   });
 
-  it('should handle adhoc columns without label', () => {
+  test('should handle adhoc columns without label', () => {
     expect(
       getColumnLabel({
         sqlExpression: "case when 1 then 'a' else 'b' end",

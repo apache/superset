@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
@@ -146,7 +146,7 @@ function GroupsList({ user }: GroupsListProps) {
           .then(() => {
             deletedGroupsNames.push(group.name);
           })
-          .catch(err => {
+          .catch(() => {
             addDangerToast(t('Error deleting %s', group.name));
           }),
       ),
@@ -170,6 +170,7 @@ function GroupsList({ user }: GroupsListProps) {
         accessor: 'name',
         id: 'name',
         Header: t('Name'),
+        size: 'xxl',
         Cell: ({
           row: {
             original: { name },
@@ -273,6 +274,11 @@ function GroupsList({ user }: GroupsListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
+        name: t('Bulk select'),
+        onClick: toggleBulkSelect,
+        buttonStyle: 'secondary',
+      },
+      {
         name: t('Group'),
         icon: <Icons.PlusOutlined iconSize="m" />,
         buttonStyle: 'primary',
@@ -281,11 +287,6 @@ function GroupsList({ user }: GroupsListProps) {
         },
         loading: loadingState.roles,
         'data-test': 'add-group-button',
-      },
-      {
-        name: t('Bulk select'),
-        onClick: toggleBulkSelect,
-        buttonStyle: 'secondary',
       },
     );
   }
@@ -298,6 +299,7 @@ function GroupsList({ user }: GroupsListProps) {
         id: 'name',
         input: 'search',
         operator: ListViewFilterOperator.Contains,
+        inputName: 'group_list_search',
       },
       {
         Header: t('Label'),
@@ -325,7 +327,7 @@ function GroupsList({ user }: GroupsListProps) {
           value: role.id,
         })),
         loading: loadingState.roles,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Users'),
@@ -336,7 +338,7 @@ function GroupsList({ user }: GroupsListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: async (filterValue, page, pageSize) =>
           fetchUserOptions(filterValue, page, pageSize, addDangerToast),
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [loadingState.roles, roles],

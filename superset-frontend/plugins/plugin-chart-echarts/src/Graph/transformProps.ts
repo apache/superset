@@ -22,11 +22,11 @@ import {
   DataRecord,
   DataRecordValue,
   tooltipHtml,
-} from '@superset-ui/core';
-import type { EChartsCoreOption } from 'echarts/core';
-import type { GraphSeriesOption } from 'echarts/charts';
-import type { GraphEdgeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
-import { extent as d3Extent } from 'd3-array';
+} from "@superset-ui/core";
+import type { EChartsCoreOption } from "echarts/core";
+import type { GraphSeriesOption } from "echarts/charts";
+import type { GraphEdgeItemOption } from "echarts/types/src/chart/graph/GraphSeries";
+import { extent as d3Extent } from "d3-array";
 import {
   EchartsGraphFormData,
   EChartGraphNode,
@@ -34,32 +34,34 @@ import {
   EdgeSymbol,
   GraphChartTransformedProps,
   EchartsGraphChartProps,
-} from './types';
-import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
+} from "./types";
+import { DEFAULT_GRAPH_SERIES_OPTION } from "./constants";
 import {
   getChartPadding,
   getColtypesMapping,
   getLegendProps,
+  getLegendScrollDataIndex,
   sanitizeHtml,
-} from '../utils/series';
-import { getDefaultTooltip } from '../utils/tooltip';
-import { Refs } from '../types';
+} from "../utils/series";
+import { resolveLegendLayout } from "../utils/legendLayout";
+import { getDefaultTooltip } from "../utils/tooltip";
+import { Refs } from "../types";
 
 type EdgeWithStyles = GraphEdgeItemOption & {
-  lineStyle: Exclude<GraphEdgeItemOption['lineStyle'], undefined>;
-  emphasis: Exclude<GraphEdgeItemOption['emphasis'], undefined>;
-  select: Exclude<GraphEdgeItemOption['select'], undefined>;
+  lineStyle: Exclude<GraphEdgeItemOption["lineStyle"], undefined>;
+  emphasis: Exclude<GraphEdgeItemOption["emphasis"], undefined>;
+  select: Exclude<GraphEdgeItemOption["select"], undefined>;
 };
 
 function verifyEdgeSymbol(symbol: string): EdgeSymbol {
-  if (symbol === 'none' || symbol === 'circle' || symbol === 'arrow') {
+  if (symbol === "none" || symbol === "circle" || symbol === "arrow") {
     return symbol;
   }
-  return 'none';
+  return "none";
 }
 
 function parseEdgeSymbol(symbols?: string | null): [EdgeSymbol, EdgeSymbol] {
-  const [start, end] = (symbols || '').split(',');
+  const [start, end] = (symbols || "").split(",");
   return [verifyEdgeSymbol(start), verifyEdgeSymbol(end)];
 }
 
@@ -90,13 +92,13 @@ function normalizeStyles(
   const maxNodeSize = baseNodeSize * 2;
   const minEdgeWidth = baseEdgeWidth * 0.5;
   const maxEdgeWidth = baseEdgeWidth * 2;
-  const [nodeMinValue, nodeMaxValue] = d3Extent(nodes, x => x.value) as [
+  const [nodeMinValue, nodeMaxValue] = d3Extent(nodes, (x) => x.value) as [
     number,
     number,
   ];
 
   const nodeSpread = nodeMaxValue - nodeMinValue;
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     // eslint-disable-next-line no-param-reassign
     node.symbolSize =
       (((node.value - nodeMinValue) / nodeSpread) * maxNodeSize || 0) +
@@ -108,12 +110,12 @@ function normalizeStyles(
     };
   });
 
-  const [linkMinValue, linkMaxValue] = d3Extent(links, x => x.value) as [
+  const [linkMinValue, linkMaxValue] = d3Extent(links, (x) => x.value) as [
     number,
     number,
   ];
   const linkSpread = linkMaxValue - linkMinValue;
-  links.forEach(link => {
+  links.forEach((link) => {
     const lineWidth =
       ((link.value! - linkMinValue) / linkSpread) * maxEdgeWidth ||
       0 + minEdgeWidth;
@@ -137,7 +139,7 @@ function getKeyByValue(
   object: { [name: string]: number },
   value: number,
 ): string {
-  return Object.keys(object).find(key => object[key] === value) as string;
+  return Object.keys(object).find((key) => object[key] === value) as string;
 }
 
 function getCategoryName(columnName: string, name?: DataRecordValue) {
@@ -148,7 +150,7 @@ function getCategoryName(columnName: string, name?: DataRecordValue) {
     return `${columnName}: true`;
   }
   if (name == null) {
-    return 'N/A';
+    return "N/A";
   }
   return String(name);
 }
@@ -166,6 +168,8 @@ export default function transformProps(
     filterState,
     emitCrossFilters,
     theme,
+    legendState,
+    legendIndex,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -175,7 +179,7 @@ export default function transformProps(
     sourceCategory,
     targetCategory,
     colorScheme,
-    metric = '',
+    metric = "",
     layout,
     roam,
     draggable,
@@ -188,6 +192,7 @@ export default function transformProps(
     legendMargin,
     legendOrientation,
     legendType,
+    legendSort,
     showLegend,
     showSelectorLegend,
     baseEdgeWidth,
@@ -243,7 +248,7 @@ export default function transformProps(
     return node;
   }
 
-  data.forEach(link => {
+  data.forEach((link) => {
     const value = link[metricLabel] as number;
     if (!value) {
       return;
@@ -298,11 +303,25 @@ export default function transformProps(
   });
 
   const categoryList = [...categories];
+  const legendData = categoryList.sort((a: string, b: string) => {
+    if (!legendSort) return 0;
+    return legendSort === "asc" ? a.localeCompare(b) : b.localeCompare(a);
+  });
+  const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
   const series: GraphSeriesOption[] = [
     {
       zoom: DEFAULT_GRAPH_SERIES_OPTION.zoom,
-      type: 'graph',
-      categories: categoryList.map(c => ({
+      type: "graph",
+      categories: categoryList.map((c) => ({
         name: c,
         itemStyle: {
           color: colorFn(c, sliceId),
@@ -324,7 +343,7 @@ export default function transformProps(
       edgeSymbol: parseEdgeSymbol(edgeSymbol),
       edgeSymbolSize: baseEdgeWidth * 2,
       selectedMode,
-      ...getChartPadding(showLegend, legendOrientation, legendMargin),
+      ...getChartPadding(showLegend, legendOrientation, effectiveLegendMargin),
       animation: DEFAULT_GRAPH_SERIES_OPTION.animation,
       label: {
         ...DEFAULT_GRAPH_SERIES_OPTION.label,
@@ -354,18 +373,22 @@ export default function transformProps(
     },
     legend: {
       ...getLegendProps(
-        legendType,
+        effectiveLegendType,
         legendOrientation,
         showLegend,
         theme,
+        false,
+        legendState,
         showSelectorLegend,
       ),
-      data: categoryList,
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
+      data: legendData,
     },
     series,
   };
 
-  const { onContextMenu, setDataMask } = hooks;
+  const { onContextMenu, setDataMask, onLegendStateChanged, onLegendScroll } =
+    hooks;
 
   return {
     width,
@@ -374,6 +397,8 @@ export default function transformProps(
     echartOptions,
     onContextMenu,
     setDataMask,
+    onLegendStateChanged,
+    onLegendScroll,
     filterState,
     refs,
     emitCrossFilters,

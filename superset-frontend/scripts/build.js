@@ -23,14 +23,16 @@
 /**
  * Build packages/plugins filtered by globs
  */
+
+import { spawnSync } from 'node:child_process';
+import { globSync } from 'node:fs';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const { spawnSync } = require('child_process');
-const fastGlob = require('fast-glob');
-const { argv } = require('yargs');
-
-const { _: globs } = argv;
-const glob = globs.length > 1 ? `{${globs.join(',')}}` : globs[0] || '*';
+const { globs } = yargs(hideBin(process.argv)).parse();
+const glob = globs?.length > 1 ? `{${globs.join(',')}}` : globs?.[0] || '*';
 
 const BABEL_CONFIG = '--config-file=../../babel.config.js';
 
@@ -50,29 +52,66 @@ function run(cmd, options) {
 function getPackages(packagePattern, tsOnly = false) {
   let pattern = packagePattern;
   if (pattern === '*' && !tsOnly) {
-    return `@superset-ui/!(${[...META_PACKAGES].join('|')})`;
+    return `{@superset-ui/!(${[...META_PACKAGES].join('|')}),@apache-superset/*}`;
   }
   if (!pattern.includes('*')) {
     pattern = `*${pattern}`;
   }
-  const packages = [
+
+  // Find packages in both @superset-ui and @apache-superset scopes
+  const supersetUiPackages = [
     ...new Set(
-      fastGlob
-        .sync([
+      globSync(
+        [
           `./node_modules/@superset-ui/${pattern}/src/**/*.${
             tsOnly ? '{ts,tsx}' : '{ts,tsx,js,jsx}'
           }`,
-        ])
-        .map(x => x.split('/')[3])
+        ],
+        { followSymlinks: true },
+      )
+        .map(x => x.split('/')[2])
         .filter(x => !META_PACKAGES.has(x)),
     ),
   ];
-  if (packages.length === 0) {
+
+  const apachePackages = [
+    ...new Set(
+      globSync(
+        [
+          `./node_modules/@apache-superset/${pattern}/src/**/*.${
+            tsOnly ? '{ts,tsx}' : '{ts,tsx,js,jsx}'
+          }`,
+        ],
+        { followSymlinks: true },
+      ).map(x => x.split('/')[2]),
+    ),
+  ];
+
+  const allScopes = [];
+  if (supersetUiPackages.length > 0) {
+    allScopes.push(
+      `@superset-ui/${
+        supersetUiPackages.length > 1
+          ? `{${supersetUiPackages.join(',')}}`
+          : supersetUiPackages[0]
+      }`,
+    );
+  }
+  if (apachePackages.length > 0) {
+    allScopes.push(
+      `@apache-superset/${
+        apachePackages.length > 1
+          ? `{${apachePackages.join(',')}}`
+          : apachePackages[0]
+      }`,
+    );
+  }
+
+  if (allScopes.length === 0) {
     throw new Error('No matching packages');
   }
-  return `@superset-ui/${
-    packages.length > 1 ? `{${packages.join(',')}}` : packages[0]
-  }`;
+
+  return allScopes.length > 1 ? `{${allScopes.join(',')}}` : allScopes[0];
 }
 
 let scope = getPackages(glob);

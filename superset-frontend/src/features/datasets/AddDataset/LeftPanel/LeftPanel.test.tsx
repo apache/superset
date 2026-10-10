@@ -155,7 +155,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const mockFun = jest.fn();
@@ -180,7 +180,7 @@ test('should render schema selector, database selector container, and selects', 
     name: 'Select database or type to search databases',
   });
   const schemaSelect = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema',
   });
   expect(databaseSelect).toBeInTheDocument();
   expect(schemaSelect).toBeInTheDocument();
@@ -205,13 +205,13 @@ test('renders list of options when user clicks on schema', async () => {
   const databaseSelect = screen.getByRole('combobox', {
     name: 'Select database or type to search databases',
   });
-  userEvent.click(databaseSelect);
+  await userEvent.click(databaseSelect);
   expect(await screen.findByText('test-postgres')).toBeInTheDocument();
-  userEvent.click(screen.getByText('test-postgres'));
+  await userEvent.click(screen.getByText('test-postgres'));
 
   // Schema select will be automatically populated if there is only one schema
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type to search schemas/i,
+    name: /select schema/i,
   });
   await waitFor(() => {
     expect(schemaSelect).toBeEnabled();
@@ -227,11 +227,11 @@ test('searches for a table name', async () => {
   const databaseSelect = screen.getByRole('combobox', {
     name: /select database or type to search databases/i,
   });
-  userEvent.click(databaseSelect);
-  userEvent.click(await screen.findByText('test-postgres'));
+  await userEvent.click(databaseSelect);
+  await userEvent.click(await screen.findByText('test-postgres'));
 
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type to search schemas/i,
+    name: /select schema/i,
   });
   const tableSelect = screen.getByRole('combobox', {
     name: /select table or type to search tables/i,
@@ -240,10 +240,12 @@ test('searches for a table name', async () => {
   await waitFor(() => expect(schemaSelect).toBeEnabled());
 
   // Click 'public' schema to access tables
-  userEvent.click(schemaSelect);
-  userEvent.click(screen.getByText('public'));
-  await waitFor(() => expect(fetchMock.calls(tablesEndpoint).length).toBe(1));
-  userEvent.click(tableSelect);
+  await userEvent.click(schemaSelect);
+  await userEvent.click(screen.getByText('public'));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(tablesEndpoint).length).toBe(1),
+  );
+  await userEvent.click(tableSelect);
 
   await waitFor(() => {
     expect(
@@ -254,7 +256,7 @@ test('searches for a table name', async () => {
     ).toBeInTheDocument();
   });
 
-  userEvent.type(tableSelect, 'Sheet3');
+  await userEvent.type(tableSelect, 'Sheet3');
 
   await waitFor(() => {
     expect(screen.queryByText(/Sheet1/i)).not.toBeInTheDocument();
@@ -281,11 +283,11 @@ test('renders a warning icon when a table name has a preexisting dataset', async
   const databaseSelect = screen.getByRole('combobox', {
     name: /select database or type to search databases/i,
   });
-  userEvent.click(databaseSelect);
-  userEvent.click(await screen.findByText('test-postgres'));
+  await userEvent.click(databaseSelect);
+  await userEvent.click(await screen.findByText('test-postgres'));
 
   const schemaSelect = screen.getByRole('combobox', {
-    name: /select schema or type to search schemas/i,
+    name: /select schema/i,
   });
   const tableSelect = screen.getByRole('combobox', {
     name: /select table or type to search tables/i,
@@ -299,9 +301,9 @@ test('renders a warning icon when a table name has a preexisting dataset', async
   ).not.toBeInTheDocument();
 
   // Click 'public' schema to access tables
-  userEvent.click(schemaSelect);
-  userEvent.click(screen.getByText('public'));
-  userEvent.click(tableSelect);
+  await userEvent.click(schemaSelect);
+  await userEvent.click(screen.getByText('public'));
+  await userEvent.click(tableSelect);
 
   await waitFor(() => {
     expect(
@@ -309,7 +311,7 @@ test('renders a warning icon when a table name has a preexisting dataset', async
     ).toBeInTheDocument();
   });
 
-  userEvent.type(tableSelect, 'Sheet2');
+  await userEvent.type(tableSelect, 'Sheet2');
 
   // Sheet2 should now show the warning icon
   expect(screen.getByRole('img', { name: 'warning' })).toBeInTheDocument();

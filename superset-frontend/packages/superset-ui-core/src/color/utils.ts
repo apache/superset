@@ -17,6 +17,7 @@
  * under the License.
  */
 import tinycolor from 'tinycolor2';
+import { type RGBColor } from '@superset-ui/core/components';
 
 const rgbRegex = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/;
 export function getContrastingColor(color: string, thresholds = 186) {
@@ -120,3 +121,45 @@ export function rgbToHex(red: number, green: number, blue: number) {
 
   return `#${r}${g}${b}`;
 }
+
+export function rgbaToHex(rgb: RGBColor): string {
+  const { r, g, b, a = 1 } = rgb;
+  const clampChannel = (value: number) =>
+    Math.min(255, Math.max(0, Math.round(value)));
+  const clampAlpha = (value: number) => Math.min(1, Math.max(0, value));
+  const toHex = (value: number) => {
+    const hex = value.toString(16);
+    return hex.length === 1 ? `0${hex}` : hex;
+  };
+  const hexColor = `#${toHex(clampChannel(r))}${toHex(clampChannel(g))}${toHex(clampChannel(b))}`;
+  const clampedAlpha = clampAlpha(a);
+  if (clampedAlpha !== 1) {
+    return `${hexColor}${toHex(Math.round(clampedAlpha * 255))}`;
+  }
+  return hexColor;
+}
+
+export const forceHexAlpha = (color: string | RGBColor): string => {
+  if (typeof color === 'object' && color !== null) {
+    return rgbaToHex({ ...color, a: 0.6 });
+  }
+
+  let hex = color.startsWith('#') ? color : `#${color}`;
+
+  // Expand shorthand hex (#rgb, #rgba) to full length before appending or
+  // replacing the alpha channel, otherwise the result is not a valid 6- or
+  // 8-digit CSS hex color.
+  if (hex.length === 4 || hex.length === 5) {
+    hex = `#${hex
+      .slice(1)
+      .split('')
+      .map(char => char + char)
+      .join('')}`;
+  }
+
+  if (hex.length === 9) {
+    return `${hex.slice(0, -2)}99`;
+  }
+
+  return `${hex}99`;
+};

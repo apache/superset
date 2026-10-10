@@ -18,9 +18,14 @@
  */
 import { TableTab } from 'src/views/CRUD/types';
 import { render, screen } from 'spec/helpers/testing-library';
+import {
+  enableMobileConsumptionFlag,
+  mockMobileMatchMedia,
+} from 'spec/helpers/mobileTestUtils';
 import EmptyState, { EmptyStateProps } from './EmptyState';
 import { WelcomeTable } from './types';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('EmptyState', () => {
   const variants: EmptyStateProps[] = [
     {
@@ -64,7 +69,7 @@ describe('EmptyState', () => {
   ];
 
   variants.forEach(variant => {
-    it(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
+    test(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
       const { container } = render(<EmptyState {...variant} />);
 
       // Select the first description node
@@ -76,7 +81,7 @@ describe('EmptyState', () => {
   });
 
   recents.forEach(recent => {
-    it(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
+    test(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
       const { container } = render(<EmptyState {...recent} />);
 
       // Select the first description node
@@ -89,6 +94,41 @@ describe('EmptyState', () => {
       expect(
         container.querySelector('.ant-empty-image')?.children,
       ).toHaveLength(1);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('mobile consumption mode', () => {
+    let restoreMatchMedia: () => void;
+    let restoreFlag: () => void;
+
+    beforeEach(() => {
+      restoreMatchMedia = mockMobileMatchMedia();
+      restoreFlag = enableMobileConsumptionFlag();
+    });
+
+    afterEach(() => {
+      restoreMatchMedia();
+      restoreFlag();
+    });
+
+    test('withholds the creation action for a non-favorite tab', () => {
+      render(
+        <EmptyState tab={TableTab.Mine} tableName={WelcomeTable.Dashboards} />,
+      );
+
+      expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    });
+
+    test('still offers the "See all ..." action for the favorite tab', () => {
+      render(
+        <EmptyState
+          tab={TableTab.Favorite}
+          tableName={WelcomeTable.Dashboards}
+        />,
+      );
+
+      expect(screen.getAllByRole('button')).toHaveLength(1);
     });
   });
 });

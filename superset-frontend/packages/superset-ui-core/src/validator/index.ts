@@ -17,6 +17,7 @@
  * under the License.
  */
 
+export * from './types';
 export { default as legacyValidateInteger } from './legacyValidateInteger';
 export { default as legacyValidateNumber } from './legacyValidateNumber';
 export { default as validateInteger } from './validateInteger';

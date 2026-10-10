@@ -20,7 +20,7 @@ from typing import Optional, Union
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.core import Database
 from superset.sql.parse import LimitMethod, Table
 
@@ -31,33 +31,80 @@ class Db2EngineSpec(BaseEngineSpec):
     engine = "db2"
     engine_aliases = {"ibm_db_sa"}
     engine_name = "IBM Db2"
+
+    metadata = {
+        "description": (
+            "IBM Db2 is a family of data management products for enterprise workloads, "
+            "available on-premises, in containers, and across cloud platforms."
+        ),
+        "logo": "ibm-db2.svg",
+        "homepage_url": "https://www.ibm.com/db2",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["ibm_db_sa"],
+        "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+        "default_port": 50000,
+        "drivers": [
+            {
+                "name": "ibm_db_sa (with LIMIT)",
+                "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
+                "is_recommended": True,
+            },
+            {
+                "name": "ibm_db_sa (without LIMIT syntax)",
+                "connection_string": "ibm_db_sa://{username}:{password}@{hostname}:{port}/{database}",
+                "is_recommended": False,
+                "notes": (
+                    "Db2 11.1.0 or higher is required to support SQL compatibility "
+                    "enhancements. "
+                    "Use for older Db2 versions without LIMIT [n] syntax. "
+                    "Recommended for SQL Lab."
+                ),
+            },
+        ],
+        "compatible_databases": [
+            {
+                "name": "IBM Db2 for i (AS/400)",
+                "description": (
+                    "Db2 for i is a fully integrated database engine on IBM i (AS/400) "
+                    "systems. Uses a different SQLAlchemy driver optimized for IBM i."
+                ),
+                "logo": "ibm-db2.svg",
+                "homepage_url": "https://www.ibm.com/products/db2-for-i",
+                "pypi_packages": ["sqlalchemy-ibmi"],
+                "connection_string": "ibmi://{username}:{password}@{host}/{database}",
+                "parameters": {
+                    "username": "IBM i username",
+                    "password": "IBM i password",
+                    "host": "IBM i system host",
+                    "database": "Library/schema name",
+                },
+                "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
+                "categories": [DatabaseCategory.PROPRIETARY],
+            },
+        ],
+        "docs_url": "https://github.com/ibmdb/python-ibmdbsa",
+    }
+
     limit_method = LimitMethod.WRAP_SQL
     force_column_alias_quotes = True
     max_column_name_length = 30
 
     supports_dynamic_schema = True
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "CAST({col} as TIMESTAMP) - MICROSECOND({col}) MICROSECONDS",
-        TimeGrain.MINUTE: "CAST({col} as TIMESTAMP)"
-        " - SECOND({col}) SECONDS"
-        " - MICROSECOND({col}) MICROSECONDS",
-        TimeGrain.HOUR: "CAST({col} as TIMESTAMP)"
-        " - MINUTE({col}) MINUTES"
-        " - SECOND({col}) SECONDS"
-        " - MICROSECOND({col}) MICROSECONDS ",
-        TimeGrain.DAY: "CAST({col} as TIMESTAMP)"
-        " - HOUR({col}) HOURS"
-        " - MINUTE({col}) MINUTES"
-        " - SECOND({col}) SECONDS"
-        " - MICROSECOND({col}) MICROSECONDS",
-        TimeGrain.WEEK: "{col} - (DAYOFWEEK({col})) DAYS",
-        TimeGrain.MONTH: "{col} - (DAY({col})-1) DAYS",
-        TimeGrain.QUARTER: "{col} - (DAY({col})-1) DAYS"
-        " - (MONTH({col})-1) MONTHS"
-        " + ((QUARTER({col})-1) * 3) MONTHS",
-        TimeGrain.YEAR: "{col} - (DAY({col})-1) DAYS - (MONTH({col})-1) MONTHS",
+        TimeGrain.SECOND: "DATE_TRUNC('SECOND', {col})",
+        TimeGrain.MINUTE: "DATE_TRUNC('MINUTE', {col})",
+        TimeGrain.HOUR: "DATE_TRUNC('HOUR', {col})",
+        TimeGrain.DAY: "DATE_TRUNC('DAY', {col})",
+        TimeGrain.WEEK: "DATE_TRUNC('WEEK', {col})",
+        TimeGrain.MONTH: "DATE_TRUNC('MONTH', {col})",
+        TimeGrain.QUARTER: "DATE_TRUNC('QUARTER', {col})",
+        TimeGrain.YEAR: "DATE_TRUNC('YEAR', {col})",
     }
 
     @classmethod
@@ -73,23 +120,17 @@ class Db2EngineSpec(BaseEngineSpec):
         """
         Get comment of table from a given schema
 
-        Ibm Db2 return comments as tuples, so we need to get the first element
-
         :param inspector: SqlAlchemy Inspector instance
         :param table: Table instance
         :return: comment of table
         """
-        comment = None
         try:
             table_comment = inspector.get_table_comment(table.table, table.schema)
-            comment = table_comment.get("text")
-            return comment[0]
-        except IndexError:
-            return comment
+            return table_comment.get("text")
         except Exception as ex:  # pylint: disable=broad-except
             logger.error("Unexpected error while fetching table comment", exc_info=True)
             logger.exception(ex)
-            return comment
+            return None
 
     @classmethod
     def get_prequeries(
@@ -109,5 +150,18 @@ class Db2EngineSpec(BaseEngineSpec):
         any tables with unqualified names. If the schema is not set by SQL Lab it could
         be anything, and we would have to block users from running any queries
         referencing tables without an explicit schema.
+
+        The schema name is denormalized like reflection does, so a schema created
+        quoted and lower case (``CREATE SCHEMA "lowonly"``) resolves to its
+        upper-case name (``LOWONLY``), matching ``get_table_names``. Such schemas
+        are not reachable through unqualified names in SQL Lab.
         """
-        return [f'set current_schema "{schema}"'] if schema else []
+        if not schema:
+            return []
+        # Schema names come from the inspector, where unquoted (upper-case) DB2
+        # names are normalized to lower case. Quoting that name as-is would
+        # select a different, usually non-existent, schema, so convert it back
+        # to the name stored in the catalog first.
+        name = cls.denormalize_name(database.get_dialect(), schema)
+        escaped = name.replace('"', '""')
+        return [f'set current_schema "{escaped}"']

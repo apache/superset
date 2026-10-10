@@ -16,33 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Type augmentation for dayjs plugins
+import 'dayjs/plugin/utc';
 import {
   CustomSeriesOption,
   CustomSeriesRenderItem,
   EChartsCoreOption,
   LineSeriesOption,
 } from 'echarts';
+import { t } from '@apache-superset/core/translation';
 import {
   AxisType,
   CategoricalColorNamespace,
   DataRecord,
   DataRecordValue,
-  GenericDataType,
   getColumnLabel,
   getNumberFormatter,
-  t,
   tooltipHtml,
 } from '@superset-ui/core';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
+import { GenericDataType } from '@apache-superset/core/common';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import dayjs from 'dayjs';
 import {
   Cartesian2dCoordSys,
   EchartsGanttChartProps,
   EchartsGanttFormData,
 } from './types';
 import { DEFAULT_FORM_DATA, TIMESERIES_CONSTANTS } from '../constants';
-import { Refs } from '../types';
-import { getLegendProps, groupData } from '../utils/series';
+import { LegendOrientation, Refs } from '../types';
+import {
+  getHorizontalLegendAvailableWidth,
+  getLegendProps,
+  getLegendScrollDataIndex,
+  groupData,
+  measureTextInkWidth,
+} from '../utils/series';
+import { resolveLegendLayout } from '../utils/legendLayout';
 import {
   getTooltipTimeFormatter,
   getXAxisFormatter,
@@ -51,7 +60,13 @@ import { defaultGrid } from '../defaults';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
 import { getTooltipLabels } from '../utils/tooltip';
-import { Dimension, ELEMENT_HEIGHT_SCALE } from './constants';
+import {
+  CATEGORY_LABEL_GAP,
+  CATEGORY_LABEL_TRUNCATE_GAP,
+  Dimension,
+  ELEMENT_HEIGHT_SCALE,
+  MAX_CATEGORY_LABEL_WIDTH_RATIO,
+} from './constants';
 
 const renderItem: CustomSeriesRenderItem = (params, api) => {
   const startX = api.value(Dimension.StartTime);
@@ -113,6 +128,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     emitCrossFilters,
     datasource,
     legendState,
+    legendIndex,
   } = chartProps;
 
   const {
@@ -131,6 +147,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     legendMargin,
     legendOrientation,
     legendType,
+    legendSort,
     showLegend,
     showSelectorLegend,
     yAxisTitle,
@@ -144,7 +161,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     ...formData,
   };
 
-  const { setControlValue, onLegendStateChanged } = hooks;
+  const { setControlValue, onLegendStateChanged, onLegendScroll } = hooks;
 
   const { data = [], colnames = [], coltypes = [] } = queriesData[0];
   const refs: Refs = {};
@@ -202,15 +219,51 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   const categoryLines: { yAxis: number; name?: string }[] = [];
   let sum = 0;
   let prevSum = 0;
+  let maxCategoryLabelWidth = 0;
+
+  // The category labels are drawn via the markLine `label` below, so its font
+  // must match the one measureTextInkWidth measures with (the theme's
+  // fontSizeSM / fontFamily), or the reserved grid area can end up narrower
+  // than the rendered text.
+  const categoryLabelFontSize = theme.fontSizeSM;
+  const categoryLabelFontFamily = theme.fontFamily;
+
   Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
     sum += map.size;
+
+    const name = key === null || key === undefined ? undefined : String(key);
+
     categoryLines.push({
       yAxis: seriesCount - (sum + prevSum) / 2,
-      name: key ? String(key) : undefined,
+      name,
     });
+
+    if (name) {
+      // Reserve the rendered glyphs' ink extent rather than only the advance
+      // width, which previously left labels clipped by a few pixels.
+      maxCategoryLabelWidth = Math.max(
+        maxCategoryLabelWidth,
+        measureTextInkWidth(name, theme),
+      );
+    }
+
     borderLines.push({ yAxis: seriesCount - sum });
+
     prevSum = sum;
   });
+
+  // Category names are rendered as markLine labels, and `grid.containLabel`
+  // only reserves room for axis labels, so a name longer than the default left
+  // padding was drawn into -- and clipped by -- the left edge of the plot.
+  // Measure the widest name and reserve that much, capped so a very long
+  // category cannot eat the chart; anything past the cap is truncated with an
+  // ellipsis by the label itself.
+  const categoryLabelWidth = Math.min(
+    maxCategoryLabelWidth > 0
+      ? Math.ceil(maxCategoryLabelWidth) + CATEGORY_LABEL_TRUNCATE_GAP
+      : 0,
+    Math.floor(width * MAX_CATEGORY_LABEL_WIDTH_RATIO),
+  );
 
   const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
   const tooltipTimeFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
@@ -243,10 +296,13 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       .second(time.second());
   }
 
+  const addYAxisTitleOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+
   const padding = getPadding(
-    showLegend && seriesMap.size > 1,
+    showLegend,
     legendOrientation,
-    false,
+    addYAxisTitleOffset,
     zoomable,
     legendMargin,
     !!xAxisTitle,
@@ -325,17 +381,69 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
           show: true,
           position: 'start',
           formatter: '{b}',
+          color: theme.colorText,
+          fontSize: categoryLabelFontSize,
+          fontFamily: categoryLabelFontFamily,
+          width: categoryLabelWidth,
+          overflow: 'truncate',
         },
         data: categoryLines,
       },
     },
   );
 
+  const legendData = series
+    .map(entry => {
+      const { name } = entry;
+      if (name === null || name === undefined) return '';
+      return String(name);
+    })
+    .filter(name => name !== '')
+    .sort((a, b) => {
+      if (!legendSort) return 0;
+      return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+    });
+  const { legendLayout, effectiveLegendType } = resolveLegendLayout({
+    availableWidth:
+      legendOrientation === LegendOrientation.Top ||
+      legendOrientation === LegendOrientation.Bottom
+        ? getHorizontalLegendAvailableWidth({
+            chartWidth: width,
+            orientation: legendOrientation,
+            padding,
+            zoomable,
+          })
+        : undefined,
+    chartHeight: height,
+    chartWidth: width,
+    legendItems: legendData,
+    legendMargin,
+    orientation: legendOrientation,
+    show: showLegend,
+    theme,
+    type: legendType,
+  });
+  if (legendLayout.effectiveMargin !== undefined) {
+    const adjustedPadding = getPadding(
+      showLegend,
+      legendOrientation,
+      addYAxisTitleOffset,
+      zoomable,
+      legendLayout.effectiveMargin,
+      !!xAxisTitle,
+      'Left',
+      convertInteger(yAxisTitleMargin),
+      convertInteger(xAxisTitleMargin),
+    );
+    Object.assign(padding, adjustedPadding);
+  }
+
   const tooltipFormatterMap = {
     [GenericDataType.Numeric]: tooltipValuesFormatter,
     [GenericDataType.String]: undefined,
     [GenericDataType.Temporal]: tooltipTimeFormatter,
     [GenericDataType.Boolean]: undefined,
+    [GenericDataType.MultiValue]: undefined,
   };
 
   const echartOptions: EChartsCoreOption = {
@@ -359,18 +467,24 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     },
     legend: {
       ...getLegendProps(
-        legendType,
+        effectiveLegendType,
         legendOrientation,
         showLegend,
         theme,
         showSelectorLegend,
         zoomable,
         legendState,
+        padding,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
+      data: legendData,
     },
     grid: {
       ...defaultGrid,
       ...padding,
+      left:
+        padding.left +
+        (categoryLabelWidth > 0 ? categoryLabelWidth + CATEGORY_LABEL_GAP : 0),
     },
     dataZoom: zoomable && [
       {
@@ -438,5 +552,6 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     refs,
     setControlValue,
     onLegendStateChanged,
+    onLegendScroll,
   };
 }

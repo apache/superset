@@ -16,22 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useEffect, useState } from 'react';
+import { FC, PropsWithChildren, useEffect, useState } from 'react';
 
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { Constants } from '@superset-ui/core/components';
 import { RootState } from 'src/dashboard/types';
 import { useSelector } from 'react-redux';
 import { useDragDropManager } from 'react-dnd';
 import classNames from 'classnames';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 
 const StyledDiv = styled.div`
   ${({ theme }) => css`
     background-color: ${theme.colorBgLayout};
     position: relative;
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
     grid-template-rows: auto 1fr;
     flex: 1;
     /* Special cases */
@@ -44,8 +45,8 @@ const StyledDiv = styled.div`
       }
       & .empty-droptarget:before {
         display: block;
-        border-color: ${theme.colors.primary.light1};
-        background-color: ${theme.colors.primary.light3};
+        border-color: ${theme.colorPrimary};
+        background-color: ${theme.colorPrimaryBg};
       }
       & .grid-row:after {
         border-style: hidden;
@@ -110,12 +111,26 @@ const StyledDiv = styled.div`
     i.warning {
       color: ${theme.colorWarning};
     }
+
+    /* Mobile consumption mode: show the full chart title without
+       truncation (controls and links are render-gated in SliceHeader) */
+    ${
+      isMobileConsumptionEnabled()
+        ? `@media (max-width: ${theme.screenSMMax}px) {
+      .slice-header .header-title {
+        -webkit-line-clamp: unset;
+        display: block;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+      }
+    }`
+        : ''
+    }
   `}
 `;
 
-type Props = {};
-
-const DashboardWrapper: FC<Props> = ({ children }) => {
+const DashboardWrapper: FC<PropsWithChildren<{}>> = ({ children }) => {
   const editMode = useSelector<RootState, boolean>(
     state => state.dashboardState.editMode,
   );

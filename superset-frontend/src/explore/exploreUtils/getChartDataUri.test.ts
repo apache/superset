@@ -21,16 +21,17 @@ import { getChartDataUri } from '.';
 
 jest.mock('src/utils/pathUtils');
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Get ChartUri', () => {
   (ensureAppRoot as jest.Mock).mockImplementation(
     (path: string) => `/prefix${path}`,
   );
 
-  it('Get ChartUri when allowDomainSharding:false', () => {
+  test('Get ChartUri when allowDomainSharding:false', () => {
     expect(
       getChartDataUri({
         path: '/path',
-        qs: 'same-string',
+        qs: { key: 'same-string' },
         allowDomainSharding: false,
       }),
     ).toEqual({
@@ -45,7 +46,7 @@ describe('Get ChartUri', () => {
         port: '',
         preventInvalidHostname: false,
         protocol: 'http',
-        query: 'same-string',
+        query: 'key=same-string',
         urn: null,
         username: null,
       },
@@ -53,11 +54,11 @@ describe('Get ChartUri', () => {
     });
   });
 
-  it('Get ChartUri when allowDomainSharding:true', () => {
+  test('Get ChartUri when allowDomainSharding:true', () => {
     expect(
       getChartDataUri({
         path: '/path-allowDomainSharding-true',
-        qs: 'same-string-allowDomainSharding-true',
+        qs: { key: 'allowDomainSharding-true' },
         allowDomainSharding: true,
       }),
     ).toEqual({
@@ -72,7 +73,7 @@ describe('Get ChartUri', () => {
         port: '',
         preventInvalidHostname: false,
         protocol: 'http',
-        query: 'same-string-allowDomainSharding-true',
+        query: 'key=allowDomainSharding-true',
         urn: null,
         username: null,
       },

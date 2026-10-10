@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, NumberFormats } from '@superset-ui/core';
+import {
+  getNumberFormatter,
+  NumberFormats,
+  TRUNCATION_MAX_CHARS,
+} from '@superset-ui/core';
 import { SeriesOption } from 'echarts';
 import {
+  collapseForecastKeys,
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
@@ -28,7 +33,7 @@ import {
 import { ForecastSeriesEnum } from '../../src/types';
 
 describe('extractForecastSeriesContext', () => {
-  it('should extract the correct series name and type', () => {
+  test('should extract the correct series name and type', () => {
     expect(extractForecastSeriesContext('abcd')).toEqual({
       name: 'abcd',
       type: ForecastSeriesEnum.Observation,
@@ -49,7 +54,7 @@ describe('extractForecastSeriesContext', () => {
 });
 
 describe('reorderForecastSeries', () => {
-  it('should reorder the forecast series and preserve values', () => {
+  test('should reorder the forecast series and preserve values', () => {
     const input: SeriesOption[] = [
       { id: `series${ForecastSeriesEnum.Observation}`, data: [10, 20, 30] },
       { id: `series${ForecastSeriesEnum.ForecastTrend}`, data: [15, 25, 35] },
@@ -65,16 +70,16 @@ describe('reorderForecastSeries', () => {
     expect(reorderForecastSeries(input)).toEqual(expectedOutput);
   });
 
-  it('should handle an empty array', () => {
+  test('should handle an empty array', () => {
     expect(reorderForecastSeries([])).toEqual([]);
   });
 
-  it('should not reorder if no relevant series are present', () => {
+  test('should not reorder if no relevant series are present', () => {
     const input: SeriesOption[] = [{ id: 'some-other-series' }];
     expect(reorderForecastSeries(input)).toEqual(input);
   });
 
-  it('should handle undefined ids', () => {
+  test('should handle undefined ids', () => {
     const input: SeriesOption[] = [
       { id: `series${ForecastSeriesEnum.ForecastLower}` },
       { id: undefined },
@@ -90,7 +95,7 @@ describe('reorderForecastSeries', () => {
 });
 
 describe('rebaseForecastDatum', () => {
-  it('should subtract lower confidence level from upper value', () => {
+  test('should subtract lower confidence level from upper value', () => {
     expect(
       rebaseForecastDatum([
         {
@@ -146,7 +151,7 @@ describe('rebaseForecastDatum', () => {
     ]);
   });
 
-  it('should rename all series based on verboseMap but leave __timestamp alone', () => {
+  test('should rename all series based on verboseMap but leave __timestamp alone', () => {
     expect(
       rebaseForecastDatum(
         [
@@ -341,4 +346,154 @@ test('formatForecastTooltipSeries should format forecast with only confidence ba
       formatter,
     }),
   ).toEqual(['<img>qwerty', '(7, 15)']);
+});
+
+test('formatForecastTooltipSeries should show forecast trend equal to zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: 0,
+      forecastLower: 5,
+      forecastUpper: 7,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10, ŷ = 0 (5, 12)']);
+});
+
+test('formatForecastTooltipSeries should show confidence band when lower bound is zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: 5,
+      forecastLower: 0,
+      forecastUpper: 7,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10, ŷ = 5 (0, 7)']);
+});
+
+test('formatForecastTooltipSeries should show confidence band when band height is zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: 5,
+      forecastLower: 4,
+      forecastUpper: 0,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10, ŷ = 5 (4, 4)']);
+});
+
+test('formatForecastTooltipSeries should show forecast trend and band all at zero', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      forecastTrend: 0,
+      forecastLower: 0,
+      forecastUpper: 0,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', 'ŷ = 0 (0, 0)']);
+});
+
+test('formatForecastTooltipSeries should skip non-finite forecast values', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: NaN,
+      forecastLower: Infinity,
+      forecastUpper: -Infinity,
+      formatter,
+    }),
+  ).toEqual(['<img>qwerty', '10']);
+});
+
+describe('formatForecastTooltipSeries truncation', () => {
+  const marker =
+    '<span style="display:inline-block;width:10px;height:10px;background-color:#1f77b4;"></span>';
+  const longName = 'prod-us-east-1-service-checkout-latency-p99'; // 43 chars
+  const intFormatter = getNumberFormatter(NumberFormats.INTEGER);
+
+  const format = (truncation?: 'off' | 'end' | 'start' | 'middle') =>
+    formatForecastTooltipSeries({
+      seriesName: longName,
+      observation: 1,
+      marker,
+      formatter: intFormatter,
+      ...(truncation ? { truncation } : {}),
+    })[0];
+
+  test('leaves the name intact by default and for off/end', () => {
+    expect(format()).toContain(longName);
+    expect(format('off')).toContain(longName);
+    expect(format('end')).toContain(longName);
+  });
+
+  test('slices the start of the name without harming the marker', () => {
+    const cell = format('start');
+    expect(cell).toContain(marker);
+    expect(cell).toContain('…-us-east-1-service-checkout-latency-p99');
+    expect(cell).not.toContain('prod-us-east');
+  });
+
+  test('slices the middle of the name without harming the marker', () => {
+    const cell = format('middle');
+    expect(cell).toContain(marker);
+    expect(cell).toContain('prod-us-east-1-servi…heckout-latency-p99');
+  });
+
+  test('measures the budget against the name, not the marker markup', () => {
+    // The marker alone is far longer than the budget. If truncation were
+    // applied to the concatenated cell, a short name would be mangled.
+    expect(marker.length).toBeGreaterThan(TRUNCATION_MAX_CHARS);
+    const [cell] = formatForecastTooltipSeries({
+      seriesName: 'cpu',
+      observation: 1,
+      marker,
+      formatter: intFormatter,
+      truncation: 'start',
+    });
+    expect(cell).toBe(`${marker}cpu`);
+  });
+});
+
+describe('collapseForecastKeys', () => {
+  test('leaves plain observation series untouched and in order', () => {
+    expect(collapseForecastKeys(['foo', 'bar'])).toEqual(['foo', 'bar']);
+  });
+
+  test('folds a forecast bundle down to a single key', () => {
+    expect(
+      collapseForecastKeys([
+        'foo',
+        'foo__yhat',
+        'foo__yhat_lower',
+        'foo__yhat_upper',
+      ]),
+    ).toEqual(['foo']);
+  });
+
+  test('keeps a key for metrics whose labels are entirely forecast suffixes', () => {
+    // Charts can carry metrics literally labelled `ci__yhat*` with no plain
+    // observation series. Callers match these against forecast-stripped keys,
+    // so an uncollapsed id here would match nothing and drop every row.
+    expect(
+      collapseForecastKeys(['ci__yhat', 'ci__yhat_lower', 'ci__yhat_upper']),
+    ).toEqual(['ci']);
+  });
+
+  test('preserves the incoming order of distinct series', () => {
+    expect(
+      collapseForecastKeys(['b__yhat_lower', 'a__yhat', 'b__yhat']),
+    ).toEqual(['b', 'a']);
+  });
 });

@@ -40,3 +40,13 @@ test('should render the correct number of items', () => {
     expect(item).toHaveTextContent(`Item ${index + 1}`);
   });
 });
+
+test('should render List.Item with compact prop', () => {
+  const { container } = render(<List.Item compact>Compact content</List.Item>);
+  expect(container).toBeInTheDocument();
+});
+
+test('should render List.Item without compact prop', () => {
+  const { container } = render(<List.Item>Regular content</List.Item>);
+  expect(container).toBeInTheDocument();
+});

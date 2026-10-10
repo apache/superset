@@ -20,11 +20,11 @@
 import { ChartMetadata } from '@superset-ui/core';
 
 describe('ChartMetadata', () => {
-  it('exists', () => {
+  test('exists', () => {
     expect(ChartMetadata).toBeDefined();
   });
   describe('new ChartMetadata({})', () => {
-    it('creates new metadata instance', () => {
+    test('creates new metadata instance', () => {
       const metadata = new ChartMetadata({
         name: 'test chart',
         credits: [],
@@ -42,10 +42,10 @@ describe('ChartMetadata', () => {
       description: 'some kind of chart',
       thumbnail: 'test.png',
     });
-    it('returns true if can', () => {
+    test('returns true if can', () => {
       expect(metadata.canBeAnnotationType('event')).toBeTruthy();
     });
-    it('returns false otherwise', () => {
+    test('returns false otherwise', () => {
       expect(metadata.canBeAnnotationType('invalid-type')).toBeFalsy();
     });
   });
@@ -59,15 +59,35 @@ describe('ChartMetadata', () => {
     });
     const clone = metadata.clone();
 
-    it('returns a new instance', () => {
+    test('returns a new instance', () => {
       expect(metadata).not.toBe(clone);
     });
-    it('returns a new instance with same field values', () => {
+    test('returns a new instance with same field values', () => {
       expect(metadata.name).toEqual(clone.name);
       expect(metadata.credits).toEqual(clone.credits);
       expect(metadata.description).toEqual(clone.description);
       expect(metadata.canBeAnnotationTypes).toEqual(clone.canBeAnnotationTypes);
       expect(metadata.thumbnail).toEqual(clone.thumbnail);
     });
+  });
+  test('stores supportsCascadeDependencies without defaulting unset to false', () => {
+    const unset = new ChartMetadata({
+      name: 'unset',
+      thumbnail: 'test.png',
+    });
+    const optedOut = new ChartMetadata({
+      name: 'opted out',
+      thumbnail: 'test.png',
+      supportsCascadeDependencies: false,
+    });
+    const optedIn = new ChartMetadata({
+      name: 'opted in',
+      thumbnail: 'test.png',
+      supportsCascadeDependencies: true,
+    });
+    expect(unset.supportsCascadeDependencies).toBeUndefined();
+    expect(optedOut.supportsCascadeDependencies).toBe(false);
+    expect(optedIn.supportsCascadeDependencies).toBe(true);
+    expect(optedOut.clone().supportsCascadeDependencies).toBe(false);
   });
 });

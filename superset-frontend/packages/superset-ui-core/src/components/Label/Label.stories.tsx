@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { action } from '@storybook/addon-actions';
-import { Meta, StoryFn } from '@storybook/react';
+import { action } from 'storybook/actions';
+import { Meta, StoryFn } from '@storybook/react-webpack5';
 import type { LabelType } from './types';
 import { Label, DatasetTypeLabel, PublishedLabel } from '.';
 
@@ -92,6 +92,39 @@ LabelGallery.argTypes = {
   },
   hasOnClick: {
     name: 'hasOnClick',
+    control: { type: 'boolean' },
+  },
+};
+
+// Interactive single Label story
+interface InteractiveLabelProps {
+  type: LabelType;
+  children: string;
+  monospace?: boolean;
+}
+
+export const InteractiveLabel: StoryFn<InteractiveLabelProps> = args => (
+  <Label {...args}>{args.children}</Label>
+);
+
+InteractiveLabel.args = {
+  type: 'default',
+  children: 'Label text',
+  monospace: false,
+};
+
+InteractiveLabel.argTypes = {
+  type: {
+    description: 'The visual style of the label.',
+    options,
+    control: { type: 'select' },
+  },
+  children: {
+    description: 'The label text content.',
+    control: { type: 'text' },
+  },
+  monospace: {
+    description: 'Use monospace font.',
     control: { type: 'boolean' },
   },
 };

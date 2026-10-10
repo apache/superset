@@ -16,25 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { LabeledErrorBoundInput as ValidatedInput } from '@superset-ui/core/components';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
 
 const FIELD_TEXT_MAP = {
   account: {
-    label: 'Account',
+    label: t('Account'),
     helpText: t(
       'Copy the identifier of the account you are trying to connect to.',
     ),
     placeholder: t('e.g. xy12345.us-east-2.aws'),
   },
   warehouse: {
-    label: 'Warehouse',
+    label: t('Warehouse'),
     placeholder: t('e.g. compute_wh'),
     className: 'form-group-w-50',
   },
   role: {
-    label: 'Role',
+    label: t('Role'),
     placeholder: t('e.g. AccountAdmin'),
     className: 'form-group-w-50',
   },
@@ -49,11 +49,13 @@ export const validatedInputField = ({
   validationErrors,
   db,
   field,
+  isValidating,
 }: FieldPropTypes) => (
   <ValidatedInput
     id={field}
     name={field}
     required={required}
+    isValidating={isValidating}
     value={db?.parameters?.[field as keyof DatabaseParameters]}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.[field]}

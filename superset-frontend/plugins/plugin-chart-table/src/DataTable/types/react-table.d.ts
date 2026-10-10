@@ -52,7 +52,8 @@ import {
 
 declare module 'react-table' {
   export interface TableOptions<D extends object>
-    extends UseExpandedOptions<D>,
+    extends
+      UseExpandedOptions<D>,
       UseGlobalFiltersOptions<D>,
       UsePaginationOptions<D>,
       UseRowSelectOptions<D>,
@@ -60,7 +61,8 @@ declare module 'react-table' {
       UseStickyTableOptions {}
 
   export interface TableInstance<D extends object>
-    extends UseColumnOrderInstanceProps<D>,
+    extends
+      UseColumnOrderInstanceProps<D>,
       UseExpandedInstanceProps<D>,
       UseGlobalFiltersInstanceProps<D>,
       UsePaginationInstanceProps<D>,
@@ -71,7 +73,8 @@ declare module 'react-table' {
       UseStickyInstanceProps {}
 
   export interface TableState<D extends object>
-    extends UseColumnOrderState<D>,
+    extends
+      UseColumnOrderState<D>,
       UseExpandedState<D>,
       UseGlobalFiltersState<D>,
       UsePaginationState<D>,
@@ -93,8 +96,7 @@ declare module 'react-table' {
   }
 
   export interface ColumnInterface<D extends object>
-    extends UseGlobalFiltersColumnOptions<D>,
-      UseSortByColumnOptions<D> {
+    extends UseGlobalFiltersColumnOptions<D>, UseSortByColumnOptions<D> {
     // must define as a new property because it's not possible to override
     // the existing `Header` renderer option
     Header?: Renderer<
@@ -104,16 +106,14 @@ declare module 'react-table' {
   }
 
   export interface ColumnInstance<D extends object>
-    extends UseGlobalFiltersColumnOptions<D>,
-      UseSortByColumnProps<D> {
+    extends UseGlobalFiltersColumnOptions<D>, UseSortByColumnProps<D> {
     getSortByToggleProps: (
       props?: Partial<TableSortByToggleProps>,
     ) => TableSortByToggleProps;
   }
 
   export interface Hooks<D extends object>
-    extends UseTableHooks<D>,
-      UseSortByHooks<D> {}
+    extends UseTableHooks<D>, UseSortByHooks<D> {}
 }
 
 interface TableOwnState {
@@ -122,4 +122,6 @@ interface TableOwnState {
   sortColumn?: string;
   sortOrder?: 'asc' | 'desc';
   searchText?: string;
+
+  clientView?: ClientViewSnapshot;
 }

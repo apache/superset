@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlStateMapping } from '@superset-ui/chart-controls';
-import { GenericDataType } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { isSortable } from '../../src/utils/isSortable';
 
 const controls: ControlStateMapping = {
@@ -27,6 +27,7 @@ const controls: ControlStateMapping = {
         { column_name: 'a', type_generic: GenericDataType.String },
         { column_name: 'b', type_generic: GenericDataType.Numeric },
         { column_name: 'c', type_generic: GenericDataType.Boolean },
+        { column_name: 'u', type_generic: undefined },
       ],
     },
     type: 'Select',
@@ -67,4 +68,12 @@ test('should return false if none of the conditions are met', () => {
     x_axis: { value: 'b', type: 'Input' },
   };
   expect(isSortable(c)).toBe(false);
+});
+
+test('should return true for a column whose type is unknown', () => {
+  const c: ControlStateMapping = {
+    ...controls,
+    x_axis: { value: 'u', type: 'Select' },
+  };
+  expect(isSortable(c)).toBe(true);
 });

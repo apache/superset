@@ -1,0 +1,515 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import {
+  act,
+  createStore,
+  screen,
+  render,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import fetchMock from 'fetch-mock';
+import { SupersetClient } from '@superset-ui/core';
+import * as chartAction from 'src/components/Chart/chartAction';
+import type { ChartDataRequestResponse } from 'src/components/Chart/chartAction';
+import ViewQueryModal, { getSemanticReportState } from './ViewQueryModal';
+import chartReducer, { chart } from 'src/components/Chart/chartReducer';
+
+const mockFormData = {
+  datasource: '1__table',
+  viz_type: 'table',
+};
+
+// Minimal, type-correct response that satisfies ChartDataRequestResponse.
+// A real Response instance avoids the 16 required Response fields that an
+// empty object ({}) fails to overlap. The assertions only inspect the call
+// arguments, never the resolved value's contents.
+const mockChartDataResponse: ChartDataRequestResponse = {
+  response: new Response(),
+  json: { result: [] },
+};
+
+const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
+
+beforeAll(() => {
+  SupersetClient.configure({ csrfToken: 'test-csrf-token' });
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  jest.resetAllMocks();
+  fetchMock.clearHistory().removeRoutes();
+});
+
+test('renders Alert component when query result contains validation error', async () => {
+  /**
+   * Regression test for issue #35492 - Phase 1
+   * Verifies that validation errors from the backend are displayed in an Alert
+   * component instead of showing a blank panel
+   */
+  // Mock API response with validation error
+  fetchMock.post(
+    chartDataEndpoint,
+    {
+      result: [
+        {
+          error: 'Missing temporal column',
+          language: 'sql',
+        },
+      ],
+    },
+    { name: chartDataEndpoint },
+  );
+
+  render(<ViewQueryModal latestQueryFormData={mockFormData} />, {
+    useRedux: true,
+  });
+
+  // Wait for API call to complete
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(chartDataEndpoint)).toHaveLength(1),
+  );
+
+  // Assert Alert component is rendered with error message
+  expect(screen.getByRole('alert')).toBeInTheDocument();
+  expect(screen.getByText('Missing temporal column')).toBeInTheDocument();
+});
+
+test('renders both Alert and SQL query when parsing error occurs', async () => {
+  /**
+   * Regression test for issue #35492 - Phase 2
+   * Verifies that parsing errors (which occur after SQL generation) display
+   * both the error message AND the SQL query that failed to parse.
+   *
+   * This differs from validation errors (Phase 1) where no SQL was generated.
+   * For parsing errors, the SQL was successfully compiled but optimization failed.
+   */
+  // Mock API response with parsing error (has both query and error)
+  fetchMock.post(
+    chartDataEndpoint,
+    {
+      result: [
+        {
+          query: 'SELECT SUM ( Open',
+          error: "Error parsing near 'Open' at line 1:17",
+          language: 'sql',
+        },
+      ],
+    },
+    { name: chartDataEndpoint },
+  );
+
+  render(<ViewQueryModal latestQueryFormData={mockFormData} />, {
+    useRedux: true,
+  });
+
+  // Wait for the error message to appear
+  await waitFor(() =>
+    expect(
+      screen.getByText("Error parsing near 'Open' at line 1:17"),
+    ).toBeInTheDocument(),
+  );
+
+  // Assert Alert component is rendered with error message
+  expect(screen.getByRole('alert')).toBeInTheDocument();
+
+  // Assert SQL query is also displayed
+  // Note: The SQL is rendered inside a syntax-highlighted code block where
+  // each keyword is in a separate span element
+  await waitFor(
+    () => {
+      expect(screen.getByText('SELECT')).toBeInTheDocument();
+      expect(screen.getByText('SUM')).toBeInTheDocument();
+      expect(screen.getByText('Open')).toBeInTheDocument();
+    },
+    { timeout: 5000 },
+  );
+});
+
+test('passes ownState through to getChartDataRequest', async () => {
+  /**
+   * Regression test for PR #35208 - the ViewQueryModal must forward the
+   * chart's ownState (e.g. table search text, order_by) to the data request
+   * so that the displayed SQL reflects the same filters applied to the chart.
+   */
+  const getChartDataRequestSpy = jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+
+  const ownState = { searchText: 'foo', order_by: [['col', 'asc']] };
+
+  render(
+    <ViewQueryModal latestQueryFormData={mockFormData} ownState={ownState} />,
+    { useRedux: true },
+  );
+
+  await waitFor(() => {
+    expect(getChartDataRequestSpy).toHaveBeenCalledTimes(1);
+  });
+
+  expect(getChartDataRequestSpy).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: mockFormData,
+      ownState,
+    }),
+  );
+});
+
+test('strips clientView from ownState before the query request', async () => {
+  /**
+   * clientView holds the full client-side row/column snapshot (added by
+   * TableChart) and is irrelevant to SQL generation. It must be stripped
+   * before the request - matching ExploreViewContainer and Dashboard - to
+   * avoid bloating the payload (or triggering 413) on large tables.
+   */
+  const getChartDataRequestSpy = jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+
+  const ownState = {
+    searchText: 'foo',
+    // Simulate a large client-side snapshot that TableChart writes
+    clientView: { rows: [{ a: 1 }, { a: 2 }], columns: ['a'] },
+  };
+
+  render(
+    <ViewQueryModal latestQueryFormData={mockFormData} ownState={ownState} />,
+    { useRedux: true },
+  );
+
+  await waitFor(() => {
+    expect(getChartDataRequestSpy).toHaveBeenCalledTimes(1);
+  });
+
+  const calledOwnState = getChartDataRequestSpy.mock.calls[0][0].ownState;
+  expect(calledOwnState).not.toHaveProperty('clientView');
+  expect(calledOwnState).toEqual(
+    expect.objectContaining({ searchText: 'foo' }),
+  );
+});
+
+test('falls back to empty ownState when prop is omitted', async () => {
+  /**
+   * Covers the `ownState || {}` fallback branch in ViewQueryModal - when no
+   * ownState is provided, the data request must still be called with an empty
+   * object rather than undefined, matching getChartDataRequest's contract.
+   */
+  const getChartDataRequestSpy = jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+
+  render(<ViewQueryModal latestQueryFormData={mockFormData} />, {
+    useRedux: true,
+  });
+
+  await waitFor(() => {
+    expect(getChartDataRequestSpy).toHaveBeenCalledTimes(1);
+  });
+
+  expect(getChartDataRequestSpy).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: mockFormData,
+      ownState: {},
+    }),
+  );
+});
+
+test('shows semantic requests verbatim in entry order without fetching', async () => {
+  const getChartDataRequestSpy = jest.spyOn(chartAction, 'getChartDataRequest');
+  const requestTexts = [
+    '-- SQL\nSELECT  1\n\n-- SQL\nSELECT 2;\n',
+    '-- SQL\nSELECT 3;',
+  ];
+  const { container } = render(
+    <ViewQueryModal
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: requestTexts.map(query => ({ query })),
+          },
+        },
+      },
+    },
+  );
+
+  await waitFor(() =>
+    expect(
+      Array.from(container.querySelectorAll('pre'), pre => pre.textContent),
+    ).toEqual(requestTexts),
+  );
+  expect(screen.getAllByRole('button', { name: 'Copy' })).toHaveLength(2);
+  expect(getChartDataRequestSpy).not.toHaveBeenCalled();
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+  expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+  expect(screen.queryByText('Run in SQL Lab')).not.toBeInTheDocument();
+});
+
+test('updates semantic request text when the saved chart run is replaced', async () => {
+  const getChartDataRequestSpy = jest.spyOn(chartAction, 'getChartDataRequest');
+  const store = createStore(
+    {
+      charts: {
+        42: {
+          ...chart,
+          id: 42,
+          queriesResponse: [{ query: '-- SQL\nSELECT 1' }],
+        },
+      },
+    },
+    { charts: chartReducer },
+  );
+  const { container } = render(
+    <ViewQueryModal
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+        slice_id: 42,
+      }}
+    />,
+    { store },
+  );
+  await waitFor(() =>
+    expect(container.querySelector('pre')?.textContent).toBe(
+      '-- SQL\nSELECT 1',
+    ),
+  );
+
+  act(() => {
+    store.dispatch({
+      type: chartAction.CHART_UPDATE_SUCCEEDED,
+      key: 42,
+      queriesResponse: [{ query: '-- SQL\nSELECT 2' }],
+    });
+  });
+  await waitFor(() =>
+    expect(container.querySelector('pre')?.textContent).toBe(
+      '-- SQL\nSELECT 2',
+    ),
+  );
+  expect(container.textContent).not.toContain('SELECT 1');
+  expect(getChartDataRequestSpy).not.toHaveBeenCalled();
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});
+
+test.each<{
+  report: { query?: string }[] | null | undefined;
+  expected: ReturnType<typeof getSemanticReportState>;
+}>([
+  { report: undefined, expected: 'not-run' },
+  { report: null, expected: 'not-run' },
+  { report: [], expected: 'not-run' },
+  { report: [{ query: '' }], expected: 'none-reported' },
+  { report: [{}], expected: 'none-reported' },
+  { report: [{ query: 'x' }], expected: 'has-requests' },
+  { report: [{}, { query: 'x' }], expected: 'has-requests' },
+])('classifies $report as $expected', ({ report, expected }) => {
+  expect(getSemanticReportState(report)).toBe(expected);
+});
+
+test.each<{
+  report: { query?: string }[] | null;
+  message: string;
+  otherMessage: string;
+}>([
+  {
+    report: null,
+    message: 'The provider query will be available after the chart runs.',
+    otherMessage: 'No provider query is available for this run.',
+  },
+  {
+    report: [{ query: '' }],
+    message: 'No provider query is available for this run.',
+    otherMessage: 'The provider query will be available after the chart runs.',
+  },
+  {
+    report: [{}],
+    message: 'No provider query is available for this run.',
+    otherMessage: 'The provider query will be available after the chart runs.',
+  },
+])(
+  'shows an honest empty state for $report',
+  ({ report, message, otherMessage }) => {
+    const getChartDataRequestSpy = jest.spyOn(
+      chartAction,
+      'getChartDataRequest',
+    );
+    render(
+      <ViewQueryModal
+        latestQueryFormData={{
+          datasource: '12__semantic_view',
+          viz_type: 'table',
+        }}
+      />,
+      {
+        useRedux: true,
+        initialState: { charts: { 0: { ...chart, queriesResponse: report } } },
+      },
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent(message);
+    expect(screen.queryByText(otherMessage)).not.toBeInTheDocument();
+    expect(getChartDataRequestSpy).not.toHaveBeenCalled();
+    expect(fetchMock.callHistory.calls()).toHaveLength(0);
+  },
+);
+
+test('preserves empty entries alongside reported requests in a mixed run', () => {
+  const requestText = '-- graphql\nquery { measures }';
+  const { container } = render(
+    <ViewQueryModal
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: [{}, { query: requestText }, { query: '' }],
+          },
+        },
+      },
+    },
+  );
+  const entries = container.querySelectorAll('[role="alert"], pre');
+  expect(Array.from(entries, entry => entry.textContent)).toEqual([
+    'No provider query is available for this run.',
+    requestText,
+    'No provider query is available for this run.',
+  ]);
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});
+
+test('uses the owning chart ID when query form data has no saved-chart ID', () => {
+  const request = '-- SQL\nSELECT saved_chart';
+  const { container } = render(
+    <ViewQueryModal
+      chartId={42}
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: [{ query: '-- SQL\nSELECT unrelated' }],
+          },
+          42: { ...chart, id: 42, queriesResponse: [{ query: request }] },
+        },
+      },
+    },
+  );
+  expect(container.querySelector('pre')?.textContent).toBe(request);
+  expect(container.textContent).not.toContain('unrelated');
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});
+
+test.each([
+  {
+    response: [{ error: 'Provider rejected the selected dimension.' }],
+    message: 'Provider rejected the selected dimension.',
+  },
+  { response: undefined, message: 'Network error.' },
+])('shows the actual chart failure: $message', ({ response, message }) => {
+  const store = createStore(
+    {
+      charts: {
+        0: {
+          ...chart,
+          queriesResponse: [{ query: '-- SQL\nSELECT previous' }],
+        },
+      },
+    },
+    { charts: chartReducer },
+  );
+  const { container } = render(
+    <ViewQueryModal
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    { store },
+  );
+  act(() => {
+    store.dispatch({
+      type: chartAction.CHART_UPDATE_FAILED,
+      key: 0,
+      queriesResponse: response,
+    });
+  });
+  expect(screen.getByRole('alert')).toHaveTextContent(message);
+  expect(container.textContent).not.toContain('No provider query is available');
+  expect(container.textContent).not.toContain('after the chart runs');
+  expect(container.textContent).not.toContain('SELECT previous');
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});
+
+test('keeps per-entry errors beside provider requests in a mixed response', () => {
+  const { container } = render(
+    <ViewQueryModal
+      latestQueryFormData={{
+        datasource: '12__semantic_view',
+        viz_type: 'table',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: [
+              { query: '-- SQL\nSELECT first' },
+              { error: 'Second query failed.' },
+              { query: '-- SQL\nSELECT third', error: 'Third query failed.' },
+            ],
+          },
+        },
+      },
+    },
+  );
+  expect(
+    Array.from(
+      container.querySelectorAll('[role="alert"], pre'),
+      entry => entry.textContent,
+    ),
+  ).toEqual([
+    '-- SQL\nSELECT first',
+    'Second query failed.',
+    'Third query failed.',
+    '-- SQL\nSELECT third',
+  ]);
+  expect(container.textContent).not.toContain('No provider query is available');
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});

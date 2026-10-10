@@ -39,9 +39,12 @@ export * from './types/Column';
 export * from './types/Datasource';
 export * from './types/Metric';
 export * from './types/Query';
+export * from './types/Dashboard';
 
 export * from './api/v1/types';
 export { default as makeApi } from './api/v1/makeApi';
 
 // API Callers
 export { ApiLegacy, ApiV1 };
+
+export { getSemanticSelectionSources } from './semanticSelection';

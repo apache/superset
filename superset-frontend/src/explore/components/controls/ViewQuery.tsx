@@ -26,7 +26,9 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import rison from 'rison';
-import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import {
   Icons,
   Switch,
@@ -38,11 +40,13 @@ import {
 import { CopyToClipboard } from 'src/components';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import { openInNewTab } from 'src/utils/navigationUtils';
 import CodeSyntaxHighlighter, {
   SupportedLanguage,
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { useHistory } from 'react-router-dom';
+import { ExplorePageState } from 'src/explore/types';
 
 export interface ViewQueryProps {
   sql: string;
@@ -58,6 +62,8 @@ const StyledSyntaxContainer = styled.div`
 
 const StyledThemedSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
   flex: 1;
+  height: ${({ theme }) => theme.sizeUnit * 26}px;
+  margin-top: 0;
 `;
 
 const StyledFooter = styled.div`
@@ -74,7 +80,10 @@ const DATASET_BACKEND_QUERY = {
 const ViewQuery: FC<ViewQueryProps> = props => {
   const { sql, language = 'sql', datasource } = props;
   const theme = useTheme();
-  const datasetId = datasource.split('__')[0];
+  const datasetId = datasource?.split('__')[0];
+  const exploreBackend = useSelector(
+    (state: ExplorePageState) => state.explore?.datasource?.database?.backend,
+  );
   const [formattedSQL, setFormattedSQL] = useState<string>();
   const [showFormatSQL, setShowFormatSQL] = useState(true);
   const history = useHistory();
@@ -88,31 +97,38 @@ const ViewQuery: FC<ViewQueryProps> = props => {
     preloadLanguages([language]);
   }, [language]);
 
-  const formatCurrentQuery = useCallback(() => {
+  const formatCurrentQuery = useCallback(async () => {
     if (formattedSQL) {
       setShowFormatSQL(val => !val);
-    } else {
-      const queryParams = rison.encode(DATASET_BACKEND_QUERY);
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
-      })
-        .then(({ json }) =>
-          SupersetClient.post({
-            endpoint: `/api/v1/sqllab/format_sql/`,
-            body: JSON.stringify({
-              sql,
-              engine: json.result.database.backend,
-            }),
-            headers: { 'Content-Type': 'application/json' },
-          }),
-        )
-        .then(({ json }) => {
-          setFormattedSQL(json.result);
-          setShowFormatSQL(true);
-        })
-        .catch(() => {
-          setShowFormatSQL(true);
+      return;
+    }
+    try {
+      let backend = exploreBackend;
+
+      // Fetch backend info if not available in Redux state
+      if (!backend) {
+        const queryParams = rison.encode(DATASET_BACKEND_QUERY);
+        const response = await SupersetClient.get({
+          endpoint: `/api/v1/dataset/${datasetId}?q=${queryParams}`,
         });
+        const { backend: datasetBackend } = response.json.result.database;
+        backend = datasetBackend;
+      }
+
+      // Format the SQL query
+      const formatResponse = await SupersetClient.post({
+        endpoint: `/api/v1/sqllab/format_sql/`,
+        body: JSON.stringify({
+          sql,
+          engine: backend,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      setFormattedSQL(formatResponse.json.result);
+      setShowFormatSQL(true);
+    } catch (error) {
+      setShowFormatSQL(false);
     }
   }, [sql, datasetId, formattedSQL]);
 
@@ -124,12 +140,11 @@ const ViewQuery: FC<ViewQueryProps> = props => {
       };
       if (domEvent.metaKey || domEvent.ctrlKey) {
         domEvent.preventDefault();
-        window.open(
-          `/sqllab?datasourceKey=${datasource}&sql=${currentSQL}`,
-          '_blank',
+        openInNewTab(
+          `/sqllab?datasourceKey=${datasource}&sql=${encodeURIComponent(currentSQL)}`,
         );
       } else {
-        history.push('/sqllab', { state: { requestedQuery } });
+        history.push({ pathname: '/sqllab', state: { requestedQuery } });
       }
     },
     [history, datasource, currentSQL],
@@ -142,11 +157,17 @@ const ViewQuery: FC<ViewQueryProps> = props => {
   return (
     <Card bodyStyle={{ padding: theme.sizeUnit * 4 }}>
       <StyledSyntaxContainer key={sql}>
-        {!formattedSQL && <Skeleton active />}
-        {formattedSQL && (
+        {!formattedSQL && showFormatSQL ? (
+          <Skeleton active />
+        ) : (
           <StyledThemedSyntaxHighlighter
             language={language}
-            customStyle={{ flex: 1, marginBottom: theme.sizeUnit * 3 }}
+            customStyle={{
+              flex: 1,
+              marginBottom: theme.sizeUnit * 3,
+              fontSize: theme.fontSize * 0.75,
+              padding: 0,
+            }}
           >
             {currentSQL}
           </StyledThemedSyntaxHighlighter>

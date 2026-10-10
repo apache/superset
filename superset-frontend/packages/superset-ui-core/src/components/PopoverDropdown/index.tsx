@@ -18,7 +18,7 @@
  */
 import { Key } from 'react';
 import cx from 'classnames';
-import { css, useTheme } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Dropdown } from '../Dropdown';
 
@@ -60,12 +60,12 @@ const menuItemStyles = (theme: any) => css`
     }
 
     &:hover {
-      background: ${theme.colors.grayscale.light3};
+      background: ${theme.colorFillQuaternary};
     }
 
     &.active {
       font-weight: ${theme.fontWeightStrong};
-      background: ${theme.colors.grayscale.light2};
+      background: ${theme.colorFillTertiary};
     }
   }
 
@@ -103,7 +103,18 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
         })),
       }}
     >
-      <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
+      <button
+        type="button"
+        css={{
+          appearance: 'none',
+          border: 'none',
+          background: 'none',
+          padding: 0,
+          font: 'inherit',
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
         {selected && renderButton(selected)}
         <Icons.DownOutlined
           iconSize="s"
@@ -112,7 +123,7 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
             marginLeft: theme.sizeUnit * 0.5,
           }}
         />
-      </div>
+      </button>
     </Dropdown>
   );
 };

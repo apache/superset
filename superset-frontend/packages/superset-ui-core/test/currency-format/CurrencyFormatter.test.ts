@@ -21,7 +21,13 @@ import {
   CurrencyFormatter,
   getCurrencySymbol,
   NumberFormats,
+  setCurrencyLocale,
 } from '@superset-ui/core';
+
+afterEach(() => {
+  // Guard against any test mutating the shared currency locale singleton.
+  setCurrencyLocale('en-US');
+});
 
 test('getCurrencySymbol', () => {
   expect(
@@ -67,18 +73,18 @@ test('CurrencyFormatter:hasValidCurrency', () => {
   expect(currencyFormatter.hasValidCurrency()).toBe(true);
 
   const currencyFormatterWithoutPosition = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error
     currency: { symbol: 'USD' },
   });
   expect(currencyFormatterWithoutPosition.hasValidCurrency()).toBe(true);
 
   const currencyFormatterWithoutSymbol = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error
     currency: { symbolPosition: 'prefix' },
   });
   expect(currencyFormatterWithoutSymbol.hasValidCurrency()).toBe(false);
 
-  // @ts-ignore
+  // @ts-expect-error
   const currencyFormatterWithoutCurrency = new CurrencyFormatter({});
   expect(currencyFormatterWithoutCurrency.hasValidCurrency()).toBe(false);
 });
@@ -109,7 +115,7 @@ test('CurrencyFormatter:getNormalizedD3Format', () => {
     currency: { symbol: 'USD', symbolPosition: 'prefix' },
     d3Format: ',.1%',
   });
-  expect(currencyFormatter4.getNormalizedD3Format()).toEqual(',.1');
+  expect(currencyFormatter4.getNormalizedD3Format()).toEqual(',.1%');
 });
 
 test('CurrencyFormatter:format', () => {
@@ -129,12 +135,14 @@ test('CurrencyFormatter:format', () => {
   expect(currencyFormatterWithSuffix(VALUE)).toEqual('56.1M $');
 
   const currencyFormatterWithoutPosition = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error
     currency: { symbol: 'USD' },
   });
-  expect(currencyFormatterWithoutPosition(VALUE)).toEqual('56.1M $');
+  // With no explicit position, placement follows the locale convention.
+  // USD is a prefix in the default en-US locale.
+  expect(currencyFormatterWithoutPosition(VALUE)).toEqual('$ 56.1M');
 
-  // @ts-ignore
+  // @ts-expect-error
   const currencyFormatterWithoutCurrency = new CurrencyFormatter({});
   expect(currencyFormatterWithoutCurrency(VALUE)).toEqual('56.1M');
 
@@ -146,13 +154,154 @@ test('CurrencyFormatter:format', () => {
 
   const currencyFormatterWithPercentD3 = new CurrencyFormatter({
     currency: { symbol: 'USD', symbolPosition: 'prefix' },
-    d3Format: ',.1f%',
+    d3Format: ',.1%',
   });
-  expect(currencyFormatterWithPercentD3(VALUE)).toEqual('$ 56,100,057.0');
+  expect(currencyFormatterWithPercentD3(VALUE)).toEqual('$ 5,610,005,700.0');
 
   const currencyFormatterWithCurrencyD3 = new CurrencyFormatter({
     currency: { symbol: 'PLN', symbolPosition: 'suffix' },
     d3Format: '$,.1f',
   });
   expect(currencyFormatterWithCurrencyD3(VALUE)).toEqual('56,100,057.0 PLN');
+});
+
+test('CurrencyFormatter AUTO mode uses row context', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  const row = { currency: 'EUR' };
+  expect(formatter.format(1000, row, 'currency')).toContain('€');
+  expect(formatter.format(1000)).toBe('1,000.00');
+});
+
+test('CurrencyFormatter static mode ignores row context', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'USD', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  const row = { currency: 'EUR' };
+  expect(formatter.format(1000, row, 'currency')).toContain('$');
+});
+
+test('CurrencyFormatter gracefully handles invalid currency code', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'INVALID_CODE', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  // Should not throw, should return formatted value without currency symbol
+  expect(formatter.format(1000)).toBe('1,000.00');
+});
+
+test('CurrencyFormatter AUTO mode uses suffix position from row context', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'AUTO', symbolPosition: 'suffix' },
+    d3Format: ',.2f',
+  });
+
+  const row = { currency: 'EUR' };
+  const result = formatter.format(1000, row, 'currency');
+  expect(result).toContain('€');
+  expect(result).toMatch(/1,000\.00.*€/);
+});
+
+test('CurrencyFormatter AUTO mode resolves position from locale when symbolPosition is unset', () => {
+  // Default en-US locale: EUR symbol is a prefix.
+  const enFormatter = new CurrencyFormatter({
+    // @ts-expect-error
+    currency: { symbol: 'AUTO' },
+    d3Format: ',.2f',
+  });
+
+  const row = { currency: 'EUR' };
+  const enResult = enFormatter.format(1000, row, 'currency');
+  expect(enResult).toContain('€');
+  expect(enResult).toMatch(/€.*1,000\.00/);
+
+  // fr-FR locale: EUR symbol is a suffix.
+  const frFormatter = new CurrencyFormatter({
+    // @ts-expect-error
+    currency: { symbol: 'AUTO' },
+    d3Format: ',.2f',
+    locale: 'fr-FR',
+  });
+  const frResult = frFormatter.format(1000, row, 'currency');
+  expect(frResult).toContain('€');
+  expect(frResult).toMatch(/1,000\.00.*€/);
+});
+
+test('CurrencyFormatter AUTO mode returns plain value when row currency is not a string (line 52)', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  // Passing a numeric currency value causes normalizeCurrency to hit
+  // `typeof value !== 'string'` → return null, so no symbol is appended
+  const row = { currency: 123 };
+  expect(formatter.format(1000, row as any, 'currency')).toBe('1,000.00');
+});
+
+test('CurrencyFormatter AUTO mode returns plain value when getCurrencySymbol returns undefined (line 126 false branch)', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  const OrigNumberFormat = Intl.NumberFormat;
+  // Return formatToParts without a 'currency' entry so getCurrencySymbol → undefined
+  Intl.NumberFormat = jest.fn().mockImplementation(() => ({
+    formatToParts: () => [{ type: 'integer', value: '1' }],
+  })) as unknown as typeof Intl.NumberFormat;
+
+  const row = { currency: 'EUR' };
+  const result = formatter.format(1000, row, 'currency');
+
+  Intl.NumberFormat = OrigNumberFormat;
+
+  expect(result).toBe('1,000.00');
+});
+
+test('CurrencyFormatter AUTO mode falls back to plain value when getCurrencySymbol throws', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'AUTO', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  // Mock Intl.NumberFormat to throw to simulate an environment where the
+  // currency code is rejected, triggering the catch block in format()
+  const OrigNumberFormat = Intl.NumberFormat;
+  Intl.NumberFormat = jest.fn().mockImplementation(() => {
+    throw new RangeError('Invalid currency code');
+  }) as unknown as typeof Intl.NumberFormat;
+
+  const row = { currency: 'ZZZ' };
+  const result = formatter.format(1000, row, 'currency');
+
+  Intl.NumberFormat = OrigNumberFormat;
+
+  expect(result).toBe('1,000.00');
+});
+
+test('CurrencyFormatter static mode returns plain value when getCurrencySymbol returns undefined', () => {
+  const formatter = new CurrencyFormatter({
+    currency: { symbol: 'USD', symbolPosition: 'prefix' },
+    d3Format: ',.2f',
+  });
+
+  const OrigNumberFormat = Intl.NumberFormat;
+  // formatToParts without a 'currency' entry → getCurrencySymbol returns
+  // undefined, exercising the `if (!symbol)` guard in the static branch.
+  Intl.NumberFormat = jest.fn().mockImplementation(() => ({
+    formatToParts: () => [{ type: 'integer', value: '1' }],
+  })) as unknown as typeof Intl.NumberFormat;
+
+  const result = formatter.format(1000);
+
+  Intl.NumberFormat = OrigNumberFormat;
+
+  expect(result).toBe('1,000.00');
 });

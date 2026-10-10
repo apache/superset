@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef, ReactNode } from 'react';
-
-import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
-import { styled, t, useTheme, keyframes, css } from '@superset-ui/core';
+import { useRef, ReactNode, useMemo } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme, css, keyframes } from '@apache-superset/core/theme';
 import { InfoTooltip, Icons, Tooltip } from '@superset-ui/core/components';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
@@ -82,10 +83,15 @@ export const CaretContainer = styled.div`
   margin-left: auto;
 `;
 
-export const CloseContainer = styled.div`
+export const CloseContainer = styled.button`
+  appearance: none;
+  background: none;
+  padding: 0;
+  font: inherit;
   height: auto;
   width: ${({ theme }) => theme.sizeUnit * 6}px;
-  border-right: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
+  border: none;
+  border-right: solid 1px ${({ theme }) => theme.colorBorder};
   cursor: pointer;
 `;
 
@@ -158,7 +164,7 @@ export const DndLabelsContainer = styled.div<{
   &:after {
     display: ${isLoading || (canDrop && isOver) ? 'block' : 'none'};
     background-color: ${
-      isLoading ? theme.colors.grayscale.light3 : theme.colorPrimary
+      isLoading ? theme.colorFillTertiary : theme.colorPrimary
     };
     z-index: 11;
     opacity: 35%;
@@ -195,19 +201,19 @@ export const AddControlLabel = styled.div<{
   height: ${({ theme }) => theme.sizeUnit * 6}px;
   padding-left: ${({ theme }) => theme.sizeUnit}px;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
-  color: ${({ theme }) => theme.colors.grayscale.light1};
+  color: ${({ theme }) => theme.colorTextSecondary};
   border: dashed 1px ${({ theme }) => theme.colorSplit};
   border-radius: ${({ theme }) => theme.borderRadius}px;
   cursor: ${({ cancelHover }) => (cancelHover ? 'inherit' : 'pointer')};
 
   :hover {
     background-color: ${({ cancelHover, theme }) =>
-      cancelHover ? 'inherit' : theme.colors.grayscale.light4};
+      cancelHover ? 'inherit' : theme.colorFillSecondary};
   }
 
   :active {
     background-color: ${({ cancelHover, theme }) =>
-      cancelHover ? 'inherit' : theme.colors.grayscale.light3};
+      cancelHover ? 'inherit' : theme.colorFillTertiary};
   }
   svg {
     margin-right: ${({ theme }) => theme.sizeUnit}px;
@@ -224,16 +230,20 @@ export const AddIconButton = styled.button`
   background-color: ${({ theme }) => theme.colorPrimaryText};
   border: none;
   border-radius: 2px;
+  cursor: pointer;
 
   :disabled {
     cursor: not-allowed;
-    background-color: ${({ theme }) => theme.colors.grayscale.light1};
+    background-color: ${({ theme }) => theme.colorBgContainerDisabled};
   }
 `;
 
-interface DragItem {
-  dragIndex: number;
+export interface SortableItemData {
   type: string;
+  dragIndex: number;
+  onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
+  onDropLabel?: () => void;
+  value?: savedMetricType | AdhocMetric;
 }
 
 export const OptionControlLabel = ({
@@ -257,8 +267,8 @@ export const OptionControlLabel = ({
   savedMetric?: savedMetricType;
   adhocMetric?: AdhocMetric;
   onRemove: () => void;
-  onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
-  onDropLabel: () => void;
+  onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
+  onDropLabel?: () => void;
   withCaret?: boolean;
   isFunction?: boolean;
   isDraggable?: boolean;
@@ -270,72 +280,41 @@ export const OptionControlLabel = ({
   multi?: boolean;
 }) => {
   const theme = useTheme();
-  const ref = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const hasMetricName = savedMetric?.metric_name;
-  const [, drop] = useDrop({
-    accept: type,
-    drop() {
-      if (!multi) {
-        return;
-      }
-      onDropLabel?.();
-    },
-    hover(item: DragItem, monitor: DropTargetMonitor) {
-      if (!multi) {
-        return;
-      }
-      if (!ref.current) {
-        return;
-      }
-      const { dragIndex } = item;
-      const hoverIndex = index;
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-      // Determine rectangle on screen
-      const hoverBoundingRect = ref.current?.getBoundingClientRect();
-      // Get vertical middle
-      const hoverMiddleY =
-        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-      // Determine mouse position
-      const clientOffset = monitor.getClientOffset();
-      // Get pixels to the top
-      const hoverClientY = clientOffset?.y
-        ? clientOffset?.y - hoverBoundingRect.top
-        : 0;
-      // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
-      // Dragging downwards
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return;
-      }
-      // Dragging upwards
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return;
-      }
-      // Time to actually perform the action
-      onMoveLabel?.(dragIndex, hoverIndex);
-      // Note: we're mutating the monitor item here!
-      // Generally it's better to avoid mutations,
-      // but it's good here for the sake of performance
-      // to avoid expensive index searches.
-      // eslint-disable-next-line no-param-reassign
-      item.dragIndex = hoverIndex;
-    },
-  });
-  const [{ isDragging }, drag] = useDrag({
-    item: {
+
+  // Create a unique sortable ID for this item
+  const sortableId = useMemo(() => `sortable-${type}-${index}`, [type, index]);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: sortableId,
+    disabled: !multi,
+    // Disable @dnd-kit's default FLIP layout animation: on drop it plays a
+    // springy settle that reads as a confusing "bounce" for reordered pills.
+    animateLayoutChanges: () => false,
+    data: {
       type,
       dragIndex: index,
+      onMoveLabel,
+      onDropLabel,
       value: savedMetric?.metric_name ? savedMetric : adhocMetric,
-    },
-    collect: monitor => ({
-      isDragging: monitor.isDragging(),
-    }),
+    } as SortableItemData,
   });
+
+  const style = {
+    // Translate only (no scaleX/scaleY) so variable-width pills slide into
+    // place without morphing into their neighbor's size during reorder.
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const getLabelContent = () => {
     const shouldShowTooltip =
@@ -378,13 +357,13 @@ export const OptionControlLabel = ({
       `}
     >
       <CloseContainer
-        role="button"
+        type="button"
         data-test="remove-control-button"
         onClick={onRemove}
       >
         <Icons.CloseOutlined
           iconSize="m"
-          iconColor={theme.colors.grayscale.light1}
+          iconColor={theme.colorIcon}
           css={css`
             vertical-align: sub;
           `}
@@ -414,13 +393,21 @@ export const OptionControlLabel = ({
             css={css`
               margin: ${theme.sizeUnit}px;
             `}
-            iconColor={theme.colors.grayscale.light1}
+            iconColor={theme.colorIcon}
           />
         </CaretContainer>
       )}
     </OptionControlContainer>
   );
 
-  drag(drop(ref));
-  return <DragContainer ref={ref}>{getOptionControlContent()}</DragContainer>;
+  return (
+    <DragContainer
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+    >
+      {getOptionControlContent()}
+    </DragContainer>
+  );
 };

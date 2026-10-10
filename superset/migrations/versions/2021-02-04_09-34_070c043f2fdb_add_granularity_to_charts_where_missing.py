@@ -28,7 +28,7 @@ down_revision = "41ce8799acc3"
 
 from alembic import op  # noqa: E402
 from sqlalchemy import and_, Boolean, Column, Integer, String, Text  # noqa: E402
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import declarative_base  # noqa: E402
 
 from superset import db  # noqa: E402
 from superset.utils import json  # noqa: E402
@@ -92,7 +92,7 @@ def upgrade():
             if "granularity" in params or "granularity_sqla" in params:
                 continue
 
-            table = session.query(SqlaTable).get(slc.datasource_id)
+            table = session.get(SqlaTable, slc.datasource_id)
             if not table:
                 continue
 

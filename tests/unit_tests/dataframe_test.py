@@ -16,19 +16,195 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel
 from datetime import datetime
+from decimal import Decimal
+from enum import Enum
+from typing import Any
 
+import numpy as np
+import pandas as pd
 import pytest
 from pandas import Timestamp
 from pandas._libs.tslibs import NaT
 
 from superset.dataframe import df_to_records
+from superset.db_engine_specs import BaseEngineSpec
+from superset.result_set import SupersetResultSet
 from superset.superset_typing import DbapiDescription
+from superset.utils import json as superset_json
+
+
+class HostileDecimal(Decimal):
+    """Decimal subclass whose numeric hooks must not run during projection."""
+
+    def is_finite(self) -> bool:
+        raise AssertionError("hostile Decimal is_finite hook executed")
+
+    def __eq__(self, other: object) -> bool:
+        raise AssertionError("hostile Decimal equality hook executed")
+
+    def __float__(self) -> float:
+        raise AssertionError("hostile Decimal float hook executed")
+
+
+@pytest.mark.parametrize("dtype", ["Float32", "object"])
+def test_df_to_records_boxes_numpy_float(dtype: str) -> None:
+    """Finite NumPy floats serialize as native JSON numbers."""
+    frame = pd.DataFrame({"value": pd.Series([np.float32(1.5), None], dtype=dtype)})
+
+    records = df_to_records(frame)
+
+    assert type(records[0]["value"]) is float
+    assert records[1]["value"] is None
+    assert superset_json.loads(superset_json.dumps(records, ignore_nan=False)) == [
+        {"value": 1.5},
+        {"value": None},
+    ]
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "object"])
+@pytest.mark.parametrize("convert_big_integers", [True, False])
+def test_df_to_records_boxes_numpy_integer(
+    dtype: str, convert_big_integers: bool
+) -> None:
+    """Nullable and object integers retain the browser-safe integer contract."""
+    big = 2**53 + 1
+    frame = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [np.int64(7), np.int64(big), np.int64(-big), pd.NA], dtype=dtype
+            )
+        }
+    )
+
+    records = df_to_records(frame, convert_big_integers=convert_big_integers)
+
+    assert type(records[0]["value"]) is int
+    expected = [
+        {"value": 7},
+        {"value": str(big) if convert_big_integers else big},
+        {"value": str(-big) if convert_big_integers else -big},
+        {"value": None},
+    ]
+    assert records == expected
+    assert (
+        superset_json.loads(superset_json.dumps(records, ignore_nan=False)) == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (np.bool_(True), True),
+        (np.uint64(2**63), str(2**63)),
+        (np.float16(1.5), 1.5),
+        (np.str_("value"), "value"),
+        (np.bytes_(b"value"), b"value"),
+    ],
+)
+def test_df_to_records_boxes_native_numpy_scalars(value: Any, expected: Any) -> None:
+    """Trusted scalar boxing restores native types for object columns."""
+    records = df_to_records(pd.DataFrame({"value": pd.Series([value], dtype=object)}))
+
+    assert type(records[0]["value"]) is type(expected)
+    assert records[0]["value"] == expected
+
+
+def test_df_to_records_does_not_box_numpy_subclasses() -> None:
+    """Only exact NumPy types may execute scalar conversion methods."""
+
+    class HostileFloat(np.float32):
+        def item(self, *args: Any) -> Any:
+            raise AssertionError("hostile item hook executed")
+
+        def __float__(self) -> float:
+            raise AssertionError("hostile float hook executed")
+
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("hostile equality hook executed")
+
+    value = HostileFloat(1.5)
+    records = df_to_records(pd.DataFrame({"value": pd.Series([value], dtype=object)}))
+
+    assert records[0]["value"] is value
+
+
+def test_df_to_records_preserves_finite_longdouble_and_nulls_nonfinite() -> None:
+    """Long-double classification must not narrow through Python float."""
+    finite = np.longdouble("1e400")
+    frame = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [
+                    finite,
+                    np.longdouble("inf"),
+                    np.longdouble("-inf"),
+                    np.longdouble("nan"),
+                ],
+                dtype=object,
+            )
+        }
+    )
+
+    records = df_to_records(frame)
+
+    assert records[0]["value"] is finite
+    assert [record["value"] for record in records[1:]] == [None, None, None]
+
+
+def test_df_to_records_does_not_compare_object_column_values() -> None:
+    """Materialization must not run equality hooks before envelope validation."""
+
+    class HostileEquality:
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("hostile equality hook executed")
+
+    class AcceptedEnum(Enum):
+        VALUE = "accepted"
+
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("enum equality hook executed")
+
+    hostile = HostileEquality()
+    accepted = AcceptedEnum.VALUE
+    frame = pd.DataFrame({"value": pd.Series([hostile, accepted], dtype=object)})
+
+    records = df_to_records(frame)
+
+    assert records[0]["value"] is hostile
+    assert records[1]["value"] is accepted
+
+
+def test_df_to_records_normalizes_only_exact_nonfinite_decimals() -> None:
+    """Exact non-finite Decimal cells become null without subclass hooks."""
+    finite = Decimal("0.10000000000000000001")
+    hostile = HostileDecimal("NaN")
+    values = [
+        Decimal("NaN"),
+        Decimal("sNaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+        finite,
+        hostile,
+    ]
+    frame = pd.DataFrame({"value": pd.Series(values, dtype=object)})
+
+    records = df_to_records(frame, convert_decimals=True)
+
+    assert [records[index]["value"] for index in range(4)] == [None] * 4
+    # SQL Lab quotes finite decimals so the browser keeps every digit.
+    assert records[4]["value"] == str(finite)
+    assert records[5]["value"] is hostile
+    strict_json = superset_json.dumps(records[:5], ignore_nan=False)
+    assert superset_json.loads(strict_json) == [
+        {"value": None},
+        {"value": None},
+        {"value": None},
+        {"value": None},
+        {"value": "0.10000000000000000001"},
+    ]
 
 
 def test_df_to_records() -> None:
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     data = [("a1", "b1", "c1"), ("a2", "b2", "c2")]
     cursor_descr: DbapiDescription = [
         (column, "string", None, None, None, None, False) for column in ("a", "b", "c")
@@ -43,9 +219,6 @@ def test_df_to_records() -> None:
 
 
 def test_df_to_records_NaT_type() -> None:  # noqa: N802
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     data = [(NaT,), (Timestamp("2023-01-06 20:50:31.749000+0000", tz="UTC"),)]
     cursor_descr: DbapiDescription = [
         ("date", "timestamp with time zone", None, None, None, None, False)
@@ -60,9 +233,6 @@ def test_df_to_records_NaT_type() -> None:  # noqa: N802
 
 
 def test_df_to_records_mixed_emoji_type() -> None:
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     data = [
         ("What's up?", "This is a string text", 1),
         ("What's up?", "This is a string with an 😍 added", 2),
@@ -100,9 +270,6 @@ def test_df_to_records_mixed_emoji_type() -> None:
 
 
 def test_df_to_records_mixed_accent_type() -> None:
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     data = [
         ("What's up?", "This is a string text", 1),
         ("What's up?", "This is a string with áccent", 2),
@@ -140,9 +307,6 @@ def test_df_to_records_mixed_accent_type() -> None:
 
 
 def test_js_max_int() -> None:
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     data = [(1, 1239162456494753670, "c1"), (2, 100, "c2")]
     cursor_descr: DbapiDescription = [
         ("a", "int", None, None, None, None, False),
@@ -192,9 +356,6 @@ def test_js_max_int() -> None:
     ],
 )
 def test_max_pandas_timestamp(input_, expected) -> None:
-    from superset.db_engine_specs import BaseEngineSpec
-    from superset.result_set import SupersetResultSet
-
     cursor_descr: DbapiDescription = [
         ("a", "datetime", None, None, None, None, False),
         ("b", "int", None, None, None, None, False),
@@ -203,3 +364,254 @@ def test_max_pandas_timestamp(input_, expected) -> None:
     df = results.to_pandas_df()
 
     assert df_to_records(df) == expected
+
+
+def test_df_to_records_with_nan_from_division_by_zero() -> None:
+    """Test that NaN values from division by zero are converted to None."""
+    # Simulate Athena query: select 0.00 / 0.00 as test
+    data = [(np.nan,), (5.0,), (np.nan,)]
+    cursor_descr: DbapiDescription = [("test", "double", None, None, None, None, False)]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    assert df_to_records(df) == [
+        {"test": None},
+        {"test": 5.0},
+        {"test": None},
+    ]
+
+
+def test_df_to_records_with_mixed_nan_and_valid_values() -> None:
+    """Test that NaN values are properly handled alongside valid numeric data."""
+
+    # Simulate a query with multiple columns containing NaN values
+    data = [
+        ("row1", 10.5, np.nan, 100),
+        ("row2", np.nan, 20.3, 200),
+        ("row3", 30.7, 40.2, np.nan),
+        ("row4", np.nan, np.nan, np.nan),
+    ]
+    cursor_descr: DbapiDescription = [
+        ("name", "varchar", None, None, None, None, False),
+        ("value1", "double", None, None, None, None, False),
+        ("value2", "double", None, None, None, None, False),
+        ("value3", "int", None, None, None, None, False),
+    ]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    assert df_to_records(df) == [
+        {"name": "row1", "value1": 10.5, "value2": None, "value3": 100},
+        {"name": "row2", "value1": None, "value2": 20.3, "value3": 200},
+        {"name": "row3", "value1": 30.7, "value2": 40.2, "value3": None},
+        {"name": "row4", "value1": None, "value2": None, "value3": None},
+    ]
+
+
+def test_df_to_records_with_inf_and_nan() -> None:
+    """Test that both NaN and infinity values are handled correctly."""
+    # Test various edge cases: NaN, positive infinity, negative infinity
+    data = [
+        (np.nan, "division by zero"),
+        (np.inf, "positive infinity"),
+        (-np.inf, "negative infinity"),
+        (0.0, "zero"),
+        (42.5, "normal value"),
+    ]
+    cursor_descr: DbapiDescription = [
+        ("result", "double", None, None, None, None, False),
+        ("description", "varchar", None, None, None, None, False),
+    ]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    records = df_to_records(df)
+
+    # NaN should be converted to None
+    assert records[0]["result"] is None
+    assert records[0]["description"] == "division by zero"
+
+    # Infinity is not a valid strict-JSON number and follows the producer's
+    # missing-value contract.
+    assert records[1]["result"] is None
+    assert records[2]["result"] is None
+
+    # Normal values should remain unchanged
+    assert records[3]["result"] == 0.0
+    assert records[4]["result"] == 42.5
+
+
+def test_df_to_records_nan_json_serialization() -> None:
+    """
+    Test that NaN values are properly converted to None for JSON serialization.
+
+    Without the pd.isna() check, np.nan values would be passed through to JSON
+    serialization, which either produces non-spec-compliant output or requires
+    special handling with ignore_nan flags throughout the codebase.
+
+    This test validates that our fix converts NaN to None for proper JSON
+    serialization.
+    """
+    # Simulate Athena query: SELECT 0.00 / 0.00 as test
+    data = [(np.nan,), (5.0,), (np.nan,)]
+    cursor_descr: DbapiDescription = [("test", "double", None, None, None, None, False)]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    # Get records with our fix
+    records = df_to_records(df)
+
+    # Verify NaN values are converted to None
+    assert records == [
+        {"test": None},  # NaN converted to None
+        {"test": 5.0},
+        {"test": None},  # NaN converted to None
+    ]
+
+    # This should succeed with valid, spec-compliant JSON
+    json_output = superset_json.dumps(records)
+    parsed = superset_json.loads(json_output)
+
+    # Verify JSON serialization works correctly
+    assert parsed == records
+
+    # Demonstrate what happens WITHOUT the fix
+    # (simulate the old behavior by directly using to_dict)
+    records_without_fix = df.to_dict(orient="records")
+
+    # Verify the records contain actual NaN values (not None)
+    assert np.isnan(records_without_fix[0]["test"])
+    assert records_without_fix[1]["test"] == 5.0
+    assert np.isnan(records_without_fix[2]["test"])
+
+    # Demonstrate the actual bug: without the fix, ignore_nan=False raises ValueError
+    # This is the error users would see without our fix
+    with pytest.raises(
+        ValueError, match="Out of range float values are not JSON compliant"
+    ):
+        superset_json.dumps(records_without_fix, ignore_nan=False)
+
+    # With ignore_nan=True, it works by converting NaN to null
+    # But this requires the flag to be set everywhere - our fix eliminates this need
+    json_with_ignore = superset_json.dumps(records_without_fix, ignore_nan=True)
+    parsed_with_ignore = superset_json.loads(json_with_ignore)
+    # The output is the same, but our fix doesn't require the ignore_nan flag
+    assert parsed_with_ignore[0]["test"] is None
+
+
+def test_df_to_records_with_json_serialization_like_sql_lab() -> None:
+    """
+    Test that mimics the actual SQL Lab serialization flow.
+    This shows how the fix prevents errors in the real usage path.
+    """
+    # Simulate query with NaN results
+    data = [
+        ("user1", 100.0, np.nan),
+        ("user2", np.nan, 50.0),
+        ("user3", 75.0, 25.0),
+    ]
+    cursor_descr: DbapiDescription = [
+        ("name", "varchar", None, None, None, None, False),
+        ("value1", "double", None, None, None, None, False),
+        ("value2", "double", None, None, None, None, False),
+    ]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    # Mimic sql_lab.py:360 - this is where df_to_records is used
+    records = df_to_records(df) or []
+
+    # Mimic sql_lab.py:332 - JSON serialization with Superset's custom json.dumps
+    # This should work without errors
+    json_str = superset_json.dumps(
+        records, default=superset_json.json_iso_dttm_ser, ignore_nan=True
+    )
+
+    # Verify it's valid JSON and NaN values are properly handled as null
+    parsed = superset_json.loads(json_str)
+    assert parsed[0]["value2"] is None  # NaN became null
+    assert parsed[1]["value1"] is None  # NaN became null
+    assert parsed[0]["value1"] == 100.0
+
+    # Also verify it works without ignore_nan flag (since we convert NaN to None)
+    json_str_no_flag = superset_json.dumps(
+        records, default=superset_json.json_iso_dttm_ser, ignore_nan=False
+    )
+    parsed_no_flag = superset_json.loads(json_str_no_flag)
+    assert parsed_no_flag == parsed  # Same result
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "12345678901234567890.123456789012345678",
+        "-12345678901234567890.123456789012345678",
+        "0.000000000000000001",
+        "10.50",
+        "0.00",
+        "1E+30",
+        "0.000000000000000000",
+        "-0.000000100000000000",
+    ],
+)
+def test_decimal_records_keep_all_digits(value: str) -> None:
+    """Decimals become exact strings that survive a JSON round trip unchanged."""
+    decimal_value: Decimal = Decimal(value)
+    frame = pd.DataFrame({"value": [decimal_value, None]})
+    records = df_to_records(frame, convert_decimals=True)
+    assert records == [{"value": format(decimal_value, "f")}, {"value": None}]
+    # Both the HTTP JSON and JSON cache must quote decimals for JavaScript.
+    assert superset_json.loads(superset_json.dumps(records)) == records
+    # SQL Lab conversion must not modify DataFrames used for chart arithmetic.
+    assert frame.iloc[0, 0] == decimal_value
+    assert isinstance(frame.iloc[0, 0], Decimal)
+
+
+def test_nested_decimal_records() -> None:
+    """Decimals nested inside dicts, lists and tuples also become exact strings."""
+    value = Decimal("12345678901234567890.123456789012345678")
+    frame = pd.DataFrame({"value": [{"a": [value, None]}, (value,)]})
+    assert df_to_records(frame, convert_decimals=True) == [
+        {"value": {"a": [str(value), None]}},
+        {"value": (str(value),)},
+    ]
+
+
+def test_decimal_conversion_does_not_change_other_numbers() -> None:
+    """Ints, floats and bools pass through, and chart JSON still emits numbers."""
+    frame = pd.DataFrame({"i": [2], "f": [0.5], "b": [True]})
+    assert df_to_records(frame, convert_decimals=True) == [
+        {"i": 2, "f": 0.5, "b": True}
+    ]
+    # Do not change the shared chart JSON serializer to emit decimal strings.
+    assert superset_json.loads(superset_json.dumps({"x": Decimal("10.50")})) == {
+        "x": 10.5
+    }
+
+
+def test_decimal_conversion_is_disabled_by_default_for_chart_records() -> None:
+    """Chart records keep Decimal objects so the chart encoder emits numbers."""
+    value = Decimal("10.50")
+    frame = pd.DataFrame({"value": [value, {"a": [value]}]})
+    records = df_to_records(frame)
+    assert records == [{"value": value}, {"value": {"a": [value]}}]
+    assert type(records[0]["value"]) is Decimal
+    assert superset_json.loads(superset_json.dumps(records)) == [
+        {"value": 10.5},
+        {"value": {"a": [10.5]}},
+    ]
+
+
+def test_high_scale_negative_decimal_csv() -> None:
+    """Small negative decimals export in fixed notation without formula escaping."""
+    from superset.utils.csv import df_to_escaped_csv
+
+    records = df_to_records(
+        pd.DataFrame({"value": [Decimal("-0.000000100000000000")]}),
+        convert_decimals=True,
+    )
+    assert records == [{"value": "-0.000000100000000000"}]
+    assert (
+        df_to_escaped_csv(pd.DataFrame(records), index=False, lineterminator="\n")
+        == "value\n-0.000000100000000000\n"
+    )

@@ -28,12 +28,14 @@ if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
     cd /app/superset-frontend
 
     if [ "$NPM_RUN_PRUNE" = "true" ]; then
-        echo "Running `npm run prune`"
+        echo "Running \"npm run prune\""
         npm run prune
     fi
 
-    echo "Running `npm install`"
-    npm install
+    # Install from the committed lockfile so a dev image build resolves the same
+    # versions that were reviewed, matching the `npm ci` used in the Dockerfile.
+    echo "Running \"npm ci\""
+    npm ci
 
     echo "Start webpack dev server"
     # start the webpack dev server, serving dynamically at http://localhost:9000

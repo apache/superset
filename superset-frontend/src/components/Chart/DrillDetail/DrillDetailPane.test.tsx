@@ -17,8 +17,19 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { QueryFormData, SupersetClient } from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  BinaryQueryObjectFilterClause,
+  QueryFormData,
+  SupersetClient,
+} from '@superset-ui/core';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
@@ -44,6 +55,9 @@ const waitForRender = (overrides: Record<string, any> = {}) =>
 const SAMPLES_ENDPOINT =
   'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1';
 
+const SAMPLES_ENDPOINT_PAGE_2 =
+  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=2';
+
 const DATASET_ENDPOINT = 'glob:*/api/v1/dataset/*';
 
 const MOCKED_DATASET = {
@@ -59,12 +73,7 @@ const MOCKED_DATASET = {
     first_name: 'John',
     last_name: 'Doe',
   },
-  owners: [
-    {
-      first_name: 'John',
-      last_name: 'Doe',
-    },
-  ],
+  editors: [{ id: 1, label: 'John Doe', type: 1 }],
 };
 
 const setupDatasetEndpoint = () => {
@@ -114,8 +123,56 @@ const fetchWithData = () => {
   });
 };
 
+const fetchWithPaginatedData = () => {
+  setupDatasetEndpoint();
+  fetchMock.post(SAMPLES_ENDPOINT, {
+    result: {
+      total_count: 100,
+      data: [
+        {
+          year: 1996,
+          na_sales: 11.27,
+          eu_sales: 8.89,
+        },
+        {
+          year: 1989,
+          na_sales: 23.2,
+          eu_sales: 2.26,
+        },
+        {
+          year: 1999,
+          na_sales: 9,
+          eu_sales: 6.18,
+        },
+      ],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+};
+
+const fetchWithTwoPages = () => {
+  setupDatasetEndpoint();
+  fetchMock.post(SAMPLES_ENDPOINT, {
+    result: {
+      total_count: 100,
+      data: [{ year: 1996, na_sales: 11.27, eu_sales: 8.89 }],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+  fetchMock.post(SAMPLES_ENDPOINT_PAGE_2, {
+    result: {
+      total_count: 100,
+      data: [{ year: 2020, na_sales: 42.42, eu_sales: 24.24 }],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+};
+
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   supersetGetCache.clear();
 });
 
@@ -164,7 +221,7 @@ test('should render the "No results" components', async () => {
 
 test('should render the metadata bar', async () => {
   fetchWithNoData();
-  setup();
+  setup({ dataset: MOCKED_DATASET });
   expect(
     await screen.findByText(MOCKED_DATASET.table_name),
   ).toBeInTheDocument();
@@ -181,19 +238,253 @@ test('should render the metadata bar', async () => {
   ).toBeInTheDocument();
 });
 
-test('should render an error message when fails to load the metadata', async () => {
-  fetchWithNoData();
-  fetchMock.get(DATASET_ENDPOINT, { status: 400 }, { overwriteRoutes: true });
-  setup();
-  expect(
-    await screen.findByText('There was an error loading the dataset metadata'),
-  ).toBeInTheDocument();
-});
-
 test('should render the error', async () => {
   jest
     .spyOn(SupersetClient, 'post')
-    .mockRejectedValue(new Error('Something went wrong'));
+    .mockRejectedValue(new Error('Something went wrong\nPlease retry'));
   await waitForRender();
-  expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
+  // The error is wrapped in an Alert component with a stable headline; the
+  // raw error text renders as the description with its line breaks
+  // preserved (via the shared PreformattedErrorDescription).
+  expect(await screen.findByRole('alert')).toBeVisible();
+  expect(
+    await screen.findByText('Failed to load drill-to-detail rows'),
+  ).toBeVisible();
+  const errorDescription = screen.getByText(
+    'Error: Something went wrong Please retry',
+  );
+  expect(errorDescription.textContent).toBe(
+    'Error: Something went wrong\nPlease retry',
+  );
+  expect(errorDescription).toHaveStyle({ whiteSpace: 'pre-wrap' });
+});
+
+describe('download actions', () => {
+  const renderWithDownloadPermission = () =>
+    render(
+      <DrillDetailPane
+        initialFilters={[]}
+        formData={chart.form_data as unknown as QueryFormData}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          user: { roles: { Admin: [['can_csv', 'Superset']] } },
+          common: { conf: { SAMPLES_ROW_LIMIT: 10, ROW_LIMIT: 50000 } },
+          dashboardInfo: { id: 123 },
+        },
+      },
+    );
+
+  const clickDownloadItem = async (label: string) => {
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText(label));
+  };
+
+  test('CSV export posts drill_detail payload with ROW_LIMIT', async () => {
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.resolve());
+    renderWithDownloadPermission();
+
+    await clickDownloadItem('Export to CSV');
+
+    expect(postFormSpy).toHaveBeenCalledTimes(1);
+    const body = postFormSpy.mock.calls[0][1] as { form_data: string };
+    const payload = JSON.parse(body.form_data);
+    expect(payload.result_type).toBe('drill_detail');
+    expect(payload.result_format).toBe('csv');
+    expect(payload.queries[0].row_limit).toBe(50000);
+    expect(payload.form_data.dashboardId).toBe(123);
+    postFormSpy.mockRestore();
+  });
+
+  test('XLSX export uses xlsx result_format', async () => {
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.resolve());
+    renderWithDownloadPermission();
+
+    await clickDownloadItem('Export to Excel');
+
+    expect(postFormSpy).toHaveBeenCalledTimes(1);
+    const body = postFormSpy.mock.calls[0][1] as { form_data: string };
+    const payload = JSON.parse(body.form_data);
+    expect(payload.result_format).toBe('xlsx');
+    postFormSpy.mockRestore();
+  });
+});
+
+test('should render pagination when results exceed page size', async () => {
+  // The "should render the error" test above leaves a SupersetClient.post
+  // rejection spy active (matching the existing pattern; "should use
+  // verbose_map" further down does the same cleanup). Reset it here so the
+  // fetch in this test actually returns data.
+  jest.restoreAllMocks();
+  fetchWithPaginatedData();
+  await waitForRender();
+  // With total_count=100 and page size=50, pagination should render
+  await waitFor(() => {
+    const pagination = document.querySelector('.ant-pagination');
+    expect(pagination).toBeTruthy();
+  });
+});
+
+test('should offer the full set of page-size options', async () => {
+  fetchWithPaginatedData();
+  await waitForRender();
+
+  // The page-size changer renders as an antd Select. In jsdom, antd opens
+  // its overlay on mouseDown of the .ant-select-content element rather
+  // than via a click on the inner combobox input.
+  const selector = await waitFor(() => {
+    const el = document.querySelector(
+      '.ant-pagination-options-size-changer .ant-select-content',
+    ) as HTMLElement | null;
+    expect(el).toBeTruthy();
+    return el!;
+  });
+  fireEvent.mouseDown(selector);
+
+  // The opened listbox lives in a body portal; collect its options and assert
+  // exactly the canonical [5, 15, 25, 50, 100] set is offered. Without this
+  // guard, regressing to a single hardcoded option (the pre-rework approach)
+  // would silently pass CI.
+  const listbox = await screen.findByRole('listbox');
+  const offeredSizes = within(listbox)
+    .getAllByRole('option')
+    .map(el => el.getAttribute('title'));
+  expect(offeredSizes).toEqual([
+    '5 / page',
+    '15 / page',
+    '25 / page',
+    '50 / page',
+    '100 / page',
+  ]);
+});
+
+test('should use verbose_map for column headers when available', async () => {
+  jest.restoreAllMocks();
+
+  const datasetWithVerboseMap = {
+    ...MOCKED_DATASET,
+    verbose_map: {
+      year: 'Year of Release',
+      na_sales: 'North America Sales',
+    },
+  };
+
+  fetchMock.post(SAMPLES_ENDPOINT, {
+    result: {
+      total_count: 1,
+      data: [
+        {
+          year: 1996,
+          na_sales: 11.27,
+          eu_sales: 8.89,
+        },
+      ],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+
+  await waitForRender({ dataset: datasetWithVerboseMap });
+
+  expect(
+    screen.getByRole('columnheader', { name: 'Year of Release' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('columnheader', { name: 'North America Sales' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('columnheader', { name: 'eu_sales' }),
+  ).toBeInTheDocument();
+
+  expect(
+    screen.queryByRole('columnheader', { name: 'year' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('columnheader', { name: 'na_sales' }),
+  ).not.toBeInTheDocument();
+});
+
+/**
+ * sc-111089 T013: given a semantic-view-shaped resource, the pane shows the
+ * view's name and renders the metadata rows the structure payload cannot fill
+ * in their explicit "Not available" state — an accepted, pinned degradation,
+ * never another object's values.
+ *
+ * Scope note: DrillDetailPane receives its `dataset` as a prop, so this test
+ * pins only that rendering degradation. The type-aware RESOLUTION that keeps a
+ * semantic view off the colliding regular-dataset id lives upstream in
+ * useDatasetDrillInfo and is guarded directly in
+ * hooks/apiResources/datasets.test.ts (T012); it is deliberately not
+ * re-exercised here.
+ */
+test('renders a semantic-view resource with Not available metadata rows', async () => {
+  fetchWithNoData();
+  setup({
+    dataset: {
+      id: 3,
+      table_name: 'orders',
+      datasource_type: 'semantic_view',
+      columns: [{ column_name: 'Orders Status' }],
+      metrics: [],
+      verbose_map: { 'Orders Status': 'Orders Status' },
+    },
+  });
+
+  expect(await screen.findByText('orders')).toBeInTheDocument();
+  const notAvailable = await screen.findAllByText('Not available');
+  expect(notAvailable.length).toBeGreaterThan(0);
+});
+
+test('resets to page 1 and refetches when the drill filters change', async () => {
+  jest.restoreAllMocks();
+  fetchWithTwoPages();
+  const initialFilters: BinaryQueryObjectFilterClause[] = [
+    { col: 'year', op: '==', val: 1996, formattedVal: '1996' },
+  ];
+  await waitForRender({ initialFilters });
+  expect(await screen.findByText('11.27')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByTitle('2'));
+  expect(await screen.findByText('42.42')).toBeInTheDocument();
+  expect(screen.queryByText('11.27')).not.toBeInTheDocument();
+
+  // Removing the filter tag changes `filters`, which should clear the cached
+  // pages and drop the pane back to page 1 rather than continuing to request
+  // page 2 under the new filter set.
+  await userEvent.click(screen.getByLabelText('Close'));
+
+  expect(await screen.findByText('11.27')).toBeInTheDocument();
+  expect(screen.queryByText('42.42')).not.toBeInTheDocument();
+  const page1Calls = fetchMock.callHistory.calls(SAMPLES_ENDPOINT);
+  expect(page1Calls).toHaveLength(2);
+  expect(JSON.parse(page1Calls[0].options.body as string).filters).toEqual([
+    expect.objectContaining({ col: 'year', val: 1996 }),
+  ]);
+  expect(JSON.parse(page1Calls[1].options.body as string).filters).toEqual([]);
+});
+
+test('resets to page 1 and refetches on reload', async () => {
+  jest.restoreAllMocks();
+  fetchWithTwoPages();
+  await waitForRender();
+  expect(await screen.findByText('11.27')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByTitle('2'));
+  expect(await screen.findByText('42.42')).toBeInTheDocument();
+  expect(screen.queryByText('11.27')).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Reload' }));
+
+  expect(await screen.findByText('11.27')).toBeInTheDocument();
+  expect(screen.queryByText('42.42')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(SAMPLES_ENDPOINT)).toHaveLength(2);
 });

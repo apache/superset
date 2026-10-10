@@ -20,7 +20,7 @@ import fetchMock from 'fetch-mock';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import SelectAsyncControl from '.';
 
-const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
+const datasetsEditorsEndpoint = 'glob:*/api/v1/dataset/related/editors*';
 
 jest.mock('@superset-ui/core/components/Select/Select', () => ({
   __esModule: true,
@@ -45,14 +45,14 @@ jest.mock('@superset-ui/core/components/Select/Select', () => ({
   propertyComparator: jest.fn(),
 }));
 
-fetchMock.get(datasetsOwnersEndpoint, {
+fetchMock.get(datasetsEditorsEndpoint, {
   result: [],
 });
 
 const createProps = () => ({
   ariaLabel: 'SelectAsyncControl',
   value: [],
-  dataEndpoint: datasetsOwnersEndpoint,
+  dataEndpoint: datasetsEditorsEndpoint,
   multi: true,
   placeholder: 'Select ...',
   onChange: jest.fn(),
@@ -91,7 +91,7 @@ test('Should send correct props to Select component - function onChange multi:tr
   const props = createProps();
   render(<SelectAsyncControl {...props} />, { useRedux: true });
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(await screen.findByText('onChange'));
+  await userEvent.click(await screen.findByText('onChange'));
   expect(props.onChange).toHaveBeenCalledTimes(1);
 });
 
@@ -101,6 +101,6 @@ test('Should send correct props to Select component - function onChange multi:fa
     useRedux: true,
   });
   expect(props.onChange).toHaveBeenCalledTimes(0);
-  userEvent.click(await screen.findByText('onChange'));
+  await userEvent.click(await screen.findByText('onChange'));
   expect(props.onChange).toHaveBeenCalledTimes(1);
 });

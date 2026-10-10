@@ -19,14 +19,10 @@
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useHistory } from 'react-router-dom';
-import {
-  css,
-  t,
-  styled,
-  SupersetClient,
-  getClientErrorObject,
-} from '@superset-ui/core';
-import dayjs from 'dayjs';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import rison from 'rison';
 
 import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
@@ -45,6 +41,7 @@ import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
 
@@ -165,6 +162,7 @@ function AnnotationList({
       {
         accessor: 'short_descr',
         Header: t('Name'),
+        size: 'xxl',
         id: 'short_descr',
       },
       {
@@ -235,19 +233,19 @@ function AnnotationList({
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
   subMenuButtons.push({
+    name: t('Bulk select'),
+    onClick: toggleBulkSelect,
+    buttonStyle: 'secondary',
+    'data-test': 'annotation-bulk-select',
+  });
+
+  subMenuButtons.push({
     icon: <Icons.PlusOutlined iconSize="m" />,
     name: t('Annotation'),
     buttonStyle: 'primary',
     onClick: () => {
       handleAnnotationEdit(null);
     },
-  });
-
-  subMenuButtons.push({
-    name: t('Bulk select'),
-    onClick: toggleBulkSelect,
-    buttonStyle: 'secondary',
-    'data-test': 'annotation-bulk-select',
   });
 
   let hasHistory = true;
@@ -283,7 +281,7 @@ function AnnotationList({
               {hasHistory ? (
                 <Link to="/annotationlayer/list/">{t('Back to all')}</Link>
               ) : (
-                <Typography.Link href="/annotationlayer/list/">
+                <Typography.Link href={ensureAppRoot('/annotationlayer/list/')}>
                   {t('Back to all')}
                 </Typography.Link>
               )}

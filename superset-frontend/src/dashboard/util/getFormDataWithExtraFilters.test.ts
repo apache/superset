@@ -18,78 +18,986 @@
  */
 import getFormDataWithExtraFilters, {
   CachedFormDataWithExtraControls,
+  getCustomizationSelectionSources,
   GetFormDataWithExtraFiltersArguments,
 } from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
+import {
+  ChartCustomizationType,
+  DataMask,
+  SemanticSelectionSource,
+  DatasourceType,
+  buildQueryObject,
+  QueryFormData,
+} from '@superset-ui/core';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
 
-describe('getFormDataWithExtraFilters', () => {
-  const filterId = 'native-filter-1';
-  const mockChart = {
-    id: chartId,
-    chartAlert: null,
-    chartStatus: null,
-    chartUpdateEndTime: null,
-    chartUpdateStartTime: 1,
-    lastRendered: 1,
-    latestQueryFormData: {},
-    sliceFormData: null,
-    queryController: null,
-    queriesResponse: null,
-    triggerQuery: false,
-    form_data: {
-      viz_type: 'filter_select',
-      filters: [
-        {
-          col: 'country_name',
-          op: 'IN',
-          val: ['United States'],
-        },
-      ],
-      datasource: '123',
-      url_params: {},
-    },
+type ChartCustomizationItem = NonNullable<
+  GetFormDataWithExtraFiltersArguments['chartCustomizationItems']
+>[number];
+
+function createChartCustomization(
+  overrides: Partial<ChartCustomizationItem> = {},
+): ChartCustomizationItem {
+  return {
+    id: 'CHART_CUSTOMIZATION-1',
+    type: ChartCustomizationType.ChartCustomization,
+    name: 'Dynamic Group By',
+    filterType: 'chart_customization_dynamic_groupby',
+    targets: [{ datasetId: 3, column: { name: 'status' } }],
+    scope: { rootPath: [], excluded: [] },
+    chartsInScope: [chartId],
+    defaultDataMask: {},
+    controlValues: {},
+    ...overrides,
   };
-  const mockArgs: GetFormDataWithExtraFiltersArguments = {
-    chartConfiguration: {},
-    chart: mockChart,
-    filters: {
-      region: ['Spain'],
-      color: ['pink', 'purple'],
+}
+
+const semanticCustomization = createChartCustomization({
+  targets: [
+    {
+      datasetId: 7,
+      datasourceType: DatasourceType.SemanticView,
+      semantic_selection_version: 'cube-member-id-v1',
     },
-    sliceId: chartId,
-    nativeFilters: {},
+  ],
+});
+const semanticTargetSource = {
+  datasource: '7__semantic_view',
+  version: 'cube-member-id-v1',
+};
+const unknownSelectionSource = { datasource: '', version: null };
+const selectedMask: DataMask = { filterState: { value: ['country'] } };
+const certifiedMask: DataMask = {
+  ...selectedMask,
+  extraFormData: { semantic_selection_sources: [semanticTargetSource] },
+};
+
+test.each<{
+  name: string;
+  customization?: ChartCustomizationItem;
+  mask?: DataMask;
+  groupByApplied: boolean;
+  expected: SemanticSelectionSource[];
+}>([
+  {
+    name: 'unapplied group-by',
+    customization: semanticCustomization,
+    mask: certifiedMask,
+    groupByApplied: false,
+    expected: [],
+  },
+  {
+    name: 'applied certified group-by',
+    customization: semanticCustomization,
+    mask: certifiedMask,
+    groupByApplied: true,
+    expected: [semanticTargetSource, semanticTargetSource],
+  },
+  {
+    name: 'uncertified selected group-by',
+    customization: semanticCustomization,
+    mask: selectedMask,
+    groupByApplied: true,
+    expected: [semanticTargetSource, unknownSelectionSource],
+  },
+  ...[
+    'chart_customization_timegrain',
+    'chart_customization_deckgl_layer_visibility',
+  ].map(filterType => ({
+    name: `presentation-only ${filterType}`,
+    customization: { ...semanticCustomization, filterType },
+    mask: selectedMask,
+    groupByApplied: false,
+    expected: [],
+  })),
+  {
+    name: 'presentation control with member overrides',
+    customization: {
+      ...semanticCustomization,
+      filterType: 'chart_customization_timegrain',
+    },
+    mask: { extraFormData: { granularity_sqla: 'country' } },
+    groupByApplied: false,
+    expected: [semanticTargetSource, unknownSelectionSource],
+  },
+  {
+    name: 'idle ordinary control',
+    customization: { ...semanticCustomization, filterType: 'ordinary' },
+    mask: {},
+    groupByApplied: false,
+    expected: [],
+  },
+  {
+    name: 'selected ordinary control without provenance',
+    customization: { ...semanticCustomization, filterType: 'ordinary' },
+    mask: selectedMask,
+    groupByApplied: false,
+    expected: [semanticTargetSource, unknownSelectionSource],
+  },
+  {
+    name: 'legacy table target',
+    customization: createChartCustomization(),
+    mask: selectedMask,
+    groupByApplied: true,
+    expected: [
+      { datasource: '3__table', version: null },
+      unknownSelectionSource,
+    ],
+  },
+  {
+    name: 'missing customization and idle mask',
+    groupByApplied: false,
+    expected: [],
+  },
+  {
+    name: 'missing target identity',
+    customization: createChartCustomization({ targets: [] }),
+    mask: selectedMask,
+    groupByApplied: true,
+    expected: [unknownSelectionSource, unknownSelectionSource],
+  },
+  {
+    name: 'applied group-by without selected value',
+    customization: semanticCustomization,
+    groupByApplied: true,
+    expected: [semanticTargetSource],
+  },
+])(
+  'customization provenance: $name',
+  ({ customization, mask, groupByApplied, expected }) => {
+    expect(
+      getCustomizationSelectionSources({ customization, mask, groupByApplied }),
+    ).toEqual(expected);
+  },
+);
+
+const expectGroupBy = (
+  result: CachedFormDataWithExtraControls,
+  expected: unknown,
+) => {
+  expect('groupby' in result).toBe(true);
+  if (!('groupby' in result)) {
+    throw new Error('Expected groupby to be present in form data');
+  }
+  expect(result.groupby).toEqual(expected);
+};
+
+const expectGroupByLength = (
+  result: CachedFormDataWithExtraControls,
+  length: number,
+) => {
+  expect('groupby' in result).toBe(true);
+  if (!('groupby' in result)) {
+    throw new Error('Expected groupby to be present in form data');
+  }
+  expect(result.groupby).toHaveLength(length);
+};
+
+const getResultFilters = (result: CachedFormDataWithExtraControls) => {
+  if (!('filters' in result) || !Array.isArray(result.filters)) {
+    return [];
+  }
+
+  return result.filters.filter(
+    (
+      filter,
+    ): filter is {
+      col: string;
+      val: unknown[];
+    } =>
+      typeof filter === 'object' &&
+      filter !== null &&
+      'col' in filter &&
+      'val' in filter &&
+      typeof filter.col === 'string' &&
+      Array.isArray(filter.val),
+  );
+};
+
+const filterId = 'native-filter-1';
+const mockChart = {
+  id: chartId,
+  chartAlert: null,
+  chartStatus: null,
+  chartUpdateEndTime: null,
+  chartUpdateStartTime: 1,
+  lastRendered: 1,
+  latestQueryFormData: {},
+  sliceFormData: null,
+  queryController: null,
+  queriesResponse: null,
+  triggerQuery: false,
+  form_data: {
+    viz_type: 'filter_select',
+    filters: [
+      {
+        col: 'country_name',
+        op: 'IN',
+        val: ['United States'],
+      },
+    ],
+    datasource: '123',
+    url_params: {},
+  },
+};
+const mockArgs: GetFormDataWithExtraFiltersArguments = {
+  chartConfiguration: {},
+  chart: mockChart,
+  filters: {
+    region: ['Spain'],
+    color: ['pink', 'purple'],
+  },
+  sliceId: chartId,
+  nativeFilters: {},
+  dataMask: {
+    [filterId]: {
+      id: filterId,
+      extraFormData: {},
+      filterState: {},
+      ownState: {},
+    },
+  },
+  extraControls: {
+    stack: 'Stacked',
+  },
+  allSliceIds: [chartId],
+};
+
+test('should include filters from the passed filters', () => {
+  const result = getFormDataWithExtraFilters(mockArgs);
+  expect(result.extra_filters).toHaveLength(2);
+  expect(result.extra_filters[0]).toEqual({
+    col: 'region',
+    op: 'IN',
+    val: ['Spain'],
+  });
+  expect(result.extra_filters[1]).toEqual({
+    col: 'color',
+    op: 'IN',
+    val: ['pink', 'purple'],
+  });
+});
+
+test('should compose extra control', () => {
+  const result: CachedFormDataWithExtraControls =
+    getFormDataWithExtraFilters(mockArgs);
+  expect(result.stack).toEqual('Stacked');
+});
+
+test('should merge extraFormData from chart customizations', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-1';
+  const argsWithCustomization: GetFormDataWithExtraFiltersArguments = {
+    ...mockArgs,
     dataMask: {
-      [filterId]: {
-        id: filterId,
-        extraFormData: {},
-        filterState: {},
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {
+          time_grain_sqla: 'PT1H',
+        },
+        filterState: {
+          value: ['category1', 'category2'],
+        },
         ownState: {},
       },
     },
-    extraControls: {
-      stack: 'Stacked',
-    },
-    allSliceIds: [chartId],
+    chartCustomizationItems: [
+      createChartCustomization({
+        id: customizationId,
+        name: 'Time Grain Customization',
+        filterType: 'chart_customization_time_grain',
+        targets: [
+          {
+            datasetId: 123,
+            column: { name: 'time_column' },
+          },
+        ],
+        scope: {
+          rootPath: [],
+          excluded: [],
+        },
+        chartsInScope: [chartId],
+        defaultDataMask: {},
+        controlValues: {},
+      }),
+    ],
   };
 
-  it('should include filters from the passed filters', () => {
-    const result = getFormDataWithExtraFilters(mockArgs);
-    expect(result.extra_filters).toHaveLength(2);
-    expect(result.extra_filters[0]).toEqual({
-      col: 'region',
-      op: 'IN',
-      val: ['Spain'],
-    });
-    expect(result.extra_filters[1]).toEqual({
-      col: 'color',
-      op: 'IN',
-      val: ['pink', 'purple'],
-    });
+  const result = getFormDataWithExtraFilters(argsWithCustomization);
+  expect(result).toEqual(expect.objectContaining({ time_grain_sqla: 'PT1H' }));
+});
+
+test('should merge both filters and customization extraFormData', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-1';
+  const argsWithBoth: GetFormDataWithExtraFiltersArguments = {
+    ...mockArgs,
+    activeFilters: {
+      [filterId]: {
+        targets: [
+          {
+            datasetId: 123,
+            column: { name: 'country_name' },
+          },
+        ],
+        scope: [chartId],
+        values: {
+          filters: [
+            {
+              col: 'country_name',
+              op: 'IN',
+              val: ['United States'],
+            },
+          ],
+        },
+      },
+    },
+    dataMask: {
+      [filterId]: {
+        id: filterId,
+        extraFormData: {
+          filters: [
+            {
+              col: 'country_name',
+              op: 'IN',
+              val: ['United States'],
+            },
+          ],
+        },
+        filterState: {},
+        ownState: {},
+      },
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {
+          time_grain_sqla: 'PT1H',
+        },
+        filterState: {
+          value: ['category1'],
+        },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({
+        id: customizationId,
+        name: 'Time Grain Customization',
+        filterType: 'chart_customization_time_grain',
+        targets: [
+          {
+            datasetId: 123,
+            column: { name: 'time_column' },
+          },
+        ],
+        scope: {
+          rootPath: [],
+          excluded: [],
+        },
+        chartsInScope: [chartId],
+        defaultDataMask: {},
+        controlValues: {},
+      }),
+    ],
+  };
+
+  const result = getFormDataWithExtraFilters(argsWithBoth);
+  expect(result).toEqual(expect.objectContaining({ time_grain_sqla: 'PT1H' }));
+  expect(result.extra_form_data).toBeDefined();
+});
+
+const makeGroupByArgs = (
+  selectedValue: string | string[],
+  baseGroupby: string[] = [],
+): GetFormDataWithExtraFiltersArguments => {
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+  return {
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'table',
+        datasource: '3__table',
+        groupby: baseGroupby,
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: selectedValue },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({
+        id: customizationId,
+      }),
+    ],
+  };
+};
+
+test('dynamic group by does not inject a filter using the selected column name as a value', () => {
+  const result = getFormDataWithExtraFilters(makeGroupByArgs(['status']));
+  const spuriousFilter = getResultFilters(result).find(
+    filter => filter.col === 'status' && filter.val.includes('status'),
+  );
+  expect(spuriousFilter).toBeUndefined();
+  expectGroupBy(result, ['status']);
+});
+
+test('dynamic group by still applies when the selected column is already in the base groupby', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['status'], ['status']),
+  );
+  expectGroupBy(result, ['status']);
+});
+
+test('dynamic group by with no selection leaves the base groupby unchanged', () => {
+  const result = getFormDataWithExtraFilters(makeGroupByArgs([], ['status']));
+  expectGroupBy(result, ['status']);
+});
+
+test('dynamic group by ignores empty-string selections and keeps the base groupby', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['', 'status'], ['original_column']),
+  );
+  expectGroupBy(result, ['status']);
+});
+
+test('chord chart ignores dynamic group by selections and keeps the existing source unchanged', () => {
+  const result = getFormDataWithExtraFilters({
+    ...makeGroupByArgs(['payment_method'], ['status']),
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'chord',
+        datasource: '3__table',
+        groupby: ['status'],
+      },
+    },
   });
 
-  it('should compose extra control', () => {
-    const result: CachedFormDataWithExtraControls =
-      getFormDataWithExtraFilters(mockArgs);
-    expect(result.stack).toEqual('Stacked');
+  expectGroupBy(result, ['status']);
+});
+
+test('dynamic group by normalizes a single-select string value into a one-item groupby array', () => {
+  const result = getFormDataWithExtraFilters(makeGroupByArgs('status'));
+  expectGroupBy(result, ['status']);
+});
+
+test('structural conflict: metric column blocks groupby override (nonConflictingColumns guard)', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-conflict';
+  const argsWithMetricConflict: GetFormDataWithExtraFiltersArguments = {
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'table',
+        datasource: '3__table',
+        groupby: ['original_column'],
+        metrics: ['revenue'],
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['revenue'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({
+        id: customizationId,
+        targets: [{ datasetId: 3, column: { name: 'revenue' } }],
+      }),
+    ],
+  };
+
+  const result = getFormDataWithExtraFilters(argsWithMetricConflict);
+  expectGroupBy(result, ['original_column']);
+});
+
+test('multi-column selection: all selected columns appear in result groupby', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['status', 'product_line']),
+  );
+  expectGroupBy(result, expect.arrayContaining(['status', 'product_line']));
+  expectGroupByLength(result, 2);
+});
+
+test('dataset mismatch: display control for a different dataset does not affect the chart', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-wrong-dataset';
+  const argsWrongDataset: GetFormDataWithExtraFiltersArguments = {
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'table',
+        datasource: '3__table',
+        groupby: ['original_column'],
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['status'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({
+        id: customizationId,
+        targets: [{ datasetId: 999, column: { name: 'status' } }],
+      }),
+    ],
+  };
+
+  const result = getFormDataWithExtraFilters(argsWrongDataset);
+  expectGroupBy(result, ['original_column']);
+});
+
+test('dynamic group by replaces base groupby with the user selection (subset case)', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['status'], ['status', 'category']),
+  );
+  expectGroupBy(result, ['status']);
+});
+
+test('timeseries chart: dynamic group by replaces base groupby with the user selection', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'echarts_timeseries_line',
+        datasource: '3__table',
+        groupby: ['series_col', 'breakdown_col'],
+        x_axis: 'time_col',
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['series_col'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({ id: customizationId }),
+    ],
   });
+  expectGroupBy(result, ['series_col']);
+});
+
+test('regression #39356: an all-conflicting selection keeps the base groupby and never empties it', () => {
+  // Selecting only the x_axis (already in use) contributes no new dimension, so the
+  // base groupby survives unchanged rather than the chart losing its dimensions.
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'echarts_timeseries_line',
+        datasource: '3__table',
+        groupby: ['series_col', 'breakdown_col'],
+        x_axis: 'time_col',
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['time_col'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({ id: customizationId }),
+    ],
+  });
+  expectGroupBy(result, ['series_col', 'breakdown_col']);
+});
+
+test('SC-100237: selecting base dimension + new dimension keeps BOTH in groupby', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['product_line', 'deal_size'], ['product_line']),
+  );
+  expectGroupBy(result, ['product_line', 'deal_size']);
+  expectGroupByLength(result, 2);
+});
+
+test('dynamic group by replaces base with mixed (overlap + new) selection', () => {
+  const result = getFormDataWithExtraFilters(
+    makeGroupByArgs(['status', 'new_col'], ['status', 'category']),
+  );
+  expectGroupBy(result, ['status', 'new_col']);
+});
+
+test('Scope boundary: display control with chartsInScope:[] does not affect the chart', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-out-of-scope';
+  const argsOutOfScope: GetFormDataWithExtraFiltersArguments = {
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'table',
+        datasource: '3__table',
+        groupby: ['original_column'],
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['replacement_column'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({
+        id: customizationId,
+        name: 'Out Of Scope Group By',
+        chartsInScope: [],
+      }),
+    ],
+  };
+
+  const result = getFormDataWithExtraFilters(argsOutOfScope);
+  expectGroupBy(result, ['original_column']);
+});
+
+test('chart customization does not match across datasource ID spaces', () => {
+  // A customization targeting semantic_view ``3`` must not match a chart
+  // backed by table ``3``: the two have independent ID spaces.
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-cross';
+  const args: GetFormDataWithExtraFiltersArguments = {
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'table',
+        datasource: '3__table',
+        groupby: ['original_column'],
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['status'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({
+        id: customizationId,
+        targets: [
+          {
+            datasetId: 3,
+            datasourceType: 'semantic_view' as any,
+            column: { name: 'status' },
+          },
+        ],
+      }),
+    ],
+  };
+
+  // Customization is on semantic_view:3, chart is on table:3 — they
+  // shouldn't be linked, so the chart's groupby is unchanged.
+  const result = getFormDataWithExtraFilters(args);
+  expectGroupBy(result, ['original_column']);
+});
+
+test.each([false, true])(
+  'dynamic group-by card mask stays unsupported even with a versioned target (current=%s)',
+  current => {
+    const customizationId = 'CHART_CUSTOMIZATION-identity';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          viz_type: 'table',
+          datasource: '3__semantic_view',
+          groupby: ['original_column'],
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          filterState: { value: ['Orders.status'] },
+          // Match GroupByFilterCard's emission: it never certifies sources.
+          extraFormData: {
+            custom_form_data: { groupby: ['Orders.status'] },
+          },
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          targets: [
+            {
+              datasetId: 3,
+              datasourceType: DatasourceType.SemanticView,
+              semantic_selection_version: current
+                ? 'cube-member-id-v1'
+                : undefined,
+            },
+          ],
+        }),
+      ],
+    });
+    expectGroupBy(result, ['Orders.status']);
+    expect(
+      buildQueryObject({
+        ...result,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      } as QueryFormData).extras?.semantic_selection_version,
+    ).toEqual('unverified-external-selections');
+  },
+);
+
+test('a foreign dynamic-groupby customization that does not apply cannot invalidate Cube selections', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-foreign';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    filters: {},
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+        groupby: ['Orders.status'],
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        filterState: { value: ['status'] },
+        extraFormData: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({
+        id: customizationId,
+        targets: [{ datasetId: 5, datasourceType: DatasourceType.Table }],
+      }),
+    ],
+  });
+  expectGroupBy(result, ['Orders.status']);
+  expect(
+    buildQueryObject({
+      ...result,
+      datasource: '3__semantic_view',
+      viz_type: 'table',
+    } as QueryFormData).extras?.semantic_selection_version,
+  ).toBe('cube-member-id-v1');
+});
+
+test.each([
+  'chart_customization_timegrain',
+  'chart_customization_deckgl_layer_visibility',
+])(
+  'non-member customization %s does not invalidate Cube identity',
+  filterType => {
+    const customizationId = 'CHART_CUSTOMIZATION-presentation';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          datasource: '3__semantic_view',
+          viz_type: 'table',
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          filterState: { value: ['P1D'] },
+          extraFormData:
+            filterType === 'chart_customization_timegrain'
+              ? { time_grain_sqla: 'P1D' }
+              : { visible_deckgl_layers: [1, 2] },
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          filterType,
+          targets: [],
+        }),
+      ],
+    });
+    expect(
+      buildQueryObject({
+        ...result,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      } as QueryFormData).extras?.semantic_selection_version,
+    ).toBe('cube-member-id-v1');
+  },
+);
+
+test.each([
+  {
+    datasetId: 3,
+    datasourceType: DatasourceType.SemanticView,
+    value: undefined,
+  },
+  { datasetId: 5, datasourceType: DatasourceType.Table, value: undefined },
+  { datasetId: 3, datasourceType: DatasourceType.SemanticView, value: null },
+  { datasetId: 5, datasourceType: DatasourceType.Table, value: null },
+])(
+  'idle time-column customization does not invalidate Cube identity: %j',
+  ({ value, ...target }) => {
+    const customizationId = 'CHART_CUSTOMIZATION-idle-time-column';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          datasource: '3__semantic_view',
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      dataMask: {
+        [customizationId]: {
+          id: customizationId,
+          filterState: { value },
+          extraFormData: {},
+        },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: customizationId,
+          filterType: 'chart_customization_timecolumn',
+          targets: [target],
+        }),
+      ],
+    });
+    expect(
+      buildQueryObject({
+        ...result,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      } as QueryFormData).extras?.semantic_selection_version,
+    ).toBe('cube-member-id-v1');
+  },
+);
+
+test.each([[42], ['Orders.count'], ['']])(
+  'a non-contributing customization does not add provenance: %j',
+  ignoredValue => {
+    const currentId = 'CHART_CUSTOMIZATION-current';
+    const ignoredId = 'CHART_CUSTOMIZATION-ignored';
+    const result = getFormDataWithExtraFilters({
+      ...mockArgs,
+      filters: {},
+      chart: {
+        ...mockChart,
+        form_data: {
+          ...mockChart.form_data,
+          datasource: '3__semantic_view',
+          viz_type: 'table',
+          metrics: ['Orders.count'],
+          semantic_selection_version: 'cube-member-id-v1',
+        },
+      },
+      dataMask: {
+        [currentId]: {
+          id: currentId,
+          filterState: { value: ['Orders.status'] },
+        },
+        [ignoredId]: { id: ignoredId, filterState: { value: [ignoredValue] } },
+      },
+      chartCustomizationItems: [
+        createChartCustomization({
+          id: currentId,
+          targets: [
+            {
+              datasetId: 3,
+              datasourceType: DatasourceType.SemanticView,
+              semantic_selection_version: 'cube-member-id-v1',
+            },
+          ],
+        }),
+        createChartCustomization({
+          id: ignoredId,
+          targets: [
+            { datasetId: 3, datasourceType: DatasourceType.SemanticView },
+          ],
+        }),
+      ],
+    });
+    expectGroupBy(result, ['Orders.status']);
+    expect(result).toMatchObject({
+      semantic_selection_sources: [
+        { datasource: '3__semantic_view', version: 'cube-member-id-v1' },
+        { datasource: '', version: null },
+      ],
+    });
+    // Actual dynamic-groupby masks still lack identity evidence.
+    expect(
+      buildQueryObject({
+        ...result,
+        datasource: '3__semantic_view',
+        viz_type: 'table',
+      } as QueryFormData).extras?.semantic_selection_version,
+    ).toBe('unverified-external-selections');
+  },
+);
+
+test.each([
+  { semantic_selection_version: 'next-version' },
+  {
+    semantic_selection_sources: [
+      { datasource: 'other__semantic_view', version: null },
+    ],
+  },
+  { datasource: '8__semantic_view' },
+])('cache invalidates when chart selection provenance changes: %p', change => {
+  const args = {
+    ...mockArgs,
+    filters: {},
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        datasource: '7__semantic_view',
+        semantic_selection_version: 'cube-member-id-v1',
+        semantic_selection_sources: [],
+      },
+    },
+  };
+  const first = getFormDataWithExtraFilters(args);
+  const cached = getFormDataWithExtraFilters(args);
+  expect(getFormDataWithExtraFilters(args)).toBe(cached);
+  const changed = getFormDataWithExtraFilters({
+    ...args,
+    chart: { ...args.chart, form_data: { ...args.chart.form_data, ...change } },
+  });
+  expect(changed).not.toBe(first);
+  expect(changed).toEqual(expect.objectContaining(change));
 });

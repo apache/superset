@@ -28,6 +28,7 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import UserInfo from 'src/pages/UserInfo';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
@@ -50,6 +51,7 @@ const mockUser: UserWithPermissionsAndRoles = {
       ['can_write', 'Chart'],
     ],
   },
+  groups: ['Engineering', 'Analytics'],
   createdOn: new Date().toISOString(),
   isAnonymous: false,
   permissions: {
@@ -58,13 +60,14 @@ const mockUser: UserWithPermissionsAndRoles = {
   },
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UserInfo', () => {
-  const renderPage = async () =>
+  const renderPage = async (user: UserWithPermissionsAndRoles = mockUser) =>
     act(async () => {
       render(
         <MemoryRouter>
-          <QueryParamProvider>
-            <UserInfo user={mockUser} />
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
+            <UserInfo user={user} />
           </QueryParamProvider>
         </MemoryRouter>,
         { useRedux: true, store },
@@ -72,7 +75,7 @@ describe('UserInfo', () => {
     });
 
   beforeEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.get(meEndpoint, {
       result: {
         ...mockUser,
@@ -83,10 +86,10 @@ describe('UserInfo', () => {
   });
 
   afterEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
-  it('renders the user info page', async () => {
+  test('renders the user info page', async () => {
     await renderPage();
 
     expect(
@@ -95,20 +98,28 @@ describe('UserInfo', () => {
     expect(screen.getByText('johndoe')).toBeInTheDocument();
     expect(screen.getByText('Yes')).toBeInTheDocument();
     expect(screen.getByText('Admin')).toBeInTheDocument();
+    expect(screen.getByText('Engineering, Analytics')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(await screen.findByText('John')).toBeInTheDocument();
     expect(screen.getByText('Doe')).toBeInTheDocument();
     expect(screen.getByText('john@example.com')).toBeInTheDocument();
   });
 
-  it('calls the /me endpoint on mount', async () => {
+  test('renders "None" when the user has no groups', async () => {
+    await renderPage({ ...mockUser, groups: [] });
+
+    expect(await screen.findByText('Groups')).toBeInTheDocument();
+    expect(screen.getByText('None')).toBeInTheDocument();
+  });
+
+  test('calls the /me endpoint on mount', async () => {
     await renderPage();
     await waitFor(() => {
-      expect(fetchMock.called(meEndpoint)).toBe(true);
+      expect(fetchMock.callHistory.called(meEndpoint)).toBe(true);
     });
   });
 
-  it('opens the reset password modal on button click', async () => {
+  test('opens the reset password modal on button click', async () => {
     await renderPage();
 
     const button = await screen.findByTestId('reset-password-button');
@@ -119,7 +130,7 @@ describe('UserInfo', () => {
     expect(await screen.findByText(/Reset password/i)).toBeInTheDocument();
   });
 
-  it('opens the edit user modal on button click', async () => {
+  test('opens the edit user modal on button click', async () => {
     await renderPage();
 
     const button = await screen.findByTestId('edit-user-button');

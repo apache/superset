@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -32,7 +32,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { useHistory } from 'react-router-dom';
 import { Filter, TableTab } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import { User } from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   CardContainer,
   getFilterValues,
@@ -53,7 +53,7 @@ import SubMenu from './SubMenu';
 interface ChartTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
-  user?: User;
+  user?: UserWithPermissionsAndRoles;
   mine: Array<any>;
   showThumbnails: boolean;
   otherTabData?: Array<object>;
@@ -112,18 +112,19 @@ function ChartTable({
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
 
-  const getData = (tab: TableTab) =>
-    fetchData({
-      pageIndex: 0,
-      pageSize: PAGE_SIZE,
-      sortBy: [
-        {
-          id: 'changed_on_delta_humanized',
-          desc: true,
-        },
-      ],
-      filters: getFilterValues(tab, WelcomeTable.Charts, user, otherTabFilters),
-    });
+  const getChartFetchDataConfig = (tab: TableTab) => ({
+    pageIndex: 0,
+    pageSize: PAGE_SIZE,
+    sortBy: [
+      {
+        id: 'changed_on_delta_humanized',
+        desc: true,
+      },
+    ],
+    filters: getFilterValues(tab, WelcomeTable.Charts, user, otherTabFilters),
+  });
+
+  const getData = (tab: TableTab) => fetchData(getChartFetchDataConfig(tab));
 
   useEffect(() => {
     if (loaded || activeTab === TableTab.Favorite) {
@@ -132,12 +133,17 @@ function ChartTable({
     setLoaded(true);
   }, [activeTab]);
 
-  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+  const handleBulkChartExport = async (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
-    handleResourceExport('chart', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('chart', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected charts'));
+    }
   };
 
   const menuTabs = [
@@ -222,13 +228,14 @@ function ChartTable({
               openChartEditModal={openChartEditModal}
               chartFilter={activeTab}
               chart={e}
-              userId={user?.userId}
+              user={user}
               hasPerm={hasPerm}
               showThumbnails={showThumbnails}
               bulkSelectEnabled={bulkSelectEnabled}
               refreshData={refreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
+              getData={getData}
               favoriteStatus={favoriteStatus[e.id]}
               saveFavoriteStatus={saveFavoriteStatus}
               handleBulkChartExport={handleBulkChartExport}

@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Layout } from 'src/dashboard/types';
+import { Layout, LayoutItem, Charts } from 'src/dashboard/types';
 import { VizType } from '@superset-ui/core';
-import { buildTree } from './utils';
+import { buildTree, getTreeCheckedItems } from './utils';
+import type { TreeItem } from './types';
 
 // The types defined for Layout and sub elements is not compatible with the data we get back fro a real dashboard layout
 // This test file is using data from a real example dashboard to test real world data sets.  ts-ignore is set for this entire file
 // until we can reconcile adjusting types to match the actual data structures used
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Ensure buildTree does not throw runtime errors when encountering an invalid node', () => {
   const node = {
     children: ['TABS-97PVJa11D_'],
@@ -39,7 +41,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
     title: 'All panels',
   };
 
-  const layout: Layout = {
+  const layout = {
     'CHART-1L7NIcXvVN': {
       children: [],
       id: 'CHART-1L7NIcXvVN',
@@ -227,16 +229,13 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['MARKDOWN-7K5cBNy7qu', 'CHART-uP9GF0z0rT'],
       id: 'COLUMN-F53B1OSMcz',
       meta: {
-        // @ts-expect-error
         background: 'BACKGROUND_TRANSPARENT',
         width: 4,
       },
       parents: ['ROOT_ID', 'TABS-97PVJa11D_', 'TAB-2_QXp8aNq', 'ROW-yP9SB89PZ'],
       type: 'COLUMN',
     },
-    // @ts-expect-error
-    DASHBOARD_VERSION_KEY: 'v2',
-    // @ts-expect-error
+    DASHBOARD_VERSION_KEY: 'v2' as any,
     GRID_ID: {
       children: [],
       id: 'GRID_ID',
@@ -244,9 +243,9 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       type: 'GRID',
     },
     HEADER_ID: {
+      children: [],
       id: 'HEADER_ID',
       type: 'HEADER',
-      // @ts-expect-error
       meta: {
         text: 'Video Game Sales',
       },
@@ -255,7 +254,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: [],
       id: 'MARKDOWN-7K5cBNy7qu',
       meta: {
-        // @ts-expect-error
         code: '# 🤿 Explore Trends\n\nDive into data on popular video games using the following dimensions:\n\n- Year\n- Platform\n- Publisher\n- Genre\n\nTo use the **Filter Games** box below, select values for each dimension you want to zoom in on and then click **Apply**. \n\nThe filter criteria you set in this Filter-box will apply to *all* charts in this tab.',
         height: 33,
         width: 4,
@@ -273,7 +271,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: [],
       id: 'MARKDOWN-JOZKOjVc3a',
       meta: {
-        // @ts-expect-error
         code: '## 🎮Video Game Sales\n\nThis dashboard visualizes sales & platform data on video games that sold more than 100k copies. The data was last updated in early 2017.\n\n[Original dataset](https://www.kaggle.com/gregorut/videogamesales)',
         height: 18,
         width: 12,
@@ -286,7 +283,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       ],
       type: 'MARKDOWN',
     },
-    // @ts-expect-error
     ROOT_ID: {
       children: ['TABS-97PVJa11D_'],
       id: 'ROOT_ID',
@@ -296,7 +292,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['MARKDOWN-JOZKOjVc3a'],
       id: 'ROW-0F99WDC-sz',
       meta: {
-        // @ts-expect-error
         background: 'BACKGROUND_TRANSPARENT',
       },
       parents: ['ROOT_ID', 'TABS-97PVJa11D_', 'TAB-lg-5ymUDgm'],
@@ -306,7 +301,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['CHART-W02beJK7ms', 'CHART-XFag0yZdLk', 'CHART-8OG3UJX-Tn'],
       id: 'ROW-7kAf1blYU',
       meta: {
-        // @ts-expect-error
         '0': 'ROOT_ID',
         background: 'BACKGROUND_TRANSPARENT',
       },
@@ -317,7 +311,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['CHART-_sx22yawJO', 'CHART-XRvRfsMsaQ'],
       id: 'ROW-NuR8GFQTO',
       meta: {
-        // @ts-expect-error
         '0': 'ROOT_ID',
         '1': 'TABS-97PVJa11D_',
         background: 'BACKGROUND_TRANSPARENT',
@@ -329,7 +322,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['CHART-wt6ZO8jRXZ'],
       id: 'ROW-XT1DsNA_V',
       meta: {
-        // @ts-expect-error
         background: 'BACKGROUND_TRANSPARENT',
       },
       parents: ['ROOT_ID', 'TABS-97PVJa11D_', 'TAB-lg-5ymUDgm'],
@@ -339,7 +331,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['CHART-1L7NIcXvVN', 'CHART-nYns6xr4Ft'],
       id: 'ROW-fjg6YQBkH',
       meta: {
-        // @ts-expect-error
         background: 'BACKGROUND_TRANSPARENT',
       },
       parents: ['ROOT_ID', 'TABS-97PVJa11D_', 'TAB-2_QXp8aNq'],
@@ -349,7 +340,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       children: ['COLUMN-F53B1OSMcz', 'CHART-XVIYTeubZh', 'CHART-7mKdnU7OUJ'],
       id: 'ROW-yP9SB89PZ',
       meta: {
-        // @ts-expect-error
         background: 'BACKGROUND_TRANSPARENT',
       },
       parents: ['ROOT_ID', 'TABS-97PVJa11D_', 'TAB-2_QXp8aNq'],
@@ -358,7 +348,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
     'TAB-2_QXp8aNq': {
       children: ['ROW-yP9SB89PZ', 'ROW-fjg6YQBkH'],
       id: 'TAB-2_QXp8aNq',
-      // @ts-expect-error
       meta: {
         text: '🤿 Explore Trends',
       },
@@ -373,7 +362,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         'ROW-NuR8GFQTO',
       ],
       id: 'TAB-lg-5ymUDgm',
-      // @ts-expect-error
       meta: {
         text: 'Overview',
       },
@@ -383,7 +371,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
     'TABS-97PVJa11D_': {
       children: ['TAB-lg-5ymUDgm', 'TAB-2_QXp8aNq'],
       id: 'TABS-97PVJa11D_',
-      // @ts-expect-error
       meta: {},
       parents: ['ROOT_ID'],
       type: 'TABS',
@@ -18047,14 +18034,13 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
   ];
 
   const initiallyExcludedCharts: number[] = [];
-  it('Succeeds with valid', () => {
+  test('Succeeds with valid', () => {
     expect(() => {
       buildTree(
-        // @ts-ignore
-        node,
+        node as unknown as LayoutItem,
         treeItem,
-        layout,
-        charts,
+        layout as unknown as Layout,
+        charts as unknown as Charts,
         validNodes,
         initiallyExcludedCharts,
         () => 'Fake title',
@@ -18062,14 +18048,92 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
     }).not.toThrow();
   });
 
-  it('Avoids runtime error with invalid inputs', () => {
+  test('Does not infinitely recurse when layout contains a cycle (nested tabs circular reference)', () => {
+    // Simulate a corrupted layout where TAB-A → TAB-B → TAB-A (cycle)
+    const circularLayout = {
+      ROOT_ID: {
+        id: 'ROOT_ID',
+        type: 'ROOT',
+        children: ['TAB-A'],
+        parents: [],
+      },
+      'TAB-A': {
+        id: 'TAB-A',
+        type: 'TAB',
+        children: ['TAB-B'],
+        parents: ['ROOT_ID'],
+        meta: { text: 'Tab A' },
+      },
+      'TAB-B': {
+        id: 'TAB-B',
+        type: 'TAB',
+        // Points back to TAB-A, creating a cycle
+        children: ['TAB-A'],
+        parents: ['ROOT_ID', 'TAB-A'],
+        meta: { text: 'Tab B' },
+      },
+    };
+
+    const rootNode = circularLayout.ROOT_ID;
+    const rootTreeItem: TreeItem = {
+      key: 'ROOT_ID',
+      title: 'Root',
+      children: [],
+      nodeType: 'TAB',
+    };
+
     expect(() => {
       buildTree(
-        // @ts-expect-error
-        undefined,
+        rootNode as unknown as LayoutItem,
+        rootTreeItem,
+        circularLayout as unknown as Layout,
+        {} as Charts,
+        ['ROOT_ID', 'TAB-A', 'TAB-B'],
+        [],
+        () => 'title',
+      );
+    }).not.toThrow();
+  });
+
+  test('getTreeCheckedItems does not infinitely recurse when scope rootPath creates a cycle', () => {
+    // Simulate a corrupted layout where ROW-A → ROW-B → ROW-A (cycle via children)
+    const circularLayout = {
+      ROOT_ID: {
+        id: 'ROOT_ID',
+        type: 'ROOT',
+        children: ['ROW-A'],
+        parents: [],
+      },
+      'ROW-A': {
+        id: 'ROW-A',
+        type: 'ROW',
+        children: ['ROW-B'],
+        parents: ['ROOT_ID'],
+      },
+      'ROW-B': {
+        id: 'ROW-B',
+        type: 'ROW',
+        // Points back to ROW-A, creating a cycle
+        children: ['ROW-A'],
+        parents: ['ROOT_ID', 'ROW-A'],
+      },
+    };
+
+    expect(() => {
+      getTreeCheckedItems(
+        { rootPath: ['ROOT_ID'], excluded: [] },
+        circularLayout as unknown as Layout,
+      );
+    }).not.toThrow();
+  });
+
+  test('Avoids runtime error with invalid inputs', () => {
+    expect(() => {
+      buildTree(
+        undefined as unknown as LayoutItem,
         treeItem,
-        layout,
-        charts,
+        layout as unknown as Layout,
+        charts as unknown as Charts,
         validNodes,
         initiallyExcludedCharts,
         () => 'Fake title',
@@ -18078,11 +18142,10 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 
     expect(() => {
       buildTree(
-        // @ts-expect-error
-        node,
-        null,
-        layout,
-        charts,
+        node as unknown as LayoutItem,
+        null as unknown as TreeItem,
+        layout as unknown as Layout,
+        charts as unknown as Charts,
         validNodes,
         initiallyExcludedCharts,
         () => 'Fake title',
@@ -18091,11 +18154,10 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 
     expect(() => {
       buildTree(
-        // @ts-expect-error
-        node,
+        node as unknown as LayoutItem,
         treeItem,
-        null,
-        charts,
+        null as unknown as Layout,
+        charts as unknown as Charts,
         validNodes,
         initiallyExcludedCharts,
         () => 'Fake title',
@@ -18104,11 +18166,10 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 
     expect(() => {
       buildTree(
-        // @ts-expect-error
-        node,
+        node as unknown as LayoutItem,
         treeItem,
-        layout,
-        null,
+        layout as unknown as Layout,
+        null as unknown as Charts,
         validNodes,
         initiallyExcludedCharts,
         () => 'Fake title',
@@ -18117,12 +18178,11 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 
     expect(() => {
       buildTree(
-        // @ts-expect-error
-        node,
+        node as unknown as LayoutItem,
         treeItem,
-        layout,
-        charts,
-        null,
+        layout as unknown as Layout,
+        charts as unknown as Charts,
+        null as unknown as string[],
         initiallyExcludedCharts,
         () => 'Fake title',
       );
@@ -18130,13 +18190,12 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
 
     expect(() => {
       buildTree(
-        // @ts-expect-error
-        node,
+        node as unknown as LayoutItem,
         treeItem,
-        layout,
-        charts,
+        layout as unknown as Layout,
+        charts as unknown as Charts,
         validNodes,
-        null,
+        null as unknown as number[],
         () => 'Fake title',
       );
     }).not.toThrow();

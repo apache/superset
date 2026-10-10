@@ -19,23 +19,18 @@
 import Echart from '../components/Echart';
 import { WaterfallChartTransformedProps } from './types';
 import { EventHandlers } from '../types';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 
 export default function EchartsWaterfall(
   props: WaterfallChartTransformedProps,
 ) {
-  const { height, width, echartOptions, refs, onLegendStateChanged } = props;
+  const { height, width, echartOptions, refs, onLegendStateChanged, formData } =
+    props;
 
-  const eventHandlers: EventHandlers = {
-    legendselectchanged: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendselectall: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendinverseselect: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-  };
+  // The waterfall legend has a fixed set of three entries, so it never
+  // paginates and has no scroll position to preserve.
+  const eventHandlers: EventHandlers =
+    useLegendEventHandlers(onLegendStateChanged);
 
   return (
     <Echart
@@ -44,6 +39,7 @@ export default function EchartsWaterfall(
       width={width}
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
+      vizType={formData.vizType}
     />
   );
 }

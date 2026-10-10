@@ -17,10 +17,12 @@
  * under the License.
  */
 import { FC } from 'react';
-import { isObject } from 'lodash';
-import { t, SupersetClient } from '@superset-ui/core';
+import { isObject } from 'lodash-es';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
+import { safeStringify } from 'src/utils/safeStringify';
 
 interface SimpleDataSource {
   id: string;
@@ -55,7 +57,9 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
       sql,
     };
     if (openInNewWindow) {
-      SupersetClient.postForm('/sqllab/', payload);
+      SupersetClient.postForm('/sqllab/', {
+        form_data: safeStringify(payload),
+      });
     } else {
       history.push({
         pathname: '/sqllab',
@@ -76,6 +80,7 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
   return (
     <div>
       <Button
+        buttonStyle="secondary"
         onClick={() => {
           props?.closeModal?.();
           props?.changeDatasource?.();
@@ -83,11 +88,13 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
       >
         {SAVE_AS_DATASET}
       </Button>
-      <Button onClick={({ metaKey }) => openSQL(Boolean(metaKey))}>
+      <Button
+        buttonStyle="secondary"
+        onClick={({ metaKey, ctrlKey }) => openSQL(Boolean(metaKey || ctrlKey))}
+      >
         {OPEN_IN_SQL_LAB}
       </Button>
       <Button
-        buttonStyle="primary"
         onClick={() => {
           props?.closeModal?.();
         }}

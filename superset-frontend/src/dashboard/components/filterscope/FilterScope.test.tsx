@@ -16,14 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { supersetTheme } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   cleanup,
   render,
   screen,
   userEvent,
 } from 'spec/helpers/testing-library';
-import FilterScopeSelector from './FilterScopeSelector';
+import React from 'react';
+import FilterScopeSelectorComponent from './FilterScopeSelector';
+
+// Cast to accept partial mock props in tests
+const FilterScopeSelector = FilterScopeSelectorComponent as unknown as React.FC<
+  Record<string, any>
+>;
 
 // Add afterEach cleanup
 afterEach(async () => {
@@ -170,7 +176,7 @@ function getCheckboxState(name: string): CheckboxState {
   const fill = svgPath.getAttribute('fill');
   return fill === supersetTheme.colorPrimary
     ? CHECKED
-    : fill === supersetTheme.colors.grayscale.light1
+    : fill === supersetTheme.colorTextSecondary
       ? INDETERMINATE
       : UNCHECKED;
 }
@@ -211,11 +217,13 @@ test('renders with filters values', () => {
   expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
 });
 
-test('collapses/expands all filters', () => {
+test('collapses/expands all filters', async () => {
   render(<FilterScopeSelector {...createProps()} />, {
     useRedux: true,
   });
-  userEvent.click(screen.getAllByRole('button', { name: COLLAPSE_ALL })[0]);
+  await userEvent.click(
+    screen.getAllByRole('button', { name: COLLAPSE_ALL })[0],
+  );
   expect(screen.getByRole('link', { name: ALL_FILTERS })).toBeInTheDocument();
   expect(
     screen.queryByRole('link', { name: FILTER_A }),
@@ -226,24 +234,26 @@ test('collapses/expands all filters', () => {
   expect(
     screen.queryByRole('link', { name: FILTER_C }),
   ).not.toBeInTheDocument();
-  userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[0]);
+  await userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[0]);
   expect(screen.getByRole('link', { name: ALL_FILTERS })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: FILTER_A })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: FILTER_B })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: FILTER_C })).toBeInTheDocument();
 });
 
-test('collapses/expands all charts', () => {
+test('collapses/expands all charts', async () => {
   render(<FilterScopeSelector {...createProps()} />, {
     useRedux: true,
   });
-  userEvent.click(screen.getAllByRole('button', { name: COLLAPSE_ALL })[1]);
+  await userEvent.click(
+    screen.getAllByRole('button', { name: COLLAPSE_ALL })[1],
+  );
   expect(screen.getByText(ALL_CHARTS)).toBeInTheDocument();
   expect(screen.queryByText(CHART_A)).not.toBeInTheDocument();
   expect(screen.queryByText(CHART_B)).not.toBeInTheDocument();
   expect(screen.queryByText(CHART_C)).not.toBeInTheDocument();
   expect(screen.queryByText(CHART_D)).not.toBeInTheDocument();
-  userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[1]);
+  await userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[1]);
   expect(screen.getByText(ALL_CHARTS)).toBeInTheDocument();
   expect(screen.getByRole('link', { name: CHART_A })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: CHART_B })).toBeInTheDocument();
@@ -251,11 +261,11 @@ test('collapses/expands all charts', () => {
   expect(screen.getByRole('link', { name: CHART_D })).toBeInTheDocument();
 });
 
-test('searches for a chart', () => {
+test('searches for a chart', async () => {
   render(<FilterScopeSelector {...createProps()} />, {
     useRedux: true,
   });
-  userEvent.type(screen.getByPlaceholderText('Search...'), CHART_C);
+  await userEvent.type(screen.getByPlaceholderText('Search...'), CHART_C);
   expect(screen.queryByRole('link', { name: CHART_A })).not.toBeInTheDocument();
   expect(screen.queryByRole('link', { name: CHART_B })).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: CHART_C })).toBeInTheDocument();
@@ -275,7 +285,7 @@ test('selects a leaf chart', async () => {
   render(<FilterScopeSelector {...createProps()} />, {
     useRedux: true,
   });
-  userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[1]);
+  await userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[1]);
   expect(getCheckboxState(CHART_D)).toBe(UNCHECKED);
   await clickCheckbox(CHART_D);
   expect(getCheckboxState(CHART_D)).toBe(CHECKED);
@@ -298,7 +308,7 @@ test('selects all filters', async () => {
   render(<FilterScopeSelector {...createProps()} />, {
     useRedux: true,
   });
-  userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[0]);
+  await userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[0]);
   expect(getCheckboxState(ALL_FILTERS)).toBe(UNCHECKED);
   expect(getCheckboxState(FILTER_A)).toBe(UNCHECKED);
   expect(getCheckboxState(FILTER_B)).toBe(UNCHECKED);
@@ -314,7 +324,7 @@ test('selects all charts', async () => {
   render(<FilterScopeSelector {...createProps()} />, {
     useRedux: true,
   });
-  userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[1]);
+  await userEvent.click(screen.getAllByRole('button', { name: EXPAND_ALL })[1]);
   expect(getCheckboxState(TAB_A)).toBe(UNCHECKED);
   expect(getCheckboxState(CHART_A)).toBe(UNCHECKED);
   expect(getCheckboxState(CHART_B)).toBe(UNCHECKED);
@@ -330,7 +340,7 @@ test('selects all charts', async () => {
   expect(getCheckboxState(CHART_D)).toBe(CHECKED);
 });
 
-test('triggers onClose', () => {
+test('triggers onClose', async () => {
   const onCloseModal = jest.fn();
   render(
     <FilterScopeSelector {...createProps()} onCloseModal={onCloseModal} />,
@@ -339,11 +349,11 @@ test('triggers onClose', () => {
     },
   );
   expect(onCloseModal).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Close' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
   expect(onCloseModal).toHaveBeenCalledTimes(1);
 });
 
-test('triggers onSave', () => {
+test('triggers onSave', async () => {
   const updateDashboardFiltersScope = jest.fn();
   const setUnsavedChanges = jest.fn();
   const onCloseModal = jest.fn();
@@ -361,7 +371,7 @@ test('triggers onSave', () => {
   expect(updateDashboardFiltersScope).toHaveBeenCalledTimes(0);
   expect(setUnsavedChanges).toHaveBeenCalledTimes(0);
   expect(onCloseModal).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(updateDashboardFiltersScope).toHaveBeenCalledTimes(1);
   expect(setUnsavedChanges).toHaveBeenCalledTimes(1);
   expect(onCloseModal).toHaveBeenCalledTimes(1);

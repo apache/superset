@@ -27,13 +27,13 @@ describe('Timeseries buildQuery', () => {
     viz_type: 'my_chart',
   };
 
-  it('should build groupby with series in form data', () => {
+  test('should build groupby with series in form data', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['bar', 'baz']);
   });
 
-  it('should order by timeseries limit if orderby unspecified', () => {
+  test('should order by timeseries limit if orderby unspecified', () => {
     const queryContext = buildQuery({
       ...formData,
       timeseries_limit_metric: 'bar',
@@ -46,7 +46,47 @@ describe('Timeseries buildQuery', () => {
     expect(query.orderby).toEqual([['bar', false]]);
   });
 
-  it('should not order by timeseries limit if orderby provided', () => {
+  test('should include the scatter dot size metric in query metrics', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      size: 'qux',
+    });
+    const [query] = queryContext.queries;
+    expect(query.metrics).toEqual(['bar', 'baz', 'qux']);
+  });
+
+  test('should dedupe the dot size metric when it is also a value metric', () => {
+    const queryContext = buildQuery({
+      ...formData,
+      size: 'bar',
+    });
+    const [query] = queryContext.queries;
+    expect(query.metrics).toEqual(['bar', 'baz']);
+  });
+
+  test('should apply contribution before rename with time comparison', () => {
+    // rename strips the `__<offset>` suffix that contribution relies on to
+    // compute each time shift separately
+    const queryContext = buildQuery({
+      ...formData,
+      metrics: ['bar'],
+      x_axis: 'ds',
+      groupby: ['col1'],
+      contributionMode: 'row',
+      comparison_type: 'values',
+      time_compare: ['1 week ago'],
+    });
+    const [query] = queryContext.queries;
+    const operations = (query.post_processing || []).map(
+      operator => operator?.operation,
+    );
+    expect(operations).toContain('contribution');
+    expect(operations.indexOf('contribution')).toBeLessThan(
+      operations.indexOf('rename'),
+    );
+  });
+
+  test('should not order by timeseries limit if orderby provided', () => {
     const queryContext = buildQuery({
       ...formData,
       timeseries_limit_metric: 'bar',
@@ -72,7 +112,7 @@ describe('queryObject conversion', () => {
     metrics: ['count(*)'],
   };
 
-  it("shouldn't convert queryObject", () => {
+  test("shouldn't convert queryObject", () => {
     const { queries } = buildQuery(formData);
     expect(queries[0]).toEqual(
       expect.objectContaining({
@@ -99,38 +139,37 @@ describe('queryObject conversion', () => {
     );
   });
 
-  it('should convert queryObject', () => {
+  test('should convert queryObject', () => {
     const { queries } = buildQuery({ ...formData, x_axis: 'time_column' });
-    expect(queries[0]).toEqual(
-      expect.objectContaining({
-        granularity: 'time_column',
-        time_range: '1 year ago : 2013',
-        extras: { having: '', where: '', time_grain_sqla: 'P1Y' },
-        columns: [
-          {
-            columnType: 'BASE_AXIS',
-            expressionType: 'SQL',
-            label: 'time_column',
-            sqlExpression: 'time_column',
-            timeGrain: 'P1Y',
+    expect(queries[0]).toMatchObject({
+      granularity: 'time_column',
+      time_range: '1 year ago : 2013',
+      extras: { having: '', where: '', time_grain_sqla: 'P1Y' },
+      columns: [
+        {
+          columnType: 'BASE_AXIS',
+          expressionType: 'SQL',
+          label: 'time_column',
+          sqlExpression: 'time_column',
+          timeGrain: 'P1Y',
+          isColumnReference: true,
+        },
+        'col1',
+      ],
+      series_columns: ['col1'],
+      metrics: ['count(*)'],
+      post_processing: [
+        {
+          operation: 'pivot',
+          options: {
+            aggregates: { 'count(*)': { operator: 'mean' } },
+            columns: ['col1'],
+            drop_missing_columns: true,
+            index: ['time_column'],
           },
-          'col1',
-        ],
-        series_columns: ['col1'],
-        metrics: ['count(*)'],
-        post_processing: [
-          {
-            operation: 'pivot',
-            options: {
-              aggregates: { 'count(*)': { operator: 'mean' } },
-              columns: ['col1'],
-              drop_missing_columns: true,
-              index: ['time_column'],
-            },
-          },
-          { operation: 'flatten' },
-        ],
-      }),
-    );
+        },
+        { operation: 'flatten' },
+      ],
+    });
   });
 });

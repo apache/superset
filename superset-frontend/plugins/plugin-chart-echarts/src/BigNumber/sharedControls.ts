@@ -18,7 +18,7 @@
  */
 
 // These are control configurations that are shared ONLY within the BigNumberWithTrendline viz plugin repo.
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { CustomControlItem } from '@superset-ui/chart-controls';
 
 const FONT_SIZE_OPTIONS_SMALL = [
@@ -111,5 +111,24 @@ export const metricNameFontSizeWithVisibility: CustomControlItem = {
     ...metricNameFontSize.config,
     visibility: ({ controls }) => controls?.show_metric_name?.value === true,
     resetOnHide: false,
+  },
+};
+
+export const headerAlignmentControl: CustomControlItem = {
+  name: 'header_alignment',
+  config: {
+    type: 'SelectControl',
+    label: t('Alignment'),
+    renderTrigger: true,
+    clearable: false,
+    default: 'left',
+    options: [
+      { label: t('Left'), value: 'left' },
+      { label: t('Center'), value: 'center' },
+      { label: t('Right'), value: 'right' },
+    ],
+    description: t(
+      'Horizontal alignment of the metric value and supporting text',
+    ),
   },
 };

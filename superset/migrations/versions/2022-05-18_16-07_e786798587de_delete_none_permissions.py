@@ -36,8 +36,7 @@ from sqlalchemy import (  # noqa: E402
     Table,
     UniqueConstraint,
 )
-from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
-from sqlalchemy.orm import relationship, Session  # noqa: E402
+from sqlalchemy.orm import declarative_base, relationship, Session  # noqa: E402
 
 Base = declarative_base()
 

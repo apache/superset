@@ -27,7 +27,7 @@ from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.types import ExecutorType
 from superset.tasks.utils import get_current_user, get_executor
 from superset.utils.core import override_user
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource, SqlaTable
@@ -61,20 +61,35 @@ def _adjust_string_with_rls(
     """
     Add the RLS filters to the unique string based on current executor.
     """
+
+    # Prefer the ambient guest user (the actual requesting principal) over a
+    # DB-user lookup by username: for guest requests `executor` is the
+    # token-supplied username, which can collide with a real DB username. If
+    # find_user() were tried first, a collision would compute RLS under the
+    # unrelated DB user's identity, and the token's own per-token rls claims
+    # (surfaced via get_guest_rls_filters(), which reads the ambient guest
+    # user installed by override_user() below) would never enter the digest --
+    # letting two guest tokens with the same username but different rls
+    # collide on one cache entry.
     user = (
-        security_manager.find_user(executor)
-        or security_manager.get_current_guest_user_if_guest()
+        security_manager.get_current_guest_user_if_guest()
+        or security_manager.find_user(executor)
     )
 
     if user:
         stringified_rls = ""
         with override_user(user):
-            for datasource in datasources:
-                if (
-                    datasource
-                    and hasattr(datasource, "is_rls_supported")
-                    and datasource.is_rls_supported
-                ):
+            # Prefetch RLS filters for all datasources in a single batch query
+            table_ids = [
+                datasource.id
+                for datasource in datasources
+                if datasource and getattr(datasource, "is_rls_supported", False)
+            ]
+            if table_ids:
+                security_manager.prefetch_rls_filters(table_ids)
+
+            for datasource in sorted(datasources, key=lambda d: d.id if d else -1):
+                if datasource and getattr(datasource, "is_rls_supported", False):
                     rls_filters = datasource.get_sqla_row_level_filters()
 
                     if len(rls_filters) > 0:
@@ -104,7 +119,7 @@ def get_dashboard_digest(dashboard: Dashboard) -> str | None:
         return func(dashboard, executor_type, executor)
 
     unique_string = (
-        f"{dashboard.id}\n{dashboard.charts}\n{dashboard.position_json}\n"
+        f"{dashboard.id}\n{sorted(dashboard.charts)}\n{dashboard.position_json}\n"
         f"{dashboard.css}\n{dashboard.json_metadata}"
     )
 
@@ -113,7 +128,7 @@ def get_dashboard_digest(dashboard: Dashboard) -> str | None:
         unique_string, dashboard.datasources, executor
     )
 
-    return md5_sha_from_str(unique_string)
+    return hash_from_str(unique_string)
 
 
 def get_chart_digest(chart: Slice) -> str | None:
@@ -131,6 +146,6 @@ def get_chart_digest(chart: Slice) -> str | None:
 
     unique_string = f"{chart.params or ''}.{executor}"
     unique_string = _adjust_string_for_executor(unique_string, executor_type, executor)
-    unique_string = _adjust_string_with_rls(unique_string, [chart.datasource], executor)
+    unique_string = _adjust_string_with_rls(unique_string, [chart.table], executor)
 
-    return md5_sha_from_str(unique_string)
+    return hash_from_str(unique_string)

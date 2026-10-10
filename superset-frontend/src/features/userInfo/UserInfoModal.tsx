@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { FormModal, FormItem, Input } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { User } from 'src/types/bootstrapTypes';
@@ -47,19 +48,32 @@ function UserInfoModal({
     : {};
   const handleFormSubmit = async (values: FormValues) => {
     try {
-      const { confirm_password, ...payload } = values;
+      const {
+        confirm_password: _confirm_password,
+        current_password,
+        ...payload
+      } = values;
       await SupersetClient.put({
         endpoint: `/api/v1/me/`,
-        jsonPayload: { ...payload },
+        // The API verifies current_password only when the account already has
+        // a stored password; one without (e.g. from an external auth backend)
+        // sets its first password without it, so a blank field is left out
+        // rather than sent as an empty string.
+        jsonPayload: current_password
+          ? { ...payload, current_password }
+          : payload,
       });
       addSuccessToast(
         isEditMode
           ? t('The user was updated successfully')
           : t('The password reset was successful'),
       );
-      onSave();
-    } catch (error) {
-      addDangerToast(t('Something went wrong while saving the user info'));
+    } catch (response) {
+      const { error } = await getClientErrorObject(response);
+      addDangerToast(
+        error || t('Something went wrong while saving the user info'),
+      );
+      throw response;
     }
   };
 
@@ -88,13 +102,23 @@ function UserInfoModal({
   const ResetPasswordFields = () => (
     <>
       <FormItem
+        name="current_password"
+        label={t('Current password')}
+        extra={t('Required if your account already has a password')}
+      >
+        <Input.Password
+          name="current_password"
+          placeholder={t('Enter your current password')}
+        />
+      </FormItem>
+      <FormItem
         name="password"
-        label={t('Password')}
+        label={t('New password')}
         rules={[{ required: true, message: t('Password is required') }]}
       >
         <Input.Password
           name="password"
-          placeholder="Enter the user's password"
+          placeholder={t("Enter the user's password")}
         />
       </FormItem>
       <FormItem

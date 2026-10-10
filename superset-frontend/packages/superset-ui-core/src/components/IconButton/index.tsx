@@ -18,7 +18,7 @@
  */
 
 // eslint-disable-next-line
-import { SupersetTheme, css } from '@superset-ui/core';
+import { SupersetTheme, css } from '@apache-superset/core/theme';
 import { Typography } from '../Typography';
 import { Icons } from '../Icons';
 import { Card } from '../Card';
@@ -50,17 +50,7 @@ const IconButton: React.FC<IconButtonProps> = ({
   };
 
   const renderIcon = () => {
-    const iconContent = icon ? (
-      <img
-        src={icon as string}
-        alt={altText || buttonText}
-        css={css`
-          width: 100%;
-          object-fit: contain;
-          height: 100px;
-        `}
-      />
-    ) : (
+    const iconContent = (
       <div
         css={css`
           display: flex;
@@ -69,12 +59,19 @@ const IconButton: React.FC<IconButtonProps> = ({
           height: 100px;
         `}
       >
-        <Icons.DatabaseOutlined
-          css={css`
-            font-size: 48px;
-          `}
-          aria-label="default-icon"
-        />
+        {icon ? (
+          <img
+            src={icon as string}
+            alt={altText || buttonText}
+            css={css`
+              width: 100%;
+              object-fit: contain;
+              height: 48px;
+            `}
+          />
+        ) : (
+          <Icons.DatabaseOutlined iconSize="xxl" aria-label="default-icon" />
+        )}
       </div>
     );
 
@@ -82,8 +79,12 @@ const IconButton: React.FC<IconButtonProps> = ({
   };
 
   return (
+    // antd's Card renders a fixed <div> (no polymorphic tag support) with
+    // its own rich internal layout (cover/title/tooltip); that doesn't map
+    // onto a native <button>, so role="button" is used instead.
     <Card
       hoverable
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="button"
       tabIndex={0}
       aria-label={buttonText}

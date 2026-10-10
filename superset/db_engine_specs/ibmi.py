@@ -14,13 +14,64 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset.constants import TimeGrain
+from superset.db_engine_specs.base import DatabaseCategory
+
 from .db2 import Db2EngineSpec
 
 
 class IBMiEngineSpec(Db2EngineSpec):
+    """IBM Db2 for i (AS/400) engine spec.
+
+    Note: Documentation is in Db2EngineSpec's compatible_databases section.
+    This spec exists for runtime support of the ibmi driver.
+    """
+
     engine = "ibmi"
     engine_name = "IBM Db2 for i"
     max_column_name_length = 128
+
+    metadata = {
+        "description": (
+            "IBM Db2 for i is an integrated relational database management "
+            "system optimized for IBM i."
+        ),
+        "logo": "ibm-db2.svg",
+        "homepage_url": "https://www.ibm.com/products/db2-for-i",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-ibmi"],
+        "connection_string": "ibmi://{username}:{password}@{host}/{database}",
+        "parameters": {
+            "username": "IBM i user profile",
+            "password": "User password",
+            "host": "Hostname or IP address",
+            "database": "Library/schema name",
+        },
+        "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
+        "sqlalchemy_docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
+    }
+
+    _time_grain_expressions = {
+        None: "{col}",
+        TimeGrain.SECOND: "CAST({col} as TIMESTAMP) - MICROSECOND({col}) MICROSECONDS",
+        TimeGrain.MINUTE: "CAST({col} as TIMESTAMP)"
+        " - SECOND({col}) SECONDS"
+        " - MICROSECOND({col}) MICROSECONDS",
+        TimeGrain.HOUR: "CAST({col} as TIMESTAMP)"
+        " - MINUTE({col}) MINUTES"
+        " - SECOND({col}) SECONDS"
+        " - MICROSECOND({col}) MICROSECONDS ",
+        TimeGrain.DAY: "DATE({col})",
+        TimeGrain.WEEK: "{col} - (DAYOFWEEK_ISO({col})-1) DAYS",
+        TimeGrain.MONTH: "{col} - (DAY({col})-1) DAYS",
+        TimeGrain.QUARTER: "{col} - (DAY({col})-1) DAYS"
+        " - (MONTH({col})-1) MONTHS"
+        " + ((QUARTER({col})-1) * 3) MONTHS",
+        TimeGrain.YEAR: "{col} - (DAY({col})-1) DAYS - (MONTH({col})-1) MONTHS",
+    }
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

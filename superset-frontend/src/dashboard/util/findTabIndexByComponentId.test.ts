@@ -19,6 +19,7 @@
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { LayoutItem, LayoutItemMeta } from '../types';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('findTabIndexByComponentId', () => {
   const topLevelTabsComponent: LayoutItem = {
     children: ['TAB-0g-5l347I2', 'TAB-qrwN_9VB5'],
@@ -50,7 +51,7 @@ describe('findTabIndexByComponentId', () => {
   ];
   const badPath = ['ROOT_ID', 'TABS-MNQQSW-kyd', 'TAB-ABC', 'TABS-Oduxop1L7I'];
 
-  it('should return -1 if no directPathToChild', () => {
+  test('should return -1 if no directPathToChild', () => {
     expect(
       findTabIndexByComponentId({
         currentComponent: topLevelTabsComponent,
@@ -59,7 +60,7 @@ describe('findTabIndexByComponentId', () => {
     ).toBe(-1);
   });
 
-  it('should return -1 if not found tab id', () => {
+  test('should return -1 if not found tab id', () => {
     expect(
       findTabIndexByComponentId({
         currentComponent: topLevelTabsComponent,
@@ -68,7 +69,7 @@ describe('findTabIndexByComponentId', () => {
     ).toBe(-1);
   });
 
-  it('should return children index if matched an id in the path', () => {
+  test('should return children index if matched an id in the path', () => {
     expect(
       findTabIndexByComponentId({
         currentComponent: topLevelTabsComponent,

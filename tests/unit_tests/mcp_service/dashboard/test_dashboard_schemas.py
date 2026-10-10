@@ -1,0 +1,1429 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Unit tests for dashboard schema serialization.
+
+Tests that serialize_dashboard_object correctly handles slug and other fields.
+"""
+
+from copy import deepcopy
+from typing import Any
+from unittest.mock import MagicMock, patch
+
+import pytest
+from pydantic import ValidationError
+
+from superset.mcp_service.dashboard.schemas import (
+    _extract_cross_filters_enabled,
+    _extract_native_filters,
+    _safe_user_label,
+    AddChartToDashboardRequest,
+    ApplyFilterValueSpec,
+    dashboard_serializer,
+    DashboardInfo,
+    DuplicateDashboardRequest,
+    DuplicateDashboardResponse,
+    FilterRangeSpec,
+    FilterSelectSpec,
+    FilterTimeGrainSpec,
+    GenerateDashboardRequest,
+    GetDashboardInfoRequest,
+    GetDashboardLayoutRequest,
+    ListDashboardsRequest,
+    ManageDashboardOwnersResponse,
+    ManageDashboardRolesResponse,
+    NativeFilterSummary,
+    NativeFilterUpdateSpec,
+    redact_filter_state_data_model_metadata,
+    serialize_chart_summary,
+    serialize_dashboard_object,
+    UpdateDashboardRequest,
+)
+from superset.mcp_service.system.schemas import SubjectInfo
+from superset.utils.json import dumps as json_dumps
+
+
+def _wrapped(value: str) -> str:
+    """Return the expected clean MCP value for assertions."""
+    return value
+
+
+def _mock_dashboard(
+    id: int = 1,
+    title: str = "Test Dashboard",
+    slug: str | None = None,
+    editors: list[Any] | None = None,
+    slices: list[Any] | None = None,
+    tags: list[Any] | None = None,
+) -> MagicMock:
+    """Create a mock Dashboard ORM object."""
+    dashboard = MagicMock()
+    dashboard.id = id
+    dashboard.dashboard_title = title
+    dashboard.slug = slug
+    dashboard.published = True
+    dashboard.changed_by_name = "admin"
+    dashboard.changed_on = None
+    dashboard.changed_on_humanized = "2 hours ago"
+    dashboard.created_by_name = "admin"
+    dashboard.created_on = None
+    dashboard.created_on_humanized = "1 day ago"
+    dashboard.description = "A test dashboard"
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = None
+    dashboard.position_json = None
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.uuid = None
+    dashboard.editors = editors or []
+    dashboard.slices = slices or []
+    dashboard.tags = tags or []
+    return dashboard
+
+
+def test_manage_dashboard_owners_response_preserves_empty_label() -> None:
+    response = ManageDashboardOwnersResponse(
+        owners=[SubjectInfo(id=1, label="", type="USER")]
+    )
+
+    assert response.owners == [SubjectInfo(id=1, label="", type="USER")]
+
+
+def test_manage_dashboard_roles_response_preserves_empty_label() -> None:
+    response = ManageDashboardRolesResponse(
+        roles=[SubjectInfo(id=2, label="", type="ROLE")]
+    )
+
+    assert response.roles == [SubjectInfo(id=2, label="", type="ROLE")]
+
+
+class TestSerializeDashboardObject:
+    """Tests for serialize_dashboard_object slug handling."""
+
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_slug_none_returns_empty_string(self, mock_base_url) -> None:
+        """Dashboards with slug=None should return slug="" for consistency
+        with dashboard_serializer."""
+        mock_base_url.return_value = "http://localhost:8088"
+
+        dashboard = _mock_dashboard(id=1, slug=None)
+        result = serialize_dashboard_object(dashboard)
+
+        assert result.slug == ""
+
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_slug_empty_string_returns_empty_string(self, mock_base_url) -> None:
+        """Dashboards with slug="" should return slug=""."""
+        mock_base_url.return_value = "http://localhost:8088"
+
+        dashboard = _mock_dashboard(id=2, slug="")
+        result = serialize_dashboard_object(dashboard)
+
+        assert result.slug == ""
+
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_slug_with_value_preserved(self, mock_base_url) -> None:
+        """Dashboards with a real slug should preserve it."""
+        mock_base_url.return_value = "http://localhost:8088"
+
+        dashboard = _mock_dashboard(id=3, slug="my-dashboard")
+        result = serialize_dashboard_object(dashboard)
+
+        assert result.slug == "my-dashboard"
+
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_url_uses_id_when_no_slug(self, mock_base_url) -> None:
+        """URL should use dashboard id when slug is None."""
+        mock_base_url.return_value = "http://localhost:8088"
+
+        dashboard = _mock_dashboard(id=42, slug=None)
+        result = serialize_dashboard_object(dashboard)
+
+        assert result.url == "http://localhost:8088/dashboard/42/"
+
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_url_uses_slug_when_available(self, mock_base_url) -> None:
+        """URL should use slug when available."""
+        mock_base_url.return_value = "http://localhost:8088"
+
+        dashboard = _mock_dashboard(id=42, slug="my-dashboard")
+        result = serialize_dashboard_object(dashboard)
+
+        assert result.url == "http://localhost:8088/dashboard/my-dashboard/"
+
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_no_json_metadata_or_position_json_in_response(self, mock_base_url) -> None:
+        """DashboardInfo should not contain json_metadata or position_json."""
+        mock_base_url.return_value = "http://localhost:8088"
+
+        dashboard = _mock_dashboard(id=1)
+        result = serialize_dashboard_object(dashboard)
+
+        assert not hasattr(result, "json_metadata")
+        assert not hasattr(result, "position_json")
+
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_native_filters_extracted_from_json_metadata(
+        self,
+        mock_base_url,
+        mock_can_view_data_model_metadata,
+    ):
+        """Native filters should be extracted from json_metadata."""
+        mock_can_view_data_model_metadata.return_value = True
+        mock_base_url.return_value = "http://localhost:8088"
+
+        metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-abc123",
+                    "name": "Region Filter",
+                    "filterType": "filter_select",
+                    "targets": [{"column": {"name": "region"}, "datasetId": 10}],
+                    "controlValues": {"multiSelect": True},
+                    "defaultDataMask": {"filterState": {"value": ["US"]}},
+                    "scope": {"rootPath": ["ROOT_ID"]},
+                },
+                {
+                    "id": "NATIVE_FILTER-def456",
+                    "name": "Date Range",
+                    "filterType": "filter_range",
+                    "targets": [{"column": {"name": "order_date"}, "datasetId": 10}],
+                },
+            ],
+            "cross_filters_enabled": True,
+            "color_scheme": "supersetColors",
+            "shared_label_colors": {"Sales": "#1FA8C9"},
+        }
+        dashboard = _mock_dashboard(id=1)
+        dashboard.json_metadata = json_dumps(metadata)
+
+        result = serialize_dashboard_object(dashboard)
+
+        assert len(result.native_filters) == 2
+        assert result.native_filters[0].id == "NATIVE_FILTER-abc123"
+        assert result.native_filters[0].name == _wrapped("Region Filter")
+        assert result.native_filters[0].filter_type == "filter_select"
+        assert len(result.native_filters[0].targets) == 1
+        assert result.native_filters[1].name == _wrapped("Date Range")
+        assert result.cross_filters_enabled is True
+
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_restricted_user_redacts_native_filter_targets(
+        self,
+        mock_base_url,
+        mock_can_view_data_model_metadata,
+    ):
+        mock_can_view_data_model_metadata.return_value = False
+        mock_base_url.return_value = "http://localhost:8088"
+
+        metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-abc123",
+                    "name": "Product Line",
+                    "filterType": "filter_select",
+                    "targets": [
+                        {"column": {"name": "product_line"}, "datasetId": 3},
+                    ],
+                },
+            ],
+            "cross_filters_enabled": True,
+        }
+        dashboard = _mock_dashboard(id=1)
+        dashboard.json_metadata = json_dumps(metadata)
+
+        result = serialize_dashboard_object(dashboard)
+
+        assert len(result.native_filters) == 1
+        assert result.native_filters[0].name == _wrapped("Product Line")
+        assert result.native_filters[0].filter_type == "filter_select"
+        assert result.native_filters[0].targets == []
+        assert result.cross_filters_enabled is True
+
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_chart_summaries_are_lightweight(
+        self,
+        mock_base_url,
+        mock_can_view_data_model_metadata,
+    ):
+        """Charts in dashboard response should only have core fields."""
+        mock_can_view_data_model_metadata.return_value = True
+        mock_base_url.return_value = "http://localhost:8088"
+
+        chart = MagicMock()
+        chart.id = 5
+        chart.slice_name = "Revenue Chart"
+        chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
+        chart.datasource_name = "sales"
+        chart.description = "Monthly revenue"
+
+        dashboard = _mock_dashboard(id=1, slices=[chart])
+        result = serialize_dashboard_object(dashboard)
+
+        assert len(result.charts) == 1
+        assert result.charts[0].id == 5
+        assert result.charts[0].slice_name == _wrapped("Revenue Chart")
+        assert result.charts[0].viz_type == "echarts_timeseries_bar"
+        assert result.charts[0].datasource_id == 3
+        assert result.charts[0].datasource_type == "table"
+        assert result.charts[0].datasource_name == "sales"
+        assert result.charts[0].url == "http://localhost:8088/explore/?slice_id=5"
+        # Verify no heavy fields
+        assert not hasattr(result.charts[0], "form_data")
+        assert not hasattr(result.charts[0], "tags")
+        assert not hasattr(result.charts[0], "editors")
+
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_restricted_user_redacts_chart_datasource_name(
+        self,
+        mock_base_url,
+        mock_can_view_data_model_metadata,
+    ):
+        mock_can_view_data_model_metadata.return_value = False
+        mock_base_url.return_value = "http://localhost:8088"
+
+        chart = MagicMock()
+        chart.id = 5
+        chart.slice_name = "Revenue Chart"
+        chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
+        chart.datasource_name = "sales"
+        chart.description = "Monthly revenue"
+
+        dashboard = _mock_dashboard(id=1, slices=[chart])
+        result = serialize_dashboard_object(dashboard)
+
+        assert len(result.charts) == 1
+        assert result.charts[0].slice_name == _wrapped("Revenue Chart")
+        assert result.charts[0].viz_type == "echarts_timeseries_bar"
+        assert result.charts[0].datasource_id is None
+        assert result.charts[0].datasource_type is None
+        assert result.charts[0].datasource_name is None
+        assert result.charts[0].url == "http://localhost:8088/explore/?slice_id=5"
+
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_dashboard_serializer_restricted_user_redacts_data_model_metadata(
+        self,
+        mock_base_url,
+        mock_can_view_data_model_metadata,
+    ):
+        mock_can_view_data_model_metadata.return_value = False
+        mock_base_url.return_value = "http://localhost:8088"
+
+        chart = MagicMock()
+        chart.id = 5
+        chart.slice_name = "Revenue Chart"
+        chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
+        chart.datasource_name = "sales"
+        chart.description = "Monthly revenue"
+
+        metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-abc123",
+                    "name": "Product Line",
+                    "filterType": "filter_select",
+                    "targets": [
+                        {"column": {"name": "product_line"}, "datasetId": 3},
+                    ],
+                },
+            ],
+            "cross_filters_enabled": True,
+        }
+        dashboard = _mock_dashboard(id=1, slices=[chart])
+        dashboard.url = "/dashboard/1/"
+        dashboard.json_metadata = json_dumps(metadata)
+
+        result = dashboard_serializer(dashboard)
+
+        assert result.charts[0].datasource_id is None
+        assert result.charts[0].datasource_type is None
+        assert result.charts[0].datasource_name is None
+        assert result.native_filters[0].targets == []
+
+    @patch("superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata")
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_descriptive_fields_are_preserved(
+        self,
+        mock_base_url: MagicMock,
+        mock_can_view_data_model_metadata: MagicMock,
+    ) -> None:
+        """Dashboard serializers preserve user-controlled descriptive fields."""
+        mock_can_view_data_model_metadata.return_value = True
+        mock_base_url.return_value = "http://localhost:8088"
+
+        chart = MagicMock()
+        chart.id = 5
+        chart.slice_name = "Revenue Chart"
+        chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
+        chart.datasource_name = "sales"
+        chart.description = "Monthly revenue"
+
+        dashboard = _mock_dashboard(id=7, slug="safe-slug", slices=[chart])
+        dashboard.description = "Dashboard instructions"
+        dashboard.css = "/* dashboard-level CSS */"
+        dashboard.certified_by = "Analytics Team"
+        dashboard.certification_details = "Certified by analytics"
+        dashboard.uuid = "dashboard-uuid-7"
+        tag = MagicMock()
+        tag.id = 1
+        tag.name = "Dashboard tag"
+        tag.type = "custom"
+        tag.description = "Dashboard tag description"
+        dashboard.tags = [tag]
+        dashboard.json_metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER-abc123",
+                        "name": "Region Filter",
+                        "filterType": "filter_select",
+                        "targets": [{"column": {"name": "region"}, "datasetId": 10}],
+                    }
+                ]
+            }
+        )
+
+        result = serialize_dashboard_object(dashboard)
+
+        assert result.dashboard_title == _wrapped("Test Dashboard")
+        assert result.description == _wrapped("Dashboard instructions")
+        assert result.css == _wrapped("/* dashboard-level CSS */")
+        assert result.certified_by == _wrapped("Analytics Team")
+        assert result.certification_details == _wrapped("Certified by analytics")
+        assert result.slug == "safe-slug"
+        assert result.url == "http://localhost:8088/dashboard/safe-slug/"
+        assert result.uuid == "dashboard-uuid-7"
+        assert result.native_filters[0].id == "NATIVE_FILTER-abc123"
+        assert result.native_filters[0].name == _wrapped("Region Filter")
+        assert result.native_filters[0].targets == [
+            {"column": {"name": _wrapped("region")}, "datasetId": 10}
+        ]
+        assert result.charts[0].slice_name == _wrapped("Revenue Chart")
+        assert result.charts[0].description == _wrapped("Monthly revenue")
+        assert result.tags[0].name == _wrapped("Dashboard tag")
+        assert result.tags[0].description == _wrapped("Dashboard tag description")
+
+
+class TestExtractNativeFilters:
+    """Tests for _extract_native_filters helper."""
+
+    def test_none_input(self) -> None:
+        assert _extract_native_filters(None) == []
+
+    def test_empty_string(self) -> None:
+        assert _extract_native_filters("") == []
+
+    def test_invalid_json(self) -> None:
+        assert _extract_native_filters("not json") == []
+
+    def test_no_filter_config(self) -> None:
+        assert _extract_native_filters("{}") == []
+
+    def test_non_list_filter_config(self) -> None:
+        assert _extract_native_filters('{"native_filter_configuration": "bad"}') == []
+
+    def test_valid_filters(self) -> None:
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "f1",
+                        "name": "Filter 1",
+                        "filterType": "filter_select",
+                        "targets": [{"column": {"name": "col1"}}],
+                    }
+                ]
+            }
+        )
+        result = _extract_native_filters(metadata)
+        assert len(result) == 1
+        assert result[0].id == "f1"
+        assert result[0].name == "Filter 1"
+        assert result[0].filter_type == "filter_select"
+        assert result[0].targets == []
+
+    def test_valid_filters_include_targets_when_metadata_allowed(self) -> None:
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "f1",
+                        "name": "Filter 1",
+                        "filterType": "filter_select",
+                        "targets": [{"column": {"name": "col1"}}],
+                    }
+                ]
+            }
+        )
+        result = _extract_native_filters(
+            metadata,
+            include_data_model_metadata=True,
+        )
+        assert result[0].targets == [{"column": {"name": "col1"}}]
+
+    def test_skips_non_dict_entries(self) -> None:
+        metadata = json_dumps(
+            {"native_filter_configuration": [{"id": "f1", "name": "ok"}, "bad", 123]}
+        )
+        result = _extract_native_filters(metadata)
+        assert len(result) == 1
+
+    def test_non_dict_top_level_json(self) -> None:
+        """json_metadata that parses to a list/number should return empty."""
+        assert _extract_native_filters("[]") == []
+        assert _extract_native_filters("123") == []
+        assert _extract_native_filters('"just a string"') == []
+
+    @pytest.mark.parametrize(
+        "divider_id,divider_type",
+        [
+            ("NATIVE_FILTER_DIVIDER-abc123", "DIVIDER"),
+            ("NATIVE_FILTER_DIVIDER-abc123", None),
+            ("legacy-divider", "DIVIDER"),
+        ],
+    )
+    def test_divider_uses_title_as_name_and_divider_as_filter_type(
+        self, divider_id: str, divider_type: str | None
+    ) -> None:
+        """A divider stores its text under "title" and has no "filterType";
+        both must be normalized rather than surfaced as None/None."""
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": divider_id,
+                        **({"type": divider_type} if divider_type else {}),
+                        "title": "Geography",
+                        "description": "Location filters",
+                    }
+                ]
+            }
+        )
+        result = _extract_native_filters(metadata)
+        assert len(result) == 1
+        assert result[0].id == divider_id
+        assert result[0].name == "Geography"
+        assert result[0].filter_type == "divider"
+        assert result[0].targets == []
+
+    def test_divider_alongside_regular_filter(self) -> None:
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER_DIVIDER-abc123",
+                        "type": "DIVIDER",
+                        "title": "Geography",
+                    },
+                    {
+                        "id": "f1",
+                        "name": "Region",
+                        "filterType": "filter_select",
+                    },
+                ]
+            }
+        )
+        result = _extract_native_filters(metadata)
+        assert [(r.id, r.name, r.filter_type) for r in result] == [
+            ("NATIVE_FILTER_DIVIDER-abc123", "Geography", "divider"),
+            ("f1", "Region", "filter_select"),
+        ]
+
+
+class TestExtractCrossFiltersEnabled:
+    """Tests for _extract_cross_filters_enabled helper."""
+
+    def test_none_input(self) -> None:
+        assert _extract_cross_filters_enabled(None) is None
+
+    def test_empty_json(self) -> None:
+        assert _extract_cross_filters_enabled("{}") is None
+
+    def test_true(self) -> None:
+        assert _extract_cross_filters_enabled('{"cross_filters_enabled": true}') is True
+
+    def test_false(self) -> None:
+        assert (
+            _extract_cross_filters_enabled('{"cross_filters_enabled": false}') is False
+        )
+
+    def test_non_bool_value(self) -> None:
+        assert (
+            _extract_cross_filters_enabled('{"cross_filters_enabled": "yes"}') is None
+        )
+
+    def test_non_dict_top_level_json(self) -> None:
+        """json_metadata that parses to a list/number should return None."""
+        assert _extract_cross_filters_enabled("[]") is None
+        assert _extract_cross_filters_enabled("123") is None
+        assert _extract_cross_filters_enabled('"just a string"') is None
+
+
+class TestSerializeChartSummary:
+    """Tests for serialize_chart_summary helper."""
+
+    def test_datasource_name_redacted_by_default(self) -> None:
+        chart = MagicMock()
+        chart.id = 5
+        chart.slice_name = "Revenue Chart"
+        chart.viz_type = "echarts_timeseries_bar"
+        chart.datasource_type = "table"
+        chart.datasource_id = 3
+        chart.datasource_name = "sales"
+        chart.description = "Monthly revenue"
+
+        result = serialize_chart_summary(chart)
+
+        assert result is not None
+        assert result.datasource_id is None
+        assert result.datasource_type is None
+        assert result.datasource_name is None
+
+
+class TestOmittedFieldsBuilder:
+    """Tests for the shared OmittedFieldsBuilder utility."""
+
+    def test_builder_basic(self) -> None:
+        from superset.mcp_service.utils.response_utils import OmittedFieldsBuilder
+
+        result = (
+            OmittedFieldsBuilder()
+            .add_raw_field("big_field", "x" * 2048, "Too large for context.")
+            .add_extracted_field("meta_field", "y" * 512, "Useful parts above.")
+            .build()
+        )
+        assert "big_field" in result
+        assert "~2 KB" in result["big_field"]
+        assert "Too large" in result["big_field"]
+        assert "meta_field" in result
+        assert "extracted" in result["meta_field"]
+
+    def test_builder_none_values(self) -> None:
+        from superset.mcp_service.utils.response_utils import OmittedFieldsBuilder
+
+        result = (
+            OmittedFieldsBuilder()
+            .add_raw_field("empty_field", None, "Was not set.")
+            .add_extracted_field("also_empty", None, "Nothing to extract.")
+            .build()
+        )
+        assert "empty" in result["empty_field"]
+        assert "empty" in result["also_empty"]
+
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_omitted_fields_in_serialized_dashboard(self, mock_base_url) -> None:
+        """omitted_fields should describe what was stripped and include sizes."""
+        mock_base_url.return_value = "http://localhost:8088"
+
+        dashboard = _mock_dashboard(id=1)
+        dashboard.json_metadata = json_dumps(
+            {"color_scheme": "preset", "native_filter_configuration": []}
+        )
+        dashboard.position_json = json_dumps({"ROOT_ID": {"children": ["GRID_ID"]}})
+
+        result = serialize_dashboard_object(dashboard)
+
+        assert "json_metadata" in result.omitted_fields
+        assert "position_json" in result.omitted_fields
+        assert "extracted" in result.omitted_fields["json_metadata"]
+        assert "layout tree" in result.omitted_fields["position_json"].lower()
+
+    @patch("superset.mcp_service.dashboard.schemas.get_superset_base_url")
+    def test_omitted_fields_with_none_values(self, mock_base_url) -> None:
+        """omitted_fields should still be present when raw fields are None."""
+        mock_base_url.return_value = "http://localhost:8088"
+
+        dashboard = _mock_dashboard(id=1)
+        result = serialize_dashboard_object(dashboard)
+
+        assert "json_metadata" in result.omitted_fields
+        assert "position_json" in result.omitted_fields
+
+
+class TestGenerateDashboardRequestTitleSanitization:
+    """XSS / sanitization behavior for dashboard_title."""
+
+    def test_plain_title_passes_without_warning(self) -> None:
+        req = GenerateDashboardRequest(
+            chart_ids=[1], dashboard_title="Analytics Dashboard"
+        )
+        assert req.dashboard_title == "Analytics Dashboard"
+        assert req.sanitization_warnings == []
+
+    def test_title_image_onerror_only_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            GenerateDashboardRequest(
+                chart_ids=[1],
+                dashboard_title='<img src=x onerror="alert(1)">',
+            )
+
+    def test_title_script_only_is_rejected(self) -> None:
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            GenerateDashboardRequest(
+                chart_ids=[1],
+                dashboard_title="<script>alert(1)</script>",
+            )
+
+    def test_title_partial_strip_emits_warning(self) -> None:
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Q1 <b>Review</b>",
+        )
+        assert req.dashboard_title == "Q1 Review"
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+
+    def test_title_omitted_does_not_warn(self) -> None:
+        req = GenerateDashboardRequest(chart_ids=[1])
+        assert req.dashboard_title is None
+        assert req.sanitization_warnings == []
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only; client input is dropped."""
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Plain Title",
+            sanitization_warnings=["<script>fake notice</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+    def test_client_warnings_discarded_even_when_server_also_warns(self) -> None:
+        """Client-supplied warnings must not survive, even when the server
+        appends one of its own during the same request."""
+        req = GenerateDashboardRequest(
+            chart_ids=[1],
+            dashboard_title="Q1 <b>Review</b>",
+            sanitization_warnings=["injected attacker text"],
+        )
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+        assert "injected" not in req.sanitization_warnings[0]
+
+
+class TestGenerateDashboardRequestLayoutTheme:
+    """generate_dashboard accepts optional position_json, theme overrides, CSS."""
+
+    def test_layout_theme_css_fields_default_to_none(self) -> None:
+        req = GenerateDashboardRequest(chart_ids=[1])
+        assert req.position_json is None
+        assert req.json_metadata_overrides is None
+        assert req.css is None
+        assert req.slug is None
+
+    def test_position_json_accepted(self) -> None:
+        position = {
+            "ROOT_ID": {"children": ["GRID_ID"], "type": "ROOT"},
+            "GRID_ID": {"children": ["ROW-1"], "type": "GRID"},
+        }
+        req = GenerateDashboardRequest(chart_ids=[1], position_json=position)
+        assert req.position_json == position
+
+    def test_json_metadata_overrides_accepted(self) -> None:
+        overrides = {
+            "label_colors": {"Electronics": "#4C78A8"},
+            "cross_filters_enabled": False,
+        }
+        req = GenerateDashboardRequest(chart_ids=[1], json_metadata_overrides=overrides)
+        assert req.json_metadata_overrides == overrides
+
+    def test_css_accepted(self) -> None:
+        req = GenerateDashboardRequest(
+            chart_ids=[1], css=".header-controls{display:none}"
+        )
+        assert req.css == ".header-controls{display:none}"
+
+    def test_slug_accepted(self) -> None:
+        req = GenerateDashboardRequest(chart_ids=[1], slug="my-dashboard")
+        assert req.slug == "my-dashboard"
+
+    def test_css_max_length_enforced(self) -> None:
+        with pytest.raises(ValidationError, match="at most 50000"):
+            GenerateDashboardRequest(chart_ids=[1], css="x" * 50001)
+
+    def test_title_alias_accepted(self) -> None:
+        """``title`` is one of the AliasChoices for ``dashboard_title``
+        — JSON callers using either name resolve to the same field."""
+        req = GenerateDashboardRequest(chart_ids=[1], title="Q4 Review")
+        assert req.dashboard_title == "Q4 Review"
+
+    def test_name_alias_accepted(self) -> None:
+        """``name`` is the third AliasChoice for ``dashboard_title``
+        and must resolve identically to ``title`` and ``dashboard_title``."""
+        req = GenerateDashboardRequest(chart_ids=[1], name="Q4 Review")
+        assert req.dashboard_title == "Q4 Review"
+
+    def test_published_defaults_to_false(self) -> None:
+        """``published`` defaults to False — newly generated dashboards
+        are drafts by default to avoid accidentally publishing partial
+        work-in-progress to all users."""
+        req = GenerateDashboardRequest(chart_ids=[1])
+        assert req.published is False
+
+    def test_published_true_accepted(self) -> None:
+        """An explicit ``published=True`` is preserved."""
+        req = GenerateDashboardRequest(chart_ids=[1], published=True)
+        assert req.published is True
+
+
+class TestUpdateDashboardRequest:
+    """Schema validation for update_dashboard's request."""
+
+    def test_identifier_required(self) -> None:
+        with pytest.raises(ValidationError, match="Field required"):
+            UpdateDashboardRequest()
+
+    def test_int_identifier_accepted(self) -> None:
+        req = UpdateDashboardRequest(identifier=42)
+        assert req.identifier == 42
+
+    def test_string_identifier_accepted(self) -> None:
+        req = UpdateDashboardRequest(identifier="my-slug")
+        assert req.identifier == "my-slug"
+
+    def test_all_optional_fields_default_to_none(self) -> None:
+        req = UpdateDashboardRequest(identifier=1)
+        assert req.dashboard_title is None
+        assert req.description is None
+        assert req.slug is None
+        assert req.published is None
+        assert req.position_json is None
+        assert req.json_metadata_overrides is None
+        assert req.css is None
+
+    def test_position_json_and_overrides_and_css(self) -> None:
+        req = UpdateDashboardRequest(
+            identifier=42,
+            position_json={"ROOT_ID": {"type": "ROOT"}},
+            json_metadata_overrides={"cross_filters_enabled": True},
+            css=".x{}",
+        )
+        assert req.position_json == {"ROOT_ID": {"type": "ROOT"}}
+        assert req.json_metadata_overrides == {"cross_filters_enabled": True}
+        assert req.css == ".x{}"
+
+    def test_title_alias_accepted(self) -> None:
+        """`title` is accepted as an alias for `dashboard_title`."""
+        req = UpdateDashboardRequest(identifier=1, title="New Title")
+        assert req.dashboard_title == "New Title"
+
+    def test_name_alias_accepted(self) -> None:
+        """`name` is accepted as an alias for `dashboard_title` — mirrors
+        ``GenerateDashboardRequest``'s third AliasChoice so callers can
+        use the same key name on both create and update paths."""
+        req = UpdateDashboardRequest(identifier=1, name="New Title")
+        assert req.dashboard_title == "New Title"
+
+    def test_css_max_length_enforced(self) -> None:
+        with pytest.raises(ValidationError, match="at most 50000"):
+            UpdateDashboardRequest(identifier=1, css="x" * 50001)
+
+    def test_title_partial_strip_emits_warning(self) -> None:
+        """Mirror of ``test_title_partial_strip_emits_warning`` on the
+        create path — sanitization removes the HTML, the title survives,
+        and a warning records that the input was altered."""
+        req = UpdateDashboardRequest(identifier=1, dashboard_title="Q1 <b>Review</b>")
+        assert req.dashboard_title == "Q1 Review"
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only on the update path
+        too — caller-supplied entries are dropped so an attacker cannot
+        smuggle warning text through the response."""
+        req = UpdateDashboardRequest(
+            identifier=1,
+            dashboard_title="Clean Title",
+            sanitization_warnings=["<script>injected</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+    def test_title_xss_only_rejected_at_schema_level(self) -> None:
+        """An XSS-only title is rejected by the Pydantic validator
+        before the tool ever runs — matches the create path's guard."""
+        with pytest.raises(ValidationError, match="removed entirely"):
+            UpdateDashboardRequest(
+                identifier=1,
+                dashboard_title="<script>alert(1)</script>",
+            )
+
+    def test_title_alias_xss_rejected(self) -> None:
+        """The ``title`` alias resolves to the same sanitized field, so
+        XSS-only input supplied via the alias must be rejected with the
+        same guard. Otherwise an attacker could bypass sanitization just
+        by choosing a different request key."""
+        with pytest.raises(ValidationError, match="removed entirely"):
+            UpdateDashboardRequest(
+                identifier=1,
+                title="<script>alert(1)</script>",
+            )
+
+    def test_name_alias_xss_rejected(self) -> None:
+        """Same as ``test_title_alias_xss_rejected`` for the ``name``
+        AliasChoice — every alias funnels through the same validator,
+        not just the canonical field name."""
+        with pytest.raises(ValidationError, match="removed entirely"):
+            UpdateDashboardRequest(
+                identifier=1,
+                name="<script>alert(1)</script>",
+            )
+
+
+class TestSafeUserLabel:
+    """``_safe_user_label`` defensively coerces ``*_by_name`` attributes
+    so dashboard serialization never leaks a ``repr(user)`` or trips
+    Pydantic with a non-string value."""
+
+    def test_plain_string_passes_through(self) -> None:
+        assert _safe_user_label("alice") == "alice"
+
+    def test_empty_string_returns_none(self) -> None:
+        """Empty string is collapsed to None so the response carries
+        an explicit "no author" signal rather than a misleading ""."""
+        assert _safe_user_label("") is None
+
+    def test_none_returns_none(self) -> None:
+        assert _safe_user_label(None) is None
+
+    def test_mock_object_returns_none(self) -> None:
+        """Mocks (and anything else non-string) become None — this is
+        the case the helper was specifically introduced to handle."""
+        from unittest.mock import MagicMock
+
+        assert _safe_user_label(MagicMock()) is None
+
+    def test_user_object_returns_none(self) -> None:
+        """A User instance also coerces to None rather than leaking
+        ``repr(user)`` (which can contain memory addresses, hashes, or
+        internal id fields). Callers that want a user display name
+        should resolve it explicitly via ``created_by_name`` upstream."""
+
+        class _User:
+            def __repr__(self) -> str:
+                return "<User id=42 username='alice'>"
+
+        assert _safe_user_label(_User()) is None
+
+    def test_integer_returns_none(self) -> None:
+        """Numbers and other non-string scalars also coerce to None
+        rather than being str-cast and silently leaking the value."""
+        assert _safe_user_label(42) is None
+
+
+class TestDuplicateDashboardRequestTitleSanitization:
+    """XSS / sanitization behavior for DuplicateDashboardRequest.dashboard_title."""
+
+    def test_plain_title_passes_without_warning(self) -> None:
+        """A clean title is accepted unchanged with no sanitization warning."""
+        req = DuplicateDashboardRequest(dashboard_id=1, dashboard_title="Regional Copy")
+        assert req.dashboard_title == "Regional Copy"
+        assert req.sanitization_warnings == []
+
+    def test_title_accepts_aliases(self) -> None:
+        """The title can be supplied via the ``name``/``title`` aliases."""
+        req = DuplicateDashboardRequest(dashboard_id="my-slug", name="From Name")
+        assert req.dashboard_title == "From Name"
+
+    def test_script_only_title_is_rejected(self) -> None:
+        """A title that sanitizes to nothing (XSS-only) is rejected."""
+        with pytest.raises(ValidationError, match="removed entirely by sanitization"):
+            DuplicateDashboardRequest(
+                dashboard_id=1, dashboard_title="<script>alert(1)</script>"
+            )
+
+    def test_empty_title_is_rejected(self) -> None:
+        """An empty title is rejected at the schema layer."""
+        with pytest.raises(ValidationError):
+            DuplicateDashboardRequest(dashboard_id=1, dashboard_title="")
+
+    def test_partial_strip_emits_warning(self) -> None:
+        """A partially stripped title is kept but flagged with a warning."""
+        req = DuplicateDashboardRequest(
+            dashboard_id=1, dashboard_title="Q1 <b>Review</b>"
+        )
+        assert req.dashboard_title == "Q1 Review"
+        assert len(req.sanitization_warnings) == 1
+        assert "dashboard_title" in req.sanitization_warnings[0]
+
+    def test_client_supplied_warnings_are_discarded(self) -> None:
+        """``sanitization_warnings`` is server-only; client input is dropped."""
+        req = DuplicateDashboardRequest(
+            dashboard_id=1,
+            dashboard_title="Plain Title",
+            sanitization_warnings=["<script>fake notice</script>"],
+        )
+        assert req.sanitization_warnings == []
+
+
+class TestDashboardInfoLargeListGuidance:
+    """DashboardInfo documents how agents can retrieve charts/native_filters
+    beyond the response-size guard's list-item cap.
+
+    Regression test for the Medialab large-dashboard report: with the old
+    hardcoded 30-item cap and no documented escape hatch, agents had no way
+    to retrieve the rest of a dashboard's charts. These field descriptions
+    are the "documented, agent-usable way to access items beyond the cap"
+    called for by the story's acceptance criteria.
+    """
+
+    def test_charts_field_documents_list_charts_escape_hatch(self) -> None:
+        """The charts field description points to list_charts pagination."""
+        description: str | None = DashboardInfo.model_fields["charts"].description
+        assert description is not None
+        assert "list_charts" in description
+
+    def test_native_filters_field_documents_max_list_items_config(self) -> None:
+        """The native_filters field description mentions the configurable cap."""
+        description: str | None = DashboardInfo.model_fields[
+            "native_filters"
+        ].description
+        assert description is not None
+        assert "max_list_items" in description
+
+
+class TestDuplicateDashboardResponse:
+    """Serialization and error sanitization for DuplicateDashboardResponse."""
+
+    def test_defaults(self) -> None:
+        """An empty response has null payload fields and no flags set."""
+        resp = DuplicateDashboardResponse()
+        assert resp.dashboard is None
+        assert resp.dashboard_url is None
+        assert resp.duplicated_slices is False
+        assert resp.error is None
+        assert resp.warnings == []
+
+    def test_error_is_preserved(self) -> None:
+        """Error text remains exact in the result."""
+        resp = DuplicateDashboardResponse(error="Dashboard 'x' not found.")
+        assert resp.error == _wrapped("Dashboard 'x' not found.")
+
+    def test_none_error_remains_none(self) -> None:
+        """A null error stays null."""
+        resp = DuplicateDashboardResponse(dashboard_url="http://host/d/1/")
+        assert resp.error is None
+
+
+class TestRequestSchemaAliasChoices:
+    """Test that LLM-friendly field name variants are accepted on the
+    dashboard MCP tool request schemas, so callers sending 'id'/'dashboard_id'
+    instead of 'identifier' (or 'columns' instead of 'select_columns')
+    don't silently have the field dropped."""
+
+    def test_get_dashboard_info_identifier_id_alias(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"id": 42})
+        assert req.identifier == 42
+
+    def test_get_dashboard_info_identifier_dashboard_id_alias(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"dashboard_id": 42})
+        assert req.identifier == 42
+
+    def test_get_dashboard_info_identifier_still_works(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"identifier": 42})
+        assert req.identifier == 42
+
+    def test_get_dashboard_info_select_columns_columns_alias(self) -> None:
+        req = GetDashboardInfoRequest.model_validate(
+            {"id": 42, "columns": ["id", "dashboard_title"]}
+        )
+        assert req.select_columns == ["id", "dashboard_title"]
+
+    def test_get_dashboard_info_accepts_filter_state(self) -> None:
+        applied = {"applied_filters": [{"col": "gender", "op": "IN", "val": ["F"]}]}
+        req = GetDashboardInfoRequest.model_validate(
+            {"identifier": 42, "filter_state": applied}
+        )
+        assert req.filter_state == applied
+
+    def test_get_dashboard_info_filter_state_defaults_none(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"identifier": 42})
+        assert req.filter_state is None
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {},
+            {"identifier": ""},
+            {"identifier": "   "},
+            {"permalink_key": ""},
+            {"permalink_key": "   "},
+            {"identifier": " ", "permalink_key": " "},
+        ],
+    )
+    def test_get_dashboard_info_requires_reference(
+        self, payload: dict[str, Any]
+    ) -> None:
+        with pytest.raises(ValidationError, match="identifier or permalink_key"):
+            GetDashboardInfoRequest.model_validate(payload)
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"identifier": 42},
+            {"permalink_key": "shared-key"},
+            {"identifier": 42, "permalink_key": "shared-key"},
+        ],
+    )
+    def test_get_dashboard_layout_accepts_reference(
+        self, payload: dict[str, Any]
+    ) -> None:
+        request = GetDashboardLayoutRequest.model_validate(payload)
+        assert request.identifier == payload.get("identifier")
+        assert request.permalink_key == payload.get("permalink_key")
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {},
+            {"identifier": ""},
+            {"identifier": "   "},
+            {"permalink_key": ""},
+            {"permalink_key": "   "},
+            {"identifier": " ", "permalink_key": " "},
+        ],
+    )
+    def test_get_dashboard_layout_requires_reference(
+        self, payload: dict[str, Any]
+    ) -> None:
+        with pytest.raises(ValidationError, match="identifier or permalink_key"):
+            GetDashboardLayoutRequest.model_validate(payload)
+
+    def test_list_dashboards_select_columns_columns_alias(self) -> None:
+        req = ListDashboardsRequest.model_validate(
+            {"columns": ["id", "dashboard_title"]}
+        )
+        assert req.select_columns == ["id", "dashboard_title"]
+
+    def test_add_chart_to_dashboard_dashboard_alias(self) -> None:
+        req = AddChartToDashboardRequest.model_validate({"dashboard": 1, "chart_id": 2})
+        assert req.dashboard_id == 1
+
+    def test_add_chart_to_dashboard_id_alias(self) -> None:
+        req = AddChartToDashboardRequest.model_validate({"id": 1, "chart_id": 2})
+        assert req.dashboard_id == 1
+
+    def test_add_chart_to_dashboard_chart_alias(self) -> None:
+        req = AddChartToDashboardRequest.model_validate({"dashboard_id": 1, "chart": 2})
+        assert req.chart_id == 2
+
+
+def test_generate_dashboard_request_chart_ids_is_bounded() -> None:
+    """chart_ids is bounded (min 1, max 250) to prevent an unbounded array,
+    matching the length caps on sibling MCP request schemas."""
+    GenerateDashboardRequest(chart_ids=[1])
+    GenerateDashboardRequest(chart_ids=list(range(250)))
+    with pytest.raises(ValidationError):
+        GenerateDashboardRequest(chart_ids=[])
+    with pytest.raises(ValidationError):
+        GenerateDashboardRequest(chart_ids=list(range(251)))
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value"),
+    [
+        ("filter_select", ["EMEA", None, False, 0]),
+        ("filter_range", [0, 100]),
+        ("filter_time", "2026-01-01 : 2026-02-01"),
+        ("filter_timegrain", ["P1D"]),
+    ],
+)
+def test_native_filter_value_projection(filter_type: str, value: Any) -> None:
+    """Keep display values without copying arbitrary state or query metadata."""
+    raw = {
+        "dataMask": {
+            "f1": {
+                "extraFormData": {"filters": [{"col": "secret_column"}]},
+                "filterState": {
+                    "value": value,
+                    "label": "Display selection",
+                    "excludeFilterValues": True,
+                    "column": "secret_column",
+                    "nested": {"column": "secret_column"},
+                },
+            },
+        },
+        "activeTabs": ["tab1"],
+        "chartStates": {"1": {"column": "secret_column"}},
+        "native_filter_values": [{"column": "spoofed"}],
+    }
+    original = deepcopy(raw)
+    result = redact_filter_state_data_model_metadata(
+        raw,
+        [NativeFilterSummary(id="f1", name="Region", filter_type=filter_type)],
+    )
+    assert result == {
+        "activeTabs": ["tab1"],
+        "native_filter_values": [
+            {
+                "id": "f1",
+                "name": "Region",
+                "filter_type": filter_type,
+                "value": value,
+                "label": "Display selection",
+                "excludeFilterValues": True,
+            }
+        ],
+        "native_filter_values_incomplete": True,
+    }
+    assert raw == original
+    assert "secret_column" not in str(result)
+    assert "spoofed" not in str(result)
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "entry"),
+    [
+        ("filter_timecolumn", {"filterState": {"value": ["secret_column"]}}),
+        ("custom_filter", {"filterState": {"value": "secret_column"}}),
+        ("filter_select", {"filterState": {"value": {"column": "secret_column"}}}),
+        ("filter_select", {"filterState": {"value": [{"column": "secret_column"}]}}),
+        ("filter_select", {"filterState": None}),
+        ("filter_select", {}),
+        ("filter_select", None),
+    ],
+)
+def test_native_filter_value_projection_fails_closed(
+    filter_type: str,
+    entry: Any,
+) -> None:
+    """Unsupported or malformed values are omitted and incompleteness is explicit."""
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": entry, "unknown": {"filterState": {"value": "secret"}}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert result["native_filter_values"] == []
+    assert result["native_filter_values_incomplete"] is True
+
+
+@pytest.mark.parametrize("mask", [None, [], "invalid", {}])
+def test_native_filter_value_projection_empty_or_malformed_mask(mask: Any) -> None:
+    """Distinguish an empty mask from malformed input without raising."""
+    result = redact_filter_state_data_model_metadata({"dataMask": mask}, [])
+    assert result["native_filter_values"] == []
+    assert result["native_filter_values_incomplete"] is (mask != {})
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"adhoc_filters": [{"sqlExpression": "1 = 0"}]},
+        {"filters": [{"col": "secret", "op": "ILIKE", "val": "%EMEA%"}]},
+    ],
+)
+def test_native_filter_special_predicates_are_incomplete(extra: dict[str, Any]) -> None:
+    """Selections alone cannot express SQL or wildcard matching semantics."""
+    result = redact_filter_state_data_model_metadata(
+        {
+            "dataMask": {
+                "f1": {
+                    "filterState": {"value": ["EMEA"]},
+                    "extraFormData": extra,
+                }
+            }
+        },
+        [NativeFilterSummary(id="f1", name="Region", filter_type="filter_select")],
+    )
+    assert result["native_filter_values"][0]["value"] == ["EMEA"]
+    assert result["native_filter_values_incomplete"] is True
+    assert "secret" not in str(result)
+    assert "sqlExpression" not in str(result)
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value", "valid"),
+    [
+        ("filter_range", [None, 100], True),
+        ("filter_range", [0, None], True),
+        ("filter_range", None, True),
+        ("filter_range", [False, 100], False),
+        ("filter_range", ["private_event_ts"], False),
+        ("filter_range", ["0", "100"], False),
+        ("filter_range", [0, 1, 2], False),
+        ("filter_range", 100, False),
+        ("filter_time", "Last week", True),
+        ("filter_time", None, True),
+        ("filter_time", ["private_event_ts"], False),
+        ("filter_time", 123, False),
+        ("filter_timegrain", ["P1D"], True),
+        ("filter_timegrain", [], True),
+        ("filter_timegrain", None, True),
+        ("filter_timegrain", "P1D", False),
+        ("filter_timegrain", ["P1D", "P1M"], False),
+        ("filter_timegrain", [123], False),
+        ("filter_select", ["EMEA", None, False, 0], True),
+        ("filter_select", [], True),
+        ("filter_select", None, True),
+        ("filter_select", [["private_event_ts"]], False),
+    ],
+)
+def test_native_filter_type_specific_value_shapes(
+    filter_type: str, value: Any, valid: bool
+) -> None:
+    """Omit incompatible values rather than guessing their filter semantics."""
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": {"filterState": {"value": value}}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert bool(result["native_filter_values"]) is valid
+    assert result["native_filter_values_incomplete"] is (
+        not valid or (value is not None and value != [])
+    )
+    if valid:
+        assert result["native_filter_values"][0]["value"] == value
+
+
+@pytest.mark.parametrize("extra", [None, [], "invalid"])
+def test_native_filter_malformed_extra_form_data(extra: Any) -> None:
+    """Do not project values when the mask's query metadata is malformed."""
+    result = redact_filter_state_data_model_metadata(
+        {
+            "dataMask": {
+                "f1": {"filterState": {"value": ["EMEA"]}, "extraFormData": extra}
+            }
+        },
+        [NativeFilterSummary(id="f1", name="Filter", filter_type="filter_select")],
+    )
+    assert result["native_filter_values"] == []
+    assert result["native_filter_values_incomplete"] is True
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value"),
+    [
+        ("filter_select", ["EMEA"]),
+        ("filter_range", [0, 100]),
+        ("filter_time", "Last week"),
+        ("filter_timegrain", ["P1D"]),
+    ],
+)
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {},
+        {"filters": None},
+        {"filters": [{"col": "secret_column", "op": "ILIKE", "val": "%x%"}]},
+    ],
+)
+def test_native_filter_incomplete_predicates_for_all_types(
+    filter_type: str, value: Any, extra: dict[str, Any]
+) -> None:
+    """Retain display context without claiming missing or unsupported predicates."""
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": {"filterState": {"value": value}, "extraFormData": extra}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert result["native_filter_values"][0]["value"] == value
+    assert result["native_filter_values_incomplete"] is True
+    assert "secret_column" not in str(result)
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value", "extra"),
+    [
+        ("filter_select", ["EMEA"], {"filters": [{"op": "IN"}]}),
+        ("filter_range", [0, 100], {"filters": [{"op": ">="}, {"op": "<="}]}),
+        ("filter_range", [0, 0], {"filters": [{"op": "=="}]}),
+        ("filter_time", "Last week", {"time_range": "Last week"}),
+        ("filter_timegrain", ["P1D"], {"time_grain_sqla": "P1D"}),
+        ("filter_select", None, {}),
+        ("filter_select", [], {}),
+    ],
+)
+def test_native_filter_supported_predicates_remain_complete(
+    filter_type: str, value: Any, extra: dict[str, Any]
+) -> None:
+    """Recognize built-in predicate operators and explicitly cleared selections."""
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": {"filterState": {"value": value}, "extraFormData": extra}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert result["native_filter_values_incomplete"] is False
+
+
+@pytest.mark.parametrize(
+    "bound", ["NaN", "Infinity", "-Infinity", float("nan"), float("inf"), float("-inf")]
+)
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_non_finite_bounds(
+    bound: str | float, index: int
+) -> None:
+    """Reject non-finite strings and numbers in either range bound after coercion."""
+    bounds: list[str | float | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be finite"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )
+
+
+@pytest.mark.parametrize("bound", [10**1000, -(10**1000)])
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_overflowing_integer_bounds(
+    bound: int, index: int
+) -> None:
+    """Huge integers yield validation errors instead of leaking OverflowError."""
+    bounds: list[int | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be finite"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )
+
+
+@pytest.mark.parametrize(
+    "model, payload",
+    [
+        (FilterSelectSpec, {"filter_type": "filter_select", "column": "region"}),
+        (FilterRangeSpec, {"filter_type": "filter_range", "column": "cost"}),
+        (FilterTimeGrainSpec, {"filter_type": "filter_timegrain"}),
+        (NativeFilterUpdateSpec, {"id": "NATIVE_FILTER-1"}),
+    ],
+)
+def test_filter_specs_reject_boolean_dataset_id(
+    model: Any, payload: dict[str, Any]
+) -> None:
+    """bool coerces to int in pydantic lax mode; dataset_id=true must not become 1."""
+    with pytest.raises(ValidationError, match="dataset_id must be an integer"):
+        model.model_validate({**payload, "name": "Filter", "dataset_id": True})
+    assert model.model_validate({**payload, "name": "Filter", "dataset_id": 1})
+
+
+@pytest.mark.parametrize("bound", [True, False])
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_boolean_bounds(bound: bool, index: int) -> None:
+    """Boolean bounds must not coerce to numeric range predicates."""
+    bounds: list[int | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be numbers or null"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )

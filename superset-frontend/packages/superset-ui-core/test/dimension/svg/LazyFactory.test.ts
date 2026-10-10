@@ -21,14 +21,14 @@ import LazyFactory from '../../../src/dimension/svg/LazyFactory';
 
 describe('LazyFactory', () => {
   describe('createInContainer()', () => {
-    it('creates node in the specified container', () => {
+    test('creates node in the specified container', () => {
       const factory = new LazyFactory(() => document.createElement('div'));
       const div = factory.createInContainer();
       const innerDiv = factory.createInContainer(div);
       expect(div.parentNode).toEqual(document.body);
       expect(innerDiv.parentNode).toEqual(div);
     });
-    it('reuses existing', () => {
+    test('reuses existing', () => {
       const factoryFn = jest.fn(() => document.createElement('div'));
       const factory = new LazyFactory(factoryFn);
       const div1 = factory.createInContainer();
@@ -38,7 +38,7 @@ describe('LazyFactory', () => {
     });
   });
   describe('removeFromContainer', () => {
-    it('removes node from container', () => {
+    test('removes node from container', () => {
       const factory = new LazyFactory(() => document.createElement('div'));
       const div = factory.createInContainer();
       const innerDiv = factory.createInContainer(div);
@@ -49,7 +49,7 @@ describe('LazyFactory', () => {
       expect(div.parentNode).toBeNull();
       expect(innerDiv.parentNode).toBeNull();
     });
-    it('does not remove if others are using', () => {
+    test('does not remove if others are using', () => {
       const factory = new LazyFactory(() => document.createElement('div'));
       const div1 = factory.createInContainer();
       factory.createInContainer();
@@ -58,7 +58,7 @@ describe('LazyFactory', () => {
       factory.removeFromContainer();
       expect(div1.parentNode).toBeNull();
     });
-    it('does not crash if try to remove already removed node', () => {
+    test('does not crash if try to remove already removed node', () => {
       const factory = new LazyFactory(() => document.createElement('div'));
       factory.createInContainer();
       factory.removeFromContainer();

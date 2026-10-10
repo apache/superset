@@ -17,15 +17,16 @@
  * under the License.
  */
 
-import { FC, SVGProps, useEffect, useRef, useState } from 'react';
+import { FC, SVGProps, forwardRef, useEffect, useRef, useState } from 'react';
 import TransparentIcon from './svgs/transparent.svg';
 import { IconType } from './types';
 import { BaseIconComponent } from './BaseIcon';
 
-const AsyncIcon = (props: IconType) => {
+const AsyncIcon = forwardRef<HTMLSpanElement, IconType>((props, ref) => {
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<FC<SVGProps<SVGSVGElement>>>();
-  const { fileName, ...restProps } = props;
+  const { fileName, customIcons, iconSize, iconColor, viewBox, ...restProps } =
+    props;
 
   useEffect(() => {
     let cancelled = false;
@@ -45,10 +46,16 @@ const AsyncIcon = (props: IconType) => {
 
   return (
     <BaseIconComponent
+      ref={ref}
       component={ImportedSVG.current || TransparentIcon}
+      fileName={fileName}
+      customIcons={customIcons}
+      iconSize={iconSize}
+      iconColor={iconColor}
+      viewBox={viewBox}
       {...restProps}
     />
   );
-};
+});
 
 export default AsyncIcon;

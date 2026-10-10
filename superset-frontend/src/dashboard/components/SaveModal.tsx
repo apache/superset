@@ -27,7 +27,9 @@ import {
   Divider,
   Flex,
 } from '@superset-ui/core/components';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 
 import {
   ModalTrigger,
@@ -64,18 +66,18 @@ type SaveModalProps = {
 
 function SaveModal({
   saveType: initialSaveType = SAVE_TYPE_OVERWRITE,
-  colorNamespace,
-  colorScheme,
+  colorNamespace: _colorNamespace,
+  colorScheme: _colorScheme,
   shouldPersistRefreshFrequency = false,
   dashboardTitle,
   onSave,
   triggerNode,
   canOverwrite,
-  addSuccessToast,
+  addSuccessToast: _addSuccessToast,
   addDangerToast,
   dashboardId,
   dashboardInfo,
-  expandedSlices,
+  expandedSlices: _expandedSlices,
   layout,
   customCss,
   refreshFrequency,
@@ -109,7 +111,7 @@ function SaveModal({
       ? refreshFrequency
       : dashboardInfo.metadata?.refresh_frequency; // eslint-disable camelcase
 
-    const data = {
+    const data: Record<string, unknown> = {
       certified_by: dashboardInfo.certified_by,
       certification_details: dashboardInfo.certification_details,
       css: customCss,
@@ -117,14 +119,17 @@ function SaveModal({
         saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       duplicate_slices: duplicateSlices,
       last_modified_time: lastModifiedTime,
-      owners: dashboardInfo.owners,
-      roles: dashboardInfo.roles,
+      editors: dashboardInfo.editors,
       metadata: {
         ...dashboardInfo?.metadata,
         positions: layout,
         refresh_frequency: refreshFrequencyToUse,
       },
     };
+
+    if (isFeatureEnabled(FeatureFlag.EnableViewers)) {
+      data.viewers = dashboardInfo.viewers;
+    }
 
     if (saveType === SAVE_TYPE_NEWDASHBOARD && !newDashName) {
       addDangerToast(t('You must pick a name for the new dashboard'));

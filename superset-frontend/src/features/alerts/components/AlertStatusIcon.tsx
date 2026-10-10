@@ -16,27 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, SupersetTheme, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme, useTheme, css } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { AlertState } from '../types';
 
-function getStatusColor(
-  status: string,
-  isReportEnabled: boolean,
-  theme: SupersetTheme,
-) {
+function getStatusColor(status: string, theme: SupersetTheme) {
   switch (status) {
     case AlertState.Working:
       return theme.colorPrimaryText;
     case AlertState.Error:
       return theme.colorErrorText;
     case AlertState.Success:
-      return isReportEnabled ? theme.colorSuccessText : theme.colorErrorText;
-    case AlertState.Noop:
       return theme.colorSuccessText;
+    case AlertState.Noop:
+      // "Not triggered" is the default state for a report/alert that has not
+      // run yet (and for an alert that ran without its condition matching).
+      // Neither is a success, so use a neutral color instead of the green
+      // success color, which previously made an unexecuted report look like it
+      // had succeeded. See issue #29622.
+      return theme.colorTextSecondary;
     case AlertState.Grace:
       return theme.colorErrorText;
+    case AlertState.Retrying:
+      return theme.colorPrimaryText;
     default:
       return theme.colorText;
   }
@@ -50,6 +54,9 @@ export default function AlertStatusIcon({
   isReportEnabled: boolean;
 }) {
   const theme = useTheme();
+  const noopLabel = isReportEnabled
+    ? t('Report not yet run')
+    : t('Nothing triggered');
   const lastStateConfig = {
     icon: Icons.CheckOutlined,
     label: '',
@@ -57,9 +64,7 @@ export default function AlertStatusIcon({
   };
   switch (state) {
     case AlertState.Success:
-      lastStateConfig.icon = isReportEnabled
-        ? Icons.CheckOutlined
-        : Icons.WarningOutlined;
+      lastStateConfig.icon = Icons.CheckOutlined;
       lastStateConfig.label = isReportEnabled
         ? t('Report sent')
         : t('Alert triggered, notification sent');
@@ -80,8 +85,8 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Error;
       break;
     case AlertState.Noop:
-      lastStateConfig.icon = Icons.CheckOutlined;
-      lastStateConfig.label = t('Nothing triggered');
+      lastStateConfig.icon = Icons.CalendarOutlined;
+      lastStateConfig.label = noopLabel;
       lastStateConfig.status = AlertState.Noop;
       break;
     case AlertState.Grace:
@@ -89,22 +94,38 @@ export default function AlertStatusIcon({
       lastStateConfig.label = t('Alert Triggered, In Grace Period');
       lastStateConfig.status = AlertState.Grace;
       break;
+    case AlertState.Retrying:
+      lastStateConfig.icon = Icons.Running;
+      lastStateConfig.label = t('Report retrying');
+      lastStateConfig.status = AlertState.Retrying;
+      break;
     default:
-      lastStateConfig.icon = Icons.CheckOutlined;
-      lastStateConfig.label = t('Nothing triggered');
+      lastStateConfig.icon = Icons.CalendarOutlined;
+      lastStateConfig.label = noopLabel;
       lastStateConfig.status = AlertState.Noop;
   }
   const Icon = lastStateConfig.icon;
+  const isRunningIcon =
+    state === AlertState.Working || state === AlertState.Retrying;
   return (
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
-      <Icon
-        iconSize="m"
-        iconColor={getStatusColor(
-          lastStateConfig.status,
-          isReportEnabled,
-          theme,
-        )}
-      />
+      <span
+        css={
+          isRunningIcon
+            ? css`
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                transform: scale(1.8);
+              `
+            : undefined
+        }
+      >
+        <Icon
+          iconSize="m"
+          iconColor={getStatusColor(lastStateConfig.status, theme)}
+        />
+      </span>
     </Tooltip>
   );
 }

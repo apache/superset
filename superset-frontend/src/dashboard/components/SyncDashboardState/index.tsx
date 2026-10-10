@@ -18,7 +18,7 @@
  */
 import { FC, useEffect } from 'react';
 
-import { pick, pickBy } from 'lodash';
+import { pick, pickBy } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
@@ -72,7 +72,10 @@ const selectDashboardContextForExplore = createSelector(
     const nativeFilters = Object.keys(filters).reduce<
       Record<string, Pick<Filter | Divider, 'chartsInScope'>>
     >((acc, key) => {
-      acc[key] = pick(filters[key], ['chartsInScope']);
+      const filter = filters[key];
+      if ('chartsInScope' in filter) {
+        acc[key] = pick(filter, ['chartsInScope']);
+      }
       return acc;
     }, {});
 

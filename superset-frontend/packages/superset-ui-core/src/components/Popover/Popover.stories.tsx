@@ -22,6 +22,14 @@ import { Button } from '../Button';
 export default {
   title: 'Components/Popover',
   component: Popover,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'A floating card that appears when hovering or clicking a trigger element. Supports configurable placement, trigger behavior, and custom content.',
+      },
+    },
+  },
 };
 
 export const InteractivePopover = (args: PopoverProps) => (
@@ -37,31 +45,6 @@ export const InteractivePopover = (args: PopoverProps) => (
   </Popover>
 );
 
-const PLACEMENTS = {
-  label: 'placement',
-  options: [
-    'topLeft',
-    'top',
-    'topRight',
-    'leftTop',
-    'left',
-    'leftBottom',
-    'rightTop',
-    'right',
-    'rightBottom',
-    'bottomLeft',
-    'bottom',
-    'bottomRight',
-  ],
-  defaultValue: null,
-};
-
-const TRIGGERS = {
-  label: 'trigger',
-  options: ['hover', 'click', 'focus'],
-  defaultValue: null,
-};
-
 InteractivePopover.args = {
   content: 'Popover sample content',
   title: 'Popover title',
@@ -70,24 +53,116 @@ InteractivePopover.args = {
 };
 
 InteractivePopover.argTypes = {
+  content: {
+    control: 'text',
+    description: 'Content displayed inside the popover body.',
+  },
+  title: {
+    control: 'text',
+    description: 'Title displayed in the popover header.',
+  },
   placement: {
-    name: PLACEMENTS.label,
     control: { type: 'select' },
-    options: PLACEMENTS.options,
+    options: [
+      'topLeft',
+      'top',
+      'topRight',
+      'leftTop',
+      'left',
+      'leftBottom',
+      'rightTop',
+      'right',
+      'rightBottom',
+      'bottomLeft',
+      'bottom',
+      'bottomRight',
+    ],
+    description: 'Position of the popover relative to the trigger element.',
   },
   trigger: {
-    name: TRIGGERS.label,
     control: { type: 'select' },
-    options: TRIGGERS.options,
+    options: ['hover', 'click', 'focus'],
+    description: 'Event that triggers the popover to appear.',
   },
   arrow: {
-    name: 'arrow',
     control: { type: 'boolean' },
-    description: "Change arrow's visible state",
+    description: "Whether to show the popover's arrow pointing to the trigger.",
   },
   color: {
-    name: 'color',
     control: { type: 'color' },
     description: 'The background color of the popover.',
+  },
+};
+
+InteractivePopover.parameters = {
+  docs: {
+    sampleChildren: [{ component: 'Button', props: { children: 'Hover me' } }],
+    liveExample: `function Demo() {
+  return (
+    <Popover
+      content="Popover sample content"
+      title="Popover title"
+      arrow
+    >
+      <Button>Hover me</Button>
+    </Popover>
+  );
+}`,
+    examples: [
+      {
+        title: 'Click Trigger',
+        code: `function ClickPopover() {
+  return (
+    <Popover
+      content="This popover appears on click."
+      title="Click Popover"
+      trigger="click"
+    >
+      <Button>Click me</Button>
+    </Popover>
+  );
+}`,
+      },
+      {
+        title: 'Placements',
+        code: `function PlacementsDemo() {
+  return (
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', padding: '60px 0' }}>
+      {['top', 'right', 'bottom', 'left'].map(placement => (
+        <Popover
+          key={placement}
+          content={\`This popover is placed on the \${placement}\`}
+          title={placement}
+          placement={placement}
+        >
+          <Button>{placement}</Button>
+        </Popover>
+      ))}
+    </div>
+  );
+}`,
+      },
+      {
+        title: 'Rich Content',
+        code: `function RichPopover() {
+  return (
+    <Popover
+      title="Dashboard Info"
+      content={
+        <div>
+          <p><strong>Created by:</strong> Admin</p>
+          <p><strong>Last modified:</strong> Jan 2025</p>
+          <p><strong>Charts:</strong> 12</p>
+        </div>
+      }
+    >
+      <Button buttonStyle="primary">
+        <Icons.InfoCircleOutlined /> View Details
+      </Button>
+    </Popover>
+  );
+}`,
+      },
+    ],
   },
 };

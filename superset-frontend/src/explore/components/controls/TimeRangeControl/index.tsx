@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import dayjs from 'dayjs';
-import { TimeRangePicker } from 'src/components/TimePicker';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
+import { Dayjs } from 'dayjs';
+import { TimeRangePicker } from '@superset-ui/core/components';
 import ControlHeader, { ControlHeaderProps } from '../../ControlHeader';
 
 type TimeRangeValueType = [string, string];
@@ -38,7 +39,7 @@ export default function TimeRangeControl({
   allowEmpty,
   ...rest
 }: TimeRangeControlProps) {
-  const dayjsValue: [dayjs.Dayjs | null, dayjs.Dayjs | null] = [
+  const dayjsValue: [Dayjs | null, Dayjs | null] = [
     stringValue?.[0] ? dayjs.utc(stringValue[0], 'HH:mm:ss') : null,
     stringValue?.[1] ? dayjs.utc(stringValue[1], 'HH:mm:ss') : null,
   ];

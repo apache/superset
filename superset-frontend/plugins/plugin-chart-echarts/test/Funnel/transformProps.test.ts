@@ -16,41 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartProps,
-  getNumberFormatter,
-  supersetTheme,
-} from '@superset-ui/core';
+import { ChartProps, getNumberFormatter } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
+import type { FunnelSeriesOption } from 'echarts/charts';
 import transformProps, { parseParams } from '../../src/Funnel/transformProps';
 import {
   EchartsFunnelChartProps,
   PercentCalcType,
 } from '../../src/Funnel/types';
 
-describe('Funnel transformProps', () => {
-  const formData = {
-    colorScheme: 'bnbColors',
-    datasource: '3__table',
-    granularity_sqla: 'ds',
-    metric: 'sum__num',
-    groupby: ['foo', 'bar'],
-  };
-  const chartProps = new ChartProps({
-    formData,
-    width: 800,
-    height: 600,
-    queriesData: [
-      {
-        data: [
-          { foo: 'Sylvester', bar: 1, sum__num: 10 },
-          { foo: 'Arnold', bar: 2, sum__num: 2.5 },
-        ],
-      },
+const formData = {
+  colorScheme: 'bnbColors',
+  datasource: '3__table',
+  granularity_sqla: 'ds',
+  metric: 'sum__num',
+  groupby: ['foo', 'bar'],
+};
+const queriesData = [
+  {
+    data: [
+      { foo: 'Sylvester', bar: 1, sum__num: 10 },
+      { foo: 'Arnold', bar: 2, sum__num: 2.5 },
     ],
-    theme: supersetTheme,
-  });
+  },
+];
+const chartProps = new ChartProps({
+  formData,
+  width: 800,
+  height: 600,
+  queriesData,
+  theme: supersetTheme,
+});
 
-  it('should transform chart props for viz', () => {
+describe('Funnel transformProps', () => {
+  test('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsFunnelChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -74,10 +73,53 @@ describe('Funnel transformProps', () => {
       }),
     );
   });
+
+  test('should reserve extra space for a top horizontal legend by default (40 instead of 20)', () => {
+    const { echartOptions } = transformProps(
+      chartProps as EchartsFunnelChartProps,
+    );
+    const series = echartOptions.series as FunnelSeriesOption[];
+    expect(series[0].top).toBe(40);
+  });
+
+  test('should reserve extra space for a bottom horizontal legend by default (40 instead of 20)', () => {
+    const props = new ChartProps({
+      formData: { ...formData, legendOrientation: 'bottom' },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(props as EchartsFunnelChartProps);
+    const series = echartOptions.series as FunnelSeriesOption[];
+    expect(series[0].bottom).toBe(40);
+  });
+
+  test('should respect an explicit legend margin', () => {
+    const props = new ChartProps({
+      formData: { ...formData, legendMargin: 80 },
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+    const { echartOptions } = transformProps(props as EchartsFunnelChartProps);
+    const series = echartOptions.series as FunnelSeriesOption[];
+    expect(series[0].top).toBe(80);
+  });
+
+  test('does not apply a text border to segment labels', () => {
+    // A white textBorder washes out the dark text on light-colored segments.
+    const result = transformProps(chartProps as EchartsFunnelChartProps);
+    const { label } = (result.echartOptions.series as any)[0];
+    expect(label.color).toBe(supersetTheme.colorText);
+    expect(label.textBorderColor).toBeUndefined();
+    expect(label.textBorderWidth).toBeUndefined();
+  });
 });
 
 describe('formatFunnelLabel', () => {
-  it('should generate a valid funnel chart label', () => {
+  test('should generate a valid funnel chart label', () => {
     const numberFormatter = getNumberFormatter();
     const params = {
       name: 'My Label',
@@ -121,5 +163,51 @@ describe('formatFunnelLabel', () => {
         sanitizeName: true,
       }),
     ).toEqual(['&lt;NULL&gt;', '1.23k', '12.34%']);
+  });
+});
+
+describe('legend sorting', () => {
+  const legendQueriesData = [
+    {
+      data: [
+        { foo: 'Sylvester', sum__num: 10 },
+        { foo: 'Arnold', sum__num: 2.5 },
+        { foo: 'Mark', sum__num: 13 },
+      ],
+    },
+  ];
+  const createChartProps = (overrides = {}) =>
+    new ChartProps({
+      ...chartProps,
+      formData: {
+        ...formData,
+        groupby: ['foo'],
+        ...overrides,
+      },
+      queriesData: legendQueriesData,
+    });
+
+  test('preserves original data order when no sort specified', () => {
+    const props = createChartProps({ legendSort: null });
+    const result = transformProps(props as EchartsFunnelChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual(['Sylvester', 'Arnold', 'Mark']);
+  });
+
+  test('sorts alphabetically ascending when legendSort is "asc"', () => {
+    const props = createChartProps({ legendSort: 'asc' });
+    const result = transformProps(props as EchartsFunnelChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual(['Arnold', 'Mark', 'Sylvester']);
+  });
+
+  test('sorts alphabetically descending when legendSort is "desc"', () => {
+    const props = createChartProps({ legendSort: 'desc' });
+    const result = transformProps(props as EchartsFunnelChartProps);
+
+    const legendData = (result.echartOptions.legend as any).data;
+    expect(legendData).toEqual(['Sylvester', 'Mark', 'Arnold']);
   });
 });

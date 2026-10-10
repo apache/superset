@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { Select } from '@superset-ui/core/components';
 
 /* Components for AgGridTable */
@@ -27,6 +27,10 @@ export const Container = styled.div`
     width: 100%;
 
     .three-dots-menu {
+      appearance: none;
+      border: none;
+      background: none;
+      font: inherit;
       align-self: center;
       margin-left: ${theme.sizeUnit}px;
       cursor: pointer;
@@ -74,7 +78,6 @@ export const FilterIconWrapper = styled.div<{ isFilterActive?: boolean }>`
 
   padding: 3px 4px;
   overflow: hidden;
-  cursor: pointer;
   border-radius: 4px;
 
   ${({ isFilterActive }) =>
@@ -123,6 +126,12 @@ export const MenuContainer = styled.div`
     padding: ${theme.sizeUnit}px 0;
 
     .menu-item {
+      appearance: none;
+      border: none;
+      background: none;
+      font: inherit;
+      width: 100%;
+      text-align: left;
       padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
       cursor: pointer;
       display: flex;
@@ -130,13 +139,13 @@ export const MenuContainer = styled.div`
       gap: ${theme.sizeUnit * 2}px;
 
       &:hover {
-        background-color: ${theme.colors.primary.light4};
+        background-color: ${theme.colorPrimaryBgHover};
       }
     }
 
     .menu-divider {
       height: 1px;
-      background-color: ${theme.colors.grayscale.light2};
+      background-color: ${theme.colorBorderSecondary};
       margin: ${theme.sizeUnit}px 0;
     }
   `}
@@ -165,16 +174,17 @@ export const PopoverContainer = styled.div`
 
 export const PaginationContainer = styled.div`
   ${({ theme }) => `
-    border: 1px solid ${theme.colors.grayscale.light2};
+    border: 1px solid ${theme.colorBorderSecondary};
     display: flex;
     align-items: center;
     justify-content: flex-end;
     padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
-    border-top: 1px solid ${theme.colors.grayscale.light2};
+    border-top: 1px solid ${theme.colorBorderSecondary};
     font-size: ${theme.fontSize}px;
     color: ${theme.colorTextBase};
     transform: translateY(-${theme.sizeUnit}px);
     background: ${theme.colorBgBase};
+    flex-shrink: 0;
   `}
 `;
 
@@ -222,7 +232,7 @@ export const PageButton = styled.div<{ disabled?: boolean }>`
     svg {
       height: ${theme.sizeUnit * 3}px;
       width: ${theme.sizeUnit * 3}px;
-      fill: ${disabled ? theme.colors.grayscale.light1 : theme.colors.grayscale.dark2};
+      fill: ${disabled ? theme.colorTextQuaternary : theme.colorTextSecondary};
     }
   `}
 `;
@@ -239,14 +249,14 @@ export const InfoText = styled.div`
   max-width: 242px;
   ${({ theme }) => `
     padding: 0 ${theme.sizeUnit * 2}px;
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorTextBase};
     font-size: ${theme.fontSizeSM}px;
   `}
 `;
 
 export const ColumnLabel = styled.span`
   ${({ theme }) => `
-    color: ${theme.colors.grayscale.dark2};
+    color: ${theme.colorTextLabel};
   `}
 `;
 
@@ -287,14 +297,14 @@ export const StyledChartContainer = styled.div<{
     .dt-is-filter {
       cursor: pointer;
       :hover {
-        background-color: ${theme.colorPrimaryBgHover};
+        background-color: ${theme.colorFillContentHover};
       }
     }
 
     .dt-is-active-filter {
-      background: ${theme.colors.primary.light3};
+      background: ${theme.colorPrimaryBg};
       :hover {
-        background-color: ${theme.colorPrimaryBgHover};
+        background-color: ${theme.colorFillContentHover};
       }
     }
 
@@ -307,6 +317,24 @@ export const StyledChartContainer = styled.div<{
       overflow: visible;
       white-space: normal;
       height: auto;
+    }
+
+    .ag-cell.json-cell-expanded,
+    .dt-truncate-cell.json-cell-expanded {
+      overflow: visible;
+      white-space: normal;
+      align-items: flex-start;
+    }
+
+    .ag-cell {
+      color: var(--ag-cell-value-color, inherit);
+    }
+
+    .ag-row-hover .ag-cell {
+      color: var(
+        --ag-cell-value-hover-color,
+        var(--ag-cell-value-color, inherit)
+      );
     }
 
     .ag-container {
@@ -333,6 +361,7 @@ export const StyledChartContainer = styled.div<{
     .dropdown-controls-container {
       display: flex;
       justify-content: flex-end;
+      flex-shrink: 0;
     }
 
     .time-comparison-dropdown {
@@ -342,8 +371,37 @@ export const StyledChartContainer = styled.div<{
       height: fit-content;
     }
 
-    .ag-header,
-    .ag-row,
+    .ag-header {
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: ${theme.fontWeightStrong};
+    }
+
+    .ag-header-cell,
+    .ag-header-group-cell {
+      border-right: 1px solid ${theme.colorSplit};
+    }
+
+    .ag-header-cell.ag-column-last,
+    .ag-header-group-cell.ag-column-last {
+      border-right: none;
+    }
+
+    .ag-row {
+      font-size: ${theme.fontSizeSM}px;
+    }
+
+    /*
+     * AG Grid 34+ adds the row-entrance-animation class 'ag-opacity-zero'
+     * (opacity: 0) to a newly inserted row and removes it on the next frame to
+     * fade the row in. Under AG Grid 36 that class is never removed from the
+     * pinned bottom row, so the "Show summary" totals row renders fully (correct
+     * values in the DOM) but stays permanently transparent. Force pinned rows
+     * opaque so the summary row is visible.
+     */
+    .ag-row-pinned {
+      opacity: 1 !important;
+    }
+
     .ag-spanned-row {
       font-size: ${theme.fontSizeSM}px;
       font-weight: ${theme.fontWeightStrong};
@@ -361,7 +419,7 @@ export const StyledChartContainer = styled.div<{
       margin-right: ${theme.sizeUnit * 2}px;
     }
 
-    .ant-popover-inner {
+    .ant-popover-container {
       padding: 0px;
     }
 
@@ -379,7 +437,7 @@ export const StyledChartContainer = styled.div<{
     .input-wrapper svg {
       pointer-events: none;
       transform: translate(${theme.sizeUnit * 7}px, ${theme.sizeUnit / 2}px);
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorTextBase};
     }
 
     .input-wrapper input {
@@ -389,16 +447,40 @@ export const StyledChartContainer = styled.div<{
         ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 8}px;
       line-height: 1.8;
       border-radius: ${theme.borderRadius}px;
-      border: 1px solid ${theme.colors.grayscale.light2};
+      border: 1px solid ${theme.colorBorderSecondary};
       background-color: transparent;
       outline: none;
 
       &:focus {
-        border-color: ${theme.colors.primary.base};
+        border-color: ${theme.colorPrimary};
       }
 
       &::placeholder {
-        color: ${theme.colors.grayscale.light1};
+        color: ${theme.colorTextQuaternary};
+      }
+    }
+
+    .ag-header-center {
+      .ag-header-cell-label {
+        justify-content: center;
+      }
+    }
+
+    .ag-header-align-left {
+      .ag-header-group-cell-label {
+        justify-content: flex-start;
+      }
+    }
+
+    .ag-header-align-center {
+      .ag-header-group-cell-label {
+        justify-content: center;
+      }
+    }
+
+    .ag-header-align-right {
+      .ag-header-group-cell-label {
+        justify-content: flex-end;
       }
     }
   `}

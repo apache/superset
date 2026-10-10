@@ -18,7 +18,7 @@
  */
 import { FC, ReactNode } from 'react';
 import { Resizable } from 're-resizable';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import useStoredSidebarWidth from './useStoredSidebarWidth';
 
 const ResizableWrapper = styled.div`
@@ -30,7 +30,7 @@ const ResizableWrapper = styled.div`
   }
 
   .sidebar-resizer {
-    // @z-index-above-sticky-header (100) + 1 = 101
+    /* @z-index-above-sticky-header (100) + 1 = 101 */
     z-index: 101;
   }
 

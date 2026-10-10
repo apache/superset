@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Imported first: loading this before 'spec/helpers/testing-library' or
+// '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
+// before anything transitively requires (and thus mocks) 'antd'.
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -25,7 +29,9 @@ import {
 } from 'spec/helpers/testing-library';
 import { isFeatureEnabled, getExtensionsRegistry } from '@superset-ui/core';
 import Welcome from 'src/pages/Home';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
+import { redirect } from 'src/utils/navigationUtils';
+import { RoutePaths } from 'src/views/routePaths';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const chartInfoEndpoint = 'glob:*/api/v1/chart/_info?*';
@@ -134,12 +140,10 @@ const mockedProps = {
 };
 
 const mockedPropsWithoutSqlRole = {
-  ...{
-    ...mockedProps,
-    user: {
-      ...mockedProps.user,
-      roles: {},
-    },
+  ...mockedProps,
+  user: {
+    ...mockedProps.user,
+    roles: {},
   },
 };
 
@@ -147,6 +151,14 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
 }));
+
+jest.mock('src/utils/navigationUtils', () => ({
+  ...jest.requireActual('src/utils/navigationUtils'),
+  redirect: jest.fn(),
+}));
+
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
@@ -159,13 +171,43 @@ const renderWelcome = (props = mockedProps) =>
   });
 
 afterEach(() => {
-  fetchMock.resetHistory();
+  fetchMock.clearHistory();
+  jest.mocked(redirect).mockClear();
 });
 
-test('With sql role - renders', async () => {
-  await renderWelcome();
-  expect(await screen.findByText('Dashboards')).toBeInTheDocument();
-});
+test.each([
+  ['anonymous', { roles: { Public: [] }, permissions: {}, groups: [] }],
+  ['guest', { ...mockedProps.user, userId: undefined }],
+  ['missing', undefined],
+])(
+  'Redirects the %s user through the server without fetching Home data',
+  async (_, user) => {
+    render(<Welcome user={user} />, { useRedux: true, useRouter: true });
+
+    await waitFor(() => expect(redirect).toHaveBeenCalledWith(RoutePaths.HOME));
+    [
+      chartsEndpoint,
+      dashboardsEndpoint,
+      recentActivityEndpoint,
+      savedQueryEndpoint,
+    ].forEach(endpoint => {
+      expect(fetchMock.callHistory.calls(endpoint)).toHaveLength(0);
+    });
+    expect(screen.queryByText('Dashboards')).not.toBeInTheDocument();
+  },
+);
+
+test.each([0, mockedProps.user.userId])(
+  'With sql role and user ID %s - renders',
+  async userId => {
+    await renderWelcome({
+      ...mockedProps,
+      user: { ...mockedProps.user, userId },
+    });
+    expect(await screen.findByText('Dashboards')).toBeInTheDocument();
+    expect(redirect).not.toHaveBeenCalled();
+  },
+);
 
 test('With sql role - renders all panels on the page on page load', async () => {
   await renderWelcome();
@@ -177,8 +219,8 @@ test('With sql role - renders all panels on the page on page load', async () => 
 
 test('With sql role - renders distinct recent activities', async () => {
   await renderWelcome();
-  const recentPanel = screen.getByRole('button', { name: 'collapsed Recents' });
-  userEvent.click(recentPanel);
+  const recentPanel = screen.getByRole('button', { name: 'Recents' });
+  await userEvent.click(recentPanel);
   await waitFor(() =>
     expect(
       screen.queryAllByText(mockRecentActivityResult[0].item_title),
@@ -191,35 +233,35 @@ test('With sql role - renders distinct recent activities', async () => {
 
 test('With sql role - calls api methods in parallel on page load', async () => {
   await renderWelcome();
-  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(2);
-  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(1);
-  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(1);
-  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(2);
+  expect(fetchMock.callHistory.calls(chartsEndpoint)).toHaveLength(2);
+  expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(savedQueryEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(dashboardsEndpoint)).toHaveLength(2);
 });
 
 test('Without sql role - renders', async () => {
   /*
   We ignore the ts error here because the type does not recognize the absence of a role entry
   */
-  // @ts-ignore-next-line
+  // @ts-expect-error-next-line
   await renderWelcome(mockedPropsWithoutSqlRole);
   expect(await screen.findByText('Dashboards')).toBeInTheDocument();
 });
 
 test('Without sql role - renders all panels on the page on page load', async () => {
-  // @ts-ignore-next-line
+  // @ts-expect-error-next-line
   await renderWelcome(mockedPropsWithoutSqlRole);
   const panels = await screen.findAllByText(/Dashboards|Charts|Recents/);
   expect(panels).toHaveLength(3);
 });
 
 test('Without sql role - calls api methods in parallel on page load', async () => {
-  // @ts-ignore-next-line
+  // @ts-expect-error-next-line
   await renderWelcome(mockedPropsWithoutSqlRole);
-  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(2);
-  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(1);
-  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(2);
+  expect(fetchMock.callHistory.calls(chartsEndpoint)).toHaveLength(2);
+  expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(savedQueryEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(dashboardsEndpoint)).toHaveLength(2);
 });
 
 // Mock specific to the tests related to the toggle switch
@@ -245,9 +287,9 @@ test('With toggle switch - does not show thumbnails when switch is off', async (
   await renderWelcome();
   const toggle = await screen.findByRole('switch', {}, { timeout: 10000 });
 
+  await userEvent.click(toggle);
   await waitFor(
     () => {
-      userEvent.click(toggle);
       expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
     },
     { timeout: 10000 },
@@ -261,7 +303,7 @@ test('Should render an extension component if one is supplied', async () => {
     <>welcome.banner extension component</>
   ));
 
-  setupExtensions();
+  setupCodeOverrides();
 
   await renderWelcome();
 
@@ -275,7 +317,7 @@ test('Should render a submenu extension component if one is supplied', async () 
 
   extensionsRegistry.set('home.submenu', () => <>submenu extension</>);
 
-  setupExtensions();
+  setupCodeOverrides();
 
   await renderWelcome();
 
@@ -293,7 +335,7 @@ test('Should not make data fetch calls if `welcome.main.replacement` is defined'
     <>welcome.main.replacement extension component</>
   ));
 
-  setupExtensions();
+  setupCodeOverrides();
 
   await renderWelcome();
 
@@ -301,8 +343,8 @@ test('Should not make data fetch calls if `welcome.main.replacement` is defined'
     screen.getByText('welcome.main.replacement extension component'),
   ).toBeInTheDocument();
 
-  expect(fetchMock.calls(chartsEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(dashboardsEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(recentActivityEndpoint)).toHaveLength(0);
-  expect(fetchMock.calls(savedQueryEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(chartsEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(dashboardsEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(recentActivityEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(savedQueryEndpoint)).toHaveLength(0);
 });

@@ -1,0 +1,158 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+from __future__ import annotations
+
+import enum
+from abc import ABC, abstractmethod
+
+from superset_core.semantic_layers.types import (
+    Dimension,
+    Filter,
+    Metric,
+    SemanticQuery,
+    SemanticResult,
+)
+
+
+# TODO (betodealmeida): move to the extension JSON
+class SemanticViewFeature(enum.Enum):
+    """
+    Custom features supported by semantic layers.
+    """
+
+    ADHOC_COLUMN_EXPRESSIONS = "ADHOC_COLUMN_EXPRESSIONS"
+    ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
+    GROUP_LIMIT = "GROUP_LIMIT"
+    GROUP_OTHERS = "GROUP_OTHERS"
+
+
+class SemanticView(ABC):
+    """
+    Abstract base class for semantic views.
+    """
+
+    # Defaults to no optional features: providers opt in by overriding, and
+    # consumers can rely on the attribute existing and degrade to the
+    # conservative (Saved-only) picker for views that declare nothing.
+    features: frozenset[SemanticViewFeature] = frozenset()
+    selection_identity_version: str | None = None
+    # The host uses this exposed temporal dimension as Explore's default.
+    # Providers that do not declare one retain the existing column-order fallback.
+    preferred_temporal_dimension: str | None = None
+
+    def validate_selection_version(self, version: object) -> None:
+        """Reject selections made under a different member identity contract."""
+        if (
+            self.selection_identity_version is not None
+            and version != self.selection_identity_version
+        ):
+            raise ValueError(
+                "Saved semantic selections use an older identity format. "
+                "Reset the chart selections, explicitly reselect its metrics "
+                "and dimensions, and save the chart. Display titles cannot be "
+                "automatically mapped to member IDs."
+            )
+
+    # Implementations must expose a display name for the view.
+    # Declared here as a type annotation (not abstract) so that existing
+    # implementations are not required to add a formal @abstractmethod.
+    name: str
+
+    @property
+    def metadata_cache_token(self) -> str | None:
+        """Return the identity captured with these members, or None for legacy views.
+
+        A provider using a bound metadata store must return its observation's
+        nonempty token. The host must reject a missing token in that mode rather
+        than silently using legacy cache keys. Never look up a later identity
+        independently of the data used for discovery or compatibility.
+        """
+        return None
+
+    @abstractmethod
+    def uid(self) -> str:
+        """
+        Returns a unique identifier for the semantic view.
+        """
+
+    @abstractmethod
+    def get_dimensions(self) -> set[Dimension]:
+        """
+        Get the dimensions defined in the semantic view.
+        """
+
+    @abstractmethod
+    def get_metrics(self) -> set[Metric]:
+        """
+        Get the metrics defined in the semantic view.
+        """
+
+    @abstractmethod
+    def get_values(
+        self,
+        dimension: Dimension,
+        filters: set[Filter] | None = None,
+    ) -> SemanticResult:
+        """
+        Return distinct values for a dimension.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
+        Do not drop ``filters`` and retry when a filtered request is incomplete.
+        """
+
+    @abstractmethod
+    def get_table(self, query: SemanticQuery) -> SemanticResult:
+        """
+        Execute a semantic query and return the results.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
+        """
+
+    @abstractmethod
+    def get_row_count(self, query: SemanticQuery) -> SemanticResult:
+        """
+        Execute a query and return the number of rows the result would have.
+
+        Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
+        when the result is incomplete or its completeness cannot be verified;
+        never return a partial result instead.
+        """
+
+    @abstractmethod
+    def get_compatible_metrics(
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[Dimension],
+    ) -> set[Metric]:
+        """
+        Return metrics compatible with the selected dimensions.
+        """
+
+    @abstractmethod
+    def get_compatible_dimensions(
+        self,
+        selected_metrics: set[Metric],
+        selected_dimensions: set[Dimension],
+    ) -> set[Dimension]:
+        """
+        Return dimensions compatible with the selected metrics.
+        """

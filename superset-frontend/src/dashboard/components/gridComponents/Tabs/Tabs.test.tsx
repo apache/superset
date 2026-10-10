@@ -1,0 +1,481 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
+import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
+import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
+import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
+import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
+import React from 'react';
+import { RENDER_TAB_CONTENT } from '../Tab';
+import TabsComponent from './Tabs';
+
+// Cast to accept partial mock props in tests
+const Tabs = TabsComponent as unknown as React.FC<Record<string, unknown>>;
+
+jest.mock('src/dashboard/containers/DashboardComponent', () =>
+  jest.fn(props => (
+    <button
+      type="button"
+      onClick={() =>
+        props.onDropOnTab({ destination: { id: 'TAB-YT6eNksV-' } })
+      }
+      data-test="DashboardComponent"
+    >
+      DashboardComponent
+    </button>
+  )),
+);
+
+jest.mock('src/dashboard/components/DeleteComponentButton', () =>
+  jest.fn(props => (
+    <button
+      type="button"
+      data-test="DeleteComponentButton"
+      onClick={props.onDelete}
+    >
+      DeleteComponentButton
+    </button>
+  )),
+);
+jest.mock('src/dashboard/util/getLeafComponentIdFromPath', () => jest.fn());
+
+jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
+  Draggable: jest.fn(props => {
+    const mockElement = { tagName: 'DIV', dataset: {} };
+    const childProps = props.editMode
+      ? {
+          dragSourceRef: { current: mockElement },
+          dropIndicatorProps: props.dropIndicatorProps,
+        }
+      : {};
+    return (
+      <div>
+        <button type="button" data-test="DragDroppable" onClick={props.onDrop}>
+          DragDroppable
+        </button>
+        {props.children(childProps)}
+      </div>
+    );
+  }),
+}));
+
+const createProps = () => ({
+  id: 'TABS-L-d9eyOE-b',
+  parentId: 'GRID_ID',
+  depth: 2,
+  index: 0,
+  availableColumnCount: 12,
+  columnWidth: 120,
+  isComponentVisible: true,
+  component: {
+    children: ['TAB-AsMaxdYL_t', 'TAB-YT6eNksV-', 'TAB-l_9I0aNYZ'],
+    id: 'TABS-L-d9eyOE-b',
+    meta: {},
+    parents: ['ROOT_ID', 'GRID_ID'],
+    type: 'TABS',
+  },
+  parentComponent: {
+    children: ['TABS-L-d9eyOE-b'],
+    id: 'GRID_ID',
+    parents: ['ROOT_ID'],
+    type: 'GRID',
+  },
+  editMode: true,
+  undoLength: 0,
+  redoLength: 0,
+  filters: {},
+  directPathToChild: [],
+  directPathLastUpdated: 1617395480760,
+  dashboardId: 23,
+  focusedFilterScope: null,
+  renderTabContent: true,
+  renderHoverMenu: true,
+  logEvent: jest.fn(),
+  setActiveTab: jest.fn(),
+  createComponent: jest.fn(),
+  handleComponentDrop: jest.fn(),
+  onChangeTab: jest.fn(),
+  deleteComponent: jest.fn(),
+  updateComponents: jest.fn(),
+  dashboardLayout: emptyDashboardLayout,
+  nativeFilters: nativeFiltersInfo.filters,
+});
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+test('Should render editMode:true', () => {
+  const props = createProps();
+  render(<Tabs {...props} />, { useRedux: true, useDnd: true });
+  expect(
+    screen
+      .getAllByRole('tab')
+      .filter(tab => !tab.classList.contains('ant-tabs-tab-remove')),
+  ).toHaveLength(3);
+  expect(screen.getAllByRole('button', { name: 'remove' })).toHaveLength(3);
+  expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(1);
+  expect(DashboardComponent).toHaveBeenCalledTimes(4);
+  expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
+});
+
+test('Should render HoverMenu in editMode', () => {
+  const props = createProps();
+  const { container } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  // HoverMenu is rendered inside TabsRenderer when editMode is true
+  expect(container.querySelector('.hover-menu')).toBeInTheDocument();
+});
+
+test('Should not render HoverMenu when not in editMode', () => {
+  const props = createProps();
+  props.editMode = false;
+  const { container } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  expect(container.querySelector('.hover-menu')).not.toBeInTheDocument();
+});
+
+test('Should not render HoverMenu when renderHoverMenu is false', () => {
+  const props = createProps();
+  props.renderHoverMenu = false;
+  const { container } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  expect(container.querySelector('.hover-menu')).not.toBeInTheDocument();
+});
+
+test('Should render editMode:false', () => {
+  const props = createProps();
+  props.editMode = false;
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  expect(screen.getAllByRole('tab')).toHaveLength(3);
+  expect(DashboardComponent).toHaveBeenCalledTimes(4);
+  expect(DeleteComponentButton).not.toHaveBeenCalled();
+  expect(
+    screen.queryByRole('button', { name: 'remove' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Add tab' }),
+  ).not.toBeInTheDocument();
+});
+
+test('Update component props', () => {
+  const props = createProps();
+  (getLeafComponentIdFromPath as jest.Mock).mockResolvedValueOnce('none');
+  props.editMode = false;
+  const { rerender } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  expect(DeleteComponentButton).not.toHaveBeenCalled();
+
+  props.editMode = true;
+  rerender(<Tabs {...props} />);
+  expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
+});
+
+test('Clicking on "DeleteComponentButton"', async () => {
+  const props = createProps();
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(props.deleteComponent).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByTestId('DeleteComponentButton'));
+  expect(props.deleteComponent).toHaveBeenCalledWith(
+    'TABS-L-d9eyOE-b',
+    'GRID_ID',
+  );
+});
+
+test('Add new tab', async () => {
+  const props = createProps();
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(props.createComponent).not.toHaveBeenCalled();
+  await userEvent.click(screen.getAllByRole('button', { name: 'Add tab' })[0]);
+  expect(props.createComponent).toHaveBeenCalled();
+});
+
+test('Removing a tab', async () => {
+  const props = createProps();
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(props.deleteComponent).not.toHaveBeenCalled();
+  expect(screen.queryByText('Delete dashboard tab?')).not.toBeInTheDocument();
+  await userEvent.click(screen.getAllByRole('button', { name: 'remove' })[0]);
+  expect(props.deleteComponent).not.toHaveBeenCalled();
+
+  expect(await screen.findByText('Delete dashboard tab?')).toBeInTheDocument();
+
+  expect(props.deleteComponent).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  expect(props.deleteComponent).toHaveBeenCalled();
+});
+
+test('Switching tabs', async () => {
+  const props = createProps();
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(props.logEvent).not.toHaveBeenCalled();
+  expect(props.onChangeTab).not.toHaveBeenCalled();
+  await userEvent.click(screen.getAllByRole('tab')[2]);
+  expect(props.logEvent).toHaveBeenCalled();
+  expect(props.onChangeTab).toHaveBeenCalled();
+});
+
+test('Switching tabs shows the newly selected tab content and hides the previous one', async () => {
+  const props = createProps();
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  const [firstTabId, , thirdTabId] = props.component.children;
+
+  // The first tab starts selected and its panel is the only one exposed
+  // to the accessibility tree.
+  let tabs = screen.getAllByRole('tab');
+  expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+  expect(tabs[2]).toHaveAttribute('aria-selected', 'false');
+  expect(screen.getByRole('tabpanel').id).toContain(firstTabId);
+
+  await userEvent.click(tabs[2]);
+
+  // After switching, the clicked tab is selected and its content panel
+  // becomes the only one exposed to the accessibility tree...
+  tabs = screen.getAllByRole('tab');
+  expect(tabs[2]).toHaveAttribute('aria-selected', 'true');
+  expect(tabs[0]).toHaveAttribute('aria-selected', 'false');
+  expect(screen.getByRole('tabpanel').id).toContain(thirdTabId);
+
+  // ...while the previously active tab's panel is hidden from it.
+  const firstPanel = screen
+    .getAllByRole('tabpanel', { hidden: true })
+    .find(panel => panel.id.includes(firstTabId));
+  expect(firstPanel).toHaveAttribute('aria-hidden', 'true');
+
+  // The selected tab's content is the one rendered as visible, which is what
+  // lets its charts pick up updates once revealed.
+  const lastContentPropsFor = (tabId: string) =>
+    (DashboardComponent as unknown as jest.Mock).mock.calls
+      .map(
+        call =>
+          call[0] as {
+            id: string;
+            renderType: string;
+            isComponentVisible?: boolean;
+          },
+      )
+      .filter(
+        componentProps =>
+          componentProps.renderType === RENDER_TAB_CONTENT &&
+          componentProps.id === tabId,
+      )
+      .at(-1);
+  expect(lastContentPropsFor(thirdTabId)?.isComponentVisible).toBe(true);
+  expect(lastContentPropsFor(firstTabId)?.isComponentVisible).not.toBe(true);
+});
+
+test.each([false, true])(
+  'A childless TABS component does not register an active tab (editMode=%s)',
+  editMode => {
+    // An unresolved id reaches activeTabs as `undefined`, which
+    // `JSON.stringify` coerces to `null` in the permalink request body.
+    const props = createProps();
+    props.editMode = editMode;
+    props.component.children = [];
+
+    render(<Tabs {...props} />, {
+      useRedux: true,
+      useDnd: true,
+    });
+
+    expect(props.setActiveTab).not.toHaveBeenCalled();
+  },
+);
+
+test.each([false, true])(
+  'The first child added to an empty TABS component is activated (editMode=%s)',
+  editMode => {
+    const props = createProps();
+    const [tabId] = props.component.children;
+    props.editMode = editMode;
+    props.component.children = [];
+    const { rerender } = render(<Tabs {...props} />, {
+      useRedux: true,
+      useDnd: true,
+    });
+
+    expect(props.setActiveTab).not.toHaveBeenCalled();
+    rerender(
+      <Tabs {...props} component={{ ...props.component, children: [tabId] }} />,
+    );
+
+    expect(props.setActiveTab.mock.calls).toEqual([[tabId]]);
+    expect(screen.getByRole('tab')).toHaveAttribute('aria-selected', 'true');
+  },
+);
+
+test('A tab added after deleting the last tab is selected and registered', async () => {
+  const props = createProps();
+  const [deletedTabId, newTabId] = props.component.children;
+  props.component.children = [deletedTabId];
+  const { rerender } = render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(props.setActiveTab.mock.calls).toEqual([[deletedTabId]]);
+  expect(screen.getByRole('tab')).toHaveAttribute('aria-selected', 'true');
+
+  await userEvent.click(screen.getByRole('button', { name: 'remove' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  expect(props.deleteComponent).toHaveBeenCalledWith(
+    deletedTabId,
+    props.component.id,
+  );
+
+  rerender(
+    <Tabs {...props} component={{ ...props.component, children: [] }} />,
+  );
+  expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  props.setActiveTab.mockClear();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add tab' }));
+  expect(props.createComponent).toHaveBeenCalled();
+  expect(props.setActiveTab).not.toHaveBeenCalled();
+
+  rerender(
+    <Tabs
+      {...props}
+      component={{ ...props.component, children: [newTabId] }}
+    />,
+  );
+
+  expect(props.setActiveTab.mock.calls).toEqual([[newTabId, deletedTabId]]);
+  expect(screen.getByRole('tab')).toHaveAttribute('aria-selected', 'true');
+});
+
+test.each([false, true])(
+  'A populated TABS component registers its active tab (editMode=%s)',
+  editMode => {
+    const props = createProps();
+    props.editMode = editMode;
+
+    render(<Tabs {...props} />, {
+      useRedux: true,
+      useDnd: true,
+    });
+
+    expect(props.setActiveTab.mock.calls).toEqual([['TAB-AsMaxdYL_t']]);
+  },
+);
+
+test('activeTabs hydrated from a permalink selects the matching tab content', () => {
+  // Regression guard for #36132: when a dashboard is opened via a
+  // permalink/anchor (including embedded dashboards), the permalink state is
+  // hydrated into dashboardState.activeTabs. The Tabs component must use that
+  // value to select the matching tab AND render that tab's content panel,
+  // not just highlight the tab header while showing the first tab's content.
+  const props = createProps();
+  props.editMode = false;
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState: {
+      dashboardState: {
+        activeTabs: ['TAB-YT6eNksV-'],
+      },
+    },
+  });
+
+  // The tab referenced by dashboardState.activeTabs is the selected one
+  const tabs = screen.getAllByRole('tab');
+  expect(tabs[1]).toHaveAttribute('aria-selected', 'true');
+  expect(tabs[0]).toHaveAttribute('aria-selected', 'false');
+
+  // ...and its content panel is the one mounted as visible, while the
+  // default (first) tab's content is not shown
+  const contentCalls = (DashboardComponent as unknown as jest.Mock).mock.calls
+    .map(
+      call =>
+        call[0] as {
+          id: string;
+          renderType: string;
+          isComponentVisible?: boolean;
+        },
+    )
+    .filter(componentProps => componentProps.renderType === RENDER_TAB_CONTENT);
+  expect(
+    contentCalls.some(
+      componentProps =>
+        componentProps.id === 'TAB-YT6eNksV-' &&
+        componentProps.isComponentVisible === true,
+    ),
+  ).toBe(true);
+  expect(
+    contentCalls.some(
+      componentProps =>
+        componentProps.id === 'TAB-AsMaxdYL_t' &&
+        componentProps.isComponentVisible === true,
+    ),
+  ).toBe(false);
+});
+
+test('Call "DashboardComponent.onDropOnTab"', async () => {
+  const props = createProps();
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(props.logEvent).not.toHaveBeenCalled();
+  expect(props.onChangeTab).not.toHaveBeenCalled();
+  await userEvent.click(screen.getAllByText('DashboardComponent')[0]);
+
+  await waitFor(() => {
+    expect(props.logEvent).toHaveBeenCalled();
+    expect(props.onChangeTab).toHaveBeenCalled();
+  });
+});

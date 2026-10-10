@@ -23,11 +23,14 @@ import {
   AsyncSelect,
   Button,
   Divider,
+  Flex,
   FormLabel,
   Input,
   Modal,
 } from '@superset-ui/core/components';
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
@@ -82,6 +85,7 @@ const TagModal: FC<TagModalProps> = ({
 
   const [tagName, setTagName] = useState<string>('');
   const [description, setDescription] = useState<string>('');
+  const theme = useTheme();
 
   const isEditMode = !!editTag;
 
@@ -126,7 +130,7 @@ const TagModal: FC<TagModalProps> = ({
           setChartsToTag(resourceMap[TaggableResources.Chart]);
           setSavedQueriesToTag(resourceMap[TaggableResources.SavedQuery]);
         },
-        (error: Response) => {
+        (_error: Response) => {
           addDangerToast('Error Fetching Tagged Objects');
         },
       );
@@ -296,32 +300,42 @@ const TagModal: FC<TagModalProps> = ({
       }
     >
       <StyledModalBody>
-        <FormLabel>{t('Tag name')}</FormLabel>
-        <Input
-          className="tag-input"
-          onChange={handleTagNameChange}
-          placeholder={t('Name of your tag')}
-          value={tagName}
-        />
-        <FormLabel>{t('Description')}</FormLabel>
-        <Input
-          className="tag-input"
-          onChange={handleDescriptionChange}
-          placeholder={t('Add description of your tag')}
-          value={description}
-        />
+        <Flex vertical gap={theme.sizeUnit}>
+          <FormLabel htmlFor="tag-name">{t('Tag name')}</FormLabel>
+          <Input
+            id="tag-name"
+            className="tag-input"
+            onChange={handleTagNameChange}
+            placeholder={t('Name of your tag')}
+            value={tagName}
+          />
+        </Flex>
+
+        <Flex vertical gap={theme.sizeUnit}>
+          <FormLabel htmlFor="tag-description">
+            {t('Tag description')}
+          </FormLabel>
+          <Input
+            id="tag-description"
+            className="tag-input"
+            onChange={handleDescriptionChange}
+            placeholder={t('Add description of your tag')}
+            value={description}
+          />
+        </Flex>
         <Divider />
         <AsyncSelect
           className="tag-input"
           ariaLabel={t('Select dashboards')}
           mode="multiple"
           name="dashboards"
-          // @ts-ignore
+          // @ts-expect-error
           value={dashboardsToTag}
           options={loadDashboards}
           onChange={value =>
             handleOptionChange(TaggableResources.Dashboard, value)
           }
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Dashboards')}</FormLabel>}
           allowClear
         />
@@ -330,10 +344,11 @@ const TagModal: FC<TagModalProps> = ({
           ariaLabel={t('Select charts')}
           mode="multiple"
           name="charts"
-          // @ts-ignore
+          // @ts-expect-error
           value={chartsToTag}
           options={loadCharts}
           onChange={value => handleOptionChange(TaggableResources.Chart, value)}
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Charts')}</FormLabel>}
           allowClear
         />
@@ -342,12 +357,13 @@ const TagModal: FC<TagModalProps> = ({
           ariaLabel={t('Select saved queries')}
           mode="multiple"
           name="savedQueries"
-          // @ts-ignore
+          // @ts-expect-error
           value={savedQueriesToTag}
           options={loadQueries}
           onChange={value =>
             handleOptionChange(TaggableResources.SavedQuery, value)
           }
+          getPopupContainer={() => document.body}
           header={<FormLabel>{t('Saved queries')}</FormLabel>}
           allowClear
         />

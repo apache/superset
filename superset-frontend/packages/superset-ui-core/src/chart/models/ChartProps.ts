@@ -19,9 +19,11 @@
 
 import { RefObject } from 'react';
 import { createSelector, lruMemoize } from 'reselect';
+import { supersetTheme, SupersetTheme } from '@apache-superset/core/theme';
 import {
   AppSection,
   Behavior,
+  CategoricalColorScale,
   convertKeysToCamelCase,
   Datasource,
   FilterState,
@@ -34,7 +36,6 @@ import {
   SetDataMaskHook,
 } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
-import { supersetTheme, SupersetTheme } from '../../theme';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
@@ -46,7 +47,7 @@ type RawFormData = CamelCaseFormData | SnakeCaseFormData;
 type ChartPropsSelector = (c: ChartPropsConfig) => ChartProps;
 
 /** Optional field for event handlers, renderers */
-type Hooks = {
+export type Hooks = {
   /**
    * sync active filters between chart and dashboard, "add" actually
    * also handles "change" and "remove".
@@ -66,6 +67,35 @@ type Hooks = {
   setTooltip?: HandlerFunction;
   /* handle legend scroll changes */
   onLegendScroll?: HandlerFunction;
+  /**
+   * Resolve an async chart-data response (HTTP 202 from GLOBAL_ASYNC_QUERIES).
+   * Injected by the app so components in this package (e.g. Matrixify's
+   * StatefulChart) can await async results without importing app-level
+   * async-event middleware. `refetch` re-issues the request synchronously once
+   * the query tasks have succeeded; it receives the per-query task ids, which
+   * double as forced-refresh idempotency nonces (see `requestChartDataResolved`)
+   * so a forced read-back reads the result its task cached instead of recomputing
+   * — and does not serve stale data if that result was not persisted. Returns the
+   * resolved query results.
+   */
+  handleAsyncChartData?: (
+    response: Response,
+    json: JsonObject,
+    refetch: (queryForceNonces?: string[]) => Promise<QueryData[]>,
+    signal?: AbortSignal,
+  ) => Promise<QueryData[]> | QueryData[];
+  /**
+   * Whether those self-contained components should request asynchronous
+   * execution, per the app's resolved async policy.
+   */
+  resolveAsyncMode?: () => boolean;
+  /**
+   * The app's stable per-tab id, sent with an async chart-data request so the
+   * backend ref-counts this tab as a consumer of the (shared) task — a later
+   * cancel/navigate-away then detaches only this tab. Injected from the app (the
+   * package cannot import the app-level tab-id hook).
+   */
+  getTabId?: () => string;
 } & PlainObject;
 
 /**
@@ -73,6 +103,8 @@ type Hooks = {
  */
 export interface ChartPropsConfig {
   annotationData?: AnnotationData;
+  /** Categorical scale shared by charts composed within one visualization. */
+  colorScale?: CategoricalColorScale;
   /** Datasource metadata */
   datasource?: SnakeCaseDatasource;
   initialValues?: DataRecordFilters;
@@ -117,6 +149,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
   static createSelector: () => ChartPropsSelector;
 
   annotationData: AnnotationData;
+
+  colorScale?: CategoricalColorScale;
 
   datasource: Datasource;
 
@@ -167,6 +201,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
   ) {
     const {
       annotationData = {},
+      colorScale,
       datasource = {},
       formData = {} as FormData,
       hooks = {},
@@ -190,6 +225,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.width = width;
     this.height = height;
     this.annotationData = annotationData;
+    this.colorScale = colorScale;
     this.datasource = convertKeysToCamelCase(datasource) as Datasource;
     this.rawDatasource = datasource;
     this.formData = convertKeysToCamelCase(formData);
@@ -235,6 +271,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.inContextMenu,
     input => input.emitCrossFilters,
     input => input.theme,
+    input => input.colorScale,
     (
       annotationData,
       datasource,
@@ -256,6 +293,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       inContextMenu,
       emitCrossFilters,
       theme,
+      colorScale,
     ) =>
       new ChartProps({
         annotationData,
@@ -278,6 +316,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         inContextMenu,
         emitCrossFilters,
         theme,
+        colorScale,
       }),
     // Below config is to retain usage of 1-sized `lruMemoize` object in Reselect v4
     // Reselect v5 introduces `weakMapMemoize` which is more performant but potentially memory-leaky

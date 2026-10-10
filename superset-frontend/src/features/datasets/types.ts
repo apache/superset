@@ -1,5 +1,5 @@
 import { Currency, type DatasourceType } from '@superset-ui/core';
-import { Owner } from '@superset-ui/chart-controls';
+import Subject from 'src/types/Subject';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -65,15 +65,19 @@ export type DatasetObject = {
   catalog?: string;
   description: string | null;
   main_dttm_col: string;
+  currency_code_column?: string;
   offset?: number;
   default_endpoint?: string;
   cache_timeout?: number;
   is_sqllab_view?: boolean;
   template_params?: string;
-  owners: Owner[];
+  editors: Subject[];
   columns: ColumnObject[];
   metrics: MetricObject[];
   extra?: string;
+  certified_by?: string;
+  certification_details?: string;
+  dataset_certification_changed?: boolean;
   is_managed_externally: boolean;
   normalize_columns: boolean;
   always_filter_main_dttm: boolean;

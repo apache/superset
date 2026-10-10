@@ -20,45 +20,181 @@ import json
 import os
 import re
 import subprocess
-from typing import List
+import time
+from typing import List, Optional
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+# The change detector gates the entire CI matrix, so a single transient GitHub
+# API hiccup should not fail the build. Retry server errors and network blips
+# with exponential backoff before giving up.
+MAX_RETRIES: int = 4
+RETRY_BACKOFF_SECONDS: int = 2
+REQUEST_TIMEOUT_SECONDS: int = 30
+# GitHub returns 429 when throttling, which is transient and worth retrying
+# alongside 5xx server errors. It also returns 403 for two very different
+# reasons — a secondary rate limit, and a token missing the required scope —
+# so 403 is only retried when the response headers show throttling. Retrying a
+# scope failure just delays the error and buries its cause.
+RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({429})
 
 # Define patterns for each group of files you're interested in
 PATTERNS = {
     "python": [
         r"^\.github/workflows/.*python",
+        r"^\.github/workflows/frontend-bundle-size-nightly\.yml$",
+        r"^docker-compose-image-tag\.yml$",
         r"^tests/",
         r"^superset/",
         r"^scripts/",
         r"^setup\.py",
+        r"^pyproject\.toml$",
         r"^requirements/.+\.txt",
+        r"^pyproject\.toml",
         r"^.pylintrc",
+        # See the note in "frontend": setup-backend/change-detector are this
+        # group's own setup.
+        r"^\.github/actions/",
     ],
     "frontend": [
         r"^\.github/workflows/.*(bashlib|frontend|e2e)",
+        # Composite actions are shared setup, matched by nothing else. Listed
+        # under "python" too -- setup-backend is a backend action, so gating it
+        # on "frontend" alone would skip the Python jobs whose setup changed.
+        r"^\.github/actions/",
         r"^superset-frontend/",
     ],
     "docker": [
         r"^Dockerfile$",
         r"^docker.*",
+        r"^\.github/workflows/docker\.yml$",
+        r"^\.grype\.yaml$",
     ],
     "docs": [
         r"^docs/",
     ],
+    "superset-extensions-cli": [
+        r"^\.github/workflows/superset-extensions-cli\.yml",
+        r"^superset-extensions-cli/",
+        r"^superset-core/",
+    ],
 }
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
+# Maps each PATTERNS group to the CodeQL language(s) its files are written
+# in, by file extension rather than directory. PATTERNS above groups files by
+# project area (e.g. "frontend" means "under superset-frontend/"), which is
+# right for gating CI jobs by area but wrong for picking which CodeQL
+# languages to scan: a .js file outside superset-frontend/ (e.g. under
+# scripts/ or superset/mcp_service/) is grouped under "python" by PATTERNS,
+# so a consumer that reused the "frontend" group as a stand-in for
+# "javascript changed" would silently skip scanning it. This reuses the same
+# group names as PATTERNS rather than introducing new ones, so a group's
+# language(s) can be looked up directly instead of via a separate mapping.
+# See https://github.com/apache/superset/issues/44822.
+GROUP_LANGUAGE_EXTENSIONS: dict[str, dict[str, str]] = {
+    "python": {".py": "python"},
+    "frontend": {
+        ".js": "javascript",
+        ".jsx": "javascript",
+        ".ts": "javascript",
+        ".tsx": "javascript",
+        ".mjs": "javascript",
+        ".cjs": "javascript",
+    },
+}
+# Flattened for a direct extension -> language lookup, independent of which
+# PATTERNS group (i.e. directory) the file lives in.
+LANGUAGE_EXTENSIONS: dict[str, str] = {
+    ext: lang
+    for extensions in GROUP_LANGUAGE_EXTENSIONS.values()
+    for ext, lang in extensions.items()
+}
+
+
+def detect_languages(files: Optional[List[str]]) -> List[str]:
+    """Returns the CodeQL languages actually touched, by file extension.
+
+    Unlike the PATTERNS groups above, this ignores which directory a file
+    lives in: a .js file is "javascript" whether it's under
+    superset-frontend/ or not. `files is None` (workflow_dispatch/schedule)
+    means "assume everything changed", so every known language is returned.
+    """
+    if files is None:
+        return sorted(set(LANGUAGE_EXTENSIONS.values()))
+    languages = set()
+    for file in files:
+        _, ext = os.path.splitext(file)
+        if lang := LANGUAGE_EXTENSIONS.get(ext):
+            languages.add(lang)
+    return sorted(languages)
+
+
+def _is_rate_limited(err: HTTPError) -> bool:
+    """Whether a 403 is GitHub throttling rather than a missing token scope."""
+    headers = getattr(err, "headers", None)
+    if headers is None:
+        return False
+    try:
+        return (
+            headers.get("x-ratelimit-remaining") == "0"
+            or headers.get("retry-after") is not None
+        )
+    except AttributeError:
+        return False
+
+
+def _api_error_detail(err: object) -> str:
+    """The API's own explanation, e.g. ``Resource not accessible by integration``.
+
+    Without this a 403 is indistinguishable from a rate limit in the CI log.
+    """
+    try:
+        body = err.read().decode("utf-8", "replace")  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001  # pylint: disable=broad-except
+        return ""
+    try:
+        detail = json.loads(body).get("message") or body
+    except (ValueError, AttributeError):
+        detail = body
+    # Bound the output so a large/HTML error page can't flood the CI log.
+    return detail[:500]
+
 
 def fetch_files_github_api(url: str):  # type: ignore
-    """Fetches data using GitHub API."""
+    """Fetches data using GitHub API, retrying on transient failures."""
     req = Request(url)  # noqa: S310
     req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
 
     print(f"Fetching from {url}")
-    with urlopen(req) as response:  # noqa: S310
-        body = response.read()
-        return json.loads(body)
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            with urlopen(req, timeout=REQUEST_TIMEOUT_SECONDS) as response:  # noqa: S310
+                body = response.read()
+                return json.loads(body)
+        except (HTTPError, URLError) as err:
+            # Retry transient failures: network errors (URLError has no status
+            # code), 5xx server errors, and GitHub rate-limit responses. Other
+            # 4xx client errors are deterministic, so re-raise immediately. Also
+            # re-raise once the retry budget is exhausted.
+            status = getattr(err, "code", None)
+            is_transient = (
+                status is None
+                or status >= 500
+                or status in RETRYABLE_STATUS_CODES
+                or (status == 403 and _is_rate_limited(err))  # type: ignore[arg-type]
+            )
+            if not is_transient or attempt == MAX_RETRIES:
+                if detail := _api_error_detail(err):
+                    print(f"GitHub API error {status}: {detail}")
+                raise
+            wait = RETRY_BACKOFF_SECONDS * 2 ** (attempt - 1)
+            print(
+                f"Attempt {attempt}/{MAX_RETRIES} failed ({err}); "
+                f"retrying in {wait}s..."
+            )
+            time.sleep(wait)
 
 
 def fetch_changed_files_pr(repo: str, pr_number: str) -> List[str]:
@@ -106,7 +242,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
     print("EVENT_TYPE", event_type)
-    files = []
+    files: Optional[List[str]] = []
     if event_type == "pull_request":
         pr_number = os.getenv("GITHUB_REF", "").split("/")[-2]
         if is_int(pr_number):
@@ -119,11 +255,15 @@ def main(event_type: str, sha: str, repo: str) -> None:
         print("Files touched since previous commit:")
         print_files(files)
 
-    elif event_type == "workflow_dispatch":
-        print("Workflow dispatched, assuming all changed")
+    elif event_type in ("workflow_dispatch", "schedule"):
+        # Manual or cron-triggered runs aren't tied to a specific diff, so
+        # treat every group as changed. `files = None` makes the loop below
+        # short-circuit to True for every group via `files is None or ...`.
+        print(f"{event_type} run, assuming all changed")
+        files = None
 
     else:
-        raise ValueError("Unsupported event type")
+        raise ValueError(f"Unsupported event type: {event_type}")
 
     changes_detected = {}
     for group, regex_patterns in PATTERNS.items():
@@ -132,6 +272,16 @@ def main(event_type: str, sha: str, repo: str) -> None:
             files, patterns_compiled
         )
 
+    # The 100-file API cap below treats a push/PR touching that many files as
+    # "everything changed" for the PATTERNS groups; language detection
+    # honors the same assumption so a consumer combining both outputs never
+    # sees a language silently excluded by the cap.
+    languages = (
+        sorted(set(LANGUAGE_EXTENSIONS.values()))
+        if files is not None and len(files) >= 99
+        else detect_languages(files)
+    )
+
     # Output results
     output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"  # noqa: S108
     with open(output_path, "a") as f:
@@ -139,14 +289,16 @@ def main(event_type: str, sha: str, repo: str) -> None:
             # NOTE: as noted above, we assume that if 100 files are touched, we should
             # trigger all checks. This is a workaround for the GitHub API limit of 100
             # files. Using >= 99 because off-by-one errors are not uncommon
-            if changed or len(files) >= 99:
+            if changed or (files is not None and len(files) >= 99):
                 print(f"{check}=true", file=f)
                 print(f"Triggering group: {check}")
+        print(f"languages={json.dumps(languages)}", file=f)
+        print(f"Languages detected: {languages}")
 
 
 def get_git_sha() -> str:
     return os.getenv("GITHUB_SHA") or subprocess.check_output(  # noqa: S603
-        ["git", "rev-parse", "HEAD"]  # noqa: S607
+        ["git", "rev-parse", "HEAD"]  # noqa: S603, S607
     ).strip().decode("utf-8")
 
 

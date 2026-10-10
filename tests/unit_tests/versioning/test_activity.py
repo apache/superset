@@ -1,0 +1,1591 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Unit tests for ``superset.versioning.activity`` pure helpers (sc-107283).
+
+No app context, no DB, no Flask. Covers the helpers that can be exercised
+in isolation: window intersection, scope resolution branching, entity-
+window merging, AV-012 summary headlines, ``changed_by`` projection,
+read-predicate fall-through, and the no-impact paths of
+``_compute_impact``. The DB-touching helpers
+(``chart_attachment_windows_for_dashboard``, ``datasets_used_by_chart``,
+``fetch_change_records``, ``apply_entity_name_denormalization``,
+``check_entity_tombstones``, ``_lookup_entity_uuids``) are exercised
+by the integration suite in
+``tests/integration_tests/versioning/activity_view_tests.py``.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import MagicMock, patch
+from uuid import uuid4
+
+import pytest
+import sqlalchemy as sa
+from flask_appbuilder import Model
+from pytest_mock import MockerFixture
+
+from superset.versioning.activity import (
+    ActivityParamsError,
+    EntityWindows,
+    orchestrator,
+    parse_activity_query_params,
+    Window,
+)
+from superset.versioning.activity.creation import _creation_kind_for
+from superset.versioning.activity.impact import (
+    _collect_attached_charts_at,
+    batch_chart_impacts,
+    ChartRef,
+    collect_impact_pairs,
+    impact_for_record,
+)
+from superset.versioning.activity.kinds import API_KIND_TO_TABLE, TABLE_KIND_TO_API
+from superset.versioning.activity.orchestrator import (
+    _DEFAULT_PAGE_SIZE,
+    _emit_request_shape_attributes,
+    _MAX_PAGE_SIZE,
+)
+from superset.versioning.activity.queries import (
+    _merge_result_into_heap,
+    _record_sort_key,
+    BoundedRecordHeap,
+)
+from superset.versioning.activity.render import (
+    _build_summary,
+    _changed_by_dict,
+    apply_record_decoration,
+)
+from superset.versioning.activity.scope import resolve_scope
+from superset.versioning.activity.windows import (
+    attachment_windows,
+    intersect_windows,
+    M2M_OP_DELETE,
+    M2M_OP_INSERT,
+    merge_entity_windows,
+    row_within_any_window,
+    union_windows,
+)
+from superset.versioning.schemas import ActivityRecordSchema
+
+
+@pytest.mark.parametrize(
+    "stored_kind, public_kind",
+    [
+        ("create", None),
+        ("baseline", None),
+        (None, None),
+        ("clone", "clone"),
+        ("import", "import"),
+        ("restore", "restore"),
+    ],
+)
+def test_activity_query_exposes_only_public_action_kinds(
+    monkeypatch: pytest.MonkeyPatch,
+    stored_kind: str | None,
+    public_kind: str | None,
+) -> None:
+    """Execute the mixed-transaction edit query without a migrated metastore."""
+    from sqlalchemy_continuum import versioning_manager
+
+    import superset
+    from superset.versioning.activity import queries
+
+    metadata: sa.MetaData = sa.MetaData()
+    changes: sa.Table = queries.version_changes_table.to_metadata(metadata)
+    transactions: sa.Table = sa.Table(
+        "activity_transactions",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("issued_at", sa.DateTime),
+        sa.Column("user_id", sa.Integer),
+        sa.Column("action_kind", sa.String(32)),
+    )
+    users: sa.Table = sa.Table(
+        "activity_users",
+        metadata,
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("first_name", sa.String),
+        sa.Column("last_name", sa.String),
+    )
+    monkeypatch.setattr(queries, "version_changes_table", changes)
+    monkeypatch.setattr(
+        versioning_manager, "transaction_cls", SimpleNamespace(__table__=transactions)
+    )
+    monkeypatch.setattr(
+        superset,
+        "security_manager",
+        SimpleNamespace(user_model=SimpleNamespace(__table__=users)),
+    )
+    engine: sa.Engine = sa.create_engine("sqlite://")
+    connection: sa.Connection
+    try:
+        with engine.begin() as connection:
+            metadata.create_all(connection)
+            connection.execute(
+                transactions.insert().values(
+                    id=1, issued_at=datetime(2026, 9, 1), action_kind=stored_kind
+                )
+            )
+            # A create stamp can also cover an existing chart's edit in the
+            # same transaction. The reader must not expose that private stamp.
+            connection.execute(
+                changes.insert().values(
+                    id=1,
+                    transaction_id=1,
+                    entity_kind="chart",
+                    entity_id=7,
+                    sequence=0,
+                    kind="field",
+                    operation="replace",
+                    path=["slice_name"],
+                    from_value="Before",
+                    to_value="After",
+                )
+            )
+            monkeypatch.setattr(
+                queries,
+                "db",
+                SimpleNamespace(session=SimpleNamespace(connection=lambda: connection)),
+            )
+            records: list[dict[str, Any]]
+            truncated: bool
+            records, truncated = queries.fetch_change_records(
+                [("Slice", 7, [Window(0, None)])], None, None
+            )
+            assert not truncated
+            assert len(records) == 1
+            assert records[0]["to_value"] == "After"
+            assert records[0]["action_kind"] == public_kind
+    finally:
+        engine.dispose()
+
+
+# ---- synthetic starting version -----------------------------------------
+
+
+def test_creation_record_schema_accepts_synthetic_kind() -> None:
+    """The API schema accepts the synthetic record emitted by the stream."""
+    assert ActivityRecordSchema().load({"kind": "__creation__"}) == {
+        "kind": "__creation__"
+    }
+
+
+@pytest.mark.parametrize(
+    "action_kind, expected",
+    [
+        (None, "unknown"),
+        ("baseline", "pre_tracking"),
+        ("import", "imported"),
+        ("clone", "created"),
+        ("create", "created"),
+        ("unrecognized", "unknown"),
+    ],
+)
+def test_creation_origin_requires_provenance(
+    action_kind: str | None, expected: str
+) -> None:
+    """Unstamped baselines and genuine inserts cannot be distinguished."""
+    assert _creation_kind_for(action_kind) == expected
+
+
+def test_creation_schema_accepts_unknown_origin() -> None:
+    """The neutral classification remains a valid wire value."""
+    assert ActivityRecordSchema().load({"creation_kind": "unknown"}) == {
+        "creation_kind": "unknown"
+    }
+
+
+@pytest.mark.parametrize(
+    "truncated, since_offset, until_offset, query, expected",
+    [
+        (True, None, None, None, False),
+        (False, 1, None, None, False),
+        (False, 0, None, None, True),
+        (False, None, 0, None, False),
+        (False, None, 1, None, True),
+        (False, None, None, "absent-token", False),
+        (False, None, None, "Revenue", True),
+    ],
+    ids=[
+        "truncated",
+        "since-excluded",
+        "since-inclusive",
+        "until-exclusive",
+        "until-included",
+        "search-excluded",
+        "search-included",
+    ],
+)
+def test_creation_row_respects_stream_filters(
+    truncated: bool,
+    since_offset: int | None,
+    until_offset: int | None,
+    query: str | None,
+    expected: bool,
+) -> None:
+    """Each independent gate controls both the record and the total."""
+    timestamp: datetime = datetime(2026, 9, 1)
+    entity: SimpleNamespace = SimpleNamespace(id=1, uuid=uuid4())
+    creation: dict[str, Any] = {
+        "kind": "__creation__",
+        "issued_at": timestamp,
+        "entity_name": "Revenue",
+    }
+    records: list[dict[str, Any]]
+    count: int
+    was_truncated: bool
+    with (
+        patch.object(orchestrator, "first_tracked_tx", return_value=1),
+        patch.object(orchestrator, "resolve_scope", return_value=[("Slice", 1, [])]),
+        patch.object(
+            orchestrator, "fetch_change_records", return_value=([], truncated)
+        ),
+        patch.object(orchestrator, "filter_records_by_visibility", return_value=[]),
+        patch.object(orchestrator, "apply_entity_name_denormalization"),
+        patch.object(orchestrator, "mark_first_tracked_saves"),
+        patch.object(orchestrator, "apply_record_decoration"),
+        patch.object(orchestrator, "_emit_request_shape_attributes"),
+        patch(
+            "superset.versioning.activity.creation.build_creation_record",
+            return_value=creation,
+        ),
+    ):
+        records, count, was_truncated = orchestrator.get_activity(
+            Model,
+            entity.uuid,
+            resolved_entity=entity,
+            since=None
+            if since_offset is None
+            else timestamp + timedelta(seconds=since_offset),
+            until=None
+            if until_offset is None
+            else timestamp + timedelta(seconds=until_offset),
+            q=query,
+        )
+    assert records == ([creation] if expected else [])
+    assert count == int(expected)
+    assert was_truncated is truncated
+
+
+# ---- intersect_windows ---------------------------------------------------
+
+
+@pytest.fixture
+def decoration_lookups(mocker: MockerFixture) -> None:
+    """Isolate access-redaction tests from unrelated decoration lookups."""
+    mocker.patch(
+        "superset.versioning.activity.render.check_entity_tombstones",
+        return_value={("SqlaTable", 5): {"deleted": False, "deletion_state": None}},
+    )
+    mocker.patch(
+        "superset.versioning.activity.render._lookup_entity_uuids", return_value={}
+    )
+    mocker.patch(
+        "superset.versioning.activity.render.resolve_historical_entity_uuids",
+        return_value={},
+    )
+    mocker.patch(
+        "superset.versioning.activity.render.batch_chart_impacts", return_value={}
+    )
+    mocker.patch(
+        "superset.versioning.activity.render.impact_for_record",
+        return_value={"charts": 1},
+    )
+
+
+def _related_access_record() -> dict[str, Any]:
+    """Return a live related dataset change with protected detail."""
+    return {
+        "entity_kind": "dataset",
+        "entity_id": 5,
+        "transaction_id": 100,
+        "kind": "field",
+        "entity_name": "Sales",
+        "changed_by_id": 7,
+        "first_name": "Ada",
+        "last_name": "Lovelace",
+        "path": ["description"],
+        "from_value": "private old",
+        "to_value": "private new",
+    }
+
+
+@pytest.mark.usefixtures("decoration_lookups")
+@pytest.mark.parametrize("can_edit", [False, True])
+@pytest.mark.parametrize("restore", [False, True])
+def test_related_record_detail_requires_editorship(
+    mocker: MockerFixture, can_edit: bool, restore: bool
+) -> None:
+    """Withhold diff content and derived restore detail from related readers."""
+    mocker.patch(
+        "superset.versioning.activity.render.resolve_editorship",
+        return_value={("SqlaTable", 5): can_edit},
+    )
+    record: dict[str, Any] = _related_access_record()
+    if restore:
+        record.update(
+            kind="__meta__", action_kind="restore", to_value={"version_number": 37}
+        )
+    original: dict[str, Any] = record.copy()
+    records: list[dict[str, Any]] = [record]
+    apply_record_decoration(records, "Dashboard", 1)
+    assert len(records) == 1
+    assert record["entity_name"] == "Sales"
+    assert record["impact"] == {"charts": 1}
+    assert record["summary"] == (
+        "Dataset restored to version 37: Sales"
+        if can_edit and restore
+        else "Dataset updated: Sales"
+    )
+    if can_edit:
+        assert record["changed_by"] == {
+            "id": 7,
+            "first_name": "Ada",
+            "last_name": "Lovelace",
+        }
+        assert record["from_value"] == original["from_value"]
+        assert record["to_value"] == original["to_value"]
+        assert record["path"] == original["path"]
+    else:
+        assert record["changed_by"] is None
+        assert record["from_value"] is None
+        assert record["to_value"] is None
+        assert record["path"] is None
+        assert "37" not in record["summary"]
+
+
+@pytest.mark.usefixtures("decoration_lookups")
+@pytest.mark.parametrize(
+    "self_record, deleted", [(False, False), (True, False), (False, True)]
+)
+def test_editorship_redaction_preserves_self_and_tombstone_rules(
+    mocker: MockerFixture, self_record: bool, deleted: bool
+) -> None:
+    """Missing permissions deny detail without displacing self or tombstone rules."""
+    mocker.patch(
+        "superset.versioning.activity.render.resolve_editorship", return_value={}
+    )
+    if deleted:
+        mocker.patch(
+            "superset.versioning.activity.render.check_entity_tombstones",
+            return_value={
+                ("SqlaTable", 5): {"deleted": True, "deletion_state": "hard_deleted"}
+            },
+        )
+    record: dict[str, Any] = _related_access_record()
+    apply_record_decoration(
+        [record], "SqlaTable" if self_record else "Dashboard", 5 if self_record else 1
+    )
+    if self_record:
+        assert record["changed_by"]["id"] == 7
+        assert record["to_value"] == "private new"
+        assert record["path"] == ["description"]
+    else:
+        assert record["changed_by"] is None
+        assert record["from_value"] is None
+        assert record["to_value"] is None
+        assert record["path"] is None
+        assert record["impact"] == {"charts": 1}
+        assert record["entity_name"] == ("" if deleted else "Sales")
+        assert record["summary"] == (
+            "(deleted) Dataset" if deleted else "Dataset updated: Sales"
+        )
+
+
+@pytest.mark.usefixtures("decoration_lookups")
+@pytest.mark.parametrize("guest", [True, False])
+def test_related_editorship_guest_and_admin_short_circuit(
+    mocker: MockerFixture, guest: bool
+) -> None:
+    """Guests deny even matching editor subjects; admins allow without queries."""
+    manager: MagicMock = mocker.patch(
+        "superset.security_manager", new_callable=MagicMock
+    )
+    manager.is_guest_user.return_value = guest
+    manager.is_admin.return_value = True
+    manager.is_editor.return_value = True
+    loader: MagicMock = mocker.patch(
+        "superset.versioning.activity.visibility.load_live_model"
+    )
+    session: MagicMock = mocker.patch("superset.versioning.activity.visibility.db")
+    record: dict[str, Any] = _related_access_record()
+    apply_record_decoration([record], "Dashboard", 1)
+    assert (record["changed_by"] is None) is guest
+    assert (record["to_value"] is None) is guest
+    loader.assert_not_called()
+    session.session.scalars.assert_not_called()
+    manager.is_editor.assert_not_called()
+    if guest:
+        manager.is_admin.assert_not_called()
+
+
+@pytest.mark.usefixtures("decoration_lookups")
+def test_editorship_resolves_once_per_distinct_entity(mocker: MockerFixture) -> None:
+    """Repeated page records share one batched load and one predicate per entity."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.versioning.activity import render, visibility
+
+    manager: MagicMock = mocker.patch(
+        "superset.security_manager", new_callable=MagicMock
+    )
+    manager.is_guest_user.return_value = False
+    manager.is_admin.return_value = False
+    manager.is_editor.side_effect = [True, False]
+    entities: list[SqlaTable] = [SqlaTable(id=5), SqlaTable(id=6)]
+    session: MagicMock = mocker.patch("superset.versioning.activity.visibility.db")
+    session.session.scalars.return_value = entities
+    resolver: MagicMock = mocker.spy(render, "resolve_editorship")
+    eager_load: MagicMock = mocker.spy(visibility, "subqueryload")
+    records: list[dict[str, Any]] = [
+        {**_related_access_record(), "entity_id": 5 + index % 2} for index in range(100)
+    ]
+    apply_record_decoration(records, "Dashboard", 1)
+    resolver.assert_called_once_with({("SqlaTable", 5), ("SqlaTable", 6)})
+    assert manager.is_editor.call_count == 2
+    assert [call.args[0] for call in manager.is_editor.call_args_list] == entities
+    session.session.scalars.assert_called_once()
+    eager_load.assert_called_once_with(SqlaTable.editors)
+    session.session.no_autoflush.__enter__.assert_called_once()
+
+
+@pytest.mark.parametrize("failure", ["unwired", "missing", "predicate"])
+def test_editorship_resolver_fails_closed(mocker: MockerFixture, failure: str) -> None:
+    """Unresolvable kinds, absent rows, and predicate failures cannot grant detail."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.versioning.activity.visibility import resolve_editorship
+
+    manager: MagicMock = mocker.patch(
+        "superset.security_manager", new_callable=MagicMock
+    )
+    manager.is_guest_user.return_value = False
+    manager.is_admin.return_value = False
+    session: MagicMock = mocker.patch("superset.versioning.activity.visibility.db")
+    session.session.scalars.return_value = []
+    warning: MagicMock = mocker.patch(
+        "superset.versioning.activity.visibility.logger.warning"
+    )
+    if failure == "unwired":
+        mocker.patch(
+            "superset.versioning.activity.visibility.load_live_model",
+            side_effect=LookupError("unwired"),
+        )
+    elif failure == "predicate":
+        session.session.scalars.return_value = [SqlaTable(id=5)]
+        manager.is_editor.side_effect = RuntimeError("cannot authorize")
+    assert resolve_editorship({("SqlaTable", 5), ("Unknown", 9)}) == {
+        ("SqlaTable", 5): False,
+        ("Unknown", 9): False,
+    }
+    if failure != "missing":
+        warning.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "outer, inner, expected",
+    [
+        # Inner fully inside outer
+        (Window(10, 20), Window(15, 18), Window(15, 18)),
+        # Left overlap — clipped on the left
+        (Window(10, 20), Window(5, 15), Window(10, 15)),
+        # Right overlap — clipped on the right
+        (Window(10, 20), Window(15, 25), Window(15, 20)),
+        # Outer fully inside inner
+        (Window(10, 20), Window(5, 25), Window(10, 20)),
+        # Touching at end → half-open semantics yield disjoint
+        (Window(10, 20), Window(20, 30), None),
+        # Disjoint to the right
+        (Window(10, 20), Window(25, 30), None),
+        # Disjoint to the left
+        (Window(10, 20), Window(0, 5), None),
+        # Open-ended outer (end_tx=None means +∞)
+        (Window(10, None), Window(5, 25), Window(10, 25)),
+        # Open-ended inner
+        (Window(10, 20), Window(5, None), Window(10, 20)),
+        # Both open-ended
+        (Window(10, None), Window(5, None), Window(10, None)),
+        # Identical
+        (Window(10, 20), Window(10, 20), Window(10, 20)),
+    ],
+)
+def test_intersect_windows(
+    outer: Window, inner: Window, expected: Window | None
+) -> None:
+    assert intersect_windows(outer, inner) == expected
+
+
+# ---- resolve_scope -------------------------------------------------------
+
+
+def test_resolve_scope_self_only_for_dashboard() -> None:
+    """``include='self'`` yields exactly one tuple, bounded at the entity's
+    first tracked transaction."""
+    assert resolve_scope("Dashboard", 42, "self", 0) == [
+        ("Dashboard", 42, [Window(0, None)]),
+    ]
+
+
+def test_resolve_scope_self_window_bounded_at_first_tracked_tx() -> None:
+    """The self window starts at ``self_start_tx`` (the entity's first
+    tracked transaction), not 0 — so a reused integer id can't inherit a
+    hard-deleted predecessor's history."""
+    assert resolve_scope("Dashboard", 42, "self", 17) == [
+        ("Dashboard", 42, [Window(17, None)]),
+    ]
+
+
+def test_resolve_scope_self_empty_when_no_tracked_history() -> None:
+    """``self_start_tx=None`` (no shadow rows for this id+uuid yet) yields
+    no self window, so a reused id surfaces nothing from its predecessor."""
+    assert resolve_scope("Dashboard", 42, "self", None) == []
+    assert resolve_scope("Dashboard", 42, "self") == []
+
+
+def test_resolve_scope_related_empty_when_no_tracked_incarnation() -> None:
+    """A fresh entity reusing an integer id inherits no related history."""
+    with patch(
+        "superset.versioning.activity.scope._resolve_dashboard_scope"
+    ) as resolve_related:
+        assert resolve_scope("Dashboard", 42, "related", None) == []
+        resolve_related.assert_not_called()
+
+
+def test_resolve_scope_clips_related_windows_to_current_incarnation() -> None:
+    """Dependency windows from a reused path id start at its own first tx."""
+    with patch(
+        "superset.versioning.activity.scope._resolve_dashboard_scope",
+        return_value=[
+            ("Slice", 7, [Window(5, 15), Window(20, None)]),
+            ("SqlaTable", 9, [Window(1, 8)]),
+        ],
+    ):
+        assert resolve_scope("Dashboard", 42, "related", 10) == [
+            ("Slice", 7, [Window(10, 15), Window(20, None)]),
+        ]
+
+
+def test_resolve_scope_self_only_for_chart() -> None:
+    assert resolve_scope("Slice", 7, "self", 0) == [("Slice", 7, [Window(0, None)])]
+
+
+def test_resolve_scope_self_only_for_dataset() -> None:
+    assert resolve_scope("SqlaTable", 9, "self", 0) == [
+        ("SqlaTable", 9, [Window(0, None)]),
+    ]
+
+
+def test_dataset_has_no_related_scope() -> None:
+    """AV-004: datasets are not transitive recipients of activity in V2."""
+    assert resolve_scope("SqlaTable", 9, "related") == []
+
+
+def test_dataset_all_returns_only_self() -> None:
+    """For datasets, ``include='all'`` == ``include='self'`` (AV-004)."""
+    assert resolve_scope("SqlaTable", 9, "all", 0) == [
+        ("SqlaTable", 9, [Window(0, None)]),
+    ]
+
+
+def test_decoration_redacts_record_from_reused_entity_id() -> None:
+    """A historical UUID mismatch identifies a deleted predecessor."""
+    live_uuid = uuid4()
+    historical_uuid = uuid4()
+    record = {
+        "entity_kind": "chart",
+        "entity_id": 7,
+        "transaction_id": 20,
+        "sequence": 0,
+        "kind": "field",
+        "operation": "update",
+        "action_kind": None,
+        "path": "slice_name",
+        "from_value": "predecessor",
+        "to_value": "renamed",
+        "entity_name": "Old chart",
+        "changed_by_id": 1,
+        "first_name": "Ada",
+        "last_name": "Lovelace",
+        "user_id": 1,
+    }
+    with (
+        patch(
+            "superset.versioning.activity.render.check_entity_tombstones",
+            return_value={("Slice", 7): {"deleted": False, "deletion_state": None}},
+        ),
+        patch(
+            "superset.versioning.activity.render._lookup_entity_uuids",
+            return_value={("Slice", 7): live_uuid},
+        ),
+        patch(
+            "superset.versioning.activity.render.resolve_historical_entity_uuids",
+            return_value={("Slice", 7, 20): historical_uuid},
+        ),
+        patch(
+            "superset.versioning.activity.render.batch_chart_impacts", return_value={}
+        ),
+    ):
+        apply_record_decoration([record], "Dashboard", 1)
+
+    assert record["entity_deleted"] is True
+    assert record["entity_uuid"] is None
+    assert record["version_uuid"] is None
+    assert record["entity_name"] == ""
+    assert record["from_value"] is None
+    assert record["to_value"] is None
+    # The editor identity of the deleted related entity must be redacted at the
+    # decoration layer (render.py sets ``changed_by = None``), so the seeded
+    # author "Ada Lovelace" is suppressed and cannot be surfaced or searched.
+    # Without this assertion the redaction can regress silently.
+    assert record["changed_by"] is None
+    assert "first_name" not in record
+    assert "last_name" not in record
+
+
+def test_bounded_heap_merges_newer_rows_from_later_id_chunks() -> None:
+    """A full early chunk cannot hide newer records from a later chunk."""
+
+    class Result(list[dict[str, Any]]):
+        closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    def row(transaction_id: int, entity_id: int) -> dict[str, Any]:
+        return {
+            "issued_at": datetime(2026, 1, 1, 0, 0, transaction_id),
+            "transaction_id": transaction_id,
+            "sequence": 0,
+            "entity_kind": "chart",
+            "entity_id": entity_id,
+        }
+
+    windows = {
+        ("chart", 1): [Window(0, None)],
+        ("chart", 501): [Window(0, None)],
+    }
+    heap: BoundedRecordHeap = []
+    first = Result([row(2, 1), row(1, 1)])
+    second = Result([row(4, 501), row(3, 501)])
+
+    ordinal = _merge_result_into_heap(first, heap, windows, 2, 0)
+    _merge_result_into_heap(second, heap, windows, 2, ordinal)
+
+    assert first.closed
+    assert second.closed
+    assert [
+        entry[2]["transaction_id"]
+        for entry in sorted(heap, key=lambda entry: entry[0], reverse=True)
+    ] == [4, 3, 2]
+
+
+def test_total_sort_key_distinguishes_rows_at_same_timestamp() -> None:
+    issued_at = datetime(2026, 1, 1)
+    older = {
+        "issued_at": issued_at,
+        "transaction_id": 10,
+        "sequence": 1,
+        "entity_kind": "chart",
+        "entity_id": 7,
+    }
+    newer = {**older, "sequence": 2}
+    assert _record_sort_key(newer) > _record_sort_key(older)
+
+
+# ---- merge_entity_windows -----------------------------------------------
+
+
+def test_merge_entity_windows_collapses_repeated_keys() -> None:
+    """Repeated ``(api_kind, entity_id)`` entries union their window lists
+    so the fetch query's OR-clause stays compact."""
+    merged = merge_entity_windows(
+        [
+            ("Slice", 1, [Window(0, 100)]),
+            ("Slice", 1, [Window(200, 300)]),
+            ("SqlaTable", 5, [Window(0, None)]),
+        ]
+    )
+    by_key = {(kind, eid): windows for kind, eid, windows in merged}
+    assert by_key[("Slice", 1)] == [Window(0, 100), Window(200, 300)]
+    assert by_key[("SqlaTable", 5)] == [Window(0, None)]
+
+
+def test_merge_entity_windows_preserves_singletons() -> None:
+    """Non-duplicated entries pass through unchanged."""
+    inputs: list[EntityWindows] = [
+        ("Slice", 1, [Window(0, 100)]),
+        ("Dashboard", 2, [Window(10, 20)]),
+    ]
+    merged = merge_entity_windows(inputs)
+    assert sorted(merged) == sorted(inputs)
+
+
+def test_merge_entity_windows_unions_overlapping_windows_for_one_entity() -> None:
+    """Same entity, many redundant attachment windows → collapsed to one.
+
+    This guards the SQLite expression-tree limit: a fixture that
+    re-creates a chart-on-dashboard association across many transactions
+    used to produce N separate OR branches in the fetch query (one per
+    redundant window). merge_entity_windows must coalesce them.
+    """
+    scope: list[EntityWindows] = [
+        ("Slice", 1, [Window(10, 20)]),
+        ("Slice", 1, [Window(15, 25)]),  # overlaps
+        ("Slice", 1, [Window(25, 30)]),  # touches
+        ("Slice", 1, [Window(40, 50)]),  # disjoint
+    ]
+    merged = merge_entity_windows(scope)
+    assert merged == [("Slice", 1, [Window(10, 30), Window(40, 50)])]
+
+
+# ---- union_windows -------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "windows, expected",
+    [
+        # Disjoint windows pass through
+        (
+            [Window(10, 20), Window(30, 40)],
+            [Window(10, 20), Window(30, 40)],
+        ),
+        # Overlapping windows merge
+        ([Window(10, 20), Window(15, 25)], [Window(10, 25)]),
+        # Touching windows merge (half-open: [10,20) + [20,30) = [10,30))
+        ([Window(10, 20), Window(20, 30)], [Window(10, 30)]),
+        # Many overlapping windows collapse to one
+        (
+            [Window(10, 20), Window(15, 25), Window(20, 30), Window(25, 35)],
+            [Window(10, 35)],
+        ),
+        # Input order doesn't matter
+        (
+            [Window(30, 40), Window(10, 20), Window(15, 25)],
+            [Window(10, 25), Window(30, 40)],
+        ),
+        # Open-ended absorbs everything to the right
+        ([Window(10, None), Window(50, 60)], [Window(10, None)]),
+        # Open-ended at the right merges into open-ended
+        ([Window(10, 20), Window(15, None)], [Window(10, None)]),
+        # Empty input
+        ([], []),
+        # Single window pass-through
+        ([Window(5, 10)], [Window(5, 10)]),
+    ],
+)
+def test_union_windows(windows: list[Window], expected: list[Window]) -> None:
+    assert union_windows(windows) == expected
+
+
+# ---- row_within_any_window (Python post-filter for the fetch query) ------
+
+
+def test_row_in_window_inside() -> None:
+    assert row_within_any_window({"transaction_id": 15}, [Window(10, 20)])
+
+
+def test_row_in_window_at_start_boundary_inclusive() -> None:
+    """Half-open: ``[10, 20)`` includes 10."""
+    assert row_within_any_window({"transaction_id": 10}, [Window(10, 20)])
+
+
+def test_row_in_window_at_end_boundary_exclusive() -> None:
+    """Half-open: ``[10, 20)`` excludes 20."""
+    assert not row_within_any_window({"transaction_id": 20}, [Window(10, 20)])
+
+
+def test_row_in_open_ended_window() -> None:
+    """``end=None`` means +∞."""
+    assert row_within_any_window({"transaction_id": 999}, [Window(10, None)])
+
+
+def test_row_in_any_of_several_windows() -> None:
+    assert row_within_any_window(
+        {"transaction_id": 50},
+        [Window(10, 20), Window(40, 60), Window(90, 100)],
+    )
+
+
+def test_row_in_no_windows_returns_false() -> None:
+    assert not row_within_any_window({"transaction_id": 50}, [])
+    assert not row_within_any_window(
+        {"transaction_id": 25}, [Window(10, 20), Window(30, 40)]
+    )
+
+
+# ---- Kind translation round-trip -----------------------------------------
+
+
+def test_kind_translation_is_bijective_for_supported_kinds() -> None:
+    """Every API kind maps to a table kind and back to the same value.
+    Locks in the contract that the two maps don't drift."""
+    for api_kind, table_kind in API_KIND_TO_TABLE.items():
+        assert TABLE_KIND_TO_API[table_kind] == api_kind
+
+
+# ---- _build_summary (AV-012) ---------------------------------------------
+
+
+def test_summary_for_dataset_column_change() -> None:
+    rec = {"kind": "column", "entity_name": "Sales Transactions"}
+    assert _build_summary("SqlaTable", rec) == (
+        "Dataset column changed: Sales Transactions"
+    )
+
+
+def test_summary_for_chart_filter_change() -> None:
+    rec = {"kind": "filter", "entity_name": "Top Charts"}
+    assert _build_summary("Slice", rec) == "Chart filter changed: Top Charts"
+
+
+def test_summary_for_restore_event() -> None:
+    rec = {"kind": "restore", "entity_name": "Q4 Dashboard"}
+    assert _build_summary("Dashboard", rec) == "Dashboard restored: Q4 Dashboard"
+
+
+def test_summary_unknown_kind_falls_back_to_updated() -> None:
+    """Unmapped change kinds collapse to a generic 'updated' verb."""
+    rec = {"kind": "mystery_kind", "entity_name": "X"}
+    assert _build_summary("Dashboard", rec) == "Dashboard updated: X"
+
+
+def test_summary_without_entity_name_drops_colon() -> None:
+    """Tombstoned entities have no name; the headline reads naturally
+    without a trailing colon and empty value."""
+    rec = {"kind": "filter", "entity_name": ""}
+    assert _build_summary("Slice", rec) == "Chart filter changed"
+
+
+# ---- _changed_by_dict ----------------------------------------------------
+
+
+def test_changed_by_returns_none_when_no_user_attached() -> None:
+    """Saves from CLI/Celery/import have no Flask user (sc-103156 §Session
+    2026-05-18 clarification)."""
+    assert _changed_by_dict({"changed_by_id": None}) is None
+
+
+def test_changed_by_projects_only_display_fields() -> None:
+    """Per the ActivityChangedBy contract: id + first_name + last_name only.
+    Username is intentionally omitted (data-model.md)."""
+    record = {
+        "changed_by_id": 5,
+        "first_name": "Mike",
+        "last_name": "Bridge",
+        "user_id": 5,  # internal column, must not leak
+    }
+    result = _changed_by_dict(record)
+    assert result == {"id": 5, "first_name": "Mike", "last_name": "Bridge"}
+    assert result is not None
+    assert "username" not in result
+
+
+# ---- impact_for_record (pure, post-batch) -------------------------------
+
+
+def test_impact_for_record_dashboard_path_dataset_related_uses_charts() -> None:
+    """The only path/related shape that carries impact: ``Dashboard`` →
+    ``SqlaTable``. Count and names both come from the pre-batched lookup
+    (sc-119775: the tooltip needs the names, not just the count)."""
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    charts: list[ChartRef] = [
+        {"id": 11, "name": "Alpha"},
+        {"id": 12, "name": "Beta"},
+        {"id": 13, "name": "Gamma"},
+    ]
+    assert impact_for_record(record, "Dashboard", {(5, 100): charts}) == {
+        "charts": 3,
+        "affected_charts": charts,
+    }
+
+
+def test_impact_for_record_missing_pair_yields_none() -> None:
+    """A pair the batch query didn't return (no matching siblings)
+    collapses to ``None`` rather than ``{"charts": 0}``."""
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    assert impact_for_record(record, "Dashboard", {}) is None
+
+
+def test_impact_for_record_empty_charts_yields_none() -> None:
+    """An explicit empty list in the impacts map is treated the same as
+    missing — no impact field on the wire."""
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    assert impact_for_record(record, "Dashboard", {(5, 100): []}) is None
+
+
+def test_impact_for_record_dashboard_path_chart_related_yields_none() -> None:
+    """Dashboard → chart is a direct dependency; no further sibling
+    layer to count."""
+    record = {"entity_kind": "chart", "entity_id": 5, "transaction_id": 100}
+    charts: list[ChartRef] = [{"id": 9, "name": "X"}]
+    assert impact_for_record(record, "Dashboard", {(5, 100): charts}) is None
+
+
+def test_impact_for_record_chart_path_with_dataset_related_yields_none() -> None:
+    """Chart → dataset: the chart is itself the only dependent of the
+    dataset edit."""
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    charts: list[ChartRef] = [{"id": 9, "name": "X"}]
+    assert impact_for_record(record, "Slice", {(5, 100): charts}) is None
+
+
+def test_impact_for_record_dataset_path_yields_none() -> None:
+    """Datasets have no transitive layer (AV-004)."""
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    charts: list[ChartRef] = [{"id": 9, "name": "X"}]
+    assert impact_for_record(record, "SqlaTable", {(5, 100): charts}) is None
+
+
+def test_sorted_chart_refs_orders_case_insensitively_with_id_tiebreak() -> None:
+    """The wire order is deterministic: casefolded name, then id; empty
+    names sort first (they render as an Untitled fallback)."""
+    from superset.versioning.activity.impact import _sorted_chart_refs
+
+    refs = _sorted_chart_refs({(5, 100): {3: "Beta", 2: "Alpha", 1: "alpha", 4: ""}})
+    assert refs == {
+        (5, 100): [
+            {"id": 4, "name": ""},
+            {"id": 1, "name": "alpha"},
+            {"id": 2, "name": "Alpha"},
+            {"id": 3, "name": "Beta"},
+        ]
+    }
+
+
+def test_impact_for_record_caps_affected_charts_but_not_the_count() -> None:
+    """A dataset feeding very many charts must not balloon the record: the
+    named refs are capped while ``charts`` keeps the full count."""
+    from superset.versioning.activity.impact import IMPACT_AFFECTED_CHARTS_CAP
+
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    charts: list[ChartRef] = [
+        {"id": i, "name": f"chart {i:03d}"}
+        for i in range(IMPACT_AFFECTED_CHARTS_CAP + 10)
+    ]
+    result = impact_for_record(record, "Dashboard", {(5, 100): charts})
+    assert result is not None
+    assert result["charts"] == IMPACT_AFFECTED_CHARTS_CAP + 10
+    assert len(result["affected_charts"]) == IMPACT_AFFECTED_CHARTS_CAP
+    assert result["affected_charts"] == charts[:IMPACT_AFFECTED_CHARTS_CAP]
+
+
+def test_related_record_impact_payload_carries_affected_charts() -> None:
+    """End-to-end through record decoration: a dashboard-path dataset
+    record's wire ``impact`` carries the affected chart names alongside
+    the count (sc-119775 — the rollup tooltip's data source)."""
+    record = {
+        "entity_kind": "dataset",
+        "entity_id": 5,
+        "transaction_id": 100,
+        "kind": "metric",
+        "entity_name": "Sales",
+        "changed_by_id": None,
+        "from_value": "a",
+        "to_value": "b",
+    }
+    charts: list[ChartRef] = [
+        {"id": 11, "name": "Alpha"},
+        {"id": 12, "name": "Beta"},
+    ]
+    with (
+        patch(
+            "superset.versioning.activity.render.check_entity_tombstones",
+            return_value={("SqlaTable", 5): {"deleted": False, "deletion_state": None}},
+        ),
+        patch(
+            "superset.versioning.activity.render._lookup_entity_uuids",
+            return_value={},
+        ),
+        patch(
+            "superset.versioning.activity.render.resolve_historical_entity_uuids",
+            return_value={},
+        ),
+        patch(
+            "superset.versioning.activity.render.batch_chart_impacts",
+            return_value={(5, 100): charts},
+        ),
+    ):
+        apply_record_decoration([record], "Dashboard", 1)
+
+    assert record["impact"] == {"charts": 2, "affected_charts": charts}
+
+
+# ---- collect_impact_pairs -----------------------------------------------
+
+
+def test_collect_impact_pairs_dashboard_path_collects_only_datasets() -> None:
+    """The batched pre-query only needs ``(dataset_id, tx)`` pairs.
+    Chart-related and self records aren't relevant."""
+    records = [
+        {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
+        {"entity_kind": "dataset", "entity_id": 7, "transaction_id": 200},
+        {"entity_kind": "chart", "entity_id": 9, "transaction_id": 300},
+        {"entity_kind": "dashboard", "entity_id": 1, "transaction_id": 400},
+    ]
+    assert collect_impact_pairs(records, "Dashboard") == {(5, 100), (7, 200)}
+
+
+def test_collect_impact_pairs_dedupes_repeated_pairs() -> None:
+    """Multiple change records for the same (dataset, tx) collapse to
+    one pair — the batch query computes the count once."""
+    records = [
+        {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
+        {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
+        {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
+    ]
+    pairs = collect_impact_pairs(records, "Dashboard")
+    assert pairs == {(5, 100)}
+
+
+def test_collect_impact_pairs_chart_path_returns_empty() -> None:
+    """Chart paths have no dashboard layer to count siblings on, so the
+    batch never needs to fire."""
+    records = [
+        {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
+    ]
+    assert collect_impact_pairs(records, "Slice") == set()
+
+
+def test_collect_impact_pairs_dataset_path_returns_empty() -> None:
+    records = [
+        {"entity_kind": "chart", "entity_id": 5, "transaction_id": 100},
+    ]
+    assert collect_impact_pairs(records, "SqlaTable") == set()
+
+
+def test_collect_impact_pairs_empty_records_returns_empty() -> None:
+    assert collect_impact_pairs([], "Dashboard") == set()
+
+
+# ---- parse_activity_query_params (shared API helper) ---------------------
+
+
+def test_parser_defaults_when_empty() -> None:
+    """No params → ``include='all'``, ``page=0``, ``page_size=DEFAULT``."""
+    assert parse_activity_query_params({}) == {
+        "include": "all",
+        "page": 0,
+        "page_size": _DEFAULT_PAGE_SIZE,
+    }
+
+
+def test_parser_clamps_page_size_to_max() -> None:
+    """A request for more than the contract maximum is clamped, not 400'd
+    (silent clamp matches AV-019's bounded-payload guarantee)."""
+    params = parse_activity_query_params({"page_size": str(_MAX_PAGE_SIZE * 5)})
+    assert params["page_size"] == _MAX_PAGE_SIZE
+
+
+def test_parser_accepts_iso_datetime_with_z_suffix() -> None:
+    """Python <3.11 fromisoformat rejects 'Z'; the parser tolerates it."""
+    params = parse_activity_query_params({"since": "2026-01-01T00:00:00Z"})
+    assert params["since"].year == 2026
+
+
+def test_parser_normalises_z_suffix_to_naive_utc() -> None:
+    """The 'Z' result must be tz-NAIVE: ``issued_at`` is a naive column, so a
+    tz-aware bind shifts the comparison by the session offset (or raises) on
+    PostgreSQL. The 'Z' instant is already UTC, so the value is unchanged."""
+    since = parse_activity_query_params({"since": "2026-01-01T00:00:00Z"})["since"]
+    assert since.tzinfo is None
+    assert since == datetime(2026, 1, 1, 0, 0, 0)
+
+
+def test_parser_normalises_offset_to_naive_utc() -> None:
+    """A non-UTC offset is converted to UTC and stripped to naive, so the
+    comparison against the naive ``issued_at`` column is in the same frame."""
+    since = parse_activity_query_params({"since": "2026-01-01T05:00:00+02:00"})["since"]
+    assert since.tzinfo is None
+    assert since == datetime(2026, 1, 1, 3, 0, 0)  # 05:00 +02:00 -> 03:00 UTC
+
+
+def test_parser_rejects_invalid_include() -> None:
+    with pytest.raises(ActivityParamsError, match="include"):
+        parse_activity_query_params({"include": "sibling"})
+
+
+def test_parser_rejects_malformed_datetime() -> None:
+    with pytest.raises(ActivityParamsError, match="since"):
+        parse_activity_query_params({"since": "yesterday"})
+
+
+def test_parser_rejects_negative_page() -> None:
+    with pytest.raises(ActivityParamsError, match="page"):
+        parse_activity_query_params({"page": "-1"})
+
+
+def test_parser_rejects_zero_page_size() -> None:
+    with pytest.raises(ActivityParamsError, match="page_size"):
+        parse_activity_query_params({"page_size": "0"})
+
+
+def test_parser_error_is_a_value_error() -> None:
+    """``ActivityParamsError`` subclasses ``ValueError`` so callers that
+    only know about the standard library exception hierarchy still catch
+    it correctly."""
+    with pytest.raises(ValueError, match="include"):
+        parse_activity_query_params({"include": "nope"})
+
+
+# ---- Observability metric-key convention (T050 cross-coupling) ----------
+
+
+def test_metric_prefix_matches_versioning_namespace_convention() -> None:
+    """T050: cross-coupling sanity. The activity-view's instrumentation
+    prefix (``superset.activity_view.*``) must be a sibling of sc-103156's
+    eventual ``superset.versioning.*`` namespace, not nested under
+    a different root. Both endpoint families belong to the versioning
+    feature; their metrics should be discoverable from one Grafana
+    filter (``superset.activity_view.*`` OR ``superset.versioning.*``).
+
+    Locking the prefix in a test catches accidental drift in a code
+    review — a future PR renaming the prefix would fail this assertion
+    and require explicit acknowledgement.
+    """
+    from superset.versioning.activity.orchestrator import _METRIC_PREFIX
+
+    assert _METRIC_PREFIX == "superset.activity_view", (
+        f"Activity-view metrics prefix changed from "
+        f"'superset.activity_view' to {_METRIC_PREFIX!r}. If this was "
+        "intentional, update sc-103156's FR-027 instrumentation to "
+        "match the new convention OR document the new naming in plan §D-17."
+    )
+    # Sibling-namespace check: starts with the versioning-feature root.
+    assert _METRIC_PREFIX.startswith("superset."), (
+        "All Superset metrics live under 'superset.*'; activity_view must too."
+    )
+
+
+# ---- _emit_request_shape_attributes: related-entity counts ---------------
+#
+# The ``related_entity_count.*`` gauges report how many *other* entities an
+# activity request fanned out to. ``resolve_scope`` always prepends the path
+# entity itself (the "self" window) to the scope list, so the metric loop
+# must exclude that self entry — otherwise a chart/dataset request reports
+# one phantom related entity of its own kind.
+
+
+def _gauge_value(mock_sl: object, suffix: str) -> float:
+    """Return the value of the single ``gauge`` call whose metric name ends
+    with *suffix*. Fails loudly if absent so a renamed metric surfaces here."""
+    for call in mock_sl.gauge.call_args_list:  # type: ignore[attr-defined]
+        name = call.args[0]
+        if name.endswith(suffix):
+            return call.args[1]
+    emitted = [c.args[0] for c in mock_sl.gauge.call_args_list]  # type: ignore[attr-defined]
+    raise AssertionError(f"no gauge ending {suffix!r}; emitted {emitted}")
+
+
+@patch("superset.extensions.stats_logger_manager")
+def test_related_entity_count_excludes_self_for_chart(mock_mgr) -> None:
+    """A chart request scopes to itself + the datasets it used. The charts
+    gauge must read 0 (no *related* charts) even though the self Slice is in
+    the scope list; the datasets gauge counts only the two related datasets."""
+    sl = mock_mgr.instance
+    entity_windows: list[EntityWindows] = [
+        ("Slice", 7, [Window(0, None)]),  # self — must not be counted
+        ("SqlaTable", 5, [Window(0, None)]),  # related dataset
+        ("SqlaTable", 9, [Window(0, None)]),  # related dataset
+    ]
+
+    _emit_request_shape_attributes(
+        "slice",
+        include="all",
+        has_since_filter=False,
+        page_size=25,
+        record_count=3,
+        entity_windows=entity_windows,
+        path_kind="Slice",
+        path_id=7,
+    )
+
+    assert _gauge_value(sl, "related_entity_count.charts") == 0.0
+    assert _gauge_value(sl, "related_entity_count.datasets") == 2.0
+
+
+@patch("superset.extensions.stats_logger_manager")
+def test_related_entity_count_excludes_self_for_dataset(mock_mgr) -> None:
+    """Datasets have no related scope, so an ``include=all`` dataset request
+    scopes to itself only. The datasets gauge must read 0, not 1."""
+    sl = mock_mgr.instance
+    entity_windows: list[EntityWindows] = [
+        ("SqlaTable", 9, [Window(0, None)]),  # self only
+    ]
+
+    _emit_request_shape_attributes(
+        "sqlatable",
+        include="all",
+        has_since_filter=False,
+        page_size=25,
+        record_count=1,
+        entity_windows=entity_windows,
+        path_kind="SqlaTable",
+        path_id=9,
+    )
+
+    assert _gauge_value(sl, "related_entity_count.datasets") == 0.0
+
+
+@patch("superset.extensions.stats_logger_manager")
+def test_related_entity_count_counts_genuine_related_of_same_kind(mock_mgr) -> None:
+    """Self-exclusion keys on (kind, id), not kind alone: a dashboard whose
+    scope happened to include another dashboard would still count it."""
+    sl = mock_mgr.instance
+    entity_windows: list[EntityWindows] = [
+        ("Dashboard", 1, [Window(0, None)]),  # self
+        ("Slice", 5, [Window(0, None)]),  # related chart
+        ("Slice", 6, [Window(0, None)]),  # related chart
+    ]
+
+    _emit_request_shape_attributes(
+        "dashboard",
+        include="all",
+        has_since_filter=False,
+        page_size=25,
+        record_count=2,
+        entity_windows=entity_windows,
+        path_kind="Dashboard",
+        path_id=1,
+    )
+
+    assert _gauge_value(sl, "related_entity_count.charts") == 2.0
+
+
+def test_parser_passes_q_through_and_drops_blank() -> None:
+    """``q`` reaches get_activity stripped; blank/missing stays absent."""
+    assert parse_activity_query_params({"q": "  revenue  "})["q"] == "revenue"
+    assert "q" not in parse_activity_query_params({})
+    assert "q" not in parse_activity_query_params({"q": "   "})
+
+
+def test_record_matches_searches_decorated_surfaces() -> None:
+    """The q filter covers summary, entity_name, kind, path, and values —
+    case-insensitively (PR #40988: client search only covered loaded
+    pages; the server filter must cover the same surfaces)."""
+    from superset.versioning.activity.orchestrator import _record_matches
+
+    record = {
+        "summary": "Dataset updated: Sales Transactions",
+        "entity_name": "Sales Transactions",
+        "kind": "field",
+        "path": ["params", "adhoc_filters", "country"],
+        "from_value": None,
+        "to_value": {"label": "Revenue (EUR)"},
+    }
+    assert _record_matches(record, "sales")  # entity_name/summary
+    assert _record_matches(record, "COUNTRY")  # path segment
+    assert _record_matches(record, "revenue (eur)")  # to_value
+    assert not _record_matches(record, "nonexistent")
+
+
+def test_record_matches_falsy_values_and_json_form() -> None:
+    """Falsy values must stay searchable (False/0 must not collapse to
+    ''), and values match in their JSON form — the text the client
+    renders — not Python repr."""
+    from superset.versioning.activity.orchestrator import _record_matches
+
+    record = {
+        "summary": "",
+        "entity_name": "",
+        "kind": "field",
+        "path": ["params", "show_legend"],
+        "from_value": True,
+        "to_value": False,
+    }
+    assert _record_matches(record, "false")  # JSON 'false', not Python 'False'
+    assert _record_matches(record, "true")
+    zero = {**record, "path": ["params", "row_limit"], "from_value": 10, "to_value": 0}
+    assert _record_matches(zero, "0")
+    nested = {**record, "to_value": {"label": "Revenue"}}
+    assert _record_matches(nested, '"label"')  # JSON double-quoted key
+
+
+def test_record_matches_searches_author_name() -> None:
+    """The q filter also matches the change author's display name from the
+    projected ``changed_by`` DTO (sc-119374: author-scoped search returned
+    "No actions found" because the author was absent from the haystack)."""
+    from superset.versioning.activity.orchestrator import _record_matches
+
+    record = {
+        "summary": "",
+        "entity_name": "Sales",
+        "kind": "field",
+        "path": ["params"],
+        "from_value": None,
+        "to_value": None,
+        "changed_by": {
+            "id": 1,
+            "first_name": "Test Primary",
+            "last_name": "Contributor",
+        },
+    }
+    assert _record_matches(record, "Primary")  # first-name substring
+    assert _record_matches(record, "contributor")  # last name, case-insensitive
+    assert _record_matches(record, "Test Primary Contributor")  # full name
+    assert not _record_matches(record, "Nonexistent Author")
+
+
+def test_record_matches_author_partial_and_missing_name() -> None:
+    """A user with only one name part still matches on it, and a record
+    whose author is redacted/absent (``changed_by`` is None — the
+    tombstoned-related-entity security contract) contributes no author
+    text and is not matchable by author."""
+    from superset.versioning.activity.orchestrator import _record_matches
+
+    first_only = {
+        "summary": "",
+        "entity_name": "",
+        "kind": "field",
+        "path": [],
+        "from_value": None,
+        "to_value": None,
+        "changed_by": {"id": 2, "first_name": "Ada", "last_name": None},
+    }
+    assert _record_matches(first_only, "ada")
+
+    redacted = {**first_only, "changed_by": None}
+    assert not _record_matches(redacted, "ada")
+
+    # A present DTO with both name parts null (a user row with no names) is
+    # distinct from redaction: it yields an empty author name and is likewise
+    # unsearchable by author, without matching on the literal 'None'.
+    nameless = {
+        **first_only,
+        "changed_by": {"id": 3, "first_name": None, "last_name": None},
+    }
+    assert not _record_matches(nameless, "none")
+
+
+def test_build_summary_meta_headline_branches() -> None:
+    """The __meta__ headline dispatches on the transaction's action_kind
+    (path is pure navigation): restore renders 'restored to version N'
+    (with entity_name when present); unknown meta actions fall back to
+    'updated'."""
+    restore = {
+        "kind": "__meta__",
+        "action_kind": "restore",
+        "path": ["__meta__"],
+        "to_value": {"version_uuid": "u", "version_number": 3},
+        "entity_name": "Top 10 Girls",
+    }
+    assert _build_summary("Slice", restore) == (
+        "Chart restored to version 3: Top 10 Girls"
+    )
+    nameless = {**restore, "entity_name": ""}
+    assert _build_summary("Slice", nameless) == "Chart restored to version 3"
+    unknown = {
+        "kind": "__meta__",
+        "action_kind": "import",
+        "path": ["__meta__"],
+        "to_value": {},
+        "entity_name": "",
+    }
+    assert _build_summary("Dashboard", unknown) == "Dashboard updated"
+
+
+# ---- attachment_windows -------------------------------------------------
+
+
+def test_attachment_windows_closes_at_detach() -> None:
+    """sc-119770: a chart removed from a dashboard is bounded at the detach
+    transaction, not left open-ended. Continuum never closes an association
+    shadow row's end_transaction_id, so the detach boundary is the DELETE
+    row's transaction id — an INSERT at t1 paired with a DELETE at t3 yields
+    the half-open window [t1, t3), so an edit at t2 (while attached) is
+    inside it and an edit at t4 (after removal) is not."""
+    windows = attachment_windows([(7, 1, 0), (7, 3, 2)])  # INSERT@1, DELETE@3
+
+    assert windows == [(7, Window(1, 3))]
+    window = windows[0][1]
+    assert window.contains(2)  # edit while attached
+    assert not window.contains(3)  # detach tx itself (half-open)
+    assert not window.contains(4)  # edit after removal — excluded
+
+
+def test_attachment_windows_still_attached_is_open_ended() -> None:
+    """A chart with an INSERT and no following DELETE is still on the
+    dashboard, so its window is open-ended (end_tx = None) and every later
+    edit remains in scope."""
+    assert attachment_windows([(7, 5, 0)]) == [(7, Window(5, None))]
+
+
+def test_attachment_windows_reattach_cycles_and_ordering() -> None:
+    """Multiple attach/detach episodes yield one window each, and the pairing
+    is independent of the row order the query returns them in (the rows are
+    sorted by (slice_id, transaction_id) internally)."""
+    rows = [(7, 7, 2), (7, 1, 0), (7, 5, 0), (7, 3, 2)]  # deliberately shuffled
+    assert attachment_windows(rows) == [(7, Window(1, 3)), (7, Window(5, 7))]
+
+
+def test_attachment_windows_reattach_leaves_the_last_episode_open() -> None:
+    """Attach@1, detach@5, re-attach@8 with no later detach: the first episode
+    is the closed window [1, 5) and the current attachment is open-ended
+    [8, None). An edit at tx 10 falls inside the live episode."""
+    windows = attachment_windows([(7, 1, 0), (7, 5, 2), (7, 8, 0)])
+    assert windows == [(7, Window(1, 5)), (7, Window(8, None))]
+    assert windows[1][1].contains(10)
+    assert not windows[0][1].contains(10)
+
+
+def test_attachment_windows_add_and_remove_same_transaction() -> None:
+    """Attaching and detaching in a single save (INSERT and DELETE at the
+    same transaction) leaves the chart on no committed dashboard state, so it
+    contributes no window (and no degenerate zero-width interval)."""
+    assert attachment_windows([(7, 2, 0), (7, 2, 2)]) == []
+
+
+def test_attachment_windows_separates_slices() -> None:
+    """Each slice gets its own independent windows."""
+    rows = [(7, 1, 0), (7, 3, 2), (9, 2, 0)]
+    assert attachment_windows(rows) == [
+        (7, Window(1, 3)),
+        (9, Window(2, None)),
+    ]
+
+
+def test_m2m_op_constants_match_continuum() -> None:
+    """The association-shadow operation-type constants used by
+    attachment_windows are the numeric values of Continuum's Operation enum.
+    Pin them so a library renumber fails here loudly rather than silently
+    mis-pairing attach/detach rows."""
+    from sqlalchemy_continuum import Operation
+
+    assert M2M_OP_INSERT == Operation.INSERT
+    assert M2M_OP_DELETE == Operation.DELETE
+
+
+# ---- _collect_attached_charts_at (batch_chart_impacts membership) ---------
+
+
+def _slice_row(
+    slice_id: int,
+    datasource_id: int,
+    start: int,
+    end: int | None,
+    name: str = "chart",
+) -> dict[str, Any]:
+    """A chart→dataset parent-shadow row as batch_chart_impacts fetches it."""
+    return {
+        "slice_id": slice_id,
+        "slice_name": name,
+        "datasource_id": datasource_id,
+        "slice_start": start,
+        "slice_end": end,
+    }
+
+
+def test_collect_attached_charts_excludes_chart_removed_before_target() -> None:
+    """sc-119907: a chart attached@1 and removed@5 must NOT be collected for a
+    dataset rollup at target_tx=10. Its attachment window [1, 5) does not
+    contain 10, even though its (never-closed) association shadow row would
+    pass a naive end_transaction_id validity filter."""
+    attach_windows = {7: [Window(1, 5)]}
+    slice_rows = [_slice_row(7, 100, 1, None)]  # chart→dataset open the whole time
+    result = _collect_attached_charts_at(attach_windows, slice_rows, {100: [10]})
+    assert result == {}  # pairs with no matching charts are omitted
+
+
+def test_collect_attached_charts_includes_chart_inside_its_window() -> None:
+    """The same chart IS collected at a target inside its attachment window,
+    carrying its name-at-transaction."""
+    attach_windows = {7: [Window(1, 5)]}
+    slice_rows = [_slice_row(7, 100, 1, None, name="Sales")]
+    result = _collect_attached_charts_at(attach_windows, slice_rows, {100: [3]})
+    assert result == {(100, 3): {7: "Sales"}}
+
+
+def test_collect_attached_charts_requires_both_windows() -> None:
+    """A chart attached at target_tx but not yet pointing at the dataset (its
+    chart→dataset window starts later) is not collected."""
+    attach_windows = {7: [Window(1, None)]}
+    slice_rows = [_slice_row(7, 100, 8, None)]  # points at dataset only from tx8
+    assert _collect_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}
+
+
+def test_collect_attached_charts_dedupes_within_pair() -> None:
+    """Multiple parent-shadow rows for the same slice collect the slice once."""
+    attach_windows = {7: [Window(1, None)]}
+    slice_rows = [
+        _slice_row(7, 100, 1, 4, name="Sales"),
+        _slice_row(7, 100, 4, None, name="Sales"),
+    ]
+    assert _collect_attached_charts_at(attach_windows, slice_rows, {100: [5]}) == {
+        (100, 5): {7: "Sales"}
+    }
+
+
+def test_collect_attached_charts_ignores_slice_never_on_dashboard() -> None:
+    """A slice pointing at the dataset but with no attachment window (never on
+    this dashboard) does not contribute — guards the no-join fetch that may
+    return slices from other dashboards sharing the dataset."""
+    attach_windows: dict[int, list[Window]] = {}
+    slice_rows = [_slice_row(7, 100, 1, None)]
+    assert _collect_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}
+
+
+# ---- batch_chart_impacts bind-variable floor (sc-119907) -----------------
+
+
+def test_batch_chart_impacts_stays_under_sqlite_bind_floor(app_context: None) -> None:
+    """sc-119907: a wide dashboard (many member charts AND many requested
+    datasets) must not build a slice-scan statement that exceeds SQLite's 999
+    bind-variable floor. The member-id IN is chunked; the requested-dataset IN
+    is dropped to Python-side filtering when it would not co-bind under the
+    floor. Compiles every issued statement and asserts its bind count stays
+    safely under 999 — the pre-fix code (dataset IN always on) bound
+    500 member + 600 dataset + scalars = ~1104 and would 500 on SQLite."""
+
+    from sqlalchemy.dialects import sqlite
+
+    member_windows = [(sid, Window(1, None)) for sid in range(1, 601)]
+    pairs = {(ds, 5) for ds in range(10_000, 10_600)}  # 600 requested datasets
+    captured: list[Any] = []
+
+    class _FakeResult:
+        def mappings(self) -> "_FakeResult":
+            return self
+
+        def all(self) -> list[Any]:
+            return []
+
+    def _fake_execute(stmt: Any) -> "_FakeResult":
+        captured.append(stmt)
+        return _FakeResult()
+
+    with (
+        patch(
+            "superset.versioning.membership.chart_attachment_windows_for_dashboard",
+            return_value=member_windows,
+        ),
+        patch("superset.versioning.activity.impact.db") as mock_db,
+    ):
+        mock_db.session.connection.return_value.execute.side_effect = _fake_execute
+        batch_chart_impacts(1, pairs)
+
+    assert captured, "expected at least one slice-scan statement"
+    for stmt in captured:
+        # render_postcompile expands ``IN (...)`` (an expanding bind in
+        # SQLAlchemy 2.0) into one param per element, so the count reflects
+        # what actually hits SQLite — a plain compile would show one bind per
+        # IN and hide the overflow.
+        compiled = stmt.compile(
+            dialect=sqlite.dialect(),
+            compile_kwargs={"render_postcompile": True},
+        )
+        n_binds = len(compiled.params)
+        assert n_binds < 999, f"statement binds {n_binds} params (SQLite floor 999)"

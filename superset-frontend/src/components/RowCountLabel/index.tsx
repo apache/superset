@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getNumberFormatter, t, tn } from '@superset-ui/core';
+import { t, tn } from '@apache-superset/core/translation';
+import { getNumberFormatter } from '@superset-ui/core';
 
 import { Label, Tooltip } from '@superset-ui/core/components';
 
@@ -25,6 +26,9 @@ type RowCountLabelProps = {
   limit?: number;
   loading?: boolean;
   label?: JSX.Element;
+  // Overrides the default "chart" wording for panes (e.g. samples) where the
+  // limit reached isn't the chart's own row_limit.
+  limitReachedMessage?: React.ReactNode;
 };
 
 const limitReachedMsg = t(
@@ -32,13 +36,19 @@ const limitReachedMsg = t(
 );
 
 export default function RowCountLabel(props: RowCountLabelProps) {
-  const { rowcount = 0, limit = null, loading, label } = props;
+  const {
+    rowcount = 0,
+    limit = null,
+    loading,
+    label,
+    limitReachedMessage,
+  } = props;
   const limitReached = limit && rowcount >= limit;
   const type =
     limitReached || (rowcount === 0 && !loading) ? 'error' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
   const labelText = (
-    <Label type={type}>
+    <Label type={type} monospace>
       {loading ? (
         t('Loading...')
       ) : (
@@ -49,7 +59,10 @@ export default function RowCountLabel(props: RowCountLabelProps) {
     </Label>
   );
   return limitReached ? (
-    <Tooltip id="tt-rowcount-tooltip" title={<span>{limitReachedMsg}</span>}>
+    <Tooltip
+      id="tt-rowcount-tooltip"
+      title={<span>{limitReachedMessage ?? limitReachedMsg}</span>}
+    >
       {label || labelText}
     </Tooltip>
   ) : (

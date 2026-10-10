@@ -1,0 +1,92 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+suite: HTTPRoute
+templates:
+  - httproute.yaml
+tests:
+  - it: routes the general Superset path
+    set:
+      httproute.enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 1
+      - equal:
+          path: spec.rules[0].backendRefs[0].name
+          value: RELEASE-NAME-superset
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 8088
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /
+
+  - it: routes the WebSocket path when WebSockets are enabled
+    set:
+      httproute.enabled: true
+      supersetWebsockets.enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 2
+      - equal:
+          path: spec.rules[1].backendRefs[0].name
+          value: RELEASE-NAME-superset-ws
+      - equal:
+          path: spec.rules[1].backendRefs[0].port
+          value: 8080
+      - equal:
+          path: spec.rules[1].matches[0].path.value
+          value: /ws
+
+  - it: does not route the WebSocket path when WebSockets are disabled
+    set:
+      httproute.enabled: true
+      supersetWebsockets.enabled: false
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 1
+
+  - it: routes the MCP path when MCP HTTPRoute is enabled
+    set:
+      httproute.enabled: true
+      supersetMcp.enabled: true
+      supersetMcp.httproute.enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 2
+      - equal:
+          path: spec.rules[1].backendRefs[0].name
+          value: RELEASE-NAME-superset-mcp
+      - equal:
+          path: spec.rules[1].backendRefs[0].port
+          value: 5008
+      - equal:
+          path: spec.rules[1].matches[0].path.value
+          value: /mcp
+
+  - it: does not route MCP when MCP HTTPRoute is disabled
+    set:
+      httproute.enabled: true
+      supersetMcp.enabled: true
+      supersetMcp.httproute.enabled: false
+    asserts:
+      - lengthEqual:
+          path: spec.rules
+          count: 1

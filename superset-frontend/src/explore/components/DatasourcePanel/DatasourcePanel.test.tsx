@@ -40,6 +40,7 @@ import {
   DndColumnSelect,
   DndMetricSelect,
 } from '../controls/DndColumnSelectControl';
+import { FoldersEditorItemType } from 'src/components/Datasource/types';
 
 jest.mock(
   'react-virtualized-auto-sizer',
@@ -64,16 +65,16 @@ const datasourceWithFolders: IDatasource = {
   folders: [
     {
       name: 'Test folder',
-      type: 'folder',
+      type: FoldersEditorItemType.Folder,
       uuid: '1',
       children: [
         {
           name: 'Test nested folder',
-          type: 'folder',
+          type: FoldersEditorItemType.Folder,
           uuid: '1.1',
           children: [
             {
-              type: 'metric',
+              type: FoldersEditorItemType.Metric,
               uuid: metrics[0].uuid,
               name: metrics[0].metric_name,
             },
@@ -83,16 +84,16 @@ const datasourceWithFolders: IDatasource = {
     },
     {
       name: 'Second test folder',
-      type: 'folder',
+      type: FoldersEditorItemType.Folder,
       uuid: '2',
       children: [
         {
-          type: 'column',
+          type: FoldersEditorItemType.Column,
           uuid: columns[0].uuid,
           name: columns[0].column_name,
         },
         {
-          type: 'column',
+          type: FoldersEditorItemType.Column,
           uuid: columns[1].uuid,
           name: columns[1].column_name,
         },
@@ -150,9 +151,9 @@ const metricProps = {
   onChange: jest.fn(),
 };
 
-const search = (value: string, input: HTMLElement) => {
-  userEvent.clear(input);
-  userEvent.type(input, value);
+const search = async (value: string, input: HTMLElement) => {
+  await userEvent.clear(input);
+  await userEvent.type(input, value);
 };
 
 test('should render', async () => {
@@ -197,6 +198,7 @@ test('should render the columns', async () => {
   );
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourcePanel', () => {
   beforeAll(() => {
     jest.setTimeout(30000);
@@ -222,7 +224,7 @@ describe('DatasourcePanel', () => {
       expect(searchInput).toBeInTheDocument();
     });
 
-    search(columns[0].column_name, searchInput);
+    await search(columns[0].column_name, searchInput);
 
     await waitFor(
       () => {
@@ -248,7 +250,7 @@ test('should search and render matching metrics', async () => {
   );
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
-  search(metrics[0].metric_name, searchInput);
+  await search(metrics[0].metric_name, searchInput);
 
   await waitFor(() => {
     expect(screen.getByText(metrics[0].metric_name)).toBeInTheDocument();
@@ -387,7 +389,7 @@ test('Renders with custom folders', () => {
   expect(screen.getAllByTestId('datasource-panel-divider').length).toEqual(3);
 });
 
-test('Collapse folders', () => {
+test('Collapse folders', async () => {
   render(
     <ExploreContainer>
       <DatasourcePanel {...propsWithFolders} />
@@ -399,7 +401,7 @@ test('Collapse folders', () => {
     },
   );
 
-  userEvent.click(screen.getByText('Test folder'));
+  await userEvent.click(screen.getByText('Test folder'));
 
   expect(screen.getByText('Test folder')).toBeInTheDocument();
   expect(screen.queryByText('Test nested folder')).not.toBeInTheDocument();
@@ -409,7 +411,7 @@ test('Collapse folders', () => {
 
   expect(screen.queryByText(metrics[0].metric_name)).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Test folder'));
+  await userEvent.click(screen.getByText('Test folder'));
 
   expect(screen.getByText('Test folder')).toBeInTheDocument();
   expect(screen.getByText('Test nested folder')).toBeInTheDocument();
@@ -426,15 +428,15 @@ test('Default Metrics and Columns folders dont render when all metrics and colum
     folders: [
       {
         name: 'Test folder',
-        type: 'folder',
+        type: FoldersEditorItemType.Folder,
         uuid: '1',
         children: [
           {
             name: 'Test nested folder',
-            type: 'folder',
+            type: FoldersEditorItemType.Folder,
             uuid: '1.1',
             children: metrics.map(m => ({
-              type: 'metric' as const,
+              type: FoldersEditorItemType.Metric,
               uuid: m.uuid,
               name: m.metric_name,
             })),
@@ -443,10 +445,10 @@ test('Default Metrics and Columns folders dont render when all metrics and colum
       },
       {
         name: 'Second test folder',
-        type: 'folder',
+        type: FoldersEditorItemType.Folder,
         uuid: '2',
         children: columns.map(c => ({
-          type: 'column',
+          type: FoldersEditorItemType.Column,
           uuid: c.uuid,
           name: c.column_name,
         })),

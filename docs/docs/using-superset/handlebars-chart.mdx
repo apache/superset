@@ -1,0 +1,179 @@
+---
+title: Handlebars Chart
+hide_title: true
+sidebar_position: 10
+version: 1
+---
+
+## Handlebars Chart
+
+The Handlebars chart lets you render query results using a custom [Handlebars](https://handlebarsjs.com/) template. This gives you full control over how your data is displayed — from simple tables to rich HTML layouts.
+
+### Basic Usage
+
+In the chart editor, write a Handlebars template in the **Template** field. Your query results are available as `data`, an array of row objects.
+
+```handlebars
+{{#each data}}
+  <p>{{this.name}}: {{this.value}}</p>
+{{/each}}
+```
+
+### Built-in Helpers
+
+Superset registers several custom helpers on top of the standard Handlebars built-ins.
+
+#### `dateFormat`
+
+Formats a date value using [Day.js](https://day.js.org/) format strings.
+
+```handlebars
+{{dateFormat my_date format='MMMM YYYY'}}
+```
+
+| Option   | Default      | Description                       |
+| -------- | ------------ | --------------------------------- |
+| `format` | `YYYY-MM-DD` | A Day.js-compatible format string |
+
+---
+
+#### `stringify`
+
+Converts an object to a JSON string, or any other value to its string representation.
+
+```handlebars
+{{stringify myObj}}
+```
+
+---
+
+#### `formatNumber`
+
+Formats a number using locale-aware formatting.
+
+```handlebars
+{{formatNumber myNumber 'en-US'}}
+```
+
+| Option   | Default | Description           |
+| -------- | ------- | --------------------- |
+| `locale` | `en-US` | A BCP 47 language tag |
+
+---
+
+#### `parseJson`
+
+Parses a JSON string into an object that can be used in your template.
+
+```handlebars
+{{parseJson myJsonString}}
+```
+
+---
+
+#### `group`
+
+Groups an array of objects by a key, powered by [handlebars-group-by](https://github.com/nicktindall/handlebars-group-by). The key is passed as a `by` hash argument.
+
+```handlebars
+{{#group data by="department"}}
+  <h3>{{value}}</h3>
+  {{#each items}}
+    <p>{{this.name}}</p>
+  {{/each}}
+{{/group}}
+```
+
+---
+
+### Helpers from just-handlebars-helpers
+
+Superset also registers all helpers from the [just-handlebars-helpers](https://github.com/leapfrogtechnology/just-handlebars-helpers) library. These include a wide range of comparison, math, string, and conditional helpers. Commonly used ones include:
+
+:::note
+These names are specific to `just-handlebars-helpers` and differ from other
+Handlebars helper libraries — notably `handlebars-helpers`, which spells the
+math helpers `add`, `subtract`, `multiply` and `divide`. Calling a helper that
+is not registered raises `Missing helper: "..."`, which renders the chart blank,
+so it is worth checking a name against the tables below before using it.
+:::
+
+#### Comparison
+
+| Helper | Description           | Example                        |
+| ------ | --------------------- | ------------------------------ |
+| `eq`   | Strict equality       | `{{#if (eq status "active")}}` |
+| `eqw`  | Weak equality         | `{{#if (eqw count "5")}}`      |
+| `neq`  | Strict inequality     | `{{#if (neq role "admin")}}`   |
+| `neqw` | Weak inequality       | `{{#if (neqw count "5")}}`     |
+| `lt`   | Less than             | `{{#if (lt score 50)}}`        |
+| `lte`  | Less than or equal    | `{{#if (lte score 100)}}`      |
+| `gt`   | Greater than          | `{{#if (gt price 0)}}`         |
+| `gte`  | Greater than or equal | `{{#if (gte age 18)}}`         |
+
+#### Logical
+
+| Helper     | Description                   | Example                                  |
+| ---------- | ----------------------------- | ---------------------------------------- |
+| `and`      | Logical AND                   | `{{#if (and isActive isVerified)}}`      |
+| `or`       | Logical OR                    | `{{#if (or isAdmin isMod)}}`             |
+| `not`      | Logical NOT                   | `{{#if (not isDisabled)}}`               |
+| `ifx`      | Inline conditional            | `{{ifx isActive "Yes" "No"}}`            |
+| `coalesce` | Returns first non-falsy value | `{{coalesce nickname name "Anonymous"}}` |
+
+#### String
+
+| Helper            | Description                                     | Example                        |
+| ----------------- | ----------------------------------------------- | ------------------------------ |
+| `capitalizeFirst` | Capitalizes the first letter                    | `{{capitalizeFirst name}}`     |
+| `capitalizeEach`  | Capitalizes the first letter of each word       | `{{capitalizeEach title}}`     |
+| `uppercase`       | Converts to uppercase                           | `{{uppercase status}}`         |
+| `lowercase`       | Converts to lowercase                           | `{{lowercase email}}`          |
+| `excerpt`         | Truncates to a length and appends an ellipsis   | `{{excerpt description 100}}`  |
+| `sprintf`         | printf-style formatting                         | `{{sprintf "%.1f" score}}`     |
+| `concat`          | Concatenates values                             | `{{concat first " " last}}`    |
+| `join`            | Joins an array with a separator                 | `{{join tags ", "}}`           |
+| `first` / `last`  | First or last element of an array               | `{{first items}}`              |
+| `newLineToBr`     | Converts newlines to `<br>` (needs `{{{ }}}`)   | `{{{newLineToBr notes}}}`      |
+
+#### Math
+
+| Helper           | Description             | Example                              |
+| ---------------- | ----------------------- | ------------------------------------ |
+| `sum`            | Addition                | `{{sum a b}}`                        |
+| `difference`     | Subtraction             | `{{difference total discount}}`      |
+| `multiplication` | Multiplication          | `{{multiplication price quantity}}`  |
+| `division`       | Division                | `{{division total count}}`           |
+| `remainder`      | Modulo                  | `{{remainder index 2}}`              |
+| `abs`            | Absolute value          | `{{abs delta}}`                      |
+| `ceil`           | Ceiling                 | `{{ceil value}}`                     |
+| `floor`          | Floor                   | `{{floor value}}`                    |
+
+`sum` takes exactly two arguments — it adds a pair of numbers and does not total
+an array. There is no `round` helper; use `{{sprintf "%.0f" value}}` to round to
+a given number of decimal places.
+
+#### Arrays
+
+| Helper     | Description                        | Example                           |
+| ---------- | ---------------------------------- | --------------------------------- |
+| `includes` | Whether an array contains a value  | `{{#if (includes tags "urgent")}}` |
+| `empty`    | Whether an array is empty          | `{{#if (empty rows)}}`            |
+| `count`    | Number of items in an array        | `{{count rows}}`                  |
+
+`includes` tests array membership. It returns `false` for a string, so it cannot
+be used to check for a substring.
+
+#### Formatting
+
+| Helper           | Description                  | Example                          |
+| ---------------- | ---------------------------- | -------------------------------- |
+| `formatCurrency` | Formats a number as currency | `{{formatCurrency revenue "$"}}` |
+
+For the full list of available helpers, see the [just-handlebars-helpers documentation](https://github.com/leapfrogtechnology/just-handlebars-helpers).
+
+### Tips
+
+- Use raw blocks to escape Handlebars syntax if you need to display double curly braces literally.
+- Comparison helpers like `eq` must be wrapped in a subexpression when used with `#if`: `{{#if (eq myVal "foo")}}`.
+- HTML output is sanitized by default based on your Superset configuration (`HTML_SANITIZATION`).

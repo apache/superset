@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 
 export const Pill = styled.div`
   ${({ theme }) => css`
     display: flex;
-    color: ${theme.colors.grayscale.light5};
-    background: ${theme.colors.grayscale.base};
+    color: ${theme.colorBgBase};
+    background: ${theme.colorText};
     border-radius: 1em;
-    vertical-align: text-top;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
     font-size: ${theme.fontSize}px;
     font-weight: ${theme.fontWeightStrong};
@@ -36,7 +35,7 @@ export const Pill = styled.div`
 
     svg {
       position: relative;
-      color: ${theme.colors.grayscale.light5};
+      color: ${theme.colorBgBase};
       width: 1em;
       height: 1em;
       display: inline-block;
@@ -82,6 +81,7 @@ export const FilterItem = styled.button`
     background: none;
     outline: none;
     width: 100%;
+    color: inherit;
 
     &::-moz-focus-inner {
       border: 0;
@@ -102,6 +102,7 @@ export const FilterItem = styled.button`
 
 export const FiltersContainer = styled.div`
   ${({ theme }) => css`
+    max-height: 60vh;
     margin-top: ${theme.sizeUnit}px;
     &:not(:last-child) {
       padding-bottom: ${theme.sizeUnit * 3}px;
@@ -115,7 +116,19 @@ export const FiltersDetailsContainer = styled.div`
     max-width: 300px;
     overflow-x: hidden;
 
-    color: ${theme.colors.grayscale.light5};
+    color: ${theme.colorText};
+
+    /*
+     * The container is a non-interactive wrapper that receives focus
+     * programmatically only to capture keyboard navigation events. Suppress the
+     * default browser focus outline so the popover does not show a blue ring.
+     * Focusable items inside (FilterItem) provide their own :focus-visible
+     * styles for keyboard accessibility.
+     */
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
   `}
 `;
 
@@ -129,7 +142,7 @@ export const Separator = styled.div`
   ${({ theme }) => css`
     width: 100%;
     height: 1px;
-    background-color: ${theme.colors.grayscale.light1};
+    background-color: ${theme.colorBorderSecondary};
     margin: ${theme.sizeUnit * 4}px 0;
   `}
 `;

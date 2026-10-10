@@ -22,6 +22,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.utils import json
+from superset.utils.core import GenericDataType
 from tests.conftest import with_config
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -124,3 +125,273 @@ def test_get_parameters_from_uri() -> None:
 
     assert parameters["database"] == "md:my_db"
     assert parameters["access_token"] == "token"  # noqa: S105
+
+
+def test_column_type_recognition() -> None:
+    """Test that DuckDB column types are properly recognized as numeric."""
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    # Test standard float/double types
+    numeric_types = [
+        "FLOAT",
+        "DOUBLE",
+        "DOUBLE PRECISION",
+        "REAL",
+        "DECIMAL(10,2)",
+        "NUMERIC(10,2)",
+        "INTEGER",
+        "BIGINT",
+        "SMALLINT",
+        # DuckDB-specific unsigned types
+        "HUGEINT",
+        "UBIGINT",
+        "UINTEGER",
+        "USMALLINT",
+        "UTINYINT",
+    ]
+
+    for type_str in numeric_types:
+        col_spec = DuckDBEngineSpec.get_column_spec(type_str)
+        assert col_spec is not None, f"Type {type_str} should be recognized"
+        assert col_spec.generic_type == GenericDataType.NUMERIC, (
+            f"Type {type_str} should be recognized as NUMERIC, "
+            f"got {col_spec.generic_type}"
+        )
+
+    # Test that TINYINT (non-unsigned) is also recognized
+    # Note: TINYINT is not in the default mappings, but should be handled
+    col_spec = DuckDBEngineSpec.get_column_spec("TINYINT")
+    # TINYINT matches the pattern "^int" so it should be recognized
+    assert col_spec is None, "TINYINT doesn't match any patterns"
+
+
+def test_motherduck_impersonation(mocker: MockerFixture) -> None:
+    """
+    Test ``impersonate_user`` embeds the username in the md: path.
+
+    The hook lives on DuckDBEngineSpec because engine spec resolution is by
+    backend name, so md: databases resolve to the DuckDB spec.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create("duckdb", database="md:my_db", query={"motherduck_token": "abc"})
+    url, engine_kwargs = DuckDBEngineSpec.impersonate_user(
+        database=database,
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url.database == "md:my_db?session_name=alice"
+    assert url.username is None
+    assert url.query["motherduck_token"] == "abc"  # noqa: S105
+    assert engine_kwargs == {}
+
+
+def test_duckdb_local_impersonation_is_a_noop(mocker: MockerFixture) -> None:
+    """
+    Test ``impersonate_user`` leaves local DuckDB URLs alone.
+
+    The base implementation puts the username in the URL, which duckdb-engine
+    forwards as a ``connect()`` kwarg that duckdb rejects.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create("duckdb", database="/path/to/duck.db")
+    url, _ = DuckDBEngineSpec.impersonate_user(
+        database=database,
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url == URL.create("duckdb", database="/path/to/duck.db")
+
+
+def test_duckdb_impersonation_drops_configured_username(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test ``impersonate_user`` drops a username configured in the URI.
+
+    duckdb-engine forwards it as a ``connect()`` kwarg that duckdb rejects.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    database = mocker.MagicMock()
+
+    for db in ["md:my_db", "/path/to/duck.db"]:
+        url, _ = DuckDBEngineSpec.impersonate_user(
+            database=database,
+            username="alice",
+            user_token=None,
+            url=URL.create("duckdb", username="configured", database=db),
+            engine_kwargs={},
+        )
+        assert url.username is None
+
+
+def test_motherduck_impersonation_escapes_structural_characters(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test ``impersonate_user`` escapes characters that would inject parameters.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create("duckdb", database="md:my_db?attach_mode=single")
+    url, _ = MotherDuckEngineSpec.impersonate_user(  # inherited from DuckDBEngineSpec
+        database=database,
+        username="a&host=evil",
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url.database == "md:my_db?attach_mode=single&session_name=a%26host%3Devil"
+
+
+def test_motherduck_impersonation_replaces_configured_session_name(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test ``impersonate_user`` replaces a session_name configured in the path.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create(
+        "duckdb", database="md:my_db?session_name=fixed&attach_mode=single"
+    )
+    url, _ = MotherDuckEngineSpec.impersonate_user(
+        database=database,
+        username="alice",
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url.database == "md:my_db?attach_mode=single&session_name=alice"
+
+
+def test_motherduck_impersonation_without_username(mocker: MockerFixture) -> None:
+    """
+    Test ``impersonate_user`` leaves the URL alone when there is no username.
+    """
+    from sqlalchemy.engine.url import URL
+
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    database = mocker.MagicMock()
+
+    url = URL.create("duckdb", database="md:my_db")
+    url, _ = MotherDuckEngineSpec.impersonate_user(
+        database=database,
+        username=None,
+        user_token=None,
+        url=url,
+        engine_kwargs={},
+    )
+    assert url == URL.create("duckdb", database="md:my_db")
+
+
+def test_fetch_data_preserves_cursor_description(mocker: MockerFixture) -> None:
+    """
+    DuckDBEngineSpec previously overrode fetch_data to capture and restore
+    cursor.description around fetchall(), working around a duckdb-engine bug
+    that no longer reproduces at current pinned versions (duckdb-engine
+    0.17.0, duckdb 1.5.5). Confirm the inherited base fetch_data still works
+    correctly against a real cursor now that the override is gone.
+    """
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    engine = create_engine("duckdb:///:memory:")
+    raw_conn = engine.raw_connection()
+    try:
+        cursor = raw_conn.cursor()
+        database = mocker.MagicMock()
+        DuckDBEngineSpec.execute(cursor, "SELECT 1 AS col1, 2 AS col2", database)
+
+        data = DuckDBEngineSpec.fetch_data(cursor)
+
+        assert data == [(1, 2)]
+        assert cursor.description is not None
+        assert [col[0] for col in cursor.description] == ["col1", "col2"]
+    finally:
+        raw_conn.close()
+
+
+def test_extended_aggregation_func_median_stddev_var_compiles() -> None:
+    """
+    MEDIAN/STDDEV_SAMP/VAR_SAMP compile to the expected DuckDB SQL function
+    calls. See `test_extended_aggregation_func_median_stddev_var_executes`
+    for verification against a live in-process DuckDB instance.
+    """
+    from sqlalchemy import column
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    col = column("sales")
+
+    for aggregate, expected_sql in [
+        ("MEDIAN", "median(sales)"),
+        ("STDDEV_SAMP", "stddev_samp(sales)"),
+        ("VAR_SAMP", "var_samp(sales)"),
+    ]:
+        func = DuckDBEngineSpec.get_extended_aggregation_func(aggregate)
+        assert func is not None
+        compiled = str(func(col).compile(compile_kwargs={"literal_binds": True}))
+        assert compiled == expected_sql
+
+
+def test_extended_aggregation_func_median_stddev_var_executes() -> None:
+    """
+    MEDIAN/STDDEV_SAMP/VAR_SAMP execute against a live in-process DuckDB
+    instance and return values matching Python's `statistics` module
+    (sample standard deviation/variance) for the same input.
+    """
+    import statistics
+
+    from sqlalchemy import create_engine, literal_column, select, text
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    values = [1.0, 2.0, 4.0, 8.0, 16.0]
+
+    engine = create_engine("duckdb:///:memory:")
+    with engine.connect() as conn:
+        conn.execute(text("CREATE TABLE t (sales DOUBLE)"))
+        conn.execute(
+            text("INSERT INTO t VALUES (:sales)"),
+            [{"sales": v} for v in values],
+        )
+
+        expected = {
+            "MEDIAN": statistics.median(values),
+            "STDDEV_SAMP": statistics.stdev(values),
+            "VAR_SAMP": statistics.variance(values),
+        }
+
+        for aggregate, expected_value in expected.items():
+            func = DuckDBEngineSpec.get_extended_aggregation_func(aggregate)
+            assert func is not None
+            query = select(func(literal_column("sales"))).select_from(text("t"))
+            result = conn.execute(query).scalar()
+            assert result == pytest.approx(expected_value)

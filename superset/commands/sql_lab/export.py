@@ -17,11 +17,13 @@
 from __future__ import annotations
 
 import logging
+from decimal import Decimal
 from typing import Any, cast, TypedDict
 
 import pandas as pd
 from flask import current_app as app
 from flask_babel import gettext as __
+from jinja2.exceptions import TemplateError
 
 from superset import db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
@@ -34,6 +36,17 @@ from superset.utils import core as utils, csv
 from superset.views.utils import _deserialize_results_payload
 
 logger = logging.getLogger(__name__)
+
+
+def _format_decimal_columns(df: pd.DataFrame) -> None:
+    """Format decimal object columns without changing other values or dtypes."""
+    for name, column in df.items():
+        if pd.api.types.is_object_dtype(column.dtype) and any(
+            isinstance(value, Decimal) and value.is_finite() for value in column
+        ):
+            # A finite decimal becomes a string, keeping map's result object-typed
+            # so mixed floats, integers and None do not undergo dtype inference.
+            df[name] = column.map(csv.format_decimal)
 
 
 class SqlExportResult(TypedDict):
@@ -79,6 +92,15 @@ class SqlResultExportCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                 ),
                 status=403,
+            ) from ex
+        except TemplateError as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=str(ex),
+                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=400,
             ) from ex
 
     def run(
@@ -129,6 +151,8 @@ class SqlResultExportCommand(BaseCommand):
                 self._query.catalog,
                 self._query.schema,
             )[:limit]
+
+        _format_decimal_columns(df)
 
         # Manual encoding using the specified encoding (default to utf-8 if not set)
         csv_string = csv.df_to_escaped_csv(df, index=False, **app.config["CSV_EXPORT"])

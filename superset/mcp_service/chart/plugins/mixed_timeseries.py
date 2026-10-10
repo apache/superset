@@ -1,0 +1,232 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Mixed timeseries chart type plugin."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any, ClassVar
+
+from superset.mcp_service.chart.chart_utils import (
+    _mixed_timeseries_what,
+    _summarize_filters,
+    map_mixed_timeseries_config,
+)
+from superset.mcp_service.chart.plugin import BaseChartPlugin
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    MixedTimeseriesChartConfig,
+    VegaLitePreview,
+)
+from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+
+class MixedTimeseriesChartPlugin(BaseChartPlugin):
+    """Plugin for mixed_timeseries chart type."""
+
+    query_role_keys = BaseChartPlugin.query_role_keys
+    resizes_saved_preview = True
+    chart_type = "mixed_timeseries"
+    display_name = "Mixed Timeseries"
+    native_viz_types: ClassVar[Mapping[str, str]] = {
+        "mixed_timeseries": "Mixed Timeseries Chart",
+    }
+
+    def vega_lite_preview(
+        self, data: list[dict[str, Any]], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        """Fold flattened grouped results instead of plotting one numeric series."""
+        from superset.mcp_service.chart.preview_utils import (
+            generate_xy_vega_lite_preview,
+        )
+
+        return generate_xy_vega_lite_preview(data, form_data)
+
+    def pre_validate(
+        self,
+        config: dict[str, Any],
+    ) -> ChartGenerationError | None:
+        missing_fields = []
+
+        if "x" not in config and "x_axis" not in config:
+            missing_fields.append("'x' (X-axis temporal column)")
+        if not config.get("y") and not config.get("metrics"):
+            missing_fields.append("'y' (primary Y-axis metrics)")
+        if not config.get("y_secondary") and not config.get("metrics_b"):
+            missing_fields.append("'y_secondary' (secondary Y-axis metrics)")
+
+        if missing_fields:
+            return ChartGenerationError(
+                error_type="missing_mixed_timeseries_fields",
+                message=(
+                    f"Mixed timeseries chart missing required fields: "
+                    f"{', '.join(missing_fields)}"
+                ),
+                details=(
+                    "Mixed timeseries charts require an x-axis, primary metrics, "
+                    "and secondary metrics"
+                ),
+                suggestions=[
+                    "Add 'x' field: {'name': 'date_column'}",
+                    "Add 'y' field: [{'name': 'revenue', 'aggregate': 'SUM'}]",
+                    "Add 'y_secondary': [{'name': 'orders', 'aggregate': 'COUNT'}]",
+                    "Optional: 'primary_kind' and 'secondary_kind' for chart types",
+                ],
+                error_code="MISSING_MIXED_TIMESERIES_FIELDS",
+            )
+
+        for field_name in ["y", "y_secondary"]:
+            if not isinstance(config.get(field_name, []), list):
+                return ChartGenerationError(
+                    error_type=f"invalid_{field_name}_format",
+                    message=f"'{field_name}' must be a list of metrics",
+                    details=(
+                        f"The '{field_name}' field must be an array of metric "
+                        "specifications"
+                    ),
+                    suggestions=[
+                        f"Wrap in array: '{field_name}': "
+                        "[{'name': 'col', 'aggregate': 'SUM'}]",
+                    ],
+                    error_code=f"INVALID_{field_name.upper()}_FORMAT",
+                )
+
+        return None
+
+    def extract_column_refs(self, config: Any) -> list[ColumnRef]:
+        if not isinstance(config, MixedTimeseriesChartConfig):
+            return []
+        refs: list[ColumnRef] = [config.x]
+        refs.extend(config.y)
+        refs.extend(config.y_secondary)
+        if config.group_by:
+            refs.extend(config.group_by)
+        if config.group_by_secondary:
+            refs.extend(config.group_by_secondary)
+        for filters in (config.filters, config.filters_secondary):
+            for filter_config in filters or []:
+                refs.append(ColumnRef(name=filter_config.column))
+        return refs
+
+    def to_form_data(
+        self, config: Any, dataset_id: int | str | None = None
+    ) -> dict[str, Any]:
+        return map_mixed_timeseries_config(config, dataset_id=dataset_id)
+
+    def generate_name(self, config: Any, dataset_name: str | None = None) -> str:
+        what = _mixed_timeseries_what(config)
+        context = _summarize_filters(config.filters)
+        return self._with_context(what, context)
+
+    def resolve_viz_type(self, config: Any) -> str:
+        return "mixed_timeseries"
+
+    def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
+        config_dict = config.model_dump(exclude_unset=True)
+
+        def _norm_single(key: str) -> None:
+            if config_dict.get(key):
+                config_dict[key]["name"] = DatasetValidator.get_canonical_column_name(
+                    config_dict[key]["name"], dataset_context
+                )
+
+        def _norm_list(key: str) -> None:
+            if config_dict.get(key):
+                for col in config_dict[key]:
+                    if col.get("sql_expression"):
+                        continue
+                    if col.get("saved_metric"):
+                        col["name"] = DatasetValidator.get_canonical_metric_name(
+                            col["name"], dataset_context
+                        )
+                    else:
+                        col["name"] = DatasetValidator.get_canonical_column_name(
+                            col["name"], dataset_context
+                        )
+
+        _norm_single("x")
+        _norm_list("y")
+        _norm_list("y_secondary")
+        _norm_list("group_by")
+        _norm_list("group_by_secondary")
+        DatasetValidator.normalize_filters(config_dict, dataset_context)
+        return MixedTimeseriesChartConfig.model_validate(config_dict)
+
+    def schema_error_hint(self) -> ChartGenerationError | None:
+        return ChartGenerationError(
+            error_type="mixed_timeseries_validation_error",
+            message="Mixed timeseries chart configuration validation failed",
+            details=(
+                "The mixed timeseries configuration is missing "
+                "required fields or has invalid structure"
+            ),
+            suggestions=[
+                "Ensure 'x' field has 'name' for the time axis column",
+                "Ensure 'y' is an array of primary-axis metrics",
+                "Ensure 'y_secondary' is an array of secondary-axis metrics",
+                "Example: {'chart_type': 'mixed_timeseries', "
+                "'x': {'name': 'order_date'}, "
+                "'y': [{'name': 'revenue', 'aggregate': 'SUM'}], "
+                "'y_secondary': [{'name': 'orders', 'aggregate': 'COUNT'}]}",
+            ],
+            error_code="MIXED_TIMESERIES_VALIDATION_ERROR",
+        )
+
+    def build_query_dicts(
+        self,
+        form_data: dict[str, Any],
+        *,
+        viz_type: str,
+        engine: str,
+        row_limit: int | None,
+        order_desc: bool | None,
+    ) -> list[dict[str, Any]] | None:
+        """Use the shared native builder for temporal and result operators."""
+        return None
+
+    def secondary_query_form_data(
+        self, form_data: Mapping[str, Any]
+    ) -> dict[str, Any] | None:
+        from superset.common.form_data_query_context import (
+            retain_mixed_timeseries_secondary_form_data,
+        )
+
+        # Query B owns its suffixed filters and ordering, so it is retained
+        # before query A's filters are prepared and prepared on its own.
+        return retain_mixed_timeseries_secondary_form_data(form_data)
+
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        from superset.mcp_service.chart.chart_utils import (
+            retain_mixed_timeseries_secondary_update_state,
+        )
+
+        if existing_form_data.get("viz_type") == new_form_data.get("viz_type"):
+            merged.update(
+                retain_mixed_timeseries_secondary_update_state(
+                    existing_form_data, new_form_data
+                )
+            )
+        return merged

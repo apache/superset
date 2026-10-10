@@ -16,40 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { Operators } from 'src/explore/constants';
 import AdhocFilterControl from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 
-interface Column {
-  column_name: string;
-  type: string;
-}
+// The real editor is an Ace instance that loads asynchronously and exposes no
+// DOM input, so a plain textarea stands in for it.
+jest.mock('src/core/editors', () => {
+  const React = require('react');
+  return {
+    EditorHost: React.forwardRef(
+      (
+        {
+          value,
+          onChange,
+        }: {
+          value: string;
+          onChange: (v: string) => void;
+        },
+        ref: React.Ref<{ resize: () => void }>,
+      ) => {
+        React.useImperativeHandle(ref, () => ({ resize: jest.fn() }));
+        return (
+          <textarea
+            defaultValue={value}
+            onChange={e => onChange?.(e.target.value)}
+          />
+        );
+      },
+    ),
+  };
+});
 
-interface Database {
-  id: number;
-}
-
-interface Datasource {
-  type: string;
-  database: Database;
-  schema: string;
-  datasource_name: string;
-}
-
-interface Props {
+interface TestProps {
   name: string;
   label: string;
   value: AdhocFilter[];
-  datasource: Datasource;
-  columns: Column[];
+  datasource: {
+    type: string;
+    database: { id: number };
+    schema: string;
+    datasource_name: string;
+    [key: string]: unknown;
+  };
+  columns: Array<{
+    column_name: string;
+    type?: string;
+    [key: string]: unknown;
+  }>;
   onChange: jest.Mock;
   sections: string[];
   operators: string[];
+  [key: string]: unknown;
 }
 
-const createProps = (): Props => ({
+const createProps = (): TestProps => ({
   name: 'filter_control',
   label: 'Filters',
   value: [],
@@ -68,13 +91,21 @@ const createProps = (): Props => ({
   operators: ['==', '>', '<'],
 });
 
-const renderComponent = (props: Partial<Props> = {}) =>
-  render(<AdhocFilterControl {...createProps()} {...props} />, {
-    useDnd: true,
-  });
+const renderComponent = (props: Partial<TestProps> = {}) =>
+  render(
+    <AdhocFilterControl
+      {...(createProps() as Record<string, unknown>)}
+      {...props}
+    />,
+    {
+      useDnd: true,
+      useRedux: true,
+    },
+  );
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AdhocFilterControl', () => {
-  it('should render with default props', () => {
+  test('should render with default props', () => {
     renderComponent();
     expect(screen.getByText('Add filter')).toBeInTheDocument();
     expect(screen.getByTestId('adhoc-filter-control')).toBeInTheDocument();
@@ -111,13 +142,13 @@ describe('AdhocFilterControl', () => {
     expect(onChange).toHaveBeenCalledWith([]);
   });
 
-  it('should show add filter button when no filters exist', () => {
+  test('should show add filter button when no filters exist', () => {
     renderComponent();
     const addButton = screen.getByTestId('add-filter-button');
     expect(addButton).toBeInTheDocument();
   });
 
-  it('should handle partition column data', async () => {
+  test('should handle partition column data', async () => {
     const mockPartitionColumn = 'date_column';
     const mockResponse = {
       partitions: {
@@ -150,5 +181,74 @@ describe('AdhocFilterControl', () => {
 
     const component = screen.getByTestId('adhoc-filter-control');
     expect(component).toBeInTheDocument();
+  });
+
+  test('should save a new simple filter built in the popover', async () => {
+    const onChange = jest.fn();
+    renderComponent({
+      onChange,
+      operators: [Operators.Equals, Operators.GreaterThan],
+    });
+
+    await userEvent.click(screen.getByTestId('add-filter-button'));
+    expect(screen.getByRole('tab', { name: /simple/i })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+
+    await userEvent.click(await screen.findByTestId('select-element'));
+    await userEvent.click(
+      await screen.findByRole('option', { name: 'column1' }),
+    );
+    await userEvent.click(await screen.findByLabelText('Select operator'));
+    await userEvent.click(
+      await screen.findByRole('option', { name: /Equal to/ }),
+    );
+    await userEvent.type(
+      screen.getByTestId('adhoc-filter-simple-value'),
+      'abc',
+    );
+    await userEvent.click(
+      screen.getByTestId('adhoc-filter-edit-popover-save-button'),
+    );
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const [[savedFilters]] = onChange.mock.calls;
+    expect(savedFilters).toHaveLength(1);
+    expect(savedFilters[0]).toEqual(
+      expect.objectContaining({
+        expressionType: ExpressionTypes.Simple,
+        subject: 'column1',
+        operator: '==',
+        comparator: 'abc',
+      }),
+    );
+    expect(await screen.findByText("column1 = 'abc'")).toBeInTheDocument();
+  });
+
+  test('should save a new custom SQL filter built in the popover', async () => {
+    const onChange = jest.fn();
+    renderComponent({ onChange });
+
+    await userEvent.click(screen.getByTestId('add-filter-button'));
+    await userEvent.click(screen.getByRole('tab', { name: /custom sql/i }));
+
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.paste('column2 > 5');
+    await userEvent.click(
+      screen.getByTestId('adhoc-filter-edit-popover-save-button'),
+    );
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const [[savedFilters]] = onChange.mock.calls;
+    expect(savedFilters).toHaveLength(1);
+    expect(savedFilters[0]).toEqual(
+      expect.objectContaining({
+        expressionType: ExpressionTypes.Sql,
+        sqlExpression: 'column2 > 5',
+        clause: Clauses.Where,
+      }),
+    );
+    expect(await screen.findByText('column2 > 5')).toBeInTheDocument();
   });
 });

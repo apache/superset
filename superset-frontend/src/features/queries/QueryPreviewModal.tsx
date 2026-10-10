@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme, styled } from '@apache-superset/core/theme';
 import cx from 'classnames';
 import { Button, Modal } from '@superset-ui/core/components';
 import withToasts, {
@@ -28,45 +29,48 @@ import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewStat
 import { QueryObject } from 'src/views/CRUD/types';
 
 const QueryTitle = styled.div`
-  color: ${({ theme }) => theme.colors.primary.light2};
+  color: ${({ theme }) => theme.colorTextSecondary};
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   margin-bottom: 0;
 `;
 
 const QueryLabel = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
   font-size: ${({ theme }) => theme.fontSize}px;
   padding: 4px 0 24px 0;
 `;
 
 const QueryViewToggle = styled.div`
-  margin: 0 0 ${({ theme }) => theme.sizeUnit * 6}px 0;
+  display: flex;
 `;
 
-const TabButton = styled.div`
-  display: inline;
+const TabButton = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   padding: ${({ theme }) => theme.sizeUnit * 2}px
     ${({ theme }) => theme.sizeUnit * 4}px;
   margin-right: ${({ theme }) => theme.sizeUnit * 4}px;
   color: ${({ theme }) => theme.colorPrimaryText};
+  cursor: pointer;
 
   &.active,
   &:focus,
   &:hover {
-    background: ${({ theme }) => theme.colors.primary.light4};
-    border-bottom: none;
+    background: ${({ theme }) => theme.colorPrimaryBg};
     border-radius: ${({ theme }) => theme.borderRadius}px;
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   &:hover:not(.active) {
-    background: ${({ theme }) => theme.colors.primary.light5};
+    background: ${({ theme }) => theme.colorPrimaryBgHover};
   }
 `;
 const StyledModal = styled(Modal)`
   .ant-modal-body {
     padding: ${({ theme }) => theme.sizeUnit * 6}px;
+    padding-top: 0;
   }
 `;
 
@@ -95,6 +99,15 @@ function QueryPreviewModal({
       currentQueryId: query.id,
       fetchData,
     });
+  const theme = useTheme();
+  const codeBlockStyle = {
+    border: 1,
+    borderColor: theme.colorBorder,
+    borderStyle: 'solid',
+    marginTop: theme.sizeUnit * 4,
+    fontSize: theme.fontSize * 0.75,
+    height: theme.sizeUnit * 100,
+  };
 
   const [currentTab, setCurrentTab] = useState<'user' | 'executed'>('user');
 
@@ -110,6 +123,7 @@ function QueryPreviewModal({
             <Button
               data-test="previous-query"
               key="previous-query"
+              buttonStyle="secondary"
               disabled={disablePrevious}
               onClick={() => handleDataChange(true)}
             >
@@ -118,6 +132,7 @@ function QueryPreviewModal({
             <Button
               data-test="next-query"
               key="next-query"
+              buttonStyle="secondary"
               disabled={disableNext}
               onClick={() => handleDataChange(false)}
             >
@@ -126,7 +141,6 @@ function QueryPreviewModal({
             <Button
               data-test="open-in-sql-lab"
               key="open-in-sql-lab"
-              buttonStyle="primary"
               onClick={() => openInSqlLab(id)}
             >
               {t('Open in SQL Lab')}
@@ -138,7 +152,7 @@ function QueryPreviewModal({
         <QueryLabel>{query.tab_name}</QueryLabel>
         <QueryViewToggle>
           <TabButton
-            role="button"
+            type="button"
             data-test="toggle-user-sql"
             className={cx({ active: currentTab === 'user' })}
             onClick={() => setCurrentTab('user')}
@@ -146,7 +160,7 @@ function QueryPreviewModal({
             {t('User query')}
           </TabButton>
           <TabButton
-            role="button"
+            type="button"
             data-test="toggle-executed-sql"
             className={cx({ active: currentTab === 'executed' })}
             onClick={() => setCurrentTab('executed')}
@@ -158,6 +172,7 @@ function QueryPreviewModal({
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
           language="sql"
+          customStyle={codeBlockStyle}
         >
           {(currentTab === 'user' ? sql : executed_sql) || ''}
         </SyntaxHighlighterCopy>

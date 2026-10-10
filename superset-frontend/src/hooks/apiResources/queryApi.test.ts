@@ -36,7 +36,7 @@ const mockStore = configureStore();
 const store = mockStore();
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('supersetClientQuery should build the endpoint with rison encoded query string and return data when successful', async () => {
@@ -56,8 +56,8 @@ test('supersetClientQuery should build the endpoint with rison encoded query str
     getBaseQueryApiMock(store),
     {},
   );
-  expect(fetchMock.calls(getEndpoint)).toHaveLength(1);
-  expect(fetchMock.calls(postEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(getEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(postEndpoint)).toHaveLength(0);
   expect((result.data as JsonResponse).json.result).toEqual(expectedData);
   await supersetClientQuery(
     {
@@ -68,8 +68,8 @@ test('supersetClientQuery should build the endpoint with rison encoded query str
     getBaseQueryApiMock(store),
     {},
   );
-  expect(fetchMock.calls(getEndpoint)).toHaveLength(1);
-  expect(fetchMock.calls(postEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(getEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(postEndpoint)).toHaveLength(1);
 });
 
 test('supersetClientQuery should return error when unsuccessful', async () => {

@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import SyntaxHighlighterBase from 'react-syntax-highlighter/dist/cjs/light';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import tomorrow from 'react-syntax-highlighter/dist/cjs/styles/hljs/tomorrow-night';
-import { useTheme, isThemeDark } from '@superset-ui/core';
+import { css, isThemeDark, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
+import copyTextToClipboard from '../../utils/copy';
+import { Icons } from '../Icons';
 
 export type SupportedLanguage = 'sql' | 'htmlbars' | 'markdown' | 'json';
 
@@ -31,6 +34,7 @@ export interface CodeSyntaxHighlighterProps {
   showLineNumbers?: boolean;
   wrapLines?: boolean;
   style?: any; // Override theme style if needed
+  showCopyButton?: boolean;
 }
 
 // Track which languages have been registered to avoid duplicate registrations
@@ -76,11 +80,14 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
   showLineNumbers = false,
   wrapLines = true,
   style: overrideStyle,
+  showCopyButton = true,
 }) => {
   const theme = useTheme();
   const [isLanguageReady, setIsLanguageReady] = useState(
     registeredLanguages.has(language),
   );
+  const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const loadLanguage = async () => {
@@ -93,6 +100,21 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
     loadLanguage();
   }, [language]);
 
+  useEffect(
+    () => () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    },
+    [],
+  );
+
+  const handleCopy = useCallback(() => {
+    copyTextToClipboard(() => Promise.resolve(children)).then(() => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      setCopied(true);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 1500);
+    });
+  }, [children]);
+
   const isDark = isThemeDark(theme);
   const themeStyle = overrideStyle || (isDark ? tomorrow : github);
 
@@ -104,32 +126,79 @@ export const CodeSyntaxHighlighter: React.FC<CodeSyntaxHighlighterProps> = ({
     ...customStyle,
   };
 
+  const copyButton = showCopyButton && (
+    <button
+      type="button"
+      onClick={(e: React.MouseEvent) => {
+        e.stopPropagation();
+        handleCopy();
+      }}
+      title={copied ? t('Copied!') : t('Copy to clipboard')}
+      css={css`
+        position: absolute;
+        top: ${theme.sizeUnit}px;
+        right: ${theme.sizeUnit}px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: ${theme.sizeUnit}px;
+        color: ${copied ? theme.colorSuccess : theme.colorTextSecondary};
+        line-height: 1;
+        border-radius: ${theme.borderRadius}px;
+        &:hover {
+          color: ${copied ? theme.colorSuccess : theme.colorText};
+          background: ${theme.colorBgTextHover};
+        }
+      `}
+    >
+      {copied ? (
+        <Icons.CheckOutlined style={{ fontSize: theme.fontSizeSM }} />
+      ) : (
+        <Icons.CopyOutlined style={{ fontSize: theme.fontSizeSM }} />
+      )}
+    </button>
+  );
+
   // Show a simple pre-formatted text while language is loading
   if (!isLanguageReady) {
     return (
-      <pre
-        style={{
-          ...defaultCustomStyle,
-          fontFamily: 'monospace',
-          whiteSpace: 'pre-wrap',
-          margin: 0,
-        }}
+      <div
+        css={css`
+          position: relative;
+        `}
       >
-        {children}
-      </pre>
+        {copyButton}
+        <pre
+          style={{
+            ...defaultCustomStyle,
+            fontFamily: 'monospace',
+            whiteSpace: 'pre-wrap',
+            margin: 0,
+          }}
+        >
+          {children}
+        </pre>
+      </div>
     );
   }
 
   return (
-    <SyntaxHighlighterBase
-      language={language}
-      style={themeStyle}
-      customStyle={defaultCustomStyle}
-      showLineNumbers={showLineNumbers}
-      wrapLines={wrapLines}
+    <div
+      css={css`
+        position: relative;
+      `}
     >
-      {children}
-    </SyntaxHighlighterBase>
+      {copyButton}
+      <SyntaxHighlighterBase
+        language={language}
+        style={themeStyle}
+        customStyle={defaultCustomStyle}
+        showLineNumbers={showLineNumbers}
+        wrapLines={wrapLines}
+      >
+        {children}
+      </SyntaxHighlighterBase>
+    </div>
   );
 };
 

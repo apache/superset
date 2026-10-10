@@ -17,14 +17,15 @@
  * under the License.
  */
 import { useCallback, useMemo } from 'react';
-import { Global } from '@emotion/react';
-import { css, useTheme } from '@superset-ui/core';
-
-import type { Column, GridOptions } from 'ag-grid-community';
-import { AgGridReact, type AgGridReactProps } from 'ag-grid-react';
-
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { ThemedAgGridReact } from '@superset-ui/core/components';
+import type {
+  CellKeyDownEvent,
+  Column,
+  GridOptions,
+  ValueGetterParams,
+} from 'ag-grid-community';
+import type { AgGridReactProps } from 'ag-grid-react';
 
 import copyTextToClipboard from 'src/utils/copy';
 
@@ -49,7 +50,7 @@ export function GridTable<RecordType extends object>({
   showRowNumber,
   enableActions,
   size = GridSize.Middle,
-  striped,
+  themeOverrides,
 }: TableProps<RecordType>) {
   const theme = useTheme();
   const isExternalFilterPresent = useCallback(
@@ -58,12 +59,13 @@ export function GridTable<RecordType extends object>({
   );
   const rowIndexLength = `${data.length}}`.length;
   const onKeyDown: AgGridReactProps<Record<string, any>>['onCellKeyDown'] =
-    useCallback(({ event, column, data, value, api }) => {
+    useCallback(({ event, column, data, value, api }: CellKeyDownEvent) => {
+      const keyEvent = event as KeyboardEvent | undefined;
       if (
         !document.getSelection?.()?.toString?.() &&
-        event &&
-        event.key === 'c' &&
-        (event.ctrlKey || event.metaKey)
+        keyEvent &&
+        keyEvent.key === 'c' &&
+        (keyEvent.ctrlKey || keyEvent.metaKey)
       ) {
         const columns =
           column.getColId() === PIVOT_COL_ID
@@ -88,8 +90,16 @@ export function GridTable<RecordType extends object>({
       [
         {
           field: PIVOT_COL_ID,
-          valueGetter: 'node.rowIndex+1',
-          cellClass: 'locked-col',
+          valueGetter: (params: ValueGetterParams) =>
+            (params.node?.rowIndex ?? 0) + 1,
+          cellClass: 'row-number-col',
+          cellStyle: {
+            backgroundColor: theme.colorFillTertiary,
+            padding: '0',
+            textAlign: 'center',
+            fontSize: '0.9em',
+            color: theme.colorTextTertiary,
+          },
           width: 30 + rowIndexLength * 6,
           suppressNavigable: true,
           resizable: false,
@@ -115,7 +125,14 @@ export function GridTable<RecordType extends object>({
           }),
         ),
       ].slice(showRowNumber ? 0 : 1),
-    [rowIndexLength, columnReorderable, columns, showRowNumber, sortable],
+    [
+      rowIndexLength,
+      columnReorderable,
+      columns,
+      showRowNumber,
+      sortable,
+      theme,
+    ],
   );
   const defaultColDef: AgGridReactProps['defaultColDef'] = useMemo(
     () => ({
@@ -127,95 +144,72 @@ export function GridTable<RecordType extends object>({
     [columnReorderable, enableActions, sortable],
   );
 
-  const rowHeight = theme.sizeUnit * (size === GridSize.Middle ? 9 : 7);
+  const defaultRowHeight = theme.sizeUnit * (size === GridSize.Middle ? 9 : 7);
+  const rowHeight = themeOverrides?.rowHeight ?? defaultRowHeight;
+  const headerHeight = themeOverrides?.headerHeight ?? rowHeight;
 
   const gridOptions = useMemo<GridOptions>(
     () => ({
       enableCellTextSelection: true,
       ensureDomOrder: true,
       suppressFieldDotNotation: true,
-      headerHeight: rowHeight,
-      rowSelection: 'multiple',
+      headerHeight,
       rowHeight,
     }),
-    [rowHeight],
+    [rowHeight, headerHeight],
   );
 
   return (
-    <>
-      <Global
-        styles={() => css`
-          #grid-table.ag-theme-quartz {
-            --ag-grid-size: ${theme.sizeUnit}px;
-            --ag-font-family: ${theme.fontFamily};
-            --ag-font-size: ${theme.fontSize}px;
-            --ag-row-height: ${rowHeight}px;
-            --ag-background-color: ${theme.colorBgBase};
-            --ag-foreground-color: ${theme.colorText};
-            --ag-header-background-color: ${theme.colorBgElevated};
-            --ag-header-foreground-color: ${theme.colorTextHeading};
-            --ag-border-color: ${theme.colorBorder};
-            --ag-row-border-color: ${theme.colorSplit};
-            --ag-row-hover-color: ${theme.colorFillSecondary};
-            --ag-selected-row-background-color: ${theme.colorPrimaryBg};
-            --ag-selected-row-foreground-color: ${theme.colorPrimaryText};
-            --ag-range-selection-border-color: ${theme.colorPrimary};
-            --ag-range-selection-background-color: ${theme.colorPrimaryBg};
-            --ag-checkbox-checked-color: ${theme.colorPrimary};
-            --ag-disabled-foreground-color: ${theme.colorTextDisabled};
-            ${!striped &&
-            `--ag-odd-row-background-color: ${theme.colorBgElevated};`}
-            --ag-font-size: ${GridSize.Middle === size
-              ? theme.fontSize
-              : theme.fontSizeSM}px;
-          }
+    <div
+      css={css`
+        width: 100%;
+        height: ${height}px;
 
-          #grid-table .ag-cell {
-            -webkit-font-smoothing: antialiased;
-          }
+        /* Handle hover state for row number column */
+        .ag-row-hover .row-number-col {
+          background: ${theme.colorFillSecondary};
+        }
 
-          .locked-col {
-            background: var(--ag-row-border-color);
-            padding: 0;
-            text-align: center;
-            font-size: calc(var(--ag-font-size) * 0.9);
-            color: var(--ag-disabled-foreground-color);
-          }
+        .ag-header-cell {
+          overflow: hidden;
+        }
 
-          .ag-row-hover .locked-col {
-            background: var(--ag-row-hover-color);
-          }
+        /* Preserve significant whitespace within cell values (e.g. option
+        symbols and other whitespace-sensitive data). ag-Grid's default
+        collapses runs of spaces, which can misrepresent the underlying
+        value.
 
-          .ag-header-cell {
-            overflow: hidden;
-          }
+        'pre' is a deliberate trade-off over 'pre-wrap': it keeps values on a
+        single line so row heights and column sizing stay unchanged. CSS has no
+        value that preserves spaces while collapsing newlines, so an embedded
+        newline renders on multiple lines and is clipped by the fixed row
+        height; truncating such values to the visible row is acceptable here.
+        overflow/text-overflow keep over-long single-line values clipped with
+        an ellipsis rather than overflowing the cell. */
+        .ag-cell-value {
+          white-space: pre;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
 
-          & [role='columnheader']:hover .customHeaderAction {
-            display: flex;
-          }
-        `}
+        & [role='columnheader']:hover .customHeaderAction {
+          display: flex;
+        }
+      `}
+    >
+      <ThemedAgGridReact
+        rowData={data}
+        columnDefs={columnDefs}
+        defaultColDef={defaultColDef}
+        onSortChanged={onSortChanged}
+        isExternalFilterPresent={isExternalFilterPresent}
+        doesExternalFilterPass={externalFilter}
+        components={gridComponents}
+        gridOptions={gridOptions}
+        onCellKeyDown={onKeyDown}
+        themeOverrides={themeOverrides}
       />
-      <div
-        id="grid-table"
-        className="ag-theme-quartz"
-        css={css`
-          width: 100%;
-          height: ${height}px;
-        `}
-      >
-        <AgGridReact
-          rowData={data}
-          columnDefs={columnDefs}
-          defaultColDef={defaultColDef}
-          onSortChanged={onSortChanged}
-          isExternalFilterPresent={isExternalFilterPresent}
-          doesExternalFilterPass={externalFilter}
-          components={gridComponents}
-          gridOptions={gridOptions}
-          onCellKeyDown={onKeyDown}
-        />
-      </div>
-    </>
+    </div>
   );
 }
 

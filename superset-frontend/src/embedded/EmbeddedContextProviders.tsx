@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Route } from 'react-router-dom';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { FlashProvider, DynamicPluginProvider } from 'src/components';
+import { DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
-import type { ThemeStorage } from '@superset-ui/core';
+import { type ThemeStorage } from '@apache-superset/core/theme';
 import { store } from 'src/views/store';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import querystring from 'query-string';
+import { getInitialThemeMode } from './getInitialThemeMode';
 
 /**
  * In-memory implementation of ThemeStorage interface for embedded contexts.
@@ -52,14 +53,16 @@ class ThemeMemoryStorageAdapter implements ThemeStorage {
 
 const themeController = new ThemeController({
   storage: new ThemeMemoryStorageAdapter(),
+  initialMode: getInitialThemeMode(),
 });
 
 export const getThemeController = (): ThemeController => themeController;
 
-const { common } = getBootstrapData();
 const extensionsRegistry = getExtensionsRegistry();
 
-export const EmbeddedContextProviders: React.FC = ({ children }) => {
+export const EmbeddedContextProviders: React.FC<{
+  children?: React.ReactNode;
+}> = ({ children }) => {
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
   );
@@ -67,25 +70,28 @@ export const EmbeddedContextProviders: React.FC = ({ children }) => {
   return (
     <SupersetThemeProvider themeController={themeController}>
       <ReduxProvider store={store}>
+        {/* @ts-expect-error react-dnd types not updated for React 18 */}
         <DndProvider backend={HTML5Backend}>
-          <FlashProvider messages={common.flash_messages}>
-            <EmbeddedUiConfigProvider>
-              <DynamicPluginProvider>
-                <QueryParamProvider
-                  ReactRouterRoute={Route}
-                  stringifyOptions={{ encode: false }}
-                >
-                  {RootContextProviderExtension ? (
-                    <RootContextProviderExtension>
-                      {children}
-                    </RootContextProviderExtension>
-                  ) : (
-                    children
-                  )}
-                </QueryParamProvider>
-              </DynamicPluginProvider>
-            </EmbeddedUiConfigProvider>
-          </FlashProvider>
+          <EmbeddedUiConfigProvider>
+            <DynamicPluginProvider>
+              <QueryParamProvider
+                adapter={ReactRouter5Adapter}
+                options={{
+                  searchStringToObject: querystring.parse,
+                  objectToSearchString: (object: Record<string, any>) =>
+                    querystring.stringify(object, { encode: false }),
+                }}
+              >
+                {RootContextProviderExtension ? (
+                  <RootContextProviderExtension>
+                    {children}
+                  </RootContextProviderExtension>
+                ) : (
+                  children
+                )}
+              </QueryParamProvider>
+            </DynamicPluginProvider>
+          </EmbeddedUiConfigProvider>
         </DndProvider>
       </ReduxProvider>
     </SupersetThemeProvider>

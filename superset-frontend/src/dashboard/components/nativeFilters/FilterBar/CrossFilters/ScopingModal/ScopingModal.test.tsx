@@ -151,27 +151,25 @@ const setup = (props = DEFAULT_PROPS) =>
 
 const DASHBOARD_UPDATE_URL = 'glob:*api/v1/dashboard/1';
 beforeEach(() => {
-  fetchMock.put(DASHBOARD_UPDATE_URL, 200);
+  fetchMock.put(DASHBOARD_UPDATE_URL, 200, { name: DASHBOARD_UPDATE_URL });
 });
 
-afterEach(() => {
-  fetchMock.restore();
-});
+afterEach(() => fetchMock.clearHistory().removeRoutes());
 
-it('renders modal', () => {
+test('renders modal', () => {
   setup();
   expect(screen.getByRole('dialog')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-tree-panel')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-list-panel')).toBeInTheDocument();
 });
 
-it('switch currently edited chart scoping', async () => {
+test('switch currently edited chart scoping', async () => {
   setup();
   const withinScopingList = within(screen.getByTestId('scoping-list-panel'));
   expect(withinScopingList.getByText('All charts/global scoping')).toHaveClass(
     'active',
   );
-  userEvent.click(withinScopingList.getByText('Chart 3'));
+  await userEvent.click(withinScopingList.getByText('Chart 3'));
   await waitFor(() => {
     expect(withinScopingList.getByText('Chart 3')).toHaveClass('active');
     expect(
@@ -180,7 +178,7 @@ it('switch currently edited chart scoping', async () => {
   });
 });
 
-it('scoping tree global and custom checks', () => {
+test('scoping tree global and custom checks', async () => {
   setup();
 
   expect(
@@ -189,7 +187,7 @@ it('scoping tree global and custom checks', () => {
     ),
   ).toHaveLength(5);
 
-  userEvent.click(
+  await userEvent.click(
     within(screen.getByTestId('scoping-list-panel')).getByText('Chart 3'),
   );
 
@@ -200,10 +198,10 @@ it('scoping tree global and custom checks', () => {
   ).toHaveLength(2);
 });
 
-it('add new custom scoping', async () => {
+test('add new custom scoping', async () => {
   setup();
 
-  userEvent.click(screen.getByText('Add custom scoping'));
+  await userEvent.click(screen.getByText('Add custom scoping'));
 
   expect(screen.getByText('[new custom scoping]')).toBeInTheDocument();
   expect(screen.getByText('[new custom scoping]')).toHaveClass('active');
@@ -215,7 +213,7 @@ it('add new custom scoping', async () => {
     ),
   ).toHaveLength(4);
 
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 2'),
   );
 
@@ -226,33 +224,33 @@ it('add new custom scoping', async () => {
   ).toHaveLength(2);
 });
 
-it('edit scope and save', async () => {
+test('edit scope and save', async () => {
   setup();
 
   // unselect chart 2 in global scoping
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 2'),
   );
 
-  userEvent.click(
+  await userEvent.click(
     within(screen.getByTestId('scoping-list-panel')).getByText('Chart 3'),
   );
 
   // select chart 1 in chart 3's custom scoping
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 1'),
   );
 
   // create custom scoping for chart 1 with unselected chart 2 (from global) and chart 4
-  userEvent.click(screen.getByText('Add custom scoping'));
+  await userEvent.click(screen.getByText('Add custom scoping'));
   await selectOption('chart 1', 'Select chart');
 
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 4'),
   );
 
   // remove custom scoping for chart 4
-  userEvent.click(
+  await userEvent.click(
     within(
       within(screen.getByTestId('scoping-list-panel'))
         .getByText('chart 4')
@@ -263,13 +261,14 @@ it('edit scope and save', async () => {
     within(screen.getByTestId('scoping-list-panel')).queryByText('chart 4'),
   ).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Save'));
+  await userEvent.click(screen.getByText('Save'));
 
-  await waitFor(() => fetchMock.called(DASHBOARD_UPDATE_URL));
+  await waitFor(() => fetchMock.callHistory.called(DASHBOARD_UPDATE_URL));
 
   expect(
     JSON.parse(
-      JSON.parse(fetchMock.lastCall()?.[1]?.body as string).json_metadata,
+      JSON.parse(fetchMock.callHistory.lastCall()?.options?.body as string)
+        .json_metadata,
     ),
   ).toEqual({
     chart_configuration: {

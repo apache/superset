@@ -1,0 +1,1202 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { useEffect } from 'react';
+import { act, fireEvent, render } from 'spec/helpers/testing-library';
+import {
+  DatasourceType,
+  FeatureFlag,
+  TimeGranularity,
+  VizType,
+} from '@superset-ui/core';
+import * as redux from 'redux';
+
+import * as exploreUtils from 'src/explore/exploreUtils';
+import * as chartStateConverter from '../../../util/chartStateConverter';
+import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
+import mockDatasource from 'spec/fixtures/mockDatasource';
+import chartQueries, {
+  sliceId as queryId,
+} from 'spec/fixtures/mockChartQueries';
+import {
+  AutoRefreshProvider,
+  useAutoRefreshContext,
+} from 'src/dashboard/contexts/AutoRefreshContext';
+import Chart from './Chart';
+import {
+  DashboardDatasetsContext,
+  type DashboardDatasetsContextValue,
+} from 'src/dashboard/contexts/DashboardDatasetsContext';
+import { buildQuery as buildTableQuery } from '../../../../../plugins/plugin-chart-table/src/buildQuery';
+import type { TableChartFormData } from '../../../../../plugins/plugin-chart-table/src/types';
+
+let capturedChartContainerProps: Record<string, unknown> = {};
+jest.mock('src/components/Chart/ChartContainer', () => {
+  const MockChartContainer = (props: Record<string, unknown>) => {
+    capturedChartContainerProps = props;
+    return <div data-test="chart-container" />;
+  };
+  return { __esModule: true, default: MockChartContainer };
+});
+
+const props = {
+  id: queryId,
+  width: 100,
+  height: 100,
+  updateSliceName() {},
+  // from redux
+  maxRows: 500, // will be overwritten with SQL_MAX_ROW from conf
+  formData: chartQueries[queryId].form_data,
+  datasource: (mockDatasource as Record<string, unknown>)[
+    sliceEntities.slices[queryId].datasource
+  ],
+  sliceName: sliceEntities.slices[queryId].slice_name,
+  timeout: 60,
+  filters: {},
+  refreshChart() {},
+  toggleExpandSlice() {},
+  addFilter() {},
+  logEvent() {},
+  handleToggleFullSize() {},
+  changeFilter() {},
+  setFocusedFilterField() {},
+  unsetFocusedFilterField() {},
+  addSuccessToast() {},
+  addDangerToast() {},
+  exportCSV() {},
+  exportFullCSV() {},
+  exportXLSX() {},
+  exportFullXLSX() {},
+  componentId: 'test',
+  dashboardId: 111,
+};
+
+const defaultState = {
+  charts: chartQueries,
+  sliceEntities: {
+    ...sliceEntities,
+    slices: {
+      [queryId]: {
+        ...sliceEntities.slices[queryId],
+        description_markdown: 'markdown',
+        viz_type: VizType.Table,
+      },
+    },
+  },
+  datasources: mockDatasource,
+  dashboardState: { editMode: false, expandedSlices: {} },
+  dashboardInfo: {
+    id: props.dashboardId,
+    superset_can_explore: false,
+    superset_can_share: false,
+    superset_can_download: false,
+    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
+  },
+  dashboardLayout: {
+    present: {},
+    past: [],
+    future: [],
+  },
+};
+
+function setup(
+  overrideProps: Record<string, unknown> = {},
+  overrideState: Record<string, unknown> = {},
+  currentDatasets: DashboardDatasetsContextValue | null = null,
+) {
+  const chart = <Chart {...props} {...overrideProps} />;
+  return render(
+    currentDatasets ? (
+      <DashboardDatasetsContext.Provider value={currentDatasets}>
+        {chart}
+      </DashboardDatasetsContext.Provider>
+    ) : (
+      chart
+    ),
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: { ...defaultState, ...overrideState },
+    },
+  );
+}
+
+function StartAutoRefreshFor({ chartIds }: { chartIds: number[] }) {
+  const { startAutoRefresh } = useAutoRefreshContext();
+  useEffect(() => {
+    startAutoRefresh(chartIds);
+  }, [chartIds, startAutoRefresh]);
+  return null;
+}
+
+function setupDuringUnrelatedAutoRefresh(
+  refreshingChartIds: number[],
+  overrideProps: Record<string, unknown> = {},
+  overrideState: Record<string, unknown> = {},
+) {
+  return render(
+    <AutoRefreshProvider>
+      <StartAutoRefreshFor chartIds={refreshingChartIds} />
+      <Chart {...props} {...overrideProps} />
+    </AutoRefreshProvider>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: { ...defaultState, ...overrideState },
+    },
+  );
+}
+
+const refreshChart = jest.fn();
+const logEvent = jest.fn();
+const changeFilter = jest.fn();
+const addSuccessToast = jest.fn();
+const addDangerToast = jest.fn();
+const toggleExpandSlice = jest.fn();
+const setFocusedFilterField = jest.fn();
+const unsetFocusedFilterField = jest.fn();
+beforeAll(() => {
+  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+    refreshChart,
+    logEvent,
+    changeFilter,
+    addSuccessToast,
+    addDangerToast,
+    toggleExpandSlice,
+    setFocusedFilterField,
+    unsetFocusedFilterField,
+  }));
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
+test('shows the loading spinner for a chart that starts loading outside the in-flight auto-refresh batch', () => {
+  setupDuringUnrelatedAutoRefresh([queryId + 1], undefined, {
+    charts: {
+      ...defaultState.charts,
+      [queryId]: {
+        ...defaultState.charts[queryId],
+        chartStatus: 'loading',
+      },
+    },
+  });
+
+  expect(capturedChartContainerProps.suppressLoadingSpinner).toBe(false);
+});
+
+test('suppresses the loading spinner for a chart included in the in-flight auto-refresh batch', () => {
+  setupDuringUnrelatedAutoRefresh([queryId], undefined, {
+    charts: {
+      ...defaultState.charts,
+      [queryId]: {
+        ...defaultState.charts[queryId],
+        chartStatus: 'loading',
+      },
+    },
+  });
+
+  expect(capturedChartContainerProps.suppressLoadingSpinner).toBe(true);
+});
+
+test('should render a SliceHeader', () => {
+  const { getByTestId, container } = setup();
+  expect(getByTestId('slice-header')).toBeInTheDocument();
+  expect(container.querySelector('.slice_description')).not.toBeInTheDocument();
+});
+
+test('should render a ChartContainer', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('uses current semantic dimensions instead of a saved stale temporal lookup', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'complete',
+      },
+    },
+    {
+      dashboardId: props.dashboardId,
+      datasets: [
+        {
+          uid: '2__semantic_view',
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: true }],
+        },
+      ],
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toEqual({ event_time: true });
+  expect(buildTableQuery(formData).queries[0].columns).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        label: 'event_time',
+        timeGrain: TimeGranularity.DAY,
+      }),
+    ]),
+  );
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+  expect(savedFormData.temporal_columns_lookup).toEqual({ event_time: false });
+});
+
+test('keeps a saved semantic grain when current datasource metadata is unavailable', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {},
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toBeUndefined();
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+  expect(savedFormData.temporal_columns_lookup).toEqual({ event_time: false });
+});
+
+test('ignores prior dashboard metadata while current datasets are loading', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'loading',
+      },
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toBeUndefined();
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+});
+
+test('ignores prior metadata when a completed response omits the semantic source', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'complete',
+      },
+    },
+    { dashboardId: props.dashboardId, datasets: [] },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toBeUndefined();
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+});
+
+test('omits a dormant semantic grain when current metadata proves the axis non-temporal', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['country'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { country: true },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'country', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'complete',
+      },
+    },
+    {
+      dashboardId: props.dashboardId,
+      datasets: [
+        {
+          uid: '2__semantic_view',
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'country', is_dttm: false }],
+        },
+      ],
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toEqual({ country: false });
+  expect(buildTableQuery(formData).queries[0].extras).not.toHaveProperty(
+    'time_grain_sqla',
+  );
+});
+
+test('leaves saved SQL dataset lookup unchanged on dashboards', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '11__table',
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toEqual({ event_time: false });
+});
+
+const noDescriptionRenderInputs = ([undefined, false, true] as const).flatMap(
+  sliceExpanded =>
+    ([undefined, false, true] as const).map(allExpanded => ({
+      sliceExpanded,
+      allExpanded,
+    })),
+);
+
+test.each(noDescriptionRenderInputs)(
+  'should not render a description when it has none, expandedSlices=$sliceExpanded and expandAllSlices=$allExpanded',
+  ({ sliceExpanded, allExpanded }) => {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [props.id]: sliceExpanded },
+          expandAllSlices: allExpanded,
+        },
+        sliceEntities: {
+          ...sliceEntities,
+          slices: {
+            [queryId]: {
+              ...sliceEntities.slices[queryId],
+              description_markdown: undefined,
+              owners: [],
+              viz_type: VizType.Table,
+            },
+          },
+        },
+      },
+    );
+    expect(
+      container.querySelector('.slice_description'),
+    ).not.toBeInTheDocument();
+  },
+);
+
+const chartDescriptionRenderInputs = [
+  { expandSlice: undefined, expandAllSlices: undefined, result: false },
+  { expandSlice: undefined, expandAllSlices: false, result: false },
+  { expandSlice: undefined, expandAllSlices: true, result: true },
+  { expandSlice: false, expandAllSlices: undefined, result: false },
+  { expandSlice: false, expandAllSlices: false, result: false },
+  { expandSlice: false, expandAllSlices: true, result: false },
+  { expandSlice: true, expandAllSlices: undefined, result: true },
+  { expandSlice: true, expandAllSlices: false, result: true },
+  { expandSlice: true, expandAllSlices: true, result: true },
+];
+
+test.each(chartDescriptionRenderInputs)(
+  'should $result render a description if it has one, expandedSlices=$expandSlice and expandAllSlices=$expandAllSlices',
+  ({ expandSlice, expandAllSlices, result }) => {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [props.id]: expandSlice },
+          expandAllSlices,
+        },
+      },
+    );
+
+    if (result) {
+      expect(container.querySelector('.slice_description')).toBeInTheDocument();
+    } else {
+      expect(
+        container.querySelector('.slice_description'),
+      ).not.toBeInTheDocument();
+    }
+  },
+);
+
+test('should call refreshChart when SliceHeader calls forceRefresh', () => {
+  const { getByText, getByRole } = setup({});
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.click(getByText('Force refresh'));
+  expect(refreshChart).toHaveBeenCalled();
+});
+
+/* oxlint-disable-next-line jest/no-disabled-tests */
+test.skip('should call changeFilter when ChartContainer calls changeFilter', () => {
+  const mockChangeFilter = jest.fn();
+  const wrapper = setup({ changeFilter: mockChangeFilter }) as any;
+  wrapper.instance().changeFilter();
+  expect((mockChangeFilter as any).callCount).toBe(1);
+});
+
+test('should call exportChart when exportCSV is clicked', async () => {
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText(
+    'Export to .CSV',
+    {},
+    { timeout: 5000 },
+  );
+  fireEvent.click(exportAction);
+  expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        dashboardId: 111,
+      }),
+      resultType: 'full',
+      resultFormat: 'csv',
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});
+
+test('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText(
+    'Export to full .CSV',
+    {},
+    { timeout: 5000 },
+  );
+  fireEvent.click(exportAction);
+  expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        row_limit: 666,
+        dashboardId: 111,
+      }),
+      resultType: 'full',
+      resultFormat: 'csv',
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});
+
+test('should call exportChart when exportXLSX is clicked', async () => {
+  const stubbedExportXLSX = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText(
+    'Export to Excel',
+    {},
+    { timeout: 5000 },
+  );
+  fireEvent.click(exportAction);
+  expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
+  expect(stubbedExportXLSX).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'full',
+      resultFormat: 'xlsx',
+    }),
+  );
+  stubbedExportXLSX.mockRestore();
+});
+
+test('should call exportChart with row_limit props.maxRows when exportFullXLSX is clicked', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.AllowFullCsvExport]: true,
+  };
+  const stubbedExportXLSX = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  const exportAction = await findByText(
+    'Export to full Excel',
+    {},
+    { timeout: 5000 },
+  );
+  fireEvent.click(exportAction);
+  expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
+  expect(stubbedExportXLSX).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        row_limit: 666,
+        dashboardId: 111,
+      }),
+      resultType: 'full',
+      resultFormat: 'xlsx',
+    }),
+  );
+
+  stubbedExportXLSX.mockRestore();
+});
+
+test('should re-render when chart becomes visible', () => {
+  const { rerender, getByTestId } = setup({ isComponentVisible: false });
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+
+  rerender(<Chart {...props} isComponentVisible />);
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should re-render when componentId changes', () => {
+  const { rerender, getByTestId } = setup({
+    isComponentVisible: true,
+    componentId: 'test-1',
+  });
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+
+  rerender(<Chart {...props} isComponentVisible componentId="test-2" />);
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should re-render when cacheBusterProp changes', () => {
+  const { rerender, getByTestId } = setup({
+    isComponentVisible: true,
+    cacheBusterProp: 'v1',
+  });
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+
+  rerender(<Chart {...props} isComponentVisible cacheBusterProp="v2" />);
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should handle chart state conversion when converter exists', () => {
+  const mockChartState = { sortColumn: 'column1', sortOrder: 'asc' };
+  const mockConvertedState = { sort: [{ columnId: 'column1', order: 'asc' }] };
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      dashboardState: {
+        ...defaultState.dashboardState,
+        chartStates: {
+          [queryId]: { state: mockChartState },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+  expect(chartStateConverter.hasChartStateConverter).toHaveBeenCalledWith(
+    VizType.Table,
+  );
+});
+
+test('should fallback to formData state when runtime state not available', () => {
+  const mockFormDataState = { sortColumn: 'column2', sortOrder: 'desc' };
+  const mockConvertedState = { sort: [{ columnId: 'column2', order: 'desc' }] };
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: {
+            ...defaultState.charts[queryId].form_data,
+            table_state: mockFormDataState,
+          },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('chart height is reduced on first render in expanded state (guards against useEffect regression)', () => {
+  const DESCRIPTION_HEIGHT = 60;
+  const CHART_HEIGHT = 300;
+  // Matches the DEFAULT_HEADER_HEIGHT constant in Chart.tsx.
+  const DEFAULT_HEADER_HEIGHT = 22;
+
+  // Stabilise getHeaderHeight(): emotion injects margin-bottom CSS during
+  // React's commit phase, so getComputedStyle returns different values in
+  // initial renders vs re-renders. Mock it to always return empty so
+  // getHeaderHeight() consistently falls back to DEFAULT_HEADER_HEIGHT.
+  const getComputedStyleSpy = jest
+    .spyOn(window, 'getComputedStyle')
+    .mockReturnValue({
+      getPropertyValue: () => '',
+    } as unknown as CSSStyleDeclaration);
+
+  // JSDOM doesn't compute layout, so mock offsetHeight to simulate a real
+  // description element with height.
+  const offsetHeightSpy = jest
+    .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+    .mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('slice_description')
+        ? DESCRIPTION_HEIGHT
+        : 0;
+    });
+
+  // Suppress all passive effects to simulate the first-paint moment — the
+  // point at which the original useEffect bug caused clipping. useLayoutEffect
+  // (the fix) runs synchronously before paint and is intentionally NOT mocked
+  // here. If the implementation were reverted to useEffect, this spy would
+  // prevent the height measurement and the assertion below would fail.
+  const useEffectSpy = jest
+    .spyOn(global.React, 'useEffect')
+    .mockImplementation(() => {});
+
+  const { container } = setup(
+    { height: CHART_HEIGHT },
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          // ChartOverlay renders with an inline height style when loading —
+          // this is the observable proxy for getChartHeight() without real layout.
+          chartStatus: 'loading',
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        expandedSlices: { [queryId]: true },
+      },
+    },
+  );
+
+  const chartHeight = parseInt(
+    container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+      .style.height,
+    10,
+  );
+
+  // useLayoutEffect must have measured and applied descriptionHeight
+  // synchronously. If useEffect were used instead, descriptionHeight would
+  // still be 0 here (suppressed by useEffectSpy) and chartHeight would equal
+  // CHART_HEIGHT - DEFAULT_HEADER_HEIGHT rather than the value below.
+  expect(chartHeight).toBe(
+    CHART_HEIGHT - DEFAULT_HEADER_HEIGHT - DESCRIPTION_HEIGHT,
+  );
+
+  useEffectSpy.mockRestore();
+  getComputedStyleSpy.mockRestore();
+  offsetHeightSpy.mockRestore();
+});
+
+test('should not show a close button on chart error banners', () => {
+  const { queryByRole } = setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          queriesResponse: [
+            {
+              message: 'Something went wrong',
+              errors: [],
+            },
+          ],
+        },
+      },
+    },
+  );
+
+  expect(queryByRole('button', { name: /close/i })).not.toBeInTheDocument();
+});
+
+test('should handle chart state when no converter exists', () => {
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(false);
+  jest.spyOn(chartStateConverter, 'convertChartStateToOwnState');
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      dashboardState: {
+        ...defaultState.dashboardState,
+        chartStates: {
+          [queryId]: { state: { someState: 'value' } },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+  expect(
+    chartStateConverter.convertChartStateToOwnState,
+  ).not.toHaveBeenCalled();
+});
+
+test('should merge base ownState with converted chart state', () => {
+  const baseOwnState = { existingProp: 'value' };
+  const mockChartState = { sortColumn: 'column1', sortOrder: 'asc' };
+  const mockConvertedState = { sort: [{ columnId: 'column1', order: 'asc' }] };
+
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue(mockConvertedState);
+
+  const { getByTestId } = setup(
+    {},
+    {
+      ...defaultState,
+      dataMask: {
+        [queryId]: {
+          ownState: baseOwnState,
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        chartStates: {
+          [queryId]: { state: mockChartState },
+        },
+      },
+    },
+  );
+
+  expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should pass filterState from dataMask to ChartContainer', () => {
+  const mockFilterState = { value: ['bar'], selectedValues: ['bar'] };
+
+  setup(
+    {},
+    {
+      ...defaultState,
+      dataMask: {
+        [queryId]: {
+          filterState: mockFilterState,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps).toHaveProperty(
+    'filterState',
+    mockFilterState,
+  );
+});
+
+test('should pass chartStackTrace to ChartContainer so dashboard chart errors stay expandable', () => {
+  // Regression guard for #31858: the dashboard chart wrapper stopped forwarding
+  // the stack trace, so failed charts rendered a flat error with no "See more"
+  // affordance while the same error in Explore stayed expandable.
+  const stackTrace = 'Traceback (most recent call last): ValueError: boom';
+
+  setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          chartStackTrace: stackTrace,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps).toHaveProperty(
+    'chartStackTrace',
+    stackTrace,
+  );
+});
+
+function installResizeObserverMock() {
+  const observeMock = jest.fn();
+  const disconnectMock = jest.fn();
+  let observerCallback: ResizeObserverCallback | undefined;
+  const mockResizeObserver = jest.fn().mockImplementation(callback => {
+    observerCallback = callback;
+    return { observe: observeMock, disconnect: disconnectMock };
+  });
+  global.ResizeObserver = mockResizeObserver as any;
+
+  const getComputedStyleSpy = jest
+    .spyOn(window, 'getComputedStyle')
+    .mockReturnValue({
+      getPropertyValue: () => '',
+    } as unknown as CSSStyleDeclaration);
+
+  return {
+    observeMock,
+    getObserverCallback: () => observerCallback,
+    restore: () => {
+      delete (global as any).ResizeObserver;
+      getComputedStyleSpy.mockRestore();
+    },
+  };
+}
+
+test('A chart description configured to start expanded is visible after initial render', () => {
+  const { observeMock, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+    expect(container.querySelector('.slice_description')).toBeInTheDocument();
+    expect(observeMock).toHaveBeenCalled();
+  } finally {
+    restore();
+  }
+});
+
+test('The description height is correctly updated after asynchronous markdown rendering completes', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      { height: 300 },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            chartStatus: 'loading',
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+
+    const descriptionEl = container.querySelector(
+      '.slice_description',
+    ) as HTMLElement;
+    expect(descriptionEl).toBeInTheDocument();
+
+    const observerCallback = getObserverCallback();
+    if (observerCallback) {
+      Object.defineProperty(descriptionEl, 'offsetHeight', {
+        value: 100,
+        configurable: true,
+      });
+      act(() => {
+        observerCallback(
+          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+    }
+
+    const chartHeight = parseInt(
+      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+        .style.height,
+      10,
+    );
+    expect(chartHeight).toBe(300 - 22 - 100);
+  } finally {
+    restore();
+  }
+});
+
+test('The ResizeObserver callback updates the measured height', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      { height: 400 },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            chartStatus: 'loading',
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+
+    const descriptionEl = container.querySelector(
+      '.slice_description',
+    ) as HTMLElement;
+    expect(descriptionEl).toBeInTheDocument();
+
+    const observerCallback = getObserverCallback();
+    if (observerCallback) {
+      Object.defineProperty(descriptionEl, 'offsetHeight', {
+        value: 200,
+        configurable: true,
+      });
+      act(() => {
+        observerCallback(
+          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+    }
+
+    const chartHeight = parseInt(
+      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+        .style.height,
+      10,
+    );
+    expect(chartHeight).toBe(400 - 22 - 200);
+  } finally {
+    restore();
+  }
+});
+
+test('Existing expand/collapse behavior continues to work', () => {
+  const { restore } = installResizeObserverMock();
+  try {
+    const collapsedSetup = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: false },
+        },
+      },
+    );
+    expect(
+      collapsedSetup.container.querySelector('.slice_description'),
+    ).not.toBeInTheDocument();
+
+    const expandedSetup = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+    expect(
+      expandedSetup.container.querySelector('.slice_description'),
+    ).toBeInTheDocument();
+  } finally {
+    restore();
+  }
+});
+
+test('a hidden chart does not adopt a prop update, and adopts it once revealed', () => {
+  const { rerender } = setup({ isComponentVisible: false, isInView: false });
+  expect(capturedChartContainerProps.isInView).toBe(false);
+
+  // The parent passes an updated prop while the chart is still hidden: the
+  // memoized export bails out, so the prop update never reaches
+  // ChartContainer while the tab is hidden. Store-driven updates (such as a
+  // query trigger read via useSelector) are not gated by this memo.
+  rerender(<Chart {...props} isComponentVisible={false} isInView />);
+  expect(capturedChartContainerProps.isInView).toBe(false);
+
+  // Revealing the tab lets the chart re-render and adopt the pending update.
+  rerender(<Chart {...props} isComponentVisible isInView />);
+  expect(capturedChartContainerProps.isInView).toBe(true);
+});

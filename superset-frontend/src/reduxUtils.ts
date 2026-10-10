@@ -19,7 +19,7 @@
 import { nanoid } from 'nanoid';
 import { compose } from 'redux';
 import persistState, { StorageAdapter } from 'redux-localstorage';
-import { isEqual, omitBy, omit, isEqualWith } from 'lodash';
+import { isEqual, omitBy, omit, isEqualWith } from 'lodash-es';
 import { ensureIsArray } from '@superset-ui/core';
 
 export function addToObject(
@@ -83,10 +83,14 @@ export function removeFromArr(
   return { ...state, [arrKey]: newArr };
 }
 
-export function getFromArr(arr: Record<string, any>[], id: string) {
+export function getFromArr(
+  arr: Record<string, any>[],
+  id: string,
+  idKey = 'id',
+) {
   let obj;
   arr.forEach(o => {
-    if (o.id === id) {
+    if (o[idKey] === id) {
       obj = o;
     }
   });

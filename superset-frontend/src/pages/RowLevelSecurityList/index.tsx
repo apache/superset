@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, SupersetClient } from '@superset-ui/core';
-import { useMemo, useState } from 'react';
-import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  ActionButton,
+  ConfirmStatusChange,
+} from '@superset-ui/core/components';
 import {
   ModifiedInfo,
   ListView,
@@ -29,13 +33,21 @@ import {
 } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import RowLevelSecurityModal from 'src/features/rls/RowLevelSecurityModal';
 import { RLSObject } from 'src/features/rls/types';
-import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import type Subject from 'src/types/Subject';
+import {
+  createErrorHandler,
+  createFetchRelated,
+  createFetchSubjects,
+} from 'src/views/CRUD/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 interface RLSProps {
   addDangerToast: (msg: string) => void;
@@ -50,7 +62,7 @@ interface RLSProps {
 function RowLevelSecurityList(props: RLSProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const [ruleModalOpen, setRuleModalOpen] = useState<boolean>(false);
-  const [currentRule, setCurrentRule] = useState(null);
+  const [currentRule, setCurrentRule] = useState<RLSObject | null>(null);
 
   const {
     state: {
@@ -73,29 +85,31 @@ function RowLevelSecurityList(props: RLSProps) {
     true,
   );
 
-  function handleRuleEdit(rule: null) {
+  const handleRuleEdit = useCallback((rule: RLSObject | null) => {
     setCurrentRule(rule);
     setRuleModalOpen(true);
-  }
+  }, []);
 
-  function handleRuleDelete(
-    { id, name }: RLSObject,
-    refreshData: (arg0?: FetchDataConfig | null) => void,
-    addSuccessToast: (arg0: string) => void,
-    addDangerToast: (arg0: string) => void,
-  ) {
-    return SupersetClient.delete({
-      endpoint: `/api/v1/rowlevelsecurity/${id}`,
-    }).then(
-      () => {
-        refreshData();
-        addSuccessToast(t('Deleted %s', name));
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(t('There was an issue deleting %s: %s', name, errMsg)),
+  const handleRuleDelete = useCallback(
+    (
+      { id, name }: RLSObject,
+      refreshData: (arg0?: FetchDataConfig | null) => void,
+      addSuccessToast: (arg0: string) => void,
+      addDangerToast: (arg0: string) => void,
+    ) =>
+      SupersetClient.delete({
+        endpoint: `/api/v1/rowlevelsecurity/${id}`,
+      }).then(
+        () => {
+          refreshData();
+          addSuccessToast(t('Deleted %s', name));
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(t('There was an issue deleting %s: %s', name, errMsg)),
+        ),
       ),
-    );
-  }
+    [],
+  );
   function handleBulkRulesDelete(rulesToDelete: RLSObject[]) {
     const ids = rulesToDelete.map(({ id }) => id);
     return SupersetClient.delete({
@@ -126,23 +140,39 @@ function RowLevelSecurityList(props: RLSProps) {
       {
         accessor: 'name',
         Header: t('Name'),
+        size: 'xxl',
         id: 'name',
       },
       {
         accessor: 'filter_type',
         Header: t('Filter Type'),
-        size: 'xl',
+        size: 'lg',
         id: 'filter_type',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { subjects: subjectsList },
+          },
+        }: {
+          row: { original: { subjects?: Subject[] } };
+        }) => <SubjectPile subjects={subjectsList || []} />,
+        Header: t('Subjects'),
+        accessor: 'subjects',
+        size: 'xl',
+        id: 'subjects',
+        disableSortBy: true,
       },
       {
         accessor: 'group_key',
         Header: t('Group Key'),
-        size: 'xl',
+        size: 'lg',
         id: 'group_key',
       },
       {
         accessor: 'clause',
         Header: t('Clause'),
+        size: 'xl',
         id: 'clause',
       },
       {
@@ -171,6 +201,17 @@ function RowLevelSecurityList(props: RLSProps) {
           const handleEdit = () => handleRuleEdit(original);
           return (
             <div className="actions">
+              {canEdit && (
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
+                  placement="bottom"
+                  icon={
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  }
+                  onClick={handleEdit}
+                />
+              )}
               {canWrite && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
@@ -183,41 +224,20 @@ function RowLevelSecurityList(props: RLSProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={t('Delete')}
+                    <ActionButton
+                      label={t('Delete')}
+                      tooltip={t('Delete')}
                       placement="bottom"
-                    >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
-                      >
+                      icon={
                         <Icons.DeleteOutlined
                           data-test="rls-list-trash-icon"
                           iconSize="l"
                         />
-                      </span>
-                    </Tooltip>
+                      }
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
-              )}
-              {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
               )}
             </div>
           );
@@ -226,6 +246,7 @@ function RowLevelSecurityList(props: RLSProps) {
         id: 'actions',
         hidden: !canEdit && !canWrite && !canExport,
         disableSortBy: true,
+        size: 'lg',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,
@@ -234,14 +255,14 @@ function RowLevelSecurityList(props: RLSProps) {
       },
     ],
     [
-      user.userId,
       canEdit,
       canWrite,
       canExport,
-      hasPerm,
       refreshData,
       addDangerToast,
       addSuccessToast,
+      handleRuleDelete,
+      handleRuleEdit,
     ],
   );
 
@@ -263,6 +284,7 @@ function RowLevelSecurityList(props: RLSProps) {
         id: 'name',
         input: 'search',
         operator: FilterOperator.StartsWith,
+        inputName: 'rls_list_search',
       },
       {
         Header: t('Filter Type'),
@@ -275,6 +297,27 @@ function RowLevelSecurityList(props: RLSProps) {
           { label: t('Regular'), value: 'Regular' },
           { label: t('Base'), value: 'Base' },
         ],
+      },
+      {
+        Header: t('Subject'),
+        key: 'subject',
+        id: 'subjects',
+        input: 'select',
+        operator: FilterOperator.RelationManyMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchSubjects(
+          'rowlevelsecurity',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching row level security subject values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        optionFilterProps: SUBJECT_OPTION_FILTER_PROPS,
+        paginate: true,
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Group Key'),

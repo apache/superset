@@ -17,14 +17,18 @@
 """Integration tests for dashboard-theme functionality"""
 
 import uuid
+from unittest.mock import patch
 
 import pytest
+import yaml
 
-from superset import db
+from superset import db, security_manager
+from superset.commands.dashboard.export import ExportDashboardsCommand
+from superset.commands.dashboard.importers import v1
 from superset.models.core import Theme
 from superset.models.dashboard import Dashboard
 from superset.utils import json
-from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.base_tests import subjects_from_users, SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 
 
@@ -55,7 +59,7 @@ class TestDashboardThemeIntegration(SupersetTestCase):
             dashboard_title=f"Test Dashboard {self.test_id}",
             slug=f"test-dashboard-{self.test_id}",
             position_json="{}",
-            owners=[self.get_user("admin")],
+            editors=subjects_from_users([self.get_user("admin")]),
             created_by=self.get_user("admin"),
             changed_by=self.get_user("admin"),
         )
@@ -204,6 +208,8 @@ class TestDashboardThemeIntegration(SupersetTestCase):
         """Test that deleting a theme dissociates it from dashboards"""
         from superset.commands.theme.delete import DeleteThemeCommand
 
+        self.login(ADMIN_USERNAME)
+
         # Assign theme to dashboard
         self.dashboard.theme_id = self.theme.id
         db.session.commit()
@@ -231,12 +237,14 @@ class TestDashboardThemeIntegration(SupersetTestCase):
         """Test that theme deletion detects dashboard usage"""
         from superset.commands.theme.delete import DeleteThemeCommand
 
+        self.login(ADMIN_USERNAME)
+
         # Create another dashboard for testing
         dashboard2 = Dashboard(
             dashboard_title=f"Test Dashboard 2 {self.test_id}",
             slug=f"test-dashboard-2-{self.test_id}",
             position_json="{}",
-            owners=[self.get_user("admin")],
+            editors=subjects_from_users([self.get_user("admin")]),
             created_by=self.get_user("admin"),
             changed_by=self.get_user("admin"),
         )
@@ -270,6 +278,8 @@ class TestDashboardThemeIntegration(SupersetTestCase):
         """Test deletion of multiple themes with dashboard associations"""
         from superset.commands.theme.delete import DeleteThemeCommand
 
+        self.login(ADMIN_USERNAME)
+
         # Create another theme
         theme2 = Theme(
             theme_name=f"Test Theme 2 {self.test_id}",
@@ -284,7 +294,7 @@ class TestDashboardThemeIntegration(SupersetTestCase):
             dashboard_title=f"Test Dashboard 2 {self.test_id}",
             slug=f"test-dashboard-2-{self.test_id}",
             position_json="{}",
-            owners=[self.get_user("admin")],
+            editors=subjects_from_users([self.get_user("admin")]),
             created_by=self.get_user("admin"),
             changed_by=self.get_user("admin"),
         )
@@ -359,3 +369,139 @@ class TestDashboardThemeIntegration(SupersetTestCase):
             # Clean up system theme
             db.session.delete(system_theme)
             db.session.commit()
+
+    @patch("superset.security.manager.g")
+    @patch("superset.views.base.g")
+    def test_dashboard_export_includes_theme(self, mock_g1, mock_g2):
+        """Test that dashboard export includes theme when dashboard has a theme"""
+        mock_g1.user = security_manager.find_user("admin")
+        mock_g2.user = security_manager.find_user("admin")
+
+        # Assign theme to dashboard
+        self.dashboard.theme_id = self.theme.id
+        db.session.commit()
+
+        # Export dashboard
+        command = ExportDashboardsCommand([self.dashboard.id])
+        contents = dict(command.run())
+
+        # Verify theme file is included in export
+        theme_files = [path for path in contents.keys() if path.startswith("themes/")]
+        assert len(theme_files) == 1
+
+        theme_path = theme_files[0]
+        theme_content = yaml.safe_load(contents[theme_path]())
+
+        # Verify theme content
+        assert theme_content["theme_name"] == f"Test Theme {self.test_id}"
+        assert theme_content["uuid"] == str(self.theme.uuid)
+        assert "json_data" in theme_content
+
+        # Verify dashboard includes theme_uuid
+        dashboard_files = [
+            path for path in contents.keys() if path.startswith("dashboards/")
+        ]
+        assert len(dashboard_files) == 1
+
+        dashboard_content = yaml.safe_load(contents[dashboard_files[0]]())
+        assert dashboard_content["theme_uuid"] == str(self.theme.uuid)
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    def test_dashboard_import_with_theme_uuid(self, sm_g, utils_g):
+        """Test dashboard import with theme UUID resolution"""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        # Create theme config
+        theme_config = {
+            "theme_name": f"Import Test Theme {self.test_id}",
+            "json_data": {"algorithm": "dark", "token": {"colorPrimary": "#ff0000"}},
+            "uuid": str(uuid.uuid4()),
+            "version": "1.0.0",
+        }
+
+        # Create dashboard config with theme reference
+        dashboard_config = {
+            "dashboard_title": f"Import Test Dashboard {self.test_id}",
+            "description": None,
+            "css": "",
+            "slug": f"import-test-{self.test_id}",
+            "uuid": str(uuid.uuid4()),
+            "theme_uuid": theme_config["uuid"],
+            "position": {},
+            "metadata": {},
+            "version": "1.0.0",
+        }
+
+        # Import dashboard with theme
+        contents = {
+            "metadata.yaml": yaml.safe_dump({"version": "1.0.0", "type": "Dashboard"}),
+            f"themes/test_theme_{self.test_id}.yaml": yaml.safe_dump(theme_config),
+            f"dashboards/test_dashboard_{self.test_id}.yaml": yaml.safe_dump(
+                dashboard_config
+            ),
+        }
+
+        command = v1.ImportDashboardsCommand(contents)
+        command.run()
+
+        # Verify theme was imported
+        imported_theme = (
+            db.session.query(Theme).filter_by(uuid=theme_config["uuid"]).first()
+        )
+        assert imported_theme is not None
+        assert imported_theme.theme_name == theme_config["theme_name"]
+
+        # Verify dashboard was imported with theme reference
+        imported_dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).first()
+        )
+        assert imported_dashboard is not None
+        assert imported_dashboard.theme_id == imported_theme.id
+        assert imported_dashboard.theme.uuid == imported_theme.uuid
+
+        # Clean up
+        db.session.delete(imported_dashboard)
+        db.session.delete(imported_theme)
+        db.session.commit()
+
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    def test_dashboard_import_missing_theme_graceful_fallback(self, sm_g, utils_g):
+        """Test dashboard import with missing theme falls back gracefully"""
+        sm_g.user = utils_g.user = security_manager.find_user("admin")
+        # Create dashboard config with non-existent theme UUID
+        nonexistent_theme_uuid = str(uuid.uuid4())
+        dashboard_config = {
+            "dashboard_title": f"Missing Theme Test {self.test_id}",
+            "description": None,
+            "css": "",
+            "slug": f"missing-theme-test-{self.test_id}",
+            "uuid": str(uuid.uuid4()),
+            "theme_uuid": nonexistent_theme_uuid,
+            "position": {},
+            "metadata": {},
+            "version": "1.0.0",
+        }
+
+        # Import dashboard without the referenced theme
+        contents = {
+            "metadata.yaml": yaml.safe_dump({"version": "1.0.0", "type": "Dashboard"}),
+            f"dashboards/test_dashboard_{self.test_id}.yaml": yaml.safe_dump(
+                dashboard_config
+            ),
+        }
+
+        command = v1.ImportDashboardsCommand(contents)
+        command.run()
+
+        # Verify dashboard was imported with theme_id = None (graceful fallback)
+        imported_dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).first()
+        )
+        assert imported_dashboard is not None
+        assert imported_dashboard.theme_id is None
+        assert imported_dashboard.theme is None
+
+        # Clean up
+        db.session.delete(imported_dashboard)
+        db.session.commit()

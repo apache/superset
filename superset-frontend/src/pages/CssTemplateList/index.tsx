@@ -18,7 +18,8 @@
  */
 
 import { useMemo, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -132,6 +133,7 @@ function CssTemplatesList({
       {
         accessor: 'template_name',
         Header: t('Name'),
+        size: 'xxl',
         id: 'template_name',
       },
       {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 
 import {
   AdhocColumn,
@@ -67,6 +67,7 @@ export function normalizeTimeColumn(
         sqlExpression: formData.x_axis,
         label: formData.x_axis,
         expressionType: 'SQL',
+        isColumnReference: true,
       };
     }
 

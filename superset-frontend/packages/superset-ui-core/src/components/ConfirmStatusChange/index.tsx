@@ -26,18 +26,19 @@ export function ConfirmStatusChange({
   description,
   onConfirm,
   children,
+  recoverable,
+  primaryButtonName,
+  primaryButtonStyle,
+  disablePrimaryButton,
 }: ConfirmStatusChangeProps) {
   const [open, setOpen] = useState(false);
   const [currentCallbackArgs, setCurrentCallbackArgs] = useState<any[]>([]);
 
   const showConfirm = (...callbackArgs: any[]) => {
-    // check if any args are DOM events, if so, call persist
+    // check if any args are DOM events, if so, handle them
     callbackArgs.forEach(arg => {
       if (!arg) {
         return;
-      }
-      if (typeof arg.persist === 'function') {
-        arg.persist();
       }
       if (typeof arg.preventDefault === 'function') {
         arg.preventDefault();
@@ -70,6 +71,10 @@ export function ConfirmStatusChange({
         open={open}
         name="please confirm"
         title={title}
+        recoverable={recoverable}
+        primaryButtonName={primaryButtonName}
+        primaryButtonStyle={primaryButtonStyle}
+        disablePrimaryButton={disablePrimaryButton}
       />
     </>
   );

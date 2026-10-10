@@ -18,6 +18,7 @@
  */
 import {
   ChangeEvent,
+  ComponentProps,
   FunctionComponent,
   useState,
   useEffect,
@@ -26,37 +27,57 @@ import {
   ReactNode,
 } from 'react';
 
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
-  css,
   isFeatureEnabled,
   FeatureFlag,
-  styled,
   SupersetClient,
-  SupersetTheme,
-  t,
   VizType,
-  useTheme,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import SubjectPicker, {
+  mapSubjectPickerValuesToIds,
+  mapSubjectsToPickerValues,
+  normalizeSubjectToPickerValue,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
+import type Subject from 'src/types/Subject';
+import { SubjectType } from 'src/types/Subject';
+// import { Form as AntdForm } from 'src/components/Form';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
   AsyncSelect,
   Checkbox,
   Collapse,
   CollapseLabelInModal,
+  Flex,
+  Form as AntdForm,
   InfoTooltip,
   Input,
   InputNumber,
-  Modal,
+  Loading,
   Select,
   Switch,
+  Tooltip,
   TreeSelect,
+  Button,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
+
+import { navigateTo } from 'src/utils/navigationUtils';
+
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
-import { propertyComparator } from '@superset-ui/core/components/Select/utils';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import Owner from 'src/types/Owner';
+import { timezoneOptionsCache } from '@superset-ui/core/components/TimezoneSelector/TimezoneOptionsCache';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import {
@@ -76,23 +97,50 @@ import {
   TabNode,
   SelectValue,
   ContentType,
+  ExtraNativeFilter,
+  NativeFilterObject,
+  DashboardTabsResponse,
+  RunAsUser,
 } from 'src/features/alerts/types';
+import { StatusMessage } from 'src/filters/components/common';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { useOpenerRef } from 'src/hooks/useOpenerRef';
-import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import { StandardModal, ModalFormField } from 'src/components/Modal';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
+import { useReportConfiguration } from './hooks/useReportConfiguration';
+
+const EXECUTOR_TYPE_OPTIONS = [
+  { value: 'fixed_user', label: t('Specific user') },
+];
+
+const CONTENT_EXECUTOR_TYPE_OPTIONS = [
+  { value: 'legacy', label: t('Application default') },
+  ...EXECUTOR_TYPE_OPTIONS,
+];
 
 const TIMEOUT_MIN = 1;
+const COLLAPSE_ANIMATION_DURATION = 220;
 const TEXT_BASED_VISUALIZATION_TYPES = [
   VizType.PivotTable,
   'table',
   VizType.PairedTTest,
 ];
+
+const StyledDivider = styled.span`
+  margin: 0 ${({ theme }) => theme.sizeUnit * 3}px;
+  color: ${({ theme }) => theme.colorSplit};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  font-size: ${({ theme }) => theme.fontSize}px;
+  align-content: center;
+`;
 
 export interface AlertReportModalProps {
   addSuccessToast: (msg: string) => void;
@@ -104,6 +152,14 @@ export interface AlertReportModalProps {
   show: boolean;
 }
 
+type AlertFormState = Partial<
+  Omit<AlertObject, 'editors' | 'run_as' | 'run_alert_query_as'> & {
+    run_as?: MetaObject | null;
+    run_alert_query_as?: MetaObject | null;
+    editors?: SubjectPickerValue[];
+  }
+>;
+
 const DEFAULT_WORKING_TIMEOUT = 3600;
 const DEFAULT_CRON_VALUE = '0 0 * * *'; // every day
 const DEFAULT_RETENTION = 90;
@@ -111,6 +167,7 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = [
   NotificationMethodOption.Email,
+  NotificationMethodOption.Webhook,
 ];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
 const DEFAULT_EXTRA_DASHBOARD_OPTIONS: Extra = {
@@ -192,6 +249,10 @@ const FORMAT_OPTIONS = {
     label: t('Send as CSV'),
     value: 'CSV',
   },
+  xlsx: {
+    label: t('Send as Excel'),
+    value: 'XLSX',
+  },
   txt: {
     label: t('Send as text'),
     value: 'TEXT',
@@ -200,21 +261,35 @@ const FORMAT_OPTIONS = {
 
 type FORMAT_OPTIONS_KEY = keyof typeof FORMAT_OPTIONS;
 
+type RelatedUserOption = {
+  value: number;
+  text: string;
+  extra?: { email?: string; active?: boolean };
+};
+
+const userToOption = (
+  user?: RunAsUser | MetaObject | null,
+): MetaObject | undefined => {
+  if (!user) {
+    return undefined;
+  }
+  if ('value' in user && user.value !== undefined) {
+    return user as MetaObject;
+  }
+  const { id, first_name: firstName, last_name: lastName } = user as RunAsUser;
+  return { value: id, label: `${firstName} ${lastName}`.trim() };
+};
+
 // Apply to final text input components of each collapse panel
 const noMarginBottom = css`
   margin-bottom: 0;
 `;
 
-/*
-Height of modal body defined here, total width defined at component invocation as antd prop.
- */
-const StyledModal = styled(Modal)`
-  .ant-modal-body {
-    height: 720px;
-  }
-
-  .control-label {
-    margin-top: ${({ theme }) => theme.sizeUnit}px;
+// StyledModal replaced with StandardModal from shared components
+// Additional styles for inline containers
+const AdditionalStyles = (theme: SupersetTheme) => css`
+  [data-test='info-tooltip-icon'] {
+    margin-left: ${theme.sizeUnit}px;
   }
 
   .inline-container {
@@ -228,6 +303,31 @@ const StyledModal = styled(Modal)`
 
     > div {
       flex: 1 1 auto;
+    }
+  }
+  .select-with-open-btn {
+    display: flex;
+    align-items: center;
+
+    & > div:first-child {
+      flex: 1 1 auto !important;
+      width: auto !important;
+      min-width: 0; /* allow overflow handling */
+    }
+
+    /* keep button compact and pinned to the right */
+    & > div:last-child {
+      flex: 0 0 auto !important;
+      width: auto !important;
+      margin-left: ${theme.sizeUnit}px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ensure inner select fills available space */
+    & > div:first-child > * {
+      width: 100% !important;
     }
   }
 `;
@@ -246,20 +346,12 @@ const StyledSwitchContainer = styled.div`
   }
 `;
 
+// Temporary: keeping StyledInputContainer for gradual migration to ModalFormField
 export const StyledInputContainer = styled.div`
   ${({ theme }) => css`
     flex: 1;
     margin-top: 0px;
     margin-bottom: ${theme.sizeUnit * 4}px;
-    input::-webkit-outer-spin-button,
-    input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    input[type='number'] {
-      -moz-appearance: textfield;
-    }
 
     .helper {
       display: block;
@@ -274,21 +366,18 @@ export const StyledInputContainer = styled.div`
       color: ${theme.colorError};
     }
 
+    .control-label {
+      margin-bottom: ${theme.sizeUnit * 2}px;
+      color: ${theme.colorText};
+      font-size: ${theme.fontSize}px;
+    }
+
     .input-container {
       display: flex;
       align-items: center;
 
       > div {
         width: 100%;
-      }
-
-      label {
-        display: flex;
-        margin-right: ${theme.sizeUnit * 2}px;
-      }
-
-      i {
-        margin: 0 ${theme.sizeUnit}px;
       }
     }
 
@@ -326,6 +415,55 @@ export const StyledInputContainer = styled.div`
 
     .input-label {
       margin-left: 10px;
+    }
+
+    .filters {
+      margin: ${theme.sizeUnit * 3}px 0;
+
+      .filters-container {
+        display: flex;
+        align-items: flex-start;
+        margin: ${theme.sizeUnit * 2}px 0;
+      }
+
+      .filters-dash-container {
+        display: flex;
+        flex-direction: column;
+        max-width: 174px;
+        flex: 1;
+        margin-right: ${theme.sizeUnit * 4}px;
+
+        .control-label {
+          flex: 1;
+          margin-bottom: ${theme.sizeUnit * 2}px;
+
+          .label-with-tooltip {
+            margin-right: ${theme.sizeUnit * 2}px;
+          }
+        }
+      }
+
+      .filters-dash-select {
+        flex: 1;
+      }
+
+      .filters-dashvalue-container {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .filters-delete {
+        display: flex;
+        margin-top: ${theme.sizeUnit * 10}px;
+        margin-left: ${theme.sizeUnit * 4}px;
+      }
+
+      .filters-trashcan {
+        display: 'flex';
+        color: ${theme.colorIcon};
+      }
     }
   `}
 `;
@@ -374,7 +512,8 @@ export const TRANSLATIONS = {
   NOTIFICATION_TITLE: t('Notification method'),
   // Error text
   NAME_ERROR_TEXT: t('name'),
-  OWNERS_ERROR_TEXT: t('owners'),
+  EDITORS_ERROR_TEXT: t('editors'),
+  RUN_AS_ERROR_TEXT: t('run as'),
   CONTENT_ERROR_TEXT: t('content type'),
   DATABASE_ERROR_TEXT: t('database'),
   SQL_ERROR_TEXT: t('sql'),
@@ -387,6 +526,8 @@ export const TRANSLATIONS = {
   ERROR_TOOLTIP_MESSAGE: t(
     'Not all required fields are complete. Please provide the following:',
   ),
+  NATIVE_FILTER_COLUMN_ERROR_TEXT: t('Native filter column is required'),
+  NATIVE_FILTER_NO_VALUES_ERROR_TEXT: t('Native filter values has no values'),
 };
 
 const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
@@ -423,10 +564,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   addSuccessToast,
 }) => {
   const theme = useTheme();
-  const openerRef = useOpenerRef(show);
+  const extensionsRegistry = getExtensionsRegistry();
+  const DateFilterControlExtension = extensionsRegistry.get(
+    'filter.dateFilterControl',
+  );
+  const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
   const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
   // Check config for alternate notification methods setting
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
@@ -434,9 +580,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
 
-  const [currentAlert, setCurrentAlert] =
-    useState<Partial<AlertObject> | null>();
+  const [currentAlert, setCurrentAlert] = useState<AlertFormState | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
+
+  const [activeCollapsePanel, setActiveCollapsePanel] = useState<
+    string | string[]
+  >('general');
+  // Only delay TimezoneSelector for new alerts; render immediately for existing ones
+  const [shouldRenderTimezoneSelector, setShouldRenderTimezoneSelector] =
+    useState<boolean>(false);
+
   const [contentType, setContentType] = useState<string>('dashboard');
   const [reportFormat, setReportFormat] = useState<string>(
     DEFAULT_NOTIFICATION_FORMAT,
@@ -445,8 +598,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
   useEffect(() => {
-    setIsScreenshot(reportFormat === 'PNG');
+    setIsScreenshot(reportFormat === 'PNG' || reportFormat === 'PDF');
   }, [reportFormat]);
+  const isNoAttachment = reportFormat === 'NONE';
 
   // Dropdown options
   const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
@@ -454,6 +608,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
   const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
+  const [nativeFilterOptions, setNativeFilterOptions] = useState<
+    {
+      value: string;
+      label: string;
+    }[]
+  >([]);
+  const [tabNativeFilters, setTabNativeFilters] = useState<
+    Partial<Record<string, NativeFilterObject[]>>
+  >({});
+  const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
+    [
+      {
+        nativeFilterId: null,
+        filterName: '',
+        filterType: '',
+        columnLabel: '',
+        columnName: '',
+        filterValues: [],
+      },
+    ],
+  );
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -503,9 +678,47 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const reportOrAlert = isReport ? 'report' : 'alert';
   const isEditMode = alert !== null;
-  const formatOptionEnabled =
-    isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
+  // Global Alerts & Reports configuration (SIP-209). While it loads, fall back
+  // to the legacy feature flag so the form renders the same as before.
+  const { configuration: reportConfiguration } = useReportConfiguration(show);
+  const attachmentsEnabledForAlerts = reportConfiguration
+    ? Boolean(reportConfiguration.alerts_attach_reports)
+    : isFeatureEnabled(FeatureFlag.AlertsAttachReports);
+  const formatOptionEnabled = attachmentsEnabledForAlerts || isReport;
+  const attachmentControlsVisible =
+    isReport || (attachmentsEnabledForAlerts && reportFormat !== 'NONE');
+  const [previousAttachmentFormat, setPreviousAttachmentFormat] = useState(
+    DEFAULT_NOTIFICATION_FORMAT,
+  );
   const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
+  const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
+  const dynamicExecutorEnabled = isFeatureEnabled(
+    FeatureFlag.AlertReportDynamicExecutor,
+  );
+  const isAdmin = isUserAdmin(currentUser);
+  const [runAsSelf, setRunAsSelf] = useState(false);
+  useEffect(() => setRunAsSelf(false), [show, alert?.id]);
+  const restrictedExecutor =
+    dynamicExecutorEnabled &&
+    !isAdmin &&
+    isEditMode &&
+    !runAsSelf &&
+    (currentAlert?.run_as_type !== 'fixed_user' ||
+      !currentAlert?.run_as ||
+      currentAlert.run_as.value !== currentUser.userId ||
+      (currentAlert.run_as_type != null &&
+        currentAlert.run_as_type !== 'fixed_user') ||
+      (currentAlert.run_alert_query_as != null &&
+        currentAlert.run_alert_query_as.value !== currentUser.userId) ||
+      (currentAlert?.run_alert_query_as_type != null &&
+        (currentAlert.run_alert_query_as_type !== 'fixed_user' ||
+          !currentAlert.run_alert_query_as)));
+  const currentUserOption: MetaObject | undefined = currentUser?.userId
+    ? {
+        value: currentUser.userId,
+        label: `${currentUser.firstName} ${currentUser.lastName}`.trim(),
+      }
+    : undefined;
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -515,6 +728,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   >([]);
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailError, setEmailError] = useState(false);
+
+  const allowedNotificationMethodsCount = useMemo(
+    () =>
+      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
+        if (
+          accum.some(nm => nm.includes('slack')) &&
+          setting.toLowerCase().includes('slack')
+        ) {
+          return accum;
+        }
+        return [...accum, setting.toLowerCase()];
+      }, []).length,
+    [allowedNotificationMethods],
+  );
 
   const onNotificationAdd = () => {
     setNotificationSettings([
@@ -546,6 +773,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     ALERT_REPORTS_DEFAULT_CRON_VALUE,
     ALERT_REPORTS_DEFAULT_RETENTION,
+    ALERT_REPORTS_RUN_AS_TOOLTIP,
   } = useSelector<any, AlertsReportsConfig>(state => {
     const conf = state.common?.conf;
     return {
@@ -555,10 +783,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         conf?.ALERT_REPORTS_DEFAULT_CRON_VALUE ?? DEFAULT_CRON_VALUE,
       ALERT_REPORTS_DEFAULT_RETENTION:
         conf?.ALERT_REPORTS_DEFAULT_RETENTION ?? DEFAULT_RETENTION,
+      ALERT_REPORTS_RUN_AS_TOOLTIP: conf?.ALERT_REPORTS_RUN_AS_TOOLTIP ?? null,
     };
   });
 
-  const defaultAlert = {
+  const defaultAlert: AlertFormState = {
     active: true,
     creation_method: 'alerts_reports',
     crontab: ALERT_REPORTS_DEFAULT_CRON_VALUE,
@@ -566,15 +795,140 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     log_retention: ALERT_REPORTS_DEFAULT_RETENTION,
     working_timeout: ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     name: '',
-    owners: [],
+    editors: [],
     recipients: [],
     sql: '',
     email_subject: '',
     validator_config_json: {},
     validator_type: '',
     force_screenshot: false,
+    include_cta: true,
     grace_period: undefined,
+    ...(dynamicExecutorEnabled && {
+      run_as_type: 'fixed_user',
+      run_alert_query_as_type: null,
+      run_as: currentUserOption,
+      run_alert_query_as: undefined,
+    }),
+    ...(isFeatureEnabled(FeatureFlag.AlertReportsRetry) && {
+      retry_on_failure: false,
+      retry_max_attempts: 3,
+      send_failed_reports: false,
+      retry_notify_owners: true,
+      retry_notify_recipients: false,
+    }),
   };
+
+  const fetchDashboardFilterValues = async (
+    dashboardId: number | string | undefined,
+    columnName: string,
+    datasetId: number | string | null,
+    vizType = 'filter_select',
+    adhocFilters: any[] = [],
+  ) => {
+    if (vizType === 'filter_time') {
+      return;
+    }
+
+    const filterValues = {
+      formData: {
+        datasource: `${datasetId}__table`,
+        groupby: [columnName],
+        metrics: ['count'],
+        row_limit: 1000,
+        showSearch: true,
+        viz_type: vizType,
+        type: 'NATIVE_FILTER',
+        dashboardId,
+        adhoc_filters: adhocFilters,
+      },
+      force: false,
+      ownState: {},
+    };
+
+    const data = await getChartDataRequest(filterValues).then(response => {
+      const rawData = response.json.result[0].data;
+      let filteredData = rawData;
+
+      if (vizType === 'filter_timecolumn') {
+        // filter for time columns types
+        filteredData = rawData.filter((item: any) => item.dtype === 2);
+      }
+
+      return filteredData.map((item: any) => {
+        if (vizType === 'filter_timegrain') {
+          return {
+            value: item.duration,
+            label: item.name,
+          };
+        }
+
+        if (vizType === 'filter_timecolumn') {
+          return {
+            value: item.column_name,
+            label: item.verbose_name || item.column_name,
+          };
+        }
+
+        return {
+          value: item[columnName],
+          label: item[columnName],
+        };
+      });
+    });
+
+    // eslint-disable-next-line consistent-return
+    return data;
+  };
+
+  const addNativeFilterOptions = (nativeFilters: NativeFilterObject[]) => {
+    nativeFilterData.map(nativeFilter => {
+      if (!nativeFilter.nativeFilterId) return;
+      const filter = nativeFilters.filter(
+        f => f.id === nativeFilter.nativeFilterId,
+      )[0];
+
+      const { datasetId } = filter.targets[0];
+      const filterName = filter.name;
+      const columnName = filter.targets[0].column?.name || filterName;
+      const dashboardId = currentAlert?.dashboard?.value;
+      const { filterType } = filter;
+
+      if (filterType === 'filter_time') {
+        return;
+      }
+
+      // eslint-disable-next-line consistent-return
+      return fetchDashboardFilterValues(
+        dashboardId,
+        columnName,
+        datasetId,
+        filterType,
+      ).then(optionFilterValues => {
+        setNativeFilterData(prev =>
+          prev.map(filter =>
+            filter.nativeFilterId === nativeFilter.nativeFilterId
+              ? {
+                  ...filter,
+                  filterType,
+                  filterName,
+                  optionFilterValues,
+                }
+              : filter,
+          ),
+        );
+      });
+    });
+  };
+
+  const filterNativeFilterOptions = (currentIdx?: number) =>
+    nativeFilterOptions.filter(
+      option =>
+        !nativeFilterData.some(
+          (filter, idx) =>
+            filter.nativeFilterId === option.value && idx !== currentIdx,
+        ),
+    );
 
   const updateNotificationSetting = (
     index: number,
@@ -602,7 +956,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setNotificationSettings(settings);
     }
   };
-
   const removeNotificationSetting = (index: number) => {
     const settings = notificationSettings.slice();
 
@@ -665,10 +1018,42 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const shouldEnableForceScreenshot =
       contentType === ContentType.Chart && !isReport;
+
+    if (currentAlert?.extra?.dashboard) {
+      // Filter out empty native filters (where both filter name and values are empty/null)
+      const validNativeFilters = nativeFilterData.filter(filter => {
+        const hasFilterName =
+          filter.filterName && filter.filterName.trim() !== '';
+        const hasFilterValues =
+          filter.filterValues && filter.filterValues.length > 0;
+        // Keep filter if it has either a name or values (or both)
+        return hasFilterName || hasFilterValues;
+      });
+
+      currentAlert.extra.dashboard.nativeFilters = validNativeFilters.map(
+        ({
+          columnName,
+          columnLabel,
+          nativeFilterId,
+          filterValues,
+          filterType,
+          filterName,
+        }) => ({
+          filterName,
+          filterType,
+          columnName,
+          columnLabel,
+          nativeFilterId,
+          filterValues,
+        }),
+      );
+    }
+
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
       force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
+      include_cta: currentAlert?.include_cta ?? true,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -681,16 +1066,67 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           : null,
       custom_width: isScreenshot ? currentAlert?.custom_width : undefined,
       database: currentAlert?.database?.value,
-      owners: (currentAlert?.owners || []).map(
-        owner => (owner as MetaObject).value || owner.id,
-      ),
+      editors: mapSubjectPickerValuesToIds(currentAlert?.editors || []),
       recipients,
       report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
       extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
     };
 
+    if (!isReport && !attachmentControlsVisible && !isEditMode) {
+      data.report_format = 'NONE';
+    }
+    if (!attachmentControlsVisible && isEditMode) {
+      // Hidden settings stay stored; only the format controls attachment delivery.
+      delete data.chart;
+      delete data.dashboard;
+      delete data.extra;
+      delete data.custom_width;
+      delete data.force_screenshot;
+    }
+
     if (data.recipients && !data.recipients.length) {
       delete data.recipients;
+    }
+
+    // Preserve existing identities unless an admin chooses or the user takes over.
+    delete data.run_as;
+    delete data.run_alert_query_as;
+    delete data.run_as_type;
+    delete data.run_alert_query_as_type;
+    if (dynamicExecutorEnabled && isAdmin) {
+      data.run_as_type = currentAlert?.run_as_type ?? null;
+      data.run_as =
+        data.run_as_type === 'fixed_user'
+          ? (currentAlert?.run_as?.value ?? null)
+          : null;
+      if (
+        isEditMode &&
+        !isReport &&
+        (!attachmentsEnabledForAlerts || reportFormat === 'NONE') &&
+        currentAlert?.run_alert_query_as_type &&
+        currentAlert?.run_as?.value === resource?.run_as?.id &&
+        currentAlert?.run_as_type === resource?.run_as_type
+      ) {
+        delete data.run_as;
+        delete data.run_as_type;
+      }
+      if (!isReport) {
+        data.run_alert_query_as_type =
+          currentAlert?.run_alert_query_as_type ?? null;
+        data.run_alert_query_as =
+          data.run_alert_query_as_type === 'fixed_user'
+            ? (currentAlert?.run_alert_query_as?.value ?? null)
+            : null;
+      }
+    }
+
+    if (dynamicExecutorEnabled && !isAdmin && runAsSelf) {
+      data.run_as = currentUser.userId;
+      data.run_as_type = 'fixed_user';
+      if (!isReport) {
+        data.run_alert_query_as = currentUser.userId;
+        data.run_alert_query_as_type = 'fixed_user';
+      }
     }
 
     data.context_markdown = 'string';
@@ -739,29 +1175,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   // Fetch data to populate form dropdowns
-  const loadOwnerOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
-          filter: input,
-          page,
-          page_size: pageSize,
-        });
-        return SupersetClient.get({
-          endpoint: `/api/v1/report/related/created_by?q=${query}`,
-        }).then(response => ({
-          data: response.json.result.map(
-            (item: { value: number; text: string }) => ({
-              value: item.value,
-              label: item.text,
-            }),
-          ),
-          totalCount: response.json.count,
-        }));
-      },
-    [],
-  );
-
   const getSourceData = useCallback(
     (db?: MetaObject) => {
       const database = db || currentAlert?.database;
@@ -816,19 +1229,56 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [],
   );
 
+  const loadRunAsOptions = useMemo(
+    () =>
+      (relation: 'run_as' | 'run_alert_query_as') =>
+      (input = '', page: number, pageSize: number) => {
+        const query = rison.encode_uri({
+          filter: input,
+          page,
+          page_size: pageSize,
+          order_column: 'first_name',
+          order_direction: 'asc',
+        });
+        return SupersetClient.get({
+          endpoint: `/api/v1/report/related/${relation}?q=${query}`,
+        }).then(response => {
+          const results = (response.json?.result ?? []) as RelatedUserOption[];
+          const list = results
+            .filter(user => user.extra?.active !== false)
+            .map(({ value, text, extra }) => ({
+              value,
+              label: extra?.email ? `${text} <${extra.email}>` : text,
+            }));
+          return { data: list, totalCount: response.json?.count ?? 0 };
+        });
+      },
+    [],
+  );
+  const loadRunAsUserOptions = useMemo(
+    () => loadRunAsOptions('run_as'),
+    [loadRunAsOptions],
+  );
+  const loadRunAlertQueryAsUserOptions = useMemo(
+    () => loadRunAsOptions('run_alert_query_as'),
+    [loadRunAsOptions],
+  );
+
   const dashboard = currentAlert?.dashboard;
   useEffect(() => {
-    if (!tabsEnabled) return;
+    if (!tabsEnabled && !filtersEnabled) return;
 
     if (dashboard?.value) {
       SupersetClient.get({
         endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
       })
         .then(response => {
-          const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
-          const allTabsWithOrder = tabTree.map(
-            (tab: { value: string }) => tab.value,
-          );
+          const {
+            tab_tree: tabTree,
+            all_tabs: allTabs,
+            native_filters: nativeFilters,
+          }: DashboardTabsResponse = response.json.result;
+          const allTabsWithOrder = tabTree.map(tab => tab.value);
 
           // Only show all tabs when there are more than one tab
           if (allTabsWithOrder.length > 1) {
@@ -840,14 +1290,38 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           }
 
           setTabOptions(tabTree);
+          setTabNativeFilters(nativeFilters ?? {});
 
+          if (isEditMode && nativeFilters?.all) {
+            // update options for all filters
+            addNativeFilterOptions(nativeFilters.all);
+            // Also set the available filter options for the add button
+            setNativeFilterOptions(
+              nativeFilters.all.map(filter => ({
+                value: filter.id,
+                label: filter.name,
+              })),
+            );
+          }
           const anchor = currentAlert?.extra?.dashboard?.anchor;
           if (anchor) {
             try {
               const parsedAnchor = JSON.parse(anchor);
+              if (!Array.isArray(parsedAnchor)) {
+                // only show filters scoped to anchor
+                const anchorFilters: NativeFilterObject[] =
+                  nativeFilters?.[anchor] ?? [];
+                setNativeFilterOptions(
+                  anchorFilters.map(filter => ({
+                    value: filter.id,
+                    label: filter.name,
+                  })),
+                );
+              }
               if (Array.isArray(parsedAnchor)) {
                 // Check if all elements in parsedAnchor list are in allTabs
-                const isValidSubset = parsedAnchor.every(tab => tab in allTabs);
+                const isValidSubset =
+                  allTabs && parsedAnchor.every(tab => tab in allTabs);
                 if (!isValidSubset) {
                   updateAnchorState(undefined);
                 }
@@ -855,17 +1329,30 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 throw new Error('Parsed value is not an array');
               }
             } catch (error) {
-              if (!(anchor in allTabs)) {
+              if (!allTabs || !(anchor in allTabs)) {
                 updateAnchorState(undefined);
               }
             }
+          } else if (nativeFilters?.all) {
+            setNativeFilterOptions(
+              nativeFilters.all.map(filter => ({
+                value: filter.id,
+                label: filter.name,
+              })),
+            );
           }
         })
         .catch(() => {
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
-  }, [dashboard, tabsEnabled, currentAlert?.extra, addDangerToast]);
+  }, [
+    dashboard,
+    tabsEnabled,
+    filtersEnabled,
+    currentAlert?.extra,
+    addDangerToast,
+  ]);
 
   const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {
@@ -973,10 +1460,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [],
   );
 
-  const getChartVisualizationType = (chart: SelectValue) =>
-    SupersetClient.get({
+  const getChartVisualizationType = (chart: SelectValue) => {
+    if (!chart || typeof chart !== 'object' || chart.value === undefined) {
+      return;
+    }
+    return SupersetClient.get({
       endpoint: `/api/v1/chart/${chart.value}`,
     }).then(response => setChartVizType(response.json.result.viz_type));
+  };
 
   const updateEmailSubject = () => {
     const chartLabel = currentAlert?.chart?.label;
@@ -1015,6 +1506,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
+  const handleAddFilterField = () => {
+    setNativeFilterData([
+      ...nativeFilterData,
+      {
+        nativeFilterId: null,
+        columnLabel: '',
+        columnName: '',
+        filterValues: [],
+      },
+    ]);
+  };
+
+  const handleRemoveFilterField = (filterIdx: number) => {
+    const filters = nativeFilterData || [];
+    filters.splice(filterIdx, 1);
+    setNativeFilterData(filters);
+  };
+
   const onCustomWidthChange = (value: number | string | null | undefined) => {
     const numValue =
       value === null ||
@@ -1046,8 +1555,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('sql', value || '');
   };
 
-  const onOwnersChange = (value: Array<SelectValue>) => {
-    updateAlertState('owners', value || []);
+  const onEditorsChange = (value: SubjectPickerValue[]) => {
+    updateAlertState('editors', value || []);
+  };
+
+  const onRunAsChange: NonNullable<
+    ComponentProps<typeof AsyncSelect>['onChange']
+  > = value => {
+    updateAlertState('run_as', value || null);
+  };
+
+  const onRunAlertQueryAsChange: NonNullable<
+    ComponentProps<typeof AsyncSelect>['onChange']
+  > = value => {
+    updateAlertState('run_alert_query_as', value || null);
   };
 
   const onSourceChange = (value: Array<SelectValue>) => {
@@ -1061,12 +1582,37 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setTabOptions([]);
       updateAnchorState('');
     }
+    if (tabsEnabled || filtersEnabled) {
+      setNativeFilterOptions([]);
+    }
+    if (filtersEnabled) {
+      setNativeFilterData([
+        {
+          filterName: '',
+          filterType: '',
+          nativeFilterId: null,
+          columnLabel: '',
+          columnName: '',
+          filterValues: [],
+        },
+      ]);
+    }
+  };
+
+  const openDashboardInNewTab = (dashboardId?: number | string | null) => {
+    if (!dashboardId) return;
+    navigateTo(`/dashboard/${dashboardId}/`, { newWindow: true });
   };
 
   const onChartChange = (chart: SelectValue) => {
     getChartVisualizationType(chart);
     updateAlertState('chart', chart || undefined);
     updateAlertState('dashboard', null);
+  };
+
+  const openChartInNewTab = (chartId?: number | string | null) => {
+    if (!chartId) return;
+    navigateTo(`/explore/?slice_id=${chartId}`, { newWindow: true });
   };
 
   const onActiveSwitch = (checked: boolean) => {
@@ -1116,6 +1662,164 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setForceScreenshot(e.target.checked);
   };
 
+  const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
+    if (
+      !nativeFilterId ||
+      nativeFilterId === 'undefined' ||
+      nativeFilterId === 'null'
+    )
+      return;
+
+    // find specific filter tied to the selected filter
+    const filters = Object.values(tabNativeFilters).flatMap(arr => arr ?? []);
+    const filter = filters.filter(f => f.id === nativeFilterId)[0];
+
+    const { filterType, adhoc_filters: adhocFilters } = filter;
+    const filterAlreadyExist = nativeFilterData.some(
+      filter => filter.nativeFilterId === nativeFilterId,
+    );
+
+    if (filterAlreadyExist) {
+      addDangerToast(t('This filter already exist on the report'));
+      return;
+    }
+
+    const filterName = filter.name;
+
+    let columnName: string;
+    if (
+      filterType === 'filter_time' ||
+      filterType === 'filter_timecolumn' ||
+      filterType === 'filter_timegrain'
+    ) {
+      columnName = filter.name;
+    } else {
+      columnName = filter.targets[0].column.name;
+    }
+
+    const datasetId = filter.targets[0].datasetId || null;
+
+    const columnLabel = nativeFilterOptions.filter(
+      filter => filter.value === nativeFilterId,
+    )[0].label;
+    const dashboardId = currentAlert?.dashboard?.value;
+
+    // Get values tied to the selected filter
+    const filterValues = {
+      formData: {
+        datasource: `${datasetId}__table`,
+        groupby: [columnName],
+        metrics: ['count'],
+        row_limit: 1000,
+        showSearch: true,
+        viz_type: 'filter_select',
+        type: 'NATIVE_FILTER',
+        dashboardId,
+        adhoc_filters: adhocFilters,
+      },
+      force: false,
+      ownState: {},
+    };
+
+    // todo(hugh): put this into another function
+    if (
+      filterType === 'filter_time' ||
+      filterType === 'filter_timecolumn' ||
+      filterType === 'filter_timegrain'
+    ) {
+      fetchDashboardFilterValues(
+        dashboardId,
+        columnName,
+        datasetId,
+        filterType,
+        adhocFilters,
+      ).then(optionFilterValues => {
+        setNativeFilterData(
+          nativeFilterData.map((filter, index) =>
+            index === idx
+              ? {
+                  ...filter,
+                  filterName,
+                  filterType,
+                  nativeFilterId,
+                  columnLabel,
+                  columnName,
+                  optionFilterValues,
+                  filterValues: [], // reset filter values on filter change
+                }
+              : filter,
+          ),
+        );
+      });
+
+      setNativeFilterData(
+        nativeFilterData.map((filter, index) =>
+          index === idx
+            ? {
+                ...filter,
+                filterName,
+                filterType,
+                nativeFilterId,
+                columnLabel,
+                columnName,
+                optionFilterValues: [],
+                filterValues: [], // reset filter values on filter change
+              }
+            : filter,
+        ),
+      );
+      return;
+    }
+
+    getChartDataRequest(filterValues).then(response => {
+      const newFilterValues = response.json.result[0].data.map((item: any) => ({
+        value: item[columnName],
+        label: item[columnName],
+      }));
+
+      setNativeFilterData(
+        nativeFilterData.map((filter, index) =>
+          index === idx
+            ? {
+                ...filter,
+                filterName,
+                filterType,
+                nativeFilterId,
+                columnLabel,
+                columnName,
+                optionFilterValues: newFilterValues,
+                filterValues: [], // reset filter values on filter change
+              }
+            : filter,
+        ),
+      );
+    });
+  };
+
+  const onChangeDashboardFilterValue = (
+    idx: number,
+    filterValues:
+      | SelectValue
+      | SelectValue[]
+      | string
+      | string[]
+      | number
+      | number[],
+  ) => {
+    let values: any;
+    if (typeof filterValues === 'string') {
+      values = [filterValues];
+    } else {
+      values = filterValues;
+    }
+
+    setNativeFilterData(
+      nativeFilterData.map((filter, index) =>
+        index === idx ? { ...filter, filterValues: values } : filter,
+      ),
+    );
+  };
+
   // Make sure notification settings has the required info
   const checkNotificationSettings = () => {
     if (!notificationSettings.length) {
@@ -1158,18 +1862,141 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     });
   };
 
+  const renderFilterValueSelect = (filter: ExtraNativeFilter, idx: number) => {
+    if (!filter) return null;
+    const { filterType, filterValues } = filter;
+    let mode = 'multiple';
+    if (filterType === 'filter_time') {
+      return (
+        <DateFilterComponent
+          name="time_range"
+          onChange={timeRange => {
+            setNativeFilterData(
+              nativeFilterData.map((f: any) =>
+                filter.nativeFilterId === f.nativeFilterId
+                  ? {
+                      ...f,
+                      filterValues: [timeRange],
+                    }
+                  : f,
+              ),
+            );
+          }}
+          value={filterValues?.[0]} // only showing first value in the array for filter_time
+        />
+      );
+    }
+    if (filterType === 'filter_range') {
+      const min = filterValues?.[0];
+      const max = filterValues?.[1];
+      return (
+        <div>
+          <div className="inline-container">
+            <InputNumber
+              value={min}
+              onChange={value => {
+                setNativeFilterData(
+                  nativeFilterData.map((f: any) =>
+                    f.nativeFilterId === filter.nativeFilterId
+                      ? { ...f, filterValues: [value, filterValues?.[1]] }
+                      : f,
+                  ),
+                );
+              }}
+            />
+            <StyledDivider>-</StyledDivider>
+            <InputNumber
+              value={max}
+              onChange={value => {
+                setNativeFilterData(
+                  nativeFilterData.map((f: any) =>
+                    f.nativeFilterId === filter.nativeFilterId
+                      ? { ...f, filterValues: [filterValues?.[0], value] }
+                      : f,
+                  ),
+                );
+              }}
+            />
+          </div>
+          <StatusMessage status="help">
+            {t('Enter minimum and maximum values for the range filter')}
+          </StatusMessage>
+        </div>
+      );
+    }
+
+    if (
+      filterType === 'filter_timegrain' ||
+      filterType === 'filter_timecolumn'
+    ) {
+      mode = 'single';
+    }
+
+    return (
+      <Select
+        ariaLabel={t('Select Value')}
+        placeholder={t('Select Value')}
+        disabled={!filter?.optionFilterValues}
+        value={filter?.filterValues}
+        options={filter?.optionFilterValues || []}
+        onChange={value =>
+          onChangeDashboardFilterValue(
+            idx,
+            value as
+              | string
+              | string[]
+              | number
+              | number[]
+              | SelectValue
+              | SelectValue[],
+          )
+        }
+        mode={mode as 'multiple' | 'single'}
+        onClear={() => {
+          // reset filter values on filter clear
+          onChangeDashboardFilterValue(idx, []);
+        }}
+        allowClear
+      />
+    );
+  };
+
   const validateGeneralSection = () => {
     const errors = [];
     if (!currentAlert?.name?.length) {
       errors.push(TRANSLATIONS.NAME_ERROR_TEXT);
     }
-    if (!currentAlert?.owners?.length) {
-      errors.push(TRANSLATIONS.OWNERS_ERROR_TEXT);
+    if (!currentAlert?.editors?.length) {
+      errors.push(TRANSLATIONS.EDITORS_ERROR_TEXT);
+    }
+    const needsContentExecutor =
+      isReport ||
+      (attachmentsEnabledForAlerts && reportFormat !== 'NONE') ||
+      !currentAlert?.run_alert_query_as_type;
+    const contentExecutorChanged =
+      !isEditMode ||
+      currentAlert?.run_as_type !== resource?.run_as_type ||
+      currentAlert?.run_as?.value !== resource?.run_as?.id;
+    if (
+      dynamicExecutorEnabled &&
+      isAdmin &&
+      (((needsContentExecutor || contentExecutorChanged) &&
+        currentAlert?.run_as_type === 'fixed_user' &&
+        !currentAlert?.run_as?.value) ||
+        (!isReport &&
+          currentAlert?.run_alert_query_as_type === 'fixed_user' &&
+          !currentAlert?.run_alert_query_as?.value))
+    ) {
+      errors.push(TRANSLATIONS.RUN_AS_ERROR_TEXT);
     }
     updateValidationStatus(Sections.General, errors);
   };
   const validateContentSection = () => {
-    const errors = [];
+    const errors: string[] = [];
+    if (!attachmentControlsVisible) {
+      updateValidationStatus(Sections.Content, errors);
+      return;
+    }
     if (
       !(
         (contentType === ContentType.Dashboard && !!currentAlert?.dashboard) ||
@@ -1178,6 +2005,28 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ) {
       errors.push(TRANSLATIONS.CONTENT_ERROR_TEXT);
     }
+
+    // validate native filter
+    nativeFilterData.forEach(filter => {
+      const columnNameCheck = !filter.columnName || filter.columnName === '';
+      const filterValuesCheck =
+        !filter.filterValues || filter.filterValues.length === 0;
+
+      if (columnNameCheck && filterValuesCheck) {
+        // if both columnName and filterValues are null or empty, skip validation
+        return;
+      }
+
+      // check if native filter columnName is null or empty
+      if (columnNameCheck) {
+        errors.push(TRANSLATIONS.NATIVE_FILTER_COLUMN_ERROR_TEXT);
+      }
+      // check if native filter values is null or empty
+      if (filterValuesCheck) {
+        errors.push(TRANSLATIONS.NATIVE_FILTER_NO_VALUES_ERROR_TEXT);
+      }
+    });
+
     updateValidationStatus(Sections.Content, errors);
   };
   const validateAlertSection = () => {
@@ -1261,6 +2110,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Initialize
   useEffect(() => {
+    const currentUserEditor =
+      currentUserSubjectId !== undefined && currentUser
+        ? normalizeSubjectToPickerValue({
+            value: currentUserSubjectId,
+            text: `${currentUser.firstName} ${currentUser.lastName}`,
+            type: SubjectType.User,
+            secondary_label: currentUser.email,
+          })
+        : undefined;
+
     if (
       isEditMode &&
       (!currentAlert?.id || alert?.id !== currentAlert.id || (isHidden && show))
@@ -1273,16 +2132,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       !isEditMode &&
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
+      setReportFormat(DEFAULT_NOTIFICATION_FORMAT);
+      setPreviousAttachmentFormat(DEFAULT_NOTIFICATION_FORMAT);
       setCurrentAlert({
         ...defaultAlert,
-        owners: currentUser
-          ? [
-              {
-                value: currentUser.userId,
-                label: `${currentUser.firstName} ${currentUser.lastName}`,
-              },
-            ]
-          : [],
+        editors: currentUserEditor ? [currentUserEditor] : [],
       });
       setNotificationSettings([
         {
@@ -1299,6 +2153,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   useEffect(() => {
     if (resource) {
+      // Render TimezoneSelector immediately in edit mode (data is already loaded)
+      setShouldRenderTimezoneSelector(true);
+
+      // Add native filter settings
+      if (resource.extra?.dashboard?.nativeFilters) {
+        const filters = resource.extra.dashboard.nativeFilters;
+        setNativeFilterData(filters);
+        // Seed options from saved data so names display while dashboard metadata loads
+        const savedOptions = filters
+          .filter(f => f.nativeFilterId && f.filterName)
+          .map(f => ({ value: f.nativeFilterId!, label: f.filterName! }));
+        if (savedOptions.length > 0) {
+          setNativeFilterOptions(savedOptions);
+        }
+      }
+
       // Add notification settings
       const settings = (resource.recipients || []).map(setting => {
         const config =
@@ -1307,7 +2177,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             : {};
         return {
           method: setting.type,
-          // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
           options: allowedNotificationMethods,
           cc: config.ccTarget || '',
@@ -1325,6 +2194,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         resource.chart ? ContentType.Chart : ContentType.Dashboard,
       );
       setReportFormat(resource.report_format || DEFAULT_NOTIFICATION_FORMAT);
+      setPreviousAttachmentFormat(
+        resource.report_format && resource.report_format !== 'NONE'
+          ? resource.report_format
+          : DEFAULT_NOTIFICATION_FORMAT,
+      );
       const validatorConfig =
         typeof resource.validator_config_json === 'string'
           ? JSON.parse(resource.validator_config_json)
@@ -1357,13 +2231,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (alert?.owners || []).map(owner => ({
-          value: (owner as MetaObject).value || owner.id,
-          label:
-            (owner as MetaObject).label ||
-            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
-        })),
-        // @ts-ignore: Type not assignable
+        editors: mapSubjectsToPickerValues(
+          (resource.editors || []) as Subject[],
+        ),
+        run_as_type: resource.run_as_type,
+        run_alert_query_as_type: resource.run_alert_query_as_type,
+        run_as: userToOption(resource.run_as),
+        run_alert_query_as: userToOption(resource.run_alert_query_as),
         validator_config_json:
           resource.validator_type === 'not null'
             ? {
@@ -1381,7 +2255,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateEmailSubject();
   }, [
     currentAlertSafe.name,
-    currentAlertSafe.owners,
+    currentAlertSafe.editors,
+    currentAlertSafe.run_as,
+    currentAlertSafe.run_as_type,
+    currentAlertSafe.run_alert_query_as,
+    currentAlertSafe.run_alert_query_as_type,
     currentAlertSafe.database,
     currentAlertSafe.sql,
     currentAlertSafe.validator_config_json,
@@ -1390,6 +2268,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     currentAlertSafe.dashboard,
     currentAlertSafe.chart,
     contentType,
+    attachmentControlsVisible,
+    reportFormat,
+    nativeFilterData,
     notificationSettings,
     conditionNotNull,
     emailError,
@@ -1397,20 +2278,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     enforceValidation();
   }, [validationStatus]);
-
-  const allowedNotificationMethodsCount = useMemo(
-    () =>
-      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
-        if (
-          accum.some(nm => nm.includes('slack')) &&
-          setting.toLowerCase().includes('slack')
-        ) {
-          return accum;
-        }
-        return [...accum, setting.toLowerCase()];
-      }, []).length,
-    [allowedNotificationMethods],
-  );
 
   // Show/hide
   if (isHidden && show) {
@@ -1422,16 +2289,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     switch (true) {
       case isEditMode && isReport:
-        titleText = t('Edit Report');
+        titleText = t('Edit report');
         break;
       case isEditMode:
-        titleText = t('Edit Alert');
+        titleText = t('Edit alert');
         break;
       case isReport:
-        titleText = t('Add Report');
+        titleText = t('Add report');
         break;
       default:
-        titleText = t('Add Alert');
+        titleText = t('Add alert');
         break;
     }
 
@@ -1443,54 +2310,65 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   return (
-    <StyledModal
-      className="no-content-padding"
-      responsive
-      disablePrimaryButton={disableSave}
-      primaryTooltipMessage={errorTooltipMessage}
-      onHandledPrimaryAction={onSave}
-      onHide={hide}
-      primaryButtonName={isEditMode ? t('Save') : t('Add')}
+    <StandardModal
       show={show}
-      width="500px"
-      centered
-      openerRef={openerRef}
-      title={
-        <ModalTitleWithIcon
-          isEditMode={isEditMode}
-          title={getTitleText()}
-          data-test="alert-report-modal-title"
-        />
-      }
+      onHide={hide}
+      onSave={onSave}
+      saveDisabled={disableSave}
+      saveText={isEditMode ? t('Save') : t('Add')}
+      errorTooltip={errorTooltipMessage}
+      title={getTitleText()}
+      isEditMode={isEditMode}
+      width={500}
+      wrapProps={{ 'data-test': 'alert-report-modal' }}
     >
-      <Collapse
-        expandIconPosition="end"
-        defaultActiveKey="general"
-        accordion
-        modalMode
-        items={[
-          {
-            key: 'general',
-            label: (
-              <CollapseLabelInModal
-                title={TRANSLATIONS.GENERAL_TITLE}
-                subtitle={t(
-                  'Set up basic details, such as name and description.',
-                )}
-                validateCheckStatus={
-                  !validationStatus[Sections.General].hasErrors
-                }
-                testId="general-information-panel"
-              />
-            ),
-            children: (
-              <div className="header-section">
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {isReport ? t('Report name') : t('Alert name')}
-                    <span className="required">*</span>
-                  </div>
-                  <div className="input-container">
+      <div css={AdditionalStyles(theme)}>
+        <Collapse
+          expandIconPosition="end"
+          activeKey={activeCollapsePanel}
+          onChange={key => {
+            setActiveCollapsePanel(key);
+            // Delay rendering TimezoneSelector until after panel animation completes
+            // Skip delay if options are already cached (instant render on subsequent opens)
+            const isSchedulePanel = Array.isArray(key)
+              ? key.includes('schedule')
+              : key === 'schedule';
+            if (isSchedulePanel) {
+              const isCached = timezoneOptionsCache.isCached();
+              if (isCached) {
+                // Options are cached, render immediately
+                setShouldRenderTimezoneSelector(true);
+              } else {
+                // First time, delay to avoid blocking panel animation
+                setTimeout(() => {
+                  setShouldRenderTimezoneSelector(true);
+                }, COLLAPSE_ANIMATION_DURATION); // Match Collapse animation duration
+              }
+            }
+          }}
+          accordion
+          modalMode
+          items={[
+            {
+              key: 'general',
+              label: (
+                <CollapseLabelInModal
+                  title={TRANSLATIONS.GENERAL_TITLE}
+                  subtitle={t(
+                    'Set up basic details, such as name and description.',
+                  )}
+                  validateCheckStatus={
+                    !validationStatus[Sections.General].hasErrors
+                  }
+                  testId="general-information-panel"
+                />
+              ),
+              children: (
+                <div className="header-section">
+                  <ModalFormField
+                    label={isReport ? t('Report name') : t('Alert name')}
+                    required
+                  >
                     <Input
                       name="name"
                       placeholder={
@@ -1501,34 +2379,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       value={currentAlert ? currentAlert.name : ''}
                       onChange={onInputChange}
                     />
-                  </div>
-                </StyledInputContainer>
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {t('Owners')}
-                    <span className="required">*</span>
-                  </div>
-                  <div data-test="owners-select" className="input-container">
-                    <AsyncSelect
-                      ariaLabel={t('Owners')}
+                  </ModalFormField>
+                  <ModalFormField label={t('Editors')} required>
+                    <SubjectPicker
+                      relatedUrl="/api/v1/report/related/editors"
+                      ariaLabel={t('Editors')}
                       allowClear
-                      name="owners"
-                      mode="multiple"
-                      placeholder={t('Select owners')}
-                      value={
-                        (currentAlert?.owners as {
-                          label: string;
-                          value: number;
-                        }[]) || []
-                      }
-                      options={loadOwnerOptions}
-                      onChange={onOwnersChange}
+                      placeholder={t('Select editors')}
+                      value={currentAlert?.editors || []}
+                      onChange={onEditorsChange}
+                      dataTest="editors-select"
                     />
-                  </div>
-                </StyledInputContainer>
-                <StyledInputContainer>
-                  <div className="control-label">{t('Description')}</div>
-                  <div className="input-container">
+                  </ModalFormField>
+                  <ModalFormField label={t('Description')}>
                     <Input
                       name="description"
                       value={currentAlert ? currentAlert.description || '' : ''}
@@ -1538,436 +2401,928 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       )}
                       onChange={onInputChange}
                     />
-                  </div>
-                </StyledInputContainer>
-                <StyledSwitchContainer>
-                  <Switch
-                    checked={currentAlert ? currentAlert.active : false}
-                    defaultChecked
-                    onChange={onActiveSwitch}
-                  />
-                  <div className="switch-label">
-                    {isReport ? t('Report is active') : t('Alert is active')}
-                  </div>
-                </StyledSwitchContainer>
-              </div>
-            ),
-          },
-          ...(!isReport
-            ? [
-                {
-                  key: 'condition',
-                  label: (
-                    <CollapseLabelInModal
-                      title={TRANSLATIONS.ALERT_CONDITION_TITLE}
-                      subtitle={t(
-                        'Define the database, SQL query, and triggering conditions for alert.',
-                      )}
-                      validateCheckStatus={
-                        !validationStatus[Sections.Alert].hasErrors
-                      }
-                      testId="alert-condition-panel"
+                  </ModalFormField>
+                  <StyledSwitchContainer>
+                    <Switch
+                      checked={currentAlert ? currentAlert.active : false}
+                      defaultChecked
+                      onChange={onActiveSwitch}
                     />
-                  ),
-                  children: (
-                    <div>
-                      <StyledInputContainer>
-                        <div className="control-label">
-                          {t('Database')}
-                          <span className="required">*</span>
-                        </div>
-                        <div className="input-container">
-                          <AsyncSelect
-                            ariaLabel={t('Database')}
-                            name="source"
-                            placeholder={t('Select database')}
-                            value={
-                              currentAlert?.database?.label &&
-                              currentAlert?.database?.value
-                                ? {
-                                    value: currentAlert.database.value,
-                                    label: currentAlert.database.label,
-                                  }
-                                : undefined
-                            }
-                            options={loadSourceOptions}
-                            onChange={onSourceChange}
-                          />
-                        </div>
-                      </StyledInputContainer>
-                      <StyledInputContainer>
-                        <div className="control-label">
-                          {t('SQL Query')}
-                          <InfoTooltip
+                    <div className="switch-label">
+                      {isReport ? t('Report is active') : t('Alert is active')}
+                    </div>
+                  </StyledSwitchContainer>
+                </div>
+              ),
+            },
+            ...(isReport
+              ? []
+              : [
+                  {
+                    key: 'condition',
+                    label: (
+                      <CollapseLabelInModal
+                        title={TRANSLATIONS.ALERT_CONDITION_TITLE}
+                        subtitle={t(
+                          'Define the database, SQL query, and triggering conditions for alert.',
+                        )}
+                        validateCheckStatus={
+                          !validationStatus[Sections.Alert].hasErrors
+                        }
+                        testId="alert-condition-panel"
+                      />
+                    ),
+                    children: (
+                      <div>
+                        {dynamicExecutorEnabled && isAdmin && (
+                          <ModalFormField
+                            label={t('Run alert query as')}
                             tooltip={t(
-                              'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
+                              'The user whose database credentials are used to run the alert condition query. Defaults to the "Run as" user.',
                             )}
-                          />
-                          <span className="required">*</span>
-                        </div>
-                        <TextAreaControl
-                          name="sql"
-                          language="sql"
-                          offerEditInModal={false}
-                          minLines={15}
-                          maxLines={15}
-                          onChange={onSQLChange}
-                          readOnly={false}
-                          initialValue={resource?.sql}
-                          key={currentAlert?.id}
-                        />
-                      </StyledInputContainer>
-                      <div
-                        className="inline-container wrap"
-                        css={css`
-                          gap: ${theme.sizeUnit}px;
-                        `}
-                      >
-                        <StyledInputContainer css={noMarginBottom}>
-                          <div className="control-label" css={inputSpacer}>
-                            {t('Trigger Alert If...')}
+                            testId="run-alert-query-as-field"
+                          >
+                            <Flex vertical gap={theme.sizeUnit * 2}>
+                              <Select
+                                ariaLabel={t('Run alert query as type')}
+                                options={[
+                                  {
+                                    value: 'inherit',
+                                    label: t('Same as "Run as"'),
+                                  },
+                                  ...EXECUTOR_TYPE_OPTIONS,
+                                ]}
+                                value={
+                                  currentAlert?.run_alert_query_as_type ??
+                                  'inherit'
+                                }
+                                disabled={!isAdmin}
+                                onChange={value =>
+                                  updateAlertState(
+                                    'run_alert_query_as_type',
+                                    value === 'inherit' ? null : value,
+                                  )
+                                }
+                              />
+                              {currentAlert?.run_alert_query_as_type ===
+                                'fixed_user' && (
+                                <AsyncSelect
+                                  ariaLabel={t('Run alert query as')}
+                                  name="run_alert_query_as"
+                                  allowClear={isAdmin}
+                                  disabled={!isAdmin}
+                                  placeholder={t('Same as "Run as"')}
+                                  value={
+                                    currentAlert?.run_alert_query_as?.value !==
+                                      undefined &&
+                                    currentAlert?.run_alert_query_as?.value !==
+                                      null
+                                      ? {
+                                          value:
+                                            currentAlert.run_alert_query_as
+                                              .value,
+                                          label:
+                                            currentAlert.run_alert_query_as
+                                              .label,
+                                        }
+                                      : undefined
+                                  }
+                                  options={loadRunAlertQueryAsUserOptions}
+                                  onChange={onRunAlertQueryAsChange}
+                                />
+                              )}
+                            </Flex>
+                          </ModalFormField>
+                        )}
+                        <StyledInputContainer>
+                          <div className="control-label">
+                            {t('Database')}
                             <span className="required">*</span>
                           </div>
                           <div className="input-container">
-                            <Select
-                              ariaLabel={t('Condition')}
-                              onChange={onConditionChange}
-                              placeholder={t('Condition')}
+                            <AsyncSelect
+                              ariaLabel={t('Database')}
+                              name="source"
+                              placeholder={t('Select database')}
                               value={
-                                currentAlert?.validator_config_json?.op ||
-                                undefined
+                                currentAlert?.database?.label &&
+                                currentAlert?.database?.value
+                                  ? {
+                                      value: currentAlert.database.value,
+                                      label: currentAlert.database.label,
+                                    }
+                                  : undefined
                               }
-                              options={CONDITIONS}
+                              options={loadSourceOptions}
+                              onChange={onSourceChange}
                             />
                           </div>
                         </StyledInputContainer>
-                        <StyledInputContainer css={noMarginBottom}>
+                        <StyledInputContainer>
                           <div className="control-label">
-                            {t('Value')}{' '}
-                            {!conditionNotNull && (
+                            {t('SQL Query')}
+                            <InfoTooltip
+                              tooltip={t(
+                                'The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or "1" (compatible with Python\'s float() function).',
+                              )}
+                            />
+                            <span className="required">*</span>
+                          </div>
+                          <TextAreaControl
+                            name="sql"
+                            language="sql"
+                            offerEditInModal={false}
+                            minLines={15}
+                            maxLines={15}
+                            onChange={onSQLChange}
+                            readOnly={false}
+                            initialValue={resource?.sql}
+                            key={currentAlert?.id}
+                          />
+                        </StyledInputContainer>
+                        <div
+                          className="inline-container wrap"
+                          css={css`
+                            gap: ${theme.sizeUnit}px;
+                          `}
+                        >
+                          <StyledInputContainer css={noMarginBottom}>
+                            <div className="control-label" css={inputSpacer}>
+                              {t('Trigger Alert If...')}
                               <span className="required">*</span>
-                            )}
+                            </div>
+                            <div className="input-container">
+                              <Select
+                                ariaLabel={t('Condition')}
+                                onChange={onConditionChange}
+                                placeholder={t('Condition')}
+                                value={
+                                  currentAlert?.validator_config_json?.op ||
+                                  undefined
+                                }
+                                options={CONDITIONS}
+                              />
+                            </div>
+                          </StyledInputContainer>
+                          <StyledInputContainer css={noMarginBottom}>
+                            <div className="control-label">
+                              {t('Value')}{' '}
+                              {!conditionNotNull && (
+                                <span className="required">*</span>
+                              )}
+                            </div>
+                            <div className="input-container">
+                              <InputNumber
+                                disabled={conditionNotNull}
+                                name="threshold"
+                                value={
+                                  currentAlert?.validator_config_json
+                                    ?.threshold !== undefined &&
+                                  !conditionNotNull
+                                    ? currentAlert.validator_config_json
+                                        .threshold
+                                    : ''
+                                }
+                                min={0}
+                                placeholder={t('Value')}
+                                onChange={onThresholdChange}
+                              />
+                            </div>
+                          </StyledInputContainer>
+                        </div>
+                      </div>
+                    ),
+                  },
+                ]),
+            {
+              key: 'contents',
+              label: (
+                <CollapseLabelInModal
+                  title={
+                    isReport
+                      ? TRANSLATIONS.REPORT_CONTENTS_TITLE
+                      : TRANSLATIONS.ALERT_CONTENTS_TITLE
+                  }
+                  subtitle={t('Customize data source, filters, and layout.')}
+                  validateCheckStatus={
+                    !validationStatus[Sections.Content].hasErrors
+                  }
+                  testId="contents-panel"
+                />
+              ),
+              children: (
+                <>
+                  {dynamicExecutorEnabled && !isAdmin && (
+                    <Alert
+                      type={restrictedExecutor ? 'warning' : 'info'}
+                      showIcon
+                      message={
+                        restrictedExecutor
+                          ? t('Content and recipient edits are restricted')
+                          : t('Content and permissions')
+                      }
+                      description={
+                        restrictedExecutor ? (
+                          <>
+                            <p>
+                              {isReport
+                                ? t(
+                                    'You can edit the name and schedule, but changing the delivered content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
+                                  )
+                                : t(
+                                    'You can edit the name and schedule. Changing the alert condition requires its query to execute with your permissions. Changing the attachment content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
+                                  )}
+                            </p>
+                            <Button
+                              disabled={!currentUserOption}
+                              onClick={() => {
+                                setRunAsSelf(true);
+                                setCurrentAlert(previous =>
+                                  previous
+                                    ? {
+                                        ...previous,
+                                        run_as: currentUserOption,
+                                        run_as_type: 'fixed_user',
+                                        run_alert_query_as: isReport
+                                          ? null
+                                          : currentUserOption,
+                                        run_alert_query_as_type: isReport
+                                          ? null
+                                          : 'fixed_user',
+                                      }
+                                    : previous,
+                                );
+                              }}
+                            >
+                              {t('Execute using my permissions')}
+                            </Button>
+                          </>
+                        ) : (
+                          t(
+                            'This schedule will use your permissions. You need access to its content and, for alerts, its condition query. Changes take effect when you save.',
+                          )
+                        )
+                      }
+                    />
+                  )}
+                  {dynamicExecutorEnabled && isAdmin && (
+                    <ModalFormField
+                      label={t('Run as')}
+                      required={
+                        isAdmin && currentAlert?.run_as_type === 'fixed_user'
+                      }
+                      tooltip={
+                        ALERT_REPORTS_RUN_AS_TOOLTIP ||
+                        t(
+                          'The user whose permissions and database credentials are used to render this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins can pick another user.',
+                          reportOrAlert,
+                        )
+                      }
+                      testId="run-as-field"
+                    >
+                      <Flex vertical gap={theme.sizeUnit * 2}>
+                        <Select
+                          ariaLabel={t('Run as type')}
+                          options={CONTENT_EXECUTOR_TYPE_OPTIONS}
+                          value={currentAlert?.run_as_type ?? 'legacy'}
+                          disabled={!isAdmin}
+                          onChange={value =>
+                            updateAlertState(
+                              'run_as_type',
+                              value === 'legacy' ? null : value,
+                            )
+                          }
+                        />
+                        {currentAlert?.run_as_type === 'fixed_user' && (
+                          <AsyncSelect
+                            ariaLabel={t('Run as')}
+                            name="run_as"
+                            allowClear={isAdmin}
+                            disabled={!isAdmin}
+                            placeholder={t('Select user')}
+                            value={
+                              currentAlert?.run_as?.value !== undefined &&
+                              currentAlert?.run_as?.value !== null
+                                ? {
+                                    value: currentAlert.run_as.value,
+                                    label: currentAlert.run_as.label,
+                                  }
+                                : undefined
+                            }
+                            options={loadRunAsUserOptions}
+                            onChange={onRunAsChange}
+                          />
+                        )}
+                      </Flex>
+                    </ModalFormField>
+                  )}
+                  {!isReport && attachmentsEnabledForAlerts && (
+                    <StyledSwitchContainer>
+                      <Switch
+                        aria-label={t('Include attachment')}
+                        checked={reportFormat !== 'NONE'}
+                        onChange={checked => {
+                          if (checked) {
+                            setReportFormat(previousAttachmentFormat);
+                          } else {
+                            setPreviousAttachmentFormat(reportFormat);
+                            setReportFormat('NONE');
+                          }
+                        }}
+                      />
+                      <div className="switch-label">
+                        {t('Include attachment')}
+                      </div>
+                    </StyledSwitchContainer>
+                  )}
+                  {!attachmentControlsVisible && (
+                    <p>
+                      {t(
+                        'No attachment will be generated. Saved attachment settings are retained.',
+                      )}
+                    </p>
+                  )}
+                  {attachmentControlsVisible && (
+                    <>
+                      <StyledInputContainer>
+                        <div className="control-label">
+                          {t('Content type')}
+                          <span className="required">*</span>
+                        </div>
+                        <Select
+                          ariaLabel={t('Select content type')}
+                          onChange={onContentTypeChange}
+                          value={contentType}
+                          options={CONTENT_TYPE_OPTIONS}
+                          placeholder={t('Select content type')}
+                        />
+                      </StyledInputContainer>
+                      <StyledInputContainer>
+                        {contentType === ContentType.Chart ? (
+                          <>
+                            <div className="control-label">
+                              {t('Select chart')}
+                              <span className="required">*</span>
+                            </div>
+                            <div className="input-container select-with-open-btn">
+                              <div>
+                                <AsyncSelect
+                                  ariaLabel={t('Chart')}
+                                  name="chart"
+                                  allowClear
+                                  value={
+                                    currentAlert?.chart?.label &&
+                                    currentAlert?.chart?.value
+                                      ? {
+                                          value: currentAlert.chart.value,
+                                          label: currentAlert.chart.label,
+                                        }
+                                      : undefined
+                                  }
+                                  options={loadChartOptions}
+                                  onChange={onChartChange}
+                                  placeholder={t('Select chart to use')}
+                                />
+                              </div>
+                              <div>
+                                <Tooltip title={t('Open chart in new tab')}>
+                                  <Button
+                                    aria-label={t('Open chart in new tab')}
+                                    onClick={() =>
+                                      openChartInNewTab(
+                                        currentAlert?.chart?.value,
+                                      )
+                                    }
+                                    icon={<Icons.LinkOutlined iconSize="s" />}
+                                    buttonSize="small"
+                                    disabled={!currentAlert?.chart?.value}
+                                  />
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="control-label">
+                              {t('Select dashboard')}
+                              <span className="required">*</span>
+                            </div>
+                            <div className="input-container select-with-open-btn">
+                              <div>
+                                <AsyncSelect
+                                  ariaLabel={t('Dashboard')}
+                                  name="dashboard"
+                                  value={
+                                    currentAlert?.dashboard?.label &&
+                                    currentAlert?.dashboard?.value
+                                      ? {
+                                          value: currentAlert.dashboard.value,
+                                          label: currentAlert.dashboard.label,
+                                        }
+                                      : undefined
+                                  }
+                                  options={loadDashboardOptions}
+                                  onChange={onDashboardChange}
+                                  placeholder={t('Select dashboard to use')}
+                                />
+                              </div>
+                              <div>
+                                <Tooltip title={t('Open dashboard in new tab')}>
+                                  <Button
+                                    aria-label={t('Open dashboard in new tab')}
+                                    onClick={() =>
+                                      openDashboardInNewTab(
+                                        currentAlert?.dashboard?.value,
+                                      )
+                                    }
+                                    icon={<Icons.LinkOutlined iconSize="s" />}
+                                    buttonSize="small"
+                                    disabled={!currentAlert?.dashboard?.value}
+                                  />
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </StyledInputContainer>
+                      <StyledInputContainer
+                        css={
+                          ['PDF', 'TEXT', 'CSV', 'XLSX', 'NONE'].includes(
+                            reportFormat,
+                          ) && noMarginBottom
+                        }
+                      >
+                        {formatOptionEnabled && (
+                          <>
+                            <div className="control-label">
+                              {t('Content format')}
+                              <span className="required">*</span>
+                            </div>
+                            <Select
+                              ariaLabel={t('Select format')}
+                              onChange={onFormatChange}
+                              value={reportFormat}
+                              options={
+                                contentType === ContentType.Dashboard
+                                  ? ['pdf', 'png'].map(
+                                      key =>
+                                        FORMAT_OPTIONS[
+                                          key as FORMAT_OPTIONS_KEY
+                                        ],
+                                    )
+                                  : /* If chart is of text based viz type: show text
+                                     format option */
+                                    TEXT_BASED_VISUALIZATION_TYPES.includes(
+                                        chartVizType,
+                                      )
+                                    ? Object.values(FORMAT_OPTIONS)
+                                    : ['pdf', 'png', 'csv', 'xlsx'].map(
+                                        key =>
+                                          FORMAT_OPTIONS[
+                                            key as FORMAT_OPTIONS_KEY
+                                          ],
+                                      )
+                              }
+                              placeholder={t('Select format')}
+                            />
+                          </>
+                        )}
+                      </StyledInputContainer>
+                      {tabsEnabled && contentType === ContentType.Dashboard && (
+                        <StyledInputContainer>
+                          <>
+                            <div className="control-label">
+                              {t('Select tab')}
+                            </div>
+                            <StyledTreeSelect
+                              disabled={tabOptions?.length === 0}
+                              treeData={tabOptions}
+                              value={currentAlert?.extra?.dashboard?.anchor}
+                              onSelect={updateAnchorState}
+                              placeholder={t('Select a tab')}
+                            />
+                          </>
+                        </StyledInputContainer>
+                      )}
+                      {filtersEnabled &&
+                        contentType === ContentType.Dashboard && (
+                          <StyledInputContainer>
+                            <AntdForm
+                              className="filters"
+                              name="form"
+                              autoComplete="off"
+                            >
+                              <AntdForm.List
+                                name="filters"
+                                initialValue={nativeFilterData} // only show one filter field on create
+                              >
+                                {(fields, { add, remove }) => (
+                                  <div>
+                                    {fields.map(({ key, name: idx }) => (
+                                      <div
+                                        className="filters-container"
+                                        key={key}
+                                      >
+                                        <div className="filters-dash-container">
+                                          <div className="control-label">
+                                            <span className="label-with-tooltip">
+                                              {t('Dashboard Filter')}
+                                            </span>
+                                            <InfoTooltip
+                                              tooltip={t(
+                                                'Choose from existing dashboard filters and select a value to refine your report results.',
+                                              )}
+                                            />
+                                          </div>
+                                          <Select
+                                            disabled={
+                                              nativeFilterOptions?.length < 1 &&
+                                              !nativeFilterData[idx]?.filterName
+                                            }
+                                            ariaLabel={t('Select Filter')}
+                                            placeholder={t('Select Filter')}
+                                            value={
+                                              nativeFilterData[idx]
+                                                ?.nativeFilterId
+                                            }
+                                            options={filterNativeFilterOptions(
+                                              idx,
+                                            )}
+                                            onChange={value =>
+                                              onChangeDashboardFilter(
+                                                idx,
+                                                String(value),
+                                              )
+                                            }
+                                            onClear={() => {
+                                              const updatedFilters = [
+                                                ...nativeFilterData,
+                                              ];
+                                              updatedFilters[idx] = {
+                                                nativeFilterId: null,
+                                                columnLabel: '',
+                                                columnName: '',
+                                                filterName: '',
+                                                filterValues: [],
+                                              };
+                                              setNativeFilterData(
+                                                updatedFilters,
+                                              );
+                                            }}
+                                            css={css`
+                                              flex: 1;
+                                            `}
+                                            oneLine
+                                            allowClear
+                                          />
+                                        </div>
+                                        <div className="filters-dashvalue-container">
+                                          <div className="control-label">
+                                            {t('Value')}
+                                          </div>
+                                          {renderFilterValueSelect(
+                                            nativeFilterData[idx],
+                                            idx,
+                                          )}
+                                        </div>
+                                        {(idx !== 0 || isEditMode) && (
+                                          <div className="filters-delete">
+                                            <Icons.DeleteOutlined
+                                              iconSize="xl"
+                                              className="filters-trashcan"
+                                              onClick={() => {
+                                                handleRemoveFilterField(idx);
+                                                remove(idx);
+                                              }}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {filterNativeFilterOptions().length > 0 && (
+                                      <Button
+                                        buttonStyle="link"
+                                        onClick={() => {
+                                          handleAddFilterField();
+                                          add();
+                                        }}
+                                      >
+                                        + {t('Apply another dashboard filter')}
+                                      </Button>
+                                    )}
+                                  </div>
+                                )}
+                              </AntdForm.List>
+                            </AntdForm>
+                          </StyledInputContainer>
+                        )}
+                      {isScreenshot && (
+                        <StyledInputContainer
+                          css={
+                            !isReport &&
+                            contentType === ContentType.Chart &&
+                            noMarginBottom
+                          }
+                        >
+                          <div className="control-label">
+                            {t('Screenshot width')}
                           </div>
                           <div className="input-container">
                             <InputNumber
-                              disabled={conditionNotNull}
-                              type="number"
-                              name="threshold"
-                              value={
-                                currentAlert?.validator_config_json
-                                  ?.threshold !== undefined && !conditionNotNull
-                                  ? currentAlert.validator_config_json.threshold
-                                  : ''
-                              }
-                              min={0}
-                              placeholder={t('Value')}
-                              onChange={onThresholdChange}
+                              name="custom_width"
+                              value={currentAlert?.custom_width || undefined}
+                              min={600}
+                              max={2400}
+                              placeholder={t('Input custom width in pixels')}
+                              onChange={onCustomWidthChange}
                             />
                           </div>
                         </StyledInputContainer>
-                      </div>
-                    </div>
-                  ),
-                },
-              ]
-            : []),
-          {
-            key: 'contents',
-            label: (
-              <CollapseLabelInModal
-                title={
-                  isReport
-                    ? TRANSLATIONS.REPORT_CONTENTS_TITLE
-                    : TRANSLATIONS.ALERT_CONTENTS_TITLE
-                }
-                subtitle={t('Customize data source, filters, and layout.')}
-                validateCheckStatus={
-                  !validationStatus[Sections.Content].hasErrors
-                }
-                testId="contents-panel"
-              />
-            ),
-            children: (
-              <>
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {t('Content type')}
-                    <span className="required">*</span>
-                  </div>
-                  <Select
-                    ariaLabel={t('Select content type')}
-                    onChange={onContentTypeChange}
-                    value={contentType}
-                    options={CONTENT_TYPE_OPTIONS}
-                    placeholder={t('Select content type')}
-                  />
-                </StyledInputContainer>
-                <StyledInputContainer>
-                  {contentType === ContentType.Chart ? (
-                    <>
-                      <div className="control-label">
-                        {t('Select chart')}
-                        <span className="required">*</span>
-                      </div>
-                      <AsyncSelect
-                        ariaLabel={t('Chart')}
-                        name="chart"
-                        value={
-                          currentAlert?.chart?.label &&
-                          currentAlert?.chart?.value
-                            ? {
-                                value: currentAlert.chart.value,
-                                label: currentAlert.chart.label,
-                              }
-                            : undefined
-                        }
-                        options={loadChartOptions}
-                        onChange={onChartChange}
-                        placeholder={t('Select chart to use')}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <div className="control-label">
-                        {t('Select dashboard')}
-                        <span className="required">*</span>
-                      </div>
-                      <AsyncSelect
-                        ariaLabel={t('Dashboard')}
-                        name="dashboard"
-                        value={
-                          currentAlert?.dashboard?.label &&
-                          currentAlert?.dashboard?.value
-                            ? {
-                                value: currentAlert.dashboard.value,
-                                label: currentAlert.dashboard.label,
-                              }
-                            : undefined
-                        }
-                        options={loadDashboardOptions}
-                        onChange={onDashboardChange}
-                        placeholder={t('Select dashboard to use')}
-                      />
+                      )}
+                      {(isReport || contentType === ContentType.Dashboard) &&
+                        !isNoAttachment && (
+                          <div className="inline-container">
+                            <Checkbox
+                              data-test="bypass-cache"
+                              checked={forceScreenshot}
+                              onChange={onForceScreenshotChange}
+                            >
+                              {t('Ignore cache when generating report')}
+                            </Checkbox>
+                          </div>
+                        )}
                     </>
                   )}
-                </StyledInputContainer>
-                <StyledInputContainer
-                  css={
-                    ['PDF', 'TEXT', 'CSV'].includes(reportFormat) &&
-                    noMarginBottom
-                  }
-                >
-                  {formatOptionEnabled && (
-                    <>
-                      <div className="control-label">
-                        {t('Content format')}
-                        <span className="required">*</span>
-                      </div>
-                      <Select
-                        ariaLabel={t('Select format')}
-                        onChange={onFormatChange}
-                        value={reportFormat}
-                        options={
-                          contentType === ContentType.Dashboard
-                            ? ['pdf', 'png'].map(
-                                key =>
-                                  FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
-                              )
-                            : /* If chart is of text based viz type: show text
-                  format option */
-                              TEXT_BASED_VISUALIZATION_TYPES.includes(
-                                  chartVizType,
-                                )
-                              ? Object.values(FORMAT_OPTIONS)
-                              : ['pdf', 'png', 'csv'].map(
-                                  key =>
-                                    FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
-                                )
-                        }
-                        placeholder={t('Select format')}
-                      />
-                    </>
-                  )}
-                </StyledInputContainer>
-                {tabsEnabled && contentType === ContentType.Dashboard && (
-                  <StyledInputContainer>
-                    <>
-                      <div className="control-label">{t('Select tab')}</div>
-                      <StyledTreeSelect
-                        disabled={tabOptions?.length === 0}
-                        treeData={tabOptions}
-                        value={currentAlert?.extra?.dashboard?.anchor}
-                        onSelect={updateAnchorState}
-                        placeholder={t('Select a tab')}
-                      />
-                    </>
-                  </StyledInputContainer>
-                )}
-                {isScreenshot && (
-                  <StyledInputContainer
-                    css={
-                      !isReport &&
-                      contentType === ContentType.Chart &&
-                      noMarginBottom
-                    }
-                  >
-                    <div className="control-label">{t('Screenshot width')}</div>
-                    <div className="input-container">
-                      <InputNumber
-                        type="number"
-                        name="custom_width"
-                        value={currentAlert?.custom_width || undefined}
-                        min={600}
-                        max={2400}
-                        placeholder={t('Input custom width in pixels')}
-                        onChange={onCustomWidthChange}
-                      />
-                    </div>
-                  </StyledInputContainer>
-                )}
-                {(isReport || contentType === ContentType.Dashboard) && (
                   <div className="inline-container">
                     <Checkbox
-                      data-test="bypass-cache"
-                      checked={forceScreenshot}
-                      onChange={onForceScreenshotChange}
+                      data-test="include-cta"
+                      checked={currentAlert?.include_cta !== false}
+                      onChange={(e: CheckboxChangeEvent) =>
+                        updateAlertState('include_cta', e.target.checked)
+                      }
                     >
-                      {t('Ignore cache when generating report')}
+                      {t('Include a link back to Superset')}
                     </Checkbox>
-                  </div>
-                )}
-              </>
-            ),
-          },
-          {
-            key: 'schedule',
-            label: (
-              <CollapseLabelInModal
-                title={TRANSLATIONS.SCHEDULE_TITLE}
-                subtitle={t(
-                  'Define delivery schedule, timezone, and frequency settings.',
-                )}
-                validateCheckStatus={
-                  !validationStatus[Sections.Schedule].hasErrors
-                }
-                testId="schedule-panel"
-              />
-            ),
-            children: (
-              <>
-                <AlertReportCronScheduler
-                  value={currentAlert?.crontab || ''}
-                  onChange={newVal => updateAlertState('crontab', newVal)}
-                />
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {t('Timezone')} <span className="required">*</span>
-                  </div>
-                  <TimezoneSelector
-                    onTimezoneChange={onTimezoneChange}
-                    timezone={currentAlert?.timezone}
-                    minWidth="100%"
-                  />
-                </StyledInputContainer>
-                <StyledInputContainer>
-                  <div className="control-label">
-                    {t('Log retention')}
-                    <span className="required">*</span>
-                  </div>
-                  <div className="input-container">
-                    <Select
-                      ariaLabel={t('Log retention')}
-                      placeholder={t('Log retention')}
-                      onChange={onLogRetentionChange}
-                      value={currentAlert?.log_retention}
-                      options={RETENTION_OPTIONS}
-                      sortComparator={propertyComparator('value')}
+                    <InfoTooltip
+                      tooltip={t(
+                        'When unchecked, the "Explore in Superset" link is omitted from the delivered notifications.',
+                      )}
                     />
                   </div>
-                </StyledInputContainer>
-                <StyledInputContainer css={noMarginBottom}>
-                  {isReport ? (
-                    <>
-                      <div className="control-label">
-                        {t('Working timeout')}
-                        <span className="required">*</span>
-                      </div>
-                      <div className="input-container">
-                        <NumberInput
-                          min={1}
-                          name="working_timeout"
-                          value={currentAlert?.working_timeout || ''}
-                          placeholder={t('Time in seconds')}
-                          onChange={onTimeoutVerifyChange}
-                          timeUnit={t('seconds')}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="control-label">{t('Grace period')}</div>
-                      <div className="input-container">
-                        <NumberInput
-                          min={1}
-                          name="grace_period"
-                          value={currentAlert?.grace_period || ''}
-                          placeholder={t('Time in seconds')}
-                          onChange={onTimeoutVerifyChange}
-                          timeUnit={t('seconds')}
-                        />
-                      </div>
-                    </>
+                </>
+              ),
+            },
+            {
+              key: 'schedule',
+              label: (
+                <CollapseLabelInModal
+                  title={TRANSLATIONS.SCHEDULE_TITLE}
+                  subtitle={t(
+                    'Define delivery schedule, timezone, and frequency settings.',
                   )}
-                </StyledInputContainer>
-              </>
-            ),
-          },
-          {
-            key: 'notification',
-            label: (
-              <CollapseLabelInModal
-                title={TRANSLATIONS.NOTIFICATION_TITLE}
-                subtitle={t('Choose notification method and recipients.')}
-                validateCheckStatus={
-                  !validationStatus[Sections.Notification].hasErrors
-                }
-                testId="notification-method-panel"
-              />
-            ),
-            children: (
-              <>
-                {notificationSettings.map((notificationSetting, i) => (
-                  <StyledNotificationMethodWrapper>
-                    <NotificationMethod
-                      setting={notificationSetting}
-                      index={i}
-                      key={`NotificationMethod-${i}`}
-                      onUpdate={updateNotificationSetting}
-                      onRemove={removeNotificationSetting}
-                      onInputChange={onInputChange}
-                      email_subject={currentAlert?.email_subject || ''}
-                      defaultSubject={emailSubject || ''}
-                      setErrorSubject={handleErrorUpdate}
-                    />
-                  </StyledNotificationMethodWrapper>
-                ))}
-                {
-                  // Prohibit 'add notification method' button if only one present
-                  allowedNotificationMethodsCount >
-                    notificationSettings.length && (
-                    <NotificationMethodAdd
-                      data-test="notification-add"
-                      status={notificationAddState}
-                      onClick={onNotificationAdd}
-                    />
-                  )
-                }
-              </>
-            ),
-          },
-        ]}
-      />
-    </StyledModal>
+                  validateCheckStatus={
+                    !validationStatus[Sections.Schedule].hasErrors
+                  }
+                  testId="schedule-panel"
+                />
+              ),
+              children: (
+                <>
+                  <AlertReportCronScheduler
+                    value={currentAlert?.crontab || ''}
+                    onChange={newVal => updateAlertState('crontab', newVal)}
+                  />
+                  <StyledInputContainer>
+                    <div className="control-label">
+                      {t('Timezone')} <span className="required">*</span>
+                    </div>
+                    {shouldRenderTimezoneSelector ? (
+                      <TimezoneSelector
+                        onTimezoneChange={onTimezoneChange}
+                        timezone={currentAlert?.timezone}
+                        minWidth="100%"
+                      />
+                    ) : (
+                      <Loading size="s" muted position="normal" />
+                    )}
+                  </StyledInputContainer>
+                  <StyledInputContainer>
+                    <div className="control-label">
+                      {t('Log retention')}
+                      <span className="required">*</span>
+                    </div>
+                    <div className="input-container">
+                      <Select
+                        ariaLabel={t('Log retention')}
+                        placeholder={t('Log retention')}
+                        onChange={onLogRetentionChange}
+                        value={currentAlert?.log_retention}
+                        options={RETENTION_OPTIONS}
+                        sortComparator={propertyComparator('value')}
+                      />
+                    </div>
+                  </StyledInputContainer>
+                  <StyledInputContainer css={noMarginBottom}>
+                    {isReport ? (
+                      <>
+                        <div className="control-label">
+                          {t('Working timeout')}
+                          <span className="required">*</span>
+                        </div>
+                        <div className="input-container">
+                          <NumberInput
+                            min={1}
+                            name="working_timeout"
+                            value={currentAlert?.working_timeout || ''}
+                            placeholder={t('Time in seconds')}
+                            onChange={onTimeoutVerifyChange}
+                            timeUnit={t('seconds')}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="control-label">{t('Grace period')}</div>
+                        <div className="input-container">
+                          <NumberInput
+                            min={1}
+                            name="grace_period"
+                            value={currentAlert?.grace_period || ''}
+                            placeholder={t('Time in seconds')}
+                            onChange={onTimeoutVerifyChange}
+                            timeUnit={t('seconds')}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </StyledInputContainer>
+                </>
+              ),
+            },
+            {
+              key: 'notification',
+              label: (
+                <CollapseLabelInModal
+                  title={TRANSLATIONS.NOTIFICATION_TITLE}
+                  subtitle={t('Choose notification method and recipients.')}
+                  validateCheckStatus={
+                    !validationStatus[Sections.Notification].hasErrors
+                  }
+                  testId="notification-method-panel"
+                />
+              ),
+              children: (
+                <>
+                  {notificationSettings.map((notificationSetting, i) => (
+                    <StyledNotificationMethodWrapper>
+                      <NotificationMethod
+                        setting={notificationSetting}
+                        index={i}
+                        key={`NotificationMethod-${i}`}
+                        onUpdate={updateNotificationSetting}
+                        onRemove={removeNotificationSetting}
+                        onInputChange={onInputChange}
+                        email_subject={currentAlert?.email_subject || ''}
+                        defaultSubject={emailSubject || ''}
+                        setErrorSubject={handleErrorUpdate}
+                      />
+                    </StyledNotificationMethodWrapper>
+                  ))}
+                  {
+                    // Prohibit 'add notification method' button if only one present
+                    allowedNotificationMethodsCount >
+                      notificationSettings.length && (
+                      <NotificationMethodAdd
+                        data-test="notification-add"
+                        status={notificationAddState}
+                        onClick={onNotificationAdd}
+                      />
+                    )
+                  }
+                </>
+              ),
+            },
+            ...(isFeatureEnabled(FeatureFlag.AlertReportsRetry)
+              ? [
+                  {
+                    key: 'error-handling',
+                    label: (
+                      <CollapseLabelInModal
+                        title={t('Error handling')}
+                        subtitle={t(
+                          'Configure retries when alert or report generation fails before delivery.',
+                        )}
+                        testId="error-handling-panel"
+                      />
+                    ),
+                    children: (
+                      <div className="header-section">
+                        <StyledSwitchContainer
+                          css={css`
+                            margin-bottom: ${theme.sizeUnit * 4}px;
+                          `}
+                        >
+                          <Switch
+                            checked={!!currentAlert?.retry_on_failure}
+                            onChange={(checked: boolean) => {
+                              updateAlertState('retry_on_failure', checked);
+                              if (!checked) {
+                                updateAlertState('send_failed_reports', false);
+                                updateAlertState('retry_notify_owners', true);
+                                updateAlertState(
+                                  'retry_notify_recipients',
+                                  false,
+                                );
+                                updateAlertState('retry_max_attempts', 3);
+                              }
+                            }}
+                          />
+                          <div className="switch-label">
+                            {t('Enable Retries')}
+                          </div>
+                          <InfoTooltip
+                            tooltip={t(
+                              'Retry generation failures before delivery starts. Alerts re-check their condition on each attempt. Delivery failures are not replayed.',
+                            )}
+                          />
+                        </StyledSwitchContainer>
+                        {currentAlert?.retry_on_failure && (
+                          <>
+                            <ModalFormField label={t('Maximum Retry Attempts')}>
+                              <InputNumber
+                                min={1}
+                                max={10}
+                                value={currentAlert?.retry_max_attempts ?? 3}
+                                onChange={(value: number | null) =>
+                                  updateAlertState(
+                                    'retry_max_attempts',
+                                    value ?? 3,
+                                  )
+                                }
+                              />
+                            </ModalFormField>
+                            <StyledSwitchContainer
+                              css={css`
+                                margin-bottom: ${theme.sizeUnit * 4}px;
+                              `}
+                            >
+                              <Switch
+                                checked={!!currentAlert?.send_failed_reports}
+                                onChange={(checked: boolean) =>
+                                  updateAlertState(
+                                    'send_failed_reports',
+                                    checked,
+                                  )
+                                }
+                              />
+                              <div className="switch-label">
+                                {t('Send Failed Reports')}
+                              </div>
+                              <InfoTooltip
+                                tooltip={t(
+                                  'Notify all recipients when the report fails after exhausting all retry attempts.',
+                                )}
+                              />
+                            </StyledSwitchContainer>
+                            <ModalFormField label={t('Failure Notifications')}>
+                              <Checkbox
+                                checked={
+                                  currentAlert?.retry_notify_owners ?? true
+                                }
+                                onChange={(e: CheckboxChangeEvent) =>
+                                  updateAlertState(
+                                    'retry_notify_owners',
+                                    e.target.checked,
+                                  )
+                                }
+                              >
+                                {t('Owners')}
+                              </Checkbox>
+                              <Checkbox
+                                checked={
+                                  !!currentAlert?.retry_notify_recipients
+                                }
+                                onChange={(e: CheckboxChangeEvent) =>
+                                  updateAlertState(
+                                    'retry_notify_recipients',
+                                    e.target.checked,
+                                  )
+                                }
+                              >
+                                {t('Report Recipients')}
+                              </Checkbox>
+                            </ModalFormField>
+                          </>
+                        )}
+                      </div>
+                    ),
+                  },
+                ]
+              : []),
+          ]}
+        />
+      </div>
+    </StandardModal>
   );
 };
 

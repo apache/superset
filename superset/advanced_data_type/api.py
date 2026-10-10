@@ -18,7 +18,13 @@ from typing import Any
 
 from flask import current_app as app
 from flask.wrappers import Response
-from flask_appbuilder.api import expose, permission_name, protect, rison, safe
+from flask_appbuilder.api import (
+    expose,
+    permission_name,
+    protect,
+    rison as parse_rison,
+    safe,
+)
 from flask_babel import lazy_gettext as _
 
 from superset.advanced_data_type.schemas import (
@@ -56,7 +62,7 @@ class AdvancedDataTypeRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,  # pylint: disable-arguments-renamed
     )
-    @rison(advanced_data_type_convert_schema)
+    @parse_rison(advanced_data_type_convert_schema)
     def get(self, **kwargs: Any) -> Response:
         """Return an AdvancedDataTypeResponse object populated with the passed in args.
         ---

@@ -18,7 +18,19 @@
  * under the License.
  */
 import { SetDataMaskHook } from '@superset-ui/core';
+import type { TotalsAggregate } from '@superset-ui/chart-controls';
 import { SortByItem } from '../types';
+
+export interface ClientViewColumn {
+  key: string;
+  label: string;
+}
+
+export interface ClientViewSnapshot {
+  rows: Record<string, unknown>[];
+  columns: ClientViewColumn[];
+  count: number;
+}
 
 interface TableOwnState {
   currentPage?: number;
@@ -27,6 +39,10 @@ interface TableOwnState {
   sortOrder?: 'asc' | 'desc';
   searchText?: string;
   sortBy?: SortByItem[];
+  rawSummaryColumns?: string[];
+  totalsRequested?: boolean;
+  totalsAggregate?: TotalsAggregate;
+  clientView?: ClientViewSnapshot;
 }
 
 export const updateTableOwnState = (

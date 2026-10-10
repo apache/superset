@@ -37,6 +37,11 @@ const mockCreateResource = jest.fn();
 jest.mock('src/views/CRUD/hooks', () => ({
   useSingleViewResource: () => ({
     createResource: mockCreateResource,
+    state: { loading: false },
+  }),
+  getDatabaseDocumentationLinks: () => ({
+    support:
+      'https://superset.apache.org/user-docs/databases/#installing-database-drivers',
   }),
 }));
 
@@ -51,7 +56,7 @@ const mockPropsWithDataset = {
       id: '1',
       database_name: 'examples',
     },
-    owners: [1, 2, 3],
+    editors: [1, 2, 3],
     schema: 'public',
     dataset_name: 'Untitled',
     table_name: 'real_info',
@@ -59,6 +64,7 @@ const mockPropsWithDataset = {
   hasColumns: true,
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Footer', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -72,7 +78,7 @@ describe('Footer', () => {
     });
 
     const createButton = screen.getByRole('button', {
-      name: /Create dataset and create chart/i,
+      name: /Create and explore dataset/i,
     });
 
     expect(saveButton).toBeVisible();
@@ -83,13 +89,13 @@ describe('Footer', () => {
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
 
     const createButton = screen.getByRole('button', {
-      name: /Create dataset and create chart/i,
+      name: /Create and explore dataset/i,
     });
 
     expect(createButton).toBeEnabled();
 
     // Check that it's a dropdown button with the correct text
-    expect(createButton).toHaveTextContent('Create dataset and create chart');
+    expect(createButton).toHaveTextContent('Create and explore dataset');
 
     // Check for the dropdown arrow
     const dropdownArrow = screen.getByRole('img', { hidden: true });
@@ -102,7 +108,7 @@ describe('Footer', () => {
     });
 
     const createButton = screen.getByRole('button', {
-      name: /Create dataset and create chart/i,
+      name: /Create and explore dataset/i,
     });
 
     expect(createButton).toBeDisabled();
@@ -113,11 +119,11 @@ describe('Footer', () => {
 
     // Find and click the dropdown trigger (the arrow part)
     const dropdownTrigger = screen.getByRole('button', { name: 'down' });
-    userEvent.click(dropdownTrigger);
+    await userEvent.click(dropdownTrigger);
 
     // Check that the dropdown menu option is visible
     await waitFor(() => {
-      expect(screen.getByText('Create dataset only')).toBeVisible();
+      expect(screen.getByText('Create dataset')).toBeVisible();
     });
   });
 
@@ -127,10 +133,10 @@ describe('Footer', () => {
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
 
     const createButton = screen.getByRole('button', {
-      name: /Create dataset and create chart/i,
+      name: /Create and explore dataset/i,
     });
 
-    userEvent.click(createButton);
+    await userEvent.click(createButton);
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalledWith({
@@ -145,20 +151,17 @@ describe('Footer', () => {
     });
   });
 
-  test('navigates to dataset list when "Create dataset only" menu option is clicked', async () => {
+  test('navigates to dataset list when "Create dataset" menu option is clicked', async () => {
     mockCreateResource.mockResolvedValue(123);
 
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
 
     // Open dropdown menu
     const dropdownTrigger = screen.getByRole('button', { name: 'down' });
-    userEvent.click(dropdownTrigger);
+    await userEvent.click(dropdownTrigger);
 
-    // Click the "Create dataset only" option
-    await waitFor(() => {
-      const datasetOnlyOption = screen.getByText('Create dataset only');
-      userEvent.click(datasetOnlyOption);
-    });
+    // Click the "Create dataset" option
+    await userEvent.click(await screen.findByText('Create dataset'));
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalledWith({
@@ -177,10 +180,10 @@ describe('Footer', () => {
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
 
     const createButton = screen.getByRole('button', {
-      name: /Create dataset and create chart/i,
+      name: /Create and explore dataset/i,
     });
 
-    userEvent.click(createButton);
+    await userEvent.click(createButton);
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalled();
@@ -203,10 +206,10 @@ describe('Footer', () => {
     render(<Footer {...mockPropsWithCatalog} />, { useRedux: true });
 
     const createButton = screen.getByRole('button', {
-      name: /Create dataset and create chart/i,
+      name: /Create and explore dataset/i,
     });
 
-    userEvent.click(createButton);
+    await userEvent.click(createButton);
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalledWith({

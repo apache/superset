@@ -20,6 +20,7 @@
 // when its container size changes, due to e.g., builder side panel opening
 import {
   FC,
+  FocusEvent as ReactFocusEvent,
   memo,
   useCallback,
   useEffect,
@@ -27,16 +28,17 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
+import { isEqual } from 'lodash-es';
 import {
-  Filter,
-  Filters,
+  ChartCustomizationConfiguration,
+  ChartCustomizationType,
   LabelsColorMapSource,
+  NativeFilterType,
   getLabelsColorMap,
 } from '@superset-ui/core';
-import { ParentSize } from '@visx/responsive';
-import { pick } from 'lodash';
+import { useParentSize } from '@visx/responsive';
 import Tabs from '@superset-ui/core/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
@@ -49,9 +51,9 @@ import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
+import { setInScopeStatusOfCustomizations } from 'src/dashboard/actions/chartCustomizationActions';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import {
   applyDashboardLabelsColorOnLoad,
@@ -60,50 +62,85 @@ import {
   ensureSyncedSharedLabelsColors,
   ensureSyncedLabelsColorMap,
 } from 'src/dashboard/actions/dashboardState';
-import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
+import { calculateScopes } from 'src/dashboard/util/calculateScopes';
+import { createChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
+import {
+  isLegacyChartCustomizationFormat,
+  migrateChartCustomization,
+} from 'src/dashboard/util/migrateChartCustomization';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
-import { findTabsWithChartsInScope } from '../nativeFilters/utils';
+import { selectFilterConfiguration } from '../nativeFilters/state';
 import { getRootLevelTabsComponent } from './utils';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
 };
 
-export const renderedChartIdsSelector = createSelector(
-  [(state: RootState) => state.charts],
-  charts =>
+interface ScopeData {
+  chartsInScope: number[];
+  tabsInScope: string[];
+}
+
+interface FilterScopeData extends ScopeData {
+  filterId: string;
+}
+
+interface CustomizationScopeData extends ScopeData {
+  customizationId: string;
+}
+
+function normalizeChartCustomizationsForScopeCalculation(
+  chartCustomizations: ChartCustomizationConfiguration,
+  chartIds: number[],
+): ChartCustomizationConfiguration {
+  const truthyCustomizations = chartCustomizations.filter(Boolean);
+
+  if (!truthyCustomizations.some(isLegacyChartCustomizationFormat)) {
+    return truthyCustomizations;
+  }
+
+  return truthyCustomizations.map(item => {
+    if (!isLegacyChartCustomizationFormat(item)) {
+      return item;
+    }
+
+    const migratedCustomization = migrateChartCustomization(item);
+
+    if (!item.chartId) {
+      return migratedCustomization;
+    }
+
+    return {
+      ...migratedCustomization,
+      // Legacy items could target a single chart without an explicit scope.
+      // Preserve that targeting before calculateScopes recomputes chartsInScope.
+      scope: {
+        ...migratedCustomization.scope,
+        excluded: chartIds.filter(chartId => chartId !== item.chartId),
+      },
+    };
+  });
+}
+
+export const renderedChartIdsSelector: (state: RootState) => number[] =
+  createSelector([(state: RootState) => state.charts], charts =>
     Object.values(charts)
       .filter(chart => chart.chartStatus === 'rendered')
       .map(chart => chart.id),
-);
+  );
 
 const useRenderedChartIds = () => {
   const renderedChartIds = useSelector<RootState, number[]>(
     renderedChartIdsSelector,
+    shallowEqual,
   );
-  return useMemo(() => renderedChartIds, [JSON.stringify(renderedChartIds)]);
-};
-
-const useNativeFilterScopes = () => {
-  const nativeFilters = useSelector<RootState, Filters>(
-    state => state.nativeFilters?.filters,
-  );
-  return useMemo(
-    () =>
-      nativeFilters
-        ? Object.values(nativeFilters).map((filter: Filter) =>
-            pick(filter, ['id', 'scope', 'type']),
-          )
-        : [],
-    [nativeFilters],
-  );
+  return renderedChartIds;
 };
 
 const TOP_OF_PAGE_RANGE = 220;
 
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
-  const nativeFilterScopes = useNativeFilterScopes();
   const dispatch = useDispatch();
 
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
@@ -112,6 +149,14 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const dashboardInfo = useSelector<RootState, DashboardInfo>(
     state => state.dashboardInfo,
   );
+  const filterItems = useSelector(selectFilterConfiguration);
+  const chartCustomizations = useSelector<
+    RootState,
+    ChartCustomizationConfiguration
+  >(
+    state => state.dashboardInfo?.metadata?.chart_customization_config || [],
+    shallowEqual,
+  );
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
@@ -119,10 +164,14 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   const renderedChartIds = useRenderedChartIds();
 
-  const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
-    useState(false);
+  const [colorInitializedDashboardId, setColorInitializedDashboardId] =
+    useState<number | null>(null);
+  const dashboardLabelsColorInitiated =
+    colorInitializedDashboardId === dashboardInfo?.id;
   const prevRenderedChartIds = useRef<number[]>([]);
   const prevTabIndexRef = useRef<number>();
+  const prevFilterScopesRef = useRef<FilterScopeData[]>([]);
+  const prevCustomizationScopesRef = useRef<CustomizationScopeData[]>([]);
   const tabIndex = useMemo(() => {
     const nextTabIndex = findTabIndexByComponentId({
       currentComponent: getRootLevelTabsComponent(dashboardLayout),
@@ -148,41 +197,62 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     prevRenderedChartIds.current = [];
   }, [dashboardInfo?.metadata?.color_namespace, dispatch]);
 
+  const chartLayoutItemMap = useMemo(
+    () => createChartLayoutItemMap(Object.values(dashboardLayout)),
+    [dashboardLayout],
+  );
+
   useEffect(() => {
-    if (nativeFilterScopes.length === 0) {
+    if (filterItems.length === 0) {
       return;
     }
-    const scopes = nativeFilterScopes.map(filterScope => {
-      if (filterScope.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX)) {
-        return {
-          filterId: filterScope.id,
-          tabsInScope: [],
-          chartsInScope: [],
-        };
-      }
 
-      const chartLayoutItems = Object.values(dashboardLayout).filter(
-        item => item?.type === CHART_TYPE,
-      );
+    const scopes = calculateScopes(
+      filterItems,
+      chartIds,
+      chartLayoutItemMap,
+      item =>
+        item.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX) ||
+        item.type === NativeFilterType.Divider,
+    ).map(scope => ({
+      filterId: scope.id,
+      chartsInScope: scope.chartsInScope,
+      tabsInScope: scope.tabsInScope,
+    }));
 
-      const chartsInScope: number[] = getChartIdsInFilterScope(
-        filterScope.scope,
+    if (!isEqual(scopes, prevFilterScopesRef.current)) {
+      prevFilterScopesRef.current = scopes;
+      dispatch(setInScopeStatusOfFilters(scopes));
+    }
+  }, [chartIds, filterItems, chartLayoutItemMap, dispatch]);
+
+  useEffect(() => {
+    if (chartCustomizations.length === 0) {
+      return;
+    }
+
+    const normalizedCustomizations =
+      normalizeChartCustomizationsForScopeCalculation(
+        chartCustomizations,
         chartIds,
-        chartLayoutItems,
       );
 
-      const tabsInScope = findTabsWithChartsInScope(
-        chartLayoutItems,
-        chartsInScope,
-      );
-      return {
-        filterId: filterScope.id,
-        tabsInScope: Array.from(tabsInScope),
-        chartsInScope,
-      };
-    });
-    dispatch(setInScopeStatusOfFilters(scopes));
-  }, [chartIds, JSON.stringify(nativeFilterScopes), dashboardLayout, dispatch]);
+    const scopes = calculateScopes(
+      normalizedCustomizations,
+      chartIds,
+      chartLayoutItemMap,
+      item => item.type === ChartCustomizationType.Divider,
+    ).map(scope => ({
+      customizationId: scope.id,
+      chartsInScope: scope.chartsInScope,
+      tabsInScope: scope.tabsInScope,
+    }));
+
+    if (!isEqual(scopes, prevCustomizationScopesRef.current)) {
+      prevCustomizationScopesRef.current = scopes;
+      dispatch(setInScopeStatusOfCustomizations(scopes));
+    }
+  }, [chartIds, chartCustomizations, chartLayoutItemMap, dispatch]);
 
   const childIds: string[] = useMemo(
     () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
@@ -236,7 +306,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     if (dashboardInfo?.id && !dashboardLabelsColorInitiated) {
       dispatch(applyDashboardLabelsColorOnLoad(dashboardInfo.metadata));
       // apply labels color as dictated by stored metadata (if any)
-      setDashboardLabelsColorInitiated(true);
+      setColorInitializedDashboardId(dashboardInfo.id);
     }
 
     return () => {
@@ -247,12 +317,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [dashboardInfo?.id, dispatch]);
 
   useEffect(() => {
-    // 'beforeunload' event interferes with Cypress data cleanup process.
-    // This code prevents 'beforeunload' from triggering in Cypress tests,
-    // as it is not required for end-to-end testing scenarios.
-    if (!(window as any).Cypress) {
-      window.addEventListener('beforeunload', onBeforeUnload);
-    }
+    window.addEventListener('beforeunload', onBeforeUnload);
 
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
@@ -260,10 +325,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [onBeforeUnload]);
 
   const renderTabBar = useCallback(() => <></>, []);
-  const handleFocus = useCallback(e => {
+  const handleFocus = useCallback((e: ReactFocusEvent<HTMLElement>) => {
     if (
       // prevent scrolling when tabbing to the tab pane
-      e.target.classList.contains('ant-tabs-tabpane') &&
+      e.target.classList.contains('ant-tabs-content') &&
       window.scrollY < TOP_OF_PAGE_RANGE
     ) {
       // prevent window from jumping down when tabbing
@@ -274,7 +339,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, []);
 
   const renderParentSizeChildren = useCallback(
-    ({ width }) => {
+    ({ width }: { width: number }) => {
       const tabItems = childIds.map((id, index) => ({
         key: index === 0 ? DASHBOARD_GRID_ID : index.toString(),
         label: null,
@@ -295,17 +360,25 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           renderTabBar={renderTabBar}
           animated={false}
           allowOverflow
+          fullHeight
           onFocus={handleFocus}
           items={tabItems}
+          tabBarStyle={{ paddingLeft: 0 }}
         />
       );
     },
     [activeKey, childIds, dashboardLayout, handleFocus, renderTabBar, tabIndex],
   );
 
+  // Hook form, not <ParentSize>: @visx 4.0.0's component clips content taller
+  // than the viewport, which breaks dashboard page scrolling.
+  const { parentRef, width } = useParentSize();
+
   return (
-    <div className="grid-container" data-test="grid-container">
-      <ParentSize>{renderParentSizeChildren}</ParentSize>
+    <div className="grid-container" data-test="grid-container" ref={parentRef}>
+      {/* Defer the grid until hydration and color initialization complete,
+          before cached charts consume their color scales on first render. */}
+      {dashboardLabelsColorInitiated && renderParentSizeChildren({ width })}
     </div>
   );
 };

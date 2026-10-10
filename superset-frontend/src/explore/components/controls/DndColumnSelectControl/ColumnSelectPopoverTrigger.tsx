@@ -17,15 +17,28 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState, ReactNode } from 'react';
-
 import { useSelector } from 'react-redux';
-import { AdhocColumn, t, isAdhocColumn } from '@superset-ui/core';
-import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
+
+import { t } from '@apache-superset/core/translation';
+import {
+  AdhocColumn,
+  isAdhocColumn,
+  Metric,
+  QueryFormMetric,
+} from '@superset-ui/core';
+import { ColumnMeta, Dataset, isColumnMeta } from '@superset-ui/chart-controls';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  ISaveableDatasource,
+  SaveDatasetModal,
+} from 'src/SqlLab/components/SaveDatasetModal';
+import { ExplorePageState } from 'src/explore/types';
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
 import ControlPopover from '../ControlPopover/ControlPopover';
+
+const defaultPopoverLabel = t('My column');
+const editableTitleTab = 'sqlExpression';
 
 interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
@@ -38,12 +51,15 @@ interface ColumnSelectPopoverTriggerProps {
   children: ReactNode;
   isTemporal?: boolean;
   disabledTabs?: Set<string>;
+  metrics?: Metric[];
+  selectedMetrics?: QueryFormMetric[];
 }
 
-const defaultPopoverLabel = t('My column');
-const editableTitleTab = 'sqlExpression';
+interface ColumnSelectPopoverTriggerInnerProps extends ColumnSelectPopoverTriggerProps {
+  datasource?: Dataset | null;
+}
 
-const ColumnSelectPopoverTrigger = ({
+const ColumnSelectPopoverTriggerInner = ({
   columns,
   editedColumn,
   onColumnEdit,
@@ -51,10 +67,11 @@ const ColumnSelectPopoverTrigger = ({
   children,
   isTemporal,
   disabledTabs,
+  metrics,
+  selectedMetrics,
+  datasource,
   ...props
-}: ColumnSelectPopoverTriggerProps) => {
-  // @ts-ignore
-  const datasource = useSelector(state => state.explore.datasource);
+}: ColumnSelectPopoverTriggerInnerProps) => {
   const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
   const [popoverVisible, setPopoverVisible] = useState(false);
   const [isTitleEditDisabled, setIsTitleEditDisabled] = useState(true);
@@ -67,10 +84,6 @@ const ColumnSelectPopoverTrigger = ({
   } else if (editedColumn && isAdhocColumn(editedColumn)) {
     initialPopoverLabel = editedColumn.label || defaultPopoverLabel;
   }
-
-  useEffect(() => {
-    setPopoverLabel(initialPopoverLabel);
-  }, [initialPopoverLabel, popoverVisible]);
 
   const togglePopover = useCallback((visible: boolean) => {
     setPopoverVisible(visible);
@@ -97,6 +110,13 @@ const ColumnSelectPopoverTrigger = ({
     setIsTitleEditDisabled(tab !== editableTitleTab);
   }, []);
 
+  useEffect(() => {
+    setPopoverLabel(initialPopoverLabel);
+    if (!visible) {
+      setHasCustomLabel(false);
+    }
+  }, [initialPopoverLabel, visible]);
+
   const overlayContent = useMemo(
     () => (
       <ExplorePopoverContent>
@@ -112,6 +132,9 @@ const ColumnSelectPopoverTrigger = ({
           getCurrentTab={getCurrentTab}
           isTemporal={isTemporal}
           disabledTabs={disabledTabs}
+          metrics={metrics}
+          selectedMetrics={selectedMetrics}
+          datasource={datasource}
         />
       </ExplorePopoverContent>
     ),
@@ -125,28 +148,39 @@ const ColumnSelectPopoverTrigger = ({
       onColumnEdit,
       popoverLabel,
       disabledTabs,
+      metrics,
+      selectedMetrics,
+      datasource,
     ],
   );
 
   const onLabelChange = useCallback(
-    (e: any) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       setPopoverLabel(e.target.value);
       setHasCustomLabel(true);
     },
     [setPopoverLabel, setHasCustomLabel],
   );
 
-  const popoverTitle = useMemo(
-    () => (
+  const popoverTitle = useMemo(() => {
+    if (disabledTabs?.has('saved') && disabledTabs?.has('sqlExpression')) {
+      return <span>{t('Tooltip contents')}</span>;
+    }
+    return (
       <DndColumnSelectPopoverTitle
         title={popoverLabel}
         onChange={onLabelChange}
         isEditDisabled={isTitleEditDisabled}
         hasCustomLabel={hasCustomLabel}
       />
-    ),
-    [hasCustomLabel, isTitleEditDisabled, onLabelChange, popoverLabel],
-  );
+    );
+  }, [
+    hasCustomLabel,
+    isTitleEditDisabled,
+    onLabelChange,
+    popoverLabel,
+    disabledTabs,
+  ]);
 
   return (
     <>
@@ -159,7 +193,9 @@ const ColumnSelectPopoverTrigger = ({
           modalDescription={t(
             'Save this query as a virtual dataset to continue exploring',
           )}
-          datasource={datasource}
+          // The explore datasource has always been forwarded here; the modal
+          // only reads the saveable subset of its fields.
+          datasource={datasource as unknown as ISaveableDatasource}
         />
       )}
       <ControlPopover
@@ -169,12 +205,28 @@ const ColumnSelectPopoverTrigger = ({
         open={visible}
         onOpenChange={handleTogglePopover}
         title={popoverTitle}
-        destroyTooltipOnHide
+        destroyOnHidden
       >
-        {children}
+        {/* Wrap in a span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). It must be block-level:
+            a zero-height placeholder can collapse an inline wrapper to a point.
+            Block layout preserves the control width used by right placement,
+            without adding height. Nonempty block children need not collapse
+            (sc-120502). */}
+        <span style={{ display: 'block' }}>{children}</span>
       </ControlPopover>
     </>
   );
 };
 
-export default ColumnSelectPopoverTrigger;
+const ColumnSelectPopoverTriggerWrapper = (
+  props: ColumnSelectPopoverTriggerProps,
+) => {
+  const datasource = useSelector<ExplorePageState, Dataset | null>(
+    state => state?.explore?.datasource || null,
+  );
+
+  return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
+};
+
+export default ColumnSelectPopoverTriggerWrapper;

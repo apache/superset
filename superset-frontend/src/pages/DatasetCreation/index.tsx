@@ -40,7 +40,7 @@ export function datasetReducer(
   action: DSReducerActionType,
 ): Partial<DatasetObject> | Schema | null {
   const trimmedState = {
-    ...(state || {}),
+    ...state,
   };
 
   switch (action.type) {
@@ -122,6 +122,7 @@ export default function AddDataset() {
       dbId={dataset?.db?.id}
       catalog={dataset?.catalog}
       schema={dataset?.schema}
+      database={dataset?.db}
       setHasColumns={setHasColumns}
       datasets={datasets}
     />

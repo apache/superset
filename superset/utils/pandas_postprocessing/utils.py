@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections.abc import Sequence
-from functools import partial
+from functools import partial, wraps
 from typing import Any, Callable
 
 import numpy as np
@@ -25,6 +25,8 @@ from pandas import DataFrame, NamedAgg
 
 from superset.constants import TimeGrain
 from superset.exceptions import InvalidPostProcessingError
+
+_PANDAS_VERSION = tuple(int(x) for x in pd.__version__.split(".")[:2])
 
 NUMPY_FUNCTIONS: dict[str, Callable[..., Any]] = {
     "average": np.average,
@@ -46,10 +48,26 @@ NUMPY_FUNCTIONS: dict[str, Callable[..., Any]] = {
     "min": np.min,
     "percentile": np.percentile,
     "prod": np.prod,
-    "product": np.product,
+    "product": np.prod,
     "std": np.std,
     "sum": np.sum,
     "var": np.var,
+}
+
+# Operators that pandas GroupBy.agg accepts as string names. Passing the string
+# avoids a FutureWarning raised when pandas receives a numpy callable it internally
+# maps to its own method (e.g. np.mean → SeriesGroupBy.mean).
+_PANDAS_STRING_AGGREGATORS: frozenset[str] = frozenset(
+    {"max", "mean", "median", "min", "prod", "std", "sum", "var"}
+)
+
+# Reverse lookup from the numpy callables above to their pandas string name, so a
+# bare callable operator (e.g. np.median) can be swapped for the string form before
+# reaching GroupBy.agg and avoid the same FutureWarning.
+_STRING_AGGREGATOR_BY_CALLABLE: dict[Callable[..., Any], str] = {
+    func: name
+    for name, func in NUMPY_FUNCTIONS.items()
+    if name in _PANDAS_STRING_AGGREGATORS
 }
 
 DENYLIST_ROLLING_FUNCTIONS = (
@@ -76,18 +94,26 @@ ALLOWLIST_CUMULATIVE_FUNCTIONS = (
 )
 
 PROPHET_TIME_GRAIN_MAP: dict[str, str] = {
-    TimeGrain.SECOND: "S",
+    TimeGrain.SECOND: "s",
+    TimeGrain.FIVE_SECONDS: "5s",
+    TimeGrain.THIRTY_SECONDS: "30s",
     TimeGrain.MINUTE: "min",
     TimeGrain.FIVE_MINUTES: "5min",
     TimeGrain.TEN_MINUTES: "10min",
     TimeGrain.FIFTEEN_MINUTES: "15min",
     TimeGrain.THIRTY_MINUTES: "30min",
-    TimeGrain.HOUR: "H",
+    # An alternate ISO-8601 spelling of THIRTY_MINUTES that a number of engine
+    # specs expose instead; the two denote the same interval.
+    TimeGrain.HALF_HOUR: "30min",
+    TimeGrain.HOUR: "h",
+    TimeGrain.SIX_HOURS: "6h",
     TimeGrain.DAY: "D",
     TimeGrain.WEEK: "W",
-    TimeGrain.MONTH: "M",
-    TimeGrain.QUARTER: "Q",
-    TimeGrain.YEAR: "A",
+    TimeGrain.MONTH: "ME" if _PANDAS_VERSION >= (2, 2) else "M",
+    TimeGrain.QUARTER: "QE" if _PANDAS_VERSION >= (2, 2) else "Q",
+    # An alternate ISO-8601 spelling of QUARTER, as with HALF_HOUR above.
+    TimeGrain.QUARTER_YEAR: "QE" if _PANDAS_VERSION >= (2, 2) else "Q",
+    TimeGrain.YEAR: "YE" if _PANDAS_VERSION >= (2, 2) else "A",
     TimeGrain.WEEK_STARTING_SUNDAY: "W-SUN",
     TimeGrain.WEEK_STARTING_MONDAY: "W-MON",
     TimeGrain.WEEK_ENDING_SATURDAY: "W-SAT",
@@ -113,6 +139,10 @@ def scalar_to_sequence(val: Any) -> Sequence[str]:
 
 def validate_column_args(*argnames: str) -> Callable[..., Any]:
     def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
+        # `wraps` keeps `func` reachable through `__wrapped__`, so that
+        # `inspect.signature` reports the parameters of the decorated operation
+        # rather than the `(df, **options)` of this wrapper.
+        @wraps(func)
         def wrapped(df: DataFrame, **options: Any) -> Any:
             if _is_multi_index_on_columns(df):
                 # MultiIndex column validate first level
@@ -164,7 +194,11 @@ def _get_aggregate_funcs(
             )
         operator = agg_obj["operator"]
         if callable(operator):
-            aggfunc = operator
+            # A bare numpy callable (e.g. np.median) that pandas maps to its own
+            # GroupBy method triggers a FutureWarning; use the string name instead.
+            aggfunc: str | Callable[..., Any] = _STRING_AGGREGATOR_BY_CALLABLE.get(
+                operator, operator
+            )
         else:
             func = NUMPY_FUNCTIONS.get(operator)
             if not func:
@@ -175,7 +209,10 @@ def _get_aggregate_funcs(
                     )
                 )
             options = agg_obj.get("options", {})
-            aggfunc = partial(func, **options)
+            if not options and operator in _PANDAS_STRING_AGGREGATORS:
+                aggfunc = operator
+            else:
+                aggfunc = partial(func, **options)
         agg_funcs[name] = NamedAgg(column=column, aggfunc=aggfunc)
 
     return agg_funcs
@@ -189,6 +226,11 @@ def _append_columns(
     assign method, which overwrites the original column in `base_df` if the column
     already exists, and appends the column if the name is not defined.
 
+    A mapping may do both at once, so the two halves are handled separately: an
+    entry whose source and target names match overwrites in place, and one that
+    renames is appended. Treating a mixed mapping as a whole would append the
+    column that was meant to be overwritten, leaving a duplicate label behind.
+
     Note that! this is a memory-intensive operation.
 
     :param base_df: DataFrame which to use as the base
@@ -201,13 +243,25 @@ def _append_columns(
            in `base_df` unchanged.
     :return: new DataFrame with combined data from `base_df` and `append_df`
     """
-    if all(key == value for key, value in columns.items()):
+    if not columns:
+        # Nothing to combine, but still hand back a new DataFrame so that a
+        # caller which mutates the result does not reach `base_df`.
+        return base_df.copy()
+
+    overwritten = {key: value for key, value in columns.items() if key == value}
+    appended = {key: value for key, value in columns.items() if key != value}
+
+    _base_df = base_df
+    if overwritten:
         # make sure to return a new DataFrame instead of changing the `base_df`.
         _base_df = base_df.copy()
-        _base_df.loc[:, columns.keys()] = append_df
+        _base_df.loc[:, overwritten.keys()] = append_df
+    if not appended:
         return _base_df
-    append_df = append_df.rename(columns=columns)
-    return pd.concat([base_df, append_df], axis="columns")
+    # Select before renaming: `append_df` may carry columns the mapping does not
+    # ask for, and those must not reach the result.
+    appended_df = append_df.loc[:, appended.keys()].rename(columns=appended)
+    return pd.concat([_base_df, appended_df], axis="columns")
 
 
 def escape_separator(plain_str: str, sep: str = FLAT_COLUMN_SEPARATOR) -> str:

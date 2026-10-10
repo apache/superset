@@ -1,0 +1,889 @@
+---
+title: Alerts and Reports
+hide_title: true
+sidebar_position: 2
+version: 2
+---
+
+# Alerts and Reports
+
+Users can configure automated alerts and reports to send dashboards or charts to an email recipient or Slack channel.
+
+- _Alerts_ are sent when a SQL condition is reached
+- _Reports_ are sent on a schedule
+
+Alerts and reports are disabled by default. To turn them on, you'll need to change configuration settings and install a suitable headless browser in your environment.
+
+## Content Format Options
+
+When scheduling an alert or report, you can choose the format used to deliver the dashboard or chart:
+
+- **PDF** – a full-page screenshot rendered as a PDF attachment. Available for both dashboards and charts.
+- **PNG** – a screenshot delivered as an attachment. Emails embed the image inline in the message body; Slack and webhook recipients receive it as an uploaded file. Available for both dashboards and charts.
+- **CSV** – chart data attached as a `.csv` file. Available for charts only.
+- **XLSX (Excel)** – chart data attached as a `.xlsx` file. Available for charts only. If the chart's data spans multiple server-paginated files, email delivery detects the bundle and renames the attachment to `.zip`; Slack and webhook deliveries always name the file with an `.xlsx` extension even when the contents are a multi-file ZIP archive.
+- **Text** – chart data embedded directly in the email or Slack message body. Available only for charts using a text-based visualization type (e.g. Table, Pivot Table, Paired t-test).
+
+Dashboard reports and alerts are limited to the PDF and PNG formats; the CSV, XLSX, and Text options are only available when scheduling a report or alert for an individual chart.
+
+For alerts (not scheduled reports), PNG/PDF screenshots, chart CSV/XLSX data, and embedded Text tables are only generated when **Enable attachments for alerts** is on in the [Alerts & Reports configuration](#alerts--reports-configuration) (it defaults to the `ALERTS_ATTACH_REPORTS` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags), which is enabled by default). With it off, an alert notification is still sent, but without rendered chart or dashboard content. Individual alerts also have an **Include attachment** toggle at the top of their Content section.
+
+## Requirements
+
+### Commons
+
+#### In your `superset_config.py` or `superset_config_docker.py`
+
+- `"ALERT_REPORTS"` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags) must be turned to True.
+- `beat_schedule` in CeleryConfig must contain schedule for `reports.scheduler`.
+- At least one of those must be configured, depending on what you want to use:
+  - emails: `SMTP_*` settings
+  - Slack messages: `SLACK_API_TOKEN`
+- Users can customize the email subject by including date code placeholders, which are replaced with the corresponding UTC date when the email is sent if **Format dates in email subjects** is enabled in the [Alerts & Reports configuration](#alerts--reports-configuration). Until this setting is saved, it follows the `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags).
+  - Use date codes from [strftime.org](https://strftime.org/) to create the email subject.
+  - If no date code is provided, the original string will be used as the email subject.
+- Each alert/report has an "Include a link back to Superset" option (enabled by default) controlling whether the call-to-action link is included in email and Slack notifications. The link text in emails is configurable via `EMAIL_REPORTS_CTA`; the Slack message always uses "Explore in Superset". Uncheck the option when recipients should not receive a link to your Superset host, e.g. for external audiences.
+
+##### Disable dry-run mode
+
+Screenshots will be taken but no messages actually sent as long as `ALERT_REPORTS_NOTIFICATION_DRY_RUN = True`, its default value in `docker/pythonpath_dev/superset_config.py`. To disable dry-run mode and start receiving email/Slack notifications, set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py).
+
+#### In your `Dockerfile`
+
+As of 7.0.0, Superset takes screenshots only with [Playwright](https://playwright.dev/python/) driving a headless Chromium browser. Selenium, Firefox, geckodriver and the `WEBDRIVER_TYPE` setting are not supported, and no feature flag is needed to use Playwright. Prior to 7.0.0, users were responsible for installing their own headless browser, and could use Selenium if desired.
+
+- The default Superset image (for example the `latest` and `<version>` tags) includes Playwright and Chromium.
+- The `-lean` and `-dev` images do not. To add them to an image based on `-lean`, see the example Dockerfile under "Building your own production Docker image" on the [Docker Builds](/admin-docs/installation/docker-builds#building-your-own-production-docker-image) page.
+- To build the `dev` target from source with Chromium, pass `--build-arg INCLUDE_CHROMIUM=true`. With Docker Compose, run `INCLUDE_CHROMIUM=true docker compose build`.
+
+Only the worker container needs the browser.
+
+### Slack integration
+
+To send alerts and reports to Slack channels, you need to create a new Slack Application on your workspace.
+
+1. Connect to your Slack workspace, then head to [https://api.slack.com/apps].
+2. Create a new app.
+3. Go to "OAuth & Permissions" section, and give the following scopes to your app:
+   - `incoming-webhook`
+   - `files:write`
+   - `chat:write`
+   - `channels:read`
+   - `groups:read`
+4. At the top of the "OAuth and Permissions" section, click "install to workspace".
+5. Select a default channel for your app and continue.
+   (You can post to any channel by inviting your Superset app into that channel).
+6. The app should now be installed in your workspace, and a "Bot User OAuth Access Token" should have been created. Copy that token in the `SLACK_API_TOKEN` variable of your `superset_config.py`.
+7. Ensure the feature flag `ALERT_REPORT_SLACK_V2` is set to True in `superset_config.py`
+8. Restart the service (or run `superset init`) to pull in the new configuration.
+
+Note: when you configure an alert or a report, the Slack channel list takes channel names without the leading '#' e.g. use `alerts` instead of `#alerts`.
+
+#### Large Slack Workspaces (10k+ channels)
+
+For workspaces with many channels, fetching the complete channel list can take several minutes and may encounter Slack API rate limits. Add the following to your `superset_config.py`:
+
+```python
+from datetime import timedelta
+
+# Increase cache timeout to reduce API calls
+# Default: 1 day (86400 seconds)
+SLACK_CACHE_TIMEOUT = int(timedelta(days=2).total_seconds())
+
+# Increase retry count for rate limit errors
+# Default: 2
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 5
+```
+
+When the cache backend is `SupersetMetastoreCache`, report execution does not
+write channel listings into the cache because that backend commits the report's
+database session. Schedule the dedicated warm-up task so cache misses are
+repopulated outside report transactions:
+
+```python
+from celery.schedules import crontab
+
+from superset.config import CeleryConfig
+
+class CustomCeleryConfig(CeleryConfig):
+    beat_schedule = {
+        **CeleryConfig.beat_schedule,
+        "slack.cache_channels": {
+            "task": "slack.cache_channels",
+            "schedule": crontab(minute="0", hour="*"),
+        },
+    }
+
+CELERY_CONFIG = CustomCeleryConfig
+```
+
+#### Slack Enterprise Grid (org-scoped tokens)
+
+On a Slack Enterprise Grid org, an org-scoped token spans multiple workspaces, so
+workspace-scoped methods such as `conversations.list` require a `team_id` to
+indicate which workspace to target. Set `SLACK_TEAM_ID` to your workspace (team)
+ID so Superset can list channels and deliver reports:
+
+```python
+# The workspace (team) ID to target, e.g. "T01234567"
+SLACK_TEAM_ID = "T01234567"
+```
+
+This defaults to `None` and only needs to be set when using an org-scoped token;
+it is accepted but ignored for standard workspace-level tokens.
+
+#### Slack delivery timeouts and retries
+
+Slack delivery uses a request timeout and an application retry budget:
+
+```python
+# Timeout for one Slack API request, in seconds
+SLACK_API_TIMEOUT = 30
+
+# Retry budget shared by every Slack destination and upload phase
+SLACK_SEND_RETRY_MAX_TIME = 150
+
+# Number of explicit HTTP 429 responses retried using Slack's Retry-After value
+SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
+
+# Cooldown after an on-demand channel-cache refresh
+SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS = 300
+```
+
+All channels and upload phases in one report execution share a single
+`SLACK_SEND_RETRY_MAX_TIME` budget. This prevents a large recipient list from
+multiplying the report's wall-clock retry time. The budget is also clamped to
+the report's remaining working timeout, leaving Celery's configured timeout lag
+available for final state persistence. The effective configured budget is at
+least one second longer than `SLACK_API_TIMEOUT`.
+
+To avoid posting the same report twice, Superset does not replay terminal
+`chat.postMessage` or `files.completeUploadExternal` operations after ambiguous
+server or transport failures. Explicit Slack HTTP 429 responses remain
+retryable. These delivery settings and semantics apply to Slack v2 reports and
+legacy text-only Slack delivery, independently of the
+`ALERT_REPORT_SLACK_V2` feature flag.
+
+### Webhook integration
+
+Superset can send alert and report notifications to any HTTP endpoint — useful for chat platforms, incident management tools, or custom automation.
+
+#### Enabling Webhooks
+
+Enable the feature flag in `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "ALERT_REPORT_WEBHOOK": True,
+}
+```
+
+#### Configuring a Webhook Recipient
+
+When creating or editing an alert or report, select **Webhook** as the notification method and enter your endpoint URL.
+
+#### Payload Format
+
+Superset sends an HTTP POST with `Content-Type: application/json`:
+
+```json
+{
+  "name": "My Alert",
+  "header": {
+    "notification_format": "JSON",
+    "notification_type": "Alert",
+    "notification_source": "Alert",
+    "chart_id": 42,
+    "dashboard_id": null
+  },
+  "text": "Alert condition met: value exceeded threshold",
+  "description": "Monthly revenue dropped below target",
+  "url": "https://your-superset-host/dashboard/1/"
+}
+```
+
+When a report includes file attachments (CSV, Excel, PDF, or PNG screenshots), the request is sent as `multipart/form-data` instead. In that case, each top-level payload field (`name`, `text`, `description`, `url`) becomes its own form field, and nested structures like `header` are serialized as a JSON-encoded string in their own field. Every attachment is added as a repeated form field named `files`:
+
+```
+POST /webhook HTTP/1.1
+Content-Type: multipart/form-data; boundary=...
+
+--...
+Content-Disposition: form-data; name="name"
+
+My Alert
+--...
+Content-Disposition: form-data; name="header"
+
+{"notification_format": "JSON", "notification_type": "Alert", ...}
+--...
+Content-Disposition: form-data; name="text"
+
+Alert condition met: value exceeded threshold
+--...
+Content-Disposition: form-data; name="files"; filename="report.csv"
+Content-Type: text/csv
+
+<file bytes>
+--...
+```
+
+Webhook consumers should branch on `Content-Type`: parse the body as JSON when `application/json`, or read the individual form fields (decoding `header` as JSON) when `multipart/form-data`.
+
+#### HTTPS Enforcement
+
+To require HTTPS webhook URLs (recommended for production), set:
+
+```python
+ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
+```
+
+When enabled, Superset rejects webhook configurations that use `http://` URLs.
+
+#### Request Timeout
+
+Webhook deliveries use a socket timeout so a request can't hang forever if the webhook target is unreachable, which would otherwise leave the report schedule stuck in a `WORKING` state. Configure it with:
+
+```python
+ALERT_REPORTS_WEBHOOK_TIMEOUT = 60  # seconds
+```
+
+Set to `None` to disable the timeout (not recommended).
+
+#### Retry Behavior
+
+Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff. Retries are bounded to roughly 120 seconds of cumulative wall-clock time (worst case ~210 seconds, because the bound is checked against the time elapsed before each attempt, so the final request can begin just under the limit and still run its full request timeout), after which the delivery is abandoned.
+
+### Kubernetes-specific
+
+- You must have a `celery beat` pod running. For Kubernetes deployments, use the [Apache Superset Kubernetes Operator documentation](https://apache.github.io/superset-kubernetes-operator/) for deployment configuration.
+- Existing legacy Helm chart deployments configure this with `supersetCeleryBeat.enabled = true` in the values override.
+
+### Docker Compose specific
+
+#### You must have in your `docker-compose.yml`
+
+- A Redis message broker
+- PostgreSQL DB instead of SQLlite
+- One or more `celery worker`
+- A single `celery beat`
+
+This process also works in a Docker swarm environment, you would just need to add `Deploy:` to the Superset, Redis and Postgres services along with your specific configs for your swarm.
+
+### Detailed config
+
+The following configurations need to be added to the `superset_config.py` file. This file is loaded when the image runs, and any configurations in it will override the default configurations found in the `config.py`.
+
+You can find documentation about each field in the default `config.py` in the GitHub repository under [superset/config.py](https://github.com/apache/superset/blob/master/superset/config.py).
+
+You need to replace default values with your custom Redis, Slack and/or SMTP config.
+
+Superset uses Celery beat and Celery worker(s) to send alerts and reports.
+
+- The beat is the scheduler that tells the worker when to perform its tasks. This schedule is defined when you create the alert or report.
+- The worker will process the tasks that need to be performed when an alert or report is fired.
+
+In the `CeleryConfig`, only the `beat_schedule` is relevant to this feature, the rest of the `CeleryConfig` can be changed for your needs.
+
+```python
+from celery.schedules import crontab
+
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True
+}
+
+REDIS_HOST = "superset_cache"
+REDIS_PORT = "6379"
+
+class CeleryConfig:
+    broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+    imports = (
+        "superset.sql_lab",
+        "superset.tasks.scheduler",
+    )
+    result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+    worker_prefetch_multiplier = 10
+    task_acks_late = True
+    task_annotations = {
+        "sql_lab.get_sql_results": {
+            "rate_limit": "100/s",
+        },
+    }
+    beat_schedule = {
+        "reports.scheduler": {
+            "task": "reports.scheduler",
+            "schedule": crontab(minute="*", hour="*"),
+        },
+        "reports.prune_log": {
+            "task": "reports.prune_log",
+            "schedule": crontab(minute=0, hour=0),
+        },
+    }
+CELERY_CONFIG = CeleryConfig
+
+# Scheduled reports share one deadline across browser readiness, capture/PDF
+# generation, delivery, and terminal-state persistence. The effective budget
+# for a schedule is min(this value, the schedule's working_timeout), so the
+# per-schedule field keeps its meaning as a user-facing cap. The default (one
+# hour) matches the historical working_timeout default, so upgrading changes
+# no default behavior; lower it to enforce a tighter report SLA.
+ALERT_REPORTS_EXECUTION_BUDGET_SECONDS = 3600
+
+# These reserves are part of (not additions to) the total budget and their sum
+# must be less than it. Readiness polling stops in time to leave capacity for
+# the later phases.
+ALERT_REPORTS_EXECUTION_CAPTURE_RESERVE_SECONDS = 60
+ALERT_REPORTS_EXECUTION_DELIVERY_RESERVE_SECONDS = 120
+ALERT_REPORTS_EXECUTION_CLEANUP_RESERVE_SECONDS = 30
+
+# Celery's hard limit leaves this additional window for terminal cleanup after
+# the soft limit, which equals the resolved execution budget (the configured
+# budget capped by each schedule's working_timeout).
+# ALERT_REPORTS_WORKING_TIME_OUT_KILL controls these Celery limits; disabling
+# it does not disable the application deadline above.
+ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = 30
+
+# Invalid budget/reserve combinations fail application startup instead of
+# allowing every scheduled report to fail later. A report Celery soft timeout
+# records ERROR and increments `reports.execute.celery_soft_timeout`; it does
+# not attempt an in-band customer error notification during the hard-limit
+# grace window. Alert schedules retain their existing timeout notifications.
+#
+# The application deadline is cooperative between synchronous phases. The
+# Celery limits provide the final preemption boundary when the worker pool
+# supports them; PDF construction is checked immediately before and after the
+# synchronous builder but cannot be interrupted inside that call.
+#
+# Sizing the budget against infrastructure limits:
+# - Kubernetes (or similar) pod termination grace must exceed
+#   budget + hard-timeout grace, or in-flight reports are killed mid-run on
+#   every deploy/node drain despite the application deadline.
+# - The web server's per-request timeout (e.g. gunicorn ``timeout``) bounds
+#   each individual chart data request made by the headless browser -- not
+#   the report as a whole. Readiness allowance beyond that per-request
+#   ceiling buys nothing for a single slow chart (its request dies at the
+#   web layer and the chart reaches an error state), but multi-chart and
+#   tiled captures legitimately accumulate total time well past it.
+
+# Screenshot-specific waits continue to apply to thumbnails and other
+# standalone screenshot calls. Scheduled reports derive their waits from the
+# shared execution deadline above.
+SCREENSHOT_LOCATE_WAIT = 100
+SCREENSHOT_LOAD_WAIT = 600
+
+# Slack configuration
+SLACK_API_TOKEN = "xoxb-"
+
+# Email configuration
+SMTP_HOST = "smtp.sendgrid.net" # change to your host
+SMTP_PORT = 2525 # your port, e.g. 587
+SMTP_STARTTLS = True
+SMTP_SSL_SERVER_AUTH = True # If you're using an SMTP server with a valid certificate
+SMTP_SSL = False
+SMTP_USER = "your_user" # use the empty string "" if using an unauthenticated SMTP server
+SMTP_PASSWORD = "your_password" # use the empty string "" if using an unauthenticated SMTP server
+SMTP_MAIL_FROM = "noreply@youremail.com"
+EMAIL_REPORTS_SUBJECT_PREFIX = "[Superset] " # optional - overwrites default value in config.py of "[Report] "
+
+# Screenshot browser configuration
+# Playwright always launches Chromium, so there is no browser type to set, and the
+# defaults work for most deployments. The values below are the defaults. To render
+# sharper screenshots, raise pixel_density in WEBDRIVER_WINDOW. Extra Chromium
+# launch arguments can be passed with WEBDRIVER_OPTION_ARGS.
+# WEBDRIVER_WINDOW = {"dashboard": (1600, 2000), "slice": (3000, 1200), "pixel_density": 1}
+# WEBDRIVER_OPTION_ARGS = []
+
+# This is for internal use, you can keep http
+WEBDRIVER_BASEURL = "http://superset:8088" # This is also the default for Docker Compose, where the app service is named "superset"
+# This is the link sent to the recipient. Change to your domain, e.g. https://superset.mydomain.com
+WEBDRIVER_BASEURL_USER_FRIENDLY = "http://localhost:8088"
+```
+
+You also need
+to specify on behalf of which username to render the dashboards. In general, dashboards and charts
+are not accessible to unauthorized requests, that is why the worker needs to take over credentials
+of an existing user to take a snapshot.
+
+By default, Alerts and Reports are executed as a physical user represented by the alert/report editors
+(giving priority to the last modifier, then the creator, then the first direct user editor, then a
+deterministic user from editor roles or groups). To use a fixed user account, just change the config
+as follows (`admin` in this example):
+
+```python
+from superset.tasks.types import FixedExecutor
+
+ALERT_REPORTS_EXECUTORS = [FixedExecutor("admin")]
+```
+
+Please refer to `ExecutorType` in the codebase for other executor types.
+
+#### Per-schedule "Run As" executor
+
+`ALERT_REPORTS_EXECUTORS` is a global, server-side setting that is invisible to the people
+configuring alerts and reports, which makes permission problems hard to diagnose and is
+especially painful for databases authenticated with OAuth2, where the impersonated account
+must hold a valid token. [SIP-209](https://github.com/apache/superset/issues/39642)
+introduces an explicit, per-schedule alternative behind the `ALERT_REPORT_DYNAMIC_EXECUTOR`
+[feature flag](/admin-docs/configuration/configuring-superset#feature-flags):
+
+```python
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "ALERT_REPORT_DYNAMIC_EXECUTOR": True,
+}
+```
+
+When the flag is enabled:
+
+- Every alert/report gets a **Run as** field recording which user's RBAC permissions and
+  database credentials are used to render the content. Alerts get an additional
+  **Run alert query as** field for the alert condition SQL, so the audience of an alert
+  does not need direct database access.
+- Admins can select **Application default** or **Specific user**:
+  * **Application default:** resolves through `ALERT_REPORTS_EXECUTORS` value.
+  * **Specific user:** User picker option.
+  Non-admins can only select themselves. They see no user search and the API rejects
+  selecting another user. New reports scheduled from a dashboard or chart execute
+  as the subscribing user. Existing subscriptions with no stored executor keep using
+  `ALERT_REPORTS_EXECUTORS`: recreate the subscription with the flag enabled, or
+  update it through the Alerts & Reports menu. Non-admins can select only themselves.
+- When a non-admin edits an alert/report configured to render as someone else, they can
+  change its name and schedule, but not its selected chart/dashboard, filters, delivery
+  format, type, or recipients. Changing an alert's database, SQL, or validator also requires its
+  condition query to execute as that editor. To change protected fields, they can select
+  their own account via **Execute using my permissions** (or ask an admin). For alerts,
+  this action selects the current user for both content and SQL condition execution.
+  A non-admin cannot clear a separate alert-query executor if the query would then
+  inherit another user's content executor.
+  Legacy schedules using the application-default executor need the same switch before
+  a non-admin changes fields executed with that identity.
+- Untouched legacy schedules continue using `ALERT_REPORTS_EXECUTORS`. **Application
+  default** preserves this behavior in the Run as selector, including when an admin
+  clears an explicit executor.
+- With the flag off, schedules execute using `ALERT_REPORTS_EXECUTORS`. Saving a
+  schedule while the flag is off clears its stored content and alert-query executor
+  selections, so that schedule remains on **Application default** if the flag is
+  enabled again. Schedules not saved while the flag is off retain their selections.
+- A selected user that is deleted remains recorded as a **Specific user** selection.
+  Resolving a deleted or inactive user fails rather than switching to a legacy executor.
+  Alert SQL templates, SQL mutation hooks, authorization and database access all use
+  the query executor's identity.
+
+It's possible to set a custom "Run As" tooltip value via the `ALERT_REPORTS_RUN_AS_TOOLTIP`
+config in `superset_config.py`. This is useful if you want to provide further context on what
+the "Application default" means. **It does not change the feature behavior**.
+`ALERT_REPORTS_EXECUTORS` is deprecated in favor of this field and will be removed once the
+feature graduates from the flag.
+
+### Alerts & Reports configuration
+
+Admins can manage the global Alerts & Reports settings at runtime from the **Configuration**
+button on the Alerts & Reports list page (also available through
+`GET`/`PUT /api/v1/report/configuration/`). Values are stored as a versioned document in the
+metadata database's `key_value` table (which survives the factory reset command); a setting that
+was never saved falls back to the corresponding `superset_config.py` value or feature flag.
+
+| Setting | Fallback | Description |
+| --- | --- | --- |
+| Enable attachments for alerts | `ALERTS_ATTACH_REPORTS` FF | Whether alerts deliver rendered chart or dashboard content, including embedded Text tables. |
+| Format dates in email subjects | `DATE_FORMAT_IN_EMAIL_SUBJECT` FF | Render date code placeholders in alert and report email subjects using the UTC date at delivery. |
+| Alert minimum interval | `ALERT_MINIMUM_INTERVAL` config | Minimum interval between two executions of an alert. |
+| Report minimum interval | `REPORT_MINIMUM_INTERVAL` config | Minimum interval between two executions of a report. |
+| Limit recipients to users | off | Only e-mail addresses of existing active users are accepted as recipients. |
+| Allowed e-mail domains | any | Allowlist of e-mail domains accepted as recipients. |
+
+Saving a stricter configuration is refused when existing alerts/reports (including disabled schedules) would
+violate it. The response lists the impacted schedules in pages of ten so they can be fixed first. The
+recipient policy is enforced when saving an alert/report and again at execution time, so a schedule
+to a recipient that is no longer allowed fails instead of being sent. These restrictions also apply
+to configured recipients of retry and final-failure notices. Owner/editor operational error notices
+are exempt; if recipient validation fails during a retry notice, only eligible operational notices
+are attempted.
+
+Domain matching is case-insensitive. An exact entry such as `example.com` does not
+include subdomains. Use `*.example.com` to allow subdomains at any depth, or
+`example.*` to allow `example.com`, `example.org`, and other single-segment top-level
+domains.
+Combining leading and trailing wildcards, or placing wildcards inside a label,
+is not supported. A prohibited address in To, Cc, or Bcc blocks the entire normal delivery.
+
+An attachment-free alert needs only its condition-query executor. Its unused content
+executor may be missing or inactive when a separate valid query executor is selected.
+If the alert has a chart or dashboard, its notification can still include a plain link
+to that asset.
+Set **No attachment** for an alert without a chart or dashboard, even when global alert
+attachments are disabled. An attachment format requires an asset when the alert is saved.
+Enabling **Include attachment** validates the selected chart/dashboard and content
+executor before saving. Reports always require content. Supplied attachment settings
+remain stored while off and are ignored for attachment generation; supplied asset
+references still require existence and access checks.
+Turning the toggle back on during editing restores the selected format; when reopening
+an alert saved without attachments, choose a format when re-enabling attachments.
+
+Missing/inactive executors and recipient-policy violations are terminal failures and
+never schedule a retry. Retries are intended to recover execution failures such as
+transient data-source or browser errors; alert retries re-evaluate the condition.
+Schedule edits and global setting changes do not cancel queued retries. A retry reads
+the latest schedule and effective configuration when it starts, so it may use updated
+executors, content, or recipients. Authorization and recipient checks still apply when
+an attempt runs. An attempt already running during an edit may finish using the schedule
+values it loaded before the edit.
+
+`ALERTS_ATTACH_REPORTS`, `ALERT_MINIMUM_INTERVAL` and `REPORT_MINIMUM_INTERVAL` are
+deprecated in favor of this configuration.
+
+**Important notes**
+
+- Be mindful of the concurrency setting for celery (using `-c 4`). Each worker process keeps its own
+  headless Chromium instance, and these can consume a lot of CPU / memory on your servers.
+- If worker memory grows over time, try running your celery processes with
+  `celery worker --pool=prefork --max-tasks-per-child=128 ...` so that worker processes, and the
+  Chromium instances they own, are recycled periodically.
+- It is recommended to run separate workers for the `sql_lab` and `email_reports` tasks. This can be
+  done using the `queue` field in `task_annotations`.
+- Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
+  its default value of `http://0.0.0.0:8080/`.
+
+It's also possible to specify a minimum interval between each report's execution through the config file.
+These values are only used as a fallback when the corresponding setting has not been saved in the
+[Alerts & Reports configuration](#alerts--reports-configuration) UI:
+
+```python
+# Set a minimum interval threshold between executions (for each Alert/Report)
+# Value should be an integer
+ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=10).total_seconds())
+REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=5).total_seconds())
+```
+
+Alternatively, you can assign a function to `ALERT_MINIMUM_INTERVAL` and/or `REPORT_MINIMUM_INTERVAL`. This is useful to dynamically retrieve a value as needed:
+
+```python
+def alert_dynamic_minimal_interval(**kwargs) -> int:
+    """
+    Define logic here to retrieve the value dynamically
+    """
+
+ALERT_MINIMUM_INTERVAL = alert_dynamic_minimal_interval
+```
+
+## External Link Redirection
+
+For security, Superset rewrites external links in alert/report email HTML so
+they go through a warning page before the user is navigated to the external
+site. Internal links (matching your configured base URL) are not affected.
+
+```python
+# Disable external link redirection entirely (default: True)
+ALERT_REPORTS_ENABLE_LINK_REDIRECT = False
+```
+
+The feature uses `WEBDRIVER_BASEURL_USER_FRIENDLY` (or `WEBDRIVER_BASEURL`)
+to determine which hosts are internal.
+
+## Troubleshooting
+
+There are many reasons that reports might not be working. Try these steps to check for specific issues.
+
+### Blank PDF or PNG captures
+
+Final screenshot bytes are validated independently of the capture implementation.
+PDF delivery requires evidence that the exact PDF was assembled from validated
+images during this execution. Capture rejection remains sticky for the execution;
+substituting another attachment cannot clear it. Uniform fills are rejected
+regardless of colour or theme. A small label or logo does not override a blank
+classification. Extremely sparse legitimate output can therefore be rejected;
+a solid-fill KPI without visible structure has no pixel-only exemption.
+
+Recognized chart error and empty states satisfy the readiness wait; they do not
+by themselves trigger capture retries or block delivery. Error-state charts may
+be delivered with a warning, but a rendered error is not successful chart data.
+Logs distinguish `rendered_holders`, `empty_holders`,
+`error_holders` and `semantic_success`; `report_semantic_status` warns when a
+completed capture includes terminal chart errors.
+For tiled captures, final holder counts aggregate terminal states observed while
+scrolling. They are not a census of holders that never entered a captured viewport;
+use the per-tile diagnostics and expected holder count when investigating gaps.
+
+Detection is a heuristic, not a guarantee that every delivered chart contains
+useful or correct data. There is no special exemption for labels or logos, but
+one occupying enough pixels can exceed the detector's content thresholds while
+the rest of the page is incomplete. The strict invariant is that an artifact
+**classified as invalid** cannot be delivered; undetected rendering failures
+remain possible.
+
+Identical image bytes are pixel-validated once per execution; subsequent assembly
+and per-recipient gates verify their SHA-256 identity and sticky rejection state.
+Changed bytes must be validated again. The query-context bootstrap used by data
+exports discards its screenshots and skips the additional final-image validation;
+it retains the existing browser readiness/capture behaviour. There is no flag to
+deliver rejected captures. Roll back the change to disable the additional gate.
+
+Playwright report captures are checked for blank image content as well as chart
+readiness. Captures detected as blank where chart content is expected are retried
+up to three total attempts, within the execution deadline. If they remain blank,
+the report fails instead of delivering the blank or partial attachment. This also
+applies to alerts that attach reports. Check worker logs for
+`ScreenshotBlankCaptureError` and `report_capture_validation` when investigating
+these failures.
+
+Rendered report delivery is fail closed. A terminal rejection from the standard,
+per-tile, or combined-image validation stage is recorded on the report execution
+context and checked again immediately before every notification send. A PDF or PNG
+without an accepted capture context is also rejected. This applies equally to
+report schedules and alerts that attach rendered reports. Text-only failure
+notifications may still be sent. Look for `report_delivery_blocked` when this
+delivery-boundary safeguard is triggered. Thumbnail captures remain permissive and
+the retained-blank event is named `thumbnail_capture_blank_tile_retained` so it
+cannot be mistaken for a report delivery event.
+
+Immediately before each scheduled report screenshot, chart readiness must remain
+stable for 500 milliseconds, unless less than one stability window of the
+execution budget is left, in which case the check is skipped and logged with
+`skipped=True`. This final check runs after scrolling, content
+expansion, and animation waits so a chart that returns to a loading state is not
+captured during the stability window. Successful checks emit
+`report_capture_readiness_stable`; a timeout emits
+`report_capture_readiness_changed` and stops capture and delivery.
+
+### Whole-execution retries
+
+Enable `ALERT_REPORTS_RETRY` and select **Enable Retries** in each alert or report's
+error-handling settings. This does not opt existing schedules in automatically.
+The default allows three additional attempts, with exponential delays starting at
+60 seconds and capped by `ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS`. Screenshot-tile
+retries are separate from these whole-execution attempts.
+
+Each retry gets a fresh browser context and re-evaluates an alert's condition; if
+the condition no longer fires, it finishes without sending the alert. Duplicate
+or obsolete retry messages cannot claim the same execution window. The worker
+logs `report_retry_discarded` or `report_execution_not_claimed` when admission fails.
+
+Whole-execution retry applies before notification delivery starts. A delivery
+failure is not replayed, since a provider may have accepted the notification
+before returning an error. It is not an exactly-once delivery guarantee, nor a
+guarantee of recovery after a worker hard kill. Optional retry/final-failure
+notifications are text-only and omit raw provider diagnostics. Rejected PDF/PNG
+attachments are never attached to those notifications.
+
+Ordinary error emails sent only to schedule editors retain HTML-sanitized diagnostic
+text. Retry and final-failure notices sent to configured recipients omit it.
+Turning off retries cancels a matching queued retry without blocking the next cron
+window. Abandoned retry chains become eligible for recovery after
+`ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS`. Alerts retain their per-schedule Celery
+timeout rather than inheriting the global report execution budget.
+Rendered alert attachments have a separate browser-capture budget, capped by the
+remaining alert time and the configured report execution budget. Time spent
+evaluating the alert condition does not consume that separate capture budget.
+
+### Feature flag and permissions checks
+
+If you don't see "Alerts & Reports" under the _Manage_ section of the Settings dropdown in the Superset UI, you need to enable the `ALERT_REPORTS` feature flag (see above). Enable another feature flag and check to see that it took effect, to verify that your config file is getting loaded.
+
+Log in as an admin user to ensure you have adequate permissions.
+
+### Check the logs of your Celery worker
+
+This is the best source of information about the problem. In a docker compose deployment, you can do this with a command like `docker logs superset_worker --since 1h`.
+
+### CSV and Excel chart-data request failures
+
+The worker uses the saved query context to POST to the chart-data export endpoint,
+falling back to the legacy GET export when a query context cannot be generated.
+`ALERT_REPORTS_CSV_REQUEST_TIMEOUT` (60 seconds by default) limits socket operations;
+the report execution budget and its delivery/cleanup reserves also cap the request.
+Connection and read timeouts are reported as CSV/Excel generation timeouts.
+These attachment timeouts are logged at error level and explicitly mark the report
+task as failed, while the report execution retains its ERROR state and separate
+error-notification history. Other HTTP 408 exception handling is unchanged.
+
+To tolerate short-lived transport failures, operators can opt in with
+`ALERT_REPORTS_CSV_REQUEST_RETRY = True` (default: `False`). This permits **one** retry
+for transient connection/read failures and HTTP 429, 500, 502, 503, or 504. Other
+HTTP statuses are not retried. Backoff is 0.5 seconds, extended to at most 2 seconds
+for a numeric `Retry-After`; longer, invalid, or date-based delays are not retried
+inline. Both attempts and backoff share the initial request timeout allowance and
+respect the remaining execution budget. Unbounded requests are not retried.
+A request that consumes its entire timeout does **not** get another full timeout.
+Socket timeouts are not wall-clock cancellation: existing report task limits still
+interrupt in-flight work. A timed-out server query can continue running, so enabling
+retries can increase database load. Leave retries disabled unless appropriate for
+your deployment; disable the setting to roll back retry behavior.
+
+Worker diagnostics include schedule/chart identifiers, a fixed endpoint path (no
+query string), error category, HTTP status, timeout, elapsed duration, and attempt.
+For HTTP errors, at most 4097 response bytes are read to enforce a 4096-byte limit.
+Only recognized Superset error types from up to four JSON errors are retained;
+free-form messages, extra fields, and non-JSON or oversized bodies are redacted or
+omitted. Cookies, authentication headers, URLs, SQL, and query payloads are not
+included in these transport diagnostics. HTTP 400 therefore remains a failure to
+investigate, not a reason to repeat the same request.
+
+### Check the Playwright and Chromium installation
+
+To take a screenshot, the worker visits the dashboard or chart using a headless Chromium browser controlled by Playwright, then takes a screenshot. If you are able to send a chart as CSV, XLSX, or text but can't send as PNG, your problem may lie with the browser. If the Playwright package isn't installed, screenshot attempts fail with an error that includes `Playwright is required for screenshots`. If Playwright is installed but Chromium is missing or fails to launch, the error includes `Failed to launch the headless browser for screenshots`, followed by the underlying launch error.
+
+If you are handling the installation of the headless browser on your own, confirm that Chromium launches in the worker environment. Start Python in your worker environment and run:
+
+```python
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    print(browser.version)
+    browser.close()
+```
+
+This should print the Chromium version.
+
+### Send a test email
+
+One symptom of an invalid connection to an email server is receiving an error of `[Errno 110] Connection timed out` in your logs when the report tries to send.
+
+Confirm via testing that your outbound email configuration is correct. Here is the simplest test, for an un-authenticated email SMTP email service running on port 25. If you are sending over SSL, for instance, study how [Superset's codebase sends emails](https://github.com/apache/superset/blob/master/superset/utils/core.py#L818) and then test with those commands and arguments.
+
+Start Python in your worker environment, replace all example values, and run:
+
+```python
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+from_email = 'superset_emails@example.com'
+to_email = 'your_email@example.com'
+msg = MIMEMultipart()
+msg['From'] = from_email
+msg['To'] = to_email
+msg['Subject'] = 'Superset SMTP config test'
+message = 'It worked'
+msg.attach(MIMEText(message))
+mailserver = smtplib.SMTP('smtpmail.example.com', 25)
+mailserver.sendmail(from_email, to_email, msg.as_string())
+mailserver.quit()
+```
+
+This should send an email.
+
+Possible fixes:
+
+- Some cloud hosts disable outgoing unauthenticated SMTP email to prevent spam. For instance, [Azure blocks port 25 by default on some machines](https://learn.microsoft.com/en-us/azure/virtual-network/troubleshoot-outbound-smtp-connectivity). Enable that port or use another sending method.
+- Use another set of SMTP credentials that you verify works in this setup.
+
+### Browse to your report from the worker
+
+The worker may be unable to reach the report. It will use the value of `WEBDRIVER_BASEURL` to browse to the report. If that route is invalid, or presents an authentication challenge that the worker can't pass, the report screenshot will fail.
+
+Check this by attempting to `curl` the URL of a report that you see in the error logs of your worker. For instance, from the worker environment, run `curl http://superset:8088/dashboard/1/`. You may get different responses depending on whether the dashboard exists - for example, you may need to change the `1` in that URL. If there's a URL in your logs from a failed report screenshot, that's a good place to start. The goal is to determine a valid value for `WEBDRIVER_BASEURL` and determine if an issue like HTTPS or authentication is redirecting your worker.
+
+In a deployment with authentication measures enabled like HTTPS and Single Sign-On, it may make sense to have the worker navigate directly to the Superset application running in the same location, avoiding the need to sign in. For instance, you could use `WEBDRIVER_BASEURL="http://superset:8088"` for a docker compose deployment, and set `"force_https": False,` in your `TALISMAN_CONFIG` — appropriate only for an isolated development stack or when HTTPS is enforced by a trusted proxy in front of Superset.
+
+### Duplicate report deliveries
+
+In some deployment configurations a scheduled report can be delivered more than once around its planned time. This typically happens when more than one process is responsible for running the alerts & reports schedule (for example, multiple schedulers or Celery beat instances). To avoid duplicate emails or notifications:
+
+- Ensure that only a **single scheduler/beat process** is configured to trigger alerts and reports for a given environment.
+- If you run **multiple Celery workers**, verify that there is still only one component responsible for scheduling the report tasks (workers should execute tasks, not schedule them independently).
+- Review your deployment/orchestration setup (for example systemd, Docker, or Kubernetes) to make sure the alerts & reports scheduler is **not started from multiple places by accident**.
+
+## Scheduling Queries as Reports
+
+You can optionally allow your users to schedule queries directly in SQL Lab. This is done by adding
+extra metadata to saved queries, which are then picked up by an external scheduled (like
+[Apache Airflow](https://airflow.apache.org/)).
+
+To allow scheduled queries, add the following to `SCHEDULED_QUERIES` in your configuration file:
+
+```python
+SCHEDULED_QUERIES = {
+    # This information is collected when the user clicks "Schedule query",
+    # and saved into the `extra` field of saved queries.
+    # See: https://github.com/mozilla-services/react-jsonschema-form
+    'JSONSCHEMA': {
+        'title': 'Schedule',
+        'description': (
+            'In order to schedule a query, you need to specify when it '
+            'should start running, when it should stop running, and how '
+            'often it should run. You can also optionally specify '
+            'dependencies that should be met before the query is '
+            'executed. Please read the documentation for best practices '
+            'and more information on how to specify dependencies.'
+        ),
+        'type': 'object',
+        'properties': {
+            'output_table': {
+                'type': 'string',
+                'title': 'Output table name',
+            },
+            'start_date': {
+                'type': 'string',
+                'title': 'Start date',
+                # date-time is parsed using the chrono library, see
+                # https://www.npmjs.com/package/chrono-node#usage
+                'format': 'date-time',
+                'default': 'tomorrow at 9am',
+            },
+            'end_date': {
+                'type': 'string',
+                'title': 'End date',
+                # date-time is parsed using the chrono library, see
+                # https://www.npmjs.com/package/chrono-node#usage
+                'format': 'date-time',
+                'default': '9am in 30 days',
+            },
+            'schedule_interval': {
+                'type': 'string',
+                'title': 'Schedule interval',
+            },
+            'dependencies': {
+                'type': 'array',
+                'title': 'Dependencies',
+                'items': {
+                    'type': 'string',
+                },
+            },
+        },
+    },
+    'UISCHEMA': {
+        'schedule_interval': {
+            'ui:placeholder': '@daily, @weekly, etc.',
+        },
+        'dependencies': {
+            'ui:help': (
+                'Check the documentation for the correct format when '
+                'defining dependencies.'
+            ),
+        },
+    },
+    'VALIDATION': [
+        # ensure that start_date <= end_date
+        {
+            'name': 'less_equal',
+            'arguments': ['start_date', 'end_date'],
+            'message': 'End date cannot be before start date',
+            # this is where the error message is shown
+            'container': 'end_date',
+        },
+    ],
+    # link to the scheduler; this example links to an Airflow pipeline
+    # that uses the query id and the output table as its name
+    'linkback': (
+        'https://airflow.example.com/admin/airflow/tree?'
+        'dag_id=query_${id}_${extra_json.schedule_info.output_table}'
+    ),
+}
+```
+
+This configuration is based on
+[react-jsonschema-form](https://github.com/mozilla-services/react-jsonschema-form) and will add a
+menu item called “Schedule” to SQL Lab. When the menu item is clicked, a modal will show up where
+the user can add the metadata required for scheduling the query.
+
+This information can then be retrieved from the endpoint `/api/v1/saved_query/` and used to
+schedule the queries that have `schedule_info` in their JSON metadata. For schedulers other than
+Airflow, additional fields can be easily added to the configuration file above.
+
+:::resources
+
+- [Tutorial: Automated Alerts and Reporting via Slack/Email in Superset](https://dev.to/ngtduc693/apache-superset-topic-5-automated-alerts-and-reporting-via-slackemail-in-superset-2gbe)
+- [Blog: Integrating Slack alerts and Apache Superset for better data observability](https://medium.com/affinityanswers-tech/integrating-slack-alerts-and-apache-superset-for-better-data-observability-fd2f9a12c350)
+  :::

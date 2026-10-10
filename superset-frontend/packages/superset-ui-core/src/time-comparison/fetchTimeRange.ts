@@ -17,31 +17,51 @@
  * under the License.
  */
 import rison from 'rison';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import {
   SupersetClient,
   getClientErrorObject,
   ensureIsArray,
+  getTimeFormatter,
 } from '@superset-ui/core';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 export const SEPARATOR = ' : ';
 
 export const buildTimeRangeString = (since: string, until: string): string =>
   `${since}${SEPARATOR}${until}`;
 
-const formatDateEndpoint = (dttm: string, isStart?: boolean): string =>
-  dttm.replace('T00:00:00', '') || (isStart ? '-∞' : '∞');
+const formatDateEndpoint = (
+  dttm: string,
+  isStart?: boolean,
+  dateFormat?: string,
+): string => {
+  if (!dttm) return isStart ? '-∞' : '∞';
+  if (dateFormat) {
+    const parsedDttm = extendedDayjs.utc(dttm);
+    if (parsedDttm.isValid()) {
+      return getTimeFormatter(dateFormat)(parsedDttm.toDate());
+    }
+  }
+  return dttm.replace('T00:00:00', '');
+};
 
 export const formatTimeRange = (
   timeRange: string,
   columnPlaceholder = 'col',
+  dateFormat?: string,
 ) => {
   const splitDateRange = timeRange.split(SEPARATOR);
   if (splitDateRange.length === 1) return timeRange;
   return `${formatDateEndpoint(
     splitDateRange[0],
     true,
-  )} ≤ ${columnPlaceholder} < ${formatDateEndpoint(splitDateRange[1])}`;
+    dateFormat,
+  )} ≤ ${columnPlaceholder} < ${formatDateEndpoint(
+    splitDateRange[1],
+    false,
+    dateFormat,
+  )}`;
 };
 
 export const formatTimeRangeComparison = (
@@ -64,6 +84,7 @@ export const fetchTimeRange = async (
   timeRange: string,
   columnPlaceholder = 'col',
   shifts?: string[],
+  dateFormat?: string,
 ) => {
   let query;
   let endpoint;
@@ -86,7 +107,7 @@ export const fetchTimeRange = async (
         response?.json?.result[0]?.until || '',
       );
       return {
-        value: formatTimeRange(timeRangeString, columnPlaceholder),
+        value: formatTimeRange(timeRangeString, columnPlaceholder, dateFormat),
       };
     }
     const timeRanges = response?.json?.result.map((result: any) =>
@@ -103,10 +124,16 @@ export const fetchTimeRange = async (
           ),
         ),
     };
-  } catch (response) {
+  } catch (caught) {
+    // Forward-compat: TS 6.0 types caught values as `unknown`; cast to the
+    // shape getClientErrorObject accepts and narrow for statusText access.
+    const response = caught as Parameters<typeof getClientErrorObject>[0];
     const clientError = await getClientErrorObject(response);
     return {
-      error: clientError.message || clientError.error || response.statusText,
+      error:
+        clientError.message ||
+        clientError.error ||
+        (response as { statusText?: string }).statusText,
     };
   }
 };

@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useState } from 'react';
-import { Meta, StoryObj } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react-webpack5';
 import { Tag } from 'src/components/Tag';
 import type { CheckableTagProps } from 'src/components/Tag';
-import TagType from 'src/types/TagType';
+import type { TagType } from 'src/types/TagType';
 
 export default {
   title: 'Components/Tag',

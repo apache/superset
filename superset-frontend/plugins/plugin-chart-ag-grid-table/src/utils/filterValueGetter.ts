@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ValueGetterParams } from 'ag-grid-community';
+import { ValueGetterParams } from '@superset-ui/core/components/ThemedAgGridReact';
 
 const filterValueGetter = (params: ValueGetterParams) => {
   const raw = params.data[params.colDef.field as string];

@@ -28,6 +28,7 @@ from uuid import UUID
 import pytest
 import yaml
 from flask import current_app
+from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
@@ -40,7 +41,7 @@ from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
-from superset.sql.parse import Table
+from superset.sql.parse import Partition, Table
 from superset.superset_typing import OAuth2State
 from superset.utils import json
 from superset.utils.oauth2 import encode_oauth2_state
@@ -67,7 +68,7 @@ def test_filter_by_uuid(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -122,6 +123,98 @@ def test_post_with_uuid(
     assert database.uuid == UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb")
 
 
+@pytest.mark.parametrize("method", ["POST", "PUT"])
+@pytest.mark.parametrize("engine", ["bigquery", "gsheets"])
+@pytest.mark.parametrize("credential_type", ["oauth2", "service_account"])
+def test_write_response_masks_encrypted_extra(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    method: str,
+    engine: str,
+    credential_type: str,
+) -> None:
+    """Mask write responses without changing stored or round-tripped credentials."""
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    # Keep the real commands and persistence, but avoid external connections and
+    # permission synchronization, which require a live database and user.
+    mocker.patch("superset.commands.database.create.TestConnectionDatabaseCommand.run")
+    mocker.patch("superset.commands.database.create.add_permissions")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value=engine)
+
+    if credential_type == "oauth2":
+        credential_key = "oauth2_client_info"
+        sensitive_field = "secret"
+        credentials = {
+            "id": "test-client",
+            "secret": "test-client-secret",
+            "scope": "test-scope",
+            "authorization_request_uri": "https://example.com/authorize",
+            "token_request_uri": "https://example.com/token",
+        }
+    else:
+        credential_key = (
+            "credentials_info" if engine == "bigquery" else "service_account_info"
+        )
+        sensitive_field = "private_key"
+        credentials = {
+            "type": "service_account",
+            "project_id": "test-project",
+            "private_key": "test-private-key",
+        }
+    encrypted_extra = {credential_key: credentials}
+    payload = {
+        "database_name": "test_database",
+        "sqlalchemy_uri": f"{engine}://",
+        "masked_encrypted_extra": json.dumps(encrypted_extra),
+    }
+    url = "/api/v1/database/"
+    if method == "PUT":
+        database = Database(
+            database_name="test_database",
+            sqlalchemy_uri=f"{engine}://",
+            encrypted_extra="{}",
+        )
+        session.add(database)
+        session.commit()
+        url += str(database.id)
+
+    response = client.open(url, method=method, json=payload)
+    assert response.status_code == (201 if method == "POST" else 200)
+    database_id = response.json["id"]
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == encrypted_extra
+
+    masked_extra = response.json["result"]["masked_encrypted_extra"]
+    assert json.loads(masked_extra) == {
+        credential_key: {**credentials, sensitive_field: "XXXXXXXXXX"}
+    }
+    assert credentials[sensitive_field] not in response.get_data(as_text=True)
+
+    # Saving the masked response must preserve the original secret.
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={"masked_encrypted_extra": masked_extra},
+    )
+    assert response.status_code == 200
+    assert json.loads(response.json["result"]["masked_encrypted_extra"]) == json.loads(
+        masked_extra
+    )
+    session.expire_all()
+    assert json.loads(stored.encrypted_extra) == encrypted_extra
+
+
 def test_password_mask(
     mocker: MockerFixture,
     app: Any,
@@ -135,7 +228,7 @@ def test_password_mask(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -191,7 +284,7 @@ def test_database_connection(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -243,6 +336,13 @@ def test_database_connection(
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
                 "supports_oauth2": True,
+                "supports_offset": True,
+                "supports_schemas": True,
+                "identifier_quote": {
+                    "start": '"',
+                    "end": '"',
+                    "escape_by_doubling": True,
+                },
             },
             "expose_in_sqllab": True,
             "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
@@ -255,7 +355,7 @@ def test_database_connection(
                     "service_account_info": {
                         "type": "service_account",
                         "project_id": "black-sanctum-314419",
-                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",  # noqa: E501
                         "private_key": "XXXXXXXXXX",
                         "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                         "client_id": "114567578578109757129",
@@ -308,6 +408,7 @@ def test_database_connection(
             },
             "server_cert": None,
             "sqlalchemy_uri": "gsheets://",
+            "ssh_tunnel": None,
             "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
         },
     }
@@ -331,6 +432,13 @@ def test_database_connection(
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
                 "supports_oauth2": True,
+                "supports_offset": True,
+                "supports_schemas": True,
+                "identifier_quote": {
+                    "start": '"',
+                    "end": '"',
+                    "escape_by_doubling": True,
+                },
             },
             "expose_in_sqllab": True,
             "force_ctas_schema": None,
@@ -340,6 +448,83 @@ def test_database_connection(
             "uuid": "02feae18-2dd6-4bb4-a9c0-49e9d4f29d58",
         },
     }
+
+
+@pytest.mark.parametrize("full_payload", [False, True])
+@pytest.mark.parametrize("change", [None, "password", "database_name"])
+@pytest.mark.parametrize("with_tunnel", [False, True])
+def test_update_unreachable_database(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+    full_payload: bool,
+    change: str | None,
+    with_tunnel: bool,
+) -> None:
+    """Persist offline metadata edits, but roll back changed credentials or names."""
+    from superset import security_manager
+    from superset.databases.api import DatabaseRestApi
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(
+        database_name="Druid",
+        expose_in_sqllab=True,
+        encrypted_extra='{"connect_args": {"jwt": "original-token"}}',
+    )
+    database.set_sqlalchemy_uri("druid://user:secret@localhost:8082/druid/v2/sql/")
+    if with_tunnel:
+        database.ssh_tunnel = SSHTunnel(
+            server_address="localhost",
+            server_port=22,
+            username="ssh-user",
+            password="ssh-secret",  # noqa: S106
+        )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(security_manager, "get_user_by_username")
+    mocker.patch.object(Database, "get_sqla_engine")
+    ping = mocker.patch(
+        "superset.commands.database.sync_permissions.ping",
+        side_effect=ConnectionError("Database unavailable"),
+    )
+    properties: dict[str, Any] = {}
+    if full_payload:
+        response = client.get(f"/api/v1/database/{database_id}/connection")
+        assert response.status_code == 200
+        properties = response.json["result"]
+    properties["expose_in_sqllab"] = False
+    if change == "password":
+        properties["sqlalchemy_uri"] = (
+            "druid://user:changed@localhost:8082/druid/v2/sql/"
+        )
+    elif change == "database_name":
+        properties["database_name"] = "Renamed"
+
+    response = client.put(f"/api/v1/database/{database_id}", json=properties)
+
+    assert response.status_code == (422 if change else 200)
+    if change:
+        assert response.json == {
+            "message": "Connection failed, please check your connection settings"
+        }
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert stored.expose_in_sqllab is bool(change)
+    assert stored.database_name == "Druid"
+    assert stored.password == "secret"  # noqa: S105
+    assert json.loads(stored.encrypted_extra)["connect_args"]["jwt"] == "original-token"
+    if with_tunnel:
+        assert stored.ssh_tunnel.password == "ssh-secret"  # noqa: S105
+    ping.assert_called_once()
 
 
 @pytest.mark.skip(reason="Works locally but fails on CI")
@@ -355,7 +540,7 @@ def test_update_with_password_mask(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -450,6 +635,76 @@ def test_import(
         ssh_tunnel_passwords=None,
         ssh_tunnel_private_keys=None,
         ssh_tunnel_priv_key_passwords=None,
+        encrypted_extra_secrets=None,
+    )
+
+
+def test_import_with_encrypted_extra_secrets(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that encrypted_extra_secrets are passed to ImportDatabasesCommand.
+    """
+    contents = {
+        "metadata.yaml": yaml.safe_dump(
+            {
+                "version": "1.0.0",
+                "type": "Database",
+                "timestamp": "2021-01-01T00:00:00Z",
+            }
+        ),
+        "databases/test.yaml": yaml.safe_dump(
+            {
+                "database_name": "test",
+                "sqlalchemy_uri": "bigquery://gcp-project-id/",
+                "cache_timeout": 0,
+                "expose_in_sqllab": True,
+                "allow_run_async": False,
+                "allow_ctas": False,
+                "allow_cvas": False,
+                "allow_dml": False,
+                "allow_file_upload": False,
+                "masked_encrypted_extra": json.dumps(
+                    {"credentials_info": {"private_key": "XXXXXXXXXX"}}
+                ),
+                "extra": json.dumps({"allows_virtual_table_explore": True}),
+                "uuid": "00000000-0000-0000-0000-123456789001",
+            }
+        ),
+    }
+    mocker.patch("superset.databases.api.is_zipfile", return_value=True)
+    mocker.patch("superset.databases.api.ZipFile")
+    mocker.patch(
+        "superset.databases.api.get_contents_from_bundle",
+        return_value=contents,
+    )
+    command = mocker.patch("superset.databases.api.ImportDatabasesCommand")
+
+    secrets = {
+        "databases/test.yaml": {
+            "$.credentials_info.private_key": "-----BEGIN PRIVATE KEY-----"
+        }
+    }
+    form_data = {
+        "formData": (BytesIO(b"test"), "test.zip"),
+        "encrypted_extra_secrets": json.dumps(secrets),
+    }
+    client.post(
+        "/api/v1/database/import/",
+        data=form_data,
+        content_type="multipart/form-data",
+    )
+
+    command.assert_called_with(
+        contents,
+        passwords=None,
+        overwrite=False,
+        ssh_tunnel_passwords=None,
+        ssh_tunnel_private_keys=None,
+        ssh_tunnel_priv_key_passwords=None,
+        encrypted_extra_secrets=secrets,
     )
 
 
@@ -486,160 +741,6 @@ def test_non_zip_import(client: Any, full_api_access: None) -> None:
     }
 
 
-def test_delete_ssh_tunnel(
-    mocker: MockerFixture,
-    app: Any,
-    session: Session,
-    client: Any,
-    full_api_access: None,
-) -> None:
-    """
-    Test that we can delete SSH Tunnel
-    """
-    with app.app_context():
-        from superset.daos.database import DatabaseDAO
-        from superset.databases.api import DatabaseRestApi
-        from superset.databases.ssh_tunnel.models import SSHTunnel
-        from superset.models.core import Database
-
-        DatabaseRestApi.datamodel.session = session
-
-        # create table for databases
-        Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
-
-        # Create our Database
-        database = Database(
-            database_name="my_database",
-            sqlalchemy_uri="gsheets://",
-            encrypted_extra=json.dumps(
-                {
-                    "service_account_info": {
-                        "type": "service_account",
-                        "project_id": "black-sanctum-314419",
-                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
-                        "private_key": "SECRET",
-                        "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
-                        "client_id": "SSH_TUNNEL_CREDENTIALS_CLIENT",
-                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                        "token_uri": "https://oauth2.googleapis.com/token",
-                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
-                    },
-                }
-            ),
-        )
-        db.session.add(database)
-        db.session.commit()
-
-        # mock the lookup so that we don't need to include the driver
-        mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
-        mocker.patch("superset.utils.log.DBEventLogger.log")
-        mocker.patch(
-            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
-            return_value=True,
-        )
-
-        # Create our SSHTunnel
-        tunnel = SSHTunnel(
-            database_id=1,
-            database=database,
-        )
-
-        db.session.add(tunnel)
-        db.session.commit()
-
-        # Get our recently created SSHTunnel
-        response_tunnel = DatabaseDAO.get_ssh_tunnel(1)
-        assert response_tunnel
-        assert isinstance(response_tunnel, SSHTunnel)
-        assert 1 == response_tunnel.database_id
-
-        # Delete the recently created SSHTunnel
-        response_delete_tunnel = client.delete(
-            f"/api/v1/database/{database.id}/ssh_tunnel/"
-        )
-        assert response_delete_tunnel.json["message"] == "OK"
-
-        response_tunnel = DatabaseDAO.get_ssh_tunnel(1)
-        assert response_tunnel is None
-
-
-def test_delete_ssh_tunnel_not_found(
-    mocker: MockerFixture,
-    app: Any,
-    session: Session,
-    client: Any,
-    full_api_access: None,
-) -> None:
-    """
-    Test that we cannot delete a tunnel that does not exist
-    """
-    with app.app_context():
-        from superset.daos.database import DatabaseDAO
-        from superset.databases.api import DatabaseRestApi
-        from superset.databases.ssh_tunnel.models import SSHTunnel
-        from superset.models.core import Database
-
-        DatabaseRestApi.datamodel.session = session
-
-        # create table for databases
-        Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
-
-        # Create our Database
-        database = Database(
-            database_name="my_database",
-            sqlalchemy_uri="gsheets://",
-            encrypted_extra=json.dumps(
-                {
-                    "service_account_info": {
-                        "type": "service_account",
-                        "project_id": "black-sanctum-314419",
-                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
-                        "private_key": "SECRET",
-                        "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
-                        "client_id": "SSH_TUNNEL_CREDENTIALS_CLIENT",
-                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                        "token_uri": "https://oauth2.googleapis.com/token",
-                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
-                    },
-                }
-            ),
-        )
-        db.session.add(database)
-        db.session.commit()
-
-        # mock the lookup so that we don't need to include the driver
-        mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
-        mocker.patch("superset.utils.log.DBEventLogger.log")
-        mocker.patch(
-            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
-            return_value=True,
-        )
-
-        # Create our SSHTunnel
-        tunnel = SSHTunnel(
-            database_id=1,
-            database=database,
-        )
-
-        db.session.add(tunnel)
-        db.session.commit()
-
-        # Delete the recently created SSHTunnel
-        response_delete_tunnel = client.delete("/api/v1/database/2/ssh_tunnel/")
-        assert response_delete_tunnel.json["message"] == "Not found"
-
-        # Get our recently created SSHTunnel
-        response_tunnel = DatabaseDAO.get_ssh_tunnel(1)
-        assert response_tunnel
-        assert isinstance(response_tunnel, SSHTunnel)
-        assert 1 == response_tunnel.database_id
-
-        response_tunnel = DatabaseDAO.get_ssh_tunnel(2)
-        assert response_tunnel is None
-
-
 def test_apply_dynamic_database_filter(
     mocker: MockerFixture,
     app: Any,
@@ -658,7 +759,7 @@ def test_apply_dynamic_database_filter(
         from superset.databases.api import DatabaseRestApi
         from superset.models.core import Database
 
-        DatabaseRestApi.datamodel.session = session
+        DatabaseRestApi.datamodel._session = session
 
         # create table for databases
         Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -698,10 +799,6 @@ def test_apply_dynamic_database_filter(
         # mock the lookup so that we don't need to include the driver
         mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
         mocker.patch("superset.utils.log.DBEventLogger.log")
-        mocker.patch(
-            "superset.commands.database.ssh_tunnel.delete.is_feature_enabled",
-            return_value=False,
-        )
 
         def _base_filter(query):
             from superset.models.core import Database
@@ -753,7 +850,7 @@ def test_oauth2_happy_path(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -778,7 +875,15 @@ def test_oauth2_happy_path(
         "expires_in": 3600,
         "refresh_token": "ZZZ",
     }
+    mocker.patch(
+        "superset.commands.database.oauth2.KeyValueDAO.get_value",
+        return_value=None,
+    )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -798,7 +903,11 @@ def test_oauth2_happy_path(
         )
 
     assert response.status_code == 200
-    get_oauth2_token.assert_called_with({"id": "one", "secret": "two"}, "XXX")
+    get_oauth2_token.assert_called_with(
+        {"id": "one", "secret": "two"},
+        "XXX",
+        code_verifier=None,
+    )
 
     token = db.session.query(DatabaseUserOAuth2Tokens).one()
     assert token.user_id == 1
@@ -822,7 +931,7 @@ def test_oauth2_permissions(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -846,7 +955,15 @@ def test_oauth2_permissions(
         "expires_in": 3600,
         "refresh_token": "ZZZ",
     }
+    mocker.patch(
+        "superset.commands.database.oauth2.KeyValueDAO.get_value",
+        return_value=None,
+    )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -866,7 +983,11 @@ def test_oauth2_permissions(
         )
 
     assert response.status_code == 200
-    get_oauth2_token.assert_called_with({"id": "one", "secret": "two"}, "XXX")
+    get_oauth2_token.assert_called_with(
+        {"id": "one", "secret": "two"},
+        "XXX",
+        code_verifier=None,
+    )
 
     token = db.session.query(DatabaseUserOAuth2Tokens).one()
     assert token.user_id == 1
@@ -888,7 +1009,7 @@ def test_oauth2_multiple_tokens(
     from superset.databases.api import DatabaseRestApi
     from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
-    DatabaseRestApi.datamodel.session = session
+    DatabaseRestApi.datamodel._session = session
 
     # create table for databases
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
@@ -919,7 +1040,15 @@ def test_oauth2_multiple_tokens(
             "refresh_token": "ZZZ2",
         },
     ]
+    mocker.patch(
+        "superset.commands.database.oauth2.KeyValueDAO.get_value",
+        return_value=None,
+    )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -971,14 +1100,14 @@ def test_oauth2_error(
         },
     )
 
-    assert response.status_code == 500
+    assert response.status_code == 400
     assert response.json == {
         "errors": [
             {
-                "message": "Something went wrong while doing OAuth2",
+                "message": "The OAuth2 provider denied the request",
                 "error_type": "OAUTH2_REDIRECT_ERROR",
-                "level": "error",
-                "extra": {"error": "Something bad hapened"},
+                "level": "warning",
+                "extra": None,
             }
         ]
     }
@@ -993,6 +1122,58 @@ def test_oauth2_error(
                 "file": (create_csv_file(), "out.csv"),
                 "table_name": "table1",
                 "delimiter": ",",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "type": "csv",
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            # an unset schema stringified by a broken client must be treated
+            # as absent (see #36305)
+            {
+                "type": "csv",
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "schema": "undefined",
+            },
+            (
+                1,
+                "table1",
+                ANY,
+                None,
+                ANY,
+            ),
+            (
+                {
+                    "type": "csv",
+                    "already_exists": "fail",
+                    "delimiter": ",",
+                    "file": ANY,
+                    "table_name": "table1",
+                },
+            ),
+        ),
+        (
+            {
+                "type": "csv",
+                "file": (create_csv_file(), "out.csv"),
+                "table_name": "table1",
+                "delimiter": ",",
+                "schema": "",
             },
             (
                 1,
@@ -1106,6 +1287,38 @@ def test_csv_upload(
     assert response.json == {"message": "OK"}
     init_mock.assert_called_with(*upload_called_with)
     reader_mock.assert_called_with(*reader_called_with)
+
+
+@pytest.mark.parametrize(
+    "schema_in,schema_out",
+    [
+        ("", None),
+        ("  ", None),
+        ("undefined", None),
+        ("null", None),
+        (None, None),
+        # only the exact JS stringification artifacts are dropped — a quoted
+        # schema actually named ``NULL``/``Undefined`` or an identifier with
+        # surrounding whitespace is preserved verbatim
+        ("NULL", "NULL"),
+        ("Undefined", "Undefined"),
+        (" public ", " public "),
+        ("myschema", "myschema"),
+    ],
+)
+def test_upload_post_schema_normalizes_schema(
+    schema_in: str | None,
+    schema_out: str | None,
+) -> None:
+    """
+    Empty/whitespace-only values and the exact stringified-unset artifacts
+    ("undefined"/"null") are dropped; every other value is preserved verbatim.
+    """
+    from superset.databases.schemas import UploadPostSchema
+
+    data = {} if schema_in is None else {"schema": schema_in}
+    result = UploadPostSchema().load(data, partial=True)
+    assert result.get("schema") == schema_out
 
 
 @pytest.mark.parametrize(
@@ -1923,6 +2136,43 @@ def test_columnar_metadata_validation(
     assert response.json == {"message": {"file": ["Field may not be null."]}}
 
 
+def test_metadata_file_too_large(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """
+    The metadata endpoint rejects an oversized file with a 413 before the
+    reader parses it, so the size limit cannot be bypassed by hitting
+    ``upload_metadata`` instead of ``upload``.
+    """
+    file_metadata = mocker.patch.object(CSVReader, "file_metadata")
+    mocker.patch.dict(current_app.config, {"UPLOAD_MAX_FILE_SIZE_BYTES": 4})
+    response = client.post(
+        "/api/v1/database/upload_metadata/",
+        data={"type": "csv", "file": create_csv_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 413
+    assert (
+        response.json["errors"][0]["message"]
+        == "Database upload file exceeds the maximum allowed size."
+    )
+    file_metadata.assert_not_called()
+
+
+def test_metadata_within_size_limit(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """A file under ``UPLOAD_MAX_FILE_SIZE_BYTES`` passes the metadata endpoint."""
+    _ = mocker.patch.object(CSVReader, "file_metadata")
+    mocker.patch.dict(current_app.config, {"UPLOAD_MAX_FILE_SIZE_BYTES": 1024 * 1024})
+    response = client.post(
+        "/api/v1/database/upload_metadata/",
+        data={"type": "csv", "file": create_csv_file()},
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+
+
 def test_table_metadata_happy_path(
     mocker: MockerFixture,
     client: Any,
@@ -1932,27 +2182,34 @@ def test_table_metadata_happy_path(
     Test the `table_metadata` endpoint.
     """
     database = mocker.MagicMock()
+    # Non-ODPS backend: partition detection short-circuits to (False, []).
+    database.backend = "postgresql"
     database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    no_partition = Partition(False, ())
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t")
     assert response.json == {"hello": "world"}
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t"),
+        no_partition,
     )
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t&schema=s")
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", "s"),
+        no_partition,
     )
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t&catalog=c")
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", None, "c"),
+        no_partition,
     )
 
     response = client.get(
@@ -1961,6 +2218,7 @@ def test_table_metadata_happy_path(
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", "s", "c"),
+        no_partition,
     )
 
 
@@ -2006,6 +2264,7 @@ def test_table_metadata_slashes(
     Test the `table_metadata` endpoint with names that have slashes.
     """
     database = mocker.MagicMock()
+    database.backend = "postgresql"
     database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
@@ -2014,6 +2273,7 @@ def test_table_metadata_slashes(
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("foo/bar"),
+        Partition(False, ()),
     )
 
 
@@ -2315,7 +2575,7 @@ def test_catalogs_with_oauth2(
     security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
 
     response = client.get("/api/v1/database/1/catalogs/")
-    assert response.status_code == 500
+    assert response.status_code == 403
     assert response.json == {
         "errors": [
             {
@@ -2416,7 +2676,7 @@ def test_schemas_with_oauth2(
     security_manager.get_schemas_accessible_by_user.return_value = {"schema2"}
 
     response = client.get("/api/v1/database/1/schemas/")
-    assert response.status_code == 500
+    assert response.status_code == 403
     assert response.json == {
         "errors": [
             {
@@ -2431,3 +2691,269 @@ def test_schemas_with_oauth2(
             }
         ]
     }
+
+
+def test_export_includes_configuration_method(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    """
+    Test that exporting a database
+    includes the 'configuration_method' field in the YAML.
+    """
+    import zipfile
+
+    import rison
+
+    from superset.models.core import Database
+
+    # Create a database with a non-default configuration_method
+    db_obj = Database(
+        database_name="export_test_db",
+        sqlalchemy_uri="bigquery://gcp-project-id/",
+        configuration_method="dynamic_form",
+        uuid=UUID("12345678-1234-5678-1234-567812345678"),
+    )
+    db.session.add(db_obj)
+    db.session.commit()
+
+    rison_ids = rison.dumps([db_obj.id])
+    response = client.get(f"/api/v1/database/export/?q={rison_ids}")
+    assert response.status_code == 200
+
+    # Read the zip file from the response
+    buf = BytesIO(response.data)
+    with zipfile.ZipFile(buf) as zf:
+        # Find the database yaml file
+        db_yaml_path = None
+        for name in zf.namelist():
+            if (
+                name.endswith(".yaml")
+                and name.startswith("database_export_")
+                and "/databases/" in name
+            ):
+                db_yaml_path = name
+                break
+        assert db_yaml_path, "Database YAML not found in export zip"
+        with zf.open(db_yaml_path) as f:
+            db_yaml = yaml.safe_load(f.read())
+    # Assert configuration_method is present and correct
+    assert "configuration_method" in db_yaml
+    assert db_yaml["configuration_method"] == "dynamic_form"
+
+
+def test_import_includes_configuration_method(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that importing a database YAML with configuration_method
+    sets the value on the imported DB connection.
+    """
+    from io import BytesIO
+    from unittest.mock import patch
+
+    import yaml
+    from flask import g, has_app_context, has_request_context
+
+    from superset import db, security_manager
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = db.session
+    Database.metadata.create_all(db.session.get_bind())
+
+    def find_by_id_side_effect(db_id):
+        return db.session.query(Database).filter_by(id=db_id).first()
+
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.side_effect = find_by_id_side_effect
+
+    metadata = {
+        "version": "1.0.0",
+        "type": "Database",
+        "timestamp": "2025-12-08T18:06:31.356738+00:00",
+    }
+    db_yaml = {
+        "database_name": "Test_Import_Configuration_Method",
+        "sqlalchemy_uri": "bigquery://gcp-project-id/",
+        "cache_timeout": 0,
+        "expose_in_sqllab": True,
+        "allow_run_async": False,
+        "allow_ctas": False,
+        "allow_cvas": False,
+        "allow_dml": False,
+        "allow_csv_upload": False,
+        "extra": {"allows_virtual_table_explore": True},
+        "impersonate_user": False,
+        "uuid": "87654321-4321-8765-4321-876543218765",
+        "configuration_method": "dynamic_form",
+        "version": "1.0.0",
+    }
+    contents = {
+        "metadata.yaml": yaml.safe_dump(metadata),
+        "databases/test.yaml": yaml.safe_dump(db_yaml),
+    }
+
+    with (
+        patch("superset.databases.api.is_zipfile", return_value=True),
+        patch("superset.databases.api.ZipFile"),
+        patch("superset.databases.api.get_contents_from_bundle", return_value=contents),
+    ):
+        form_data = {"formData": (BytesIO(b"test"), "test.zip")}
+        response = client.post(
+            "/api/v1/database/import/",
+            data=form_data,
+            content_type="multipart/form-data",
+        )
+        db.session.commit()
+        db.session.remove()
+    assert response.status_code == 200, response.data
+
+    db_obj = (
+        db.session.query(Database)
+        .filter_by(database_name="Test_Import_Configuration_Method")
+        .first()
+    )
+    assert db_obj is not None, "Database not found in SQLAlchemy session after import"
+    assert hasattr(db_obj, "configuration_method"), (
+        "'configuration_method' not found on model"
+    )
+    assert db_obj.configuration_method == "dynamic_form", (
+        "Expected configuration_method 'dynamic_form', got "
+        f"{db_obj.configuration_method}"
+    )
+
+    user = None
+    if has_request_context() or has_app_context():
+        user = getattr(g, "user", None)
+    if user and getattr(user, "is_authenticated", False) and hasattr(user, "id"):
+        db_obj.created_by = security_manager.get_user_by_id(user.id)
+        db.session.commit()
+    get_resp = client.get(
+        "/api/v1/database/?q=(filters:!((col:database_name,opr:eq,value:'Test_Import_Configuration_Method')))"
+    )
+    result = get_resp.json["result"]
+    assert result, "No database returned from API after import."
+    db_obj_api = result[0]
+    assert "configuration_method" in db_obj_api, (
+        f"'configuration_method' not found in database list response: {db_obj_api}"
+    )
+    assert db_obj_api["configuration_method"] == "dynamic_form"
+
+
+def test_related_objects_includes_datasets(
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """The delete confirmation reads its dependents from this endpoint.
+
+    ``DeleteDatabaseCommand`` refuses to delete a database while any dataset
+    references it, so a response without a datasets block leaves the modal
+    reporting no dependents for a database that cannot be deleted.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="related_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.add(SqlaTable(table_name="qa_orders", database=database))
+    db.session.commit()
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    payload = response.json
+    assert payload["datasets"]["count"] == 1
+    assert payload["datasets"]["result"][0]["table_name"] == "qa_orders"
+
+
+def test_related_objects_datasets_filtered_by_access(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Dataset names are access-filtered; the blocking count is not.
+
+    This route only requires ``can_read`` on Database, and ``DatabaseFilter``
+    admits a caller holding ``datasource_access`` on a single dataset in the
+    database. Returning every dataset name would let such a caller enumerate
+    datasets they hold no permission on. The count stays unfiltered because it
+    is what explains the delete being blocked, and a bare number discloses far
+    less than a name and schema.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi
+    from superset.extensions import security_manager
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="mixed_access_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.add(SqlaTable(table_name="visible", database=database))
+    db.session.add(SqlaTable(table_name="secret", database=database))
+    db.session.commit()
+
+    mocker.patch.object(
+        security_manager,
+        "can_access_datasource",
+        side_effect=lambda datasource: datasource.table_name == "visible",
+    )
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    payload = response.json
+    # Both datasets block the delete, so both are counted...
+    assert payload["datasets"]["count"] == 2
+    # ...but only the accessible one is named.
+    assert [d["table_name"] for d in payload["datasets"]["result"]] == ["visible"]
+
+
+def test_related_objects_limits_dataset_details(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """The response returns only the dataset details the modal can display."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.api import DatabaseRestApi, MAX_RELATED_DATASETS
+    from superset.extensions import security_manager
+    from superset.models.core import Database
+
+    DatabaseRestApi.datamodel._session = session
+
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    database = Database(database_name="large_related_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.add_all(
+        SqlaTable(table_name=f"table_{index:02}", database=database)
+        for index in range(MAX_RELATED_DATASETS + 2)
+    )
+    db.session.commit()
+
+    can_access = mocker.patch.object(
+        security_manager,
+        "can_access_datasource",
+        return_value=True,
+    )
+
+    response = client.get(f"/api/v1/database/{database.id}/related_objects/")
+    assert response.status_code == 200
+
+    payload = response.json["datasets"]
+    assert payload["count"] == MAX_RELATED_DATASETS + 2
+    assert len(payload["result"]) == MAX_RELATED_DATASETS
+    assert can_access.call_count == MAX_RELATED_DATASETS

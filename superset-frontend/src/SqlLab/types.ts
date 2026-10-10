@@ -27,6 +27,7 @@ import type {
   DropdownButtonProps,
 } from '@superset-ui/core/components';
 import type { TableMetaData } from 'src/hooks/apiResources';
+import type Subject from 'src/types/Subject';
 
 export type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
@@ -49,6 +50,7 @@ export interface CursorPosition {
 export interface QueryEditor {
   version: QueryEditorVersion;
   id: string;
+  immutableId: string;
   dbId?: number;
   name: string;
   title?: string; // keep it optional for backward compatibility
@@ -70,6 +72,7 @@ export interface QueryEditor {
   updatedAt?: number;
   cursorPosition?: CursorPosition;
   isDataset?: boolean;
+  tabViewId?: string;
 }
 
 export type toastState = {
@@ -133,17 +136,10 @@ export const EXPLORE_CHART_DEFAULT = {
   row_limit: 1000,
 };
 
-export interface DatasetOwner {
-  first_name: string;
-  id: number;
-  last_name: string;
-  username: string;
-}
-
 export interface DatasetOptionAutocomplete {
   value: string;
   datasetId: number;
-  owners: [DatasetOwner];
+  editors: Subject[];
 }
 
 export interface SchemaOption {

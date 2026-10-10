@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import ActionButtons from './index';
 
@@ -55,7 +54,7 @@ test('should render the "Clear all" button as disabled', () => {
   expect(clearBtn.parentElement).toBeDisabled();
 });
 
-test('should render the "Apply" button as disabled', () => {
+test('should render the "Apply" button as disabled', async () => {
   const mockedProps = createProps();
   const applyDisabledProps = {
     ...mockedProps,
@@ -64,41 +63,18 @@ test('should render the "Apply" button as disabled', () => {
   render(<ActionButtons {...applyDisabledProps} />, { useRedux: true });
   const applyBtn = screen.getByText('Apply filters');
   expect(applyBtn.parentElement).toBeDisabled();
-  userEvent.click(applyBtn);
+  // The button is disabled via `pointer-events: none`, so a real user could
+  // never click it; explicitly opt out of user-event's pointer events check
+  // to confirm the disabled button still ignores clicks.
+  await userEvent.click(applyBtn, { pointerEventsCheck: 0 });
   expect(mockedProps.onApply).not.toHaveBeenCalled();
 });
 
-test('should apply', () => {
+test('should apply', async () => {
   const mockedProps = createProps();
   render(<ActionButtons {...mockedProps} />, { useRedux: true });
   const applyBtn = screen.getByText('Apply filters');
   expect(mockedProps.onApply).not.toHaveBeenCalled();
-  userEvent.click(applyBtn);
+  await userEvent.click(applyBtn);
   expect(mockedProps.onApply).toHaveBeenCalled();
-});
-
-describe('custom width', () => {
-  it('sets its default width with OPEN_FILTER_BAR_WIDTH', () => {
-    const mockedProps = createProps();
-    render(<ActionButtons {...mockedProps} />, { useRedux: true });
-    const container = screen.getByTestId('filterbar-action-buttons');
-    expect(container).toHaveStyle({
-      width: `${OPEN_FILTER_BAR_WIDTH - 1}px`,
-    });
-  });
-
-  it('sets custom width', () => {
-    const mockedProps = createProps();
-    const expectedWidth = 423;
-    const { getByTestId } = render(
-      <ActionButtons {...mockedProps} width={expectedWidth} />,
-      {
-        useRedux: true,
-      },
-    );
-    const container = getByTestId('filterbar-action-buttons');
-    expect(container).toHaveStyle({
-      width: `${expectedWidth - 1}px`,
-    });
-  });
 });

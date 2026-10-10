@@ -22,17 +22,8 @@
  * These functions act as a compatibility layer between Ant Design Table and react-table.
  */
 
-import { ReactNode } from 'react';
-import {
-  CellValue,
-  Row,
-  ColumnInstance as RTColumnInstance,
-  HeaderGroup as RTHeaderGroup,
-  UseSortByColumnOptions,
-  UseSortByColumnProps,
-  UseResizeColumnsColumnOptions,
-  UseResizeColumnsColumnProps,
-} from 'react-table';
+import { ComponentType, ReactNode } from 'react';
+import { Accessor, CellValue, HeaderGroup, Row } from 'react-table';
 
 import { SortOrder } from '../Table';
 
@@ -49,22 +40,38 @@ const COLUMN_SIZE_MAP: Record<TableSize, number> = {
   xxl: 200,
 };
 
-type EnhancedColumnInstance<T extends object = any> = RTColumnInstance<T> &
-  Partial<UseSortByColumnOptions<T>> &
-  Partial<UseSortByColumnProps<T>> &
-  Partial<UseResizeColumnsColumnOptions<T>> &
-  Partial<UseResizeColumnsColumnProps<T>> & {
-    hidden?: boolean;
-    size?: keyof typeof COLUMN_SIZE_MAP;
-  };
+// Mirrors react-table's `Renderer<Props>` (a component, a render function,
+// or a static node) loosely enough that both a hand-authored column config
+// and a `ColumnInstance<T>` produced by `useTable()` satisfy it, so callers
+// holding either shape can pass it without casting.
+type ColumnRenderer =
+  | ReactNode
+  | ComponentType<any>
+  | ((props: any) => ReactNode);
 
-type EnhancedHeaderGroup<T extends object = any> = RTHeaderGroup<T> & {
-  isSorted?: boolean;
-  isSortedDesc?: boolean;
-};
+// The `columns` prop is typically the raw column config a caller authors,
+// though the `ColumnInstance<T>` objects react-table builds from that config
+// are structurally accepted too. This is intentionally its own interface
+// rather than react-table's `Column<T>`: that type requires each column's
+// `accessor` to be either a specific `keyof T` literal or an accessor
+// function, but every column config in this codebase writes `accessor` as
+// a plain (TypeScript-widened) string, which satisfies neither — matching
+// react-table's stricter modeling here would mean annotating every column
+// array across ~20 call sites, not a change this shim should make
+// unilaterally.
+export interface ListViewColumn<T extends object = any> {
+  id?: string;
+  Header?: ColumnRenderer;
+  accessor?: keyof T | string | Accessor<T>;
+  Cell?: ColumnRenderer;
+  disableSortBy?: boolean;
+  hidden?: boolean;
+  size?: string;
+  className?: string;
+}
 
 function getSortingInfo<T extends object>(
-  headerGroups: EnhancedHeaderGroup<T>[],
+  headerGroups: HeaderGroup<T>[],
   headerId: string,
 ): {
   isSorted: boolean;
@@ -83,19 +90,32 @@ function getSortingInfo<T extends object>(
 }
 
 export function mapColumns<T extends object>(
-  columns: EnhancedColumnInstance<T>[],
-  headerGroups: EnhancedHeaderGroup<T>[],
+  columns: ListViewColumn<T>[],
+  headerGroups: HeaderGroup<T>[],
   columnsForWrapText?: string[],
 ) {
   return columns.map(column => {
-    const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, column.id);
+    // react-table backfills `id` from a string `accessor` for its own
+    // internal column instances, but callers routinely author raw column
+    // configs (the shape this function actually receives, per
+    // `ListViewColumn`) with only `accessor` set. Falling back to it here
+    // keeps every column's antd `key`/`dataIndex` unique; without it,
+    // id-less columns all collapse onto the same (undefined) key and antd
+    // can't tell them apart for sorting.
+    const id =
+      column.id ??
+      (typeof column.accessor === 'string' ? column.accessor : undefined) ??
+      '';
+    const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, id);
     return {
-      title: column.Header,
-      dataIndex: column.id?.includes('.') ? column.id.split('.') : column.id,
+      title: column.Header as ReactNode,
+      dataIndex: id.includes('.') ? id.split('.') : id,
       hidden: column.hidden,
-      key: column.id,
-      minWidth: column.size ? COLUMN_SIZE_MAP[column.size] : COLUMN_SIZE_MAP.md,
-      ellipsis: !columnsForWrapText?.includes(column.id),
+      key: id,
+      width: column.size
+        ? COLUMN_SIZE_MAP[column.size as TableSize]
+        : undefined,
+      ellipsis: !columnsForWrapText?.includes(id),
       defaultSortOrder: (isSorted
         ? isSortedDesc
           ? 'descend'
@@ -103,15 +123,16 @@ export function mapColumns<T extends object>(
         : undefined) as SortOrder | undefined,
       sorter: !column.disableSortBy,
       render: (val: CellValue<T>, record: RowWithId<T>): ReactNode => {
-        if (column.Cell) {
-          const cellRenderer = column.Cell as ({
+        const { Cell } = column;
+        if (typeof Cell === 'function') {
+          const cellRenderer = Cell as ({
             value,
             row,
             column,
           }: {
             value: CellValue<T>;
             row: { original: Row<T>; id: string };
-            column: RTColumnInstance<T>;
+            column: ListViewColumn<T>;
           }) => ReactNode;
 
           return cellRenderer({
@@ -120,8 +141,10 @@ export function mapColumns<T extends object>(
             column,
           });
         }
-        return val;
+        // A static `Cell` node renders as-is, as react-table itself would.
+        return Cell ?? (val as ReactNode);
       },
+      className: column.className,
     };
   });
 }

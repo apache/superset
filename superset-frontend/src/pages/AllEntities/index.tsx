@@ -17,14 +17,15 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { styled, t, css, SupersetTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 import { NumberParam, useQueryParam } from 'use-query-params';
 import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
 import { Button, Loading } from '@superset-ui/core/components';
 import MetadataBar, {
   MetadataType,
   Description,
-  Owner,
+  Editor,
   LastModified,
 } from '@superset-ui/core/components/MetadataBar';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
@@ -32,7 +33,7 @@ import { Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
 import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
-import getOwnerName from 'src/utils/getOwnerName';
+import getUserName from 'src/utils/getUserName';
 import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 import { findPermission } from 'src/utils/findPermission';
 import { useSelector } from 'react-redux';
@@ -49,7 +50,7 @@ const additionalItemsStyles = (theme: SupersetTheme) => css`
 
 const AllEntitiesContainer = styled.div`
   ${({ theme }) => `
-  background-color: ${theme.colors.grayscale.light4};
+  background-color: ${theme.colorBgContainer};
   .select-control {
     margin-left: ${theme.sizeUnit * 4}px;
     margin-right: ${theme.sizeUnit * 4}px;
@@ -57,7 +58,7 @@ const AllEntitiesContainer = styled.div`
   }
   .select-control-label {
     font-size: ${theme.sizeUnit * 3}px;
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     margin-bottom: ${theme.sizeUnit * 1}px;
   }
   .entities {
@@ -72,7 +73,7 @@ const AllEntitiesContainer = styled.div`
 const AllEntitiesNav = styled.div`
   ${({ theme }) => `
   height: ${theme.sizeUnit * 12.5}px;
-  background-color: ${theme.colors.grayscale.light5};
+  background-color: ${theme.colorBgBase};
   margin-bottom: ${theme.sizeUnit * 4}px;
   .navbar-brand {
     margin-left: ${theme.sizeUnit * 2}px;
@@ -123,17 +124,17 @@ function AllEntities() {
     items.push(description);
   }
 
-  const owner: Owner = {
-    type: MetadataType.Owner,
-    createdBy: getOwnerName(tag?.created_by),
+  const editor: Editor = {
+    type: MetadataType.Editor,
+    createdBy: getUserName(tag?.created_by),
     createdOn: tag?.created_on_delta_humanized || '',
   };
-  items.push(owner);
+  items.push(editor);
 
   const lastModified: LastModified = {
     type: MetadataType.LastModified,
     value: tag?.changed_on_delta_humanized || '',
-    modifiedBy: getOwnerName(tag?.changed_by),
+    modifiedBy: getUserName(tag?.changed_by),
   };
   items.push(lastModified);
 
@@ -154,7 +155,7 @@ function AllEntities() {
         setObjects(objects);
         setLoading(false);
       },
-      (error: Response) => {
+      () => {
         addDangerToast('Error Fetching Tagged Objects');
         setLoading(false);
       },
@@ -168,7 +169,7 @@ function AllEntities() {
         setTag(tag);
         setLoading(false);
       },
-      (error: Response) => {
+      () => {
         addDangerToast(t('Error Fetching Tagged Objects'));
         setLoading(false);
       },

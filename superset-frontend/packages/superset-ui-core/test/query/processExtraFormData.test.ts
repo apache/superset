@@ -19,7 +19,7 @@
 import { overrideExtraFormData } from '../../src/query/processExtraFormData';
 
 describe('overrideExtraFormData', () => {
-  it('should assign allowed nonexistent value', () => {
+  test('should assign allowed nonexistent value', () => {
     expect(
       overrideExtraFormData(
         {
@@ -39,7 +39,7 @@ describe('overrideExtraFormData', () => {
     });
   });
 
-  it('should override allowed preexisting value', () => {
+  test('should override allowed preexisting value', () => {
     expect(
       overrideExtraFormData(
         {
@@ -60,7 +60,7 @@ describe('overrideExtraFormData', () => {
     });
   });
 
-  it('should not override non-allowed value', () => {
+  test('should not override non-allowed value', () => {
     expect(
       overrideExtraFormData(
         {
@@ -82,7 +82,7 @@ describe('overrideExtraFormData', () => {
     });
   });
 
-  it('should override preexisting extra value', () => {
+  test('should override preexisting extra value', () => {
     expect(
       overrideExtraFormData(
         {
@@ -107,7 +107,7 @@ describe('overrideExtraFormData', () => {
     });
   });
 
-  it('should add extra override value', () => {
+  test('should add extra override value', () => {
     expect(
       overrideExtraFormData(
         {

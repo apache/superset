@@ -16,9 +16,11 @@
 # under the License.
 
 import numpy as np
+import pandas as pd
 import pytest
 from pandas import DataFrame, to_datetime
 
+from superset.constants import NULL_STRING
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing import flatten, pivot
 from tests.unit_tests.fixtures.dataframes import categories_df
@@ -158,7 +160,7 @@ def test_pivot_eliminate_cartesian_product_columns():
             "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
             "a": [0, 1],
             "b": [0, 1],
-            "metric": [9, np.NAN],
+            "metric": [9, np.nan],
         }
     )
 
@@ -179,7 +181,7 @@ def test_pivot_eliminate_cartesian_product_columns():
             "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
             "a": [0, 1],
             "b": [0, 1],
-            "metric": [9, np.NAN],
+            "metric": [9, np.nan],
             "metric2": [10, 11],
         }
     )
@@ -203,3 +205,1008 @@ def test_pivot_eliminate_cartesian_product_columns():
         "metric2, 1, 1",
     ]
     assert np.isnan(df["metric, 1, 1"][0])
+
+
+def test_pivot_preserves_all_nan_metric_flat():
+    """
+    Pivot with drop_missing_columns=True must not drop metric columns whose entries
+    are all NaN. This prevents downstream post-processing (e.g. rename) from failing
+    with "Referenced columns not available in DataFrame" when a Jinja metric
+    expression evaluates to NULL for every row (SC-100398).
+    """
+    mock_df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", "2019-01-02", "2019-01-03"]),
+            "metric": [np.nan, np.nan, np.nan],
+        }
+    )
+
+    df = pivot(
+        df=mock_df,
+        index=["dttm"],
+        aggregates={"metric": {"operator": "mean"}},
+        drop_missing_columns=True,
+    )
+
+    assert "metric" in df.columns
+    assert df["metric"].isna().all()
+
+
+def test_pivot_preserves_all_nan_metric_with_columns():
+    """
+    Pivot with groupby columns and drop_missing_columns=True must restore the
+    exact (metric, category_val) MultiIndex keys when all values for that metric
+    are NaN. The restored keys must use the actual category values from the input
+    data so that downstream rename/rolling validation and flatten produce the
+    correct column names.
+    """
+    mock_df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
+            "category": ["A", "B"],
+            "metric": [np.nan, np.nan],
+        }
+    )
+
+    df = pivot(
+        df=mock_df,
+        index=["dttm"],
+        columns=["category"],
+        aggregates={"metric": {"operator": "mean"}},
+        drop_missing_columns=True,
+    )
+
+    assert isinstance(df.columns, pd.MultiIndex)
+    assert "metric" in df.columns.get_level_values(0)
+    # Exact keys must reflect the real category values, not placeholders.
+    assert ("metric", "A") in df.columns
+    assert ("metric", "B") in df.columns
+
+    df = flatten(df)
+    assert "metric, A" in df.columns
+    assert "metric, B" in df.columns
+    assert df["metric, A"].isna().all()
+    assert df["metric, B"].isna().all()
+
+
+def test_pivot_preserves_all_nan_metric_multi_column():
+    """
+    Pivot with multiple groupby columns and an all-NaN metric restores the full
+    multi-level (metric, col_val_1, col_val_2) key, not a truncated or placeholder
+    version. Exercises the case where columns=["country", "category"].
+    """
+    mock_df = DataFrame(
+        {
+            "dttm": to_datetime(
+                ["2019-01-01", "2019-01-01", "2019-01-01", "2019-01-01"]
+            ),
+            "country": ["US", "US", "EU", "EU"],
+            "category": ["A", "B", "A", "B"],
+            "metric": [np.nan, np.nan, np.nan, np.nan],
+        }
+    )
+
+    df = pivot(
+        df=mock_df,
+        index=["dttm"],
+        columns=["country", "category"],
+        aggregates={"metric": {"operator": "mean"}},
+        drop_missing_columns=True,
+    )
+
+    assert isinstance(df.columns, pd.MultiIndex)
+    assert "metric" in df.columns.get_level_values(0)
+    # All four combinations must be restored with correct full tuple keys.
+    assert ("metric", "US", "A") in df.columns
+    assert ("metric", "US", "B") in df.columns
+    assert ("metric", "EU", "A") in df.columns
+    assert ("metric", "EU", "B") in df.columns
+
+    df = flatten(df)
+    assert "metric, US, A" in df.columns
+    assert "metric, EU, B" in df.columns
+    assert df["metric, US, A"].isna().all()
+
+
+def test_pivot_restored_nan_metric_column_order_is_deterministic():
+    """
+    Restored all-NaN metric columns must appear in data-insertion order, not
+    in nondeterministic hash-set iteration order. This prevents column ordering
+    from varying across Python processes (which randomize hash seeds by default).
+    """
+    mock_df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", "2019-01-01", "2019-01-01"]),
+            "category": ["C", "A", "B"],
+            "metric": [np.nan, np.nan, np.nan],
+        }
+    )
+
+    df = pivot(
+        df=mock_df,
+        index=["dttm"],
+        columns=["category"],
+        aggregates={"metric": {"operator": "mean"}},
+        drop_missing_columns=True,
+    )
+
+    # Columns restored in data-insertion order: C, A, B (not alphabetical or random).
+    assert list(df.columns.get_level_values(1)) == ["C", "A", "B"]
+
+
+def test_pivot_preserves_all_nan_metric_combine_value_with_metric():
+    """
+    When combine_value_with_metric=True, a stack()/unstack() is applied after
+    column restoration. stack() drops all-NaN rows by default, which would remove
+    the restored metric before downstream post-processing can reference it.
+    Using dropna=False on stack() ensures restored all-NaN metrics survive.
+    """
+    mock_df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
+            "category": ["A", "B"],
+            "metric": [np.nan, np.nan],
+            "metric2": [1.0, 2.0],
+        }
+    )
+
+    df = pivot(
+        df=mock_df,
+        index=["dttm"],
+        columns=["category"],
+        aggregates={
+            "metric": {"operator": "mean"},
+            "metric2": {"operator": "mean"},
+        },
+        drop_missing_columns=True,
+        combine_value_with_metric=True,
+    )
+
+    # After stack()/unstack(), columns are (category_val, metric_name) tuples.
+    # The all-NaN metric must appear in level 1 alongside metric2.
+    assert isinstance(df.columns, pd.MultiIndex)
+    metric_names = df.columns.get_level_values(1).tolist()
+    assert "metric" in metric_names
+    assert "metric2" in metric_names
+
+
+def test_pivot_combine_sparse_metrics_no_spurious_extra_columns():
+    """
+    With drop_missing_columns=True and combine_value_with_metric=True, using
+    stack(dropna=False) to preserve restored all-NaN metrics must not alter output
+    shape for sparse-but-not-all-NaN metric/category pairs. stack(dropna=False) only
+    changes behaviour for rows that are entirely NaN (a restored metric); sparse rows
+    with at least one non-NaN value are unaffected — same result as dropna=True.
+    """
+    mock_df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
+            "category": ["A", "B"],
+            "metric1": [1.0, np.nan],  # data only for category A
+            "metric2": [np.nan, 2.0],  # data only for category B
+        }
+    )
+
+    df = pivot(
+        df=mock_df,
+        index=["dttm"],
+        columns=["category"],
+        aggregates={
+            "metric1": {"operator": "mean"},
+            "metric2": {"operator": "mean"},
+        },
+        drop_missing_columns=True,
+        combine_value_with_metric=True,
+    )
+
+    # After combine, columns are (category_val, metric_name) tuples.
+    # Neither metric is entirely absent after pivoting, so _restore adds nothing.
+    # stack(dropna=False) does not change results for sparse rows with mixed NaN/data.
+    assert isinstance(df.columns, pd.MultiIndex)
+    assert sorted(df.columns.get_level_values(0).unique()) == ["A", "B"]
+    assert sorted(df.columns.get_level_values(1).unique()) == ["metric1", "metric2"]
+    # Sparse NaN cells are present but the data cells must retain their values.
+    assert df[("A", "metric1")].iloc[0] == 1.0
+    assert df[("B", "metric2")].iloc[0] == 2.0
+
+
+def test_pivot_only_entirely_absent_metrics_are_restored():
+    """
+    Only metrics with zero surviving columns after pivoting are restored.
+    A metric with partial NaN — data for some categories but not all — must not
+    be touched: its present columns are unchanged and its absent sparse combinations
+    remain dropped. This makes the restoration invariant explicit.
+    """
+    mock_df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", "2019-01-01"]),
+            "category": ["A", "B"],
+            "metric_all_nan": [np.nan, np.nan],  # entirely absent → restored
+            "metric_partial": [1.0, np.nan],  # partially present → not restored
+        }
+    )
+
+    df = pivot(
+        df=mock_df,
+        index=["dttm"],
+        columns=["category"],
+        aggregates={
+            "metric_all_nan": {"operator": "mean"},
+            "metric_partial": {"operator": "mean"},
+        },
+        drop_missing_columns=True,
+    )
+
+    # metric_all_nan was entirely absent: both category columns are restored as NaN.
+    assert ("metric_all_nan", "A") in df.columns
+    assert ("metric_all_nan", "B") in df.columns
+    assert df[("metric_all_nan", "A")].isna().all()
+    assert df[("metric_all_nan", "B")].isna().all()
+
+    # metric_partial has data for A: present column is unchanged, sparse B dropped.
+    assert ("metric_partial", "A") in df.columns
+    assert ("metric_partial", "B") not in df.columns
+    assert df[("metric_partial", "A")].iloc[0] == 1.0
+
+
+# --- show_values_as regression tests (#42809) --------------------------------
+#
+# ``show_values_as`` expresses each metric cell as a fraction of the row,
+# column, or grand total after pivoting. Mirrors the client-side
+# ``fractionOf`` semantic in
+# ``plugin-chart-pivot-table/src/react-pivottable/utilities.ts:739`` so
+# server-side rendering paths (CSV / XLSX exports, scheduled reports)
+# match the browser output. See #42809.
+#
+# Fixture: a tiny 3-column DataFrame that keeps row/col/grand totals easy
+# to eyeball. Two rows (``r1``, ``r2``), two columns (``c1``, ``c2``),
+# single metric ``v``. Grand total is 100 so every percent-of-total
+# assertion is trivially checkable.
+
+
+def _show_values_as_fixture() -> DataFrame:
+    """Long-format input that pivots to::
+
+              v
+        col   c1   c2
+        row
+        r1    10   20
+        r2    30   40
+
+    row totals: r1=30, r2=70; col totals: c1=40, c2=60; grand=100.
+    """
+    return DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "v": [10, 20, 30, 40],
+        }
+    )
+
+
+def test_pivot_show_values_as_actual_is_noop() -> None:
+    """``show_values_as='actual'`` (and ``None``) leaves values unchanged."""
+    df = _show_values_as_fixture()
+    aggregates = {"v": {"operator": "sum"}}
+    baseline = pivot(df=df, index=["row"], columns=["col"], aggregates=aggregates)
+
+    for mode in (None, "actual"):
+        result = pivot(
+            df=df,
+            index=["row"],
+            columns=["col"],
+            aggregates=aggregates,
+            show_values_as=mode,
+        )
+        pd.testing.assert_frame_equal(result, baseline)
+
+
+def test_pivot_show_values_as_percent_row() -> None:
+    """Each cell = cell / row-total; each row sums to 1.0."""
+    result = pivot(
+        df=_show_values_as_fixture(),
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    # r1: 10/30, 20/30; r2: 30/70, 40/70
+    assert result.loc["r1", ("v", "c1")] == pytest.approx(10 / 30)
+    assert result.loc["r1", ("v", "c2")] == pytest.approx(20 / 30)
+    assert result.loc["r2", ("v", "c1")] == pytest.approx(30 / 70)
+    assert result.loc["r2", ("v", "c2")] == pytest.approx(40 / 70)
+    assert result.sum(axis=1).tolist() == pytest.approx([1.0, 1.0])
+
+
+def test_pivot_show_values_as_percent_col() -> None:
+    """Each cell = cell / column-total; each column sums to 1.0."""
+    result = pivot(
+        df=_show_values_as_fixture(),
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_col",
+    )
+    # c1 total=40: 10/40, 30/40; c2 total=60: 20/60, 40/60
+    assert result.loc["r1", ("v", "c1")] == pytest.approx(10 / 40)
+    assert result.loc["r2", ("v", "c1")] == pytest.approx(30 / 40)
+    assert result.loc["r1", ("v", "c2")] == pytest.approx(20 / 60)
+    assert result.loc["r2", ("v", "c2")] == pytest.approx(40 / 60)
+    assert result.sum(axis=0).tolist() == pytest.approx([1.0, 1.0])
+
+
+def test_pivot_show_values_as_percent_total() -> None:
+    """Each cell = cell / grand-total; the whole frame sums to 1.0."""
+    result = pivot(
+        df=_show_values_as_fixture(),
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_total",
+    )
+    # grand=100: each cell divided by 100
+    assert result.loc["r1", ("v", "c1")] == pytest.approx(0.10)
+    assert result.loc["r1", ("v", "c2")] == pytest.approx(0.20)
+    assert result.loc["r2", ("v", "c1")] == pytest.approx(0.30)
+    assert result.loc["r2", ("v", "c2")] == pytest.approx(0.40)
+    assert result.values.sum() == pytest.approx(1.0)
+
+
+def test_pivot_show_values_as_preserves_nan_numerator() -> None:
+    """A NaN/NULL numerator stays NaN — matches the client-side #42810 guard
+    that a genuine SQL NULL should render blank, not "0.0%".
+
+    The fixture uses a **missing** (row, col) combination — ``r1`` has no
+    ``c2`` row — so ``pivot_table`` produces a genuine NaN cell for
+    (``r1``, ``c2``). Using a ``NaN`` *input value* with ``operator='sum'``
+    would not exercise this path because ``pandas`` ``.sum(skipna=True)``
+    on a single-value ``[NaN]`` group returns ``0.0``, not ``NaN``.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r2", "r2"],  # r1 has no c2 row → post-pivot NaN
+            "col": ["c1", "c1", "c2"],
+            "v": [10, 30, 40],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    # The genuinely-NaN cell stays NaN through the percent transform.
+    assert pd.isna(result.loc["r1", ("v", "c2")])
+    # The other cell in the same row divides correctly against just its
+    # own value (row total is 10 since c2 is NaN and skipna=True).
+    assert result.loc["r1", ("v", "c1")] == pytest.approx(1.0)
+
+
+def test_pivot_show_values_as_percent_total_zero_grand_total_yields_nan() -> None:
+    """Grand total of zero yields NaN cells rather than Infinity — matches the
+    client's ``if (acc === null) return null`` division-by-zero guard."""
+    df = DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "v": [0, 0, 0, 0],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_total",
+    )
+    # No cell should be Infinity or a real number; all should be NaN.
+    assert result.isna().values.all()
+
+
+def test_pivot_show_values_as_percent_row_multi_metric_keeps_metrics_separate() -> None:
+    """On a multi-metric pivot (``MultiIndex`` columns), per-row totals are
+    computed *within each metric*. Metric A's percentages must sum to 1.0
+    per row independent of metric B's values."""
+    df = DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "a": [10, 20, 30, 40],
+            "b": [1, 3, 5, 7],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"a": {"operator": "sum"}, "b": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    # Metric ``a``: row totals 30 and 70; each row of ``a`` sums to 1.
+    assert result["a"].sum(axis=1).tolist() == pytest.approx([1.0, 1.0])
+    # Metric ``b``: row totals 4 and 12; each row of ``b`` sums to 1.
+    assert result["b"].sum(axis=1).tolist() == pytest.approx([1.0, 1.0])
+    # Metric ``a`` percentages must not be contaminated by metric ``b`` values.
+    assert result.loc["r1", ("a", "c1")] == pytest.approx(10 / 30)
+    assert result.loc["r1", ("b", "c1")] == pytest.approx(1 / 4)
+
+
+def test_pivot_show_values_as_invalid_mode_raises() -> None:
+    """An unknown ``show_values_as`` value raises ``InvalidPostProcessingError``
+    rather than silently falling through to a no-op."""
+    with pytest.raises(InvalidPostProcessingError):
+        pivot(
+            df=_show_values_as_fixture(),
+            index=["row"],
+            columns=["col"],
+            aggregates={"v": {"operator": "sum"}},
+            show_values_as="percent_of_moon",
+        )
+
+
+def test_pivot_show_values_as_empty_string_is_noop() -> None:
+    """Empty-string ``show_values_as`` is treated as a no-op alongside
+    ``None`` and ``"actual"`` — it must NOT reach the percent-mode
+    validator (which would raise on it) or silently divide.
+    """
+    df = _show_values_as_fixture()
+    aggregates = {"v": {"operator": "sum"}}
+    baseline = pivot(df=df, index=["row"], columns=["col"], aggregates=aggregates)
+
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates=aggregates,
+        show_values_as="",
+    )
+    pd.testing.assert_frame_equal(result, baseline)
+
+
+def test_pivot_show_values_as_percent_total_flat_multi_metric() -> None:
+    """A multi-metric pivot with **no** ``columns`` groupby produces a
+    **flat** column index — each column IS its own metric. ``percent_total``
+    must divide each metric column by its OWN grand total (never mixing
+    metrics), otherwise one metric's magnitude changes another metric's
+    percentages.
+    """
+    df = DataFrame({"row": ["r1", "r2"], "a": [10, 30], "b": [1, 3]})
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"a": {"operator": "sum"}, "b": {"operator": "sum"}},
+        show_values_as="percent_total",
+    )
+    # Each metric column sums to 1.0 independently.
+    assert result["a"].sum() == pytest.approx(1.0)
+    assert result["b"].sum() == pytest.approx(1.0)
+    # And metric a's magnitude (10, 30 → grand 40) doesn't leak into
+    # metric b's percentages (which use grand 4).
+    assert result.loc["r1", "a"] == pytest.approx(10 / 40)
+    assert result.loc["r1", "b"] == pytest.approx(1 / 4)
+
+
+def test_pivot_show_values_as_percent_row_zero_row_total_yields_nan() -> None:
+    """A row whose values sum to zero yields NaN cells in that row rather
+    than ``Infinity``/``NaN`` from division-by-zero. Other rows still
+    divide correctly.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "v": [0, 0, 30, 40],  # r1's row-total is 0
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    assert pd.isna(result.loc["r1", ("v", "c1")])
+    assert pd.isna(result.loc["r1", ("v", "c2")])
+    # r2 still divides correctly against its own row-total (70).
+    assert result.loc["r2", ("v", "c1")] == pytest.approx(30 / 70)
+
+
+def test_pivot_show_values_as_percent_col_zero_col_total_yields_nan() -> None:
+    """A column whose values sum to zero yields NaN cells in that column
+    rather than ``Infinity``/``NaN`` from division-by-zero. Other columns
+    still divide correctly.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "v": [0, 20, 0, 40],  # c1's column-total is 0
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_col",
+    )
+    assert pd.isna(result.loc["r1", ("v", "c1")])
+    assert pd.isna(result.loc["r2", ("v", "c1")])
+    # c2 still divides correctly against its own column-total (60).
+    assert result.loc["r1", ("v", "c2")] == pytest.approx(20 / 60)
+
+
+def test_pivot_show_values_as_with_marginal_distributions_raises() -> None:
+    """``show_values_as`` combined with ``marginal_distributions`` would
+    include the ``All`` margin row/column in the row/column/grand-total
+    denominators, producing wrong percentages. Combining the two needs a
+    first-class design; for now the combination raises loudly rather than
+    silently returning wrong numbers.
+    """
+    with pytest.raises(InvalidPostProcessingError, match="marginal_distributions"):
+        pivot(
+            df=_show_values_as_fixture(),
+            index=["row"],
+            columns=["col"],
+            aggregates={"v": {"operator": "sum"}},
+            marginal_distributions=True,
+            show_values_as="percent_row",
+        )
+
+
+def test_pivot_show_values_as_with_combine_value_with_metric_preserves_per_metric() -> (
+    None
+):
+    """Regression test for sadpandajoe's finding on #42976.
+
+    ``combine_value_with_metric`` reshapes the column ``MultiIndex`` from
+    ``(metric, category)`` to ``(category, metric)``. Historically the
+    ``show_values_as`` transform ran *after* this reshape, so its per-metric
+    iteration walked categories thinking they were metrics — mixing metric
+    magnitudes and producing wrong percentages (e.g. metric ``a``'s row
+    would sum to ~1.78 instead of 1.0 because metric ``b``'s values leaked
+    into ``a``'s denominators).
+
+    The transform now runs *before* the reshape so per-metric isolation
+    stays intact regardless of the final column layout.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r1", "r2", "r2"],
+            "col": ["c1", "c2", "c1", "c2"],
+            "a": [10, 20, 30, 40],
+            "b": [1, 3, 5, 7],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"a": {"operator": "sum"}, "b": {"operator": "sum"}},
+        combine_value_with_metric=True,
+        show_values_as="percent_row",
+    )
+
+    # After combine_value_with_metric, the column MultiIndex is
+    # ``(category, metric)``. Per-metric row sums are pulled via cross-section
+    # on level 1 (the metric axis).
+    for metric, expected in (("a", [1.0, 1.0]), ("b", [1.0, 1.0])):
+        per_metric = result.xs(metric, axis=1, level=1)
+        assert per_metric.sum(axis=1).tolist() == pytest.approx(expected), (
+            f"metric {metric!r} rows must each sum to 1.0 after "
+            "percent_row on a combined pivot; got contamination from "
+            "other metrics"
+        )
+
+    # And the actual values match the natural per-metric percentages,
+    # not the mixed-metric ones that the bug produced.
+    assert result.loc["r1", ("c1", "a")] == pytest.approx(10 / 30)
+    assert result.loc["r1", ("c1", "b")] == pytest.approx(1 / 4)
+
+
+def test_pivot_show_values_as_rejects_non_additive_aggregate() -> None:
+    """``show_values_as`` requires additive aggregates.
+
+    For a ``mean`` aggregate, the summed per-cell values are not the
+    row/column/grand rollup the DB would compute over the underlying
+    rows, so ``cell / sum(cells)`` disagrees with the "share of the
+    real row total" the chart shows. Reject up front rather than emit
+    numbers that mix with the DB rollup incorrectly.
+    """
+    with pytest.raises(InvalidPostProcessingError, match="additive"):
+        pivot(
+            df=_show_values_as_fixture(),
+            index=["row"],
+            columns=["col"],
+            aggregates={"v": {"operator": "mean"}},
+            show_values_as="percent_row",
+        )
+
+
+def test_pivot_show_values_as_on_empty_pivot_returns_empty_frame() -> None:
+    """Empty inputs must not crash the percent transform.
+
+    An empty pivot with a column grouping has a ``MultiIndex`` with zero
+    level-0 groups; the metric-iteration loop then feeds ``pd.concat``
+    an empty list and raises ``ValueError: No objects to concatenate``.
+    The empty frame should pass through unchanged.
+    """
+    empty = DataFrame({"row": [], "col": [], "v": []}).astype(
+        {"row": str, "col": str, "v": float}
+    )
+    result = pivot(
+        df=empty,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    assert result.empty
+
+
+def test_pivot_show_values_as_preserves_structural_nan() -> None:
+    """Structurally-missing cells (no input rows for that (row, col)) stay NaN.
+
+    NULL preservation is scoped to the structural case: cells that
+    ``pivot_table`` left as ``NaN`` because no input row exists for that
+    (row, column) group must render as blank (``NaN``), not as ``0%``.
+    Value-is-NULL cells are a separate case documented on
+    ``_apply_show_values_as``.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r2", "r2"],
+            "col": ["c1", "c1", "c2"],
+            "v": [10.0, 30.0, 40.0],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+        show_values_as="percent_row",
+    )
+    # r1 has no c2 row → cell is structurally missing → stays NaN.
+    assert pd.isna(result.loc["r1", ("v", "c2")])
+    # r1's row-total is just c1 (10.0), so c1 is 100%.
+    assert result.loc["r1", ("v", "c1")] == pytest.approx(1.0)
+
+
+# --- NULL index preservation tests (#43547) ----------------------------------
+#
+# pandas pivot_table() silently drops rows whose index columns contain NaN,
+# regardless of the dropna= setting (which only governs the column axis).
+# The fix fills index columns with NULL_STRING before calling pivot_table(),
+# mirroring the existing treatment of the columns= parameter.
+
+
+def test_pivot_preserves_null_index_value() -> None:
+    """A NULL value in a flat (no columns groupby) index column must appear
+    as a '<NULL>' row in the result rather than being silently dropped.
+
+    Regression for #43547: pivot_table() drops NaN index rows regardless of
+    dropna=; filling the index with NULL_STRING before the call preserves them.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", None, "r2"],  # middle row has a NULL index value
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    # The NULL group must survive as a real index label, not be dropped.
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    # The metric value for the NULL group must be correct.
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_with_columns() -> None:
+    """A NULL value in an index column must survive as '<NULL>' even when a
+    columns= groupby is also active (MultiIndex column case).
+
+    Regression for #43547: the fix must work for both the flat pivot and the
+    MultiIndex pivot so that NULL row groups are never silently dropped.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", None, "r2"],  # middle row has a NULL index value
+            "col": ["c1", "c1", "c1"],
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    # The NULL group must survive as a real index label in the MultiIndex pivot.
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    # The metric value for the NULL-indexed group must be correct.
+    assert result.loc[NULL_STRING, ("v", "c1")] == 99
+
+
+def test_pivot_preserves_null_index_value_categorical() -> None:
+    """A categorical index column with a NULL value must have NULL_STRING added
+    as a valid category first and be preserved as '<NULL>' in the pivot output.
+
+    Regression for #43547: ensures fillna() on CategoricalDtype does not raise
+    and preserves the NULL index group.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", None, "r2"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_categorical_with_columns() -> None:
+    """Both index and column dimensions as categorical dtypes with NULL values
+    must properly add NULL_STRING to categories and preserve '<NULL>' rows and
+    columns in the MultiIndex output.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", None, "r2"]),
+            "col": pd.Categorical(["c1", None, "c2"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, ("v", NULL_STRING)] == 99
+
+
+def test_pivot_preserves_null_index_value_datetime() -> None:
+    """A datetime index column containing NaT/NULL must not raise a TypeError
+    when filled and must be preserved as '<NULL>' in the pivot output.
+
+    Regression for #43547: datetime64 columns cannot store strings directly;
+    casting to object dtype and filling only the NaT positions lets NaT keys
+    survive pivot_table() without dtype/sort errors, while non-null entries
+    stay real Timestamp objects instead of being stringified.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_null_index_value_datetime_keeps_non_null_timestamps() -> None:
+    """Filling NaT positions in a datetime index must not degrade the other,
+    non-null entries to strings -- they should remain real Timestamp values.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    non_null_index_values = [v for v in result.index if v != NULL_STRING]
+    assert non_null_index_values, "expected at least one non-null index value"
+    assert all(isinstance(v, pd.Timestamp) for v in non_null_index_values), (
+        f"Expected non-null index values to remain Timestamps; "
+        f"got {[type(v) for v in non_null_index_values]}"
+    )
+
+
+def test_pivot_preserves_null_index_value_datetime_with_columns() -> None:
+    """A datetime index column containing NaT/NULL with a columns groupby
+    must preserve '<NULL>' in the MultiIndex output without type errors.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"]),
+            "col": ["c1", "c1", "c2"],
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, ("v", "c1")] == 99
+
+
+def test_pivot_preserves_null_index_value_datetime_timezone_aware() -> None:
+    """A timezone-aware datetime index containing NaT must preserve '<NULL>'
+    without dtype or timezone conversion errors.
+    """
+    df = DataFrame(
+        {
+            "dttm": to_datetime(["2019-01-01", None, "2019-01-03"], utc=True),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["dttm"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_preserves_null_index_value_categorical_already_in_categories() -> None:
+    """A categorical index that already has NULL_STRING in its categories
+    must not fail or attempt duplicate category insertion and must fill NULLs.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(
+                ["r1", None, "r2"], categories=["r1", "r2", NULL_STRING]
+            ),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_categorical_column_with_null() -> None:
+    """A categorical groupby column containing NULL values must add the
+    column_fill_value to categories and preserve '<NULL>' in MultiIndex columns.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r2", "r3"],
+            "col": pd.Categorical(["c1", None, "c2"]),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert ("v", NULL_STRING) in result.columns
+    assert result.loc["r2", ("v", NULL_STRING)] == 99
+
+
+def test_pivot_categorical_column_already_in_categories() -> None:
+    """A categorical groupby column that already includes the fill value in its
+    categories must properly fill NULLs without error.
+    """
+    df = DataFrame(
+        {
+            "row": ["r1", "r2", "r3"],
+            "col": pd.Categorical(
+                ["c1", None, "c2"], categories=["c1", "c2", "CUSTOM_NULL"]
+            ),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        columns=["col"],
+        column_fill_value="CUSTOM_NULL",
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert ("v", "CUSTOM_NULL") in result.columns
+    assert result.loc["r2", ("v", "CUSTOM_NULL")] == 99
+
+
+def test_pivot_preserves_null_numeric_index_value() -> None:
+    """A numeric index containing NaN must be converted/filled with NULL_STRING
+    so that the NaN row is preserved through pivot_table().
+    """
+    df = DataFrame(
+        {
+            "num_idx": [1.0, np.nan, 2.0],
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["num_idx"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99
+
+
+def test_pivot_categorical_index_without_null_omits_unobserved_bucket() -> None:
+    """A categorical index column with no missing values must not gain a
+    spurious NULL_STRING category: adding the category unconditionally makes
+    pivot_table()'s default observed=False materialize an unobserved
+    '<NULL>' group that was never in the input.
+    """
+    df = DataFrame(
+        {
+            "row": pd.Categorical(["r1", "r2", "r1"]),
+            "v": [10, 20, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["row"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING not in result.index, (
+        f"Did not expect '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert sorted(result.index.tolist()) == ["r1", "r2"]
+
+
+def test_pivot_preserves_null_index_value_nullable_extension_dtype() -> None:
+    """A pandas nullable extension dimension (Int64, Float64, boolean, ...)
+    containing pd.NA must be preserved as '<NULL>' rather than raising a
+    TypeError: filling those masked arrays with a string sentinel is only
+    valid after casting to object dtype.
+    """
+    df = DataFrame(
+        {
+            "num_idx": pd.array([1, None, 2], dtype="Int64"),
+            "v": [10, 99, 30],
+        }
+    )
+    result = pivot(
+        df=df,
+        index=["num_idx"],
+        aggregates={"v": {"operator": "sum"}},
+    )
+    assert NULL_STRING in result.index, (
+        f"Expected '{NULL_STRING}' in pivot index; got {result.index.tolist()}"
+    )
+    assert result.loc[NULL_STRING, "v"] == 99

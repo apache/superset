@@ -29,7 +29,7 @@ import type {
   Table,
 } from 'src/SqlLab/types';
 import type { ThunkDispatch } from 'redux-thunk';
-import { pick } from 'lodash';
+import { pick } from 'lodash-es';
 import { tableApiUtil } from 'src/hooks/apiResources/tables';
 import {
   BYTES_PER_CHAR,
@@ -45,6 +45,7 @@ const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
   'dbId',
   'height',
   'id',
+  'immutableId',
   'latestQueryId',
   'northPercent',
   'queryLimit',

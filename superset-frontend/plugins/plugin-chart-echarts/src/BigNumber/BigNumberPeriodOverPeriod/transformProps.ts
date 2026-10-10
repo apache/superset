@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
+// Type augmentation for dayjs plugins
+import 'dayjs/plugin/utc';
 import { Metric } from '@superset-ui/chart-controls';
 import {
   ChartProps,
@@ -27,6 +27,7 @@ import {
   SimpleAdhocFilter,
   ensureIsArray,
 } from '@superset-ui/core';
+import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import {
   getComparisonFontSize,
   getHeaderFontSize,
@@ -34,8 +35,6 @@ import {
 } from './utils';
 
 import { getOriginalLabel } from '../utils';
-
-dayjs.extend(utc);
 
 export const parseMetricValue = (metricValue: number | string | null) => {
   if (typeof metricValue === 'string') {
@@ -83,7 +82,11 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     formData,
     queriesData,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      currencyCodeColumn,
+    },
   } = chartProps;
   const {
     boldText,
@@ -101,13 +104,18 @@ export default function transformProps(chartProps: ChartProps) {
     subtitleFontSize,
     columnConfig = {},
   } = formData;
-  const { data: dataA = [] } = queriesData[0];
+  const { data: dataA = [], detected_currency: detectedCurrency } =
+    queriesData[0] || {};
   const data = dataA;
   const metricName = metric ? getMetricLabel(metric) : '';
   const metrics = chartProps.datasource?.metrics || [];
   const originalLabel = getOriginalLabel(metric, metrics);
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
-  const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
+
+  const dashboardTimeCompare = formData?.extraFormData?.time_compare;
+  const timeComparison =
+    dashboardTimeCompare ||
+    ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
     (adhoc_filter: SimpleAdhocFilter) =>
@@ -163,6 +171,10 @@ export default function transformProps(chartProps: ChartProps) {
     columnFormats,
     metricEntry?.d3format || yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
 
   const compTitles = {

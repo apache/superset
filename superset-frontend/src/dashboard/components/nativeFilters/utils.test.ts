@@ -17,26 +17,33 @@
  * under the License.
  */
 import { Behavior } from '@superset-ui/core';
-import { DashboardLayout } from 'src/dashboard/types';
+import { DashboardLayout, LayoutItem } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
+import { createChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
+import {
+  nativeFilterGate,
+  findTabsWithChartsInScope,
+  getFormData,
+  mergeExtraFormData,
+} from './utils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('nativeFilterGate', () => {
-  it('should return true for regular chart', () => {
+  test('should return true for regular chart', () => {
     expect(nativeFilterGate([])).toEqual(true);
   });
 
-  it('should return true for cross filter chart', () => {
+  test('should return true for cross filter chart', () => {
     expect(nativeFilterGate([Behavior.InteractiveChart])).toEqual(true);
   });
 
-  it('should return true for native filter chart with cross filter support', () => {
+  test('should return true for native filter chart with cross filter support', () => {
     expect(
       nativeFilterGate([Behavior.NativeFilter, Behavior.InteractiveChart]),
     ).toEqual(true);
   });
 
-  it('should return false for native filter behavior', () => {
+  test('should return false for native filter behavior', () => {
     expect(nativeFilterGate([Behavior.NativeFilter])).toEqual(false);
   });
 });
@@ -79,4 +86,92 @@ test('findTabsWithChartsInScope should handle a recursive layout structure', () 
   expect(Array.from(findTabsWithChartsInScope(chartLayoutItems, []))).toEqual(
     [],
   );
+});
+
+test('findTabsWithChartsInScope includes tabs from duplicate chart holders', () => {
+  const chartLayoutItems: LayoutItem[] = [
+    {
+      id: 'CHART-7-first',
+      type: CHART_TYPE,
+      children: [],
+      parents: ['ROOT_ID', 'TAB-parent', 'TABS-nested', 'TAB-first'],
+      meta: {
+        chartId: 7,
+        height: 100,
+        width: 100,
+        uuid: 'test-uuid-CHART-7-first',
+      },
+    },
+    {
+      id: 'CHART-7-second',
+      type: CHART_TYPE,
+      children: [],
+      parents: ['ROOT_ID', 'TAB-parent', 'TABS-nested', 'TAB-second'],
+      meta: {
+        chartId: 7,
+        height: 100,
+        width: 100,
+        uuid: 'test-uuid-CHART-7-second',
+      },
+    },
+  ];
+  const chartLayoutItemMap = createChartLayoutItemMap(chartLayoutItems);
+
+  expect(
+    Array.from(findTabsWithChartsInScope(chartLayoutItemMap, [7])),
+  ).toEqual(['TAB-parent', 'TAB-first', 'TAB-second']);
+});
+
+test('getFormData should include persisted time_grains for time grain filters', () => {
+  const formData = getFormData({
+    dashboardId: 10,
+    id: 'NATIVE_FILTER-1',
+    filterType: 'filter_timegrain',
+    type: 'NATIVE_FILTER' as any,
+    controlValues: {},
+    defaultDataMask: {},
+    datasetId: 11,
+    time_grains: ['PT1H', 'P1D', 'P1W'],
+  });
+
+  expect((formData as any).time_grains).toEqual(['PT1H', 'P1D', 'P1W']);
+});
+
+test.each([false, true])(
+  'merging current and legacy member filters remains unversioned in either order (%s)',
+  reverse => {
+    const legacy = {
+      filters: [{ col: 'Orders.b', op: 'IN' as const, val: ['x'] }],
+    };
+    const current = {
+      ...legacy,
+      semantic_selection_sources: [
+        { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+      ],
+    };
+    const merged = reverse
+      ? mergeExtraFormData(current, legacy)
+      : mergeExtraFormData(legacy, current);
+    expect(merged.filters).toHaveLength(2);
+    expect(merged.semantic_selection_sources).toContainEqual({
+      datasource: '',
+      version: null,
+    });
+    expect(merged.semantic_selection_sources).toContainEqual({
+      datasource: '7__semantic_view',
+      version: 'cube-member-id-v1',
+    });
+  },
+);
+test('getFormData passes controlValues.displayFormat through to the filter plugin formData', () => {
+  const formData = getFormData({
+    dashboardId: 10,
+    id: 'NATIVE_FILTER-1',
+    filterType: 'filter_time',
+    type: 'NATIVE_FILTER' as any,
+    controlValues: { displayFormat: '%d-%m-%Y' },
+    defaultDataMask: {},
+  });
+
+  expect((formData as any).displayFormat).toBe('%d-%m-%Y');
 });

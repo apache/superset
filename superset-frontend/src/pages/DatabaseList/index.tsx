@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
-  styled,
   SupersetClient,
-  t,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
-import { useState, useMemo, useEffect } from 'react';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import type { CellProps } from 'react-table';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
@@ -36,7 +39,10 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import {
+  ActionButton,
+  Button,
   DeleteModal,
+  Dropdown,
   Tooltip,
   List,
   Loading,
@@ -46,11 +52,14 @@ import {
   ListView,
   ListViewFilterOperator as FilterOperator,
   ListViewFilters,
+  type ListViewFetchDataConfig,
 } from 'src/components';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { URL_PARAMS } from 'src/constants';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import handleResourceExport from 'src/utils/export';
 import { ExtensionConfigs } from 'src/features/home/types';
@@ -58,10 +67,17 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
+import SemanticLayerModal from 'src/features/semanticLayers/SemanticLayerModal';
 import { DatabaseObject } from 'src/features/databases/types';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
+import type User from 'src/types/User';
+import {
+  databaseLabel,
+  databaseLabelLower,
+  databasesLabel,
+} from 'src/features/semanticLayers/label';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DatabaseDeleteRelatedExtension = extensionsRegistry.get(
@@ -72,12 +88,162 @@ const dbConfigExtraExtension = extensionsRegistry.get(
 );
 
 const PAGE_SIZE = 25;
+const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
+
+type ConnectionItem = DatabaseObject & {
+  source_type?: 'database' | 'semantic_layer';
+  sl_type?: string;
+  changed_by?: User;
+  changed_on_delta_humanized?: string;
+};
 
 interface DatabaseDeleteObject extends DatabaseObject {
   charts: any;
   dashboards: any;
   sqllab_tab_count: number;
+  datasets: {
+    count: number;
+    result: { id: number; table_name: string }[];
+  };
 }
+
+/** How many dependent semantic views the delete confirmation lists by name. */
+const MAX_DEPENDENT_VIEWS_LISTED = 10;
+
+/** How many dependent datasets the delete confirmation lists by name. */
+const MAX_DEPENDENT_DATASETS_LISTED = 10;
+
+type SemanticLayerDeletePreview =
+  | { status: 'loading'; item: ConnectionItem }
+  | {
+      status: 'loaded';
+      item: ConnectionItem;
+      dependentViewCount: number;
+      dependentViewNames: string[];
+    }
+  | { status: 'failed'; item: ConnectionItem };
+
+type ResolvedSemanticLayerDeletePreview = Exclude<
+  SemanticLayerDeletePreview,
+  { status: 'loading' }
+>;
+
+function SemanticLayerCascadeWarning({
+  preview,
+}: {
+  preview: ResolvedSemanticLayerDeletePreview;
+}) {
+  if (preview.status === 'failed') {
+    return (
+      <p>
+        {t(
+          'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+        )}
+      </p>
+    );
+  }
+
+  // A reachable layer always has all of its views counted (the layer's perm
+  // and its views' perms travel together), so zero means genuinely empty —
+  // never access-filtered. An honest empty message keeps the destructive
+  // warning credible for the layers where it matters.
+  if (preview.dependentViewCount === 0) {
+    return <p>{t('This semantic layer has no dependent semantic views.')}</p>;
+  }
+
+  const listedViewCount = preview.dependentViewNames.length;
+  const overflowViewCount = preview.dependentViewCount - listedViewCount;
+
+  return (
+    <>
+      <p>
+        {tn(
+          'This will also permanently delete its %s semantic view. Charts built on that view will stop working.',
+          'This will also permanently delete its %s semantic views. Charts built on those views will stop working.',
+          preview.dependentViewCount,
+          preview.dependentViewCount,
+        )}
+      </p>
+      {listedViewCount > 0 && (
+        <>
+          <h4>{t('Affected semantic views')}</h4>
+          <List
+            split={false}
+            size="small"
+            dataSource={preview.dependentViewNames}
+            renderItem={(name: string, index: number) => (
+              <List.Item key={`${index}-${name}`} compact>
+                <List.Item.Meta avatar={<span>•</span>} title={name} />
+              </List.Item>
+            )}
+            footer={
+              overflowViewCount > 0 && (
+                <div>
+                  {tn(
+                    '... and %s other',
+                    '... and %s others',
+                    overflowViewCount,
+                    overflowViewCount,
+                  )}
+                </div>
+              )
+            }
+          />
+        </>
+      )}
+    </>
+  );
+}
+/**
+ * Names the datasets blocking a connection delete.
+ *
+ * ``count`` is every dataset that blocks the delete; ``result`` is only the
+ * subset the caller may see, because the related_objects endpoint
+ * access-filters the names. The two therefore diverge, and the overflow footer
+ * counts from what is actually listed rather than assuming a full page.
+ */
+function DatabaseDatasetDependents({
+  datasets,
+}: {
+  datasets: DatabaseDeleteObject['datasets'];
+}) {
+  const listed = datasets.result.slice(0, MAX_DEPENDENT_DATASETS_LISTED);
+  if (listed.length === 0) {
+    // The count still explains the block in the message above; an empty list
+    // under a heading would only imply the dependents had vanished.
+    return null;
+  }
+  const unlistedCount = datasets.count - listed.length;
+
+  return (
+    <>
+      <h4>{t('Affected Datasets')}</h4>
+      <List
+        split={false}
+        size="small"
+        dataSource={listed}
+        renderItem={(result: { id: number; table_name: string }) => (
+          <List.Item key={result.id} compact>
+            <List.Item.Meta avatar={<span>•</span>} title={result.table_name} />
+          </List.Item>
+        )}
+        footer={
+          unlistedCount > 0 && (
+            <div>
+              {tn(
+                '... and %s other',
+                '... and %s others',
+                unlistedCount,
+                unlistedCount,
+              )}
+            </div>
+          )
+        }
+      />
+    </>
+  );
+}
+
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -89,15 +255,7 @@ interface DatabaseListProps {
   };
 }
 
-const Actions = styled.div`
-  .action-button {
-    display: inline-block;
-    height: 100%;
-    color: ${({ theme }) => theme.colorIcon};
-  }
-`;
-
-function BooleanDisplay({ value }: { value: Boolean }) {
+function BooleanDisplay({ value }: { value: boolean }) {
   return value ? (
     <Icons.CheckOutlined iconSize="s" />
   ) : (
@@ -111,23 +269,125 @@ function DatabaseList({
   addSuccessToast,
   user,
 }: DatabaseListProps) {
+  const theme = useTheme();
+  const showSemanticLayers = isFeatureEnabled(SEMANTIC_LAYERS_FLAG);
+
+  const fullUser = useSelector<
+    { user: UserWithPermissionsAndRoles },
+    UserWithPermissionsAndRoles
+  >(state => state.user);
+  const canReadDatabase = findPermission(
+    'can_read',
+    'Database',
+    fullUser.roles,
+  );
+  const canReadLayer = findPermission(
+    'can_read',
+    'SemanticLayer',
+    fullUser.roles,
+  );
+  const canWriteLayer =
+    showSemanticLayers &&
+    findPermission('can_write', 'SemanticLayer', fullUser.roles);
+
+  // Standard database list view resource (used when SL flag is OFF)
   const {
     state: {
-      loading,
-      resourceCount: databaseCount,
-      resourceCollection: databases,
+      loading: dbLoading,
+      resourceCount: dbCount,
+      resourceCollection: dbCollection,
     },
     hasPerm,
-    fetchData,
-    refreshData,
+    fetchData: dbFetchData,
+    refreshData: dbRefreshData,
   } = useListViewResource<DatabaseObject>(
     'database',
-    t('database'),
+    databaseLabelLower(),
     addDangerToast,
+    !showSemanticLayers || canReadDatabase,
   );
-  const fullUser = useSelector<any, UserWithPermissionsAndRoles>(
-    state => state.user,
+
+  // Combined endpoint state (used when SL flag is ON)
+  const [combinedItems, setCombinedItems] = useState<ConnectionItem[]>([]);
+  const [combinedCount, setCombinedCount] = useState(0);
+  const [combinedLoading, setCombinedLoading] = useState(true);
+  const [lastFetchConfig, setLastFetchConfig] =
+    useState<ListViewFetchDataConfig | null>(null);
+
+  const combinedFetchData = useCallback(
+    (config: ListViewFetchDataConfig) => {
+      setLastFetchConfig(config);
+      setCombinedLoading(true);
+      const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
+
+      const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
+      const otherFilters = filterValues
+        .filter(f => f.id !== 'source_type')
+        .filter(
+          ({ value }) => value !== '' && value !== null && value !== undefined,
+        )
+        .map(({ id, operator: opr, value }) => ({
+          col: id,
+          opr,
+          value:
+            value && typeof value === 'object' && 'value' in value
+              ? value.value
+              : value,
+        }));
+
+      const sourceTypeValue =
+        sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
+          ? (sourceTypeFilter.value as { value: string }).value
+          : (sourceTypeFilter?.value as string | undefined);
+      if (sourceTypeValue) {
+        otherFilters.push({
+          col: 'source_type',
+          opr: 'eq',
+          value: sourceTypeValue,
+        });
+      }
+
+      const queryParams = rison.encode_uri({
+        order_column: sortBy[0].id,
+        order_direction: sortBy[0].desc ? 'desc' : 'asc',
+        page: pageIndex,
+        page_size: pageSize,
+        ...(otherFilters.length ? { filters: otherFilters } : {}),
+      });
+
+      return SupersetClient.get({
+        endpoint: `/api/v1/semantic_layer/connections/?q=${queryParams}`,
+      })
+        .then(({ json = {} }) => {
+          setCombinedItems(json.result);
+          setCombinedCount(json.count);
+        })
+        .catch(() => {
+          addDangerToast(t('An error occurred while fetching connections'));
+        })
+        .finally(() => {
+          setCombinedLoading(false);
+        });
+    },
+    [addDangerToast],
   );
+
+  const combinedRefreshData = useCallback(() => {
+    if (lastFetchConfig) {
+      return combinedFetchData(lastFetchConfig);
+    }
+    return undefined;
+  }, [lastFetchConfig, combinedFetchData]);
+
+  // Select the right data source based on feature flag
+  const loading = showSemanticLayers ? combinedLoading : dbLoading;
+  const databaseCount = showSemanticLayers ? combinedCount : dbCount;
+  const databases: ConnectionItem[] = showSemanticLayers
+    ? combinedItems
+    : dbCollection;
+  const fetchData = showSemanticLayers ? combinedFetchData : dbFetchData;
+  const refreshData = showSemanticLayers ? combinedRefreshData : dbRefreshData;
+
   const shouldSyncPermsInAsyncMode = useSelector<any, boolean>(
     state => state.common?.conf.SYNC_DB_PERMISSIONS_IN_ASYNC_MODE,
   );
@@ -151,6 +411,13 @@ function DatabaseList({
     useState<boolean>(false);
   const [columnarUploadDataModalOpen, setColumnarUploadDataModalOpen] =
     useState<boolean>(false);
+  const [semanticLayerModalOpen, setSemanticLayerModalOpen] =
+    useState<boolean>(false);
+  const [slCurrentlyEditing, setSlCurrentlyEditing] = useState<string | null>(
+    null,
+  );
+  const [slDeletePreview, setSlDeletePreview] =
+    useState<SemanticLayerDeletePreview | null>(null);
 
   const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const isAdmin = isUserAdmin(fullUser);
@@ -172,26 +439,69 @@ function DatabaseList({
     }
   }, [query, setQuery, refreshData]);
 
-  const openDatabaseDeleteModal = (database: DatabaseObject) =>
-    SupersetClient.get({
-      endpoint: `/api/v1/database/${database.id}/related_objects/`,
-    })
-      .then(({ json = {} }) => {
-        setDatabaseCurrentlyDeleting({
-          ...database,
-          charts: json.charts,
-          dashboards: json.dashboards,
-          sqllab_tab_count: json.sqllab_tab_states.count,
-        });
+  const openDatabaseDeleteModal = useCallback(
+    (database: DatabaseObject) =>
+      SupersetClient.get({
+        endpoint: `/api/v1/database/${database.id}/related_objects/`,
       })
-      .catch(
-        createErrorHandler(errMsg =>
-          t(
-            'An error occurred while fetching database related data: %s',
-            errMsg,
+        .then(({ json = {} }) => {
+          setDatabaseCurrentlyDeleting({
+            ...database,
+            charts: json.charts,
+            dashboards: json.dashboards,
+            sqllab_tab_count: json.sqllab_tab_states.count,
+            // Tolerate a backend that predates the datasets block rather than
+            // letting the confirmation crash on it.
+            datasets: json.datasets ?? { count: 0, result: [] },
+          });
+        })
+        .catch(
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching database related data: %s',
+              errMsg,
+            ),
           ),
         ),
-      );
+    [],
+  );
+
+  // Deleting a semantic layer cascade-deletes its semantic views, so the
+  // confirmation must say what else is about to be destroyed. If the lookup
+  // fails the modal still opens, with an uncounted warning: the count is an
+  // aid, not a gate on deleting. The generation counter drops stale
+  // resolutions -- without it a slow lookup could reopen a modal the user
+  // already dismissed, or replace a newer row's modal with an older one.
+  const slDeleteLookupRef = useRef(0);
+  const openSemanticLayerDeleteModal = useCallback((item: ConnectionItem) => {
+    slDeleteLookupRef.current += 1;
+    const lookupId = slDeleteLookupRef.current;
+    setSlDeletePreview({ status: 'loading', item });
+    return SupersetClient.get({
+      endpoint: `/api/v1/datasource/?q=${rison.encode_uri({
+        filters: [{ col: 'semantic_layer_uuid', opr: 'eq', value: item.uuid }],
+        order_column: 'table_name',
+        order_direction: 'asc',
+        page: 0,
+        page_size: MAX_DEPENDENT_VIEWS_LISTED,
+      })}`,
+    })
+      .then(({ json = {} }) => {
+        if (slDeleteLookupRef.current !== lookupId) return;
+        setSlDeletePreview({
+          status: 'loaded',
+          item,
+          dependentViewCount: json.count ?? 0,
+          dependentViewNames: (json.result ?? []).map(
+            (view: { table_name: string }) => view.table_name,
+          ),
+        });
+      })
+      .catch(() => {
+        if (slDeleteLookupRef.current !== lookupId) return;
+        setSlDeletePreview({ status: 'failed', item });
+      });
+  }, []);
 
   function handleDatabaseDelete(database: DatabaseObject) {
     const { id, database_name: dbName } = database;
@@ -219,14 +529,17 @@ function DatabaseList({
     );
   }
 
-  function handleDatabaseEditModal({
-    database = null,
-    modalOpen = false,
-  }: { database?: DatabaseObject | null; modalOpen?: boolean } = {}) {
-    // Set database and modal
-    setCurrentDatabase(database);
-    setDatabaseModalOpen(modalOpen);
-  }
+  const handleDatabaseEditModal = useCallback(
+    ({
+      database = null,
+      modalOpen = false,
+    }: { database?: DatabaseObject | null; modalOpen?: boolean } = {}) => {
+      // Set database and modal
+      setCurrentDatabase(database);
+      setDatabaseModalOpen(modalOpen);
+    },
+    [],
+  );
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -281,7 +594,12 @@ function DatabaseList({
     },
   ];
 
-  const hasFileUploadEnabled = () => {
+  useEffect(() => {
+    if (!canReadDatabase) {
+      setAllowUploads(false);
+      return undefined;
+    }
+    let active = true;
     const payload = {
       filters: [
         { col: 'allow_file_upload', opr: 'upload_is_enabled', value: true },
@@ -289,18 +607,27 @@ function DatabaseList({
     };
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
-    }).then(({ json }: Record<string, any>) => {
-      // There might be some existing Gsheets and Clickhouse DBs
-      // with allow_file_upload set as True which is not possible from now on
-      const allowedDatabasesWithFileUpload =
-        json?.result?.filter(
-          (database: any) => database?.engine_information?.supports_file_upload,
-        ) || [];
-      setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
-    });
-  };
-
-  useEffect(() => hasFileUploadEnabled(), [databaseModalOpen]);
+    })
+      .then(({ json }) => {
+        // Older GSheets and ClickHouse configurations may allow uploads even
+        // though their engines do not support them.
+        if (active) {
+          setAllowUploads(
+            json?.result?.some(
+              (database: {
+                engine_information?: { supports_file_upload?: boolean };
+              }) => database.engine_information?.supports_file_upload,
+            ) ?? false,
+          );
+        }
+      })
+      .catch(() => {
+        if (active) setAllowUploads(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [databaseModalOpen, canReadDatabase]);
 
   const filteredDropDown = uploadDropdownMenu.reduce((prev, cur) => {
     // eslint-disable-next-line no-param-reassign
@@ -313,87 +640,178 @@ function DatabaseList({
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
     dropDownLinks: filteredDropDown,
-    name: t('Databases'),
+    name: databasesLabel(),
   };
 
-  if (canCreate) {
-    menuData.buttons = [
-      {
-        'data-test': 'btn-create-database',
-        icon: <Icons.PlusOutlined iconSize="m" />,
-        name: t('Database'),
-        buttonStyle: 'primary',
-        onClick: () => {
-          // Ensure modal will be opened in add mode
-          handleDatabaseEditModal({ modalOpen: true });
+  if (canCreate || canWriteLayer) {
+    const openDatabaseModal = () =>
+      handleDatabaseEditModal({ modalOpen: true });
+
+    if (isFeatureEnabled(SEMANTIC_LAYERS_FLAG)) {
+      menuData.buttons = [
+        {
+          name: t('New'),
+          buttonStyle: 'primary',
+          component: (
+            <Dropdown
+              menu={{
+                items: [
+                  ...(canCreate
+                    ? [
+                        {
+                          key: 'database',
+                          label: t('Database'),
+                          onClick: openDatabaseModal,
+                        },
+                      ]
+                    : []),
+                  ...(canWriteLayer
+                    ? [
+                        {
+                          key: 'semantic-layer',
+                          label: t('Semantic Layer'),
+                          onClick: () => {
+                            setSemanticLayerModalOpen(true);
+                          },
+                        },
+                      ]
+                    : []),
+                ],
+              }}
+              trigger={['click']}
+            >
+              <Button
+                data-test="btn-create-new"
+                buttonStyle="primary"
+                icon={<Icons.PlusOutlined iconSize="m" />}
+              >
+                {t('New')}
+                <Icons.DownOutlined
+                  iconSize="s"
+                  css={css`
+                    margin-left: ${theme.sizeUnit * 1.5}px;
+                    margin-right: -${theme.sizeUnit * 2}px;
+                  `}
+                />
+              </Button>
+            </Dropdown>
+          ),
         },
-      },
-    ];
-  }
-
-  function handleDatabaseExport(database: DatabaseObject) {
-    if (database.id === undefined) {
-      return;
-    }
-
-    handleResourceExport('database', [database.id], () => {
-      setPreparingExport(false);
-    });
-    setPreparingExport(true);
-  }
-
-  function handleDatabasePermSync(database: DatabaseObject) {
-    if (shouldSyncPermsInAsyncMode) {
-      addInfoToast(t('Validating connectivity for %s', database.database_name));
+      ];
     } else {
-      addInfoToast(t('Syncing permissions for %s', database.database_name));
+      menuData.buttons = [
+        {
+          'data-test': 'btn-create-database',
+          icon: <Icons.PlusOutlined iconSize="m" />,
+          name: databaseLabel(),
+          buttonStyle: 'primary',
+          onClick: openDatabaseModal,
+        },
+      ];
     }
-    SupersetClient.post({
-      endpoint: `/api/v1/database/${database.id}/sync_permissions/`,
-    }).then(
-      ({ response }) => {
-        // Sync request
-        if (response.status === 200) {
-          addSuccessToast(
-            t('Permissions successfully synced for %s', database.database_name),
-          );
-        }
-        // Async request
-        else {
-          addInfoToast(
+  }
+
+  const handleDatabaseExport = useCallback(
+    async (database: DatabaseObject) => {
+      if (database.id === undefined) {
+        return;
+      }
+
+      setPreparingExport(true);
+      try {
+        await handleResourceExport('database', [database.id], () => {
+          setPreparingExport(false);
+        });
+      } catch {
+        setPreparingExport(false);
+        addDangerToast(
+          t('There was an issue exporting the %s', databaseLabelLower()),
+        );
+      }
+    },
+    [addDangerToast, setPreparingExport],
+  );
+
+  const handleDatabasePermSync = useCallback(
+    (database: DatabaseObject) => {
+      if (shouldSyncPermsInAsyncMode) {
+        addInfoToast(
+          t('Validating connectivity for %s', database.database_name),
+        );
+      } else {
+        addInfoToast(t('Syncing permissions for %s', database.database_name));
+      }
+      SupersetClient.post({
+        endpoint: `/api/v1/database/${database.id}/sync_permissions/`,
+      }).then(
+        ({ response }) => {
+          // Sync request
+          if (response.status === 200) {
+            addSuccessToast(
+              t(
+                'Permissions successfully synced for %s',
+                database.database_name,
+              ),
+            );
+          }
+          // Async request
+          else {
+            addInfoToast(
+              t(
+                'Syncing permissions for %s in the background',
+                database.database_name,
+              ),
+            );
+          }
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
             t(
-              'Syncing permissions for %s in the background',
+              'An error occurred while syncing permissions for %s: %s',
               database.database_name,
+              errMsg,
             ),
-          );
-        }
+          ),
+        ),
+      );
+    },
+    [shouldSyncPermsInAsyncMode, addInfoToast, addSuccessToast, addDangerToast],
+  );
+
+  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
+
+  function handleSemanticLayerDelete(item: ConnectionItem) {
+    SupersetClient.delete({
+      endpoint: `/api/v1/semantic_layer/${item.uuid}`,
+    }).then(
+      () => {
+        refreshData();
+        addSuccessToast(t('Deleted: %s', item.database_name));
+        setSlDeletePreview(null);
       },
       createErrorHandler(errMsg =>
         addDangerToast(
-          t(
-            'An error occurred while syncing permissions for %s: %s',
-            database.database_name,
-            errMsg,
-          ),
+          t('There was an issue deleting %s: %s', item.database_name, errMsg),
         ),
       ),
     );
   }
-
-  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   const columns = useMemo(
     () => [
       {
         accessor: 'database_name',
         Header: t('Name'),
+        size: 'xxl',
         id: 'database_name',
       },
       {
         accessor: 'backend',
+        // i18n: the kind of system behind a connection: a database engine
+        // (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
         Header: t('Backend'),
-        size: 'lg',
-        disableSortBy: true, // TODO: api support for sorting by 'backend'
+        size: 'xl',
+        disableSortBy: true,
         id: 'backend',
       },
       {
@@ -407,13 +825,12 @@ function DatabaseList({
             <span>{t('AQE')}</span>
           </Tooltip>
         ),
-        Cell: ({
-          row: {
-            original: { allow_run_async: allowRunAsync },
-          },
-        }: {
-          row: { original: { allow_run_async: boolean } };
-        }) => <BooleanDisplay value={allowRunAsync} />,
+        Cell: ({ row: { original } }: CellProps<ConnectionItem>) =>
+          original.source_type === 'semantic_layer' ? (
+            <span>–</span>
+          ) : (
+            <BooleanDisplay value={Boolean(original.allow_run_async)} />
+          ),
         size: 'sm',
         id: 'allow_run_async',
       },
@@ -428,33 +845,36 @@ function DatabaseList({
             <span>{t('DML')}</span>
           </Tooltip>
         ),
-        Cell: ({
-          row: {
-            original: { allow_dml: allowDML },
-          },
-        }: any) => <BooleanDisplay value={allowDML} />,
+        Cell: ({ row: { original } }: CellProps<ConnectionItem>) =>
+          original.source_type === 'semantic_layer' ? (
+            <span>–</span>
+          ) : (
+            <BooleanDisplay value={Boolean(original.allow_dml)} />
+          ),
         size: 'sm',
         id: 'allow_dml',
       },
       {
         accessor: 'allow_file_upload',
         Header: t('File upload'),
-        Cell: ({
-          row: {
-            original: { allow_file_upload: allowFileUpload },
-          },
-        }: any) => <BooleanDisplay value={allowFileUpload} />,
+        Cell: ({ row: { original } }: CellProps<ConnectionItem>) =>
+          original.source_type === 'semantic_layer' ? (
+            <span>–</span>
+          ) : (
+            <BooleanDisplay value={Boolean(original.allow_file_upload)} />
+          ),
         size: 'md',
         id: 'allow_file_upload',
       },
       {
         accessor: 'expose_in_sqllab',
         Header: t('Expose in SQL Lab'),
-        Cell: ({
-          row: {
-            original: { expose_in_sqllab: exposeInSqllab },
-          },
-        }: any) => <BooleanDisplay value={exposeInSqllab} />,
+        Cell: ({ row: { original } }: CellProps<ConnectionItem>) =>
+          original.source_type === 'semantic_layer' ? (
+            <span>–</span>
+          ) : (
+            <BooleanDisplay value={Boolean(original.expose_in_sqllab)} />
+          ),
         size: 'md',
         id: 'expose_in_sqllab',
       },
@@ -466,14 +886,54 @@ function DatabaseList({
               changed_on_delta_humanized: changedOn,
             },
           },
-        }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
+        }: CellProps<ConnectionItem>) => (
+          <ModifiedInfo date={changedOn || ''} user={changedBy} />
+        ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
         size: 'xl',
         id: 'changed_on_delta_humanized',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({ row: { original } }: CellProps<ConnectionItem>) => {
+          const isSemanticLayer = original.source_type === 'semantic_layer';
+
+          if (isSemanticLayer) {
+            if (!canWriteLayer) return null;
+            const isLoadingDependents =
+              slDeletePreview?.status === 'loading' &&
+              slDeletePreview.item.uuid === original.uuid;
+            return (
+              <div className="actions">
+                <ActionButton
+                  label={t('Delete')}
+                  tooltip={
+                    isLoadingDependents
+                      ? t('Loading dependent semantic views')
+                      : t('Delete')
+                  }
+                  placement="bottom"
+                  icon={
+                    isLoadingDependents ? (
+                      <Icons.LoadingOutlined iconSize="l" spin />
+                    ) : (
+                      <Icons.DeleteOutlined iconSize="l" />
+                    )
+                  }
+                  disabled={isLoadingDependents}
+                  onClick={() => openSemanticLayerDeleteModal(original)}
+                />
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
+                  placement="bottom"
+                  icon={<Icons.EditOutlined iconSize="l" />}
+                  onClick={() => setSlCurrentlyEditing(original.uuid ?? null)}
+                />
+              </div>
+            );
+          }
+
           const handleEdit = () =>
             handleDatabaseEditModal({ database: original, modalOpen: true });
           const handleDelete = () => openDatabaseDeleteModal(original);
@@ -483,81 +943,62 @@ function DatabaseList({
             return null;
           }
           return (
-            <Actions className="actions">
-              {canDelete && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  data-test="database-delete"
-                  onClick={handleDelete}
-                >
-                  <Tooltip
-                    id="delete-action-tooltip"
-                    title={t('Delete database')}
-                    placement="bottom"
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </Tooltip>
-                </span>
+            <div className="actions">
+              {canEdit && (
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
+                  placement="bottom"
+                  icon={
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  }
+                  dataTest="database-edit"
+                  onClick={handleEdit}
+                />
               )}
               {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
+                <ActionButton
+                  label={t('Export')}
+                  tooltip={t('Export')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.UploadOutlined iconSize="l" />}
+                  dataTest="database-export"
+                  onClick={handleExport}
+                />
               )}
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
+                <ActionButton
+                  label={t('Sync Permissions')}
+                  tooltip={t('Sync Permissions')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    data-test="database-edit"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.SyncOutlined iconSize="l" />}
+                  dataTest="database-sync-perm"
+                  onClick={handleSync}
+                />
               )}
-              {canEdit && (
-                <Tooltip
-                  id="sync-action-tooltip"
-                  title={t('Sync Permissions')}
+              {canDelete && (
+                <ActionButton
+                  label={t('Delete %s', databaseLabelLower())}
+                  tooltip={t('Delete %s', databaseLabelLower())}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    data-test="database-sync-perm"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleSync}
-                  >
-                    <Icons.SyncOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                  icon={<Icons.DeleteOutlined iconSize="l" />}
+                  dataTest="database-delete"
+                  onClick={handleDelete}
+                />
               )}
-            </Actions>
+            </div>
           );
         },
         Header: t('Actions'),
         id: 'actions',
-        hidden: !canEdit && !canDelete,
+        hidden: !canEdit && !canDelete && !canExport && !canWriteLayer,
         disableSortBy: true,
+      },
+      {
+        accessor: 'source_type',
+        hidden: true,
+        disableSortBy: true,
+        id: 'source_type',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,
@@ -565,11 +1006,22 @@ function DatabaseList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canEdit, canExport],
+    [
+      canDelete,
+      canEdit,
+      canExport,
+      handleDatabaseEditModal,
+      handleDatabaseExport,
+      handleDatabasePermSync,
+      openDatabaseDeleteModal,
+      openSemanticLayerDeleteModal,
+      canWriteLayer,
+      slDeletePreview,
+    ],
   );
 
-  const filters: ListViewFilters = useMemo(
-    () => [
+  const filters: ListViewFilters = useMemo(() => {
+    const baseFilters: ListViewFilters = [
       {
         Header: t('Name'),
         key: 'search',
@@ -577,62 +1029,88 @@ function DatabaseList({
         input: 'search',
         operator: FilterOperator.Contains,
       },
-      {
-        Header: t('Expose in SQL Lab'),
-        key: 'expose_in_sql_lab',
-        id: 'expose_in_sqllab',
+    ];
+
+    if (showSemanticLayers) {
+      baseFilters.push({
+        Header: t('Source'),
+        key: 'source_type',
+        id: 'source_type',
         input: 'select',
         operator: FilterOperator.Equals,
         unfilteredLabel: t('All'),
         selects: [
-          { label: t('Yes'), value: true },
-          { label: t('No'), value: false },
+          ...(canReadDatabase
+            ? [{ label: t('Database'), value: 'database' }]
+            : []),
+          ...(canReadLayer
+            ? [{ label: t('Semantic Layer'), value: 'semantic_layer' }]
+            : []),
         ],
-      },
-      {
-        Header: (
-          <Tooltip
-            id="allow-run-async-filter-header-tooltip"
-            title={t('Asynchronous query execution')}
-            placement="top"
-          >
-            <span>{t('AQE')}</span>
-          </Tooltip>
-        ),
-        key: 'allow_run_async',
-        id: 'allow_run_async',
-        input: 'select',
-        operator: FilterOperator.Equals,
-        unfilteredLabel: t('All'),
-        selects: [
-          { label: t('Yes'), value: true },
-          { label: t('No'), value: false },
-        ],
-      },
-      {
-        Header: t('Modified by'),
-        key: 'changed_by',
-        id: 'changed_by',
-        input: 'select',
-        operator: FilterOperator.RelationOneMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
-          'database',
-          'changed_by',
-          createErrorHandler(errMsg =>
-            t(
-              'An error occurred while fetching dataset datasource values: %s',
-              errMsg,
-            ),
+      });
+    }
+
+    if (!showSemanticLayers) {
+      baseFilters.push(
+        {
+          Header: t('Expose in SQL Lab'),
+          key: 'expose_in_sql_lab',
+          id: 'expose_in_sqllab',
+          input: 'select',
+          operator: FilterOperator.Equals,
+          unfilteredLabel: t('All'),
+          selects: [
+            { label: t('Yes'), value: true },
+            { label: t('No'), value: false },
+          ],
+        },
+        {
+          Header: (
+            <Tooltip
+              id="allow-run-async-filter-header-tooltip"
+              title={t('Asynchronous query execution')}
+              placement="top"
+            >
+              <span>{t('AQE')}</span>
+            </Tooltip>
           ),
-          user,
-        ),
-        paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
-      },
-    ],
-    [],
-  );
+          key: 'allow_run_async',
+          id: 'allow_run_async',
+          input: 'select',
+          operator: FilterOperator.Equals,
+          unfilteredLabel: t('All'),
+          selects: [
+            { label: t('Yes'), value: true },
+            { label: t('No'), value: false },
+          ],
+        },
+        {
+          Header: t('Modified by'),
+          key: 'changed_by',
+          id: 'changed_by',
+          input: 'select',
+          operator: FilterOperator.RelationOneMany,
+          unfilteredLabel: t('All'),
+          fetchSelects: createFetchRelated(
+            'database',
+            'changed_by',
+            createErrorHandler(errMsg =>
+              t(
+                'An error occurred while fetching %s values: %s',
+                databaseLabelLower(),
+                errMsg,
+              ),
+            ),
+            user,
+          ),
+          paginate: true,
+          popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        },
+      );
+    }
+
+    return baseFilters;
+  }, [showSemanticLayers, canReadDatabase, canReadLayer]);
 
   return (
     <>
@@ -675,20 +1153,87 @@ function DatabaseList({
         allowedExtensions={COLUMNAR_EXTENSIONS}
         type="columnar"
       />
-      {databaseCurrentlyDeleting && (
+      <SemanticLayerModal
+        show={semanticLayerModalOpen}
+        onHide={() => {
+          setSemanticLayerModalOpen(false);
+          refreshData();
+        }}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+      />
+      <SemanticLayerModal
+        show={!!slCurrentlyEditing}
+        onHide={() => {
+          setSlCurrentlyEditing(null);
+          refreshData();
+        }}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        semanticLayerUuid={slCurrentlyEditing ?? undefined}
+      />
+      {slDeletePreview && slDeletePreview.status !== 'loading' && (
         <DeleteModal
           description={
             <>
               <p>
-                {t('The database')}{' '}
-                <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
-                {t(
-                  'is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
-                  databaseCurrentlyDeleting.charts.count,
-                  databaseCurrentlyDeleting.dashboards.count,
-                  databaseCurrentlyDeleting.sqllab_tab_count,
-                )}
+                {t('Are you sure you want to delete')}{' '}
+                <b>{slDeletePreview.item.database_name}</b>?
               </p>
+              <SemanticLayerCascadeWarning preview={slDeletePreview} />
+            </>
+          }
+          onConfirm={() => {
+            handleSemanticLayerDelete(slDeletePreview.item);
+          }}
+          onHide={() => setSlDeletePreview(null)}
+          open
+          title={
+            <ModalTitleWithIcon
+              icon={<Icons.DeleteOutlined />}
+              title={t('Delete Semantic Layer?')}
+            />
+          }
+        />
+      )}
+      {databaseCurrentlyDeleting && (
+        <DeleteModal
+          description={
+            <>
+              {/* Datasets block the delete outright (the backend refuses while
+                  any dataset still references the database), so the dataset
+                  case must not promise a destructive outcome that cannot
+                  happen -- it has to say the delete is blocked and name what
+                  is blocking it. */}
+              {databaseCurrentlyDeleting.datasets.count >= 1 ? (
+                <p>
+                  {t('The %s', databaseLabelLower())}{' '}
+                  <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
+                  {tn(
+                    'cannot be deleted because %s dataset is still attached to it.',
+                    'cannot be deleted because %s datasets are still attached to it.',
+                    databaseCurrentlyDeleting.datasets.count,
+                    databaseCurrentlyDeleting.datasets.count,
+                  )}{' '}
+                  {t(
+                    'Delete or move active datasets. To remove archived datasets, open Recently archived and select Delete permanently.',
+                  )}
+                </p>
+              ) : (
+                <p>
+                  {t('The %s', databaseLabelLower())}{' '}
+                  <b>{databaseCurrentlyDeleting.database_name}</b>{' '}
+                  {t(
+                    'is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.',
+                    databaseCurrentlyDeleting.charts.count,
+                    databaseCurrentlyDeleting.dashboards.count,
+                    databaseCurrentlyDeleting.sqllab_tab_count,
+                  )}
+                </p>
+              )}
+              <DatabaseDatasetDependents
+                datasets={databaseCurrentlyDeleting.datasets}
+              />
               {databaseCurrentlyDeleting.dashboards.count >= 1 && (
                 <>
                   <h4>{t('Affected Dashboards')}</h4>
@@ -705,7 +1250,7 @@ function DatabaseList({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/superset/dashboard/${result.id}`}
+                              href={ensureAppRoot(`/dashboard/${result.id}`)}
                               target="_atRiskItem"
                             >
                               {result.title}
@@ -748,7 +1293,9 @@ function DatabaseList({
                           avatar={<span>•</span>}
                           title={
                             <Typography.Link
-                              href={`/explore/?slice_id=${result.id}`}
+                              href={ensureAppRoot(
+                                `/explore/?slice_id=${result.id}`,
+                              )}
                               target="_atRiskItem"
                             >
                               {result.slice_name}
@@ -785,10 +1332,14 @@ function DatabaseList({
           }}
           onHide={() => setDatabaseCurrentlyDeleting(null)}
           open
+          disablePrimaryButton={databaseCurrentlyDeleting.datasets.count >= 1}
+          disableConfirmationInput={
+            databaseCurrentlyDeleting.datasets.count >= 1
+          }
           title={
             <ModalTitleWithIcon
               icon={<Icons.DeleteOutlined />}
-              title={t('Delete Database?')}
+              title={t('Delete %s?', databaseLabel())}
             />
           }
         />

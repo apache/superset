@@ -18,7 +18,8 @@
  */
 
 import { ReactNode, useMemo } from 'react';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   ChartConfiguration,
   DashboardLayout,
@@ -71,7 +72,7 @@ const ScopingTitle = ({
     >
       {label}
       <Icons.DeleteOutlined
-        iconColor={theme.colors.grayscale.light3}
+        iconColor={theme.colorIcon}
         iconSize="xl"
         onClick={(event: React.MouseEvent<HTMLElement>) => {
           event.stopPropagation();
@@ -140,7 +141,16 @@ export const ChartsScopingListPanel = ({
         </Button>
       </AddButtonContainer>
       <FilterTitle
-        role="button"
+        as="button"
+        {...{ type: 'button' }}
+        css={css`
+          appearance: none;
+          border: none;
+          background: none;
+          font: inherit;
+          text-align: left;
+          width: 100%;
+        `}
         onClick={() => setCurrentChartId(undefined)}
         className={activeChartId === undefined ? 'active' : ''}
       >
@@ -150,7 +160,7 @@ export const ChartsScopingListPanel = ({
         css={css`
           width: 100%;
           height: 1px;
-          background-color: ${theme.colors.grayscale.light3};
+          background-color: ${theme.colorSplit};
           margin: ${theme.sizeUnit * 3}px 0;
         `}
       />

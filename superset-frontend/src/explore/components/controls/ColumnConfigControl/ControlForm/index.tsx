@@ -21,10 +21,13 @@ import {
   cloneElement,
   FunctionComponentElement,
   useMemo,
+  useEffect,
+  useRef,
 } from 'react';
-import { JsonObject, JsonValue, useTheme } from '@superset-ui/core';
+import { JsonObject, JsonValue } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import { Constants } from '@superset-ui/core/components';
-import { debounce } from 'lodash';
+import { debounce, DebouncedFunc } from 'lodash-es';
 import { ControlFormItemNode } from './ControlFormItem';
 
 export * from './ControlFormItem';
@@ -69,13 +72,27 @@ export default function ControlForm({
   children,
 }: ControlFormProps) {
   const theme = useTheme();
+  const latestValue = useRef<JsonObject>(value ?? {});
+  const latestOnChange = useRef(onChange);
   const debouncedOnChange = useMemo(
-    () =>
-      ({
-        0: onChange,
-        [Constants.FAST_DEBOUNCE]: debounce(onChange, Constants.FAST_DEBOUNCE),
-      }) as Record<number, typeof onChange>,
-    [onChange],
+    () => ({}) as Record<number, DebouncedFunc<() => void>>,
+    [],
+  );
+
+  useEffect(() => {
+    latestOnChange.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    latestValue.current = value ?? {};
+    Object.values(debouncedOnChange).forEach(callback => callback.cancel());
+  }, [value, debouncedOnChange]);
+
+  useEffect(
+    () => () => {
+      Object.values(debouncedOnChange).forEach(callback => callback.cancel());
+    },
+    [debouncedOnChange],
   );
 
   const updatedChildren = Children.map(children, row => {
@@ -102,17 +119,25 @@ export default function ControlForm({
               if (onItemValueChange) {
                 onItemValueChange(fieldValue);
               }
-              // propagate to the form
+              // Merge into pending edits before any debounce timer can fire.
+              latestValue.current = {
+                ...latestValue.current,
+                [name]: fieldValue,
+              };
+              if (debounceDelay === 0) {
+                Object.values(debouncedOnChange).forEach(callback =>
+                  callback.cancel(),
+                );
+                latestOnChange.current(latestValue.current);
+                return;
+              }
               if (!(debounceDelay in debouncedOnChange)) {
                 debouncedOnChange[debounceDelay] = debounce(
-                  onChange,
+                  () => latestOnChange.current(latestValue.current),
                   debounceDelay,
                 );
               }
-              debouncedOnChange[debounceDelay]({
-                ...value,
-                [name]: fieldValue,
-              });
+              debouncedOnChange[debounceDelay]();
             },
           });
         }),

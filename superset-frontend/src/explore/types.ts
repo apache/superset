@@ -22,6 +22,7 @@ import {
   AnnotationData,
   AdhocMetric,
   JsonObject,
+  LatestQueryFormData,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -33,6 +34,11 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Slice } from 'src/types/Chart';
 
 export type SaveActionType = 'overwrite' | 'saveas';
+
+export enum ChartStatusType {
+  overwrite = 'overwrite',
+  saveas = 'saveas',
+}
 
 export type ChartStatus =
   | 'loading'
@@ -52,7 +58,7 @@ export interface ChartState {
   chartUpdateEndTime: number | null;
   chartUpdateStartTime: number;
   lastRendered: number;
-  latestQueryFormData: Partial<QueryFormData>;
+  latestQueryFormData: LatestQueryFormData;
   sliceFormData: QueryFormData | null;
   queryController: AbortController | null;
   queriesResponse: QueryData[] | null;
@@ -65,11 +71,25 @@ export type OptionSortType = Partial<
 
 export type Datasource = Dataset & {
   database?: DatabaseObject;
+  /** The parent resource that owns this datasource (database or semantic layer). */
+  parent?: { name: string };
   datasource?: string;
   catalog?: string | null;
   schema?: string;
   is_sqllab_view?: boolean;
   extra?: string | object;
+  /**
+   * False when the datasource (e.g. a semantic view) doesn't model raw rows
+   * and therefore can't return a row sample. Defaults to true on the server
+   * side; missing here means the explore UI keeps current behavior.
+   */
+  supports_samples?: boolean;
+  /**
+   * False when the datasource doesn't model raw rows and therefore can't
+   * answer a drill-to-detail query. Tracked separately from
+   * ``supports_samples`` so the two capabilities can diverge.
+   */
+  supports_drill_to_detail?: boolean;
 };
 
 export interface ExplorePageInitialData {
@@ -79,9 +99,10 @@ export interface ExplorePageInitialData {
   metadata?: {
     created_on_humanized: string;
     changed_on_humanized: string;
-    owners: string[];
+    editors: string[];
     created_by?: string;
     changed_by?: string;
+    color_namespace?: string;
     dashboards?: {
       id: number;
       dashboard_title: string;
@@ -91,13 +112,52 @@ export interface ExplorePageInitialData {
 }
 
 export interface ExploreResponsePayload {
-  result: ExplorePageInitialData & { message: string };
+  result: ExplorePageInitialData & {
+    message: string;
+    chartState?: JsonObject;
+  };
 }
+
+/**
+ * Picker modes a column control can offer. Mirrors the tab keys used by
+ * ColumnSelectPopover.
+ */
+export type ColumnPickerMode = 'saved' | 'simple' | 'sqlExpression';
+
+/**
+ * Provider-neutral column-picker behavior derived from datasource metadata.
+ *
+ * This is the anti-corruption boundary between datasource payloads (for
+ * example `semantic_view_features`) and the generic Explore picker: picker
+ * components consume these capabilities and must not read provider metadata
+ * directly.
+ */
+export interface ColumnPickerCapabilities {
+  /**
+   * How expression-less datasource columns are classified in the picker:
+   * 'expression' keeps the existing split (truthy expression → Saved),
+   * 'saved' presents every dimension as a Saved option.
+   */
+  dimensionClassification: 'expression' | 'saved';
+  /** Picker modes rendered as visible but disabled. */
+  disabledModes: ColumnPickerMode[];
+  /** Whether a failed compatibility request shows non-blocking feedback. */
+  showCompatibilityFailure: boolean;
+}
+
+/**
+ * Discriminated result of the latest metric/dimension compatibility request,
+ * making loading, failure, and a valid empty result mutually exclusive.
+ */
+export type CompatibilityResult =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'verified'; metrics: string[]; dimensions: string[] }
+  | { status: 'failed' };
 
 export interface ExplorePageState {
   user: UserWithPermissionsAndRoles;
   common: {
-    flash_messages: string[];
     conf: JsonObject;
     locale: string;
   };
@@ -106,6 +166,8 @@ export interface ExplorePageState {
   explore: {
     can_add: boolean;
     can_download: boolean;
+    can_export_image: boolean;
+    can_copy_clipboard: boolean;
     can_overwrite: boolean;
     isDatasourceMetaLoading: boolean;
     isStarred: boolean;
@@ -117,9 +179,27 @@ export interface ExplorePageState {
     hiddenFormData?: Partial<QueryFormData>;
     slice: Slice;
     controlsTransferred: string[];
-    standalone: boolean;
+    // Set by hydrateExplore from getUrlParam(URL_PARAMS.standalone), so it is the
+    // coerced numeric mode (or null when absent/unparseable), not the backend's
+    // boolean `is_standalone_mode()`. See ExploreViewContainer's mapStateToProps.
+    standalone: number | null;
     force: boolean;
     common: JsonObject;
+    compatibility?: CompatibilityResult;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
+}
+
+export interface TabNode {
+  value: string;
+  title: string;
+  parents: string[];
+  children?: TabNode[];
+}
+
+export interface TabTreeNode {
+  value: string;
+  title: string;
+  key: string;
+  children?: TabTreeNode[];
 }

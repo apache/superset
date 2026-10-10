@@ -119,7 +119,7 @@ const setup = (props = DEFAULT_PROPS) =>
     initialState: INITIAL_STATE,
   });
 
-it('Renders charts scoping list panel', () => {
+test('Renders charts scoping list panel', () => {
   setup();
   expect(screen.getByText('Add custom scoping')).toBeVisible();
   expect(screen.getByText('All charts/global scoping')).toBeVisible();
@@ -131,7 +131,7 @@ it('Renders charts scoping list panel', () => {
   expect(screen.queryByText('[new custom scoping]')).not.toBeInTheDocument();
 });
 
-it('Renders custom scoping item', () => {
+test('Renders custom scoping item', () => {
   setup({
     ...DEFAULT_PROPS,
     activeChartId: -1,
@@ -158,30 +158,27 @@ it('Renders custom scoping item', () => {
   expect(screen.getByText('[new custom scoping]')).toHaveClass('active');
 });
 
-it('Uses callbacks on click', () => {
+test('Uses callbacks on click', async () => {
   setup();
 
-  userEvent.click(screen.getByText('Add custom scoping'));
+  await userEvent.click(screen.getByText('Add custom scoping'));
   expect(DEFAULT_PROPS.addNewCustomScope).toHaveBeenCalled();
 
-  userEvent.click(screen.getByText('All charts/global scoping'));
+  await userEvent.click(screen.getByText('All charts/global scoping'));
   expect(DEFAULT_PROPS.setCurrentChartId).toHaveBeenCalledWith(undefined);
 
-  userEvent.click(screen.getByText('Chart 3'));
+  await userEvent.click(screen.getByText('Chart 3'));
   expect(DEFAULT_PROPS.setCurrentChartId).toHaveBeenCalledWith(3);
 
   const chart4Container = screen.getByText('chart 4').closest('div');
   if (chart4Container) {
-    userEvent.click(within(chart4Container).getByLabelText('delete'));
+    await userEvent.click(within(chart4Container).getByLabelText('delete'));
   }
   expect(DEFAULT_PROPS.removeCustomScope).toHaveBeenCalledWith(4);
 });
 
-it('Renders charts scoping list panel with FilterTitle rendered with role="button"', () => {
+test('Renders charts scoping list panel with FilterTitle rendered as a button', () => {
   setup();
   expect(screen.getByText('All charts/global scoping')).toBeVisible();
-  expect(screen.getByText('All charts/global scoping')).toHaveAttribute(
-    'role',
-    'button',
-  );
+  expect(screen.getByText('All charts/global scoping').tagName).toBe('BUTTON');
 });

@@ -39,8 +39,8 @@ const runTimezoneTest = (
   expected_result: string[],
   includeFutureOffsets = true,
 ) => {
-  jest.setSystemTime(new Date(now_time));
   timezoneMock.register(timezone);
+  jest.setSystemTime(new Date(now_time));
   const result = getTimeOffset({
     timeRangeFilter,
     shifts,
@@ -53,8 +53,8 @@ const runTimezoneTest = (
 
 test('should handle includeFutureOffsets is null', () => {
   jest.useFakeTimers();
-  jest.setSystemTime(new Date(NOW_UTC_IN_EUROPE));
   timezoneMock.register('Etc/GMT-2');
+  jest.setSystemTime(new Date(NOW_UTC_IN_EUROPE));
   const result = getTimeOffset({
     timeRangeFilter: {
       comparator: '2024-06-03 : 2024-06-10',

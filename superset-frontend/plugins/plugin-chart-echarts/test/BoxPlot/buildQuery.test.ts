@@ -38,7 +38,7 @@ describe('BoxPlot buildQuery', () => {
     yAxisFormat: 'SMART_NUMBER',
   };
 
-  it('should build timeseries when series columns is empty', () => {
+  test('should build timeseries when series columns is empty', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['foo']);
@@ -49,7 +49,7 @@ describe('BoxPlot buildQuery', () => {
     expect((rule as PostProcessingBoxplot)?.options?.groupby).toEqual(['bar']);
   });
 
-  it('should build non-timeseries query object when columns is defined', () => {
+  test('should build non-timeseries query object when columns is defined', () => {
     const queryContext = buildQuery({ ...formData, columns: ['qwerty'] });
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['foo']);
@@ -58,5 +58,25 @@ describe('BoxPlot buildQuery', () => {
     const [rule] = query.post_processing || [];
     expect(isPostProcessingBoxplot(rule)).toEqual(true);
     expect((rule as PostProcessingBoxplot)?.options?.groupby).toEqual(['bar']);
+  });
+
+  test('omits a saved semantic limit when there are no series columns', () => {
+    const semanticQuery = buildQuery({
+      ...formData,
+      datasource: '5__semantic_view',
+      granularity_sqla: undefined,
+      groupby: [],
+      series_limit: 2,
+    }).queries[0];
+    const sqlQuery = buildQuery({
+      ...formData,
+      granularity_sqla: undefined,
+      groupby: [],
+      series_limit: 2,
+    }).queries[0];
+
+    expect(semanticQuery.series_columns).toEqual([]);
+    expect(semanticQuery.series_limit).toBe(0);
+    expect(sqlQuery.series_limit).toBe(2);
   });
 });

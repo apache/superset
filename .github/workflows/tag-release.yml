@@ -16,14 +16,23 @@ on:
       force-latest:
         required: true
         type: choice
-        default: 'false'
+        default: "false"
         description: Whether to force a latest tag on the release
         options:
-          - 'true'
-          - 'false'
+          - "true"
+          - "false"
+permissions:
+  contents: read
+
+# Serialize release image publishes so concurrent manual runs cannot race on
+# apache/superset:latest.
+concurrency:
+  group: docker-publish-latest-release
+  cancel-in-progress: false
+
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -31,28 +40,42 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ -n "${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}" ]; then
+          if [ -n "${DOCKERHUB_USER}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
+        env:
+          DOCKERHUB_USER: ${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}
   docker-release:
     needs: config
     if: needs.config.outputs.has-secrets
     name: docker-release
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
     strategy:
       matrix:
-        build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311"]
+        build_preset: ["superset", "dev", "lean", "py311", "py312"]
       fail-fast: false
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
+          ref: master
+
+      # Preserved because the step below checks out the release ref, which
+      # can be an arbitrary historical commit/tag -- these helpers need to
+      # keep running with the version from master regardless.
+      - name: Preserve Docker flags helper
+        shell: bash
+        run: |
+          cp scripts/docker-build-extra-flags.sh "$RUNNER_TEMP/docker-build-extra-flags.sh"
+          cp scripts/docker_release_target.py "$RUNNER_TEMP/docker_release_target.py"
 
       - name: Setup Docker Environment
-        uses: ./.github/actions/setup-docker
+        uses: $/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -60,37 +83,73 @@ jobs:
           build: "true"
 
       - name: Use Node.js 20
-        uses: actions/setup-node@v4
+        # zizmor: ignore[cache-poisoning] - node only runs the supersetbot CLI; no dependency cache is enabled
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 20
+          package-manager-cache: false
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot
 
       - name: Execute custom Node.js script
         env:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_PRESET: ${{ matrix.build_preset }}
+          INPUT_RELEASE: ${{ github.event.inputs.release }}
+          INPUT_FORCE_LATEST: ${{ github.event.inputs.force-latest }}
+          INPUT_GIT_REF: ${{ github.event.inputs.git-ref }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          RELEASE="${{ github.event.release.tag_name }}"
+          RELEASE="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           FORCE_LATEST=""
           EVENT="${{github.event_name}}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
-            RELEASE="${{ github.event.inputs.release }}"
-            if [ "${{ github.event.inputs.force-latest }}" = "true" ]; then
+            RELEASE="${INPUT_RELEASE}"
+            if [ "${INPUT_FORCE_LATEST}" = "true" ]; then
               FORCE_LATEST="--force-latest"
             fi
-            git checkout "${{ github.event.inputs.git-ref }}"
+            git checkout "${INPUT_GIT_REF}"
             EVENT="release"
+          else
+            git checkout "${GITHUB_EVENT_RELEASE_TAG_NAME}"
           fi
+          # Preserve the checked-out release Dockerfile's browser default.
+          EXTRA_FLAGS="$(bash "$RUNNER_TEMP/docker-build-extra-flags.sh" "$BUILD_PRESET" "" release)"
 
-          supersetbot docker \
-            --push \
-            --preset ${{ matrix.build_preset }} \
+          # supersetbot's preset -> Dockerfile-target mapping tracks current
+          # master, but RELEASE above can be an arbitrary *historical* ref
+          # (this job just `git checkout`ed it), which can predate a preset's
+          # target stage -- see #44220. Ask supersetbot what it would
+          # actually run (--dry-run) and hand that, plus the Dockerfile this
+          # checkout now has, to docker_release_target.py (preserved from
+          # master above, same reasoning as the flags helper), which knows
+          # the one verified compatibility substitution and refuses to guess
+          # at anything else.
+          DRY_RUN_CMD="$(DOCKERHUB_TOKEN= supersetbot docker \
+            --preset "$BUILD_PRESET" \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
+            --extra-flags "$EXTRA_FLAGS" \
+            --platform linux/amd64 \
+            --dry-run)"
+          TARGET_OVERRIDE="$(
+            printf '%s\n' "$DRY_RUN_CMD" |
+              python3 "$RUNNER_TEMP/docker_release_target.py" "$BUILD_PRESET"
+          )"
+          if [ -n "$TARGET_OVERRIDE" ]; then
+            EXTRA_FLAGS="$EXTRA_FLAGS $TARGET_OVERRIDE"
+          fi
+
+          DOCKERHUB_TOKEN= supersetbot docker \
+            --push \
+            --preset "$BUILD_PRESET" \
+            --context "$EVENT" \
+            --context-ref "$RELEASE" $FORCE_LATEST \
+            --extra-flags "$EXTRA_FLAGS" \
             --platform "linux/arm64" \
             --platform "linux/amd64"
 
@@ -100,35 +159,39 @@ jobs:
   update-prs-with-release-info:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       pull-requests: write
     steps:
-
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Use Node.js 20
-        uses: actions/setup-node@v4
+        # zizmor: ignore[cache-poisoning] - node only runs the supersetbot CLI; no dependency cache is enabled
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 20
+          package-manager-cache: false
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
 
       - name: Label the PRs with the right release-related labels
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RELEASE: ${{ github.event.inputs.release }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           export GITHUB_ACTOR=""
           git fetch --all --tags
           git checkout master
-          RELEASE="${{ github.event.release.tag_name }}"
+          RELEASE="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
-            RELEASE="${{ github.event.inputs.release }}"
+            RELEASE="${INPUT_RELEASE}"
           fi
           supersetbot release-label $RELEASE

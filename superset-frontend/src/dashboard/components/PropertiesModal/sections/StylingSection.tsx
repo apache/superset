@@ -1,0 +1,378 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { useCallback, useEffect, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
+import {
+  SupersetClient,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
+import { Button, Select, Switch } from '@superset-ui/core/components';
+import { EditorHost } from 'src/core/editors';
+import rison from 'rison';
+import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
+import { ModalFormField } from 'src/components/Modal';
+import LabelColorMapping from './LabelColorMapping';
+import {
+  hasCssImport,
+  resolveCssImports,
+} from 'src/dashboard/util/resolveCssImports';
+
+const StyledEditorHost = styled(EditorHost)`
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  border: 1px solid ${({ theme }) => theme.colorBorder};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+`;
+
+const StyledSwitchContainer = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    margin-bottom: ${theme.sizeUnit * 4}px;
+
+    .switch-row {
+      display: flex;
+      align-items: center;
+      gap: ${theme.sizeUnit * 2}px;
+    }
+
+    .switch-label {
+      color: ${theme.colorText};
+      font-size: ${theme.fontSize}px;
+    }
+
+    .switch-helper {
+      display: block;
+      color: ${theme.colorTextTertiary};
+      font-size: ${theme.fontSizeSM}px;
+      margin-top: ${theme.sizeUnit}px;
+    }
+  `}
+`;
+
+interface Theme {
+  id: number;
+  theme_name: string;
+  json_data?: string;
+}
+
+interface CssTemplate {
+  template_name: string;
+  css: string;
+}
+
+interface StylingSectionProps {
+  themes: Theme[];
+  selectedThemeId: number | null;
+  colorScheme?: string;
+  customCss: string;
+  hasCustomLabelsColor: boolean;
+  showChartTimestamps: boolean;
+  jsonMetadata: string;
+  onThemeChange: (value: any) => void;
+  onColorSchemeChange: (
+    colorScheme: string,
+    options?: { updateMetadata?: boolean },
+  ) => void;
+  onCustomCssChange: (css: string) => void;
+  onShowChartTimestampsChange: (value: boolean) => void;
+  onJsonMetadataChange: (value: string) => void;
+  addDangerToast?: (message: string) => void;
+}
+
+const StylingSection = ({
+  themes,
+  selectedThemeId,
+  colorScheme,
+  customCss,
+  hasCustomLabelsColor,
+  showChartTimestamps,
+  jsonMetadata,
+  onThemeChange,
+  onColorSchemeChange,
+  onCustomCssChange,
+  onShowChartTimestampsChange,
+  onJsonMetadataChange,
+  addDangerToast,
+}: StylingSectionProps) => {
+  const [cssTemplates, setCssTemplates] = useState<CssTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [originalTemplateContent, setOriginalTemplateContent] =
+    useState<string>('');
+  const [isConvertingCssImports, setIsConvertingCssImports] = useState(false);
+  const [cssImportConversionMessage, setCssImportConversionMessage] = useState<{
+    type: 'success' | 'warning';
+    text: string;
+  } | null>(null);
+
+  // Fetch CSS templates
+  const fetchCssTemplates = useCallback(async () => {
+    if (!isFeatureEnabled(FeatureFlag.CssTemplates)) return;
+
+    setIsLoadingTemplates(true);
+    try {
+      const query = rison.encode({ columns: ['template_name', 'css'] });
+      const response = await SupersetClient.get({
+        endpoint: `/api/v1/css_template/?q=${query}`,
+      });
+      setCssTemplates(response.json.result || []);
+    } catch (error) {
+      if (addDangerToast) {
+        addDangerToast(
+          t('An error occurred while fetching available CSS templates'),
+        );
+      }
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  }, [addDangerToast]);
+
+  useEffect(() => {
+    fetchCssTemplates();
+  }, [fetchCssTemplates]);
+
+  // Handle CSS template selection
+  const handleTemplateSelect = useCallback(
+    (templateName: string) => {
+      if (!templateName) {
+        setSelectedTemplate(null);
+        setOriginalTemplateContent('');
+        return;
+      }
+
+      const template = cssTemplates.find(t => t.template_name === templateName);
+      if (template) {
+        setSelectedTemplate(templateName);
+        setOriginalTemplateContent(template.css);
+        onCustomCssChange(template.css);
+      }
+    },
+    [cssTemplates, onCustomCssChange],
+  );
+
+  // Check if current CSS differs from original template
+  const hasTemplateModification =
+    selectedTemplate && customCss !== originalTemplateContent;
+
+  // Convert any @import in the CSS to the imported stylesheet's own
+  // contents, fetched from the browser (not the Superset backend, so this
+  // carries none of the SSRF risk a server-side fetch of an editor-supplied
+  // URL would). @import is rejected on save regardless of where it came
+  // from, so this is the migration path for CSS written (or imported) before
+  // that check existed.
+  const handleConvertCssImports = useCallback(async () => {
+    setIsConvertingCssImports(true);
+    setCssImportConversionMessage(null);
+    try {
+      const result = await resolveCssImports(customCss);
+      if (result.resolvedCount > 0) {
+        onCustomCssChange(result.css);
+      }
+      if (result.unresolvedUrls.length > 0) {
+        setCssImportConversionMessage({
+          type: 'warning',
+          text: t(
+            'Could not automatically fetch: %s. This is often blocked by the remote server (CORS); copy its contents in manually instead.',
+            result.unresolvedUrls.join(', '),
+          ),
+        });
+      } else if (result.resolvedCount > 0) {
+        setCssImportConversionMessage({
+          type: 'success',
+          text: t(
+            'Converted %s @import rule(s) to inline CSS. Review the result before saving.',
+            result.resolvedCount,
+          ),
+        });
+      }
+    } catch {
+      // Most commonly the editor contains CSS that postcss can't parse
+      // (a mid-edit syntax error); surface it rather than leaving the user
+      // with no feedback and an unhandled rejection.
+      setCssImportConversionMessage({
+        type: 'warning',
+        text: t(
+          'Could not parse the CSS to convert @import rules. Check for syntax errors and try again.',
+        ),
+      });
+    } finally {
+      setIsConvertingCssImports(false);
+    }
+  }, [customCss, onCustomCssChange]);
+
+  return (
+    <>
+      {themes.length > 0 && (
+        <ModalFormField
+          label={t('Theme')}
+          testId="dashboard-theme-field"
+          helperText={t(
+            'Clear the selection to revert to the system default theme',
+          )}
+        >
+          <Select
+            data-test="dashboard-theme-select"
+            value={selectedThemeId}
+            onChange={onThemeChange}
+            options={themes.map(theme => ({
+              value: theme.id,
+              label: theme.theme_name,
+            }))}
+            allowClear
+            placeholder={t('Select a theme')}
+          />
+        </ModalFormField>
+      )}
+      <ModalFormField
+        label={t('Color scheme')}
+        testId="dashboard-colorscheme-field"
+        helperText={t(
+          "Any color palette selected here will override the colors applied to this dashboard's individual charts",
+        )}
+      >
+        <ColorSchemeSelect
+          data-test="dashboard-colorscheme-select"
+          value={colorScheme}
+          onChange={onColorSchemeChange}
+          hasCustomLabelsColor={hasCustomLabelsColor}
+          showWarning={hasCustomLabelsColor}
+        />
+      </ModalFormField>
+
+      <LabelColorMapping
+        jsonMetadata={jsonMetadata}
+        onJsonMetadataChange={onJsonMetadataChange}
+      />
+
+      <StyledSwitchContainer data-test="dashboard-show-timestamps-field">
+        <div className="switch-row">
+          <Switch
+            data-test="dashboard-show-timestamps-switch"
+            checked={showChartTimestamps}
+            onChange={onShowChartTimestampsChange}
+          />
+          <span className="switch-label">
+            {t('Show chart query timestamps')}
+          </span>
+        </div>
+        <span className="switch-helper">
+          {t(
+            'Display the last queried timestamp on charts in the dashboard view',
+          )}
+        </span>
+      </StyledSwitchContainer>
+      {isFeatureEnabled(FeatureFlag.CssTemplates) &&
+        cssTemplates.length > 0 && (
+          <ModalFormField
+            label={t('Load CSS template (optional)')}
+            testId="dashboard-css-template-field"
+            helperText={t(
+              'Select a predefined CSS template to apply to your dashboard',
+            )}
+          >
+            <Select
+              data-test="dashboard-css-template-select"
+              onChange={handleTemplateSelect}
+              options={cssTemplates.map(template => ({
+                value: template.template_name,
+                label: template.template_name,
+              }))}
+              placeholder={t('Select a CSS template')}
+              loading={isLoadingTemplates}
+              allowClear
+              value={selectedTemplate}
+            />
+          </ModalFormField>
+        )}
+      {hasTemplateModification && (
+        <StyledAlert
+          type="warning"
+          message={t('Modified from "%s" template', selectedTemplate)}
+          showIcon
+          closable={false}
+          data-test="css-template-modified-warning"
+        />
+      )}
+      <ModalFormField
+        label={t('CSS')}
+        testId="dashboard-css-field"
+        helperText={t(
+          'Apply custom CSS to the dashboard. Use class names or element selectors to target specific components.',
+        )}
+        bottomSpacing={false}
+      >
+        <StyledEditorHost
+          id="dashboard-css-editor"
+          data-test="dashboard-css-editor"
+          onChange={onCustomCssChange}
+          value={customCss}
+          language="css"
+          width="100%"
+          height="160px"
+          readOnly={isConvertingCssImports}
+        />
+      </ModalFormField>
+      {hasCssImport(customCss) && (
+        <StyledAlert
+          type="warning"
+          showIcon
+          closable={false}
+          data-test="css-import-warning"
+          message={t('This CSS uses @import, which cannot be saved')}
+          description={
+            <>
+              <p>
+                {t(
+                  '@import is blocked to prevent a dashboard from loading arbitrary remote CSS. Convert it to inline CSS to keep using it.',
+                )}
+              </p>
+              <Button
+                buttonSize="small"
+                buttonStyle="secondary"
+                loading={isConvertingCssImports}
+                onClick={handleConvertCssImports}
+                data-test="convert-css-import-button"
+              >
+                {t('Convert @import to inline CSS')}
+              </Button>
+            </>
+          }
+        />
+      )}
+      {cssImportConversionMessage && (
+        <StyledAlert
+          type={cssImportConversionMessage.type}
+          showIcon
+          closable
+          onClose={() => setCssImportConversionMessage(null)}
+          data-test="css-import-conversion-result"
+          message={cssImportConversionMessage.text}
+        />
+      )}
+    </>
+  );
+};
+
+export default StylingSection;

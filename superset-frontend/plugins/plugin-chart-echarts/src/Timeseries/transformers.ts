@@ -25,17 +25,19 @@ import {
   FilterState,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
-  isTimeseriesAnnotationResult,
   LegendState,
-  SupersetTheme,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
   ValueFormatter,
 } from '@superset-ui/core';
+import { SupersetTheme, isThemeDark } from '@apache-superset/core/theme';
 import type {
   CallbackDataParams,
   DefaultStatesMixin,
   ItemStyleOption,
+  LabelLayoutOption,
+  LabelLayoutOptionCallback,
+  LabelLayoutOptionCallbackParams,
   LineStyleOption,
   OptionName,
   SeriesLabelOption,
@@ -50,8 +52,10 @@ import type {
 import type { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
 import { extractForecastSeriesContext } from '../utils/forecast';
 import {
+  BarValueLabelPosition,
   EchartsTimeseriesSeriesType,
   ForecastSeriesEnum,
+  LabelPositionEnum,
   LegendOrientation,
   OrientationType,
   StackType,
@@ -68,7 +72,143 @@ import {
   OpacityEnum,
   StackControlsValue,
   TIMESERIES_CONSTANTS,
+  X_AXIS_CROSS_FILTER_SOURCE,
 } from '../constants';
+
+const AUTO_LABEL_FIT_RATIO = 0.8;
+const BAR_LABEL_DISTANCE = 5;
+// Neither an inside nor an outside placement gives a stacked segment's value
+// label legible, non-overlapping room once the segment's own extent drops
+// below roughly the label text's height, since the closest available
+// placement then collides with a neighboring segment's label regardless of
+// which side it's drawn on. Highcharts and D3 apply the same kind of floor.
+// The label font size is theme.fontSizeSM (~12px, see series.ts), so 16px
+// covers the glyph height plus a couple of pixels of breathing room.
+const MIN_LABEL_SEGMENT_SIZE_PX = 16;
+// The labelLayout callback only applies align/verticalAlign/width/height/
+// fontSize from its return value (LABEL_OPTION_TO_STYLE_KEYS in ECharts'
+// LabelManager) — there is no hide/ignore field, so a zero font size is the
+// supported way to suppress an individual label from this callback.
+const HIDDEN_LABEL_LAYOUT: LabelLayoutOption = { fontSize: 0 };
+
+type BarLabelPosition =
+  | 'bottom'
+  | 'inside'
+  | 'insideBottom'
+  | 'insideLeft'
+  | 'insideRight'
+  | 'insideTop'
+  | 'left'
+  | 'right'
+  | 'top';
+
+type NegativeBarLabelPosition = BarLabelPosition | 'outside';
+
+/** Resolve the fixed ECharts label position for a bar value. */
+function getBarLabelPosition(
+  position: BarValueLabelPosition,
+  isHorizontal: boolean,
+  isNegative = false,
+): BarLabelPosition {
+  if (position === BarValueLabelPosition.OutsideEnd) {
+    if (isHorizontal) return isNegative ? 'left' : 'right';
+    return isNegative ? 'bottom' : 'top';
+  }
+  if (position === BarValueLabelPosition.InsideCenter) return 'inside';
+  const isEnd = position !== BarValueLabelPosition.InsideBase;
+  const usePositiveEnd = isEnd !== isNegative;
+  if (isHorizontal) return usePositiveEnd ? 'insideRight' : 'insideLeft';
+  return usePositiveEnd ? 'insideTop' : 'insideBottom';
+}
+
+/** Place a horizontal bar label just beyond its value end. */
+function getHorizontalOutsideLayout(
+  params: LabelLayoutOptionCallbackParams,
+  isNegative: boolean,
+): LabelLayoutOption {
+  return {
+    x: isNegative
+      ? params.rect.x - BAR_LABEL_DISTANCE
+      : params.rect.x + params.rect.width + BAR_LABEL_DISTANCE,
+    y: params.rect.y + params.rect.height / 2,
+    align: isNegative ? 'right' : 'left',
+    verticalAlign: 'middle',
+  };
+}
+
+/** Place a vertical bar label just beyond its value end. */
+function getVerticalOutsideLayout(
+  params: LabelLayoutOptionCallbackParams,
+  isNegative: boolean,
+): LabelLayoutOption {
+  return {
+    x: params.rect.x + params.rect.width / 2,
+    y: isNegative
+      ? params.rect.y + params.rect.height + BAR_LABEL_DISTANCE
+      : params.rect.y - BAR_LABEL_DISTANCE,
+    align: 'center',
+    verticalAlign: isNegative ? 'top' : 'bottom',
+  };
+}
+
+/** Whether a bar segment's value-axis extent is too small to legibly
+ * display its value label at any position. */
+function isBelowLabelLegibilityFloor(
+  params: LabelLayoutOptionCallbackParams,
+  isHorizontal: boolean,
+): boolean {
+  const segmentSize = isHorizontal
+    ? Math.abs(params.rect.width)
+    : Math.abs(params.rect.height);
+  return segmentSize < MIN_LABEL_SEGMENT_SIZE_PX;
+}
+
+/** Keep fitting labels inside, move oversized labels outside the bar, and
+ * suppress labels for segments too small to legibly fit one either way. */
+export function getAutoBarLabelLayout(
+  params: LabelLayoutOptionCallbackParams,
+  isHorizontal: boolean,
+  isNegative = false,
+): LabelLayoutOption {
+  if (isBelowLabelLegibilityFloor(params, isHorizontal)) {
+    return HIDDEN_LABEL_LAYOUT;
+  }
+  const fitsWidth =
+    params.labelRect.width <=
+    Math.abs(params.rect.width) * AUTO_LABEL_FIT_RATIO;
+  const fitsHeight =
+    params.labelRect.height <=
+    Math.abs(params.rect.height) * AUTO_LABEL_FIT_RATIO;
+  if (fitsWidth && fitsHeight) return {};
+  return isHorizontal
+    ? getHorizontalOutsideLayout(params, isNegative)
+    : getVerticalOutsideLayout(params, isNegative);
+}
+
+function parseTimeShiftToMs(timeShift?: string | null): number {
+  if (!timeShift) return 0;
+
+  const match = timeShift
+    .trim()
+    .match(/^(-?\d+(?:\.\d+)?)\s*(second|minute|hour|day|week|month|year)s?$/i);
+
+  if (!match) return 0;
+
+  const value = Number(match[1]);
+  const unit = match[2].toLowerCase();
+
+  const MS: Record<string, number> = {
+    second: 1000,
+    minute: 60 * 1000,
+    hour: 60 * 60 * 1000,
+    day: 24 * 60 * 60 * 1000,
+    week: 7 * 24 * 60 * 60 * 1000,
+    month: 30 * 24 * 60 * 60 * 1000,
+    year: 365 * 24 * 60 * 60 * 1000,
+  };
+
+  return value * (MS[unit] ?? 0);
+}
 
 // based on weighted wiggle algorithm
 // source: https://ieeexplore.ieee.org/document/4658136
@@ -77,7 +217,10 @@ export const getBaselineSeriesForStream = (
   seriesType: EchartsTimeseriesSeriesType,
 ) => {
   const seriesLength = series[0].length;
-  const baselineSeriesDelta = new Array(seriesLength).fill([0, 0]);
+  const baselineSeriesDelta: [string | number, number][] = Array.from(
+    { length: seriesLength },
+    () => [0, 0],
+  );
   const getVal = (value: number | null) => value ?? 0;
   for (let i = 0; i < seriesLength; i += 1) {
     let seriesSum = 0;
@@ -99,7 +242,9 @@ export const getBaselineSeriesForStream = (
     }
     baselineSeriesDelta[i] = [series[0][i][0], -weightedSeriesSum / seriesSum];
   }
-  const baselineSeries = baselineSeriesDelta.reduce((acc, curr, i) => {
+  const baselineSeries = baselineSeriesDelta.reduce<
+    [string | number, number][]
+  >((acc, curr, i) => {
     if (i === 0) {
       acc.push(curr);
     } else {
@@ -138,6 +283,109 @@ export const getBaselineSeriesForStream = (
   };
 };
 
+/** Identify object-form ECharts data items. */
+function isDataItemObject(
+  dataItem: unknown,
+): dataItem is Record<string, unknown> {
+  return (
+    typeof dataItem === 'object' &&
+    dataItem !== null &&
+    !Array.isArray(dataItem)
+  );
+}
+
+/** Return whether an ECharts bar datum is negative on its value axis. */
+function isNegativeBarDataItem(
+  dataItem: unknown,
+  isHorizontal: boolean,
+): boolean {
+  const value = isDataItemObject(dataItem) ? dataItem.value : dataItem;
+  const axisValue = Array.isArray(value)
+    ? value[isHorizontal ? 0 : 1]
+    : undefined;
+  return typeof axisValue === 'number' && axisValue < 0;
+}
+
+/** Create a fit-aware layout callback bound to one bar series. */
+function createAutoBarLabelLayout(
+  data: unknown,
+  isHorizontal: boolean,
+): LabelLayoutOptionCallback {
+  return params => {
+    const dataItem =
+      Array.isArray(data) && params.dataIndex !== undefined
+        ? data[params.dataIndex]
+        : undefined;
+    return getAutoBarLabelLayout(
+      params,
+      isHorizontal,
+      isNegativeBarDataItem(dataItem, isHorizontal),
+    );
+  };
+}
+
+/** Suppress the value label on a bar segment too small to legibly display
+ * one at any position, without repositioning anything: manual label
+ * placements keep their configured spot, and only the legibility floor
+ * already applied to the Auto position carries over. */
+function createBarLabelLegibilityFloorLayout(
+  isHorizontal: boolean,
+): LabelLayoutOptionCallback {
+  return params =>
+    isBelowLabelLegibilityFloor(params, isHorizontal)
+      ? HIDDEN_LABEL_LAYOUT
+      : {};
+}
+
+/** Apply the value-end label position to a negative bar datum. */
+function transformNegativeLabel(
+  dataItem: unknown,
+  isHorizontal: boolean,
+  negativePosition: NegativeBarLabelPosition,
+): unknown {
+  if (!isNegativeBarDataItem(dataItem, isHorizontal)) return dataItem;
+  const value = isDataItemObject(dataItem) ? dataItem.value : dataItem;
+  const item = isDataItemObject(dataItem) ? dataItem : { value };
+  const label = isDataItemObject(item.label) ? item.label : {};
+  return { ...item, label: { ...label, position: negativePosition } };
+}
+
+/** Adjust label positions for negative values in a bar series. */
+export function transformNegativeLabelsPosition(
+  series: SeriesOption,
+  isHorizontal: boolean,
+  negativePosition: NegativeBarLabelPosition = 'outside',
+): TimeseriesDataRecord[] {
+  return (series.data as unknown[]).map(dataItem =>
+    transformNegativeLabel(dataItem, isHorizontal, negativePosition),
+  ) as TimeseriesDataRecord[];
+}
+
+export function applyColorByPrimaryAxis(
+  series: SeriesOption,
+  colorScale: CategoricalColorScale,
+  sliceId: number | undefined,
+  opacity: number,
+  isHorizontal = false,
+): {
+  value: [string | number, number];
+  itemStyle: { color: string; opacity: number; borderWidth: number };
+}[] {
+  return (series.data as [string | number, number][]).map(value => {
+    // For horizontal charts the primary axis is index 1 (category), not index 0 (numeric)
+    const colorKey = String(isHorizontal ? value[1] : value[0]);
+
+    return {
+      value,
+      itemStyle: {
+        color: colorScale(colorKey, sliceId),
+        opacity,
+        borderWidth: 0,
+      },
+    };
+  });
+}
+
 export function transformSeries(
   series: SeriesOption,
   colorScale: CategoricalColorScale,
@@ -149,26 +397,34 @@ export function transformSeries(
     seriesContexts?: { [key: string]: ForecastSeriesEnum[] };
     markerEnabled?: boolean;
     markerSize?: number;
+    symbolSizeFn?: (value: (number | string | null)[]) => number;
     areaOpacity?: number;
     seriesType?: EchartsTimeseriesSeriesType;
     stack?: StackType;
     stackIdSuffix?: string;
     yAxisIndex?: number;
     showValue?: boolean;
+    valueLabelPosition?: BarValueLabelPosition;
     onlyTotal?: boolean;
     legendState?: LegendState;
     formatter?: ValueFormatter;
-    totalStackedValues?: number[];
-    showValueIndexes?: number[];
+    totalStackedValues?: number[] | Record<string, number[]>;
+    showValueIndexes?: Record<string, number[]>;
+    stackGroup?: string;
     thresholdValues?: number[];
     richTooltip?: boolean;
     seriesKey?: OptionName;
     sliceId?: number;
     isHorizontal?: boolean;
+    lineSymbol?: string;
     lineStyle?: LineStyleOption;
     queryIndex?: number;
     timeCompare?: string[];
     timeShiftColor?: boolean;
+    theme?: SupersetTheme;
+    hasDimensions?: boolean;
+    colorByPrimaryAxis?: boolean;
+    labelPosition?: string;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -179,17 +435,20 @@ export function transformSeries(
     seriesContexts = {},
     markerEnabled,
     markerSize,
+    symbolSizeFn,
     areaOpacity = 1,
     seriesType,
     stack,
     stackIdSuffix,
     yAxisIndex = 0,
     showValue,
+    valueLabelPosition = BarValueLabelPosition.Auto,
     onlyTotal,
     formatter,
     legendState,
     totalStackedValues = [],
-    showValueIndexes = [],
+    showValueIndexes = {},
+    stackGroup,
     thresholdValues = [],
     richTooltip,
     seriesKey,
@@ -198,6 +457,9 @@ export function transformSeries(
     queryIndex = 0,
     timeCompare = [],
     timeShiftColor,
+    theme,
+    colorByPrimaryAxis = false,
+    labelPosition,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -209,8 +471,13 @@ export function transformSeries(
   const isConfidenceBand =
     forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
     forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
+  // When cross-filtering by X-axis, selectedValues contains X-axis values
+  // rather than series names, so skip series-level dimming.
   const isFiltered =
-    filterState?.selectedValues && !filterState?.selectedValues.includes(name);
+    opts.hasDimensions !== false &&
+    filterState?.crossFilterSource !== X_AXIS_CROSS_FILTER_SOURCE &&
+    filterState?.selectedValues &&
+    !filterState?.selectedValues.includes(name);
   const opacity = isFiltered
     ? OpacityEnum.SemiTransparent
     : opts.lineStyle?.opacity || OpacityEnum.NonTransparent;
@@ -245,6 +512,9 @@ export function transformSeries(
   } else {
     plotType = seriesType === 'bar' ? 'bar' : 'line';
   }
+
+  const isDarkMode = theme ? isThemeDark(theme) : false;
+
   /**
    * if timeShiftColor is enabled the colorScaleKey forces the color to be the
    * same as the original series, otherwise uses separate colors
@@ -288,21 +558,65 @@ export function transformSeries(
     isConfidenceBand || (stack === StackControlsValue.Stream && area)
       ? { ...opts.lineStyle, opacity: OpacityEnum.Transparent }
       : { ...opts.lineStyle, opacity };
+
+  // Use filled circles in dark mode to avoid the white fill issue with hollow circles
+  // Use emptyCircle explicitly in light mode
+  let symbol;
+  if (plotType === 'line') {
+    symbol = opts.lineSymbol || (isDarkMode ? 'circle' : 'emptyCircle');
+  }
+
+  let transformedData = data;
+  if (Array.isArray(data) && colorByPrimaryAxis) {
+    transformedData = applyColorByPrimaryAxis(
+      series,
+      colorScale,
+      sliceId,
+      opacity,
+      isHorizontal,
+    );
+  }
+  if (Array.isArray(transformedData) && plotType === 'bar') {
+    // An explicit labelPosition (set before valueLabelPosition existed, or
+    // still relevant to a saved chart) takes precedence for negative values;
+    // otherwise fall back to the fit-aware valueLabelPosition-derived spot.
+    const negativeLabelPosition: NegativeBarLabelPosition =
+      labelPosition && labelPosition !== 'auto'
+        ? (labelPosition as NegativeBarLabelPosition)
+        : getBarLabelPosition(valueLabelPosition, isHorizontal, true);
+    transformedData = transformNegativeLabelsPosition(
+      { ...series, data: transformedData },
+      isHorizontal,
+      negativeLabelPosition,
+    );
+  }
+
+  const isAutoBarLabel =
+    plotType === 'bar' && valueLabelPosition === BarValueLabelPosition.Auto;
+  const isInsideBarLabel =
+    plotType === 'bar' &&
+    valueLabelPosition !== BarValueLabelPosition.OutsideEnd;
+
   return {
     ...series,
-    ...(Array.isArray(data) && seriesType === 'bar' && !stack
-      ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
-      : null),
+    ...(Array.isArray(data) ? { data: transformedData } : null),
     connectNulls,
     queryIndex,
     yAxisIndex,
     name: forecastSeries.name,
-    itemStyle,
+    ...(colorByPrimaryAxis ? {} : { itemStyle }),
     // @ts-ignore
     type: plotType,
+    // Cap bar width so a single data point doesn't stretch across the
+    // entire chart area. Bars with many categories auto-size below this
+    // cap. For a sub-daily time grain, transformProps.ts overrides this
+    // with a grain-derived value once the chart's real grid padding is
+    // known (see getGrainBarMaxWidth in utils/series.ts) — 100 is the
+    // fallback for everything else (non-temporal axes, no resolved grain).
+    ...(plotType === 'bar' ? { barMaxWidth: 100 } : {}),
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
-    // @ts-ignore
+    // @ts-expect-error
     step: ['start', 'middle', 'end'].includes(seriesType as string)
       ? seriesType
       : undefined,
@@ -320,10 +634,38 @@ export function transformSeries(
         : undefined,
     emphasis,
     showSymbol,
-    symbolSize: markerSize,
+    symbol,
+    symbolSize: symbolSizeFn ?? markerSize,
+    ...(isAutoBarLabel
+      ? {
+          labelLayout: createAutoBarLabelLayout(transformedData, isHorizontal),
+        }
+      : plotType === 'bar' && showValue
+        ? {
+            labelLayout: createBarLabelLegibilityFloorLayout(isHorizontal),
+          }
+        : {}),
     label: {
       show: !!showValue,
-      position: isHorizontal ? 'right' : 'top',
+      // An explicit labelPosition (the generic control still used by
+      // MixedTimeseries' bar series, and by standalone bar charts saved
+      // before valueLabelPosition existed) wins outright. Otherwise bar
+      // charts fall back to the fit-aware valueLabelPosition control, and
+      // every other "Show value" chart type falls back to an
+      // orientation-aware default.
+      position:
+        labelPosition && labelPosition !== 'auto'
+          ? (labelPosition as LabelPositionEnum)
+          : plotType === 'bar'
+            ? getBarLabelPosition(valueLabelPosition, isHorizontal)
+            : isHorizontal
+              ? LabelPositionEnum.Right
+              : LabelPositionEnum.Top,
+      // ECharts derives contrast from the bar fill for inside positions.
+      // Auto x/y overflow clears the position, selecting its outside fill.
+      ...(isInsideBarLabel ? {} : { color: theme?.colorText }),
+      ...(plotType === 'bar' ? { overflow: 'truncate' } : {}),
+      textBorderWidth: 0,
       formatter: (params: any) => {
         // don't show confidence band value labels, as they're already visible on the tooltip
         if (
@@ -344,7 +686,46 @@ export function transformSeries(
         if (!stack && isSelectedLegend) {
           return formatter(numericValue);
         }
+        // Resolve per-stack-group index array and totals. When stackDimension
+        // creates separate ECharts stacks, each group has its own topmost-
+        // series index so the label appears on the correct bar segment.
+        const DEFAULT_STACK_GROUP = '__default__';
+        const resolvedStackGroup = stackGroup ?? DEFAULT_STACK_GROUP;
+        const stackShowValueIndexes = Array.isArray(showValueIndexes)
+          ? showValueIndexes
+          : Object.prototype.hasOwnProperty.call(
+                showValueIndexes,
+                resolvedStackGroup,
+              ) && Array.isArray(showValueIndexes[resolvedStackGroup])
+            ? showValueIndexes[resolvedStackGroup]
+            : Object.prototype.hasOwnProperty.call(
+                  showValueIndexes,
+                  DEFAULT_STACK_GROUP,
+                ) && Array.isArray(showValueIndexes[DEFAULT_STACK_GROUP])
+              ? showValueIndexes[DEFAULT_STACK_GROUP]
+              : [];
+        const resolvedTotalStackedValues = Array.isArray(totalStackedValues)
+          ? totalStackedValues
+          : Object.prototype.hasOwnProperty.call(
+                totalStackedValues,
+                resolvedStackGroup,
+              ) && Array.isArray(totalStackedValues[resolvedStackGroup])
+            ? totalStackedValues[resolvedStackGroup]
+            : Object.prototype.hasOwnProperty.call(
+                  totalStackedValues,
+                  DEFAULT_STACK_GROUP,
+                ) && Array.isArray(totalStackedValues[DEFAULT_STACK_GROUP])
+              ? totalStackedValues[DEFAULT_STACK_GROUP]
+              : [];
         if (!onlyTotal) {
+          // A stacked segment with no height begins and ends at the same
+          // coordinate as the top of the segment beneath it, so its label is
+          // drawn over that segment's label. Zero and null have no height, so
+          // they carry no label. The rich tooltip omits zero observations from
+          // a stacked series for the same reason.
+          if (stack && !numericValue) {
+            return '';
+          }
           if (
             numericValue >=
             (thresholdValues[dataIndex] || Number.MIN_SAFE_INTEGER)
@@ -353,8 +734,10 @@ export function transformSeries(
           }
           return '';
         }
-        if (seriesIndex === showValueIndexes[dataIndex]) {
-          return formatter(isAreaExpand ? 1 : totalStackedValues[dataIndex]);
+        if (seriesIndex === stackShowValueIndexes[dataIndex]) {
+          return formatter(
+            isAreaExpand ? 1 : resolvedTotalStackedValues[dataIndex],
+          );
         }
         return '';
       },
@@ -377,6 +760,7 @@ export function transformFormulaAnnotation(
   return {
     name,
     id: name,
+    z: 10,
     itemStyle: {
       color: color || colorScale(name, sliceId),
     },
@@ -405,67 +789,86 @@ export function transformIntervalAnnotation(
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
+  if (annotations.length === 0) {
+    return series;
+  }
+
+  const { name, color, opacity, showLabel } = layer;
+  const isHorizontal = orientation === OrientationType.Horizontal;
+
+  const intervalsByStartTime = new Map<string, string[]>();
   annotations.forEach(annotation => {
-    const { name, color, opacity, showLabel } = layer;
-    const { descriptions, intervalEnd, time, title } = annotation;
+    const { descriptions, time = '', title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
-    const isHorizontal = orientation === OrientationType.Horizontal;
-    const intervalData: (
-      | MarkArea1DDataItemOption
-      | MarkArea2DDataItemOption
-    )[] = [
-      [
-        {
-          name: label,
-          ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
-        },
-        isHorizontal ? { yAxis: intervalEnd } : { xAxis: intervalEnd },
-      ],
+    const existing = intervalsByStartTime.get(time);
+    if (existing) {
+      existing.push(label);
+    } else {
+      intervalsByStartTime.set(time, [label]);
+    }
+  });
+
+  const allIntervalData: (
+    | MarkArea1DDataItemOption
+    | MarkArea2DDataItemOption
+  )[] = annotations.map(annotation => {
+    const { intervalEnd, time = '' } = annotation;
+    const combinedLabel = (intervalsByStartTime.get(time) || []).join('\n');
+    return [
+      {
+        name: combinedLabel,
+        ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
+      },
+      isHorizontal ? { yAxis: intervalEnd } : { xAxis: intervalEnd },
     ];
-    const intervalLabel: SeriesLabelOption = showLabel
-      ? {
-          show: true,
-          color: theme.colors.grayscale.dark2,
+  });
+
+  const intervalLabel: SeriesLabelOption = showLabel
+    ? {
+        show: true,
+        color: theme.colorTextLabel,
+        position: 'insideTop',
+        verticalAlign: 'top',
+        fontWeight: 'bold',
+        // @ts-expect-error
+        emphasis: {
           position: 'insideTop',
           verticalAlign: 'top',
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      }
+    : {
+        show: false,
+        color: theme.colorTextLabel,
+        emphasis: {
           fontWeight: 'bold',
-          // @ts-ignore
-          emphasis: {
-            position: 'insideTop',
-            verticalAlign: 'top',
-            backgroundColor: theme.colors.grayscale.light5,
-          },
-        }
-      : {
-          show: false,
-          color: theme.colors.grayscale.dark2,
-          // @ts-ignore
-          emphasis: {
-            fontWeight: 'bold',
-            show: true,
-            position: 'insideTop',
-            verticalAlign: 'top',
-            backgroundColor: theme.colors.grayscale.light5,
-          },
-        };
-    series.push({
-      id: `Interval - ${label}`,
-      type: 'line',
-      animation: false,
-      markArea: {
-        silent: false,
-        itemStyle: {
-          color: color || colorScale(name, sliceId),
-          opacity: parseAnnotationOpacity(opacity || AnnotationOpacity.Medium),
-          emphasis: {
-            opacity: 0.8,
-          },
-        } as ItemStyleOption,
-        label: intervalLabel,
-        data: intervalData,
-      },
-    });
+          show: true,
+          position: 'insideTop',
+          verticalAlign: 'top',
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      };
+
+  // Push a single series with all intervals in the markArea data
+  series.push({
+    id: `Interval - ${name}`,
+    type: 'line',
+    animation: false,
+    z: 10,
+    markArea: {
+      silent: false,
+      itemStyle: {
+        color: color || colorScale(name, sliceId),
+        opacity: parseAnnotationOpacity(opacity || AnnotationOpacity.Medium),
+        emphasis: {
+          opacity: 0.8,
+        },
+      } as ItemStyleOption,
+      label: intervalLabel,
+      data: allIntervalData,
+    },
   });
+
   return series;
 }
 
@@ -480,67 +883,83 @@ export function transformEventAnnotation(
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
+  if (annotations.length === 0) {
+    return series;
+  }
+
+  const { name, color, opacity, style, width, showLabel } = layer;
+  const isHorizontal = orientation === OrientationType.Horizontal;
+
+  const eventsByTime = new Map<string, { time: string; labels: string[] }>();
   annotations.forEach(annotation => {
-    const { name, color, opacity, style, width, showLabel } = layer;
-    const { descriptions, time, title } = annotation;
+    const { descriptions, time = '', title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
-    const isHorizontal = orientation === OrientationType.Horizontal;
-    const eventData: MarkLine1DDataItemOption[] = [
-      {
-        name: label,
-        ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
-      },
-    ];
+    const existing = eventsByTime.get(time);
 
-    const lineStyle: LineStyleOption & DefaultStatesMixin['emphasis'] = {
-      width,
-      type: style as ZRLineType,
-      color: color || colorScale(name, sliceId),
-      opacity: parseAnnotationOpacity(opacity),
-      emphasis: {
-        width: width ? width + 1 : width,
-        opacity: 1,
-      },
-    };
-
-    const eventLabel: SeriesLineLabelOption = showLabel
-      ? {
-          show: true,
-          color: theme.colors.grayscale.dark2,
-          position: 'insideEndTop',
-          fontWeight: 'bold',
-          formatter: (params: CallbackDataParams) => params.name,
-          // @ts-ignore
-          emphasis: {
-            backgroundColor: theme.colors.grayscale.light5,
-          },
-        }
-      : {
-          show: false,
-          color: theme.colors.grayscale.dark2,
-          position: 'insideEndTop',
-          // @ts-ignore
-          emphasis: {
-            formatter: (params: CallbackDataParams) => params.name,
-            fontWeight: 'bold',
-            show: true,
-            backgroundColor: theme.colors.grayscale.light5,
-          },
-        };
-
-    series.push({
-      id: `Event - ${label}`,
-      type: 'line',
-      animation: false,
-      markLine: {
-        silent: false,
-        symbol: 'none',
-        lineStyle,
-        label: eventLabel,
-        data: eventData,
-      },
-    });
+    if (existing) {
+      existing.labels.push(label);
+    } else {
+      eventsByTime.set(time, { time, labels: [label] });
+    }
   });
+
+  const allEventData: MarkLine1DDataItemOption[] = Array.from(
+    eventsByTime.values(),
+  ).map(({ time, labels }) => ({
+    name: labels.join('\n'),
+    ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
+  }));
+
+  const lineStyle: LineStyleOption & DefaultStatesMixin['emphasis'] = {
+    width,
+    type: style as ZRLineType,
+    color: color || colorScale(name, sliceId),
+    opacity: parseAnnotationOpacity(opacity),
+    emphasis: {
+      width: width ? width + 1 : width,
+      opacity: 1,
+    },
+  };
+
+  const eventLabel: SeriesLineLabelOption = showLabel
+    ? {
+        show: true,
+        color: theme.colorTextLabel,
+        position: 'insideEndTop',
+        fontWeight: 'bold',
+        formatter: (params: CallbackDataParams) => params.name,
+        // @ts-expect-error
+        emphasis: {
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      }
+    : {
+        show: false,
+        color: theme.colorTextLabel,
+        position: 'insideEndTop',
+        emphasis: {
+          formatter: (params: CallbackDataParams) => params.name,
+          fontWeight: 'bold',
+          show: true,
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      };
+
+  // Push a single series with all events in the markLine data
+  series.push({
+    id: `Event - ${name}`,
+    type: 'line',
+    animation: false,
+    z: 10,
+    markLine: {
+      silent: false,
+      symbol: 'none',
+      lineStyle,
+      label: eventLabel,
+      data: allEventData,
+    },
+  });
+
   return series;
 }
 
@@ -555,28 +974,46 @@ export function transformTimeseriesAnnotation(
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
+
+  const shiftMs = parseTimeShiftToMs((layer as any)?.overrides?.time_shift);
+
   const result = annotationData[name];
   const isHorizontal = orientation === OrientationType.Horizontal;
-  if (isTimeseriesAnnotationResult(result)) {
-    result.forEach(annotation => {
-      const { key, values } = annotation;
-      series.push({
-        type: 'line',
-        id: key,
-        name: key,
-        data: values.map(({ x, y }) =>
-          isHorizontal
-            ? ([y, x] as [number, OptionName])
-            : ([x, y] as [OptionName, number]),
-        ),
-        symbolSize: showMarkers ? markerSize : 0,
-        lineStyle: {
-          opacity: parseAnnotationOpacity(opacity),
-          type: style as ZRLineType,
-          width: hideLine ? 0 : width,
-          color: color || colorScale(name, sliceId),
-        },
-      });
+  const { records } = result;
+  if (records) {
+    const data = records.map(record => {
+      const keys = Object.keys(record);
+
+      let x = keys.length > 0 ? record[keys[0]] : 0;
+      const y = keys.length > 1 ? record[keys[1]] : 0;
+
+      if (shiftMs !== 0 && x != null) {
+        const xMs = typeof x === 'string' ? new Date(x).getTime() : Number(x);
+
+        if (!Number.isNaN(xMs)) {
+          x = xMs + shiftMs;
+        }
+      }
+
+      return isHorizontal
+        ? ([y, x] as [number, OptionName])
+        : ([x, y] as [OptionName, number]);
+    });
+    const computedStyle = {
+      opacity: parseAnnotationOpacity(opacity),
+      type: style as ZRLineType,
+      width: hideLine ? 0 : width,
+      color: color || colorScale(name, sliceId),
+    };
+    series.push({
+      type: 'line',
+      id: name,
+      name,
+      z: 10,
+      data,
+      symbolSize: showMarkers ? markerSize : 0,
+      itemStyle: computedStyle,
+      lineStyle: computedStyle,
     });
   }
   return series;
@@ -609,16 +1046,22 @@ export function getPadding(
     legendOrientation,
     margin,
     {
+      // The Y-axis title margin, whether it lands on the top or the left
+      // side, is only reserved when a title is actually rendered. Without
+      // that guard every chart pays for the default margin, which eats a
+      // large share of the plot area on narrow charts.
       top:
-        yAxisTitlePosition && yAxisTitlePosition === 'Top'
+        yAxisTitlePosition === 'Top' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
-          : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
+          : yAxisTitlePosition === 'Left'
+            ? TIMESERIES_CONSTANTS.gridOffsetTop
+            : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
       bottom:
         zoomable && !isHorizontal
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
           : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
       left:
-        yAxisTitlePosition === 'Left'
+        yAxisTitlePosition === 'Left' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetLeft +
             (Number(yAxisTitleMargin) || 0)
           : TIMESERIES_CONSTANTS.gridOffsetLeft,
@@ -631,29 +1074,75 @@ export function getPadding(
   );
 }
 
-export function transformNegativeLabelsPosition(
-  series: SeriesOption,
-  isHorizontal: boolean,
-): TimeseriesDataRecord[] {
-  /*
-   * Adjusts label position for negative values in bar series
-   * @param series - Array of series options
-   * @param isHorizontal - Whether chart is horizontal
-   * @returns data with adjusted label positions for negative values
-   */
-  const transformValue = (value: any) => {
-    const [xValue, yValue] = Array.isArray(value) ? value : [null, null];
-    const axisValue = isHorizontal ? xValue : yValue;
+const MIN_ECHARTS_GRID_HEIGHT = 1;
 
-    return axisValue < 0
-      ? {
-          value,
-          label: {
-            position: 'outside',
-          },
-        }
-      : value;
+export function resolveTimeseriesGridOffset(
+  offset: unknown,
+  chartHeight: number,
+) {
+  if (typeof offset === 'number') {
+    return Number.isFinite(offset) ? Math.max(offset, 0) : 0;
+  }
+  if (typeof offset !== 'string') {
+    return 0;
+  }
+
+  const percentage = offset.match(/^\s*(-?\d+(?:\.\d+)?)%\s*$/);
+  const pixels = percentage
+    ? (Number(percentage[1]) / 100) * chartHeight
+    : Number(offset);
+  return Number.isFinite(pixels) ? Math.max(pixels, 0) : 0;
+}
+
+export function getViableTimeseriesEchartOptions<Options extends object>(
+  options: Options,
+  chartHeight: number,
+  zoomable: boolean,
+): Options {
+  const optionWithGrid = options as Options & { grid?: unknown };
+  const gridOption = Array.isArray(optionWithGrid.grid)
+    ? optionWithGrid.grid[0]
+    : optionWithGrid.grid;
+  if (!gridOption || typeof gridOption !== 'object') {
+    return options;
+  }
+
+  const grid = gridOption as Record<string, unknown>;
+  const rawTop = resolveTimeseriesGridOffset(grid.top, chartHeight);
+  const rawBottom = resolveTimeseriesGridOffset(grid.bottom, chartHeight);
+  const isCompact = chartHeight <= TIMESERIES_CONSTANTS.compactChartHeight;
+  const requestedTop = isCompact ? Math.min(rawTop, 12) : rawTop;
+  const requestedBottom =
+    isCompact && !zoomable ? Math.min(rawBottom, 5) : rawBottom;
+  // Cap both reservations so even a tiny canvas retains a coordinate region.
+  const reservationBudget = Math.max(chartHeight - MIN_ECHARTS_GRID_HEIGHT, 0);
+  const top = Math.min(requestedTop, reservationBudget);
+  const bottom = Math.min(
+    requestedBottom,
+    Math.max(reservationBudget - top, 0),
+  );
+  const mustDisableContainLabel =
+    isCompact || requestedTop + requestedBottom > reservationBudget;
+
+  if (
+    top === rawTop &&
+    bottom === rawBottom &&
+    (!mustDisableContainLabel || grid.containLabel === false)
+  ) {
+    return options;
+  }
+
+  const viableGrid = {
+    ...grid,
+    bottom,
+    ...(mustDisableContainLabel ? { containLabel: false } : {}),
+    top,
   };
 
-  return (series.data as TimeseriesDataRecord[]).map(transformValue);
+  return {
+    ...options,
+    grid: Array.isArray(optionWithGrid.grid)
+      ? [viableGrid, ...optionWithGrid.grid.slice(1)]
+      : viableGrid,
+  } as Options;
 }

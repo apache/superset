@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useRef, useCallback } from 'react';
-import { styled } from '@superset-ui/core';
+import { useMemo, useCallback, memo } from 'react';
 import { GridSize } from 'src/components/GridTable/constants';
 import { GridTable } from 'src/components/GridTable';
 import { type ColDef } from 'src/components/GridTable/types';
@@ -26,42 +25,7 @@ import { renderResultCell } from './utils';
 
 import type { FilterableTableProps, Datum, CellDataType } from './types';
 
-// This regex handles all possible number formats in javascript, including ints, floats,
-// exponential notation, NaN, and Infinity.
-// See https://stackoverflow.com/a/30987109 for more details
-const ONLY_NUMBER_REGEX = /^(NaN|-?((\d*\.\d+|\d+)([Ee][+-]?\d+)?|Infinity))$/;
-
-const StyledFilterableTable = styled.div`
-  height: 100%;
-  overflow: hidden;
-`;
-
-const parseNumberFromString = (value: string | number | null) => {
-  if (typeof value === 'string' && ONLY_NUMBER_REGEX.test(value)) {
-    return parseFloat(value);
-  }
-  return value;
-};
-
-const sortResults = (valueA: string | number, valueB: string | number) => {
-  const aValue = parseNumberFromString(valueA);
-  const bValue = parseNumberFromString(valueB);
-
-  // equal items sort equally
-  if (aValue === bValue) {
-    return 0;
-  }
-
-  // nulls sort after anything else
-  if (aValue === null) {
-    return 1;
-  }
-  if (bValue === null) {
-    return -1;
-  }
-
-  return aValue < bValue ? -1 : 1;
-};
+import { sortResults } from './sortResults';
 
 export const FilterableTable = ({
   orderedColumnKeys,
@@ -69,8 +33,9 @@ export const FilterableTable = ({
   height,
   filterText = '',
   expandedColumns = [],
-  allowHTML = true,
+  allowHTML = false,
   striped,
+  themeOverrides,
 }: FilterableTableProps) => {
   const getCellContent = useCellContentParser({
     columnKeys: orderedColumnKeys,
@@ -96,6 +61,11 @@ export const FilterableTable = ({
     return values.some(v => v.includes(lowerCaseText));
   };
 
+  const comparator = useCallback(
+    (a: CellDataType, b: CellDataType) => sortResults(a, b, data),
+    [data],
+  );
+
   const columns = useMemo(
     () =>
       orderedColumnKeys.map(key => ({
@@ -103,7 +73,7 @@ export const FilterableTable = ({
         label: key,
         fieldName: key,
         headerName: key,
-        comparator: sortResults,
+        comparator,
         render: ({ value, colDef }: { value: CellDataType; colDef: ColDef }) =>
           renderResultCell({
             cellData: value,
@@ -112,28 +82,24 @@ export const FilterableTable = ({
             getCellContent,
           }),
       })),
-    [orderedColumnKeys, allowHTML, getCellContent],
+    [orderedColumnKeys, allowHTML, getCellContent, comparator],
   );
 
-  const keyword = useRef<string | undefined>(filterText);
-  keyword.current = filterText;
-
-  const keywordFilter = useCallback(node => {
-    if (keyword.current && node.data) {
-      return hasMatch(keyword.current, node.data);
-    }
-    return true;
-  }, []);
+  const keywordFilter = useCallback(
+    (node: { data: Datum }) => {
+      if (filterText && node.data) {
+        return hasMatch(filterText, node.data);
+      }
+      return true;
+    },
+    [filterText],
+  );
 
   return (
-    <StyledFilterableTable
-      className="filterable-table-container"
-      data-test="table-container"
-    >
+    <div className="filterable-table-container" data-test="table-container">
       <GridTable
         size={GridSize.Small}
         height={height}
-        usePagination={false}
         columns={columns}
         data={data}
         externalFilter={keywordFilter}
@@ -141,9 +107,11 @@ export const FilterableTable = ({
         striped={striped}
         enableActions
         columnReorderable
+        themeOverrides={themeOverrides}
       />
-    </StyledFilterableTable>
+    </div>
   );
 };
 
 export type { FilterableTableProps };
+export default memo(FilterableTable);

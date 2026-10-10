@@ -67,7 +67,7 @@ function testLocal(
 
 describe('createTimeRangeFromGranularity(time, granularity, useLocalTime)', () => {
   describe('UTC time', () => {
-    it('creates time range according to specified granularity', () => {
+    test('creates time range according to specified granularity', () => {
       expect(testUTC(TimeGranularity.DATE, 2020, 4, 15)).toEqual(
         '2020-05-15 00:00:00.000 — 2020-05-15 23:59:59.999',
       );
@@ -128,7 +128,7 @@ describe('createTimeRangeFromGranularity(time, granularity, useLocalTime)', () =
     });
   });
   describe('Local time', () => {
-    it('creates time range according to specified granularity', () => {
+    test('creates time range according to specified granularity', () => {
       expect(testLocal(TimeGranularity.DATE, 2020, 4, 15)).toEqual(
         '2020-05-15 00:00:00.000 — 2020-05-15 23:59:59.999',
       );

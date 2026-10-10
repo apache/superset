@@ -26,6 +26,7 @@ interface LookupTable {
 
 export interface ExampleImage {
   url: string;
+  urlDark?: string;
   caption?: string;
 }
 
@@ -38,7 +39,7 @@ export interface ChartMetadataConfig {
   enableNoResults?: boolean;
   supportedAnnotationTypes?: string[];
   thumbnail: string;
-  useLegacyApi?: boolean;
+  thumbnailDark?: string;
   behaviors?: Behavior[];
   exampleGallery?: ExampleImage[];
   tags?: string[];
@@ -54,6 +55,11 @@ export interface ChartMetadataConfig {
   // suppressContextMenu: true hides the default context menu for the chart.
   // This is useful for viz plugins that define their own context menu.
   suppressContextMenu?: boolean;
+  // Whether a native filter can participate in cascade dependencies (parent
+  // or child). Unset falls back to Behavior.NativeFilter. Explicit false
+  // opts out — used by time grain/column filters, whose extraFormData is
+  // not safe to merge across datasets.
+  supportsCascadeDependencies?: boolean;
 }
 
 export default class ChartMetadata {
@@ -71,7 +77,7 @@ export default class ChartMetadata {
 
   thumbnail: string;
 
-  useLegacyApi: boolean;
+  thumbnailDark?: string;
 
   behaviors: Behavior[];
 
@@ -99,6 +105,8 @@ export default class ChartMetadata {
 
   suppressContextMenu?: boolean;
 
+  supportsCascadeDependencies?: boolean;
+
   constructor(config: ChartMetadataConfig) {
     const {
       name,
@@ -107,7 +115,7 @@ export default class ChartMetadata {
       description = '',
       supportedAnnotationTypes = [],
       thumbnail,
-      useLegacyApi = false,
+      thumbnailDark,
       behaviors = [],
       datasourceCount = 1,
       enableNoResults = true,
@@ -121,6 +129,7 @@ export default class ChartMetadata {
       dynamicQueryObjectCount = false,
       parseMethod = 'json-bigint',
       suppressContextMenu = false,
+      supportsCascadeDependencies,
     } = config;
 
     this.name = name;
@@ -138,7 +147,7 @@ export default class ChartMetadata {
     );
     this.supportedAnnotationTypes = supportedAnnotationTypes;
     this.thumbnail = thumbnail;
-    this.useLegacyApi = useLegacyApi;
+    this.thumbnailDark = thumbnailDark;
     this.behaviors = behaviors;
     this.datasourceCount = datasourceCount;
     this.enableNoResults = enableNoResults;
@@ -152,6 +161,7 @@ export default class ChartMetadata {
     this.dynamicQueryObjectCount = dynamicQueryObjectCount;
     this.parseMethod = parseMethod;
     this.suppressContextMenu = suppressContextMenu;
+    this.supportsCascadeDependencies = supportsCascadeDependencies;
   }
 
   canBeAnnotationType(type: string): boolean {

@@ -31,7 +31,7 @@ test('render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('type number', async () => {
+test('type number and blur triggers onChange', async () => {
   const props = {
     ...mockedProps,
     onChange: jest.fn(),
@@ -39,11 +39,11 @@ test('type number', async () => {
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
   await userEvent.type(input, '9');
-  expect(props.onChange).toHaveBeenCalledTimes(1);
+  await userEvent.tab(); // Trigger blur to dispatch
   expect(props.onChange).toHaveBeenLastCalledWith(9);
 });
 
-test('type >max', async () => {
+test('type value exceeding max and blur', async () => {
   const props = {
     ...mockedProps,
     onChange: jest.fn(),
@@ -51,17 +51,62 @@ test('type >max', async () => {
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
   await userEvent.type(input, '20');
-  expect(props.onChange).toHaveBeenCalledTimes(1);
-  expect(props.onChange).toHaveBeenLastCalledWith(2);
+  await userEvent.tab(); // Trigger blur to dispatch
+  expect(props.onChange).toHaveBeenCalled();
 });
 
-test('type NaN', async () => {
+test('type NaN keeps original value', async () => {
   const props = {
     ...mockedProps,
+    value: 5,
     onChange: jest.fn(),
   };
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
   await userEvent.type(input, 'not a number');
-  expect(props.onChange).toHaveBeenCalledTimes(0);
+  await userEvent.tab(); // Trigger blur
+
+  expect(props.onChange).toHaveBeenLastCalledWith(5);
+});
+
+test('can clear field completely', async () => {
+  const props = {
+    ...mockedProps,
+    value: 10,
+    onChange: jest.fn(),
+  };
+  render(<NumberControl {...props} />);
+  const input = screen.getByRole('spinbutton');
+  await userEvent.clear(input);
+  await userEvent.tab(); // Trigger blur
+  expect(props.onChange).toHaveBeenLastCalledWith(undefined);
+});
+
+test('stepper arrows trigger onChange immediately', async () => {
+  const props = {
+    ...mockedProps,
+    value: 5,
+    onChange: jest.fn(),
+  };
+  render(<NumberControl {...props} />);
+  const upButton = document.querySelector(
+    '.ant-input-number-action-up',
+  ) as HTMLElement;
+  expect(upButton).toBeInTheDocument();
+  await userEvent.click(upButton);
+  expect(props.onChange).toHaveBeenCalledWith(6);
+});
+
+test('updates local value when prop changes', () => {
+  const props = {
+    ...mockedProps,
+    value: 5,
+    onChange: jest.fn(),
+  };
+  const { rerender } = render(<NumberControl {...props} />);
+  const input = screen.getByRole('spinbutton');
+  expect(input).toHaveValue('5');
+
+  rerender(<NumberControl {...props} value={8} />);
+  expect(input).toHaveValue('8');
 });

@@ -17,24 +17,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const fs = require('fs');
-const path = require('path');
-const webpack = require('webpack');
-const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-const CopyPlugin = require('copy-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
-const {
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import webpack from 'webpack';
+import * as webpackBundleAnalyzer from 'webpack-bundle-analyzer';
+import CopyPlugin from 'copy-webpack-plugin';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import MinimizerPlugin from 'minimizer-webpack-plugin';
+import * as LightningCSS from 'lightningcss';
+import SpeedMeasurePlugin from 'speed-measure-webpack-plugin';
+import {
   WebpackManifestPlugin,
   getCompilerHooks,
-} = require('webpack-manifest-plugin');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
-const parsedArgs = require('yargs').argv;
-const Visualizer = require('webpack-visualizer-plugin2');
-const getProxyConfig = require('./webpack.proxy-config');
-const packageConfig = require('./package');
+} from 'webpack-manifest-plugin';
+import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
+import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
+import yargs from 'yargs';
+import { hideBin } from 'yargs/helpers';
+import Visualizer from 'webpack-visualizer-plugin2';
+import getProxyConfig from './webpack.proxy-config.js';
+
+const { ModuleFederationPlugin } = webpack.container;
+const { BundleAnalyzerPlugin } = webpackBundleAnalyzer;
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const resolveEsmModule = specifier =>
+  fileURLToPath(import.meta.resolve(specifier));
+
+const packageConfig = JSON.parse(
+  fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
+);
+
+const parsedArgs = yargs(hideBin(process.argv)).parse();
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -49,28 +67,47 @@ const MINI_CSS_EXTRACT_PUBLICPATH = './';
 
 const {
   mode = 'development',
-  devserverPort = 9000,
+  devserverPort: cliPort,
+  devserverHost: cliHost,
   measure = false,
   nameChunks = false,
 } = parsedArgs;
 
+// Precedence: CLI args > env vars > defaults
+const devserverPort = cliPort || process.env.WEBPACK_DEVSERVER_PORT || 9000;
+const devserverHost =
+  cliHost || process.env.WEBPACK_DEVSERVER_HOST || '127.0.0.1';
+
 const isDevMode = mode !== 'production';
-const isDevServer = process.argv[1].includes('webpack-dev-server');
+const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
+
+// TypeScript checker memory limit (in MB)
+const TYPESCRIPT_MEMORY_LIMIT = 8192;
+
+const defaultEntryFilename = isDevMode
+  ? '[name].[contenthash:8].entry.js'
+  : nameChunks
+    ? '[name].[chunkhash].entry.js'
+    : '[name].[chunkhash].entry.js';
+
+const defaultChunkFilename = isDevMode
+  ? '[name].[contenthash:8].chunk.js'
+  : nameChunks
+    ? '[name].[chunkhash].chunk.js'
+    : '[chunkhash].chunk.js';
 
 const output = {
   path: BUILD_DIR,
   publicPath: '/static/assets/',
+  filename: pathData =>
+    pathData.chunk?.name === 'service-worker'
+      ? '../service-worker.js'
+      : defaultEntryFilename,
+  chunkFilename: pathData =>
+    pathData.chunk?.name === 'service-worker'
+      ? '../service-worker.js'
+      : defaultChunkFilename,
 };
-if (isDevMode) {
-  output.filename = '[name].[contenthash:8].entry.js';
-  output.chunkFilename = '[name].[contenthash:8].chunk.js';
-} else if (nameChunks) {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[name].[chunkhash].chunk.js';
-} else {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[chunkhash].chunk.js';
-}
 
 if (!isDevMode) {
   output.clean = true;
@@ -79,7 +116,7 @@ if (!isDevMode) {
 const plugins = [
   new webpack.ProvidePlugin({
     process: 'process/browser.js',
-    ...(isDevMode ? { Buffer: ['buffer', 'Buffer'] } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
+    ...(isDevMode ? { Buffer: ['buffer', 'Buffer'] } : {}), // Fix plugin-chart-paired-t-test broken Story
   }),
 
   // creates a manifest.json mapping of name to hashed output used in template files
@@ -125,7 +162,23 @@ const plugins = [
   }),
 
   new CopyPlugin({
-    patterns: ['package.json', { from: 'src/assets/images', to: 'images' }],
+    patterns: [
+      'package.json',
+      { from: 'src/assets/images', to: 'images' },
+      // maplibre-gl 6's ESM-only build loads its worker from a real URL
+      // instead of an inlined blob (see MapLibre.tsx for the matching
+      // maplibregl.setWorkerUrl() call). The worker's own bundle does a
+      // relative ESM import of its "shared" chunk, so both files must be
+      // copied verbatim, unhashed, into the same output directory.
+      {
+        from: 'node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs',
+        to: 'maplibre-gl-worker.mjs',
+      },
+      {
+        from: 'node_modules/maplibre-gl/dist/maplibre-gl-shared.mjs',
+        to: 'maplibre-gl-shared.mjs',
+      },
+    ],
   }),
 
   // static pages
@@ -141,82 +194,194 @@ const plugins = [
     chunks: [],
     filename: '500.html',
   }),
+  new ModuleFederationPlugin({
+    name: 'superset',
+    filename: 'remoteEntry.js',
+    shared: {
+      react: {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies.react,
+      },
+      'react-dom': {
+        singleton: true,
+        eager: true,
+        requiredVersion: packageConfig.dependencies['react-dom'],
+      },
+      antd: {
+        singleton: true,
+        requiredVersion: packageConfig.dependencies.antd,
+        eager: true,
+      },
+      '@apache-superset/core': {
+        singleton: true,
+        eager: true,
+      },
+    },
+  }),
 ];
 
 if (!process.env.CI) {
   plugins.push(new webpack.ProgressPlugin());
 }
 
+// Add React Refresh plugin for development mode
+if (isDevMode) {
+  plugins.push(
+    new ReactRefreshWebpackPlugin({
+      // Exclude:
+      //   - node_modules (the plugin's default — must be re-added when overriding
+      //     `exclude`, otherwise pre-bundled ESM packages such as
+      //     react-checkbox-tree get the refresh loader injected into their
+      //     nested webpack runtime, causing
+      //     `__webpack_require__.$Refresh$ is undefined` at module factory
+      //     execution time.
+      //   - service worker (runs in a worker context without DOM/window and
+      //     does not need HMR).
+      exclude: [/node_modules/, /service-worker/],
+    }),
+  );
+}
+
 if (!isDevMode) {
-  // text loading (webpack 4+)
+  // CSS extraction for production builds
   plugins.push(
     new MiniCssExtractPlugin({
       filename: '[name].[chunkhash].entry.css',
       chunkFilename: '[name].[chunkhash].chunk.css',
     }),
   );
-
-  // Runs type checking on a separate process to speed up the build
-  plugins.push(new ForkTsCheckerWebpackPlugin());
 }
 
-const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
-if (isDevMode) {
-  // A Superset webpage normally includes two JS bundles in dev, `theme.ts` and
-  // the main entrypoint. Only the main entry should have the dev server client,
-  // otherwise the websocket client will initialize twice, creating two sockets.
-  // Ref: https://github.com/gaearon/react-hot-loader/issues/141
-  PREAMBLE.unshift(
-    `webpack-dev-server/client?http://localhost:${devserverPort}`,
+// TypeScript type checking and .d.ts generation
+// SWC handles transpilation; this plugin handles type checking separately.
+// build: true enables project references so .d.ts files are auto-generated
+// across the monorepo when editing plugins/packages.
+// mode: 'write-references' writes .d.ts output (no manual `npm run plugins:build` needed).
+// Set DISABLE_TS_CHECKER=true to skip this plugin entirely (~2-3 GB savings).
+// Type errors are still caught by pre-commit and CI.
+const disableTsChecker = ['true', '1'].includes(
+  (process.env.DISABLE_TS_CHECKER || '').toLowerCase(),
+);
+if (isDevMode && !disableTsChecker) {
+  plugins.push(
+    new ForkTsCheckerWebpackPlugin({
+      async: true,
+      typescript: {
+        build: true,
+        mode: 'write-references',
+        memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
+        configOverwrite: {
+          compilerOptions: {
+            skipLibCheck: true,
+            incremental: true,
+          },
+          exclude: [
+            'src/**/*.js',
+            'src/**/*.jsx',
+            '**/*.test.*',
+            '**/*.stories.*',
+          ],
+        },
+      },
+    }),
   );
 }
+
+// In dev mode, include theme.ts in preamble to avoid separate chunk HMR issues
+const PREAMBLE = isDevMode
+  ? [path.join(APP_DIR, 'src/theme.ts'), path.join(APP_DIR, 'src/preamble.ts')]
+  : [path.join(APP_DIR, 'src/preamble.ts')];
 
 function addPreamble(entry) {
   return PREAMBLE.concat([path.join(APP_DIR, entry)]);
 }
 
-const babelLoader = {
-  loader: 'babel-loader',
-  options: {
-    cacheDirectory: true,
-    // disable gzip compression for cache files
-    // faster when there are millions of small files
-    cacheCompression: false,
-    presets: [
-      [
-        '@babel/preset-react',
-        {
-          runtime: 'automatic',
-          importSource: '@emotion/react',
+// SWC configuration for TypeScript/JavaScript transpilation
+function createSwcLoader(syntax = 'typescript', tsx = true) {
+  return {
+    loader: 'swc-loader',
+    options: {
+      jsc: {
+        parser: {
+          syntax,
+          tsx: syntax === 'typescript' ? tsx : undefined,
+          jsx: syntax === 'ecmascript',
+          decorators: false,
+          dynamicImport: true,
         },
-      ],
-    ],
-    plugins: [
-      [
-        '@emotion/babel-plugin',
-        {
-          autoLabel: 'dev-only',
-          labelFormat: '[local]',
+        transform: {
+          react: {
+            runtime: 'automatic',
+            importSource: '@emotion/react',
+            development: isDevMode,
+            refresh: isDevMode,
+          },
         },
-      ],
-    ],
-  },
-};
+        target: 'es2015',
+        loose: true,
+        externalHelpers: false,
+        experimental: {
+          plugins: [
+            [
+              '@swc/plugin-emotion',
+              {
+                sourceMap: isDevMode,
+                autoLabel: isDevMode ? 'dev-only' : 'never',
+                labelFormat: '[local]',
+              },
+            ],
+            [
+              '@swc/plugin-transform-imports',
+              {
+                lodash: {
+                  transform: 'lodash/{{member}}',
+                  preventFullImport: true,
+                  skipDefaultConversion: false,
+                },
+                'lodash-es': {
+                  transform: 'lodash-es/{{member}}',
+                  preventFullImport: true,
+                  skipDefaultConversion: false,
+                },
+              },
+            ],
+          ],
+        },
+      },
+      module: {
+        type: 'es6',
+      },
+    },
+  };
+}
 
 const config = {
   entry: {
     preamble: PREAMBLE,
-    theme: path.join(APP_DIR, '/src/theme.ts'),
+    // In dev mode, theme is included in preamble to avoid separate chunk HMR issues
+    ...(isDevMode ? {} : { theme: path.join(APP_DIR, 'src/theme.ts') }),
     menu: addPreamble('src/views/menu.tsx'),
-    spa: addPreamble('/src/views/index.tsx'),
-    embedded: addPreamble('/src/embedded/index.tsx'),
+    spa: addPreamble('src/views/index.tsx'),
+    embedded: addPreamble('src/embedded/index.tsx'),
+    'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
   },
   cache: {
-    type: 'filesystem', // Enable filesystem caching
+    type: 'filesystem',
     cacheDirectory: path.resolve(__dirname, '.temp_cache'),
+    // Separate cache for dev vs prod builds
+    name: `${isDevMode ? 'development' : 'production'}-cache`,
+    // Invalidate cache when these files change
     buildDependencies: {
-      config: [__filename],
+      config: [
+        __filename,
+        path.resolve(__dirname, 'package-lock.json'),
+        path.resolve(__dirname, 'babel.config.js'),
+        path.resolve(__dirname, 'tsconfig.json'),
+      ],
     },
+    // Compress cache for smaller disk usage (slight CPU tradeoff)
+    compression: isDevMode ? false : 'gzip',
   },
   output,
   stats: 'minimal',
@@ -261,16 +426,10 @@ const config = {
             `/node_modules/(${[
               'react',
               'react-dom',
-              'prop-types',
-              'react-prop-types',
-              'prop-types-extra',
               'redux',
               'react-redux',
-              'react-hot-loader',
-              'react-sortable-hoc',
               'react-table',
               'react-ace',
-              '@hot-loader.*',
               'webpack.*',
               '@?babel.*',
               'lodash.*',
@@ -296,12 +455,40 @@ const config = {
       },
     },
     usedExports: 'global',
-    minimizer: [new CssMinimizerPlugin(), '...'],
+    minimizer: [
+      new MinimizerPlugin({
+        test: /\.css(\?.*)?$/i,
+        minify: MinimizerPlugin.lightningCssMinify,
+        minimizerOptions: {
+          targets: LightningCSS.browserslistToTargets(
+            packageConfig.browserslist,
+          ),
+        },
+      }),
+      new MinimizerPlugin({
+        minify: MinimizerPlugin.swcMinify,
+        minimizerOptions: {
+          compress: {
+            drop_console: false,
+          },
+          mangle: true,
+          format: {
+            comments: false,
+          },
+        },
+      }),
+    ],
   },
   resolve: {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
-    modules: ['node_modules', APP_DIR],
+    modules: [
+      'node_modules',
+      APP_DIR,
+      path.resolve(APP_DIR, 'packages'),
+      path.resolve(APP_DIR, 'plugins'),
+    ],
     alias: {
+      '@storybook-shared': path.resolve(APP_DIR, '.storybook/shared'),
       react: path.resolve(path.join(APP_DIR, './node_modules/react')),
       // TODO: remove Handlebars alias once Handlebars NPM package has been updated to
       // correctly support webpack import (https://github.com/handlebars-lang/handlebars.js/issues/953)
@@ -312,29 +499,14 @@ const config = {
       This prevents "Module not found" errors for moment locale files.
       */
       'moment/min/moment-with-locales': false,
-      // Temporary workaround to allow Storybook 8 to work with existing React v16-compatible stories.
-      // Remove below alias once React has been upgreade to v18.
-      '@storybook/react-dom-shim': path.resolve(
-        path.join(
-          APP_DIR,
-          './node_modules/@storybook/react-dom-shim/dist/react-16',
-        ),
-      ),
-      // Workaround for react-color trying to import non-existent icon
-      '@icons/material/UnfoldMoreHorizontalIcon': path.resolve(
-        path.join(
-          APP_DIR,
-          './node_modules/@icons/material/CubeUnfoldedIcon.js',
-        ),
-      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
       fs: false,
-      vm: require.resolve('vm-browserify'),
+      vm: false,
       path: false,
-      stream: require.resolve('stream-browserify'),
-      ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
+      stream: resolveEsmModule('stream-browserify'),
+      ...(isDevMode ? { buffer: resolveEsmModule('buffer/') } : {}), // Fix plugin-chart-paired-t-test broken Story
     },
   },
   context: APP_DIR, // to automatically find tsconfig.json
@@ -348,30 +520,22 @@ const config = {
         },
       },
       {
+        test: /node_modules\/(@deck\.gl|@luma\.gl).*\.js$/,
+        loader: 'imports-loader',
+        options: {
+          additionalCode: 'var module = module || {exports: {}};',
+        },
+      },
+      {
+        test: /node_modules\/(geostyler|geostyler-openlayers-parser|geostyler-mapbox-parser|geostyler-sld-parser)\/.*\.js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         test: /\.tsx?$/,
-        exclude: [/\.test.tsx?$/],
-        use: [
-          'thread-loader',
-          babelLoader,
-          {
-            loader: 'ts-loader',
-            options: {
-              // transpile only in happyPack mode
-              // type checking is done via fork-ts-checker-webpack-plugin
-              happyPackMode: true,
-              transpileOnly: true,
-              // must override compiler options here, even though we have set
-              // the same options in `tsconfig.json`, because they may still
-              // be overridden by `tsconfig.json` in node_modules subdirectories.
-              compilerOptions: {
-                esModuleInterop: false,
-                importHelpers: false,
-                module: 'esnext',
-                target: 'esnext',
-              },
-            },
-          },
-        ],
+        exclude: [/\.test.tsx?$/, /node_modules/],
+        use: [createSwcLoader('typescript', true)],
       },
       {
         test: /\.jsx?$/,
@@ -384,19 +548,11 @@ const config = {
           ), // redundant but required for windows
           /@encodable/,
         ],
-        use: [babelLoader],
+        use: [createSwcLoader('ecmascript')],
       },
       {
         test: /ace-builds.*\/worker-.*$/,
         type: 'asset/resource',
-      },
-      // react-hot-loader use "ProxyFacade", which is a wrapper for react Component
-      // see https://github.com/gaearon/react-hot-loader/issues/1311
-      // TODO: refactor recurseReactClone
-      {
-        test: /\.js$/,
-        include: /node_modules\/react-dom/,
-        use: ['react-hot-loader/webpack'],
       },
       {
         test: /\.css$/,
@@ -413,7 +569,7 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: true,
+              sourceMap: !isDevMode,
             },
           },
         ],
@@ -471,20 +627,6 @@ const config = {
         test: /\.geojson$/,
         type: 'asset/resource',
       },
-      // {
-      //   test: /\.mdx?$/,
-      //   use: [
-      //     {
-      //       loader: require.resolve('@storybook/mdx2-csf/loader'),
-      //       options: {
-      //         skipCsf: false,
-      //         mdxCompileOptions: {
-      //           remarkPlugins: [remarkGfm],
-      //         },
-      //       },
-      //     },
-      //   ],
-      // },
     ],
   },
   externals: {
@@ -494,6 +636,28 @@ const config = {
   },
   plugins,
   devtool: isDevMode ? 'eval-cheap-module-source-map' : false,
+  watchOptions: isDevMode
+    ? {
+        // Watch all plugin and package source directories
+        ignored: [
+          '**/node_modules',
+          '**/.git',
+          '**/lib',
+          '**/esm',
+          '**/dist',
+          '**/.temp_cache',
+          '**/coverage',
+          '**/*.test.*',
+          '**/*.stories.*',
+          '**/*.geojson',
+        ],
+        // Poll-based watching is needed in Docker/VM where native fs events
+        // don't propagate from host to container.
+        poll: 2000,
+        // Aggregate changes before rebuilding
+        aggregateTimeout: 500,
+      }
+    : undefined,
 };
 
 // find all the symlinked plugins and use their source code for imports
@@ -501,7 +665,10 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
   const dir = relativeDir.replace('file:', '');
 
-  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+  if (
+    (pkg.startsWith('@superset-ui') || pkg.startsWith('@apache-superset')) &&
+    fs.existsSync(srcPath)
+  ) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
   }
@@ -523,11 +690,24 @@ if (isDevMode) {
 
   config.devServer = {
     devMiddleware: {
+      publicPath: '/static/assets/',
       writeToDisk: true,
     },
     historyApiFallback: true,
-    hot: true,
+    hot: 'only', // HMR only, no page reload fallback
+    liveReload: false,
+    host: devserverHost,
     port: devserverPort,
+    allowedHosts: [
+      ...new Set([
+        devserverHost,
+        'localhost',
+        '.localhost',
+        '127.0.0.1',
+        '::1',
+        '.local',
+      ]),
+    ],
     proxy: [() => proxyConfig],
     client: {
       overlay: {
@@ -535,7 +715,7 @@ if (isDevMode) {
         warnings: false,
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
-      logging: 'error',
+      logging: 'info', // Show HMR messages
       webSocketURL: {
         hostname: '0.0.0.0',
         pathname: '/ws',
@@ -570,4 +750,14 @@ const smp = new SpeedMeasurePlugin({
   disable: !measure,
 });
 
-module.exports = smp.wrap(config);
+// Emits per-asset/entrypoint sizes via `--json` (the default `stats: 'minimal'`
+// above omits both). Not `normal`/`detailed` stats: those also serialize the
+// full ~15k-module dependency graph, which is hundreds of MB for this app --
+// large enough to exceed Node's max string length when read back with
+// `fs.readFileSync`. Used by scripts/bundle-size-summary.js in CI.
+// e.g. BUNDLE_SIZE_STATS=true npm run build -- --json=stats.json
+if (process.env.BUNDLE_SIZE_STATS) {
+  config.stats = { all: false, assets: true, entrypoints: true };
+}
+
+export default smp.wrap(config);

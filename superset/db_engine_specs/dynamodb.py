@@ -14,18 +14,59 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from datetime import datetime
 from typing import Any, Optional
 
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.utils.core import GenericDataType
 
 
 class DynamoDBEngineSpec(BaseEngineSpec):
     engine = "dynamodb"
     engine_name = "Amazon DynamoDB"
+
+    metadata = {
+        "description": (
+            "Amazon DynamoDB is a serverless NoSQL database with SQL via PartiQL."
+        ),
+        "logo": "aws.png",
+        "homepage_url": "https://aws.amazon.com/dynamodb/",
+        "categories": [
+            DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.SEARCH_NOSQL,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["pydynamodb"],
+        "connection_string": (
+            "dynamodb://{aws_access_key_id}:{aws_secret_access_key}"
+            "@dynamodb.{region}.amazonaws.com:443?connector=superset"
+        ),
+        "parameters": {
+            "aws_access_key_id": "AWS access key ID",
+            "aws_secret_access_key": "AWS secret access key",
+            "region": "AWS region (e.g., us-east-1)",
+        },
+        "notes": "Uses PartiQL for SQL queries. Requires connector=superset parameter.",
+        "docs_url": "https://github.com/passren/PyDynamoDB",
+    }
+
+    # The PyDynamoDB dialect omits top-level column aliases (PartiQL has none),
+    # so an ORDER BY on a SELECT alias (e.g. a metric label) names a column that
+    # does not exist. Order by the expression instead.
+    allows_alias_in_orderby = False
+
+    # PyDynamoDB describes DynamoDB numbers as NUMBER.
+    column_type_mappings = (
+        (
+            re.compile(r"^NUMBER$", re.IGNORECASE),
+            types.Numeric(),
+            GenericDataType.NUMERIC,
+        ),
+    )
 
     _time_grain_expressions = {
         None: "{col}",
@@ -62,6 +103,12 @@ class DynamoDBEngineSpec(BaseEngineSpec):
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, (types.String, types.DateTime)):
-            return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
+            # DynamoDB has no datetime type: timestamps are strings compared as
+            # text, conventionally ISO 8601 ("2019-01-02T03:04:05", which is also
+            # what PyDynamoDB writes for datetime values). A space separator
+            # sorts before "T", so a bound like "2019-01-02 04:00:00" excluded
+            # "2019-01-02T04:15:00" from a sub-day range. Fractional seconds are
+            # kept when set, so sub-second bounds are not truncated.
+            return f"'{dttm.isoformat()}'"
 
         return None

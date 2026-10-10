@@ -25,7 +25,11 @@ import {
 import { DatasourceType } from '@superset-ui/core';
 import { sliceEntitiesForDashboard as mockSliceEntities } from 'spec/fixtures/mockSliceEntities';
 import { configureStore } from '@reduxjs/toolkit';
-import SliceAdder, { SliceAdderProps, sortByComparator } from './SliceAdder';
+import SliceAdder, {
+  SliceAdderProps,
+  sortByComparator,
+  SliceListRow,
+} from './SliceAdder';
 
 // Mock the Select component to avoid debounce issues
 jest.mock('@superset-ui/core', () => ({
@@ -45,17 +49,17 @@ jest.mock('@superset-ui/core', () => ({
   ),
 }));
 
-jest.mock('lodash/debounce', () => {
-  const debounced = (fn: Function) => {
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fn: Function) => {
     const debouncedFn = ((...args: any[]) =>
       fn(...args)) as unknown as Function & {
       cancel: () => void;
     };
     debouncedFn.cancel = () => {};
     return debouncedFn;
-  };
-  return debounced;
-});
+  },
+}));
 
 const mockStore = configureStore({
   reducer: (state = { common: { locale: 'en' } }) => state,
@@ -77,33 +81,34 @@ const defaultProps: Omit<SliceAdderProps, 'theme'> = {
 const renderSliceAdder = (props = defaultProps) =>
   render(<SliceAdder {...props} />, { store: mockStore });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SliceAdder', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('renders the create new chart button', () => {
+  test('renders the create new chart button', () => {
     renderSliceAdder();
     expect(screen.getByText('Create new chart')).toBeInTheDocument();
   });
 
-  it('renders loading state', () => {
+  test('renders loading state', () => {
     renderSliceAdder({ ...defaultProps, isLoading: true });
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  it('renders error message', () => {
+  test('renders error message', () => {
     const errorMessage = 'Error loading charts';
     renderSliceAdder({ ...defaultProps, errorMessage });
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 
-  it('fetches slices on mount', () => {
+  test('fetches slices on mount', () => {
     renderSliceAdder();
     expect(defaultProps.fetchSlices).toHaveBeenCalledWith(1, '', 'changed_on');
   });
 
-  it('handles search input changes', async () => {
+  test('handles search input changes', async () => {
     renderSliceAdder();
     const searchInput = screen.getByPlaceholderText('Filter your charts');
     await userEvent.type(searchInput, 'test search');
@@ -114,7 +119,7 @@ describe('SliceAdder', () => {
     );
   });
 
-  it('handles sort selection changes', async () => {
+  test('handles sort selection changes', async () => {
     renderSliceAdder();
     // Update selector to match the actual rendered element
     const sortSelect = screen.getByText('Sort by recent');
@@ -124,7 +129,7 @@ describe('SliceAdder', () => {
     expect(defaultProps.fetchSlices).toHaveBeenCalledWith(1, '', 'viz_type');
   });
 
-  it('handles show only my charts toggle', async () => {
+  test('handles show only my charts toggle', async () => {
     renderSliceAdder();
     const checkbox = screen.getByRole('checkbox');
     await userEvent.click(checkbox);
@@ -135,7 +140,7 @@ describe('SliceAdder', () => {
     );
   });
 
-  it('opens new chart in new tab when create new chart is clicked', () => {
+  test('opens new chart in new tab when create new chart is clicked', () => {
     const windowSpy = jest.spyOn(window, 'open').mockImplementation();
     renderSliceAdder();
     const createButton = screen.getByText('Create new chart');
@@ -148,6 +153,7 @@ describe('SliceAdder', () => {
     windowSpy.mockRestore();
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('sortByComparator', () => {
     const baseSlice = {
       slice_url: '/superset/explore/',
@@ -163,14 +169,14 @@ describe('SliceAdder', () => {
       description: '',
       description_markdown: '',
       modified: '2020-01-01',
-      owners: [],
+      editors: [],
       created_by: { id: 1 }, // Fix: provide required user object instead of null
       cache_timeout: null,
       uuid: '1234',
       query_context: null,
     };
 
-    it('should sort by changed_on in descending order', () => {
+    test('should sort by changed_on in descending order', () => {
       const input = [
         {
           ...baseSlice,
@@ -198,7 +204,7 @@ describe('SliceAdder', () => {
       expect(sorted[2].changed_on).toBe(1577836800000);
     });
 
-    it('should sort by other fields in ascending order', () => {
+    test('should sort by other fields in ascending order', () => {
       const input = [
         {
           ...baseSlice,
@@ -228,10 +234,60 @@ describe('SliceAdder', () => {
     });
   });
 
-  it('should update selectedSliceIdsSet when props change', () => {
+  test('should update selectedSliceIdsSet when props change', () => {
     const { rerender } = renderSliceAdder();
     rerender(<SliceAdder {...defaultProps} selectedSliceIds={[129]} />);
     // Verify the internal state was updated by checking if new charts are available
     expect(screen.getByRole('checkbox')).toBeInTheDocument();
+  });
+
+  // Covers the react-window v2 `rowComponent`/`rowProps` wiring: SliceAdder
+  // hoists its row renderer to module scope (see SliceAdder.tsx) so
+  // react-window doesn't remount every row on each render. This verifies
+  // that hoisted row renders correctly from the flattened rowProps react-window
+  // passes it (index/style plus the custom row props), rather than through
+  // closures over component state.
+  test('SliceListRow renders a chart card for the slice at the given index', () => {
+    const filteredSlices = Object.values(mockSliceEntities.slices);
+    render(
+      <SliceListRow
+        index={0}
+        style={{}}
+        ariaAttributes={{
+          role: 'listitem',
+          'aria-posinset': 1,
+          'aria-setsize': filteredSlices.length,
+        }}
+        filteredSlices={filteredSlices}
+        selectedSliceIdsSet={new Set()}
+        editMode={false}
+      />,
+      { useDnd: true, store: mockStore },
+    );
+    expect(screen.getByTestId('chart-card')).toBeInTheDocument();
+    expect(screen.getByText(filteredSlices[0].slice_name)).toBeInTheDocument();
+  });
+
+  test('SliceListRow renders the slice at the row index passed via rowProps, not index 0', () => {
+    const filteredSlices = Object.values(mockSliceEntities.slices);
+    render(
+      <SliceListRow
+        index={1}
+        style={{}}
+        ariaAttributes={{
+          role: 'listitem',
+          'aria-posinset': 2,
+          'aria-setsize': filteredSlices.length,
+        }}
+        filteredSlices={filteredSlices}
+        selectedSliceIdsSet={new Set()}
+        editMode={false}
+      />,
+      { useDnd: true, store: mockStore },
+    );
+    expect(screen.getByText(filteredSlices[1].slice_name)).toBeInTheDocument();
+    expect(
+      screen.queryByText(filteredSlices[0].slice_name),
+    ).not.toBeInTheDocument();
   });
 });

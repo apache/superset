@@ -168,6 +168,7 @@ const tableVizStore = {
   },
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('should collect control values and create SFD', () => {
   const sharedKey = [...sharedMetricsKey, ...sharedColumnsKey];
   const sharedControlsFormData = {
@@ -179,6 +180,10 @@ describe('should collect control values and create SFD', () => {
     x: 'm5',
     y: 'm6',
     secondary_metric: 'm7',
+    open: 'm8',
+    close: 'm9',
+    high: 'm10',
+    low: 'm11',
     // columns
     groupby: ['c1'],
     columns: ['c2'],
@@ -216,6 +221,9 @@ describe('should collect control values and create SFD', () => {
     // advanced analytics - resample
     resample_rule: '1D',
     resample_method: 'zerofill',
+    resample_fill_time_range: true,
+    // dashboard context
+    dashboardId: 123,
   };
   const sourceMockFormData: QueryFormData = {
     ...sharedControlsFormData,
@@ -239,12 +247,15 @@ describe('should collect control values and create SFD', () => {
   };
 
   beforeAll(() => {
+    // dashboardId is not a control, it's just context, so exclude it from control definitions
+    const publicControlFields = publicControls.filter(c => c !== 'dashboardId');
+
     getChartControlPanelRegistry().registerValue('source_viz', {
       controlPanelSections: [
         sections.advancedAnalyticsControls,
         {
           label: 'transform controls',
-          controlSetRows: publicControls.map(control => [control]),
+          controlSetRows: publicControlFields.map(control => [control]),
         },
         {
           label: 'axis column',
@@ -257,7 +268,7 @@ describe('should collect control values and create SFD', () => {
         sections.advancedAnalyticsControls,
         {
           label: 'transform controls',
-          controlSetRows: publicControls.map(control => [control]),
+          controlSetRows: publicControlFields.map(control => [control]),
         },
         {
           label: 'axis column',
@@ -269,6 +280,18 @@ describe('should collect control values and create SFD', () => {
         columns: formData.standardizedFormData.controls.columns,
         metrics: formData.standardizedFormData.controls.metrics,
       }),
+    });
+    // a target viz whose "Time shift" control offers inherit/custom choices
+    getChartControlPanelRegistry().registerValue('target_viz_inherit', {
+      controlPanelSections: [
+        sections.timeComparisonControls({}),
+        {
+          label: 'transform controls',
+          controlSetRows: publicControlFields
+            .filter(c => c !== 'time_compare')
+            .map(control => [control]),
+        },
+      ],
     });
   });
 
@@ -293,6 +316,10 @@ describe('should collect control values and create SFD', () => {
       'm5',
       'm6',
       'm7',
+      'm8',
+      'm9',
+      'm10',
+      'm11',
     ]);
     expect(sfd.serialize().controls.columns).toEqual([
       'c1',
@@ -335,7 +362,73 @@ describe('should collect control values and create SFD', () => {
       'm5',
       'm6',
       'm7',
+      'm8',
+      'm9',
+      'm10',
+      'm11',
     ]);
+  });
+
+  test('strips inherit/custom time shifts when target viz does not support them', () => {
+    // Table/Big Number period-over-period offer "inherit" and "custom" time
+    // shifts; the timeseries advanced-analytics target (target_viz) does not.
+    // Carrying them over leaves un-removable tags on the new chart (SC-99170).
+    const store = {
+      ...sourceMockStore,
+      form_data: {
+        ...sourceMockFormData,
+        time_compare: ['1 year ago', 'inherit', 'custom'],
+      },
+    };
+    const sfd = new StandardizedFormData(store.form_data);
+    const { formData } = sfd.transform('target_viz', store);
+    // the free-form delta survives, the special markers are dropped
+    expect(formData.time_compare).toEqual(['1 year ago']);
+  });
+
+  test('preserves inherit/custom time shifts when target viz supports them', () => {
+    const store = {
+      ...sourceMockStore,
+      form_data: {
+        ...sourceMockFormData,
+        time_compare: ['1 year ago', 'inherit'],
+      },
+    };
+    const sfd = new StandardizedFormData(store.form_data);
+    const { formData } = sfd.transform('target_viz_inherit', store);
+    expect(formData.time_compare).toEqual(['1 year ago', 'inherit']);
+  });
+
+  test('clears time_compare to null when every shift is unsupported', () => {
+    // When only special markers carry over and none survive, the control value
+    // must serialize to null (not an empty array) so the target chart shows an
+    // empty "Time shift" rather than a stray tag (SC-99170).
+    const store = {
+      ...sourceMockStore,
+      form_data: {
+        ...sourceMockFormData,
+        time_compare: ['inherit', 'custom'],
+      },
+    };
+    const sfd = new StandardizedFormData(store.form_data);
+    const { formData } = sfd.transform('target_viz', store);
+    expect(formData.time_compare).toBeNull();
+  });
+
+  test('strips a scalar time shift after getControlsState coerces it to an array', () => {
+    // Table/Big Number store `time_compare` as a scalar string; getControlsState
+    // coerces it to an array before the strip runs, so a lone unsupported marker
+    // must still serialize to null on the target viz (SC-99170).
+    const store = {
+      ...sourceMockStore,
+      form_data: {
+        ...sourceMockFormData,
+        time_compare: 'inherit',
+      },
+    };
+    const sfd = new StandardizedFormData(store.form_data);
+    const { formData } = sfd.transform('target_viz', store);
+    expect(formData.time_compare).toBeNull();
   });
 
   test('should inherit standardizedFormData and memorizedFormData is LIFO', () => {
@@ -379,6 +472,7 @@ describe('should collect control values and create SFD', () => {
   });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('should transform form_data between table and bigNumberTotal', () => {
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue(
@@ -445,8 +539,86 @@ describe('should transform form_data between table and bigNumberTotal', () => {
     ]);
     expect(tblFormData.groupby).toEqual(['name', 'gender', adhocColumn]);
   });
+
+  test('preserves dashboardId when transforming between viz types', () => {
+    // Create form data with dashboardId (simulating opening explore from a dashboard)
+    const formDataWithDashboard = {
+      ...tableVizFormData,
+      dashboardId: 42,
+    };
+    const storeWithDashboard = {
+      ...tableVizStore,
+      form_data: formDataWithDashboard,
+    };
+
+    // Transform table -> bigNumberTotal
+    const sfd = new StandardizedFormData(formDataWithDashboard);
+    const { formData: bntFormData } = sfd.transform(
+      VizType.BigNumberTotal,
+      storeWithDashboard,
+    );
+
+    // Verify dashboardId is preserved after transformation
+    expect(bntFormData.dashboardId).toBe(42);
+
+    // Transform back bigNumberTotal -> table
+    const sfd2 = new StandardizedFormData(bntFormData);
+    const { formData: tblFormData } = sfd2.transform('table', {
+      ...storeWithDashboard,
+      form_data: bntFormData,
+      controls: {
+        ...tableVizStore.controls,
+      },
+    });
+
+    // Verify dashboardId is still preserved after second transformation
+    expect(tblFormData.dashboardId).toBe(42);
+  });
+
+  test('handles missing dashboardId gracefully', () => {
+    // Test with no dashboardId (exploring a chart not from a dashboard)
+    const formDataNoDashboard = {
+      ...tableVizFormData,
+      // dashboardId is undefined
+    };
+    const storeNoDashboard = {
+      ...tableVizStore,
+      form_data: formDataNoDashboard,
+    };
+
+    const sfd = new StandardizedFormData(formDataNoDashboard);
+    const { formData: bntFormData } = sfd.transform(
+      VizType.BigNumberTotal,
+      storeNoDashboard,
+    );
+
+    // dashboardId should not be present when it was never set
+    expect(bntFormData.dashboardId).toBeUndefined();
+  });
+
+  test('handles null dashboardId', () => {
+    // Test with explicit null dashboardId
+    const formDataNullDashboard = {
+      ...tableVizFormData,
+      dashboardId: null,
+    };
+    const storeNullDashboard = {
+      ...tableVizStore,
+      form_data: formDataNullDashboard,
+    };
+
+    const sfd = new StandardizedFormData(formDataNullDashboard);
+    const { formData: bntFormData } = sfd.transform(
+      VizType.BigNumberTotal,
+      storeNullDashboard,
+    );
+
+    // null is falsy, so dashboardId should not be added
+    expect(bntFormData.dashboardId).toBeUndefined();
+  });
 });
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('initial SFD between different datasource', () => {
   beforeAll(() => {
     getChartControlPanelRegistry().registerValue(
@@ -488,4 +660,21 @@ describe('initial SFD between different datasource', () => {
       'standardizedFormData',
     );
   });
+});
+
+test('collects candlestick OHLC metrics into standardized controls', () => {
+  const controls = StandardizedFormData.getStandardizedControls({
+    datasource: '1__table',
+    viz_type: VizType.Table,
+    open: 'open_col',
+    close: 'close_col',
+    high: 'high_col',
+    low: 'low_col',
+  } as QueryFormData);
+  expect(controls.metrics).toEqual([
+    'open_col',
+    'close_col',
+    'high_col',
+    'low_col',
+  ]);
 });

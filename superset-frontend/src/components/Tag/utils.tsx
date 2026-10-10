@@ -17,24 +17,15 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
-  ClientErrorObject,
   getClientErrorObject,
+  selectClientErrorMessage,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
-import Tag from 'src/types/TagType';
+import type { TagType } from 'src/types/TagType';
 
 import rison from 'rison';
-import { cacheWrapper } from 'src/utils/cacheWrapper';
-
-const localCache = new Map<string, any>();
-
-const cachedSupersetGet = cacheWrapper(
-  SupersetClient.get,
-  localCache,
-  ({ endpoint }) => endpoint || '',
-);
 
 type SelectTagsValue = {
   value: number | undefined;
@@ -43,7 +34,7 @@ type SelectTagsValue = {
 };
 
 export const tagToSelectOption = (
-  tag: Tag & { table_name: string },
+  tag: TagType & { table_name: string },
 ): SelectTagsValue => ({
   value: tag.id,
   label: tag.name,
@@ -67,15 +58,7 @@ export const loadTags = async (
     order_direction: 'asc',
   });
 
-  const getErrorMessage = ({ error, message }: ClientErrorObject) => {
-    let errorText = message || error || t('An error has occurred');
-    if (message === 'Forbidden') {
-      errorText = t('You do not have permission to read tags');
-    }
-    return errorText;
-  };
-
-  return cachedSupersetGet({
+  return SupersetClient.get({
     endpoint: `/api/v1/tag/?q=${query}`,
   })
     .then(response => {
@@ -89,7 +72,11 @@ export const loadTags = async (
       };
     })
     .catch(async error => {
-      const errorMessage = getErrorMessage(await getClientErrorObject(error));
+      const errorMessage = selectClientErrorMessage(
+        await getClientErrorObject(error),
+        t('An error has occurred'),
+        { 403: t('You do not have permission to read tags') },
+      );
       throw new Error(errorMessage);
     });
 };

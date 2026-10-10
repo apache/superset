@@ -16,29 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HTMLAttributes, memo, useMemo } from 'react';
+import { HTMLAttributes, memo, useMemo, useCallback } from 'react';
 import {
-  ColumnInstance,
   HeaderGroup,
   Row,
   SortingRule,
   TableBodyPropGetter,
   TablePropGetter,
 } from 'react-table';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { Table, TableSize } from '@superset-ui/core/components/Table';
-import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
-import { mapColumns, mapRows } from './utils';
+import {
+  ColumnsType,
+  TableRowSelection,
+  SorterResult,
+} from 'antd/es/table/interface';
+import type { TableProps } from 'antd/es/table';
+import { mapColumns, mapRows, type ListViewColumn } from './utils';
 
-interface TableCollectionProps<T extends object> {
+export type { ListViewColumn };
+
+export interface TableCollectionProps<T extends object> {
   getTableProps: TablePropGetter<T>;
   getTableBodyProps: TableBodyPropGetter<T>;
   prepareRow: (row: Row<T>) => void;
   headerGroups: HeaderGroup<T>[];
   rows: Row<T>[];
-  columns: ColumnInstance<T>[];
+  columns: ListViewColumn<T>[];
   loading: boolean;
   highlightRowId?: number;
+  // Optional predicate to highlight arbitrary rows (in addition to
+  // highlightRowId). Receives the mapped record (which spreads row.original), so
+  // callers can match on any field, e.g. by uuid.
+  isRowHighlighted?: (record: Record<string, unknown>) => boolean;
   columnsForWrapText?: string[];
   setSortBy?: (updater: SortingRule<T>[]) => void;
   bulkSelectEnabled?: boolean;
@@ -47,13 +57,20 @@ interface TableCollectionProps<T extends object> {
   toggleAllRowsSelected?: (value?: boolean) => void;
   sticky?: boolean;
   size?: TableSize;
+  pageIndex?: number;
+  pageSize?: number;
+  totalCount?: number;
+  onPageChange?: (page: number, pageSize: number) => void;
+  isPaginationSticky?: boolean;
+  showRowCount?: boolean;
+  expandable?: Record<string, unknown>;
 }
 
-const StyledTable = styled(Table)`
-  ${({ theme }) => `
-    th.ant-column-cell {
-      min-width: fit-content;
-    }
+const StyledTable = styled(Table)<{
+  isPaginationSticky?: boolean;
+  showRowCount?: boolean;
+}>`
+  ${({ theme, isPaginationSticky, showRowCount }) => `
     .actions {
       opacity: 0;
       font-size: ${theme.fontSizeXL}px;
@@ -70,27 +87,76 @@ const StyledTable = styled(Table)`
         }
       }
     }
+
     .ant-table-column-title {
       line-height: initial;
     }
+
     .ant-table-row:hover {
       .actions {
         opacity: 1;
         transition: opacity ease-in ${theme.motionDurationMid};
       }
     }
+
+    .ant-table-row.table-row-highlighted > td.ant-table-cell,
+    .ant-table-row.table-row-highlighted > td.ant-table-cell.ant-table-cell-row-hover {
+      background-color: ${theme.colorPrimaryBg};
+    }
+
     .ant-table-cell {
+      max-width: 320px;
       font-feature-settings: 'tnum' 1;
       text-overflow: ellipsis;
       overflow: hidden;
-      max-width: 320px;
       line-height: 1;
       vertical-align: middle;
       padding-left: ${theme.sizeUnit * 4}px;
       white-space: nowrap;
     }
+
+    .ant-table-tbody > tr > td {
+      height: ${theme.sizeUnit * 12}px;
+    }
+
+    .ant-table-tbody > tr > td.ant-table-cell:has(.ant-avatar-group) {
+      padding-top: ${theme.sizeUnit}px;
+      padding-bottom: ${theme.sizeUnit}px;
+    }
+
     .ant-table-placeholder .ant-table-cell {
       border-bottom: 0;
+    }
+
+    &.ant-table-wrapper .ant-table-pagination.ant-pagination {
+      display: flex;
+      justify-content: center;
+      margin: ${showRowCount ? theme.sizeUnit * 4 : 0}px 0 ${showRowCount ? theme.sizeUnit * 14 : 0}px 0;
+      position: relative;
+
+      .ant-pagination-total-text {
+        color: ${theme.colorTextBase};
+        margin-inline-end: 0;
+        position: absolute;
+        top: ${theme.sizeUnit * 12}px;
+      }
+
+      ${
+        isPaginationSticky &&
+        `
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        z-index: 1;
+        background-color: ${theme.colorBgElevated};
+        padding: ${theme.sizeUnit * 2}px 0;
+      `
+      }
+    }
+
+    // Hotfix - antd doesn't apply background color to overflowing cells
+    & table {
+      background-color: ${theme.colorBgContainer};
     }
   `}
 `;
@@ -99,6 +165,8 @@ function TableCollection<T extends object>({
   columns,
   rows,
   loading,
+  highlightRowId,
+  isRowHighlighted,
   setSortBy,
   headerGroups,
   columnsForWrapText,
@@ -109,13 +177,23 @@ function TableCollection<T extends object>({
   prepareRow,
   sticky,
   size = TableSize.Middle,
+  pageIndex = 0,
+  pageSize = 25,
+  totalCount = 0,
+  onPageChange,
+  isPaginationSticky = false,
+  showRowCount = true,
+  expandable,
 }: TableCollectionProps<T>) {
-  const mappedColumns = mapColumns<T>(
-    columns,
-    headerGroups,
-    columnsForWrapText,
+  const mappedColumns = useMemo(
+    () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
+    [columns, headerGroups, columnsForWrapText],
   );
-  const mappedRows = mapRows(rows, prepareRow);
+
+  const mappedRows = useMemo(
+    () => mapRows(rows, prepareRow),
+    [rows, prepareRow],
+  );
 
   const selectedRowKeys = useMemo(
     () => selectedFlatRows?.map(row => row.id) || [],
@@ -125,6 +203,14 @@ function TableCollection<T extends object>({
   const rowSelection: TableRowSelection | undefined = useMemo(() => {
     if (!bulkSelectEnabled) return undefined;
 
+    // antd Table's `rowSelection` API renders its own checkbox column.
+    // The select-all `data-test` lives on the `<th>` via `header.cell`
+    // below (keyed on antd's `ant-table-selection-column` className), NOT
+    // via `columnTitle` — rc-table's MeasureCell renders the column
+    // `title` verbatim inside `<tbody>`, so a `columnTitle` wrapper leaks
+    // any `data-test` attr into the measure row and breaks Playwright
+    // strict-mode selectors. `renderCell` only renders in real body rows,
+    // so wrapping per-row checkboxes there is safe.
     return {
       selectedRowKeys,
       onSelect: (record, selected) => {
@@ -133,6 +219,9 @@ function TableCollection<T extends object>({
       onSelectAll: (selected: boolean) => {
         toggleAllRowsSelected?.(selected);
       },
+      renderCell: (_value, _record, _index, originNode) => (
+        <span data-test="row-select-checkbox">{originNode}</span>
+      ),
     };
   }, [
     bulkSelectEnabled,
@@ -140,45 +229,146 @@ function TableCollection<T extends object>({
     toggleRowSelected,
     toggleAllRowsSelected,
   ]);
+
+  const handlePaginationChange = useCallback(
+    (page: number, size: number) => {
+      const validPage = Math.max(0, (page || 1) - 1);
+      const validSize = size || pageSize;
+      onPageChange?.(validPage, validSize);
+    },
+    [pageSize, onPageChange],
+  );
+
+  const showTotalFunc = useCallback(
+    (total: number, range: [number, number]) =>
+      `${range[0]}-${range[1]} of ${total}`,
+    [],
+  );
+
+  const handleTableChange = useCallback(
+    (_pagination: any, _filters: any, sorter: SorterResult) => {
+      if (sorter && sorter.field) {
+        // Convert array field back to dot notation for nested fields
+        const fieldId = Array.isArray(sorter.field)
+          ? sorter.field.join('.')
+          : sorter.field;
+
+        setSortBy?.([
+          {
+            id: fieldId,
+            desc: sorter.order === 'descend',
+          },
+        ] as SortingRule<T>[]);
+      }
+    },
+    [setSortBy],
+  );
+
+  const paginationConfig = useMemo(() => {
+    if (totalCount === 0) return false;
+
+    const config: any = {
+      pageSize,
+      size: 'default' as const,
+      showSizeChanger: false,
+      showQuickJumper: false,
+      align: 'center' as const,
+      showTotal: showRowCount ? showTotalFunc : undefined,
+    };
+
+    if (onPageChange) {
+      config.current = pageIndex + 1;
+      config.total = totalCount;
+      config.onChange = handlePaginationChange;
+    } else {
+      if (pageIndex > 0) config.defaultCurrent = pageIndex + 1;
+      config.total = totalCount;
+    }
+
+    return config;
+  }, [
+    pageSize,
+    totalCount,
+    showRowCount,
+    showTotalFunc,
+    pageIndex,
+    handlePaginationChange,
+    onPageChange,
+  ]);
+
+  const getRowClassName = useCallback(
+    (record: Record<string, unknown>) =>
+      (highlightRowId !== undefined && record?.id === highlightRowId) ||
+      isRowHighlighted?.(record)
+        ? 'table-row-highlighted'
+        : '',
+    [highlightRowId, isRowHighlighted],
+  );
+
+  // Memoize the custom cell/row components. A fresh `components` object (with
+  // new inner function identities) makes antd treat them as new component types
+  // and remount every row and cell on each render — which would, for example,
+  // tear down an open hover popover inside a cell whenever the table re-renders
+  // (e.g. when rowClassName changes for row highlighting).
+  const tableComponents = useMemo(
+    () => ({
+      header: {
+        cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
+          const isSelectionColumn =
+            props.className?.includes('ant-table-selection-column') ?? false;
+          return (
+            <th
+              {...props}
+              data-test={
+                isSelectionColumn ? 'header-toggle-all' : 'sort-header'
+              }
+            />
+          );
+        },
+      },
+      body: {
+        row: (props: HTMLAttributes<HTMLTableRowElement>) => (
+          <tr {...props} data-test="table-row" />
+        ),
+        cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
+          <td {...props} data-test="table-row-cell" />
+        ),
+      },
+    }),
+    [],
+  );
+
   return (
     <StyledTable
       loading={loading}
       sticky={sticky ?? false}
-      columns={mappedColumns}
+      // Forward-compat: TS 6.0 tightens antd Table's generic inference so our
+      // typed-against-react-table mapped columns must be widened to the antd
+      // ColumnsType<object> surface the Table expects here.
+      columns={mappedColumns as unknown as ColumnsType<object>}
       data={mappedRows}
       size={size}
       data-test="listview-table"
-      pagination={false}
+      pagination={paginationConfig}
+      scroll={{ x: 'max-content' }}
       tableLayout="auto"
       rowKey="rowId"
       rowSelection={rowSelection}
       locale={{ emptyText: null }}
       sortDirections={['ascend', 'descend', 'ascend']}
-      components={{
-        header: {
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
-            <th {...props} data-test="sort-header" role="columnheader" />
-          ),
-        },
-        body: {
-          row: (props: HTMLAttributes<HTMLTableRowElement>) => (
-            <tr {...props} data-test="table-row" />
-          ),
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
-            <td {...props} data-test="table-row-cell" />
-          ),
-        },
-      }}
-      onChange={(_pagination, _filters, sorter: SorterResult) => {
-        setSortBy?.([
-          {
-            id: sorter.field,
-            desc: sorter.order === 'descend',
-          },
-        ] as SortingRule<T>[]);
-      }}
+      isPaginationSticky={isPaginationSticky}
+      showRowCount={showRowCount}
+      rowClassName={
+        getRowClassName as unknown as TableProps<object>['rowClassName']
+      }
+      expandable={expandable}
+      components={tableComponents}
+      onChange={handleTableChange as unknown as TableProps<object>['onChange']}
     />
   );
 }
 
-export default memo(TableCollection);
+// React.memo erases the wrapped component's generic type parameter; cast
+// back to the original generic signature so callers can still instantiate
+// TableCollection<T> explicitly.
+export default memo(TableCollection) as typeof TableCollection;

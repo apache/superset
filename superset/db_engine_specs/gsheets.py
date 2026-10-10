@@ -19,9 +19,12 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import date, datetime, time, timedelta, UTC
+from decimal import Decimal
 from re import Pattern
 from typing import Any, TYPE_CHECKING, TypedDict
 
+import numpy as np
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -32,19 +35,24 @@ from marshmallow.exceptions import ValidationError
 from requests import Session
 from shillelagh.adapters.api.gsheets.lib import SCOPES
 from shillelagh.exceptions import UnauthenticatedError
+from sqlalchemy import text
 from sqlalchemy.engine import create_engine
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset import db, security_manager
+from superset import db
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2TokenRefreshError, SupersetException
 from superset.utils import json
+from superset.utils.oauth2 import get_oauth2_access_token
 
 if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.sql.parse import Table
+    from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 _logger = logging.getLogger()
 
@@ -56,6 +64,56 @@ EXAMPLE_GSHEETS_URL = (
 SYNTAX_ERROR_REGEX = re.compile('SQLError: near "(?P<server_error>.*?)": syntax error')
 
 ma_plugin = MarshmallowPlugin()
+
+
+def _to_python_value(value: Any) -> Any:
+    """
+    Convert numpy and pandas scalars into their Python equivalents.
+    """
+    if isinstance(value, np.datetime64):
+        # ``.item()`` returns an int for nanosecond precision; go through pandas.
+        value = pd.Timestamp(value)
+    elif isinstance(value, np.timedelta64):
+        # Durations also return an int from ``.item()`` at nanosecond precision.
+        value = pd.Timedelta(value)
+    elif isinstance(value, np.generic):
+        value = value.item()
+    if value is pd.NaT:
+        return None
+    if isinstance(value, pd.Timestamp):
+        return value.to_pydatetime()
+    if isinstance(value, pd.Timedelta):
+        return value.to_pytimedelta()
+    return value
+
+
+def to_json_value(value: Any) -> Any:
+    """
+    Convert a dataframe cell into a JSON value the Sheets API parses back.
+
+    Dates and timestamps become ISO strings (``USER_ENTERED`` input parses them
+    as dates). Aware timestamps are normalized to UTC with the offset removed;
+    naive timestamps retain their clock time. Durations become signed
+    ``H:MM:SS[.ffffff]`` strings with total hours (including days), and numpy
+    scalars become Python scalars.
+    """
+    value = _to_python_value(value)
+    if isinstance(value, datetime):
+        if value.utcoffset() is not None:
+            value = value.astimezone(UTC).replace(tzinfo=None)
+        return value.isoformat(sep=" ")
+    if isinstance(value, (date, time)):
+        return value.isoformat()
+    if isinstance(value, timedelta):
+        sign = "-" if value < timedelta(0) else ""
+        value = abs(value)
+        hours = value.days * 24 + value.seconds // 3600
+        minutes, seconds = divmod(value.seconds % 3600, 60)
+        fraction = f".{value.microseconds:06d}" if value.microseconds else ""
+        return f"{sign}{hours}:{minutes:02d}:{seconds:02d}{fraction}"
+    if isinstance(value, Decimal):
+        return str(value)
+    return value
 
 
 class GSheetsParametersSchema(Schema):
@@ -81,14 +139,22 @@ class GSheetsParametersSchema(Schema):
     )
 
 
-class GSheetsParametersType(TypedDict):
-    service_account_info: str
+# Secure-extra key a service-account connection sets to impersonate the
+# logged-in user through Google Workspace domain-wide delegation.
+DELEGATION_KEY = "domain_wide_delegation"
+
+
+class GSheetsParametersType(TypedDict, total=False):
+    service_account_info: str | dict[str, Any]
     catalog: dict[str, str] | None
+    oauth2_client_info: dict[str, str] | None
 
 
-class GSheetsPropertiesType(TypedDict):
+class GSheetsPropertiesType(TypedDict, total=False):
     parameters: GSheetsParametersType
     catalog: dict[str, str]
+    masked_encrypted_extra: str
+    impersonate_user: bool
 
 
 class GSheetsEngineSpec(ShillelaghEngineSpec):
@@ -103,9 +169,28 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     default_driver = "apsw"
     sqlalchemy_uri_placeholder = "gsheets://"
 
+    metadata = {
+        "description": (
+            "Google Sheets allows querying spreadsheets as SQL tables via shillelagh."
+        ),
+        "logo": "google-sheets.svg",
+        "homepage_url": "https://www.google.com/sheets/about/",
+        "categories": [DatabaseCategory.CLOUD_GCP, DatabaseCategory.HOSTED_OPEN_SOURCE],
+        "pypi_packages": ["shillelagh[gsheetsapi]"],
+        "install_instructions": 'pip install "apache-superset[gsheets]"',
+        "connection_string": "gsheets://",
+        "notes": (
+            "Requires Google service account credentials or OAuth2 authentication. "
+            "See docs for setup instructions."
+        ),
+    }
+
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields = {"$.service_account_info.private_key"}
+    encrypted_extra_sensitive_fields = {
+        "$.service_account_info.private_key": "Service Account Private Key",
+        "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+    }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         SYNTAX_ERROR_REGEX: (
@@ -127,7 +212,70 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         "https://accounts.google.com/o/oauth2/v2/auth"
     )
     oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
-    oauth2_exception = UnauthenticatedError
+    oauth2_exception = (UnauthenticatedError, OAuth2TokenRefreshError)
+
+    @classmethod
+    def get_oauth2_authorization_uri(
+        cls,
+        config: "OAuth2ClientConfig",
+        state: "OAuth2State",
+        code_verifier: str | None = None,
+    ) -> str:
+        """
+        Return URI for initial OAuth2 request with Google-specific parameters.
+
+        Google OAuth requires additional parameters for proper token refresh:
+        - access_type=offline: Request a refresh token
+        - include_granted_scopes=false: Don't include previously granted scopes
+        - prompt=consent: Force consent screen to ensure refresh token is returned
+        """
+        from urllib.parse import urlencode, urljoin
+
+        from superset.utils.oauth2 import encode_oauth2_state, generate_code_challenge
+
+        uri = config["authorization_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
+        params: dict[str, str] = {
+            "scope": config["scope"],
+            "response_type": "code",
+            "state": encode_oauth2_state(state),
+            "redirect_uri": config["redirect_uri"],
+            "client_id": config["id"],
+            # Google-specific parameters
+            "access_type": "offline",
+            "include_granted_scopes": "false",
+            "prompt": "consent",
+        }
+
+        # Add PKCE parameters (RFC 7636) if code_verifier is provided
+        if code_verifier:
+            params["code_challenge"] = generate_code_challenge(code_verifier)
+            params["code_challenge_method"] = "S256"
+
+        return urljoin(uri, "?" + urlencode(params))
+
+    @classmethod
+    def needs_oauth2(cls, ex: Exception) -> bool:
+        """
+        Check if the exception is one that indicates OAuth2 is needed.
+
+        In case the token was manually revoked on Google side, `google-auth` will
+        try to automatically refresh credentials, but it fails since it only has the
+        access token. This override catches this scenario as well.
+
+        Also catches the case where no credentials are configured at all
+        (missing Application Default Credentials).
+        """
+        error_message = str(ex).lower()
+        return (
+            g
+            and hasattr(g, "user")
+            and (
+                isinstance(ex, cls.oauth2_exception)
+                or "credentials do not contain the necessary fields" in error_message
+                or "default credentials were not found" in error_message
+            )
+        )
 
     @classmethod
     def impersonate_user(
@@ -139,14 +287,78 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         engine_kwargs: dict[str, Any],
     ) -> tuple[URL, dict[str, Any]]:
         if username is not None:
-            user = security_manager.find_user(username=username)
-            if user and user.email:
-                url = url.update_query_dict({"subject": user.email})
+            # Resolved from the database rather than from ``username``: with
+            # ``IMPERSONATE_WITH_EMAIL_PREFIX`` enabled the caller has already
+            # substituted the email prefix into ``username``, so looking it up
+            # here as if it were still the login finds nothing whenever the two
+            # differ, silently leaving the subject unset. ``url`` is the same
+            # one ``Database._get_sqla_engine()`` resolved from, so both paths
+            # read the effective user from the same place.
+            if email := database.get_impersonation_email(url):
+                url = url.update_query_dict({"subject": email})
 
         if user_token:
-            url = url.update_query_dict({"access_token": user_token})
+            # Pass the token through ``connect_args`` rather than the URL.
+            # ``update_params_from_encrypted_extra`` stores the catalog (and any
+            # service account) in ``connect_args["adapter_kwargs"]``, and SQLAlchemy
+            # merges ``connect_args`` over the dialect's own arguments shallowly,
+            # so a token in the URL would be dropped and the query would run
+            # without credentials. For the same reason a ``subject`` set on the URL
+            # above is carried over, so it isn't dropped either.
+            connect_args = engine_kwargs.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            gsheetsapi_kwargs = adapter_kwargs.setdefault("gsheetsapi", {})
+            gsheetsapi_kwargs["access_token"] = user_token
+            if subject := url.query.get("subject"):
+                gsheetsapi_kwargs.setdefault("subject", subject)
+
+        encrypted_extra = database.get_encrypted_extra()
+        if encrypted_extra.get("service_account_info"):
+            # A service account from the secure extra always sits in
+            # ``connect_args``, so a ``subject`` on the URL never reaches
+            # shillelagh and the query runs as the service account itself.
+            # Honouring it for every such connection would break service
+            # accounts without Google Workspace domain-wide delegation (the
+            # connection form enables impersonation for every Google Sheets
+            # database), so the connection has to opt in explicitly.
+            subject = url.query.get("subject")
+            url = url.difference_update_query(["subject"])
+            if not user_token and encrypted_extra.get(DELEGATION_KEY) is True:
+                if not subject:
+                    # Never fall back to the service account's own access.
+                    raise SupersetException(
+                        __(
+                            "This Google Sheets connection impersonates the "
+                            "logged-in user, who has no e-mail address."
+                        )
+                    )
+                connect_args = engine_kwargs.setdefault("connect_args", {})
+                adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+                adapter_kwargs.setdefault("gsheetsapi", {})["subject"] = subject
 
         return url, engine_kwargs
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all sheets added to the connection.
+
+        For OAuth2 connections, force the OAuth2 dance in case the user
+        doesn't have a token yet to avoid showing table names berofe auth.
+        """
+        if database.is_oauth2_enabled() and not get_oauth2_access_token(
+            database.get_oauth2_config(),
+            database.id,
+            g.user.id,
+            database.db_engine_spec,
+        ):
+            database.start_oauth2_dance()
+        return super().get_table_names(database, inspector, schema)
 
     @classmethod
     def get_extra_table_metadata(
@@ -159,7 +371,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             schema=table.schema,
         ) as conn:
             cursor = conn.cursor()
-            cursor.execute(f'SELECT GET_METADATA("{table.table}")')
+            escaped_table = table.table.replace('"', '""')
+            cursor.execute(f'SELECT GET_METADATA("{escaped_table}")')
             results = cursor.fetchone()[0]
         try:
             metadata = json.loads(results)
@@ -186,12 +399,30 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         params: dict[str, Any],
     ) -> None:
         """
-        Remove `oauth2_client_info` from `encrypted_extra`.
+        Remove `oauth2_client_info` from `encrypted_extra` and wrap
+        service_account_info and catalog in adapter_kwargs for shillelagh.
         """
         ShillelaghEngineSpec.update_params_from_encrypted_extra(database, params)
 
         if "oauth2_client_info" in params:
             del params["oauth2_client_info"]
+
+        # Read by ``impersonate_user``; not a shillelagh argument.
+        params.pop(DELEGATION_KEY, None)
+
+        if "service_account_info" in params:
+            sa_info = params.pop("service_account_info")
+            connect_args = params.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            adapter_kwargs.setdefault("gsheetsapi", {})["service_account_info"] = (
+                sa_info
+            )
+
+        if "catalog" in params:
+            catalog = params["catalog"]  # keep in params for table listing
+            connect_args = params.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            adapter_kwargs.setdefault("gsheetsapi", {})["catalog"] = catalog
 
     @classmethod
     def get_parameters_from_uri(
@@ -245,21 +476,50 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # On create the encrypted credentials are a string,
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
-            encrypted_credentials = json.loads(encrypted_credentials)
+            try:
+                encrypted_credentials = json.loads(encrypted_credentials)
+            except json.JSONDecodeError:
+                errors.append(
+                    SupersetError(
+                        message=(
+                            "The service account credentials are not valid JSON. "
+                            "Please check that the field contains a valid service "
+                            "account key."
+                        ),
+                        error_type=SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR,
+                        level=ErrorLevel.ERROR,
+                        extra={"invalid": ["service_account_info"]},
+                    ),
+                )
+                return errors
 
-        # We need a subject in case domain wide delegation is set, otherwise the
-        # check will fail. This means that the admin will be able to add sheets
-        # that only they have access, even if later users are not able to access
-        # them.
-        subject = g.user.email if g.user else None
-
+        # Service-account queries use connect_args.adapter_kwargs, which replaces
+        # the dialect's URL-derived adapter_kwargs, so they run as the service
+        # account unless the secure extra opts into domain-wide delegation.
+        # Validate as the same service account even when the modal has stored
+        # impersonate_user=True; a delegated subject breaks non-DWD credentials.
         engine = create_engine(
             "gsheets://",
-            service_account_info=encrypted_credentials,
-            subject=subject,
+            connect_args={
+                "adapter_kwargs": {
+                    "gsheetsapi": {
+                        "service_account_info": encrypted_credentials,
+                        "subject": None,
+                    }
+                }
+            },
         )
+        cls.register_engine_events(engine)
         conn = engine.connect()
         idx = 0
+
+        # Check for OAuth2 config. Skip URL access for OAuth2 connections (user
+        # might not have a token, or admin adding a sheet they don't have access to)
+        oauth2_config_in_params = parameters.get("oauth2_client_info")
+        oauth2_config_in_secure_extra = json.loads(
+            properties.get("masked_encrypted_extra", "{}")
+        ).get("oauth2_client_info")
+        is_oauth2_conn = bool(oauth2_config_in_params or oauth2_config_in_secure_extra)
 
         for name, url in table_catalog.items():
             if not name:
@@ -284,8 +544,12 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 )
                 return errors
 
+            if is_oauth2_conn:
+                continue
+
             try:
-                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')  # noqa: S608
+                url = url.replace('"', '""')
+                results = conn.execute(text(f'SELECT * FROM "{url}" LIMIT 1'))  # noqa: S608
                 results.fetchall()
             except Exception:  # pylint: disable=broad-except
                 errors.append(
@@ -408,12 +672,17 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             spreadsheet_url = payload["spreadsheetUrl"]
 
         # insert data
-        data = df.fillna("").values.tolist()
-        data.insert(0, df.columns.values.tolist())
+        normalized_df = df.astype(object).where(df.notna(), None)
+        # Convert cells outside pandas to avoid inferring floats for nullable ints.
+        values = [
+            [to_json_value(value) if value is not None else "" for value in row]
+            for row in normalized_df.itertuples(index=False, name=None)
+        ]
+        values.insert(0, df.columns.values.tolist())
         body = {
             "range": range_,
             "majorDimension": "ROWS",
-            "values": data,
+            "values": values,
         }
         url = (
             "https://sheets.googleapis.com/v4/spreadsheets/"

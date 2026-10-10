@@ -23,8 +23,14 @@ import {
   ComponentType,
 } from 'react';
 import type { Editor } from 'brace';
-import { BaseFormData } from '../query';
-import { JsonResponse } from '../connection';
+import type { QueryData } from '../chart/types/QueryResponse';
+import type {
+  BaseFormData,
+  LatestQueryFormData,
+  QueryFormData,
+} from '../query';
+import type { JsonResponse } from '../connection';
+import type { MenuItem } from '../components/Menu';
 
 /**
  * A function which returns text (or marked-up text)
@@ -160,6 +166,13 @@ export interface SliceHeaderExtension {
 }
 
 /**
+ * Interface for extensions to the Slice Header more-options menu
+ */
+export interface SliceHeaderMenuExtension extends SliceHeaderExtension {
+  sliceName: string;
+}
+
+/**
  * Interface for extensions to Embed Modal
  */
 export interface DashboardEmbedModalExtensions {
@@ -217,6 +230,20 @@ export interface DateFilterControlProps {
   onClosePopover?: () => void;
   overlayStyle?: 'Modal' | 'Popover';
   isOverflowingFilterBar?: boolean;
+  displayFormat?: string;
+}
+
+export interface ExploreChartHeaderProps {
+  chartId: number;
+  queriesResponse: QueryData[] | null;
+  sliceFormData: QueryFormData | null;
+  queryFormData: QueryFormData;
+  lastRendered: number;
+  latestQueryFormData: LatestQueryFormData;
+  chartUpdateEndTime: number | null;
+  chartUpdateStartTime: number;
+  queryController: AbortController | null;
+  triggerQuery: boolean;
 }
 
 export type Extensions = Partial<{
@@ -231,7 +258,8 @@ export type Extensions = Partial<{
   'navbar.right-menu.item.icon': ComponentType<RightMenuItemIconProps>;
   'navbar.right': ComponentType;
   'report-modal.dropdown.item.icon': ComponentType;
-  'root.context.provider': ComponentType;
+  'root.context.provider': ComponentType<{ children?: ReactNode }>;
+
   'welcome.message': ComponentType;
   'welcome.banner': ComponentType;
   'welcome.main.replacement': ComponentType;
@@ -243,6 +271,9 @@ export type Extensions = Partial<{
   'sqleditor.extension.form': ComponentType<SQLFormExtensionProps>;
   'sqleditor.extension.resultTable': ComponentType<SQLResultTableExtensionProps>;
   'dashboard.slice.header': ComponentType<SliceHeaderExtension>;
+  'dashboard.slice.header.menu': (
+    context: SliceHeaderMenuExtension,
+  ) => MenuItem[];
   'sqleditor.extension.customAutocomplete': (
     args: CustomAutoCompleteArgs,
   ) => CustomAutocomplete[] | undefined;
@@ -251,4 +282,5 @@ export type Extensions = Partial<{
     ComponentType<SQLTablePreviewExtensionProps>,
   ][];
   'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
+  'explore.chart.header': ComponentType<ExploreChartHeaderProps>;
 }>;

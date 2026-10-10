@@ -45,9 +45,9 @@ def redefine(
     Redefine the foreign key constraint to include the ON DELETE and ON UPDATE
     constructs for cascading purposes.
 
-    :params foreign_key: The foreign key constraint
-    :param ondelete: If set, emit ON DELETE <value> when issuing DDL operations
-    :param onupdate: If set, emit ON UPDATE <value> when issuing DDL operations
+    :param foreign_key: The foreign key constraint
+    :param on_delete: If set, emit ON DELETE <value> when issuing DDL operations
+    :param on_update: If set, emit ON UPDATE <value> when issuing DDL operations
     """
 
     bind = op.get_bind()

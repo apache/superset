@@ -22,11 +22,27 @@ from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.key_value.models import KeyValueEntry
+from superset.key_value.types import FIXED_RESOURCE_KEYS, KeyValueResource
 from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.subjects.models import Subject
 
 logger = logging.getLogger(__name__)
+
+
+def _clear_preserved_config_audit_fields() -> None:
+    """Detach the retained configuration row from user audit references."""
+    db.session.query(KeyValueEntry).filter(
+        KeyValueEntry.resource == KeyValueResource.ALERT_REPORT_CONFIG.value,
+        KeyValueEntry.uuid == FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+    ).update(
+        {
+            KeyValueEntry.created_by_fk: None,
+            KeyValueEntry.changed_by_fk: None,
+        },
+        synchronize_session=False,
+    )
 
 
 class ResetSupersetCommand(BaseCommand):
@@ -61,7 +77,12 @@ class ResetSupersetCommand(BaseCommand):
             db.session.delete(database)
         db.session.query(Dashboard).delete()
         db.session.query(Slice).delete()
-        db.session.query(KeyValueEntry).delete()
+        config_uuid = FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG]
+        db.session.query(KeyValueEntry).filter(
+            KeyValueEntry.uuid.is_(None) | (KeyValueEntry.uuid != config_uuid)
+        ).delete()
+        # Non-admins will be deleted, so clean up ``created_by_fk`` and ``changed_by_fk`
+        _clear_preserved_config_audit_fields()
         db.session.query(Log).delete()
         db.session.query(FavStar).delete()
 
@@ -71,8 +92,10 @@ class ResetSupersetCommand(BaseCommand):
             .filter(security_manager.user_model.username.not_in(self._users_to_exclude))
             .all()
         )
+        user_ids_to_delete = []
         for user in users_to_delete:
             if not any(role.name == "Admin" for role in user.roles):
+                user_ids_to_delete.append(user.id)
                 db.session.delete(user)
 
         logger.debug("Ignoring Roles: %s", self._roles_to_exclude)
@@ -81,8 +104,19 @@ class ResetSupersetCommand(BaseCommand):
             .filter(security_manager.role_model.name.not_in(self._roles_to_exclude))
             .all()
         )
+        role_ids_to_delete = [role.id for role in roles_to_delete]
         for role in roles_to_delete:
             db.session.delete(role)
+
+        # Clean up Subject rows for deleted users and roles
+        if user_ids_to_delete:
+            db.session.query(Subject).filter(
+                Subject.user_id.in_(user_ids_to_delete)
+            ).delete(synchronize_session=False)
+        if role_ids_to_delete:
+            db.session.query(Subject).filter(
+                Subject.role_id.in_(role_ids_to_delete)
+            ).delete(synchronize_session=False)
 
         # Insert new record into Log table
         log = Log(

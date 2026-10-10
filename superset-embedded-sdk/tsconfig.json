@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
+    "rootDir": "./src",
+
     // syntax rules
     "strict": true,
 
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
 
     // environment
     "target": "es6",
@@ -13,7 +15,9 @@
     // output
     "outDir": "./dist",
     "emitDeclarationOnly": true,
-    "declaration": true
+    "declaration": true,
+
+    "types": ["node"]
   },
 
   "include": [
@@ -21,7 +25,7 @@
   ],
 
   "exclude": [
-    "tests",
+    "src/**/*.test.ts",
     "dist",
     "lib",
     "node_modules"

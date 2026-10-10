@@ -17,11 +17,13 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { useTheme, t, GenericDataType } from '@superset-ui/core';
-
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   COLUMN_NAME_ALIASES,
   ControlComponentProps,
+  normalizeColumnConfigKeys,
 } from '@superset-ui/chart-controls';
 import { Icons } from '@superset-ui/core/components';
 import ColumnConfigItem from './ColumnConfigItem';
@@ -81,33 +83,40 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
     });
   }
   const theme = useTheme();
+  const normalizedValue = useMemo(
+    () => normalizeColumnConfigKeys(value, colnames),
+    [colnames, value],
+  );
+
   const columnConfigs = useMemo(() => {
     const configs: Record<string, ColumnConfigInfo> = {};
     colnames?.forEach((col, idx) => {
       configs[col] = {
         name: COLUMN_NAME_ALIASES[col] || col,
         type: coltypes?.[idx],
-        config: value?.[col] || {},
+        config: normalizedValue[col] || {},
         isChildColumn: columnsPropsObject?.childColumnMap?.[col] ?? false,
         isTimeComparisonColumn:
           columnsPropsObject?.timeComparisonColumnMap?.[col] ?? false,
       };
     });
     return configs;
-  }, [value, colnames, coltypes, columnsPropsObject?.childColumnMap]);
+  }, [colnames, coltypes, columnsPropsObject?.childColumnMap, normalizedValue]);
 
   const [showAllColumns, setShowAllColumns] = useState(false);
 
   const getColumnInfo = (col: string) => columnConfigs[col] || {};
+
   const setColumnConfig = (col: string, config: T) => {
     if (onChange) {
-      // Only keep configs for known columns
-      const validConfigs: Record<string, T> =
-        colnames && value
-          ? Object.fromEntries(
-              Object.entries(value).filter(([key]) => colnames.includes(key)),
-            )
-          : { ...value };
+      const colnamesSet = colnames ? new Set(colnames) : undefined;
+      const validConfigs = colnamesSet
+        ? Object.fromEntries(
+            Object.entries(normalizedValue).filter(([key]) =>
+              colnamesSet.has(key),
+            ),
+          )
+        : normalizedValue;
       onChange({
         ...validConfigs,
         [col]: config,
@@ -163,17 +172,21 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           />
         ))}
         {needShowMoreButton && (
-          <div
-            role="button"
-            tabIndex={-1}
+          <button
+            type="button"
             css={{
+              appearance: 'none',
+              border: 'none',
+              background: 'none',
+              font: 'inherit',
+              width: '100%',
               padding: theme.sizeUnit * 2,
               textAlign: 'center',
               cursor: 'pointer',
               fontSize: theme.fontSizeXS,
               color: theme.colorTextLabel,
               ':hover': {
-                backgroundColor: theme.colors.grayscale.light4,
+                backgroundColor: theme.colorFillContentHover,
               },
             }}
             onClick={() => setShowAllColumns(!showAllColumns)}
@@ -187,7 +200,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
                 <Icons.DownOutlined /> &nbsp; {t('Show all columns')}
               </>
             )}
-          </div>
+          </button>
         )}
       </div>
     </>

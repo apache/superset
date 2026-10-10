@@ -28,8 +28,12 @@ export {
   ConfirmStatusChange,
   type ConfirmStatusChangeProps,
 } from './ConfirmStatusChange';
-export { Alert, type AlertProps } from './Alert';
 export { CertifiedBadge } from './CertifiedBadge';
+export {
+  RlsBadge,
+  type RlsFilterSummary,
+  type RlsBadgeProps,
+} from './RlsBadge';
 export * from './Icons';
 export * from './Timer';
 export {
@@ -40,6 +44,7 @@ export {
   AsyncAceEditor,
   CssEditor,
   JsonEditor,
+  JSEditor,
   SQLEditor,
   FullSQLEditor,
   MarkdownEditor,
@@ -47,6 +52,7 @@ export {
   ConfigEditor,
   type AsyncAceEditorProps,
   type Editor,
+  type AceCompleterKeyword,
 } from './AsyncAceEditor';
 export { AutoComplete, type AutoCompleteProps } from './AutoComplete';
 export {
@@ -66,6 +72,13 @@ export {
   type CheckboxProps,
   type CheckboxChangeEvent,
 } from './Checkbox';
+export { ConfirmModal, type ConfirmModalProps } from './ConfirmModal';
+export {
+  ColorPicker,
+  type ColorPickerProps,
+  type RGBColor,
+  type ColorValue,
+} from './ColorPicker';
 export {
   Collapse,
   type CollapseProps,
@@ -74,8 +87,10 @@ export {
 } from './Collapse';
 export { CronPicker, type CronError } from './CronPicker';
 export * from './DatePicker';
+export { Descriptions, type DescriptionsProps } from './Descriptions';
 export { DeleteModal, type DeleteModalProps } from './DeleteModal';
 export { Divider, type DividerProps } from './Divider';
+export { Drawer, type DrawerProps } from './Drawer';
 export {
   Dropdown,
   MenuDotsDropdown,
@@ -137,10 +152,32 @@ export {
   type ListViewCardProps,
 } from './ListViewCard';
 export { Loading, type LoadingProps } from './Loading';
+export { default as MetadataBar, type MetadataBarProps } from './MetadataBar';
+
+export { Progress, type ProgressProps } from './Progress';
+export { default as ProgressBar, type ProgressBarProps } from './ProgressBar';
+
+export { Pagination, type PaginationProps } from './Pagination';
 
 export { Skeleton, type SkeletonProps } from './Skeleton';
+export {
+  default as Slider,
+  type SliderSingleProps,
+  type SliderRangeProps,
+} from './Slider';
+export { Splitter, type SplitterProps } from './Splitter';
 
 export { Switch, type SwitchProps } from './Switch';
+
+export {
+  default as Tabs,
+  EditableTabs,
+  LineEditableTabs,
+  type TabsProps,
+} from './Tabs';
+export { TimePicker, TimeRangePicker } from './TimePicker';
+
+export { default as Tree, type TreeProps, type TreeDataNode } from './Tree';
 
 export { TreeSelect, type TreeSelectProps } from './TreeSelect';
 
@@ -152,6 +189,7 @@ export {
 } from './Typography';
 
 export { Image, type ImageProps } from './Image';
+export { Popconfirm, type PopconfirmProps } from './Popconfirm';
 export { Upload, type UploadFile, type UploadChangeParam } from './Upload';
 // Add these to your index.ts
 export * from './Menu';
@@ -165,7 +203,20 @@ export * from './Table';
 export * from './TableView';
 export * from './Tag';
 export * from './TelemetryPixel';
-export * from './ThemeSubMenu';
 export * from './UnsavedChangesModal';
 export * from './constants';
 export * from './Result';
+export {
+  ThemedAgGridReact,
+  type ThemedAgGridReactProps,
+  type AgGridContainerElement,
+  setupAGGridModules,
+  defaultModules,
+} from './ThemedAgGridReact';
+export {
+  CodeEditor,
+  type CodeEditorProps,
+  type CodeEditorMode,
+  type CodeEditorTheme,
+} from './CodeEditor';
+export { ActionButton, type ActionProps } from './ActionButton';

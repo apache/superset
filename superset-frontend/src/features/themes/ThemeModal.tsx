@@ -16,28 +16,93 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
+import {
+  FunctionComponent,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  ChangeEvent,
+} from 'react';
+import { useSelector } from 'react-redux';
+import { omit } from 'lodash-es';
 
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
+import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
+import SupersetText from 'src/utils/textUtils';
 
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
-  Input,
-  Modal,
-  JsonEditor,
   Button,
   Form,
+  Input,
+  Modal,
+  Space,
   Tooltip,
-  Alert,
 } from '@superset-ui/core/components';
-import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
+import type { editors } from '@apache-superset/core';
+import { EditorHost } from 'src/core/editors';
 import { Typography } from '@superset-ui/core/components/Typography';
-
+import { useThemeValidation } from 'src/theme/hooks/useThemeValidation';
 import { OnlyKeyWithType } from 'src/utils/types';
+import SubjectPicker, {
+  mapSubjectPickerValuesToIds,
+  mapSubjectsToPickerValues,
+  normalizeSubjectToPickerValue,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
+import Subject, { SubjectType } from 'src/types/Subject';
+import {
+  isUserAdmin,
+  isUserEditorOrAdmin,
+} from 'src/dashboard/util/permissionUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ThemeObject } from './types';
+
+type EditorAnnotation = editors.EditorAnnotation;
+
+type ThemeModalObject = Omit<ThemeObject, 'editors'> & {
+  editors?: SubjectPickerValue[];
+};
+
+// Shape sent to the create/update endpoints: editors are serialized to the
+// subject ids the API expects, not the hydrated Subject objects it returns.
+type ThemeSavePayload = Omit<ThemeObject, 'editors'> & {
+  editors?: number[];
+};
+
+/**
+ * Convert Ace annotation format to EditorAnnotation format.
+ */
+const toEditorAnnotations = (
+  aceAnnotations: Array<{
+    type: string;
+    row: number;
+    column: number;
+    text: string;
+  }>,
+): EditorAnnotation[] =>
+  aceAnnotations.map(ann => ({
+    severity: ann.type as EditorAnnotation['severity'],
+    line: ann.row,
+    column: ann.column,
+    message: ann.text,
+  }));
+
+const formatJsonData = (jsonData?: string): string | undefined => {
+  if (!jsonData) return jsonData;
+  try {
+    return JSON.stringify(JSON.parse(jsonData), null, 2);
+  } catch {
+    return jsonData;
+  }
+};
 
 interface ThemeModalProps {
   addDangerToast: (msg: string) => void;
@@ -52,10 +117,10 @@ interface ThemeModalProps {
 
 type ThemeStringKeys = keyof Pick<
   ThemeObject,
-  OnlyKeyWithType<ThemeObject, String>
+  OnlyKeyWithType<ThemeObject, string>
 >;
 
-const StyledJsonEditor = styled.div`
+const StyledEditorWrapper = styled.div`
   ${({ theme }) => css`
     .ace_editor {
       border-radius: ${theme.borderRadius}px;
@@ -98,19 +163,21 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   const supersetTheme = useTheme();
   const { setTemporaryTheme } = useThemeContext();
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
+  const [currentTheme, setCurrentTheme] = useState<ThemeModalObject | null>(
+    null,
+  );
+  const [initialTheme, setInitialTheme] = useState<ThemeModalObject | null>(
+    null,
+  );
   const [isHidden, setIsHidden] = useState<boolean>(true);
+  const [showConfirmAlert, setShowConfirmAlert] = useState<boolean>(false);
   const isEditMode = theme !== null;
   const isSystemTheme = currentTheme?.is_system === true;
-  const isReadOnly = isSystemTheme;
 
-  const canDevelopThemes = canDevelop;
-
-  // JSON validation annotations using reusable hook
-  const jsonAnnotations = useJsonValidation(currentTheme?.json_data, {
-    enabled: !isReadOnly,
-    errorPrefix: 'Invalid JSON syntax',
-  });
+  const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
 
   // theme fetch logic
   const {
@@ -118,143 +185,312 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     fetchResource,
     createResource,
     updateResource,
-  } = useSingleViewResource<ThemeObject>('theme', t('theme'), addDangerToast);
+  } = useSingleViewResource<ThemeObject, ThemeSavePayload>(
+    'theme',
+    t('theme'),
+    addDangerToast,
+  );
+
+  // In edit mode a non-editor (and non-admin) may only view the theme. The
+  // editorship check runs against the persisted editors (and any editorship
+  // granted indirectly via EXTRA_EDITORS_RESOLVER) from the fetched
+  // resource, not the in-progress picker selection.
+  const canEditTheme =
+    !isEditMode ||
+    isUserEditorOrAdmin(
+      currentUser,
+      (resource?.editors as Subject[]) || [],
+      resource?.extra_editors,
+    );
+  // The active system-default/dark slot may be edited by admins only, even
+  // by a listed editor, mirroring UpdateThemeCommand.validate() on the
+  // server: that slot is rendered for every user, so a non-admin editor
+  // saving it would change what everyone sees.
+  const isActiveSystemThemeSlot =
+    currentTheme?.is_system_default === true ||
+    currentTheme?.is_system_dark === true;
+  const isReadOnly =
+    isSystemTheme ||
+    (isActiveSystemThemeSlot && !isUserAdmin(currentUser)) ||
+    !canEditTheme;
+
+  const canDevelopThemes = canDevelop;
+
+  // SupersetText URL configurations
+  const themeEditorUrl =
+    SupersetText?.THEME_MODAL?.THEME_EDITOR_URL ||
+    'https://ant.design/theme-editor';
+  const documentationUrl =
+    SupersetText?.THEME_MODAL?.DOCUMENTATION_URL ||
+    'https://superset.apache.org/docs/configuration/theming/';
+
+  // Theme validation (structure + token names)
+  const validation = useThemeValidation(currentTheme?.json_data || '', {
+    enabled: !isReadOnly && Boolean(currentTheme?.json_data),
+  });
 
   // Functions
-  const hide = () => {
+  const hasUnsavedChanges = useCallback(() => {
+    if (!currentTheme || !initialTheme || isReadOnly) return false;
+    const currentEditorIds = mapSubjectPickerValuesToIds(
+      currentTheme.editors || [],
+    );
+    const initialEditorIds = mapSubjectPickerValuesToIds(
+      initialTheme.editors || [],
+    );
+    const editorsChanged =
+      currentEditorIds.length !== initialEditorIds.length ||
+      [...currentEditorIds].sort().join(',') !==
+        [...initialEditorIds].sort().join(',');
+    return (
+      currentTheme.theme_name !== initialTheme.theme_name ||
+      currentTheme.json_data !== initialTheme.json_data ||
+      editorsChanged
+    );
+  }, [currentTheme, initialTheme, isReadOnly]);
+
+  const hide = useCallback(() => {
     onHide();
     setCurrentTheme(null);
-  };
+    setInitialTheme(null);
+    setShowConfirmAlert(false);
+  }, [onHide]);
 
-  const onSave = () => {
+  const onSave = useCallback(() => {
+    // Synchronous JSON guard to catch invalid JSON before API call
+    // This handles the race condition where debounced validation hasn't updated yet
+    try {
+      JSON.parse(currentTheme?.json_data || '');
+    } catch {
+      addDangerToast(t('Invalid JSON configuration'));
+      return;
+    }
+
     if (isEditMode) {
       // Edit
       if (currentTheme?.id) {
-        const update_id = currentTheme.id;
-        delete currentTheme.id;
-        delete currentTheme.created_by;
-        delete currentTheme.changed_by;
-        delete currentTheme.changed_on_delta_humanized;
+        const themeData = {
+          ...omit(currentTheme, [
+            'id',
+            'created_by',
+            'changed_by',
+            'changed_on_delta_humanized',
+          ]),
+          editors: mapSubjectPickerValuesToIds(currentTheme.editors || []),
+        };
 
-        updateResource(update_id, currentTheme).then(response => {
-          if (!response) {
-            return;
-          }
-
-          if (onThemeAdd) {
-            onThemeAdd();
-          }
+        updateResource(currentTheme.id, themeData).then(response => {
+          if (!response) return;
+          if (onThemeAdd) onThemeAdd();
 
           hide();
         });
       }
     } else if (currentTheme) {
       // Create
-      createResource(currentTheme).then(response => {
-        if (!response) {
-          return;
-        }
-
-        if (onThemeAdd) {
-          onThemeAdd();
-        }
+      const themeData = {
+        ...currentTheme,
+        editors: mapSubjectPickerValuesToIds(currentTheme.editors || []),
+      };
+      createResource(themeData).then(response => {
+        if (!response) return;
+        if (onThemeAdd) onThemeAdd();
 
         hide();
       });
     }
-  };
+  }, [
+    currentTheme,
+    isEditMode,
+    updateResource,
+    createResource,
+    onThemeAdd,
+    hide,
+    addDangerToast,
+  ]);
 
-  const onApply = () => {
-    if (currentTheme?.json_data && isValidJson(currentTheme.json_data)) {
-      try {
-        const themeConfig = JSON.parse(currentTheme.json_data);
-        setTemporaryTheme(themeConfig);
-        if (onThemeApply) {
-          onThemeApply();
-        }
-        if (addSuccessToast) {
-          addSuccessToast(t('Local theme set for preview'));
-        }
-      } catch (error) {
-        addDangerToast(t('Failed to apply theme: Invalid JSON'));
-      }
+  const handleCancel = useCallback(() => {
+    if (hasUnsavedChanges()) {
+      setShowConfirmAlert(true);
+    } else {
+      hide();
     }
-  };
+  }, [hasUnsavedChanges, hide]);
 
-  const onThemeNameChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { target } = event;
+  const handleConfirmCancel = useCallback(() => {
+    hide();
+  }, [hide]);
 
-    const data = {
-      ...currentTheme,
-      theme_name: currentTheme ? currentTheme.theme_name : '',
-      json_data: currentTheme ? currentTheme.json_data : '',
-    };
-
-    data[target.name as ThemeStringKeys] = target.value;
-    setCurrentTheme(data);
-  };
-
-  const onJsonDataChange = (jsonData: string) => {
-    const data = {
-      ...currentTheme,
-      theme_name: currentTheme ? currentTheme.theme_name : '',
-      json_data: jsonData,
-    };
-    setCurrentTheme(data);
-  };
-
-  const isValidJson = (str?: string) => {
+  const isValidJson = useCallback((str?: string) => {
     if (!str) return false;
     try {
       JSON.parse(str);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
-  };
+  }, []);
+
+  const onApply = useCallback(() => {
+    if (currentTheme?.json_data && isValidJson(currentTheme.json_data)) {
+      try {
+        const themeConfig = JSON.parse(currentTheme.json_data);
+
+        setTemporaryTheme(themeConfig);
+
+        if (onThemeApply) onThemeApply();
+        if (addSuccessToast) addSuccessToast(t('Local theme set for preview'));
+      } catch (error) {
+        addDangerToast(t('Failed to apply theme: Invalid JSON'));
+      }
+    }
+  }, [
+    currentTheme?.json_data,
+    isValidJson,
+    setTemporaryTheme,
+    onThemeApply,
+    addSuccessToast,
+    addDangerToast,
+  ]);
+
+  const modalTitle = useMemo(() => {
+    if (isEditMode) {
+      return isReadOnly
+        ? t('View theme properties')
+        : t('Edit theme properties');
+    }
+    return t('Add theme');
+  }, [isEditMode, isReadOnly]);
+
+  const modalIcon = useMemo(() => {
+    const Icon = isEditMode ? Icons.EditOutlined : Icons.PlusOutlined;
+    return (
+      <Icon
+        iconSize="l"
+        css={css`
+          margin: auto ${supersetTheme.sizeUnit * 2}px auto 0;
+        `}
+      />
+    );
+  }, [isEditMode, supersetTheme.sizeUnit]);
+
+  const onThemeNameChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const { target } = event;
+
+      const data = {
+        ...currentTheme,
+        theme_name: currentTheme?.theme_name || '',
+        json_data: currentTheme?.json_data || '',
+      };
+
+      data[target.name as ThemeStringKeys] = target.value;
+      setCurrentTheme(data);
+    },
+    [currentTheme],
+  );
+
+  const onJsonDataChange = useCallback(
+    (jsonData: string) => {
+      const data = {
+        ...currentTheme,
+        theme_name: currentTheme?.theme_name || '',
+        json_data: jsonData,
+      };
+      setCurrentTheme(data);
+    },
+    [currentTheme],
+  );
+
+  const onEditorsChange = useCallback((values: SubjectPickerValue[]) => {
+    setCurrentTheme(prev => ({
+      ...prev,
+      theme_name: prev?.theme_name || '',
+      json_data: prev?.json_data || '',
+      editors: values || [],
+    }));
+  }, []);
+
+  const onFormat = useCallback(() => {
+    if (currentTheme?.json_data) {
+      const formatted = formatJsonData(currentTheme.json_data);
+      if (formatted !== currentTheme.json_data) {
+        onJsonDataChange(formatted || '');
+      }
+    }
+  }, [currentTheme?.json_data, onJsonDataChange]);
 
   const validate = () => {
-    if (isReadOnly) {
+    if (isReadOnly || !currentTheme) {
       setDisableSave(true);
       return;
     }
 
-    if (
-      currentTheme?.theme_name.length &&
-      currentTheme?.json_data?.length &&
-      isValidJson(currentTheme.json_data)
-    ) {
-      setDisableSave(false);
-    } else {
-      setDisableSave(true);
-    }
+    const hasValidName = Boolean(currentTheme?.theme_name?.trim());
+    const hasValidJsonData = Boolean(currentTheme?.json_data?.trim());
+
+    // Block save only on ERRORS (not warnings)
+    // Errors: JSON syntax errors, empty themes
+    // Warnings: Unknown tokens, null values (non-blocking)
+    const canSave = hasValidName && hasValidJsonData && !validation.hasErrors;
+
+    setDisableSave(!canSave);
   };
 
   // Initialize
   useEffect(() => {
+    const currentUserEditor =
+      currentUserSubjectId !== undefined && currentUser
+        ? normalizeSubjectToPickerValue({
+            value: currentUserSubjectId,
+            text: `${currentUser.firstName} ${currentUser.lastName}`,
+            type: SubjectType.User,
+            secondary_label: currentUser.email,
+          })
+        : undefined;
+
     if (
       isEditMode &&
       (!currentTheme?.id ||
         (theme && theme?.id !== currentTheme.id) ||
         (isHidden && show))
     ) {
-      if (theme?.id && !loading) {
-        fetchResource(theme.id);
-      }
+      if (theme?.id && !loading) fetchResource(theme.id);
     } else if (
       !isEditMode &&
       (!currentTheme || currentTheme.id || (isHidden && show))
     ) {
-      setCurrentTheme({
+      const newTheme: ThemeModalObject = {
         theme_name: '',
         json_data: JSON.stringify({}, null, 2),
-      });
+        editors: currentUserEditor ? [currentUserEditor] : [],
+      };
+      setCurrentTheme(newTheme);
+      setInitialTheme(newTheme);
     }
-  }, [theme, show]);
+  }, [
+    theme,
+    show,
+    isEditMode,
+    currentTheme,
+    isHidden,
+    loading,
+    fetchResource,
+    currentUser,
+    currentUserSubjectId,
+  ]);
 
   useEffect(() => {
     if (resource) {
-      setCurrentTheme(resource);
+      const formatted: ThemeModalObject = {
+        ...resource,
+        json_data: formatJsonData(resource.json_data),
+        editors: mapSubjectsToPickerValues(
+          (resource.editors || []) as Subject[],
+        ),
+      };
+      setCurrentTheme(formatted);
+      setInitialTheme(formatted);
     }
   }, [resource]);
 
@@ -264,61 +500,94 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   }, [
     currentTheme ? currentTheme.theme_name : '',
     currentTheme ? currentTheme.json_data : '',
+    currentTheme ? currentTheme.editors?.length : 0,
     isReadOnly,
+    validation.hasErrors,
   ]);
 
   // Show/hide
-  if (isHidden && show) {
-    setIsHidden(false);
-  }
+  useEffect(() => {
+    if (isHidden && show) setIsHidden(false);
+  }, [isHidden, show]);
+
+  // Handle browser navigation/reload with unsaved changes
+  useBeforeUnload(show && hasUnsavedChanges());
 
   return (
     <Modal
       disablePrimaryButton={isReadOnly || disableSave}
       onHandledPrimaryAction={isReadOnly ? undefined : onSave}
-      onHide={hide}
+      onHide={handleCancel}
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       show={show}
       width="55%"
-      footer={[
-        <Button key="cancel" onClick={hide} buttonStyle="secondary">
-          {isReadOnly ? t('Close') : t('Cancel')}
-        </Button>,
-        ...(!isReadOnly
-          ? [
-              <Button
-                key="save"
-                onClick={onSave}
-                disabled={disableSave}
-                buttonStyle="primary"
-              >
-                {isEditMode ? t('Save') : t('Add')}
-              </Button>,
-            ]
-          : []),
-      ]}
+      centered
+      footer={
+        showConfirmAlert ? (
+          <Alert
+            closable={false}
+            type="warning"
+            message={t('You have unsaved changes')}
+            description={t(
+              'Your changes will be lost if you leave without saving.',
+            )}
+            css={{
+              textAlign: 'left',
+            }}
+            action={
+              <Space>
+                <Button
+                  key="keep-editing"
+                  buttonStyle="tertiary"
+                  onClick={() => setShowConfirmAlert(false)}
+                >
+                  {t('Keep editing')}
+                </Button>
+                <Button
+                  key="discard"
+                  buttonStyle="secondary"
+                  onClick={handleConfirmCancel}
+                >
+                  {t('Discard')}
+                </Button>
+                <Button
+                  key="save"
+                  buttonStyle="primary"
+                  onClick={() => {
+                    setShowConfirmAlert(false);
+                    onSave();
+                  }}
+                  disabled={disableSave}
+                >
+                  {t('Save')}
+                </Button>
+              </Space>
+            }
+          />
+        ) : (
+          [
+            <Button key="cancel" onClick={handleCancel} buttonStyle="secondary">
+              {isReadOnly ? t('Close') : t('Cancel')}
+            </Button>,
+            ...(!isReadOnly
+              ? [
+                  <Button
+                    key="save"
+                    onClick={onSave}
+                    disabled={disableSave}
+                    buttonStyle="primary"
+                  >
+                    {isEditMode ? t('Save') : t('Add')}
+                  </Button>,
+                ]
+              : []),
+          ]
+        )
+      }
       title={
         <Typography.Title level={4} data-test="theme-modal-title">
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${supersetTheme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.PlusOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${supersetTheme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode
-            ? isReadOnly
-              ? t('View theme properties')
-              : t('Edit theme properties')
-            : t('Add theme')}
+          {modalIcon}
+          {modalTitle}
         </Typography.Title>
       }
     >
@@ -327,6 +596,18 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
           {isSystemTheme && (
             <Typography.Text type="secondary" className="system-theme-notice">
               {t('System Theme - Read Only')}
+            </Typography.Text>
+          )}
+          {!isSystemTheme && isActiveSystemThemeSlot && isReadOnly && (
+            <Typography.Text type="secondary" className="system-theme-notice">
+              {t(
+                'This theme is the active default/dark theme - only Admins can edit it - Read Only',
+              )}
+            </Typography.Text>
+          )}
+          {!isSystemTheme && !isActiveSystemThemeSlot && isReadOnly && (
+            <Typography.Text type="secondary" className="system-theme-notice">
+              {t('You are not an editor of this theme - Read Only')}
             </Typography.Text>
           )}
 
@@ -340,6 +621,18 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
             />
           </Form.Item>
 
+          <Form.Item label={t('Editors')}>
+            <SubjectPicker
+              relatedUrl="/api/v1/theme/related/editors"
+              ariaLabel={t('Editors')}
+              placeholder={t('Select editors')}
+              value={currentTheme?.editors || []}
+              onChange={onEditorsChange}
+              disabled={isReadOnly}
+              dataTest="theme-editors-select"
+            />
+          </Form.Item>
+
           <Form.Item label={t('JSON Configuration')} required={!isReadOnly}>
             <Alert
               type="info"
@@ -350,7 +643,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                 <span>
                   {t('Design with')}{' '}
                   <a
-                    href="https://ant.design/theme-editor"
+                    href={themeEditorUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -358,52 +651,75 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                   </a>
                   {t(', then paste the JSON below. See our')}{' '}
                   <a
-                    href="https://superset.apache.org/docs/configuration/theming/"
+                    href={documentationUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
                     {t('documentation')}
                   </a>
-                  {t(' for details.')}
+                  {t(' for details.')}{' '}
+                  <Typography.Text type="secondary">
+                    {t('Unknown tokens will be highlighted as warnings.')}
+                  </Typography.Text>
                 </span>
               }
             />
-            <StyledJsonEditor>
-              <JsonEditor
-                showLoadingForImport
-                name="json_data"
+            <StyledEditorWrapper>
+              <EditorHost
+                id="theme-json-editor"
                 value={currentTheme?.json_data || ''}
                 onChange={onJsonDataChange}
+                language="json"
                 tabSize={2}
-                width="100%"
-                height="300px"
-                wrapEnabled
                 readOnly={isReadOnly}
-                showGutter
-                showPrintMargin={false}
-                annotations={jsonAnnotations}
+                wordWrap
+                lineNumbers
+                width="100%"
+                height="250px"
+                annotations={toEditorAnnotations(validation.annotations)}
               />
-            </StyledJsonEditor>
-            {canDevelopThemes && (
-              <div className="apply-button-container">
-                <Tooltip
-                  title={t('Set local theme for testing (preview only)')}
-                  placement="top"
-                >
-                  <Button
-                    icon={<Icons.ThunderboltOutlined />}
-                    onClick={onApply}
-                    disabled={
-                      !currentTheme?.json_data ||
-                      !isValidJson(currentTheme.json_data)
-                    }
-                    buttonStyle="secondary"
+            </StyledEditorWrapper>
+            <div className="apply-button-container">
+              <Space>
+                {!isReadOnly && (
+                  <Tooltip
+                    title={t('Format JSON configuration')}
+                    placement="top"
                   >
-                    {t('Apply')}
-                  </Button>
-                </Tooltip>
-              </div>
-            )}
+                    <Button
+                      icon={<Icons.AlignLeftOutlined />}
+                      buttonStyle="secondary"
+                      onClick={onFormat}
+                      disabled={
+                        !currentTheme?.json_data ||
+                        !isValidJson(currentTheme.json_data)
+                      }
+                    >
+                      {t('Format')}
+                    </Button>
+                  </Tooltip>
+                )}
+                {canDevelopThemes && (
+                  <Tooltip
+                    title={t('Set local theme for testing (preview only)')}
+                    placement="top"
+                  >
+                    <Button
+                      icon={<Icons.ThunderboltOutlined />}
+                      onClick={onApply}
+                      disabled={
+                        !currentTheme?.json_data ||
+                        !isValidJson(currentTheme.json_data) ||
+                        validation.hasErrors
+                      }
+                      buttonStyle="secondary"
+                    >
+                      {t('Apply')}
+                    </Button>
+                  </Tooltip>
+                )}
+              </Space>
+            </div>
           </Form.Item>
         </Form>
       </StyledFormWrapper>

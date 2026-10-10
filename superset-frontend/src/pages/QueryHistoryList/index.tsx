@@ -12,20 +12,15 @@
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
 import { useMemo, useState, useCallback, ReactElement, useEffect } from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import {
-  css,
-  QueryState,
-  styled,
-  SupersetClient,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { QueryState, SupersetClient } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -52,7 +47,7 @@ import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
-import getOwnerName from 'src/utils/getOwnerName';
+import getUserName from 'src/utils/getUserName';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
 const PAGE_SIZE = 25;
@@ -98,7 +93,7 @@ const StyledTableLabel = styled.div`
 `;
 
 const StyledPopoverItem = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const TimerLabel = styled(Label)`
@@ -190,30 +185,33 @@ function QueryList({ addDangerToast }: QueryListProps) {
           ) {
             statusConfig.name = (
               <Icons.CloseOutlined
-                iconSize="xs"
+                iconSize="m"
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colorError
-                    : theme.colors.grayscale.base
+                    : theme.colorIcon
                 }
               />
             );
             statusConfig.label = t('Failed');
           } else if (status === QueryState.Running) {
             statusConfig.name = (
-              <Icons.Running iconColor={theme.colorPrimary} />
+              <Icons.LoadingOutlined
+                iconSize="m"
+                iconColor={theme.colorPrimary}
+              />
             );
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconSize="m" iconColor={theme.colorIcon} />
             );
             statusConfig.label = t('Offline');
           } else if (
             status === QueryState.Scheduled ||
             status === QueryState.Pending
           ) {
-            statusConfig.name = <Icons.Queued />;
+            statusConfig.name = <Icons.Queued iconSize="m" />;
             statusConfig.label = t('Scheduled');
           }
           return (
@@ -230,7 +228,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.StartTime,
         Header: t('Time'),
-        size: 'xl',
+        size: 'lg',
         Cell: ({
           row: {
             original: { start_time },
@@ -253,18 +251,21 @@ function QueryList({ addDangerToast }: QueryListProps) {
       },
       {
         Header: t('Duration'),
-        size: 'xl',
+        size: 'lg',
         Cell: ({
           row: {
-            original: { status, start_time, end_time },
+            original: { status, start_time, start_running_time, end_time },
           },
         }: any) => {
           const timerType = status === QueryState.Failed ? 'danger' : status;
-          const timerTime = end_time
-            ? extendedDayjs(extendedDayjs.utc(end_time - start_time)).format(
-                TIME_WITH_MS,
-              )
-            : '00:00:00.000';
+          // Use start_running_time if available for more accurate duration
+          const startTime = start_running_time || start_time;
+          const timerTime =
+            end_time && startTime
+              ? extendedDayjs(extendedDayjs.utc(end_time - startTime)).format(
+                  TIME_WITH_MS,
+                )
+              : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
               {timerTime}
@@ -282,7 +283,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
-        size: 'xl',
+        size: 'lg',
         id: QueryObjectColumns.DatabaseName,
       },
       {
@@ -293,7 +294,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
-        size: 'xl',
+        size: 'lg',
         id: QueryObjectColumns.Schema,
       },
       {
@@ -331,7 +332,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         },
         accessor: QueryObjectColumns.SqlTables,
         Header: t('Tables'),
-        size: 'xl',
+        size: 'lg',
         disableSortBy: true,
         id: QueryObjectColumns.SqlTables,
       },
@@ -343,7 +344,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           row: {
             original: { user },
           },
-        }: any) => getOwnerName(user),
+        }: any) => getUserName(user),
         id: QueryObjectColumns.UserFirstName,
       },
       {
@@ -354,25 +355,29 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
-        size: 'md',
+        size: 'sm',
         id: QueryObjectColumns.Rows,
       },
       {
         accessor: QueryObjectColumns.Sql,
         Header: t('SQL'),
         Cell: ({ row: { original, id } }: any) => (
-          <div
-            tabIndex={0}
-            role="button"
+          <button
+            type="button"
             data-test={`open-sql-preview-${id}`}
             onClick={() => setQueryCurrentlyPreviewing(original)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setQueryCurrentlyPreviewing(original);
-              }
-            }}
-            style={{ cursor: 'pointer' }}
+            css={css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              margin: 0;
+              font: inherit;
+              display: block;
+              width: 100%;
+              text-align: left;
+              cursor: pointer;
+            `}
           >
             <StyledCodeSyntaxHighlighter
               language="sql"
@@ -383,14 +388,16 @@ function QueryList({ addDangerToast }: QueryListProps) {
             >
               {shortenSQL(original.sql, SQL_PREVIEW_MAX_LINES)}
             </StyledCodeSyntaxHighlighter>
-          </div>
+          </button>
         ),
+        size: 'xxl',
         id: QueryObjectColumns.Sql,
       },
       {
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
+        size: 'sm',
         Cell: ({
           row: {
             original: { id },

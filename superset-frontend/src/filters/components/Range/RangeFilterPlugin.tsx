@@ -16,20 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   getColumnLabel,
   getNumberFormatter,
   isEqualArray,
   NumberFormats,
-  styled,
-  useTheme,
-  t,
 } from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
 // import Metadata from '@superset-ui/core/components/Metadata';
-import { isNumber } from 'lodash';
+import { isNumber } from 'lodash-es';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import Slider from '@superset-ui/core/components/Slider';
 import { FormItem, Tooltip, Icons } from '@superset-ui/core/components';
@@ -70,7 +69,7 @@ const SliderWrapper = styled.div`
 const TooltipContainer = styled.div`
   ${({ theme }) => `
     position: absolute;
-    top: -${theme.sizeUnit * 10}px;
+    top: -${theme.sizeUnit * 6}px;
     right: 0px;
     z-index: 100;
     display: flex;
@@ -85,40 +84,38 @@ const TooltipContainer = styled.div`
 const HorizontalLayout = styled.div`
   ${({ theme }) => `
     display: flex;
-    flex-direction: column;
     gap: ${theme.sizeUnit * 4}px;
     width: 100%;
+    align-items: center;
 
-    .controls-container {
+    .slider-wrapper {
       display: flex;
       align-items: center;
-      gap: ${theme.sizeUnit * 4}px;
-      width: 100%;
-
-      .slider-wrapper {
-        display: flex;
-        align-items: center;
-        flex: 2;
-      }
-
-      .slider-container {
-        flex: 1;
-        min-width: 180px;
-      }
-
-      .inputs-container {
-        min-width: 160px;
-        max-width: 200px;
-      }
-
+      flex: 2;
     }
 
-    .message-container {
-      width: 100%;
-      text-align: center;
-      padding-top: ${theme.sizeUnit * 2}px;
+    .slider-container {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .inputs-container {
+      min-width: 160px;
+      max-width: 200px;
     }
   `}
+`;
+
+const FocusContainer = styled.div`
+  ${({ theme }) => `
+  border-radius: ${theme.borderRadius}px;
+  transition: box-shadow ${theme.motionDurationMid} ease-in-out;
+  &:focus {
+    box-shadow: 0 0 0 2px ${theme.colorPrimary};
+  }
+  &:focus-visible {
+    outline: none;
+  }`}
 `;
 
 const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
@@ -144,6 +141,24 @@ const getLabel = (
     return `x ≤ ${numberFormatter(upper)}`;
   }
   return '';
+};
+
+// Calculate appropriate step size for decimal values.
+// Uses a consistent approach for all ranges to avoid floating-point string parsing issues.
+export const calculateStep = (minValue: number, maxValue: number): number => {
+  const range = maxValue - minValue;
+  if (range <= 0) return 0.01;
+
+  // Calculate step to give approximately 100 steps across the range
+  const idealSteps = 100;
+  let step = range / idealSteps;
+
+  // Round step to a nice value (0.0001, 0.001, 0.01, 0.1, 1, 10, etc.)
+  const magnitude = Math.pow(10, Math.floor(Math.log10(step)));
+  step = Math.round(step / magnitude) * magnitude;
+
+  // Ensure we don't return 0 for very small ranges
+  return step || 0.0001;
 };
 
 const validateRange = (
@@ -235,8 +250,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   } = props;
 
   const [row] = data;
-  // @ts-ignore
+  // @ts-expect-error
   const { min, max }: { min: number; max: number } = row;
+
+  const sliderStep = useMemo(
+    () =>
+      min !== undefined && max !== undefined ? calculateStep(min, max) : 0.01,
+    [min, max],
+  );
   const { groupby, enableSingleValue, enableEmptyFilter, defaultValue } =
     formData;
 
@@ -342,8 +363,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       return;
     }
 
-    // Clear all case
-    if (filterState.value === undefined && !filterState.validateStatus) {
+    // Clear all case. The filter bar stages [null, null] for range filters, so
+    // matching only undefined let a filter still sitting at its default fall
+    // through to the default-restoring branch below.
+    if (
+      (filterState.value === undefined ||
+        isEqualArray(filterState.value, [null, null])) &&
+      !filterState.validateStatus
+    ) {
       setInputValue([null, null]);
       updateDataMaskValue([null, null]);
       return;
@@ -508,11 +535,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       <Tooltip title={message} placement="top">
         <Icons.InfoCircleOutlined
           iconSize="m"
-          iconColor={
-            status === 'error'
-              ? theme.colors.error.base
-              : theme.colors.grayscale.base
-          }
+          iconColor={status === 'error' ? theme.colorError : theme.colorIcon}
           className="tooltip-icon"
         />
       </Tooltip>
@@ -555,6 +578,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           <Slider
             min={min}
             max={max}
+            step={sliderStep}
             value={Array.isArray(sliderValue) ? sliderValue[0] : sliderValue}
             onChange={handleSliderChange}
             tooltip={{
@@ -569,6 +593,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         <Slider
           min={min}
           max={max}
+          step={sliderStep}
           range
           value={Array.isArray(sliderValue) ? sliderValue : [min, sliderValue]}
           onChange={handleSliderChange}
@@ -583,7 +608,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const renderInputs = () => (
     <Wrapper
       tabIndex={-1}
-      ref={inputRef}
       onFocus={setFocusedFilter}
       onBlur={unsetFocusedFilter}
       onMouseEnter={setHoveredFilter}
@@ -631,8 +655,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         <FormItem aria-labelledby={`filter-name-${formData.nativeFilterId}`}>
           {filterBarOrientation === FilterBarOrientation.Horizontal &&
           !isOverflowingFilterBar ? (
-            <HorizontalLayout>
-              <div className="controls-container">
+            <FocusContainer ref={inputRef} tabIndex={-1}>
+              <HorizontalLayout>
                 <InfoTooltip />
                 {(rangeDisplayMode === RangeDisplayMode.Slider ||
                   rangeDisplayMode === RangeDisplayMode.SliderAndInput) && (
@@ -644,8 +668,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                   rangeDisplayMode === RangeDisplayMode.SliderAndInput) && (
                   <div className="inputs-container">{renderInputs()}</div>
                 )}
-              </div>
-            </HorizontalLayout>
+              </HorizontalLayout>
+            </FocusContainer>
           ) : (
             <>
               <div style={{ position: 'relative' }}>
@@ -654,12 +678,21 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                     <InfoTooltip />
                   </TooltipContainer>
                 )}
-                {(rangeDisplayMode === RangeDisplayMode.Slider ||
-                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
-                  renderSlider()}
-                {(rangeDisplayMode === RangeDisplayMode.Input ||
-                  rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
-                  renderInputs()}
+                <FocusContainer
+                  ref={inputRef}
+                  tabIndex={-1}
+                  css={css`
+                    padding-top: 1px;
+                    margin-top: -1px;
+                  `}
+                >
+                  {(rangeDisplayMode === RangeDisplayMode.Slider ||
+                    rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
+                    renderSlider()}
+                  {(rangeDisplayMode === RangeDisplayMode.Input ||
+                    rangeDisplayMode === RangeDisplayMode.SliderAndInput) &&
+                    renderInputs()}
+                </FocusContainer>
 
                 <MessageDisplay />
               </div>

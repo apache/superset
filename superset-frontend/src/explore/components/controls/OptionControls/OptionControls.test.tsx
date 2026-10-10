@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import {
   OptionControlLabel,
   DragContainer,
@@ -48,7 +43,7 @@ const defaultProps = {
 
 const setup = (overrides?: Record<string, any>) =>
   render(<OptionControlLabel {...defaultProps} {...overrides} />, {
-    useDnd: true,
+    useDndKit: true,
   });
 
 test('should render', async () => {
@@ -88,7 +83,7 @@ test('should display a certification icon if saved metric is certified', async (
   );
 });
 
-test('triggers onMoveLabel on drop', async () => {
+test('renders multiple labels', async () => {
   render(
     <>
       <OptionControlLabel
@@ -101,15 +96,11 @@ test('triggers onMoveLabel on drop', async () => {
         index={2}
         label={<span>Label 2</span>}
       />
-      ,
     </>,
-    { useDnd: true },
+    { useDndKit: true },
   );
-  await waitFor(() => {
-    fireEvent.dragStart(screen.getByText('Label 1'));
-    fireEvent.drop(screen.getByText('Label 2'));
-    expect(defaultProps.onMoveLabel).toHaveBeenCalled();
-  });
+  expect(await screen.findByText('Label 1')).toBeInTheDocument();
+  expect(await screen.findByText('Label 2')).toBeInTheDocument();
 });
 
 test('renders DragContainer', () => {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 
 export const Row = styled.div`
   ${({ theme }) => css`
@@ -41,7 +41,7 @@ export const Row = styled.div`
 
 export const RowLabel = styled.span`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     padding-right: ${theme.sizeUnit * 4}px;
     margin-right: auto;
     white-space: nowrap;
@@ -64,7 +64,12 @@ export const FilterName = styled.span`
   white-space: nowrap;
 `;
 
-export const DependencyItem = styled.span`
+export const DependencyItem = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
   text-decoration: underline;
   cursor: pointer;
 `;

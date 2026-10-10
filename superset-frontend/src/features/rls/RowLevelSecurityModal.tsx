@@ -17,8 +17,10 @@
  * under the License.
  */
 
-import { css, styled, SupersetClient, t } from '@superset-ui/core';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
+import { useEffect, useMemo, useState } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   Modal,
@@ -30,8 +32,13 @@ import {
 } from '@superset-ui/core/components';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import SubjectPicker, {
+  mapSubjectPickerValuesToIds,
+  normalizeSubjectsToPickerValues,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
 import { FILTER_OPTIONS } from './constants';
-import { FilterType, RLSObject, RoleObject, TableObject } from './types';
+import { FilterType, RLSObject, TableObject } from './types';
 
 const noMargins = css`
   margin: 0;
@@ -113,22 +120,95 @@ export interface RowLevelSecurityModalProps {
   show: boolean;
 }
 
-const DEFAULT_RULE = {
+type TableSelectValue = {
+  value: number;
+  label: string;
+};
+
+type RLSFormState = Omit<RLSObject, 'tables' | 'subjects'> & {
+  tables: TableSelectValue[];
+  subjects: SubjectPickerValue[];
+};
+
+type RLSRequestPayload = Omit<RLSObject, 'id' | 'tables' | 'subjects'> & {
+  tables: number[];
+  subjects: number[];
+};
+
+type TextFieldName = 'name' | 'group_key' | 'clause' | 'description';
+
+const TEXT_FIELD_NAMES = new Set<string>([
+  'name',
+  'group_key',
+  'clause',
+  'description',
+]);
+
+const isTextFieldName = (name: string): name is TextFieldName =>
+  TEXT_FIELD_NAMES.has(name);
+
+const createDefaultRule = (): RLSFormState => ({
   name: '',
   filter_type: FilterType.Regular,
   tables: [],
-  roles: [],
+  subjects: [],
   clause: '',
   group_key: '',
   description: '',
+});
+
+const mapTablesToSelectValues = (
+  tables: TableObject[] = [],
+): TableSelectValue[] =>
+  tables.flatMap(table => {
+    if (table.id === undefined) {
+      return [];
+    }
+    return {
+      value: table.id,
+      label:
+        table.schema && table.table_name
+          ? `${table.schema}.${table.table_name}`
+          : table.table_name || String(table.id),
+    };
+  });
+
+const mapRuleToFormState = (
+  resource: RLSObject,
+  id: number | undefined,
+): RLSFormState => {
+  const defaultRule = createDefaultRule();
+  return {
+    ...defaultRule,
+    ...resource,
+    id,
+    tables: mapTablesToSelectValues(resource.tables),
+    subjects: normalizeSubjectsToPickerValues(resource.subjects || []),
+  };
+};
+
+const mapFormStateToPayload = (
+  currentRule: RLSFormState,
+): RLSRequestPayload => {
+  const {
+    id: _id,
+    tables: selectedTables,
+    subjects: selectedSubjects,
+    ...values
+  } = currentRule;
+
+  return {
+    ...values,
+    tables: selectedTables.map(table => table.value),
+    subjects: mapSubjectPickerValuesToIds(selectedSubjects),
+  };
 };
 
 function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   const { rule, addDangerToast, addSuccessToast, onHide, show } = props;
 
-  const [currentRule, setCurrentRule] = useState<RLSObject>({
-    ...DEFAULT_RULE,
-  });
+  const [currentRule, setCurrentRule] =
+    useState<RLSFormState>(createDefaultRule);
   const [disableSave, setDisableSave] = useState<boolean>(true);
 
   const isEditMode = rule !== null;
@@ -140,13 +220,16 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     createResource,
     updateResource,
     clearError,
-  } = useSingleViewResource<RLSObject>(
+  } = useSingleViewResource<RLSObject, RLSRequestPayload>(
     `rowlevelsecurity`,
     t('rowlevelsecurity'),
     addDangerToast,
   );
 
-  const updateRuleState = (name: string, value: any) => {
+  const updateRuleState = <Key extends keyof RLSFormState>(
+    name: Key,
+    value: RLSFormState[Key],
+  ) => {
     setCurrentRule(currentRuleData => ({
       ...currentRuleData,
       [name]: value,
@@ -166,100 +249,56 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     }
   };
 
-  // find selected tables and roles
-  const getSelectedData = useCallback(() => {
-    if (!resource) {
-      return null;
-    }
-    const tables: TableObject[] = [];
-    const roles: RoleObject[] = [];
-
-    resource.tables?.forEach(selectedTable => {
-      tables.push({
-        key: selectedTable.id,
-        label: selectedTable.schema
-          ? `${selectedTable.schema}.${selectedTable.table_name}`
-          : selectedTable.table_name,
-        value: selectedTable.id,
-      });
-    });
-
-    resource.roles?.forEach(selectedRole => {
-      roles.push({
-        key: selectedRole.id,
-        label: selectedRole.name,
-        value: selectedRole.id,
-      });
-    });
-
-    return { tables, roles };
-  }, [resource?.tables, resource?.roles]);
-
   // initialize
   useEffect(() => {
     if (!isEditMode) {
-      setCurrentRule({ ...DEFAULT_RULE });
-    } else if (rule?.id !== null && !loading && !fetchError) {
-      fetchResource(rule.id as number);
+      setCurrentRule(createDefaultRule());
+    } else if (rule?.id !== undefined && !loading && !fetchError) {
+      fetchResource(rule.id);
     }
   }, [rule]);
 
   useEffect(() => {
     if (resource) {
-      setCurrentRule({ ...resource, id: rule?.id });
-      const selectedTableAndRoles = getSelectedData();
-      updateRuleState('tables', selectedTableAndRoles?.tables || []);
-      updateRuleState('roles', selectedTableAndRoles?.roles || []);
+      setCurrentRule(mapRuleToFormState(resource, rule?.id ?? resource.id));
     }
   }, [resource]);
 
   // validate
-  const currentRuleSafe = currentRule || {};
   useEffect(() => {
     validate();
-  }, [currentRuleSafe.name, currentRuleSafe.clause, currentRuleSafe?.tables]);
+  }, [currentRule.name, currentRule.clause, currentRule.tables]);
 
   // * event handlers *
-  type SelectValue = {
-    value: string;
-    label: string;
-  };
-
   const onTextChange = (target: HTMLInputElement | HTMLTextAreaElement) => {
-    updateRuleState(target.name, target.value);
+    if (isTextFieldName(target.name)) {
+      updateRuleState(target.name, target.value);
+    }
   };
 
   const onFilterChange = (type: string) => {
-    updateRuleState('filter_type', type);
+    updateRuleState('filter_type', type as FilterType);
   };
 
-  const onTablesChange = (tables: Array<SelectValue>) => {
+  const onTablesChange = (tables: TableSelectValue[]) => {
     updateRuleState('tables', tables || []);
   };
 
-  const onRolesChange = (roles: Array<SelectValue>) => {
-    updateRuleState('roles', roles || []);
+  const onSubjectsChange = (subjects: SubjectPickerValue[]) => {
+    updateRuleState('subjects', subjects || []);
   };
 
   const hide = () => {
     clearError();
-    setCurrentRule({ ...DEFAULT_RULE });
+    setCurrentRule(createDefaultRule());
     onHide();
   };
 
   const onSave = () => {
-    const tables: number[] = [];
-    const roles: number[] = [];
-
-    currentRule.tables?.forEach(table => tables.push(table.key));
-    currentRule.roles?.forEach(role => roles.push(role.key));
-
-    const data: any = { ...currentRule, tables, roles };
+    const data = mapFormStateToPayload(currentRule);
 
     if (isEditMode && currentRule.id) {
-      const updateId = currentRule.id;
-      delete data.id;
-      updateResource(updateId, data).then(response => {
+      updateResource(currentRule.id, data).then(response => {
         if (!response) {
           return;
         }
@@ -286,29 +325,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
         });
         return SupersetClient.get({
           endpoint: `/api/v1/rowlevelsecurity/related/tables?q=${query}`,
-        }).then(response => {
-          const list = response.json.result.map(
-            (item: { value: number; text: string }) => ({
-              label: item.text,
-              value: item.value,
-            }),
-          );
-          return { data: list, totalCount: response.json.count };
-        });
-      },
-    [],
-  );
-
-  const loadRoleOptions = useMemo(
-    () =>
-      (input = '', page: number, pageSize: number) => {
-        const query = rison.encode({
-          filter: input,
-          page,
-          page_size: pageSize,
-        });
-        return SupersetClient.get({
-          endpoint: `/api/v1/rowlevelsecurity/related/roles?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -366,7 +382,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
               {t('Filter Type')}{' '}
               <InfoTooltip
                 tooltip={t(
-                  'Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.',
+                  'Regular filters add where clauses to queries if a user matches a subject referenced in the filter. Base filters apply filters to all queries except the subjects defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.',
                 )}
               />
             </div>
@@ -396,7 +412,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 ariaLabel={t('Tables')}
                 mode="multiple"
                 onChange={onTablesChange}
-                value={(currentRule?.tables as SelectValue[]) || []}
+                value={currentRule.tables}
                 options={loadTableOptions}
               />
             </div>
@@ -405,21 +421,20 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
           <StyledInputContainer>
             <div className="control-label">
               {currentRule.filter_type === FilterType.Base
-                ? t('Excluded roles')
-                : t('Roles')}{' '}
+                ? t('Excluded subjects')
+                : t('Subjects')}{' '}
               <InfoTooltip
                 tooltip={t(
-                  'For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.',
+                  'For regular filters, these are the subjects (users, roles, groups) this filter will be applied to. For base filters, these are the subjects that the filter DOES NOT apply to, e.g. Admin if admin should see all data.',
                 )}
               />
             </div>
             <div className="input-container">
-              <AsyncSelect
-                ariaLabel={t('Roles')}
-                mode="multiple"
-                onChange={onRolesChange}
-                value={(currentRule?.roles as SelectValue[]) || []}
-                options={loadRoleOptions}
+              <SubjectPicker
+                relatedUrl="/api/v1/rowlevelsecurity/related/subjects"
+                ariaLabel={t('Subjects')}
+                onChange={onSubjectsChange}
+                value={currentRule?.subjects || []}
               />
             </div>
           </StyledInputContainer>

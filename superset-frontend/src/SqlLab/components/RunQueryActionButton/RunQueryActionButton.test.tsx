@@ -19,6 +19,8 @@
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
+import { supersetTheme } from '@apache-superset/core/theme';
+import { Menu } from '@superset-ui/core/components/Menu';
 
 import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
@@ -38,7 +40,6 @@ jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
 
 const defaultProps = {
   queryEditorId: defaultQueryEditor.id,
-  allowAsync: false,
   dbId: 1,
   queryState: 'ready',
   runQuery: () => {},
@@ -53,17 +54,17 @@ const setup = (props?: Partial<RunQueryActionButtonProps>, store?: Store) =>
     ...(store && { store }),
   });
 
-it('renders a single Button', () => {
+test('renders a single Button', () => {
   const { getByRole } = setup({}, mockStore(initialState));
   expect(getByRole('button')).toBeInTheDocument();
 });
 
-it('renders a label for Run Query', () => {
+test('renders a label for Run Query', () => {
   const { getByText } = setup({}, mockStore(initialState));
   expect(getByText('Run')).toBeInTheDocument();
 });
 
-it('renders a label for Selected Query', () => {
+test('renders a label for Selected Query', () => {
   const { getByText } = setup(
     {},
     mockStore({
@@ -80,7 +81,7 @@ it('renders a label for Selected Query', () => {
   expect(getByText('Run selection')).toBeInTheDocument();
 });
 
-it('disable button when sql from unsaved changes is empty', () => {
+test('disable button when sql from unsaved changes is empty', () => {
   const { getByRole } = setup(
     {},
     mockStore({
@@ -98,7 +99,7 @@ it('disable button when sql from unsaved changes is empty', () => {
   expect(button).toBeDisabled();
 });
 
-it('disable button when selectedText only contains blank contents', () => {
+test('disable button when selectedText only contains blank contents', () => {
   const { getByRole } = setup(
     {},
     mockStore({
@@ -116,7 +117,7 @@ it('disable button when selectedText only contains blank contents', () => {
   expect(button).toBeDisabled();
 });
 
-it('enable default button for unrelated unsaved changes', () => {
+test('enable default button for unrelated unsaved changes', () => {
   const { getByRole } = setup(
     {},
     mockStore({
@@ -134,7 +135,7 @@ it('enable default button for unrelated unsaved changes', () => {
   expect(button).toBeEnabled();
 });
 
-it('dispatch runQuery on click', async () => {
+test('dispatch runQuery on click', async () => {
   const runQuery = jest.fn();
   const { getByRole } = setup({ runQuery }, mockStore(initialState));
   const button = getByRole('button');
@@ -143,7 +144,7 @@ it('dispatch runQuery on click', async () => {
   await waitFor(() => expect(runQuery).toHaveBeenCalledTimes(1));
 });
 
-it('dispatch stopQuery on click while running state', async () => {
+test('dispatch stopQuery on click while running state', async () => {
   const stopQuery = jest.fn();
   const { getByRole } = setup(
     { queryState: 'running', stopQuery },
@@ -153,4 +154,26 @@ it('dispatch stopQuery on click while running state', async () => {
   expect(stopQuery).toHaveBeenCalledTimes(0);
   fireEvent.click(button);
   await waitFor(() => expect(stopQuery).toHaveBeenCalledTimes(1));
+});
+
+const ctasMenu = <Menu items={[{ key: 'table', label: 'CREATE TABLE AS' }]} />;
+
+test('opening the CTAS/CVAS dropdown menu does not crash and shows the menu', async () => {
+  const { getAllByRole, findByText } = setup(
+    { overlayCreateAsMenu: ctasMenu },
+    mockStore(initialState),
+  );
+  const buttons = getAllByRole('button');
+  const caretButton = buttons[buttons.length - 1];
+  fireEvent.click(caretButton);
+  expect(await findByText('CREATE TABLE AS')).toBeInTheDocument();
+});
+
+test('renders the caret icon with a color that contrasts with the primary button background', () => {
+  const { container } = setup(
+    { overlayCreateAsMenu: ctasMenu },
+    mockStore(initialState),
+  );
+  const caretIcon = container.querySelector('[data-test="down"]');
+  expect(caretIcon).toHaveStyle({ color: supersetTheme.colorTextLightSolid });
 });

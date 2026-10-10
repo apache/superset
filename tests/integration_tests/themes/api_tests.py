@@ -18,10 +18,15 @@
 """Unit tests for Superset"""
 
 import pytest
-import prison
+import rison
+import uuid
+import yaml
 from datetime import datetime
 from freezegun import freeze_time
+from io import BytesIO
 from sqlalchemy.sql import func
+from typing import Any
+from zipfile import ZipFile
 
 import tests.integration_tests.test_app  # noqa: F401
 from superset import db
@@ -90,15 +95,17 @@ class TestThemeApi(SupersetTestCase):
             "changed_on_delta_humanized",
             "created_by",
             "created_on",
+            "editors",
             "id",
             "is_system",
+            "is_system_default",
+            "is_system_dark",
             "json_data",
             "theme_name",
             "uuid",
         ]
         result_columns = list(data["result"][0].keys())
-        result_columns.sort()
-        assert expected_columns == result_columns
+        assert set(expected_columns) == set(result_columns)
 
     @pytest.mark.usefixtures("create_themes")
     def test_get_list_sort_theme(self):
@@ -108,7 +115,7 @@ class TestThemeApi(SupersetTestCase):
         themes = db.session.query(Theme).order_by(Theme.theme_name.asc()).all()
         self.login(ADMIN_USERNAME)
         query_string = {"order_column": "theme_name", "order_direction": "asc"}
-        uri = f"api/v1/theme/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/theme/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -136,7 +143,7 @@ class TestThemeApi(SupersetTestCase):
                 }
             ],
         }
-        uri = f"api/v1/theme/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/theme/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -157,7 +164,7 @@ class TestThemeApi(SupersetTestCase):
                 }
             ],
         }
-        uri = f"api/v1/theme/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/theme/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -178,7 +185,7 @@ class TestThemeApi(SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/theme/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/theme/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -207,6 +214,8 @@ class TestThemeApi(SupersetTestCase):
             "theme_name": "theme_name1",
             "json_data": '{"color": "theme1"}',
             "is_system": False,
+            "is_system_default": False,
+            "is_system_dark": False,
             "uuid": str(theme.uuid),
             "changed_by": {
                 "first_name": theme.created_by.first_name,
@@ -219,6 +228,7 @@ class TestThemeApi(SupersetTestCase):
                 "id": theme.created_by.id,
                 "last_name": theme.created_by.last_name,
             },
+            "editors": [],
         }
         data = json.loads(rv.data.decode("utf-8"))
         for key, value in data["result"].items():
@@ -345,7 +355,7 @@ class TestThemeApi(SupersetTestCase):
         theme_ids = [theme.id for theme in themes]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/theme/?q={prison.dumps(theme_ids)}"
+        uri = f"api/v1/theme/?q={rison.dumps(theme_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -365,7 +375,7 @@ class TestThemeApi(SupersetTestCase):
         theme_ids = [theme.id]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/theme/?q={prison.dumps(theme_ids)}"
+        uri = f"api/v1/theme/?q={rison.dumps(theme_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -380,7 +390,7 @@ class TestThemeApi(SupersetTestCase):
         """
         theme_ids = [1, "a"]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/theme/?q={prison.dumps(theme_ids)}"
+        uri = f"api/v1/theme/?q={rison.dumps(theme_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 400
 
@@ -393,6 +403,128 @@ class TestThemeApi(SupersetTestCase):
 
         theme_ids = [max_id + 1, max_id + 2]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/theme/?q={prison.dumps(theme_ids)}"
+        uri = f"api/v1/theme/?q={rison.dumps(theme_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
+
+    def create_theme_import_zip(self, theme_config: dict[str, Any]) -> BytesIO:
+        """Helper method to create a theme import ZIP file"""
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            # Use a root folder like the export does
+            root = "theme_import"
+
+            # Add metadata.yaml
+            metadata = {
+                "version": "1.0.0",
+                "type": "Theme",
+                "timestamp": datetime.now().isoformat(),
+            }
+            with bundle.open(f"{root}/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(metadata).encode())
+
+            # Add theme YAML file
+            theme_yaml = yaml.safe_dump(theme_config)
+            with bundle.open(
+                f"{root}/themes/{theme_config['theme_name']}.yaml", "w"
+            ) as fp:
+                fp.write(theme_yaml.encode())
+        buf.seek(0)
+        return buf
+
+    def test_import_theme(self):
+        """
+        Theme API: Test import theme
+        """
+        theme_config = {
+            "theme_name": "imported_theme",
+            "uuid": str(uuid.uuid4()),
+            "version": "1.0.0",
+            "json_data": {"colors": {"primary": "#007bff"}},
+        }
+
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/theme/import/"
+
+        buf = self.create_theme_import_zip(theme_config)
+        form_data = {
+            "formData": (buf, "theme_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "Theme imported successfully"}
+
+        theme = db.session.query(Theme).filter_by(uuid=theme_config["uuid"]).one()
+        assert theme.theme_name == "imported_theme"
+
+        # The importer is added as an editor so they can maintain the new theme
+        # (mirrors CreateThemeCommand and the dashboard/chart/dataset importers).
+        admin = self.get_user(ADMIN_USERNAME)
+        assert any(editor.user_id == admin.id for editor in theme.editors)
+
+        # Cleanup
+        db.session.delete(theme)
+        db.session.commit()
+
+    def test_import_theme_overwrite(self):
+        """
+        Theme API: Test import existing theme without and with overwrite
+        """
+        theme_config = {
+            "theme_name": "overwrite_theme",
+            "uuid": str(uuid.uuid4()),
+            "version": "1.0.0",
+            "json_data": {"colors": {"primary": "#007bff"}},
+        }
+
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/theme/import/"
+
+        # First import
+        buf = self.create_theme_import_zip(theme_config)
+        form_data = {
+            "formData": (buf, "theme_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "Theme imported successfully"}
+
+        # Import again without overwrite flag - should fail with structured error
+        buf = self.create_theme_import_zip(theme_config)
+        form_data = {
+            "formData": (buf, "theme_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["message"].startswith("Error importing theme")
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert error["level"] == "warning"
+        assert f"themes/{theme_config['theme_name']}.yaml" in str(error["extra"])
+        assert "Theme already exists and `overwrite=true` was not passed" in str(
+            error["extra"]
+        )
+
+        # Import with overwrite flag - should succeed
+        buf = self.create_theme_import_zip(theme_config)
+        form_data = {
+            "formData": (buf, "theme_export.zip"),
+            "overwrite": "true",
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "Theme imported successfully"}
+
+        # Cleanup
+        theme = db.session.query(Theme).filter_by(uuid=theme_config["uuid"]).one()
+        db.session.delete(theme)
+        db.session.commit()

@@ -58,21 +58,21 @@ describe('FormModal Component', () => {
 
   const renderComponent = () => render(<FormModal {...mockedProps} />);
 
-  it('should render the modal with two input fields', () => {
+  test('should render the modal with two input fields', () => {
     renderComponent();
 
     expect(screen.getByLabelText('Name')).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
   });
 
-  it('should disable Save button when required fields are empty', async () => {
+  test('should disable Save button when required fields are empty', async () => {
     renderComponent();
 
     const saveButton = screen.getByTestId('form-modal-save-button');
     expect(saveButton).toBeDisabled();
   });
 
-  it('should enable Save button only when the required field is filled', async () => {
+  test('should enable Save button only when the required field is filled', async () => {
     renderComponent();
 
     const nameInput = screen.getByPlaceholderText('Enter your name');
@@ -83,7 +83,7 @@ describe('FormModal Component', () => {
     });
   });
 
-  it('should keep Save button disabled when only the optional field is filled', async () => {
+  test('should keep Save button disabled when only the optional field is filled', async () => {
     renderComponent();
 
     const emailInput = screen.getByPlaceholderText('Enter your email');
@@ -94,7 +94,7 @@ describe('FormModal Component', () => {
     });
   });
 
-  it('should call formSubmitHandler with correct values when submitted', async () => {
+  test('should call formSubmitHandler with correct values when submitted', async () => {
     renderComponent();
 
     await userEvent.type(

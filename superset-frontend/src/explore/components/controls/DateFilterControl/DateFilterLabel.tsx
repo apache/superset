@@ -16,22 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { ReactNode, useState, useEffect, useMemo, useRef } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
-  css,
-  styled,
-  t,
-  useTheme,
   NO_TIME_RANGE,
-  SupersetTheme,
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
 import {
+  css,
+  styled,
+  useTheme,
+  SupersetTheme,
+} from '@apache-superset/core/theme';
+import {
   Button,
   Constants,
   Divider,
-  Modal,
   Tooltip,
   Select,
 } from '@superset-ui/core/components';
@@ -39,7 +40,6 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { noOp } from 'src/utils/common';
-import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -125,7 +125,7 @@ const getTooltipTitle = (
 ) =>
   isLabelTruncated ? (
     <div>
-      {label && <strong>{label}</strong>}
+      {label && <strong>{t(label)}</strong>}
       {range && (
         <div
           css={(theme: SupersetTheme) => css`
@@ -146,8 +146,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     onChange,
     onOpenPopover = noOp,
     onClosePopover = noOp,
-    overlayStyle = 'Popover',
     isOverflowingFilterBar = false,
+    hovered: isControlHovered = false,
+    displayFormat,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
 
@@ -161,9 +162,23 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
-  const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(value);
+  const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(t(value));
+  const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
+  // Separate per-effect: each only guards against a later request from the
+  // *same* effect. A shared counter would let effect 2's debounced draft
+  // fetch (which can still be pending/leftover after Apply) invalidate
+  // effect 1's Apply-triggered fetch purely because it started later,
+  // even though effect 1's result is the more relevant one.
+  const latestValueRequestId = useRef(0);
+  const latestDraftRequestId = useRef(0);
+
+  useEffect(() => {
+    if (!isControlHovered) {
+      setIsDescriptionHovered(false);
+    }
+  }, [isControlHovered]);
 
   useEffect(() => {
     if (value === NO_TIME_RANGE) {
@@ -172,45 +187,50 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       setValidTimeRange(true);
       return;
     }
-    fetchTimeRange(value).then(({ value: actualRange, error }) => {
-      if (error) {
-        setEvalResponse(error || '');
-        setValidTimeRange(false);
-        setTooltipTitle(value || null);
-      } else {
-        /*
-          HRT == human readable text
-          ADR == actual datetime range
-          +--------------+------+----------+--------+----------+-----------+
-          |              | Last | Previous | Custom | Advanced | No Filter |
-          +--------------+------+----------+--------+----------+-----------+
-          | control pill | HRT  | HRT      | ADR    | ADR      |   HRT     |
-          +--------------+------+----------+--------+----------+-----------+
-          | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
-          +--------------+------+----------+--------+----------+-----------+
-        */
-        if (
-          guessedFrame === 'Common' ||
-          guessedFrame === 'Calendar' ||
-          guessedFrame === 'Current' ||
-          guessedFrame === 'No filter'
-        ) {
-          setActualTimeRange(value);
-          setTooltipTitle(
-            getTooltipTitle(labelIsTruncated, value, actualRange),
-          );
+    latestValueRequestId.current += 1;
+    const requestId = latestValueRequestId.current;
+    fetchTimeRange(value, 'col', undefined, displayFormat).then(
+      ({ value: actualRange, error }) => {
+        if (requestId !== latestValueRequestId.current) return;
+        if (error) {
+          setEvalResponse(error || '');
+          setValidTimeRange(false);
+          setTooltipTitle(t(value) || null);
         } else {
-          setActualTimeRange(actualRange || '');
-          setTooltipTitle(
-            getTooltipTitle(labelIsTruncated, actualRange, value),
-          );
+          /*
+            HRT == human readable text
+            ADR == actual datetime range
+            +--------------+------+----------+--------+----------+-----------+
+            |              | Last | Previous | Custom | Advanced | No Filter |
+            +--------------+------+----------+--------+----------+-----------+
+            | control pill | HRT  | HRT      | ADR    | ADR      |   HRT     |
+            +--------------+------+----------+--------+----------+-----------+
+            | tooltip      | ADR  | ADR      | HRT    | HRT      |   ADR     |
+            +--------------+------+----------+--------+----------+-----------+
+          */
+          if (
+            guessedFrame === 'Common' ||
+            guessedFrame === 'Calendar' ||
+            guessedFrame === 'Current' ||
+            guessedFrame === 'No filter'
+          ) {
+            setActualTimeRange(value);
+            setTooltipTitle(
+              getTooltipTitle(labelIsTruncated, value, actualRange),
+            );
+          } else {
+            setActualTimeRange(actualRange || '');
+            setTooltipTitle(
+              getTooltipTitle(labelIsTruncated, actualRange, value),
+            );
+          }
+          setValidTimeRange(true);
         }
-        setValidTimeRange(true);
-      }
-      setLastFetchedTimeRange(value);
-      setEvalResponse(actualRange || value);
-    });
-  }, [guessedFrame, labelIsTruncated, labelRef, value]);
+        setLastFetchedTimeRange(value);
+        setEvalResponse(actualRange || value);
+      },
+    );
+  }, [displayFormat, guessedFrame, labelIsTruncated, labelRef, value]);
 
   useDebouncedEffect(
     () => {
@@ -221,20 +241,25 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         return;
       }
       if (lastFetchedTimeRange !== timeRangeValue) {
-        fetchTimeRange(timeRangeValue).then(({ value: actualRange, error }) => {
-          if (error) {
-            setEvalResponse(error || '');
-            setValidTimeRange(false);
-          } else {
-            setEvalResponse(actualRange || '');
-            setValidTimeRange(true);
-          }
-          setLastFetchedTimeRange(timeRangeValue);
-        });
+        latestDraftRequestId.current += 1;
+        const requestId = latestDraftRequestId.current;
+        fetchTimeRange(timeRangeValue, 'col', undefined, displayFormat).then(
+          ({ value: actualRange, error }) => {
+            if (requestId !== latestDraftRequestId.current) return;
+            if (error) {
+              setEvalResponse(error || '');
+              setValidTimeRange(false);
+            } else {
+              setEvalResponse(actualRange || '');
+              setValidTimeRange(true);
+            }
+            setLastFetchedTimeRange(timeRangeValue);
+          },
+        );
       }
     },
     Constants.SLOW_DEBOUNCE,
-    [timeRangeValue],
+    [displayFormat, timeRangeValue],
   );
 
   function onSave() {
@@ -329,7 +354,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           onClick={onHide}
           data-test={DateFilterTestKey.CancelButton}
         >
-          {t('CANCEL')}
+          {t('Cancel')}
         </Button>
         <Button
           buttonStyle="primary"
@@ -339,7 +364,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           onClick={onSave}
           data-test={DateFilterTestKey.ApplyButton}
         >
-          {t('APPLY')}
+          {t('Apply')}
         </Button>
       </div>
     </ContentStyleWrapper>
@@ -347,7 +372,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const popoverContent = (
     <ControlPopover
-      autoAdjustOverflow={false}
       trigger="click"
       placement="right"
       content={overlayContent}
@@ -360,70 +384,43 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       defaultOpen={show}
       open={show}
       onOpenChange={toggleOverlay}
-      overlayStyle={{ width: '600px' }}
-      destroyTooltipOnHide
-      getPopupContainer={nodeTrigger =>
-        isOverflowingFilterBar
-          ? (nodeTrigger.parentNode as HTMLElement)
-          : document.body
-      }
+      overlayStyle={{ width: 'min(600px, calc(100vw - 32px))' }}
+      destroyOnHidden
+      getPopupContainer={() => document.body}
       overlayClassName="time-range-popover"
     >
-      <Tooltip placement="top" title={tooltipTitle}>
-        <DateLabel
-          name={name}
-          aria-labelledby={`filter-name-${props.name}`}
-          aria-describedby={`date-label-${props.name}`}
-          label={actualTimeRange}
-          isActive={show}
-          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DateFilterTestKey.PopoverOverlay}
-          ref={labelRef}
-        />
+      <Tooltip
+        placement="top"
+        title={isDescriptionHovered ? null : tooltipTitle}
+        mouseLeaveDelay={0}
+        overlayStyle={{ pointerEvents: 'none' }}
+      >
+        {/* Wrap in a span so the Popover gets a stable DOM ref target;
+            DateLabel forwards its ref to an inner span used for measuring
+            text truncation, which would otherwise become the popover's
+            positioning anchor in React 18. */}
+        <span data-test={DateFilterTestKey.PopoverOverlay}>
+          <DateLabel
+            name={name}
+            aria-labelledby={`filter-name-${props.name}`}
+            aria-describedby={`date-label-${props.name}`}
+            label={actualTimeRange}
+            isActive={show}
+            isPlaceholder={actualTimeRange === NO_TIME_RANGE}
+            ref={labelRef}
+          />
+        </span>
       </Tooltip>
     </ControlPopover>
   );
 
-  const modalContent = (
-    <>
-      <Tooltip placement="top" title={tooltipTitle}>
-        <DateLabel
-          name={name}
-          aria-labelledby={`filter-name-${props.name}`}
-          aria-describedby={`date-label-${props.name}`}
-          onClick={toggleOverlay}
-          label={actualTimeRange}
-          isActive={show}
-          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DateFilterTestKey.ModalOverlay}
-          ref={labelRef}
-        />
-      </Tooltip>
-      {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter */}
-      <Modal
-        title={
-          <ModalTitleWithIcon
-            className="text"
-            isEditMode
-            title={t('Edit time range')}
-          />
-        }
-        name={t('Edit time range')}
-        show={show}
-        onHide={toggleOverlay}
-        width="600px"
-        hideFooter
-        zIndex={1030}
-      >
-        {overlayContent}
-      </Modal>
-    </>
-  );
-
   return (
     <>
-      <ControlHeader {...props} />
-      {overlayStyle === 'Modal' ? modalContent : popoverContent}
+      <ControlHeader
+        {...props}
+        onDescriptionHoverChange={setIsDescriptionHovered}
+      />
+      {popoverContent}
     </>
   );
 }

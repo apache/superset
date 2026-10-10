@@ -18,9 +18,17 @@
  */
 import { SyntheticEvent } from 'react';
 import domToPdf from 'dom-to-pdf';
-import { kebabCase } from 'lodash';
-import { logging, t } from '@superset-ui/core';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { kebabCase } from 'lodash-es';
+import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
+
+const pdfCompressionLevel = getBootstrapData().common.pdf_compression_level;
+
+const PDF_DOWNLOAD_FAILED_MESSAGE = t(
+  'PDF download failed, please refresh and try again.',
+);
 
 /**
  * generate a consistent file stem from a description and date
@@ -38,26 +46,42 @@ const generateFileStem = (description: string, date = new Date()) =>
  * @param description name or a short description of what is being printed.
  *   Value will be normalized, and a date as well as a file extension will be added.
  * @param isExactSelector if false, searches for the closest ancestor that matches selector.
+ * @param addWarningToast bound via `useToasts()`/`bindActionCreators`, not the raw
+ *   action creator from `actions.ts`: this module has no dispatch of its own, so an
+ *   unbound creator would only build a Redux action object and never render a toast.
+ * @param addInfoToast same contract as `addWarningToast`; announces a multi-batch
+ *   export while charts are being forced into view.
  * @returns event handler
  */
 export default function downloadAsPdf(
   selector: string,
   description: string,
   isExactSelector = false,
+  addWarningToast?: (message: string) => void,
+  addInfoToast?: (message: string) => void,
 ) {
-  return (event: SyntheticEvent) => {
+  return async (event: SyntheticEvent) => {
     const elementToPrint = isExactSelector
       ? document.querySelector(selector)
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      return addWarningToast(
-        t('PDF download failed, please refresh and try again.'),
-      );
+      addWarningToast?.(PDF_DOWNLOAD_FAILED_MESSAGE);
+      return;
     }
+
+    // Force any virtualized (unmounted) charts to render before capturing, so
+    // off-screen rows are not exported as loading spinners.
+    const didForceLoad = await forceLoadAllCharts(
+      elementToPrint,
+      undefined,
+      addWarningToast,
+      addInfoToast,
+    );
 
     const options = {
       margin: 10,
+      compression: pdfCompressionLevel,
       filename: `${generateFileStem(description)}.pdf`,
       image: { type: 'jpeg', quality: 1 },
       html2canvas: { scale: 2 },
@@ -69,6 +93,12 @@ export default function downloadAsPdf(
       })
       .catch((e: Error) => {
         logging.error('PDF generation failed', e);
+        addWarningToast?.(PDF_DOWNLOAD_FAILED_MESSAGE);
+      })
+      .finally(() => {
+        if (didForceLoad) {
+          restoreVirtualization();
+        }
       });
   };
 }

@@ -1,0 +1,229 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/// <reference types="node" />
+
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  // Test directory
+  testDir: './playwright/tests',
+
+  // Global setup - authenticate once before all tests
+  globalSetup: './playwright/global-setup.ts',
+
+  // Timeout settings
+  timeout: 30000,
+  expect: { timeout: 8000 },
+
+  // Parallel execution
+  fullyParallel: true,
+  workers: process.env.CI ? 2 : 1,
+
+  // Retry logic - 2 retries in CI, 0 locally
+  retries: process.env.CI ? 2 : 0,
+
+  // Disable capturing Git commit info as the project's history is increasingly dense
+  // and breach Playwright's default 3-seconds `git` command timeout limit
+  captureGitInfo: { commit: false, diff: false },
+
+  // Reporter configuration - multiple reporters for better visibility
+  reporter: process.env.CI
+    ? [
+        ['github'], // GitHub Actions annotations
+        ['list'], // Detailed output with summary table
+        ['html', { outputFolder: 'playwright-report', open: 'never' }], // Interactive report
+        ['json', { outputFile: 'test-results/results.json' }], // Machine-readable
+      ]
+    : [
+        ['list'], // Shows summary table locally
+        ['html', { outputFolder: 'playwright-report', open: 'on-failure' }], // Auto-open on failure
+      ],
+
+  // Global test setup
+  use: {
+    // Use environment variable for base URL in CI, default to localhost:8088 for local
+    // Normalize to always end with '/' to prevent URL resolution issues with APP_PREFIX
+    baseURL: (() => {
+      const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
+      return url.endsWith('/') ? url : `${url}/`;
+    })(),
+
+    // Browser settings
+    headless: !!process.env.CI,
+
+    viewport: { width: 1280, height: 1024 },
+
+    // Accept downloads without prompts (needed for export tests)
+    acceptDownloads: true,
+
+    // Screenshots and videos on failure
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+
+    // Trace collection for debugging
+    trace: 'retain-on-failure',
+  },
+
+  projects: [
+    {
+      // Default project - uses global authentication for speed
+      // E2E tests login once via global-setup.ts and reuse auth state
+      // Explicitly ignore auth tests (they run in chromium-unauth project)
+      name: 'chromium',
+      testIgnore: [
+        '**/tests/auth/**/*.spec.ts',
+        '**/tests/sqllab/**/*.spec.ts',
+        '**/tests/embedded/**/*.spec.ts',
+        '**/tests/mobile/**/*.spec.ts',
+        // Global Async Queries needs the GLOBAL_ASYNC_QUERIES flag, Redis and a
+        // Celery worker, which the required run does not provide. They live in
+        // the chromium-gaq project below, which only exists when the workflow's
+        // GAQ step opts in.
+        '**/global-async-query*.spec.ts',
+      ],
+      use: {
+        browserName: 'chromium',
+        testIdAttribute: 'data-test',
+        // Reuse authentication state from global setup (fast E2E tests)
+        storageState: 'playwright/.auth/user.json',
+      },
+    },
+    {
+      // SQL Lab needs its own project because tab state is stored server-side
+      // per user (/tabstateview/*). All workers share the same auth user, so
+      // parallel workers mutating tabs would cause nondeterministic tab counts
+      // and cross-worker tab deletions. Other test suites (dataset, dashboard,
+      // chart) don't need this because they create/delete isolated resources
+      // via API with unique names — no shared mutable state between tests.
+      name: 'chromium-sqllab',
+      testMatch: '**/tests/sqllab/**/*.spec.ts',
+      // See the chromium-gaq project below.
+      testIgnore: '**/global-async-query*.spec.ts',
+      fullyParallel: false,
+      use: {
+        browserName: 'chromium',
+        testIdAttribute: 'data-test',
+        storageState: 'playwright/.auth/user.json',
+      },
+    },
+    {
+      // Separate project for unauthenticated tests (login, signup, etc.)
+      // These tests use beforeEach for per-test navigation - no global auth
+      // This hybrid approach: simple auth tests, fast E2E tests
+      name: 'chromium-unauth',
+      testMatch: '**/tests/auth/**/*.spec.ts',
+      use: {
+        browserName: 'chromium',
+        testIdAttribute: 'data-test',
+        // No storageState = clean browser with no cached cookies
+      },
+    },
+    // Strict 'true' check: non-empty strings like 'false' or '0' would
+    // otherwise enable the embedded project, matching the env-parsing
+    // convention used in docker/pythonpath_dev/superset_config_docker_light.py.
+    ...(process.env.INCLUDE_EMBEDDED?.toLowerCase() === 'true'
+      ? [
+          {
+            // Embedded dashboard tests - validates the full embedding flow:
+            // external app -> SDK -> iframe -> guest token -> dashboard render.
+            // Each spec file mutates per-dashboard embedding state (UUID,
+            // allowed_domains) on a single shared Superset, so files must not
+            // run in parallel even if more are added later.
+            name: 'chromium-embedded',
+            testMatch: '**/tests/embedded/**/*.spec.ts',
+            fullyParallel: false,
+            use: {
+              browserName: 'chromium' as const,
+              testIdAttribute: 'data-test',
+              // Uses admin auth for API calls to configure embedding and get guest tokens
+              storageState: 'playwright/.auth/user.json',
+            },
+          },
+        ]
+      : []),
+    // Global Async Queries tests need the GLOBAL_ASYNC_QUERIES feature flag
+    // enabled in the Flask backend, plus Redis and a running Celery worker --
+    // without a worker, submissions return 202 and no job ever executes. The
+    // workflow's GAQ step provisions all three and sets INCLUDE_GAQ, so these
+    // specs never load in the required run, where the pipeline is inert. Same
+    // strict 'true' check as INCLUDE_EMBEDDED.
+    ...(process.env.INCLUDE_GAQ?.toLowerCase() === 'true'
+      ? [
+          {
+            name: 'chromium-gaq',
+            testMatch: '**/global-async-query*.spec.ts',
+            // Every dashboard fixture here creates charts as the same admin
+            // user, and Superset's tag listener (superset/tags/models.py,
+            // get_tag) resolves the shared `editor:<id>` tag with an
+            // unguarded SELECT-then-INSERT against tag.name's unique index.
+            // Concurrent fixtures lose that race and the chart POST comes
+            // back 422 "Chart could not be created" (tag_name_key), which
+            // retries then paper over. Serializing the suite keeps that
+            // upstream bug out of this suite's signal; note this only orders
+            // tests *within* a file -- `--workers=1` in playwright-run-gaq
+            // is what also stops the three GAQ spec files racing each other.
+            fullyParallel: false,
+            use: {
+              browserName: 'chromium' as const,
+              testIdAttribute: 'data-test',
+              storageState: 'playwright/.auth/user.json',
+            },
+          },
+        ]
+      : []),
+    // Mobile consumption-mode tests need the MOBILE_CONSUMPTION_MODE feature
+    // flag enabled in the Flask backend (the workflow's mobile step sets
+    // SUPERSET_FEATURE_MOBILE_CONSUMPTION_MODE), so they only run when the
+    // environment opts in. Same strict 'true' check as INCLUDE_EMBEDDED.
+    ...(process.env.INCLUDE_MOBILE?.toLowerCase() === 'true'
+      ? [
+          {
+            name: 'chromium-mobile',
+            testMatch: '**/tests/mobile/**/*.spec.ts',
+            use: {
+              browserName: 'chromium' as const,
+              testIdAttribute: 'data-test',
+              storageState: 'playwright/.auth/user.json',
+            },
+          },
+        ]
+      : []),
+  ],
+
+  // Web server setup - disabled in CI (Flask started separately in workflow)
+  webServer: process.env.CI
+    ? undefined
+    : (() => {
+        // Support custom base URL (e.g., http://localhost:9012/app/prefix/)
+        const baseUrl =
+          process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
+        // Extract origin (scheme + host + port) for health check
+        // Health endpoint is always at /health regardless of app prefix
+        const healthUrl = new URL('/health', new URL(baseUrl).origin).href;
+        return {
+          // Quote URL to prevent shell injection via PLAYWRIGHT_BASE_URL
+          command: `curl -f '${healthUrl}'`,
+          url: healthUrl,
+          reuseExistingServer: true,
+          timeout: 5000,
+        };
+      })(),
+});

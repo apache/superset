@@ -20,11 +20,12 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from unittest import mock
 
-import prison
 import pytest
+import rison
 from flask import current_app
+from sqlalchemy import text
 
-from superset import db
+from superset import db, security_manager as sm
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import (  # noqa: F401
@@ -44,12 +45,16 @@ from superset.utils.database import (  # noqa: F401
 )
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
-from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.datasource import get_datasource_post
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
+)
 
 
 @contextmanager
@@ -58,16 +63,29 @@ def create_test_table_context(database: Database):
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
     with database.get_sqla_engine() as engine:
-        engine.execute(
-            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"  # noqa: E501
-        )
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")  # noqa: S608
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")  # noqa: S608
+        with engine.begin() as conn:
+            conn.execute(
+                text(f"""
+                CREATE TABLE IF NOT EXISTS {full_table_name} AS
+                SELECT 1 as first, 2 as second
+                """)
+            )
+            conn.execute(
+                text(f"""
+                INSERT INTO {full_table_name} (first, second) VALUES (1, 2)
+                """)  # noqa: S608
+            )
+            conn.execute(
+                text(f"""
+                INSERT INTO {full_table_name} (first, second) VALUES (3, 4)
+                """)  # noqa: S608
+            )
 
     yield db.session
 
     with database.get_sqla_engine() as engine:
-        engine.execute(f"DROP TABLE {full_table_name}")
+        with engine.begin() as conn:
+            conn.execute(text(f"DROP TABLE {full_table_name}"))
 
 
 @contextmanager
@@ -89,9 +107,6 @@ def create_and_cleanup_table(table=None):
 
 
 class TestDatasource(SupersetTestCase):
-    def setUp(self):
-        db.session.begin(subtransactions=True)
-
     def tearDown(self):
         db.session.rollback()
         super().tearDown()
@@ -135,17 +150,17 @@ class TestDatasource(SupersetTestCase):
             "row_limit": 1000,
             "row_offset": 0,
         }
+        columns = [
+            TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="additional_dttm", type="DATETIME", is_dttm=True),
+        ]
+        db.session.add_all(columns)
         table = SqlaTable(
             table_name="dummy_sql_table",
             database=database,
             schema=get_example_default_schema(),
             main_dttm_col="default_dttm",
-            columns=[
-                TableColumn(column_name="default_dttm", type="DATETIME", is_dttm=True),
-                TableColumn(
-                    column_name="additional_dttm", type="DATETIME", is_dttm=True
-                ),
-            ],
+            columns=columns,
             sql=sql,
         )
 
@@ -170,7 +185,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_physical_table(self):
         self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": tbl.database.database_name,
@@ -196,7 +211,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
         with create_and_cleanup_table() as tbl:
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": tbl.database.database_name,
@@ -213,11 +228,11 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_virtual_table_uses_mutator(self):
         self.login(ADMIN_USERNAME)
         with create_and_cleanup_table() as tbl:
-            current_app.config["SQL_QUERY_MUTATOR"] = (
-                lambda sql, **kwargs: "SELECT 456 as intcol, 'def' as mutated_strcol"
+            current_app.config["SQL_QUERY_MUTATOR"] = lambda sql, **kwargs: (
+                "SELECT 456 as intcol, 'def' as mutated_strcol"
             )
 
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": tbl.database.database_name,
@@ -236,7 +251,7 @@ class TestDatasource(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         example_database = get_example_database()
         with create_test_table_context(example_database):
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": example_database.database_name,
@@ -252,7 +267,7 @@ class TestDatasource(SupersetTestCase):
             assert col_names == {"first", "second"}
 
         # No databases found
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": "foo",
@@ -270,7 +285,7 @@ class TestDatasource(SupersetTestCase):
         )
 
         # No table found
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": example_database.database_name,
@@ -288,7 +303,7 @@ class TestDatasource(SupersetTestCase):
         )
 
         # invalid query params
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
             }
@@ -349,10 +364,12 @@ class TestDatasource(SupersetTestCase):
 
         pytest.raises(
             SupersetGenericDBErrorException,
-            lambda: db.session.query(SqlaTable)
-            .filter_by(id=tbl.id)
-            .one_or_none()
-            .external_metadata(),
+            lambda: (
+                db.session.query(SqlaTable)
+                .filter_by(id=tbl.id)
+                .one_or_none()
+                .external_metadata()
+            ),
         )
 
         resp = self.client.get(url)
@@ -372,7 +389,6 @@ class TestDatasource(SupersetTestCase):
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [1]
         data = dict(data=json.dumps(datasource_post))  # noqa: C408
         resp = self.get_json_resp("/datasource/save/", data)
         for k in datasource_post:
@@ -382,8 +398,6 @@ class TestDatasource(SupersetTestCase):
                 self.compare_lists(datasource_post[k], resp[k], "metric_name")
             elif k == "database":
                 assert resp[k]["id"] == datasource_post[k]["id"]
-            elif k == "owners":
-                assert [o["id"] for o in resp[k]] == datasource_post["owners"]
             else:
                 assert resp[k] == datasource_post[k]
 
@@ -393,7 +407,6 @@ class TestDatasource(SupersetTestCase):
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [1]
         datasource_post["default_endpoint"] = "http://localhost/superset/1"
         data = dict(data=json.dumps(datasource_post))  # noqa: C408
         resp = self.client.post("/datasource/save/", data=data)
@@ -413,7 +426,6 @@ class TestDatasource(SupersetTestCase):
         db_id = tbl.database_id
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [admin_user.id]
 
         new_db = self.create_fake_db()
         datasource_post["database"]["id"] = new_db.id
@@ -433,7 +445,6 @@ class TestDatasource(SupersetTestCase):
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
-        datasource_post["owners"] = [admin_user.id]
         datasource_post["columns"].extend(
             [
                 {
@@ -463,7 +474,6 @@ class TestDatasource(SupersetTestCase):
 
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl.id
-        datasource_post["owners"] = [admin_user.id]
         data = dict(data=json.dumps(datasource_post))  # noqa: C408
         self.get_json_resp("/datasource/save/", data)
         url = f"/datasource/get/{tbl.type}/{tbl.id}/"
@@ -515,6 +525,81 @@ class TestDatasource(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         resp = self.get_json_resp("/datasource/get/druid/500000/", raise_on_error=False)
         assert resp.get("error") == "'druid' is not a valid DatasourceType"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @mock.patch("superset.security.manager.SupersetSecurityManager.has_guest_access")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user(
+        self, mock_has_guest_access, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded guest user can access /samples (for D2D) via the dashboard context
+        passed as form_data to QueryContextFactory.
+        """
+        # Gamma role doesn't have dataset access (mimic embedded role),
+        # but needs access to the /samples endpoint
+        gamma_role = sm.find_role("Gamma")
+        perm_view = sm.find_permission_view_menu("can_samples", "Datasource")
+        sm.add_permission_role(gamma_role, perm_view)
+        self.login(GAMMA_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_has_guest_access.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        dash = self.get_dash_by_slug("births")
+        try:
+            uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
+            resp = self.client.post(uri, json={})
+            assert resp.status_code == 200
+        finally:
+            sm.del_permission_role(gamma_role, perm_view)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user_without_dash_id(
+        self, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded user can't access the /samples view if not providing a dashboard ID.
+        """
+        self.login(GAMMA_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table"
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 403
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch(
+        "superset.security.manager.SupersetSecurityManager.get_guest_rls_filters"
+    )
+    @mock.patch("superset.security.manager.SupersetSecurityManager.is_guest_user")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_samples_embedded_user_dashboard_without_dataset(
+        self, mock_is_guest_user, mock_rls
+    ):
+        """
+        Embedded user can't access the /samples view when providing a dashboard ID that
+        does not include the target dataset.
+        """
+        self.login(GAMMA_USERNAME)
+        mock_is_guest_user.return_value = True
+        mock_rls.return_value = []
+        tbl = self.get_table(name="birth_names")
+        dash = self.get_dash_by_slug("world_health")
+        uri = f"/datasource/samples?datasource_id={tbl.id}&datasource_type=table&dashboard_id={dash.id}"  # noqa: E501
+        resp = self.client.post(uri, json={})
+        assert resp.status_code == 403
 
 
 def test_get_samples(test_client, login_as_admin, virtual_dataset):
@@ -572,19 +657,28 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
     if get_example_database().backend == "sqlite":
         return
 
-    TableColumn(
+    column = TableColumn(
         column_name="DUMMY CC",
         type="VARCHAR(255)",
         table=virtual_dataset,
         expression="INCORRECT SQL",
     )
+    db.session.add(column)
 
     uri = (
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
     rv = test_client.post(uri, json={})
+    # An incorrect calculated column is rejected with a clean client error
+    # (422), not a 500. Parenthesizing calculated-column expressions shifts the
+    # point at which the engine rejects the malformed SQL (a hard syntax error
+    # in ``(INCORRECT SQL)``), so it now surfaces as a ``DatasetSamplesFailedError``
+    # message ("error") rather than a structured ``INVALID_SQL_ERROR`` list
+    # ("errors"); both are a 422 describing the bad SQL.
     assert rv.status_code == 422
-    assert rv.json["errors"][0]["error_type"] == "INVALID_SQL_ERROR"
+    assert rv.json.get("error") or rv.json.get("errors"), (
+        f"Expected an error payload for the invalid calculated column: {rv.json}"
+    )
 
 
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
@@ -648,7 +742,14 @@ def test_get_samples_with_filters(test_client, login_as_admin, virtual_dataset):
         },
     )
     assert rv.status_code == 200
-    assert rv.json["result"]["colnames"] == []
+    assert rv.json["result"]["colnames"] == [
+        "col1",
+        "col2",
+        "col3",
+        "col4",
+        "col5",
+        "col6",
+    ]
     assert rv.json["result"]["rowcount"] == 0
 
 
@@ -706,7 +807,7 @@ def test_get_samples_with_multiple_filters(
     assert "2000-01-02" in rv.json["result"]["query"]
     assert "2000-01-04" in rv.json["result"]["query"]
     assert "col3 = 1.2" in rv.json["result"]["query"]
-    assert "col4 IS NULL" in rv.json["result"]["query"]
+    assert "col4 is null" in rv.json["result"]["query"]
     assert "col2 = 'c'" in rv.json["result"]["query"]
 
 
@@ -721,7 +822,7 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["total_count"] == 10
 
     # 2. incorrect per_page
-    per_pages = (current_app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
+    per_pages = (10001, 0, "xx")
     for per_page in per_pages:
         uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page={per_page}"  # noqa: E501
         rv = test_client.post(uri, json={})
@@ -758,3 +859,20 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["per_page"] == 2
     assert rv.json["result"]["total_count"] == 10
     assert [row["col1"] for row in rv.json["result"]["data"]] == []
+
+
+def test_dataset_editor_show_redirects_to_welcome(test_client, login_as_admin):
+    """``DatasetEditor.show`` without ``?testing`` redirects via ``url_for``,
+    not a bare ``"/"`` (which would escape the application root under
+    subdirectory deployments). ``show`` never dereferences ``pk``."""
+    rv = test_client.get("/dataset/1")
+    assert rv.status_code == 302
+    assert rv.headers["Location"] == "/welcome/"
+
+
+def test_dataset_editor_show_redirect_honors_script_name(test_client, login_as_admin):
+    """Under a subdirectory deployment ``AppRootMiddleware`` sets
+    ``SCRIPT_NAME``; the redirect target must carry the application root."""
+    rv = test_client.get("/dataset/1", environ_overrides={"SCRIPT_NAME": "/myapp"})
+    assert rv.status_code == 302
+    assert rv.headers["Location"] == "/myapp/welcome/"

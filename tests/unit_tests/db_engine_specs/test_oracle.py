@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional, Union
+from typing import Any, Optional, Union
 from unittest import mock
 
 import pytest
@@ -24,14 +24,19 @@ from sqlalchemy.dialects import oracle
 from sqlalchemy.dialects.oracle import DATE, NVARCHAR, VARCHAR
 from sqlalchemy.sql import quoted_name
 
-from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
+from superset.utils.core import GenericDataType
+from tests.unit_tests.db_engine_specs.utils import (
+    assert_column_spec,
+    assert_convert_dttm,
+)
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
     "column_name,expected_result",
     [
-        ("a" * 129, "b325dc1c6f5e7a2b7cf465b9feab7948"),
+        # SHA-256 hash of 129 'a' characters with default HASH_ALGORITHM
+        ("a" * 129, "c12cb024a2e5551cca0e08fce8f1c5e314555cc3fef6329ee994a3db752166ae"),
         ("snake_label", "snake_label"),
         ("camelLabel", "camelLabel"),
     ],
@@ -127,3 +132,106 @@ def test_denormalize_name(name: str, expected_result: str):
     from superset.db_engine_specs.oracle import OracleEngineSpec as spec  # noqa: N813
 
     assert spec.denormalize_name(oracle.dialect(), name) == expected_result
+
+
+@pytest.mark.parametrize(
+    "native_type,sqla_type,attrs,generic_type,is_dttm",
+    [
+        # Oracle-native types, as reflected by SQLAlchemy's Oracle dialect
+        ("NUMBER", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("NUMBER(10, 2)", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("NUMBER(19, 0)", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("BINARY_DOUBLE", types.Float, None, GenericDataType.NUMERIC, False),
+        ("BINARY_FLOAT", types.Float, None, GenericDataType.NUMERIC, False),
+        ("CLOB", types.Text, None, GenericDataType.STRING, False),
+        ("NCLOB", types.Text, None, GenericDataType.STRING, False),
+        ("LONG", types.Text, None, GenericDataType.STRING, False),
+        ("long", types.Text, None, GenericDataType.STRING, False),
+        # types already covered by the base mappings keep their behavior
+        ("INTEGER", types.Integer, None, GenericDataType.NUMERIC, False),
+        ("DOUBLE PRECISION", types.Float, None, GenericDataType.NUMERIC, False),
+        ("VARCHAR(40 CHAR)", types.String, None, GenericDataType.STRING, False),
+        ("DATE", types.Date, None, GenericDataType.TEMPORAL, True),
+        ("TIMESTAMP", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
+    ],
+)
+def test_get_column_spec(
+    native_type: str,
+    sqla_type: type[types.TypeEngine],
+    attrs: Optional[dict[str, Any]],
+    generic_type: GenericDataType,
+    is_dttm: bool,
+) -> None:
+    """Map Oracle-native types and preserve the base numeric, text and date mappings."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    assert_column_spec(
+        OracleEngineSpec, native_type, sqla_type, attrs, generic_type, is_dttm
+    )
+
+
+@pytest.mark.parametrize(
+    "native_type",
+    [
+        "BLOB",
+        "RAW(16)",
+        "LONG RAW",
+        "long raw",
+        "NUMBERING",
+        "BINARY_FLOATING",
+        "CLOBBER",
+        "NCLOBS",
+    ],
+)
+def test_get_column_spec_unmapped_types(native_type: str) -> None:
+    """Leave binary types and unrelated names sharing mapped prefixes unmapped."""
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+
+    assert OracleEngineSpec.get_column_spec(native_type) is None
+
+
+def test_get_cancel_query_id() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor = mock.Mock()
+    cursor.fetchone.return_value = (162, 53643, 1)
+    assert OracleEngineSpec.get_cancel_query_id(cursor, Query()) == "162,53643,1"
+    assert "CURRENT_SESSION_SERIAL" in cursor.execute.call_args[0][0]
+
+
+def test_get_cancel_query_id_failed() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor = mock.Mock()
+    cursor.execute.side_effect = Exception("ORA-00904")
+    assert OracleEngineSpec.get_cancel_query_id(cursor, Query()) is None
+
+
+def test_cancel_query() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor = mock.Mock()
+    assert OracleEngineSpec.cancel_query(cursor, Query(), "162,53643,1") is True
+    cursor.execute.assert_called_once_with("ALTER SYSTEM CANCEL SQL '162, 53643, @1'")
+
+
+def test_cancel_query_failed() -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor = mock.Mock()
+    cursor.execute.side_effect = Exception("ORA-01031: insufficient privileges")
+    assert OracleEngineSpec.cancel_query(cursor, Query(), "162,53643,1") is False
+
+
+@pytest.mark.parametrize("cancel_query_id", ["1,2", "1,2,1'; --", "a,b,c", ""])
+def test_cancel_query_invalid_id(cancel_query_id: str) -> None:
+    from superset.db_engine_specs.oracle import OracleEngineSpec
+    from superset.models.sql_lab import Query
+
+    cursor = mock.Mock()
+    assert OracleEngineSpec.cancel_query(cursor, Query(), cancel_query_id) is False
+    cursor.execute.assert_not_called()

@@ -16,11 +16,36 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import CommandException, DeleteFailedError
+from superset.commands.exceptions import (
+    CommandException,
+    CommandInvalidError,
+    CreateFailedError,
+    DeleteFailedError,
+    ForbiddenError,
+    UpdateFailedError,
+)
 
 
 class ThemeImportError(CommandException):
     message = _("Error importing theme.")
+
+
+class ThemeInvalidError(CommandInvalidError):
+    status = 422
+    message = _("Theme parameters are invalid.")
+
+
+class ThemeCreateFailedError(CreateFailedError):
+    message = _("Theme could not be created.")
+
+
+class ThemeUpdateFailedError(UpdateFailedError):
+    message = _("Theme could not be updated.")
+
+
+class ThemeForbiddenError(ForbiddenError):
+    status = 403
+    message = _("Changing this theme is forbidden")
 
 
 class ThemeDeleteFailedError(DeleteFailedError):
@@ -33,3 +58,11 @@ class ThemeNotFoundError(CommandException):
 
 class SystemThemeProtectedError(CommandException):
     message = _("Cannot modify system themes.")
+
+
+class SystemThemeInUseError(CommandException):
+    message = _("Cannot delete theme that is set as system default or dark theme.")
+
+
+class ThemeAdministrationDisabledError(CommandException):
+    message = _("UI theme administration is not enabled.")

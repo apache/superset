@@ -16,27 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { useHistory, useLocation } from 'react-router-dom';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
-import { t } from '@superset-ui/core';
-import { isEmpty } from 'lodash';
+import { t } from '@apache-superset/core/translation';
+import { isEmpty } from 'lodash-es';
 import { URL_PARAMS } from 'src/constants';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import { useDownloadMenuItems } from 'src/dashboard/components/menu/DownloadMenuItems';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
-import CssEditor from 'src/dashboard/components/CssEditor';
-import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import SaveModal from 'src/dashboard/components/SaveModal';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import { isEmbedded as isInIframe } from 'src/dashboard/util/isEmbedded';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
-import { updateDashboardTheme } from 'src/dashboard/actions/dashboardInfo';
+import { usePermissions } from 'src/hooks/usePermissions';
+import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
+import getUserName from 'src/utils/getUserName';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -54,46 +58,42 @@ export const useHeaderActionsMenu = ({
   userCanShare,
   userCanSave,
   userCanCurate,
+  userCanExport,
   isLoading,
-  refreshLimit,
-  refreshWarning,
+  isMobile,
+  isStarred,
+  isPublished,
+  saveFaveStar,
   lastModifiedTime,
   addSuccessToast,
   addDangerToast,
   forceRefreshAllCharts,
   showPropertiesModal,
+  showRefreshModal,
   showReportModal,
   manageEmbedded,
-  onChange,
-  updateCss,
-  startPeriodicRender,
-  setRefreshFrequency,
   dashboardTitle,
   logEvent,
   setCurrentReportDeleting,
-}: HeaderDropdownProps) => {
-  const dispatch = useDispatch();
-  const [css, setCss] = useState(customCss || '');
+}: HeaderDropdownProps): [
+  ReactElement,
+  boolean,
+  Dispatch<SetStateAction<boolean>>,
+] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const dispatch = useDispatch();
+  const { canExportImage } = usePermissions();
+  const history = useHistory();
+  const location = useLocation();
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
 
   useEffect(() => {
-    if (customCss !== css) {
-      setCss(customCss || '');
+    if (customCss) {
       injectCustomCss(customCss);
     }
-  }, [css, customCss]);
-
-  const handleThemeChange = useCallback(
-    async (themeId: number | null) => {
-      // Save the theme to the dashboard
-      // The CrudThemeProvider will handle applying the theme to dashboard content only
-      dispatch(updateDashboardTheme(themeId));
-    },
-    [dispatch],
-  );
+  }, [customCss]);
 
   const handleMenuClick = useCallback(
     ({ key }: { key: string }) => {
@@ -105,20 +105,34 @@ export const useHeaderActionsMenu = ({
         case MenuKeys.EditProperties:
           showPropertiesModal();
           break;
+        case MenuKeys.AutorefreshModal:
+          showRefreshModal();
+          break;
         case MenuKeys.ToggleFullscreen: {
           const isCurrentlyStandalone =
             Number(getUrlParam(URL_PARAMS.standalone)) === 1;
+          // Use location.pathname from React Router (relative to basename) rather than
+          // window.location.pathname to avoid duplicating the subdirectory prefix when
+          // history.replace prepends it again.
           const url = getDashboardUrl({
-            pathname: window.location.pathname,
+            pathname: location.pathname,
             filters: getActiveFilters(),
             hash: window.location.hash,
             standalone: isCurrentlyStandalone ? null : 1,
           });
-          window.location.replace(url);
+          history.replace(url);
           break;
         }
         case MenuKeys.ManageEmbedded:
           manageEmbedded();
+          break;
+        case MenuKeys.VersionHistory:
+          dispatch(openVersionHistoryPanel('dashboard'));
+          break;
+        case 'toggle-favorite':
+          if (saveFaveStar && isStarred !== undefined) {
+            saveFaveStar(dashboardId, isStarred);
+          }
           break;
         default:
           break;
@@ -129,24 +143,15 @@ export const useHeaderActionsMenu = ({
       forceRefreshAllCharts,
       addSuccessToast,
       showPropertiesModal,
+      showRefreshModal,
       manageEmbedded,
+      dispatch,
+      saveFaveStar,
+      dashboardId,
+      isStarred,
+      history,
+      location,
     ],
-  );
-
-  const changeCss = useCallback(
-    (newCss: string) => {
-      onChange();
-      updateCss(newCss);
-    },
-    [onChange, updateCss],
-  );
-
-  const changeRefreshInterval = useCallback(
-    (refreshInterval: number, isPersistent: boolean) => {
-      setRefreshFrequency(refreshInterval, isPersistent);
-      startPeriodicRender(refreshInterval * 1000);
-    },
-    [setRefreshFrequency, startPeriodicRender],
   );
 
   const emailSubject = useMemo(
@@ -154,6 +159,10 @@ export const useHeaderActionsMenu = ({
     [dashboardTitle],
   );
 
+  // window.location.pathname is intentional here: this URL is used for sharing
+  // (email, embed, copy link) and must be a full browser-absolute path that
+  // includes the application root. Do NOT replace with useLocation().pathname —
+  // that would strip the subdirectory prefix and produce a broken share link.
   const url = useMemo(
     () =>
       getDashboardUrl({
@@ -186,17 +195,21 @@ export const useHeaderActionsMenu = ({
   const downloadMenuItem = useDownloadMenuItems({
     pdfMenuItemTitle: t('Export to PDF'),
     imageMenuItemTitle: t('Download as Image'),
-    dashboardTitle,
+    dashboardTitle: dashboardTitle ?? '',
     dashboardId,
     title: t('Download'),
     disabled: isLoading,
     logEvent,
+    userCanExport,
+    canExportImage,
   });
 
   const reportMenuItem = useHeaderReportMenuItems({
     dashboardId: dashboardInfo?.id,
     showReportModal,
-    setCurrentReportDeleting,
+    setCurrentReportDeleting: setCurrentReportDeleting as (
+      report: unknown,
+    ) => void,
   });
 
   // Helper function to create menu items for components with triggerNode
@@ -210,10 +223,54 @@ export const useHeaderActionsMenu = ({
 
   const menu = useMemo(() => {
     const isEmbedded = !dashboardInfo?.userId;
-    const refreshIntervalOptions =
-      dashboardInfo?.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
 
     const menuItems: MenuItem[] = [];
+
+    // Mobile-only: show dashboard info items in menu
+    if (isMobile && !editMode) {
+      // Favorite toggle
+      if (saveFaveStar) {
+        menuItems.push({
+          key: 'toggle-favorite',
+          label: isStarred ? t('Remove from favorites') : t('Add to favorites'),
+        });
+      }
+
+      // Published status
+      menuItems.push({
+        key: 'status-info',
+        label: isPublished ? t('Status: Published') : t('Status: Draft'),
+        disabled: true,
+      });
+
+      // Editor info
+      const editorNames = dashboardInfo?.editors?.length
+        ? dashboardInfo.editors
+            .map((editor: { label?: string }) => editor.label)
+            .filter(Boolean)
+            .join(', ')
+        : t('None');
+      menuItems.push({
+        key: 'owner-info',
+        label: t('Owner: %(names)s', { names: editorNames }),
+        disabled: true,
+      });
+
+      // Last modified
+      const modifiedBy =
+        getUserName(dashboardInfo?.changed_by) || t('Not available');
+      const modifiedDate = dashboardInfo?.changed_on_delta_humanized || '';
+      menuItems.push({
+        key: 'modified-info',
+        label: t('Modified %(date)s by %(user)s', {
+          date: modifiedDate,
+          user: modifiedBy,
+        }),
+        disabled: true,
+      });
+
+      menuItems.push({ type: 'divider' });
+    }
 
     // Refresh dashboard
     if (!editMode) {
@@ -222,10 +279,25 @@ export const useHeaderActionsMenu = ({
         label: t('Refresh dashboard'),
         disabled: isLoading,
       });
+
+      // Auto-refresh settings (session-only in view mode)
+      menuItems.push({
+        key: MenuKeys.AutorefreshModal,
+        label:
+          refreshFrequency > 0
+            ? t('Update auto-refresh')
+            : t('Set auto-refresh'),
+        disabled: isLoading,
+      });
     }
 
-    // Toggle fullscreen
-    if (!editMode && !isEmbedded) {
+    // Toggle fullscreen (hide on mobile). Hidden entirely inside an iframe: there,
+    // "Exit fullscreen" reloads without the standalone param and brings back the full
+    // Superset nav, breaking the embed. Note `isEmbedded` above is
+    // `!dashboardInfo.userId` (anonymous guest via the embedded SDK), which does not
+    // cover an authenticated user whose dashboard is iframed, hence the separate check.
+    // Top-level users keep both directions so fullscreen is not a one-way door.
+    if (!editMode && !isEmbedded && !isMobile && !isInIframe()) {
       menuItems.push({
         key: MenuKeys.ToggleFullscreen,
         label: getUrlParam(URL_PARAMS.standalone)
@@ -242,28 +314,11 @@ export const useHeaderActionsMenu = ({
       });
     }
 
-    // Edit CSS
-    if (editMode) {
-      menuItems.push(
-        createModalMenuItem(
-          MenuKeys.EditCss,
-          <CssEditor
-            triggerNode={<div>{t('Theme & CSS')}</div>}
-            initialCss={css}
-            onChange={changeCss}
-            addDangerToast={addDangerToast}
-            currentThemeId={dashboardInfo.theme?.id || null}
-            onThemeChange={handleThemeChange}
-          />,
-        ),
-      );
-    }
-
     // Divider
     menuItems.push({ type: 'divider' });
 
-    // Save as
-    if (userCanSave) {
+    // Save as (authoring action, hidden on mobile consumption-only menu)
+    if (userCanSave && !isMobile) {
       menuItems.push(
         createModalMenuItem(
           MenuKeys.SaveModal,
@@ -271,22 +326,22 @@ export const useHeaderActionsMenu = ({
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
             dashboardId={dashboardId}
-            dashboardTitle={dashboardTitle}
+            dashboardTitle={dashboardTitle ?? ''}
             dashboardInfo={dashboardInfo}
             saveType={SAVE_TYPE_NEWDASHBOARD}
             layout={layout}
-            expandedSlices={expandedSlices}
+            expandedSlices={expandedSlices ?? {}}
             refreshFrequency={refreshFrequency}
             shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
             lastModifiedTime={lastModifiedTime}
-            customCss={customCss}
+            customCss={customCss ?? ''}
             colorNamespace={colorNamespace}
             colorScheme={colorScheme}
             onSave={onSave}
             triggerNode={
               <div data-test="save-as-menu-item">{t('Save as')}</div>
             }
-            canOverwrite={userCanEdit}
+            canOverwrite={userCanEdit ?? false}
           />,
         ),
       );
@@ -300,19 +355,25 @@ export const useHeaderActionsMenu = ({
       menuItems.push(shareMenuItems);
     }
 
-    // Embed dashboard
-    if (!editMode && userCanCurate) {
+    // Embed dashboard (authoring action, hidden on mobile consumption-only menu)
+    if (!editMode && userCanCurate && !isMobile) {
       menuItems.push({
         key: MenuKeys.ManageEmbedded,
         label: t('Embed dashboard'),
       });
     }
 
-    // Divider
-    menuItems.push({ type: 'divider' });
+    // Only add divider if there are items after it
+    const hasItemsAfterDivider =
+      (!editMode && reportMenuItem && !isMobile) ||
+      (editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes));
 
-    // Report dropdown
-    if (!editMode && reportMenuItem) {
+    if (hasItemsAfterDivider) {
+      menuItems.push({ type: 'divider' });
+    }
+
+    // Report dropdown (hide on mobile)
+    if (!editMode && reportMenuItem && !isMobile) {
       menuItems.push(reportMenuItem);
     }
 
@@ -328,22 +389,16 @@ export const useHeaderActionsMenu = ({
       );
     }
 
-    // Auto-refresh interval
-    menuItems.push(
-      createModalMenuItem(
-        MenuKeys.AutorefreshModal,
-        <RefreshIntervalModal
-          addSuccessToast={addSuccessToast}
-          refreshFrequency={refreshFrequency}
-          refreshLimit={refreshLimit}
-          refreshWarning={refreshWarning}
-          onChange={changeRefreshInterval}
-          editMode={editMode}
-          refreshIntervalOptions={refreshIntervalOptions}
-          triggerNode={<div>{t('Set auto-refresh interval')}</div>}
-        />,
-      ),
-    );
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      userCanEdit &&
+      !editMode
+    ) {
+      menuItems.push({
+        key: MenuKeys.VersionHistory,
+        label: t('View version history'),
+      });
+    }
 
     return (
       <Menu
@@ -356,11 +411,8 @@ export const useHeaderActionsMenu = ({
   }, [
     addDangerToast,
     addSuccessToast,
-    changeRefreshInterval,
-    changeCss,
     colorNamespace,
     colorScheme,
-    css,
     customCss,
     dashboardId,
     dashboardInfo,
@@ -370,13 +422,15 @@ export const useHeaderActionsMenu = ({
     expandedSlices,
     handleMenuClick,
     isLoading,
+    isMobile,
+    isPublished,
+    isStarred,
     lastModifiedTime,
     layout,
     onSave,
     refreshFrequency,
-    refreshLimit,
-    refreshWarning,
     reportMenuItem,
+    saveFaveStar,
     shareMenuItems,
     shouldPersistRefreshFrequency,
     userCanCurate,

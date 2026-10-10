@@ -23,7 +23,13 @@ import { ChartLinkedDashboard } from 'src/types/Chart';
 import CrossLinks from './CrossLinks';
 
 export const DashboardCrossLinks = memo(
-  ({ dashboards }: { dashboards: ChartLinkedDashboard[] }) => {
+  ({
+    dashboards,
+    external = false,
+  }: {
+    dashboards: ChartLinkedDashboard[];
+    external?: boolean;
+  }) => {
     const crossLinks = useMemo(
       () =>
         ensureIsArray(dashboards).map((d: ChartLinkedDashboard) => ({
@@ -32,6 +38,6 @@ export const DashboardCrossLinks = memo(
         })),
       [dashboards],
     );
-    return <CrossLinks crossLinks={crossLinks} />;
+    return <CrossLinks crossLinks={crossLinks} external={external} />;
   },
 );

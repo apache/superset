@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import { useElementOnScreen } from './useElementOnScreen';
 
 const observeMock = jest.fn();
@@ -46,10 +46,9 @@ test('should return isSticky as true when intersectionRatio < 1', async () => {
     useElementOnScreen({ rootMargin: '-50px 0px 0px 0px' }),
   );
   const callback = IntersectionObserverMock.mock.calls[0][0];
-  const callBack = callback([{ isIntersecting: true, intersectionRatio: 0.5 }]);
-  const observer = new IntersectionObserverMock(callBack, {});
-  const newDiv = document.createElement('div');
-  observer.observe(newDiv);
+  act(() => {
+    callback([{ isIntersecting: true, intersectionRatio: 0.5 }]);
+  });
   expect(hook.result.current[1]).toEqual(true);
 });
 
@@ -58,10 +57,9 @@ test('should return isSticky as false when intersectionRatio >= 1', async () => 
     useElementOnScreen({ rootMargin: '-50px 0px 0px 0px' }),
   );
   const callback = IntersectionObserverMock.mock.calls[0][0];
-  const callBack = callback([{ isIntersecting: true, intersectionRatio: 1 }]);
-  const observer = new IntersectionObserverMock(callBack, {});
-  const newDiv = document.createElement('div');
-  observer.observe(newDiv);
+  act(() => {
+    callback([{ isIntersecting: true, intersectionRatio: 1 }]);
+  });
   expect(hook.result.current[1]).toEqual(false);
 });
 

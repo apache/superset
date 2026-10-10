@@ -21,12 +21,16 @@ from typing import Callable
 
 import yaml
 
+from superset import security_manager
+from superset.commands.annotation_layer.export import ExportAnnotationLayersCommand
 from superset.commands.base import BaseCommand
 from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.dashboard.export import ExportDashboardsCommand
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.dataset.export import ExportDatasetsCommand
+from superset.commands.export.models import ExportModelsCommand
 from superset.commands.query.export import ExportSavedQueriesCommand
+from superset.commands.tag.export import ExportTagsCommand
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 METADATA_FILE_NAME = "metadata.yaml"
@@ -34,7 +38,8 @@ METADATA_FILE_NAME = "metadata.yaml"
 
 class ExportAssetsCommand(BaseCommand):
     """
-    Command that exports all databases, datasets, charts, dashboards and saved queries.
+    Command that exports all databases, datasets, charts, dashboards, saved queries
+    and annotation layers.
     """
 
     def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
@@ -46,20 +51,37 @@ class ExportAssetsCommand(BaseCommand):
         yield METADATA_FILE_NAME, lambda: yaml.safe_dump(metadata, sort_keys=False)
         seen = {METADATA_FILE_NAME}
 
-        commands = [
+        commands: list[type[ExportModelsCommand]] = [
             ExportDatabasesCommand,
             ExportDatasetsCommand,
             ExportChartsCommand,
             ExportDashboardsCommand,
             ExportSavedQueriesCommand,
         ]
+        # Charts reference native annotation layers by UUID, so the layers must
+        # be in the bundle too. They are only readable with can_read on
+        # Annotation, and chart files leave those references out otherwise.
+        if security_manager.can_access("can_read", "Annotation"):
+            commands.append(ExportAnnotationLayersCommand)
 
+        dashboard_ids: list[int | str] = []
+        chart_ids: list[int | str] = []
         for command in commands:
             ids = [model.id for model in command.dao.find_all()]
             for file_name, file_content in command(ids, export_related=False).run():
                 if file_name not in seen:
                     yield file_name, file_content
                     seen.add(file_name)
+
+            if command == ExportDashboardsCommand:
+                dashboard_ids = ids
+            elif command == ExportChartsCommand:
+                chart_ids = ids
+
+        yield from ExportTagsCommand(
+            dashboard_ids=dashboard_ids,
+            chart_ids=chart_ids,
+        ).run()
 
     def validate(self) -> None:
         pass

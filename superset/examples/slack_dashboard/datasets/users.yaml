@@ -1,0 +1,264 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+always_filter_main_dttm: false
+cache_timeout: null
+catalog: null
+columns:
+- advanced_data_type: null
+  column_name: updated
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: true
+  python_date_format: null
+  type: TIMESTAMP WITHOUT TIME ZONE
+  verbose_name: null
+- advanced_data_type: null
+  column_name: has_2fa
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BOOLEAN
+  verbose_name: null
+- advanced_data_type: null
+  column_name: real_name
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: VARCHAR
+  verbose_name: null
+- advanced_data_type: null
+  column_name: tz_label
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: VARCHAR
+  verbose_name: null
+- advanced_data_type: null
+  column_name: team_id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: VARCHAR
+  verbose_name: null
+- advanced_data_type: null
+  column_name: name
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: VARCHAR
+  verbose_name: null
+- advanced_data_type: null
+  column_name: color
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: VARCHAR
+  verbose_name: null
+- advanced_data_type: null
+  column_name: id
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: VARCHAR
+  verbose_name: null
+- advanced_data_type: null
+  column_name: tz
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: VARCHAR
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_ultra_restricted
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BOOLEAN
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_primary_owner
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BOOLEAN
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_app_user
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BOOLEAN
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_admin
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BOOLEAN
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_bot
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BOOLEAN
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_restricted
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BOOLEAN
+  verbose_name: null
+- advanced_data_type: null
+  column_name: is_owner
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BOOLEAN
+  verbose_name: null
+- advanced_data_type: null
+  column_name: deleted
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BOOLEAN
+  verbose_name: null
+- advanced_data_type: null
+  column_name: tz_offset
+  description: null
+  expression: null
+  extra: null
+  filterable: true
+  groupby: true
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: BIGINT
+  verbose_name: null
+data_file: users.parquet
+database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
+default_endpoint: null
+description: null
+extra: null
+fetch_values_predicate: null
+filter_select_enabled: true
+folders: null
+main_dttm_col: updated
+metrics:
+- currency: null
+  d3format: null
+  description: null
+  expression: COUNT(*)
+  extra: null
+  metric_name: count
+  metric_type: count
+  verbose_name: COUNT(*)
+  warning_text: null
+normalize_columns: false
+offset: 0
+params: null
+schema: null
+sql: null
+table_name: users
+template_params: null
+uuid: 7195db6b-2d17-7619-b7c7-26b15378df8c
+version: 1.0.0

@@ -23,7 +23,8 @@ import {
   Menu,
   Flex,
 } from '@superset-ui/core/components';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { logEvent } from 'src/logger/actions';
@@ -62,11 +63,10 @@ function Footer({
 }: FooterProps) {
   const history = useHistory();
   const theme = useTheme();
-  const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
-    'dataset',
-    t('dataset'),
-    addDangerToast,
-  );
+  const { createResource, state } = useSingleViewResource<
+    Partial<DatasetObject>
+  >('dataset', t('dataset'), addDangerToast);
+  const { loading } = state;
 
   const createLogAction = (dataset: Partial<DatasetObject>) => {
     let totalCount = 0;
@@ -121,19 +121,23 @@ function Footer({
     onSave(false);
   };
 
-  const CREATE_DATASET_TEXT = t('Create dataset and create chart');
-  const CREATE_DATASET_ONLY_TEXT = t('Create dataset only');
+  const CREATE_DATASET_TEXT = t('Create and explore dataset');
+  const CREATE_DATASET_ONLY_TEXT = t('Create dataset');
   const disabledCheck =
     !datasetObject?.table_name ||
     !hasColumns ||
     datasets?.includes(datasetObject?.table_name);
 
   const dropdownMenu = (
-    <Menu>
-      <Menu.Item key="create-only" onClick={onSaveOnly}>
-        {CREATE_DATASET_ONLY_TEXT}
-      </Menu.Item>
-    </Menu>
+    <Menu
+      items={[
+        {
+          key: 'create-only',
+          onClick: onSaveOnly,
+          label: CREATE_DATASET_ONLY_TEXT,
+        },
+      ]}
+    />
   );
 
   return (
@@ -144,13 +148,14 @@ function Footer({
       <DropdownButton
         type="primary"
         disabled={disabledCheck}
+        loading={loading}
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
         onClick={() => onSave(true)}
         popupRender={() => dropdownMenu}
         icon={
           <Icons.DownOutlined
             iconSize="xs"
-            iconColor={theme.colors.grayscale.light5}
+            iconColor={theme.colorTextLightSolid}
           />
         }
         trigger={['click']}

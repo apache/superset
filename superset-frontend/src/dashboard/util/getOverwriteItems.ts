@@ -31,7 +31,7 @@ function extractValue(object: JsonObject, keyPath: string) {
 export default function getOverwriteItems(prev: JsonObject, next: JsonObject) {
   return OVERWRITE_INSPECT_FIELDS.map(keyPath => ({
     keyPath,
-    ...(keyPath.split('.').find(key => JSON_KEYS.has(key))
+    ...(keyPath.split('.').some(key => JSON_KEYS.has(key))
       ? {
           oldValue:
             JSON.stringify(extractValue(prev, keyPath), null, 2) || '{}',
