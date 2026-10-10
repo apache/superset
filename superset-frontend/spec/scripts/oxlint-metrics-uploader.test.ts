@@ -219,48 +219,52 @@ test('runOxlintAndProcess uploads aggregated and backlog data to Google Sheets w
   googleAuthModule.GoogleAuth.mockImplementation(() => ({}) as any);
   mockedExecSync.mockImplementation((cmd: string) => {
     if (cmd.includes('oxlint.json')) {
-      return JSON.stringify({
-        diagnostics: [
-          {
-            message: 'Use Array destructuring.',
-            code: 'eslint(prefer-destructuring)',
-            severity: 'warning',
-            filename:
-              'src/chartCustomizations/components/DeckglLayerVisibility/DeckglLayerVisibilityCustomizationPlugin.test.tsx',
-            labels: [
-              {
-                span: { offset: 4357, length: 38, line: 155, column: 20 },
-              },
-            ],
-          },
-        ],
-        number_of_files: 1,
-      });
+      throw {
+        stdout: JSON.stringify({
+          diagnostics: [
+            {
+              message: 'Use Array destructuring.',
+              code: 'eslint(prefer-destructuring)',
+              severity: 'warning',
+              filename:
+                'src/chartCustomizations/components/DeckglLayerVisibility/DeckglLayerVisibilityCustomizationPlugin.test.tsx',
+              labels: [
+                {
+                  span: { offset: 4357, length: 38, line: 155, column: 20 },
+                },
+              ],
+            },
+          ],
+          number_of_files: 1,
+        }),
+      };
     }
 
     if (cmd.includes('oxlint.custom-lint-rules.mts')) {
-      return JSON.stringify({
-        diagnostics: [
-          {
-            message:
-              'Eager `label: t(...)` is evaluated at module load, before i18n is initialized. Wrap in an arrow function: `label: () => t(...)`.',
-            code: 'i18n-strings(no-eager-t-in-config)',
-            severity: 'warning',
-            filename: 'src/filters/components/TimeColumn/controlPanel.ts',
-            labels: [
-              {
-                span: {
-                  offset: 1013,
-                  length: 21,
-                  line: 25,
-                  column: 14,
+      throw {
+        stdout: JSON.stringify({
+          diagnostics: [
+            {
+              message:
+                'Eager `label: t(...)` is evaluated at module load, before i18n is initialized. Wrap in an arrow function: `label: () => t(...)`.',
+              code: 'i18n-strings(no-eager-t-in-config)',
+              severity: 'warning',
+              filename: 'src/filters/components/TimeColumn/controlPanel.ts',
+              labels: [
+                {
+                  span: {
+                    offset: 1013,
+                    length: 21,
+                    line: 25,
+                    column: 14,
+                  },
                 },
-              },
-            ],
-          },
-        ],
-        number_of_files: 1,
-      });
+              ],
+            },
+          ],
+          number_of_files: 1,
+        }),
+      };
     }
 
     throw new Error('Unknown oxlint executions');
