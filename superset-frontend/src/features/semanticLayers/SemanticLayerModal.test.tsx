@@ -34,7 +34,13 @@ let capturedOnChange:
 
 jest.mock('@jsonforms/react', () => ({
   ...jest.requireActual('@jsonforms/react'),
-  JsonForms: ({ onChange }: { onChange: (value: unknown) => void }) => {
+  JsonForms: ({
+    onChange,
+    readonly,
+  }: {
+    onChange: (value: unknown) => void;
+    readonly?: boolean;
+  }) => {
     capturedOnChange = onChange as typeof capturedOnChange;
     // eslint-disable-next-line react-hooks/rules-of-hooks
     if (!mockJsonFormsChangeTriggered) {
@@ -44,7 +50,7 @@ jest.mock('@jsonforms/react', () => ({
         errors: [],
       });
     }
-    return null;
+    return <input aria-label="Warehouse" readOnly={readonly} />;
   },
 }));
 
@@ -327,7 +333,13 @@ test('A pending clear prevents edits and a closed editor ignores its late respon
       finish = resolve;
     }),
   );
+  expect(
+    screen.getByRole('textbox', { name: 'Warehouse' }),
+  ).not.toHaveAttribute('readonly');
   fireEvent.click(button);
+  expect(screen.getByRole('textbox', { name: 'Warehouse' })).toHaveAttribute(
+    'readonly',
+  );
   expect(button).toBeDisabled();
   expect(
     screen.getByPlaceholderText('Name of the semantic layer'),
