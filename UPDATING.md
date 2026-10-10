@@ -36,6 +36,16 @@ assists people when migrating to a new version.
   is optional; absent, unknown or non-temporal names retain the existing fallback.
   Saved chart selections are preserved.
 
+### Dashboard copy layout validation
+
+Copying a dashboard with its charts returns HTTP 422 if a layout slot references
+an existing chart outside the source dashboard's membership. No partial copy is
+saved. Open and re-save the source dashboard to rebuild its chart membership
+before retrying. Non-null malformed chart references also return HTTP 422.
+Empty slots left by older copies (null or missing chart IDs in object metadata)
+are converted to placeholders, preserving their size. Detached slots are
+reattached to a reachable container by layout repair.
+
 - MCP data-bearing tools enforce mandatory chart-query result limits before
   response serialization or CSV/XLSX export, independently of the configurable
   response size guard (`MCP_RESPONSE_SIZE_CONFIG`). Results are limited to 32
