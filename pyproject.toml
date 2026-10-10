@@ -411,7 +411,10 @@ warn_unused_ignores = false
 # and not when only changed files are checked.
 [[tool.mypy.overrides]]
 module = [
+    "superset.commands.security.reset",
+    "superset.daos.datasource",
     "superset.mcp_service.dataset_scope",
+    "tests.unit_tests.commands.deletion_retention.test_purge_chart_detach",
     "tests.unit_tests.mcp_service.dataset.tool.test_dataset_tools",
     "superset.commands.chart.importers.v1",
 ]
