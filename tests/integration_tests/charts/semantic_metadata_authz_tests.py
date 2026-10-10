@@ -487,6 +487,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
         provider.features = frozenset()
         provider.selection_identity_version = None
         provider.uid.return_value = "guest-metadata-view"
+        access_spy: Mock
         try:
             with (
                 patch.object(
@@ -497,6 +498,12 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 ),
                 patch.object(security_manager, "is_guest_user", return_value=True),
                 patch.object(security_manager, "has_guest_access", return_value=True),
+                patch.object(
+                    QueryContext,
+                    "raise_for_access",
+                    autospec=True,
+                    side_effect=QueryContext.raise_for_access,
+                ) as access_spy,
             ):
                 g.user.rls = []
                 response: Response = self.client.post(
@@ -514,6 +521,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 )
             assert response.status_code == 200, response.json
             provider.get_dimensions.assert_called()
+            assert access_spy.call_count == 1
         finally:
             db.session.rollback()
             db.session.execute(
