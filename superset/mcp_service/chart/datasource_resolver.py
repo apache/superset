@@ -35,6 +35,7 @@ from superset.utils import json
 from superset.utils.core import DatasourceType
 
 if TYPE_CHECKING:
+    from superset.mcp_service.chart.plugin import ChartTypePlugin
     from superset.semantic_layers.models import SemanticView
 
 SEMANTIC_VIEW_ADHOC_ERROR: str = "semantic_view_adhoc_not_supported"
@@ -194,11 +195,10 @@ def normalize_semantic_gantt_form_data(form_data: dict[str, Any]) -> dict[str, A
     for key in ("start_time", "end_time", "y_axis", "series"):
         if key in normalized:
             normalized[key] = _saved_dimension_name(normalized[key])
-    tooltip_columns: object = normalized.get("tooltip_columns")
-    if isinstance(tooltip_columns, list):
-        normalized["tooltip_columns"] = [
-            _saved_dimension_name(column) for column in tooltip_columns
-        ]
+    for key in ("series", "tooltip_columns"):
+        values: object = normalized.get(key)
+        if isinstance(values, list):
+            normalized[key] = [_saved_dimension_name(column) for column in values]
     return normalized
 
 
@@ -231,7 +231,10 @@ def validate_semantic_view_form_data(
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
     viz_type: object = form_data.get("viz_type")
-    if not isinstance(viz_type, str) or plugin_for_viz_type(viz_type) is None:
+    plugin: ChartTypePlugin | None = (
+        plugin_for_viz_type(viz_type) if isinstance(viz_type, str) else None
+    )
+    if plugin is None:
         return ChartGenerationError(
             error_type="unsupported_chart_type",
             message="The chart type is not supported for semantic-view validation.",
@@ -243,6 +246,11 @@ def validate_semantic_view_form_data(
             ],
         )
     context: DatasetContext = build_context_from_explorable(target)
+    state_error: ChartGenerationError | None = plugin.validate_form_data_state(
+        form_data, context
+    )
+    if state_error is not None:
+        return state_error
     metrics: set[str] = {metric["name"] for metric in context.available_metrics}
     columns: set[str] = {column["name"] for column in context.available_columns}
     filter_error: ChartGenerationError | None = _validate_semantic_filters(form_data)

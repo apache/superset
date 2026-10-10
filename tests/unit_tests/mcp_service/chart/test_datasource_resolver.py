@@ -538,7 +538,7 @@ def test_non_gantt_column_objects_remain_rejected() -> None:
     [
         ("tooltip_columns", {"column_name": "customer__region"}),
         ("start_time", [{"column_name": "metric_time"}]),
-        ("series", [{"column_name": "customer__region"}]),
+        ("series", [{"column_name": "customer__region"}] * 51),
         ("start_time", ""),
         ("end_time", None),
         ("tooltip_columns", ["customer__region"] * 51),

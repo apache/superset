@@ -68,13 +68,13 @@ CHART_TOOLS = [
 # chart_type enum (budgeted_bytes), so a new chart type needs no budget change
 # while any inlined per-type schema still fails.
 # Explicit dataset/view targets add one source selector and its guidance.
-# Measured budgeted bytes: generate_chart 2388, update_chart 4238,
-# generate_explore_link 2138; apply the same snapshot formula above.
+# Measured budgeted bytes: generate_chart 2612, update_chart 4313,
+# update_chart_preview 2003, generate_explore_link 1924; apply the same formula.
 TOOL_BUDGETS: list[tuple[str, int]] = [
-    ("generate_chart", 2_500),
-    ("update_chart", 4_400),
-    ("update_chart_preview", 2_000),
-    ("generate_explore_link", 2_300),
+    ("generate_chart", 2_800),
+    ("update_chart", 4_500),
+    ("update_chart_preview", 2_200),
+    ("generate_explore_link", 2_100),
 ]
 
 

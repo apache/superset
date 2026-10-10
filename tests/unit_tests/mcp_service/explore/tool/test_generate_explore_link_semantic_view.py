@@ -193,6 +193,31 @@ async def test_implicit_aggregate_cannot_bypass_semantic_validation() -> None:
 
 
 @pytest.mark.asyncio
+async def test_sunburst_rejects_non_temporal_view_column_before_cache() -> None:
+    """Semantic links obey the final-state temporal guard without a live query."""
+    view: Mock = _mock_view()
+    view.columns[0].is_dttm = False
+    view.columns[0].type = "STRING"
+    config: dict[str, Any] = {
+        "chart_type": "sunburst",
+        "hierarchy": [{"name": "metric_time"}],
+        "metric": {"name": "revenue", "saved_metric": True},
+        "temporal_column": "metric_time",
+        "time_grain": "P1M",
+    }
+    with (
+        patch(GET_DATASOURCE, return_value=view),
+        patch(PERMALINK, return_value="bad-link") as permalink,
+        patch(FORM_DATA_KEY) as cache,
+    ):
+        content: dict[str, Any] = await _call({"view_id": 1, "config": config})
+    assert content["success"] is False
+    assert content["error"]["error_code"] == "NON_TEMPORAL_COLUMN"
+    permalink.assert_not_called()
+    cache.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_permalink_failure_falls_back_to_a_semantic_view_form_data_key() -> None:
     from superset.explore.permalink.exceptions import (
         ExplorePermalinkCreateFailedError,

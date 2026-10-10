@@ -25,12 +25,11 @@ from uuid import UUID
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.chart.chart_helpers import (
     build_query_dicts_from_form_data,
-    resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.chart.compile import CompileResult
@@ -257,9 +256,11 @@ class TestValidateUpdateAgainstTarget:
 def test_semantic_to_table_rebind_compiles_retained_state() -> None:
     """Validate the actual rebound query, not an empty configuration."""
     chart: Mock = _chart(3, "semantic_view")
-    request: UpdateChartRequest = UpdateChartRequest(identifier=12, dataset_id=3)
+    request: UpdateChartRequest = UpdateChartRequest(
+        identifier=12, dataset_id=3, config=_view_config()
+    )
     payload: dict[str, Any] | GenerateChartResponse = _build_update_payload(
-        request, chart
+        request, chart, parsed_config=request.config
     )
     assert isinstance(payload, dict)
     form_data: dict[str, Any] = json.loads(payload["params"])
@@ -403,10 +404,10 @@ async def test_uuid_rebind_entrypoint_preserves_identity_and_denial(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("preview_mode", [False, True])
-async def test_table_source_only_rebind_retains_filters_in_both_modes(
+async def test_table_source_only_rebind_requires_config_in_both_modes(
     mocker: MockerFixture, preview_mode: bool
 ) -> None:
-    """A table-only rebind preserves retained filters without validating new roles."""
+    """A table rebind cannot reuse filters without a complete target config."""
     chart: Mock = _chart()
     chart.uuid = None
     form_data: dict[str, Any] = json.loads(chart.params)
@@ -459,28 +460,21 @@ async def test_table_source_only_rebind_retains_filters_in_both_modes(
         ),
         ctx=ctx,
     )
-    assert response.success, response.error
-    if preview_mode:
-        assert preview.call_args.args[1]["adhoc_filters"] == form_data["adhoc_filters"]
-        assert preview.call_args.args[1]["datasource"] == "9__table"
-        write.assert_not_called()
-    else:
-        payload: dict[str, Any] = write.call_args.args[1]
-        assert payload["datasource_id"] == 9
-        assert payload["datasource_type"] == "table"
-        assert payload["query_context"] is None
-        updated_form_data: dict[str, Any] = json.loads(payload["params"])
-        assert updated_form_data["adhoc_filters"] == form_data["adhoc_filters"]
-        assert resolve_form_data_datasource(updated_form_data, chart) == (9, "table")
-        preview.assert_not_called()
+    assert not response.success
+    assert response.error is not None
+    assert "complete" in response.error.message
+    preview.assert_not_called()
+    write.assert_not_called()
     assert json.loads(chart.params) == form_data
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("preview_mode", [False, True])
+@pytest.mark.parametrize("list_series", [False, True])
 async def test_source_only_gantt_rebind_saved_columns_remain_queryable(
     mocker: MockerFixture,
     preview_mode: bool,
+    list_series: bool,
 ) -> None:
     """A saved Gantt column object survives rebind as a queryable dimension."""
     chart: Mock = _chart()
@@ -493,7 +487,9 @@ async def test_source_only_gantt_rebind_saved_columns_remain_queryable(
             "start_time": {"column_name": "start_time"},
             "end_time": {"column_name": "end_time"},
             "y_axis": {"column_name": "task"},
-            "series": {"column_name": "owner"},
+            "series": [{"column_name": "owner"}]
+            if list_series
+            else {"column_name": "owner"},
             "tooltip_columns": [{"column_name": "project"}],
         }
     )
@@ -563,7 +559,7 @@ async def test_source_only_gantt_rebind_saved_columns_remain_queryable(
     assert saved_form_data["start_time"] == "start_time"
     assert saved_form_data["end_time"] == "end_time"
     assert saved_form_data["y_axis"] == "task"
-    assert saved_form_data["series"] == "owner"
+    assert saved_form_data["series"] == (["owner"] if list_series else "owner")
     assert saved_form_data["tooltip_columns"] == ["project"]
     with patch(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
@@ -659,6 +655,10 @@ async def test_semantic_to_table_denial_precedes_cache_and_write(
     chart: Mock = _chart(3, "semantic_view")
     chart.uuid = None
     target: SqlaTable = SqlaTable(id=3, table_name="restricted")
+    target.columns = [
+        TableColumn(column_name="metric_time", type="TIMESTAMP", is_dttm=True)
+    ]
+    target.metrics = [SqlMetric(metric_name="revenue", expression="SUM(revenue)")]
     mocker.patch(
         "superset.mcp_service.auth.has_dataset_access", return_value=target_access
     )
@@ -699,13 +699,17 @@ async def test_semantic_to_table_denial_precedes_cache_and_write(
         report_progress=AsyncMock(),
     )
     request: UpdateChartRequest = UpdateChartRequest(
-        identifier=12, dataset_id=3, generate_preview=preview_mode, preview_formats=[]
+        identifier=12,
+        dataset_id=3,
+        config=_view_config(),
+        generate_preview=preview_mode,
+        preview_formats=[],
     )
     if target_access:
         with pytest.raises(SupersetSecurityException, match="target denied"):
             await update_chart_module.update_chart(request, ctx=ctx)
         assert build.call_args.args[0]["datasource"] == "3__table"
-        assert build.call_args.args[0]["datasource_type"] == "table"
+        assert "datasource_type" not in build.call_args.args[0]
         context.raise_for_access.assert_called_once_with()
     else:
         response: GenerateChartResponse = await update_chart_module.update_chart(
@@ -725,6 +729,13 @@ async def test_semantic_to_table_denial_precedes_cache_and_write(
 @pytest.mark.parametrize(
     "retained",
     [
+        {
+            "viz_type": "sunburst_v2",
+            "columns": ["order_date"],
+            "metric": "revenue",
+            "granularity_sqla": "order_date",
+            "time_grain_sqla": "P1M",
+        },
         {"viz_type": "gantt_chart", "start_time": "missing"},
         {"viz_type": "gantt_chart", "end_time": "missing"},
         {"viz_type": "gantt_chart", "y_axis": "missing"},
@@ -777,7 +788,7 @@ async def test_retained_rebind_validation_precedes_effects(
     chart.viz_type = retained.get("viz_type", chart.viz_type)
     view: Mock = Mock(
         id=7,
-        columns=[],
+        columns=[Mock(column_name="order_date", type="STRING", is_dttm=False)],
         metrics=[Mock(metric_name="revenue", expression="revenue", description=None)],
     )
     target: ChartDatasource = ChartDatasource(
@@ -798,8 +809,13 @@ async def test_retained_rebind_validation_precedes_effects(
         return_value=Mock(id=1, username="owner", roles=[], groups=[]),
     )
     mocker.patch("superset.utils.log.DBEventLogger.log")
-    preview: MagicMock = mocker.patch.object(update_chart_module, "_create_preview_url")
+    preview: MagicMock = mocker.patch.object(
+        update_chart_module,
+        "_create_preview_url",
+        return_value=("http://localhost/explore/?form_data_key=key", "key", []),
+    )
     write: MagicMock = mocker.patch("superset.commands.chart.update.UpdateChartCommand")
+    write.return_value.run.return_value = chart
     ctx: MagicMock = MagicMock(
         info=AsyncMock(),
         debug=AsyncMock(),
@@ -820,7 +836,10 @@ async def test_retained_rebind_validation_precedes_effects(
         "invalid_column",
         "column_not_found",
         "unsupported_chart_type",
+        "invalid_temporal_column",
     }
+    if retained.get("viz_type") == "sunburst_v2":
+        assert response.error.error_code == "NON_TEMPORAL_COLUMN"
     preview.assert_not_called()
     write.assert_not_called()
 

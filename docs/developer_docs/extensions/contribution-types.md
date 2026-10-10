@@ -245,6 +245,9 @@ See [MCP Integration](./mcp.md) for implementation details.
 
 ### Semantic Layers
 
+For optional catalog acquisition and host publication, see the
+[semantic provider metadata contract](../semantic-metadata-contract.md).
+
 Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.
 
 ```python
@@ -334,3 +337,19 @@ column picker: its dimensions are listed as Saved options and the Simple and
 Custom SQL modes are visible but disabled, so users cannot build an expression
 the backend would reject. Unknown feature strings and payloads with no
 `semantic_view_features` field are ignored, preserving existing behavior.
+
+#### Choosing a default time dimension
+
+A semantic view may set `preferred_temporal_dimension` to the name of a temporal
+dimension it exposes. Superset publishes that name as `main_dttm_col`, which
+Explore uses for the default time filter on new charts. The declaration is
+ignored if the name is absent or does not identify a temporal dimension.
+
+```python
+class MySemanticView(SemanticView):
+    preferred_temporal_dimension = "metric_time"
+```
+
+Providers that omit the declaration retain Explore's existing first temporal
+column fallback. This preference does not change the time dimension already
+selected on a saved chart.

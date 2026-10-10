@@ -48,6 +48,8 @@ export const hostField = ({
     errorMessage={validationErrors?.host}
     placeholder={t('e.g. 127.0.0.1')}
     className="form-group-w-50"
+    // i18n: hostname of the database server, as it appears in the user's own
+    // database tooling
     label={t('Host')}
     onChange={changeMethods.onParametersChange}
   />

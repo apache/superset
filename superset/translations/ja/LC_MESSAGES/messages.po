@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-07 14:21-0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -444,6 +444,11 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr "選択したすべてのオブジェクトに対する編集権限がないため、%s 個の項目にタグを付けられませんでした。"
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
 
 #, python-format
 msgid "%s metric"
@@ -1054,6 +1059,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
 msgstr "Jinjaテンプレート構文を使用してクエリ内で利用可能になるパラメータのセット"
@@ -1260,6 +1270,11 @@ msgstr "アラートを追加"
 
 msgid "Add an annotation layer"
 msgstr "注釈レイヤーを追加"
+
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
 
 msgid "Add an item"
 msgstr "項目を追加"
@@ -1596,6 +1611,9 @@ msgstr "クエリの実行中にアラートがエラーを検出しました。
 msgid "Alert is active"
 msgstr "アラート有効"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "アラート名"
 
@@ -1647,6 +1665,18 @@ msgstr "アラート"
 msgid "Alerts & Reports"
 msgstr "アラートとレポート"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "アラートとレポート"
 
@@ -1655,6 +1685,9 @@ msgstr "+/- を揃える"
 
 msgid "Align +/- for all columns"
 msgstr "すべての列で +/- を揃える"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "すべて"
@@ -1680,6 +1713,9 @@ msgstr "すべてのディメンション"
 
 msgid "All filters"
 msgstr "すべてのフィルター"
+
+msgid "All groupable columns"
+msgstr ""
 
 msgid "All panels"
 msgstr "すべてのパネル"
@@ -1752,6 +1788,9 @@ msgstr "ユーザーによる複数値の選択を許可"
 
 msgid "Allowed Domains (comma separated)"
 msgstr "許可されたドメイン(カンマ区切り)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 msgid "Alphabetical"
 msgstr "アルファベット順"
@@ -2045,6 +2084,9 @@ msgstr "テーブルスキーマの削除中にエラーが発生しました。
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "視覚化(ビジュアライゼーション)のレンダリング中にエラーが発生しました: %s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 msgid "An error occurred while saving the semantic view"
 msgstr "セマンティックビューの保存中にエラーが発生しました"
 
@@ -2238,6 +2280,9 @@ msgid ""
 "Any databases that allow connections via SQL Alchemy URIs can be added. "
 "Learn about how to connect a database driver "
 msgstr "SQL Alchemy URI経由の接続を許可するデータベースを追加できます。データベースドライバーの接続方法についての詳細 "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -2579,6 +2624,8 @@ msgstr "戻る"
 msgid "Back to all"
 msgstr "すべてに戻る"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "バックエンド"
 
@@ -3714,10 +3761,17 @@ msgstr "コードをコピーしました！"
 msgid "Collapse"
 msgstr "折りたたむ"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr "すべて折りたたむ"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -3958,6 +4012,9 @@ msgstr "読み込む列"
 msgid "Columns to show in the tooltip."
 msgstr "ツールチップに表示する列"
 
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "メトリックを結合"
 
@@ -4181,6 +4238,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "テキストを含む (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 msgid "Content format"
 msgstr "コンテンツ形式"
 
@@ -4221,6 +4284,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -6222,6 +6288,9 @@ msgstr "マトリックス化を有効にする"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -6591,6 +6660,9 @@ msgstr "選択した値を除外"
 msgid "Excluded subjects"
 msgstr "除外されたサブジェクト"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "実行されたSQL"
 
@@ -6606,6 +6678,10 @@ msgstr "実行ログ"
 msgid "Existing dataset"
 msgstr "既存のデータセット"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -6615,8 +6691,15 @@ msgstr "全画面表示を終了"
 msgid "Expand"
 msgstr "展開"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
 msgstr "すべて展開"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "すべて展開"
@@ -7374,6 +7457,9 @@ msgstr ""
 "データラベルの形式。変数 {name}, {value}, {percent} が利用可能です。\\n は改行を表します。\n"
 "ECharts互換変数:{a} (系列), {b} (名前), {c} (値), {d} (パーセンテージ)"
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 msgid ""
 "Format metrics or columns with currency symbols as prefixes or suffixes. "
 "Choose a symbol manually or use 'Auto-detect' to apply the correct symbol"
@@ -7574,6 +7660,9 @@ msgstr "グループ名"
 msgid "Group remaining as \"Others\""
 msgstr "残りの項目を「その他」にまとめる"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "グループ化"
 
@@ -7678,6 +7767,11 @@ msgstr "水平 (上)"
 msgid "Horizontal alignment"
 msgstr "水平方向の配置"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "ホスト"
 
@@ -7869,6 +7963,9 @@ msgid "Include a description that will be sent with your report"
 msgstr "レポートと一緒に送信する説明文を含める"
 
 msgid "Include a link back to Superset"
+msgstr ""
+
+msgid "Include attachment"
 msgstr ""
 
 #, python-format
@@ -8069,6 +8166,14 @@ msgstr "保存済みメトリックに無効な通貨コードが含まれてい
 msgid "Invalid date/timestamp format"
 msgstr "日付/タイムスタンプ形式が無効です"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 msgid "Invalid executor type"
 msgstr "無効な実行形式です"
 
@@ -8228,6 +8333,9 @@ msgstr "JSON設定"
 
 msgid "JSON Metadata"
 msgstr "JSONメタデータ"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "JSONメタデータ"
@@ -8480,6 +8588,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -8591,6 +8704,9 @@ msgstr "部分一致 (大文字小文字を区別しない)"
 
 msgid "Limit"
 msgstr "上限"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "制限種類"
@@ -9623,6 +9739,9 @@ msgstr "適用中のフィルターはありません"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "利用可能なフィルターはありません。"
 
@@ -9718,6 +9837,9 @@ msgstr "一致する結果が見つかりません"
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "このダッシュボードにはマルチレイヤーdeck.glチャートはまだ追加されていません。"
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "レコードが見つかりません"
 
@@ -9760,6 +9882,9 @@ msgid "No saved metrics found"
 msgstr "保存済みメトリックが見つかりません"
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid "No sort (original order)"
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -9874,6 +9999,10 @@ msgstr "見つかりません"
 
 msgid "Not in"
 msgstr "次を含まない (Not in)"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "NULLではない"
@@ -10098,11 +10227,17 @@ msgstr "合計のみ"
 msgid "Only `SELECT` statements are allowed"
 msgstr "SELECT文のみが許可されています"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "「ラベルの種類」がパーセンテージ以外の場合にのみ適用されます。"
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "「ラベルの種類」が「値を表示」に設定されている場合にのみ適用されます。"
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 msgid "Only exact match is available for non-string columns."
 msgstr "文字列以外の列では完全一致のみが使用できます。"
@@ -10157,6 +10292,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "データソースタブを開く"
+
+msgid "Open JSON"
+msgstr ""
 
 msgid "Open SQL Lab in a new tab"
 msgstr "新しいタブでSQL Labを開く"
@@ -10883,7 +11021,7 @@ msgid "Prefix or suffix"
 msgstr "接頭辞または接尾辞"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -11373,6 +11511,12 @@ msgstr "可能な場合に、テーブルのセルをHTMLとしてレンダリ�
 msgid "Replace"
 msgstr "置換"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "レポート"
 
@@ -11436,6 +11580,12 @@ msgstr "レポートスケジュールはまだ処理中のため、再計算を
 msgid "Report Schedule log prune failed."
 msgstr "レポートスケジュールログの整理に失敗しました。"
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "レポートスケジュールが見つかりません。"
 
@@ -11459,6 +11609,9 @@ msgstr "レポート作成失敗"
 
 msgid "Report is active"
 msgstr "レポートは有効です"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "レポート名"
@@ -11492,6 +11645,9 @@ msgstr "レポートを更新しました"
 
 msgid "Reports"
 msgstr "レポート"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "反発力"
@@ -11847,6 +12003,18 @@ msgstr "クエリを実行してクエリ履歴を表示"
 msgid "Run a query to display results"
 msgstr "クエリを実行して結果を表示"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "現在のクエリを実行"
 
@@ -11978,6 +12146,9 @@ msgstr "文字列"
 
 msgid "SUN"
 msgstr "日"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -12698,12 +12869,16 @@ msgstr "各パスがどのカラーブレークポイント範囲に属するか
 msgid "Select the type of color scheme to use."
 msgstr "使用する配色の種類を選択してください。"
 
+msgid "Select user"
+msgstr ""
+
 msgid "Select users"
 msgstr "ユーザーを選択"
 
 msgid "Select values"
 msgstr "値を選択"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -12785,6 +12960,9 @@ msgstr "セマンティックビューが更新されました"
 msgid "Semantic views"
 msgstr "セマンティックビュー"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -12804,6 +12982,9 @@ msgid "Send as text"
 msgstr "テキストとして送信"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -13320,6 +13501,7 @@ msgstr "スライダー"
 msgid "Slider and range input"
 msgstr "スライダーと範囲入力"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "スラッグ"
 
@@ -13353,6 +13535,11 @@ msgid "Solid background"
 msgstr "単色の背景"
 
 msgid "Some charts did not finish loading. The export may be incomplete."
+msgstr ""
+
+msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
 msgstr ""
 
 msgid ""
@@ -13551,6 +13738,9 @@ msgstr "空間"
 
 msgid "Specific Date/Time"
 msgstr "特定の日付/時刻"
+
+msgid "Specific user"
+msgstr ""
 
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "CREATE TABLE AS を実行するスキーマ名を指定してください (既定: public)"
@@ -14276,6 +14466,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 msgid "The annotation has been saved"
 msgstr "注釈を保存しました"
 
@@ -14366,6 +14559,11 @@ msgstr "エッジのターゲット(終点)として使用する列。"
 
 msgid "The column was deleted or renamed in the database."
 msgstr "データベース内で列が削除されたか、名前が変更されました。"
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "マップレイヤーの設定"
@@ -14564,6 +14762,12 @@ msgid ""
 msgstr ""
 "以下のフィルターは「既定で最初のフィルター値を選択」が有効ですが読み込めなかったため、\n"
 "                    ダッシュボードのレンダリングが妨げられています: %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 msgid "The font size of the point labels"
 msgstr "ポイントラベルのフォントサイズ"
@@ -14809,6 +15013,9 @@ msgstr "主要メトリックは、円セグメントのサイズを定義する
 
 msgid "The provided table was not found in the provided database"
 msgstr "指定されたデータベース内にテーブルが見つかりませんでした"
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""
 
 msgid "The query associated with the results was deleted."
 msgstr "結果に関連付けられたクエリが削除されました。"
@@ -15083,6 +15290,18 @@ msgstr "ユーザーを正常に更新しました。"
 
 msgid "The user was updated successfully"
 msgstr "ユーザーを正常に更新しました"
+
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr "ユーザー名とパスワードの組み合わせが無効です(パスワードが正しくありません)。"
@@ -15437,6 +15656,12 @@ msgstr "このフィルターが適用されるデータセットです。"
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -15499,6 +15724,12 @@ msgstr "この操作により、ユーザー登録情報は完全に削除され
 
 msgid "This action will permanently delete the user."
 msgstr "この操作により、ユーザーは完全に削除されます。"
+
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
 
 msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
@@ -15804,6 +16035,11 @@ msgstr "このパスワードはありふれています。推測されにくい
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 msgid ""
@@ -16483,6 +16719,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "ダッシュボードを読み込めませんでした"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
@@ -16751,6 +16990,9 @@ msgstr "使用状況"
 msgid "Use %s to open in a new tab."
 msgstr "新しいタブで開くには %s を使用してください。"
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "面積比率を使用"
 
@@ -16787,6 +17029,12 @@ msgstr "現在の表示範囲を使用"
 
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "メトリック値がタイムスタンプでない場合も日付フォーマットを適用"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 msgid "Use gradient"
 msgstr "グラデーションを使用"
@@ -16831,6 +17079,9 @@ msgstr "ユーザー名"
 
 msgid "User Registrations"
 msgstr "ユーザー登録"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "ユーザーに適切な権限がありません。"
@@ -17333,6 +17584,11 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "有効にすると、クエリ実行のたびにデータがある範囲へマップがズームします"
 
 msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
+
+msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
@@ -17833,6 +18089,19 @@ msgid ""
 "You can create a new chart or use existing ones from the panel on the "
 "right"
 msgstr "右側のパネルから新しいチャートを作成するか、既存のものを選択できます"
+
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -18598,6 +18867,9 @@ msgstr "毎分"
 msgid "every month"
 msgstr "毎月"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "展開"
 
@@ -18784,6 +19056,9 @@ msgstr "分"
 msgid "minute(s)"
 msgstr "分"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "月"
 
@@ -18936,6 +19211,10 @@ msgstr "再起動"
 msgid "recent"
 msgstr "更新日"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "受信者"
 
@@ -18960,11 +19239,18 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "行レベルセキュリティ"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "実行中"
 
 msgid "save"
 msgstr "保存"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"

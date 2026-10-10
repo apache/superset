@@ -47,6 +47,36 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
 from superset.utils import json
 
 
+@pytest.mark.parametrize("temporal_column", ["metric_time", None])
+def test_semantic_temporal_metadata_survives_mapping(
+    mocker: MockerFixture, temporal_column: str | None
+) -> None:
+    """Explicit semantic time binds without table lookup; null disables fallback."""
+    from superset.mcp_service.chart.chart_utils import map_config_to_form_data
+
+    table: MagicMock = mocker.patch(
+        "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+        side_effect=AssertionError("Semantic metadata must not query a table"),
+    )
+    config: XYChartConfig = XYChartConfig(
+        chart_type="xy",
+        x=ColumnRef(name="region"),
+        y=[ColumnRef(name="revenue", saved_metric=True)],
+        kind="bar",
+        temporal_column=temporal_column,
+    )
+    form_data: dict[str, Any] = map_config_to_form_data(
+        config, dataset_id=None, temporal_columns={"metric_time"}
+    )
+    subjects: list[str] = [
+        item["subject"]
+        for item in form_data.get("adhoc_filters", [])
+        if item.get("operator") == "TEMPORAL_RANGE"
+    ]
+    assert subjects == (["metric_time"] if temporal_column is not None else [])
+    table.assert_not_called()
+
+
 @pytest.mark.asyncio
 async def test_categorical_semantic_axis_compiles_without_temporal_filter(
     mocker: MockerFixture,
@@ -260,6 +290,9 @@ def test_query_boundary_preserves_semantic_family(
     factory: MagicMock = mocker.patch(
         "superset.common.query_context_factory.QueryContextFactory"
     )
+    factory.return_value.create.return_value.form_data = {}
+    factory.return_value.create.return_value.queries = []
+    seed: MagicMock = mocker.patch("superset.charts.data.form_data.set_form_data")
     command: MagicMock = mocker.patch(
         "superset.commands.chart.data.get_data_command.ChartDataCommand"
     )
@@ -284,6 +317,10 @@ def test_query_boundary_preserves_semantic_family(
     }
     command.return_value.validate.assert_called_once()
     command.return_value.run.assert_called_once()
+    assert seed.call_args.args[0]["datasource"] == {
+        "id": 1,
+        "type": "semantic_view",
+    }
     table.assert_not_called()
 
 
