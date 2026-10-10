@@ -21,13 +21,12 @@ import { Provider } from 'react-redux';
 import configureMockStore from 'redux-mock-store';
 
 import {
-  act,
   render,
   screen,
   userEvent,
   waitFor,
   fireEvent,
-  selectOption,
+  selectOption as selectRangeOption,
   within,
 } from 'spec/helpers/testing-library';
 
@@ -119,7 +118,7 @@ test('DateFilter should be applied the global config time_filter from the store'
   expect(screen.getByText('Last week')).toBeInTheDocument();
 
   await userEvent.click(screen.getByText('Last week'));
-  expect(screen.getByTestId(DateFilterTestKey.CommonFrame)).toBeInTheDocument();
+  expect(screen.getByTestId('basic-calendar')).toBeInTheDocument();
 });
 
 test('Open and close popover', async () => {
@@ -150,7 +149,7 @@ test('DateFilter popover should attach to document.body when not overflowing', a
   const popover = document.querySelector<HTMLElement>('.time-range-popover');
   expect(popover?.parentElement).toBe(document.body);
   expect(popover).toHaveStyle({
-    width: 'min(600px, calc(100vw - 32px))',
+    width: 'min(800px, calc(100vw - 32px))',
   });
 });
 
@@ -179,7 +178,7 @@ test('DateFilter popover should attach to document.body even when overflowing in
 
   expect(popover?.parentElement).toBe(document.body);
   expect(popover).toHaveStyle({
-    width: 'min(600px, calc(100vw - 32px))',
+    width: 'min(800px, calc(100vw - 32px))',
   });
 });
 
@@ -230,91 +229,17 @@ test('applies a configured displayFormat to the evaluated range but leaves the h
   );
 });
 
-test('regression: Apply during a pending debounced draft fetch must still update the pill', async () => {
-  // Reproduces the maintainer-identified race: the user edits the draft
-  // range (scheduling a 500ms debounced preview fetch), then clicks Apply
-  // before that timer fires. The Apply-triggered fetch (effect 1) must not
-  // be discarded just because the leftover draft fetch (effect 2) resolves
-  // its own request-tracking after Apply's fetch started.
-  jest.useFakeTimers({ advanceTimers: true });
-
-  const pendingResolvers: Array<(result: { value: string }) => void> = [];
-  mockedFetchTimeRange.mockImplementation(
-    () =>
-      new Promise(resolve => {
-        pendingResolvers.push(resolve);
-      }),
-  );
-
+test('blocks Apply until the changed draft has been evaluated', async () => {
   const onChange = jest.fn();
-  const { rerender } = render(
-    setup({ ...defaultProps, onChange, value: 'Last week' }),
-  );
-
-  // Settle every fetch effect-1 issues on mount (useCSSTextTruncation's
-  // ref/measurement can cause it to re-run once after the initial paint),
-  // so validTimeRange reflects the settled 'Last week' state and Apply is
-  // enabled before we start the actual scenario.
-  await act(async () => {
-    pendingResolvers.forEach(resolve =>
-      resolve({ value: 'evaluated: Last week' }),
-    );
-  });
-
-  // open the popover and wait for Apply to be enabled
+  render(setup({ ...defaultProps, onChange, value: 'Last week' }));
   await userEvent.click(screen.getByText('Last week'));
-  await waitFor(() => {
-    expect(screen.getByText('Apply').closest('button')).not.toBeDisabled();
-  });
-  const baseRequestCount = pendingResolvers.length;
-
-  // change the draft selection to 'Last month' — this schedules effect 2's
-  // 500ms debounced draft-preview fetch
-  fireEvent.click(screen.getByText('Last month'));
-
-  // click Apply well before that debounce timer fires
-  await act(async () => {
-    jest.advanceTimersByTime(100);
-  });
-  fireEvent.click(screen.getByText('Apply'));
+  await userEvent.click(screen.getByRole('button', { name: 'Last month' }));
+  expect(screen.getByText('Apply').closest('button')).toBeDisabled();
+  await waitFor(() =>
+    expect(screen.getByText('Apply').closest('button')).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByText('Apply'));
   expect(onChange).toHaveBeenCalledWith('Last month');
-
-  // simulate the real parent (TimeFilterPlugin) re-rendering with the
-  // applied value, exactly as it would after onChange updates formData
-  rerender(setup({ ...defaultProps, onChange, value: 'Last month' }));
-
-  // effect 1 (driven by the new `value` prop) starts its own fetch
-  await waitFor(() => {
-    expect(pendingResolvers.length).toBe(baseRequestCount + 1);
-  });
-  const applyRequestIndex = baseRequestCount;
-
-  // the leftover debounce timer from before Apply now fires and starts
-  // effect 2's fetch for the same value, *before* effect 1's fetch above
-  // has resolved
-  await act(async () => {
-    jest.advanceTimersByTime(500);
-  });
-  await waitFor(() => {
-    expect(pendingResolvers.length).toBe(baseRequestCount + 2);
-  });
-  const staleDraftRequestIndex = baseRequestCount + 1;
-
-  // effect 1's (older, Apply-triggered) fetch finally resolves
-  await act(async () => {
-    pendingResolvers[applyRequestIndex]({ value: 'evaluated: Last month' });
-  });
-
-  // the pill must reflect the applied selection, not the stale pre-Apply one
-  expect(screen.getByText('Last month')).toBeInTheDocument();
-  expect(screen.queryByText('Last week')).not.toBeInTheDocument();
-
-  // drain effect 2's own fetch so it doesn't dangle past the test
-  await act(async () => {
-    pendingResolvers[staleDraftRequestIndex]({
-      value: 'evaluated: Last month',
-    });
-  });
 });
 
 test('hovering the description icon does not show the date range tooltip', async () => {
@@ -389,7 +314,18 @@ const FRAME_MARKERS = {
 
 type FrameName = keyof typeof FRAME_MARKERS;
 
+async function openAdvancedOptions() {
+  const button = screen.queryByRole('button', { name: 'Advanced options' });
+  if (button) await userEvent.click(button);
+}
+
+async function selectOption(option: string, label: string) {
+  await openAdvancedOptions();
+  await selectRangeOption(option, label);
+}
+
 async function expectOnlyFrame(frame: FrameName) {
+  await openAdvancedOptions();
   await waitFor(() => {
     expect(FRAME_MARKERS[frame]()).toBeInTheDocument();
   });
@@ -550,7 +486,7 @@ test('Cancel restores the frame guessed from the saved value', async () => {
 test('Cancel discards an unsaved range selection', async () => {
   render(setup({ ...defaultProps, value: 'Last week' }));
   await userEvent.click(screen.getByText('Last week'));
-  await userEvent.click(screen.getByLabelText('Last month'));
+  await userEvent.click(screen.getByRole('button', { name: 'Last month' }));
 
   await userEvent.click(screen.getByTestId(DateFilterTestKey.CancelButton));
   await waitFor(() => {
@@ -558,6 +494,74 @@ test('Cancel discards an unsaved range selection', async () => {
   });
   await userEvent.click(screen.getByText('Last week'));
 
-  expect(await screen.findByLabelText('Last week')).toBeChecked();
-  expect(screen.getByLabelText('Last month')).not.toBeChecked();
+  expect(screen.getByRole('button', { name: 'Last 7 days' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  expect(screen.getByRole('button', { name: 'Last month' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
+});
+
+test('an incomplete calendar selection disables Apply and Cancel discards it', async () => {
+  const onChange = jest.fn();
+  render(
+    setup({ ...defaultProps, onChange, value: '2026-10-01 : 2026-10-08' }),
+  );
+  await userEvent.click(await screen.findByRole('button'));
+  await userEvent.click(screen.getByRole('button', { name: '2026-10-03' }));
+  expect(screen.getByText('Apply').closest('button')).toBeDisabled();
+  await userEvent.click(screen.getByText('Cancel'));
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('manual partial dates disable Apply until corrected, and text does not open the endpoint picker', async () => {
+  const onChange = jest.fn();
+  render(
+    setup({ ...defaultProps, onChange, value: '2026-10-01 : 2026-10-08' }),
+  );
+  await userEvent.click(await screen.findByRole('button'));
+  const input = screen.getByRole('textbox', { name: 'Start date' });
+  await userEvent.clear(input);
+  await userEvent.type(input, '31/02/2026');
+  expect(screen.getByTestId(DateFilterTestKey.ApplyButton)).toBeDisabled();
+  expect(
+    screen.queryByTestId('basic-date-picker-popup'),
+  ).not.toBeInTheDocument();
+  fireEvent.blur(input);
+  expect(input).toHaveValue('31/02/2026');
+  await userEvent.clear(input);
+  await userEvent.type(input, '03/10/2026');
+  await waitFor(() =>
+    expect(screen.getByTestId(DateFilterTestKey.ApplyButton)).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.ApplyButton));
+  expect(onChange).toHaveBeenCalledWith('2026-10-03 : 2026-10-08');
+});
+
+test('saved timestamps open editable date-time fields and preserve exact bounds', async () => {
+  const onChange = jest.fn();
+  render(
+    setup({
+      ...defaultProps,
+      onChange,
+      value: '2026-10-09T12:10:00 : 2026-10-09T16:25:00',
+    }),
+  );
+  await userEvent.click(await screen.findByRole('button'));
+  expect(screen.getByTestId('basic-calendar')).toBeInTheDocument();
+  expect(
+    screen.getByRole('textbox', { name: 'Start date and time' }),
+  ).toHaveValue('09/10/2026 12:10');
+  const end = screen.getByRole('textbox', { name: 'End date and time' });
+  await userEvent.clear(end);
+  await userEvent.type(end, '09/10/2026 18:45');
+  await waitFor(() =>
+    expect(screen.getByTestId(DateFilterTestKey.ApplyButton)).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.ApplyButton));
+  expect(onChange).toHaveBeenCalledWith(
+    '2026-10-09T12:10:00 : 2026-10-09T18:45:00',
+  );
 });
