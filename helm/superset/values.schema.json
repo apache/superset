@@ -135,6 +135,60 @@
           "type": "string"
         }
       }
+    },
+    "init": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "createAdmin": {
+          "type": "boolean"
+        },
+        "adminUser": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "username": {
+              "type": "string"
+            },
+            "firstname": {
+              "type": "string"
+            },
+            "lastname": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "password": {
+              "type": "string"
+            },
+            "secretKeys": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "secretName": {
+                  "type": "string"
+                },
+                "username": {
+                  "type": "string"
+                },
+                "firstname": {
+                  "type": "string"
+                },
+                "lastname": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                },
+                "password": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
