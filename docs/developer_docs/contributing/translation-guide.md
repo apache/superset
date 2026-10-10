@@ -24,92 +24,87 @@ under the License.
 
 # Translation Guide
 
-This page covers **what** to translate and how terminology decisions get made.
-For the mechanics — extracting strings, updating catalogs, compiling, and the AI
-backfill — see [Contributing Translations](./howtos.md#contributing-translations).
+This page describes what to translate and how a language decides on its terms.
+For the mechanics, such as extracting strings, updating catalogs, compiling and
+the AI backfill, see [Contributing Translations](./howtos.md#contributing-translations).
 
-Superset is translated by contributors working one language at a time, and the
-same handful of traps recur in every language independently. These principles
-exist so that each language does not have to rediscover them, and so a decision
-argued once does not get re-argued by the next contributor.
+Contributors translate Superset one language at a time. Each language meets the
+same problems on its own. The rules on this page help each language avoid them.
+When a language records a decision, the next contributor does not need to argue
+it again.
 
-## Translate for fluency by default
+## When to keep the English term
 
-Translate into natural, idiomatic language. Keep the English term only when it
-falls into one of three categories:
+Translate into natural language by default. Keep the English term only in these
+three cases:
 
-1. **Proper nouns and product names.** Superset itself, and the names of
-   databases, engines and third-party products.
-2. **Code-level tokens.** SQL keywords, format placeholders, enum and option
-   values, API field names, icon names, and example values. These are
-   machine-consumed: translating them breaks behavior. They are registered in
-   `superset/translations/do-not-translate.txt`.
-3. **External-ecosystem vocabulary.** Terms the user also meets outside
-   Superset, in their own database and infrastructure tooling — `Host`, `Slug`,
-   `Backend`, a warehouse name. Translating these severs the connection between
-   what Superset calls a thing and what the user's other tools call it.
+1. **Proper nouns and product names.** For example, Superset itself, and the
+   names of databases, engines and other products.
+2. **Strings that a program reads.** For example, SQL keywords, enum and option
+   values, API field names, icon names and example values. A translation of
+   these strings breaks Superset. The registry
+   `superset/translations/do-not-translate.txt` lists them. Inside any
+   translated string, keep format placeholders such as `%(name)s` and `{name}`
+   exactly as they are.
+3. **Terms from the user's other tools.** For example, `Host`, `Slug`,
+   `Backend` or the name of a data warehouse. The user also sees these words in
+   their database and infrastructure tools. If Superset translates them, the
+   user cannot connect the two names.
 
-Category 3 is a judgement call, and it is the one to argue about. Ask whether a
-user would see the same word in the tool they came from. If they would, keeping
-it in English usually helps them more than a fluent rendering does.
+The third case needs judgement. Ask this question: does the user see the same
+word in the tool they came from? If yes, the English term usually helps them
+more than a translation.
 
-## One term per concept, and one concept per term
+## One term for each concept
 
-Before settling on a rendering, check it against the other concepts that could
-plausibly claim the same word.
+Before you choose a translation for a term, check which other concepts use the
+same word in the catalog.
 
-The recurring example: in many languages the most natural translation of
-"dashboard" is a calque of *control panel*. That rendering then collides with
-Explore's actual control panel, and one term ends up carrying two unrelated
-concepts. Spanish, Romanian and Serbian each render both concepts with the same
-words.
+For example, in some languages the natural translation of "dashboard" is a
+word-for-word translation of *control panel*. Explore also has a control panel.
+Then one word means two different things. Spanish, Romanian and Serbian use the
+same words for both concepts.
 
-The check is cheap — search the catalog for the candidate term before adopting
-it — and it catches the defect that per-string review cannot, because no single
-entry looks wrong on its own.
+To check, search the catalog for the word before you use it. A review of single
+strings does not find this problem, because each string looks correct alone.
 
-## Declare register and gendered forms once, per language
+## Decisions for the whole language
 
-Two decisions apply to an entire catalog rather than to any one string:
+Some decisions apply to the whole catalog of a language:
 
-- **Register.** Whether the UI addresses the user formally or informally
-  (for example *tú* or *usted* in Spanish).
-- **Gendered forms.** How the language handles gendered nouns referring to
-  people, and whether it adopts an inclusive form.
+- **Register.** The UI uses formal or informal language with the user. For
+  example, Spanish uses *tú* or *usted*.
+- **Gendered forms.** The language decides how to write nouns for people, and
+  whether it uses an inclusive form.
+- **Other style choices.** For example, Russian keeps *ё* or writes *е*. Each
+  language also decides whether a one-sentence message has a final full stop.
 
-Other language-wide style choices belong in the same record. Examples are
-whether Russian keeps *ё* or writes *е*, and whether a one-sentence message
-keeps its final full stop.
+Make each decision once for the language, and record it. If a language has no
+recorded decision yet, follow the form that most of its catalog already uses.
 
-Decide these once per language and record them. Until a language has recorded a
-decision, follow the convention that already dominates its catalog rather than
-introducing a second one.
+## How a language decides
 
-## Decide by native-speaker consensus, on counted evidence
-
-- **Count before arguing.** When a term is rendered inconsistently, count the
-  existing uses. A convention that already covers most of a catalog is usually
-  the one to standardise on, and counting settles most disputes without appeal
-  to taste.
-- **Native speakers decide.** A terminology change for a language is settled by
-  native speakers of that language, by lazy consensus.
-- **Record the reasoning, not just the conclusion.** State which alternatives
-  were rejected and why. The next contributor should be able to read the
-  reasoning instead of reopening the debate.
-- **Change a settled term in its own pull request**, so the change is reviewable
-  as a terminology decision rather than buried in unrelated work.
+- **Count first.** When a term has different translations in a catalog, count
+  how many times each one appears. Usually the most common form is the right
+  choice, and then the discussion is short.
+- **Native speakers decide.** Native speakers of the language make the decision,
+  by lazy consensus.
+- **Write the reasoning.** Write which other options you rejected and why. Then
+  the next contributor can read the reasoning and does not need to start the
+  discussion again.
+- **Use a separate pull request.** Change an agreed term in its own pull
+  request. Then reviewers see it as a terminology decision.
 
 ## Recording a decision
 
-Terminology decisions are recorded in the pull request that makes them. Write
-the reasoning in the PR description — the term, what it replaces, the count that
-motivated it, and the alternatives rejected — so it can be found later by
-searching the repository history.
+Record a terminology decision in the description of the pull request that makes
+it. Write the term, the translation that it replaces, the count, and the options
+that you rejected. Contributors can then find the decision in the merged pull
+request.
 
-## Giving translators context for a single string
+## Context for a single string
 
-The principles above are catalog-wide. When one specific string is ambiguous out
-of context, attach the context to the string itself with an `i18n:` comment; see
+The rules above apply to a whole catalog. Sometimes one string is unclear
+without its code. In that case, add an `i18n:` comment to the string. See
 [Adding context for translators](./howtos.md#adding-context-for-translators).
-Where the comment sits decides whether it reaches the catalog, and that section
-lists the placements that drop it.
+That section also lists the comment positions that pybabel ignores.
