@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 03:40+0000\n"
+"POT-Creation-Date: 2026-10-10 05:48+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1416,6 +1416,13 @@ msgid ""
 msgstr ""
 "기본값을 변경해야 하는 경우 열 이름과 데이터 유형을 포함하는 딕셔너리입니다. 예: {\"user_id\":\"int\"}. "
 "지원되는 데이터 유형은 Python의 Pandas 라이브러리를 확인하세요."
+
+msgid ""
+"A filter value carrying a UTC offset is not mirrored: a transform is "
+"evaluated in the database's own time frame, so the mirrored predicate "
+"could ask for a partition the matching rows are not in. Write the bound "
+"without an offset to mirror this filter."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
