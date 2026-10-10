@@ -375,7 +375,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.44.1
+slack-sdk==3.45.0
     # via apache-superset (pyproject.toml)
 sqlalchemy==2.0.52
     # via
