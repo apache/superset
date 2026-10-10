@@ -6435,6 +6435,9 @@ msgstr ""
 msgid "Expression cannot be empty"
 msgstr ""
 
+msgid "Extension"
+msgstr ""
+
 #, python-format
 msgid "Extension '%(extension_id)s' has exceeded its persistent storage quota of %(quota)d bytes."
 msgstr ""

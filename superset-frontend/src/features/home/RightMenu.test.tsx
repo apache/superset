@@ -459,6 +459,45 @@ test('Logs out and clears local storage item redux', async () => {
   }
 });
 
+test('renders an extension-contributed item in the Settings dropdown', async () => {
+  const { commands, menus } = jest.requireActual('src/core');
+  const { GlobalLocations } = jest.requireActual('src/core/contributions');
+
+  const commandCallback = jest.fn();
+  const disposeCommand = commands.registerCommand(
+    { id: 'test-ext.openSettings', title: 'My Extension Settings' },
+    commandCallback,
+  );
+  const disposeMenuItem = menus.registerMenuItem(
+    { view: 'test-ext.settingsPanel', command: 'test-ext.openSettings' },
+    GlobalLocations.settings.menu,
+    'primary',
+  );
+
+  try {
+    const mockedProps = createProps();
+    resetUseSelectorMock();
+    render(<RightMenu {...mockedProps} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+
+    await userEvent.hover(await screen.findByText(/Settings/i));
+
+    const menuItem = await screen.findByText('My Extension Settings');
+    expect(menuItem).toBeInTheDocument();
+
+    await userEvent.click(menuItem);
+
+    await waitFor(() => expect(commandCallback).toHaveBeenCalledTimes(1));
+  } finally {
+    disposeCommand.dispose();
+    disposeMenuItem.dispose();
+  }
+});
+
 test('shows logout button when not embedded', async () => {
   mockIsEmbedded.mockReturnValue(false);
   mockIsFeatureEnabled.mockReturnValue(false);

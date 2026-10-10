@@ -75,6 +75,8 @@ import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useThemeMenuItems } from 'src/hooks/useThemeMenuItems';
+import { commands, useMenu } from 'src/core';
+import { GlobalLocations } from 'src/core/contributions';
 import { useLanguageMenuItems } from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -388,6 +390,10 @@ const RightMenu = ({
     }
   };
 
+  // Extension-contributed items in the Settings dropdown (e.g. an
+  // extension's own admin/config screen), rendered as a "primary" group.
+  const settingsMenuExtension = useMenu(GlobalLocations.settings.menu);
+
   // Use the theme menu hook
   const themeMenuItem = useThemeMenuItems({
     setThemeMode,
@@ -521,6 +527,31 @@ const RightMenu = ({
         }
       });
 
+      const extensionSettingsItems = (settingsMenuExtension?.primary ?? [])
+        .map(menuItem => {
+          const command = commands.getCommand(menuItem.command);
+          if (!command) {
+            return null;
+          }
+          return {
+            key: command.id,
+            label: command.title,
+            title: command.description,
+            onClick: () => commands.executeCommand(command.id),
+          } as MenuItem;
+        })
+        .filter((item): item is MenuItem => !!item);
+
+      if (extensionSettingsItems.length > 0) {
+        items.push({ type: 'divider', key: 'extension-settings-divider' });
+        items.push({
+          type: 'group',
+          label: t('Extensions'),
+          key: 'extension-settings-section',
+          children: extensionSettingsItems,
+        });
+      }
+
       if (!navbarRight.user_is_anonymous) {
         items.push({ type: 'divider', key: 'user-divider' });
 
@@ -646,6 +677,7 @@ const RightMenu = ({
     theme.colorPrimary,
     themeMenuItem,
     languageMenuItem,
+    settingsMenuExtension,
     dropdownItems,
     roles,
     settings,
