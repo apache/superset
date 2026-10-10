@@ -1322,6 +1322,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         register_session_invalidation_events(appbuilder.sm.user_model)
 
+        from superset.models.dashboard import (
+            register_dashboard_copy_events,
+        )
+
+        register_dashboard_copy_events(appbuilder.sm.user_model)
+
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports

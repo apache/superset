@@ -19,13 +19,13 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict, deque
+from collections.abc import Sequence
 from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
 from flask import current_app as app, has_request_context, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
-from flask_appbuilder.security.sqla.models import User
 from markupsafe import escape, Markup
 from sqlalchemy import (
     Boolean,
@@ -37,7 +37,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import relationship, subqueryload
+from sqlalchemy.orm import relationship, Session, subqueryload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.sql.elements import BinaryExpression
 from superset_core.common.models import Dashboard as CoreDashboard
@@ -70,26 +70,41 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 
-def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) -> None:
-    dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
-    if dashboard_id is None:
-        return
+def _copy_dashboard_for_user(
+    session: Session,
+    target: Any,
+    dashboard_id: int | str,
+) -> None:
+    """Copy the configured template dashboard to a newly created user.
 
+    Clones the template dashboard metadata and slices, associates the new user
+    as an editor and their groups as viewers, and configures the cloned dashboard
+    as the user's welcome dashboard.
+
+    :param session: The active SQLAlchemy session to use for queries and persistence.
+    :param target: The newly created user instance.
+    :param dashboard_id: The ID of the template dashboard to copy.
+    """
+    from superset.subjects.models import Subject
     from superset.subjects.utils import (
         get_default_viewers_for_groups,
         get_user_subject,
     )
 
-    session = sqla.inspect(target).session  # pylint: disable=disallowed-name
-    new_user = session.query(User).filter_by(id=target.id).first()
+    def _rebind(subjects: Sequence[Subject | None]) -> list[Subject]:
+        """The helpers resolve subjects on ``db.session``; a persistent object
+        cannot be cascaded into a second session."""
+        ids = [s.id for s in subjects if s is not None]
+        return session.query(Subject).filter(Subject.id.in_(ids)).all() if ids else []
 
-    # copy template dashboard to user
     template = session.query(Dashboard).filter_by(id=int(dashboard_id)).first()
-    editors = []
-    if new_user:
-        subj = get_user_subject(new_user.id)
-        if subj:
-            editors.append(subj)
+    if not template:
+        return
+
+    editors = _rebind([get_user_subject(target.id)])
+    viewers = _rebind(
+        get_default_viewers_for_groups(list(getattr(target, "groups", []) or []))
+    )
     dashboard = Dashboard(
         dashboard_title=template.dashboard_title,
         position_json=template.position_json,
@@ -98,15 +113,10 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
         json_metadata=template.json_metadata,
         slices=template.slices,
         editors=editors,
-        # Resolved from the in-memory collection: this runs in ``after_insert``
-        # for the user, before their ``ab_user_group`` rows are written.
-        viewers=get_default_viewers_for_groups(
-            list(getattr(new_user, "groups", []) or [])
-        ),
+        viewers=viewers,
     )
     session.add(dashboard)
-
-    # set dashboard as the welcome dashboard
+    session.flush()
     extra_attributes = UserAttribute(
         user_id=target.id, welcome_dashboard_id=dashboard.id
     )
@@ -114,7 +124,35 @@ def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Dashboard) 
     session.commit()  # pylint: disable=consider-using-transaction
 
 
-sqla.event.listen(User, "after_insert", copy_dashboard)
+def copy_dashboard(_mapper: Mapper, _connection: Connection, target: Any) -> None:
+    """SQLAlchemy mapper event hook triggered on user creation (after_insert).
+
+    Creates a personal copy of the configured template dashboard for the user.
+    Uses an isolated session bound to the active transaction connection to avoid
+    SQLAlchemy FlushError or overlapping flush issues during the flush lifecycle.
+
+    :param _mapper: The SQLAlchemy mapper for the entity.
+    :param _connection: The active database connection for the event.
+    :param target: The user entity instance being inserted.
+    """
+    dashboard_id = app.config["DASHBOARD_TEMPLATE_ID"]
+    if dashboard_id is None:
+        return
+
+    with Session(bind=_connection) as session:  # pylint: disable=disallowed-name
+        _copy_dashboard_for_user(session, target, dashboard_id)
+
+
+def register_dashboard_copy_events(user_model: Any) -> None:
+    """Register the after_insert listener that copies dashboard templates for new users.
+
+    Dynamically attaches the listener to the active security manager user model,
+    supporting custom and extended user models. Idempotent across repeated calls.
+
+    :param user_model: The user model class to attach the event listener to.
+    """
+    if not sqla.event.contains(user_model, "after_insert", copy_dashboard):
+        sqla.event.listen(user_model, "after_insert", copy_dashboard)
 
 
 dashboard_slices = Table(
