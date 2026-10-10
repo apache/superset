@@ -362,8 +362,7 @@ def test_extended_aggregation_func_median_stddev_var_compiles() -> None:
 
 
 def test_extended_aggregation_func_median_stddev_var_executes() -> None:
-    """
-    MEDIAN/STDDEV_SAMP/VAR_SAMP execute against a live in-process DuckDB
+    """MEDIAN/STDDEV_SAMP/VAR_SAMP execute against a live in-process DuckDB
     instance and return values matching Python's `statistics` module
     (sample standard deviation/variance) for the same input.
     """
@@ -395,3 +394,49 @@ def test_extended_aggregation_func_median_stddev_var_executes() -> None:
             query = select(func(literal_column("sales"))).select_from(text("t"))
             result = conn.execute(query).scalar()
             assert result == pytest.approx(expected_value)
+
+
+def test_register_engine_events_disables_backslash_escaping() -> None:
+    """
+    The duckdb dialect inherits ``_backslash_escapes = True`` from the
+    psycopg2 PostgreSQL dialect and never probes a live connection to correct
+    it, so string literals compiled with ``literal_binds`` double every
+    backslash. A filter value like ``name\\email`` then matches zero rows
+    (#38453). DuckDB has no escape character; the flag must be off.
+    """
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    engine = create_engine("duckdb:///:memory:")
+    DuckDBEngineSpec.register_engine_events(engine)
+
+    assert engine.dialect._backslash_escapes is False
+
+
+def test_backslash_filter_value_compiles_verbatim_and_matches() -> None:
+    """
+    End-to-end: a string filter value containing a backslash compiles to a
+    literal that a live in-process DuckDB instance reads back as the original
+    value — the exact scenario of #38453.
+    """
+    from sqlalchemy import column, create_engine, text
+
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec
+
+    engine = create_engine("duckdb:///:memory:")
+    DuckDBEngineSpec.register_engine_events(engine)
+
+    value = "name\\email"
+    expr = column("columnA").in_([value])
+    compiled = str(expr.compile(engine, compile_kwargs={"literal_binds": True}))
+
+    # verbatim single backslash inside the literal, not an escaped pair
+    assert "'name\\email'" in compiled
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT * FROM (VALUES ('name\\email'), ('other')) t(columnA) "
+                    f"WHERE columnA IN {compiled[compiled.index('('):]}")
+        ).fetchall()
+        assert [row[0] for row in rows] == [value]
