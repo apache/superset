@@ -281,3 +281,23 @@ def test_fetch_data_async_result_set(app_context: None, impala_errors: None) -> 
     cursor.fetchall.return_value = [(1,)]
     assert spec.fetch_data(cursor) == [(1,)]
     cursor.cancel_operation.assert_not_called()
+
+
+def test_the_partition_transform_default_is_impala_syntax() -> None:
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+
+    assert (
+        ImpalaEngineSpec.partition_value_transform_default == "unix_timestamp(:value)"
+    )
+
+
+def test_engines_without_a_sensible_default_offer_none() -> None:
+    """
+    A wrong pre-fill is worse than none: it would not parse, and the owner
+    would be debugging our guess rather than writing their transform.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    assert BaseEngineSpec.partition_value_transform_default is None
+    assert PostgresEngineSpec.partition_value_transform_default is None

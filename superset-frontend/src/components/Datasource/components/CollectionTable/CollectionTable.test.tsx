@@ -17,9 +17,18 @@
  * under the License.
  */
 import { useState } from 'react';
-import { fireEvent, render } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
+import TextControl from 'src/explore/components/controls/TextControl';
+import Field from '../Field';
+import Fieldset from '../Fieldset';
 import CollectionTable from '.';
 
 const props = {
@@ -267,4 +276,240 @@ test('restores the original order after a sort is cleared when the parent echoes
     (container.querySelector('[data-test="type-input-2"]') as HTMLInputElement)
       .value,
   ).toBe('EDITED');
+});
+
+test("a delayed fieldset commit does not revert another row's edit", async () => {
+  // Each expanded row renders its own `Fieldset`, and the value-transform
+  // input commits on a debounce -- so the collection a closure captured at the
+  // keystroke is older than the real one by the time the timer fires. Written
+  // back as an absolute value, that snapshot reverted whatever a *different*
+  // row had committed in between, and one of the two edits was silently lost
+  // on save.
+  const onChange = jest.fn();
+  const collection = [
+    { id: 'a', column_name: 'a', description: '' },
+    { id: 'b', column_name: 'b', description: '' },
+  ];
+
+  render(
+    <CollectionTable
+      collection={collection}
+      tableColumns={['column_name']}
+      sortColumns={[]}
+      expandFieldset={
+        <Fieldset compact>
+          <Field
+            fieldKey="description"
+            label="Description"
+            control={<TextControl />}
+          />
+        </Fieldset>
+      }
+      onChange={onChange}
+    />,
+  );
+
+  const expanders = screen.getAllByRole('button', { name: /expand row/i });
+  await userEvent.click(expanders[0]);
+  await userEvent.click(expanders[1]);
+
+  const inputs = screen.getAllByRole('textbox');
+  expect(inputs).toHaveLength(2);
+
+  // Both rows edited before either commit is observed by the other.
+  fireEvent.change(inputs[0], { target: { value: 'from A' } });
+  fireEvent.change(inputs[1], { target: { value: 'from B' } });
+
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+
+  const final = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+  const byId = Object.fromEntries(
+    final.map((item: { id: string; description?: string }) => [
+      item.id,
+      item.description,
+    ]),
+  );
+  expect(byId.a).toBe('from A');
+  expect(byId.b).toBe('from B');
+});
+
+test('a fieldset commit reaches the keyed collection a cleared sort reads', async () => {
+  // `onSortChange` restores the pre-sort order from `collection[id]`, so a
+  // fieldset commit that updated only the array would resurface as a stale row
+  // the moment the sort is cleared. Both structures have to move together.
+  const onChange = jest.fn();
+  const collection = [
+    { id: 1, column_name: 'b_col', description: '' },
+    { id: 2, column_name: 'a_col', description: '' },
+  ];
+
+  const { container } = render(
+    <CollectionTable
+      collection={collection}
+      tableColumns={['column_name']}
+      sortColumns={['column_name']}
+      expandFieldset={
+        <Fieldset compact>
+          <Field
+            fieldKey="description"
+            label="Description"
+            control={<TextControl />}
+          />
+        </Fieldset>
+      }
+      onChange={onChange}
+    />,
+  );
+
+  await userEvent.click(
+    screen.getAllByRole('button', { name: /expand row/i })[0],
+  );
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: 'edited' },
+  });
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+
+  // Sort, then clear the sort.
+  const header = container.querySelector('th.ant-table-column-has-sorters');
+  await userEvent.click(header!);
+  await userEvent.click(header!);
+  await userEvent.click(header!);
+
+  const final = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+  const edited = final.find((item: { id: number }) => item.id === 1);
+  expect(edited?.description).toBe('edited');
+});
+
+test('applies rowClassName to each row', () => {
+  // The dataset editor mutes the partition column's row this way; without the
+  // prop reaching the table the class was never applied and the styling in
+  // `StyledColumnsTableWrapper` was dead.
+  const { container } = render(
+    <CollectionTable
+      {...props}
+      rowClassName={record =>
+        record.column_name === 'num_boys' ? 'partition-column-row' : ''
+      }
+    />,
+  );
+
+  const tagged = container.querySelectorAll('tr.partition-column-row');
+  expect(tagged).toHaveLength(1);
+  expect(tagged[0]).toHaveTextContent('num_boys');
+});
+
+test('expands the row a reveal request points at', () => {
+  // A link elsewhere in the editor asks for a column by name; the row has to
+  // open on its own, with nothing for the user to click.
+  render(
+    <CollectionTable
+      {...props}
+      expandFieldset={<Fieldset compact>{null}</Fieldset>}
+      expandItemWhere={record => record.column_name === 'num_boys'}
+      expandItemNonce={1}
+    />,
+  );
+
+  expect(screen.getByLabelText('Collapse row')).toBeInTheDocument();
+});
+
+test('re-opens a revealed row the user collapsed, on a second request', () => {
+  // The request is an event, not a state: asking for the same column twice
+  // has to work, which is what the nonce carries. Without it a bare name
+  // would make the second ask a no-op and the row would stay shut.
+  const Harness = () => {
+    const [nonce, setNonce] = useState(1);
+    return (
+      <>
+        <button type="button" onClick={() => setNonce(n => n + 1)}>
+          reveal again
+        </button>
+        <CollectionTable
+          {...props}
+          expandFieldset={<Fieldset compact>{null}</Fieldset>}
+          expandItemWhere={record => record.column_name === 'num_boys'}
+          expandItemNonce={nonce}
+        />
+      </>
+    );
+  };
+
+  render(<Harness />);
+
+  fireEvent.click(screen.getByLabelText('Collapse row'));
+  expect(screen.queryByLabelText('Collapse row')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'reveal again' }));
+
+  expect(screen.getByLabelText('Collapse row')).toBeInTheDocument();
+});
+
+test('a collection change does not reopen a revealed row the user collapsed', () => {
+  // The reveal is keyed on the nonce alone, and the collection is replaced
+  // wholesale on every cell edit, delete, add and props sync. An effect that
+  // depended on it re-asserted the expansion afterwards, so the row reopened
+  // on the user's next change to any row -- the opposite of the additive
+  // behaviour the prop documents.
+  const Harness = () => {
+    const [collection, setCollection] = useState(props.collection);
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() =>
+            setCollection(items =>
+              items.map(item => ({ ...item, verbose_name: 'edited' })),
+            )
+          }
+        >
+          edit a row
+        </button>
+        <CollectionTable
+          {...props}
+          collection={collection}
+          expandFieldset={<Fieldset compact>{null}</Fieldset>}
+          expandItemWhere={record => record.column_name === 'num_boys'}
+          expandItemNonce={1}
+        />
+      </>
+    );
+  };
+
+  render(<Harness />);
+
+  fireEvent.click(screen.getByLabelText('Collapse row'));
+  expect(screen.queryByLabelText('Collapse row')).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'edit a row' }));
+
+  expect(screen.queryByLabelText('Collapse row')).not.toBeInTheDocument();
+});
+
+test('a reveal request leaves rows the user opened open', () => {
+  // Expansion is additive, so revealing one row must not close another.
+  const Harness = () => {
+    const [nonce, setNonce] = useState<number | undefined>(undefined);
+    return (
+      <>
+        <button type="button" onClick={() => setNonce(1)}>
+          reveal
+        </button>
+        <CollectionTable
+          {...props}
+          expandFieldset={<Fieldset compact>{null}</Fieldset>}
+          expandItemWhere={record => record.column_name === 'num_boys'}
+          expandItemNonce={nonce}
+        />
+      </>
+    );
+  };
+
+  render(<Harness />);
+
+  fireEvent.click(screen.getAllByLabelText('Expand row')[0]);
+  expect(screen.getAllByLabelText('Collapse row')).toHaveLength(1);
+
+  fireEvent.click(screen.getByRole('button', { name: 'reveal' }));
+
+  expect(screen.getAllByLabelText('Collapse row')).toHaveLength(2);
 });

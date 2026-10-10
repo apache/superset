@@ -47,6 +47,11 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.commands.utils import compute_subjects, raise_if_managed_externally
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
+from superset.connectors.sqla.partition_mapping import (
+    is_unfinished,
+    stored_expression_error,
+    validate_partition_mapping,
+)
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.schemas import FolderSchema
 from superset.exceptions import (
@@ -308,6 +313,8 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         if predicate := self._properties.get("fetch_values_predicate"):
             self._validate_fetch_values_predicate(predicate, exceptions)
 
+        self._validate_partition_mapping(exceptions)
+
         if folders := self._properties.get("folders"):
             valid_uuids: set[UUID] = set()
             if metrics:
@@ -415,6 +422,141 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                         field_name=f"{label}.{idx}.expression",
                     )
                 )
+
+    def _validate_partition_mapping(self, exceptions: list[ValidationError]) -> None:
+        """
+        Validate the dataset's partition filter mapping.
+
+        Only the blocking (Tier 1) issues become validation errors. Tier 2
+        issues -- an unparseable transform, a transform missing `:value` --
+        deliberately let the save through and leave the mapping inactive, per
+        the PRD, so a half-written transform doesn't cost the owner the rest of
+        their edits. They are surfaced by the editor, not by rejecting the PUT.
+
+        The transform is authored by a dataset owner, the same principal and
+        trust level as a calculated-column expression, so it also goes through
+        `validate_stored_expression` -- the parser gate that already governs
+        stored expressions. That gate only applies to a transform that parses:
+        it rejects an unparseable expression outright, which would turn a Tier-2
+        issue into a blocking one and undo the paragraph above. Skipping it
+        there costs nothing -- an unparseable transform is never emitted into a
+        query -- and it is not a hole for templating, because Jinja in a
+        transform is already a Tier-1 blocking issue of its own.
+
+        Every path that *reads* a mapping is gated on the feature flag, so this
+        one is too: with the flag off nothing mirrors, and rejecting a save over
+        a mapping that can never be consumed would be a validation error the
+        owner has no way to act on.
+        """
+        if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
+            return
+
+        self._model = cast(SqlaTable, self._model)
+
+        columns = self._properties.get("columns")
+        column_names = (
+            {column["column_name"] for column in columns}
+            if columns is not None
+            else {column.column_name for column in self._model.columns}
+        )
+
+        partition_column = self._properties.get(
+            "partition_column", self._model.partition_column
+        )
+        partition_mapped_column = self._properties.get(
+            "partition_mapped_column", self._model.partition_mapped_column
+        )
+        main_dttm_col = self._properties.get("main_dttm_col", self._model.main_dttm_col)
+        if not partition_column:
+            return
+
+        # A column payload drops every column it omits, and `update_columns`
+        # then runs `DatasetDAO.clear_dangling_partition_mapping` to drop a
+        # mapping whose columns went with them -- but that happens later, during
+        # `run()`. Validate the state that cleanup leaves behind, or a metadata
+        # sync that legitimately removes the mapped column is rejected before
+        # the cleanup meant to handle it ever runs, which is exactly the
+        # orphaned case the cleanup exists for.
+        #
+        # Only a *stored* reference is forgiven. Asking in this very request to
+        # map onto a column the same request does not define is a mistake worth
+        # reporting, not something to quietly clean up.
+        if columns is not None:
+            if (
+                "partition_column" not in self._properties
+                and partition_column not in column_names
+            ):
+                return
+            if (
+                "partition_mapped_column" not in self._properties
+                and partition_mapped_column
+                and partition_mapped_column not in column_names
+            ):
+                partition_mapped_column = None
+
+        database = self._properties.get("database") or self._model.database
+        catalog = self._properties.get("catalog", self._model.catalog)
+        schema = self._properties.get("schema", self._model.schema)
+
+        effective_mapped_column = partition_mapped_column or main_dttm_col
+        transform = self._effective_transform(columns, effective_mapped_column)
+
+        for issue in validate_partition_mapping(
+            column_names=column_names,
+            partition_column=partition_column,
+            partition_mapped_column=partition_mapped_column,
+            main_dttm_col=main_dttm_col,
+            transform=transform,
+            engine=database.backend,
+        ):
+            if issue.blocking:
+                exceptions.append(
+                    ValidationError(str(issue.message), field_name=issue.field)
+                )
+
+        # Everything except a transform that is not SQL yet. A half-typed
+        # transform is a Tier-2 issue above -- the mapping saves and stays
+        # inactive -- and this gate fails closed on anything that does not
+        # parse, so asking it would refuse the save mid-keystroke. Narrower
+        # than "parses as a single expression": a set-operation or a
+        # multi-statement transform fails that too, and has to reach this gate.
+        if transform and not is_unfinished(transform, database.backend):
+            # `stored_expression_error` rather than `validate_stored_expression`
+            # alone, which it already includes: it is the gate preview, import
+            # and the legacy save path all use, and running a narrower one here
+            # left a normal PUT the only door into this field that skipped the
+            # function denylist. A transform stored through that door is spliced
+            # into the probe as SQL and run by the engine, so it has to clear
+            # the same bar everywhere.
+            if reason := stored_expression_error(database, catalog, schema, transform):
+                exceptions.append(
+                    ValidationError(reason, field_name="partition_value_transform")
+                )
+
+    def _effective_transform(
+        self,
+        columns: list[dict[str, Any]] | None,
+        mapped_column: str | None,
+    ) -> str | None:
+        """
+        The value transform on the effective mapped column.
+
+        Reads from the payload when the request carries columns, and from the
+        persisted model otherwise -- a PUT that changes only `partition_column`
+        still has to be validated against the transform already stored.
+        """
+        if not mapped_column:
+            return None
+        if columns is not None:
+            for column in columns:
+                if column.get("column_name") == mapped_column:
+                    return column.get("partition_value_transform")
+            return None
+        model = cast(SqlaTable, self._model)
+        for existing in model.columns:
+            if existing.column_name == mapped_column:
+                return existing.partition_value_transform
+        return None
 
     def _validate_fetch_values_predicate(
         self,

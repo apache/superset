@@ -7238,6 +7238,41 @@ def test_rls_returns_whether_applied(
 @pytest.mark.parametrize(
     "sql, engine, expected",
     [
+        # Hive's parser resolves the zero-argument form to CURRENT_TIMESTAMP,
+        # which is what it actually means, so that is the name reported.
+        ("SELECT unix_timestamp()", "hive", {"CURRENT_TIMESTAMP"}),
+        ("SELECT unix_timestamp( )", "hive", {"CURRENT_TIMESTAMP"}),
+        ("SELECT unix_timestamp(ds) - unix_timestamp()", "hive", {"CURRENT_TIMESTAMP"}),
+        # Dialects that do not special-case it report the name as written.
+        ("SELECT unix_timestamp()", "sqlite", {"UNIX_TIMESTAMP"}),
+        ("SELECT unix_timestamp(ds)", "hive", set()),
+        ("SELECT unix_timestamp(ds)", "sqlite", set()),
+        ("SELECT lower(country)", "hive", set()),
+        ("SELECT * FROM some_table", "hive", set()),
+        # A named node whose arguments span all three shapes sqlglot uses: a
+        # scalar (`this`), a list (`expressions`), and unset optional slots
+        # left as `None`. Reading only `this` would count this as niladic.
+        ("SELECT coalesce(a, b)", "hive", set()),
+        # `expressions` is the only argument here, so the list branch is what
+        # decides whether the call looks niladic at all.
+        ("SELECT concat(a, b)", "hive", set()),
+    ],
+)
+def test_get_niladic_functions(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Check the `get_niladic_functions` method.
+
+    Some functions mean something entirely different with no arguments -- on
+    Hive and Impala `unix_timestamp()` is the current time while
+    `unix_timestamp(x)` is a pure conversion -- so callers that care about
+    determinism need to distinguish the two by arity, not by name.
+    """
+    assert SQLStatement(sql, engine).get_niladic_functions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
         ("SELECT SUM(amount), COALESCE(MAX(x), 0) FROM t", "postgresql", set()),
         (
             "SELECT query_to_xml('SELECT * FROM t', true, false, '')",
@@ -7260,6 +7295,163 @@ def test_get_unmodelled_functions(sql: str, engine: str, expected: set[str]) -> 
     that table extraction cannot see.
     """
     assert SQLStatement(sql, engine).get_unmodelled_functions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT lower(country)", "hive", 1),
+        ("SELECT unix_timestamp(ds)", "hive", 1),
+        # The case this exists for: a caller wrapping a user-supplied fragment
+        # in `SELECT <fragment>` parses the same whether the fragment is one
+        # expression or a list, and the two return a different column count.
+        ("SELECT lower(country), 'x'", "hive", 2),
+        ("SELECT a, b, c", "hive", 3),
+        ("SELECT * FROM some_table", "hive", 1),
+        # Not a SELECT at all.
+        ("INSERT INTO t VALUES (1)", "hive", 0),
+    ],
+)
+def test_count_select_expressions(sql: str, engine: str, expected: int) -> None:
+    """Check the `count_select_expressions` method."""
+    assert SQLStatement(sql, engine).count_select_expressions() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT lower(country) AS v0", "hive", ["v0"]),
+        ("SELECT a AS v0, b AS v1", "hive", ["v0", "v1"]),
+        # Unaliased, which is the case the method exists to make visible: a
+        # caller that reads results back positionally needs the aliases it
+        # asked for to have survived.
+        ("SELECT lower(country)", "hive", [None]),
+        ("SELECT a AS v0, b", "hive", ["v0", None]),
+        # A comment swallows the rest of its line, alias included, and the
+        # query still returns the right number of columns -- so counting them
+        # does not notice and reading the aliases does.
+        ("SELECT 1 -- 'x' AS v0", "hive", [None]),
+        # A FROM clause is no obstacle; some engines cannot SELECT without one.
+        ("SELECT lower(country) AS v0 FROM t", "hive", ["v0"]),
+        # Not a SELECT at all.
+        ("INSERT INTO t VALUES (1)", "hive", []),
+    ],
+)
+def test_get_select_aliases(sql: str, engine: str, expected: list[str | None]) -> None:
+    """Check the `get_select_aliases` method."""
+    assert SQLStatement(sql, engine).get_select_aliases() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, name, expected",
+    [
+        ("SELECT lower(standin)", "hive", "standin", 1),
+        ("SELECT concat(standin, standin)", "hive", "standin", 2),
+        ("SELECT CAST(standin AS BIGINT)", "hive", "standin", 1),
+        ("SELECT lower(country)", "hive", "standin", 0),
+        # The cases the method exists for: a caller that substitutes an
+        # identifier for a placeholder learns from the count whether the
+        # placeholder landed anywhere the engine evaluates. A string literal
+        # holds no column reference...
+        ("SELECT 'standin'", "hive", "standin", 0),
+        # ...and a comment is not parsed at all.
+        ("SELECT 1 -- standin", "hive", "standin", 0),
+        ("SELECT 1 /* standin */", "hive", "standin", 0),
+        # Compared case-insensitively, since a dialect may normalize the case
+        # of an unquoted identifier.
+        ("SELECT lower(STANDIN)", "hive", "standin", 1),
+        ("SELECT lower(standin)", "snowflake", "STANDIN", 1),
+    ],
+)
+def test_count_bare_column_references(
+    sql: str, engine: str, name: str, expected: int
+) -> None:
+    """Check the `count_bare_column_references` method."""
+    assert SQLStatement(sql, engine).count_bare_column_references(name) == expected
+
+
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT lower(country)", True),
+        ("SELECT lower(country) AS x", True),
+        ("SELECT CAST(ds AS DATE)", True),
+        ("SELECT NULL", True),
+        # The case this exists for. `count_select_expressions` returns 1 here,
+        # so a caller gated on that alone splices the fragment in and whatever
+        # it appends -- an alias, a suffix -- lands inside the FROM clause.
+        ("SELECT secret FROM vault", False),
+        ("SELECT 1 WHERE 1 = 1", False),
+        ("SELECT 1 GROUP BY 1", False),
+        ("SELECT 1 ORDER BY 1", False),
+        ("SELECT 1 LIMIT 1", False),
+        ("SELECT a, b", False),
+        ("SELECT 1 UNION ALL SELECT 2", False),
+        ("INSERT INTO t VALUES (1)", False),
+        # A sub-query sits inside the projection, so it is bare by this
+        # measure. Callers that care need `has_subquery` as well.
+        ("SELECT (SELECT secret FROM vault)", True),
+    ],
+)
+def test_is_bare_select_expression(sql: str, engine: str, expected: bool) -> None:
+    """
+    Check the `is_bare_select_expression` method.
+
+    Parametrized by engine because the predicate is stated as an allow-list
+    over the parsed node's arguments: a dialect that parses one of these into a
+    differently named argument has to keep failing closed.
+    """
+    assert SQLStatement(sql, engine).is_bare_select_expression() is expected
+
+
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT lower(country)", set()),
+        ("SELECT a, b", set()),
+        # Reported without sqlglot's keyword-avoiding underscore, which its FROM
+        # clause carries as `from_`. A caller comparing against {"from"} should
+        # not have to know that, nor track it across releases.
+        ("SELECT 1 FROM t", {"from"}),
+        ("SELECT 1 FROM t WHERE x = 1", {"from", "where"}),
+        ("SELECT 1 GROUP BY 1", {"group"}),
+        ("SELECT 1 LIMIT 1", {"limit"}),
+        ("INSERT INTO t VALUES (1)", set()),
+    ],
+)
+def test_get_clause_names(sql: str, engine: str, expected: set[str]) -> None:
+    """
+    Check the `get_clause_names` method.
+
+    Parametrized by engine for the same reason `is_bare_select_expression` is:
+    the answer is read off the parsed node's own arguments, so a dialect that
+    names one differently has to show up in the answer rather than vanish from
+    it.
+    """
+    assert SQLStatement(sql, engine).get_clause_names() == expected
+
+
+@pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1", None),
+        ("SELECT 1 FROM DUAL", "FROM DUAL"),
+        ("SELECT 1 FROM SYSIBM.SYSDUMMY1", "FROM SYSIBM.SYSDUMMY1"),
+        # Rendered, so the caller's own spacing does not have to match...
+        ("SELECT 1   FROM    DUAL", "FROM DUAL"),
+        # ...while identifier case, which an engine may treat as significant,
+        # survives.
+        ("SELECT 1 FROM dual", "FROM dual"),
+        ("SELECT 1 FROM a.b AS c", "FROM a.b AS c"),
+        ("INSERT INTO t VALUES (1)", None),
+    ],
+)
+def test_get_from_clause_sql(sql: str, engine: str, expected: str | None) -> None:
+    """Check the `get_from_clause_sql` method."""
+    assert SQLStatement(sql, engine).get_from_clause_sql() == expected
 
 
 @pytest.mark.parametrize(

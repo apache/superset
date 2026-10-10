@@ -35,7 +35,7 @@ from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.types import TypeEngine
 
-from superset import db, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
@@ -48,6 +48,13 @@ from superset.commands.importers.v1.utils import (
     find_existing_for_import,
 )
 from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.partition_mapping import (
+    drop_unmapped_value_transforms,
+    FEATURE_FLAG as PARTITION_FILTER_MAPPING,
+    is_unfinished,
+    stored_expression_error,
+    validate_transform,
+)
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetParseError, SupersetSecurityException
@@ -265,6 +272,106 @@ def _get_template_params(dataset: SqlaTable) -> dict[str, Any]:
         )
         return {}
     return params if isinstance(params, dict) else {}
+
+
+def _default_omitted_monotonic_declarations(columns: list[dict[str, Any]]) -> None:
+    """
+    Materialize `partition_transform_is_monotonic` wherever a transform is set.
+
+    `ImportV1ColumnSchema` gives the declaration a `load_default` of False so a
+    bundle predating the field cannot claim its transform preserves ordering.
+    That default never reaches storage: the import pipeline validates the
+    payload and then applies the *raw* config, so on an overwrite an omitted key
+    keeps whatever is stored -- including a True left behind by the transform
+    this bundle is replacing. A non-monotonic transform declared monotonic
+    enables range mirrors that exclude rows the filter keeps.
+
+    Only columns that supply a transform are touched, so a re-import that says
+    nothing about a column stays idempotent.
+    """
+    for column in columns:
+        if column.get("partition_value_transform"):
+            column.setdefault("partition_transform_is_monotonic", False)
+
+
+def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
+    """
+    Drop a partition value transform the save path would have rejected.
+
+    Import is the one door into this field that does not go through
+    `UpdateDatasetCommand`, so a bundle can carry a transform holding Jinja or
+    calling a non-deterministic function -- one that will never mirror a filter,
+    and that the editor can only report as broken after the fact. Dropping it on
+    the way in leaves the column with no transform, a state an owner can see and
+    fix, rather than a stored expression that looks configured and is not.
+
+    Deliberately sanitizes rather than raises. A bundle is imported as a whole,
+    and failing someone's entire dataset over one unusable expression is a worse
+    trade than importing the dataset without it. This is the same bargain
+    `DatasetDAO.clear_dangling_partition_mapping` already strikes for a mapping
+    whose column went away.
+
+    Two kinds of check, and only one of them answers to the feature flag. The
+    usability checks ask whether a transform will ever mirror a filter, which
+    is a question about a live feature; with the flag off nothing mirrors, so
+    rewriting the bundle would discard configuration for no gain. The
+    structural check asks whether the expression is one this product stores at
+    all, and that answer does not change with a flag -- an import written while
+    the flag was off would otherwise sit in the metadata DB fully armed,
+    waiting for an operator to turn the flag on.
+    """
+    columns = config.get("columns")
+    if not columns:
+        return
+    if not any(column.get("partition_value_transform") for column in columns):
+        return
+
+    _default_omitted_monotonic_declarations(columns)
+
+    database = db.session.query(Database).filter_by(id=config["database_id"]).first()
+    if database is None:
+        return
+
+    check_usability = is_feature_enabled(PARTITION_FILTER_MAPPING)
+    catalog = config.get("catalog")
+    schema = config.get("schema")
+
+    for column in columns:
+        transform = column.get("partition_value_transform")
+        if not transform:
+            continue
+
+        reasons: list[str] = []
+        # Skipped only for a transform that is not SQL yet, which is the same
+        # condition `UpdateDatasetCommand` puts in front of this gate. A PUT
+        # stores a half-typed transform and reports the mapping inactive, and
+        # `stored_expression_error` fails closed on anything that does not
+        # parse -- as it must, for the probe's sake. Asking it here
+        # unconditionally made export-then-import discard configuration the
+        # editor keeps, flag on or off. Note this is narrower than "does not
+        # parse": a multi-statement transform also fails to parse as a
+        # statement, and it still has to be dropped.
+        if not is_unfinished(transform, database.backend):
+            if reason := stored_expression_error(database, catalog, schema, transform):
+                reasons.append(reason)
+        if check_usability:
+            reasons.extend(
+                str(issue.message)
+                for issue in validate_transform(transform, database.backend)
+                if issue.blocking
+            )
+
+        if reasons:
+            logger.warning(
+                "Dropping the partition value transform on %s.%s (dataset %s) "
+                "during import: %s",
+                config.get("table_name"),
+                column.get("column_name"),
+                config.get("uuid"),
+                "; ".join(reasons),
+            )
+            column["partition_value_transform"] = None
+            column["partition_transform_is_monotonic"] = False
 
 
 def import_dataset(  # noqa: C901
@@ -506,6 +613,41 @@ def import_dataset(  # noqa: C901
                     )
                     attributes["extra"] = None
 
+    drop_unusable_partition_transforms(config)
+    # And the mapping's one-transform invariant, against the columns this bundle
+    # writes. `DatasetDAO.clear_unmapped_partition_transforms` runs on both
+    # sides of the import below, but it is gated on the feature flag -- it
+    # discards stored configuration -- so a bundle imported during a flag-off
+    # window could park a transform on a column the mapping does not mirror and
+    # have it stored. Nothing reads it while the flag is off, and then the flag
+    # goes on and the mapping resolves onto it. Dropped rather than refused, the
+    # same bargain the sanitizer above strikes and for the same reason: a bundle
+    # is imported whole.
+    #
+    # Each reference falls back to the stored dataset, because an overwrite
+    # keeps whatever the bundle omits -- so a bundle that says nothing about
+    # `partition_column` is still mapping onto the stored one.
+    if cleared := drop_unmapped_value_transforms(
+        config.get("columns"),
+        partition_column=config.get(
+            "partition_column", getattr(existing, "partition_column", None)
+        ),
+        partition_mapped_column=config.get(
+            "partition_mapped_column",
+            getattr(existing, "partition_mapped_column", None),
+        ),
+        main_dttm_col=config.get(
+            "main_dttm_col", getattr(existing, "main_dttm_col", None)
+        ),
+    ):
+        logger.warning(
+            "Dropping the partition value transform on %s.%s (dataset %s) "
+            "during import: the mapping does not mirror those columns",
+            config.get("table_name"),
+            ", ".join(cleared),
+            config.get("uuid"),
+        )
+
     # should we delete columns and metrics not present in the current import?
     # Restore-via-import of a soft-deleted dataset is implicitly a clean
     # replacement (Option C): the user is bringing the dataset back by
@@ -516,6 +658,16 @@ def import_dataset(  # noqa: C901
 
     # should we also load data into the dataset?
     data_uri = config.get("data")
+
+    # Disarm transforms parked on the *old* mapping before the new references
+    # land, the way `DatasetDAO.update` does. Omitted column fields keep their
+    # stored values, so a bundle that clears the mapped-column override -- or
+    # re-points `main_dttm_col` -- makes a column that was previously unmapped
+    # the effective one. Run only afterwards, the cleanup below would resolve
+    # the new mapping, find that column effective and skip it, and a transform
+    # nobody in this bundle authored would go live.
+    if existing is not None:
+        DatasetDAO.clear_unmapped_partition_transforms(existing)
 
     # import recursively to include columns and metrics
     try:
@@ -581,6 +733,52 @@ def import_dataset(  # noqa: C901
 
     if dataset.id is None:
         db.session.flush()
+
+    # A bundle can name a mapped column and still carry transforms on other
+    # columns; the editor's client-side guard never runs here. Left in place, a
+    # transform on an unmirrored column is invisible and still stored, ready to
+    # go live the moment the mapped column resolves back to it.
+    DatasetDAO.clear_unmapped_partition_transforms(dataset)
+
+    # And repair a reference the import itself broke: a `sync` deletion can
+    # remove the column `partition_column` names, which otherwise leaves the
+    # dataset failing `UpdateDatasetCommand`'s validation on every later edit --
+    # including a description-only PUT, which carries no columns payload and so
+    # cannot reach the forgiveness branch that tolerates a stored-only dangle.
+    #
+    # Flushed and expired first: the `sync` deletion is still pending here, and
+    # reading the relationship without flushing loads the removed rows back and
+    # un-deletes them.
+    db.session.flush()
+    db.session.expire(dataset, ["columns"])
+    DatasetDAO.clear_dangling_partition_mapping(
+        dataset, {column.column_name for column in dataset.columns}
+    )
+
+    # The same repair for the other reference a bundle can leave unsaveable. A
+    # dangling reference is not the only mapping `UpdateDatasetCommand` refuses:
+    # an *explicit* self-mapping -- `partition_mapped_column` equal to
+    # `partition_column` -- is blocking there too. A bundle setting both to
+    # `event_time` imported happily and then failed every later edit, including
+    # a description-only PUT, until someone repaired the mapping by hand.
+    #
+    # Cleared rather than refused, which is the bargain the rest of this
+    # function strikes: a bundle is imported as a whole, and failing someone's
+    # dataset over one unusable reference is the worse trade. Dropping only the
+    # override leaves the mapping following `main_dttm_col`, which is the state
+    # a bundle that simply omitted the field would have produced.
+    if (
+        dataset.partition_mapped_column
+        and dataset.partition_mapped_column == dataset.partition_column
+    ):
+        logger.warning(
+            "Clearing the partition mapped column on %s (dataset %s) during "
+            "import: it names the partition column itself, which no later save "
+            "would accept",
+            config.get("table_name"),
+            config.get("uuid"),
+        )
+        dataset.partition_mapped_column = None
 
     if not ignore_permissions:
         try:

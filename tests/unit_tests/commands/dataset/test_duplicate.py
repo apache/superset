@@ -454,6 +454,8 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
     mock_column.description = "Test column"
     mock_column.filterable = False
     mock_column.groupby = False
+    mock_column.partition_value_transform = "unix_timestamp(:value)"
+    mock_column.partition_transform_is_monotonic = True
 
     mock_metric = Mock(spec=SqlMetric)
     mock_metric.metric_name = "count"
@@ -522,6 +524,16 @@ def test_duplicate_dataset_with_columns_and_metrics() -> None:
                         # clone rather than being reset to the column defaults.
                         assert result.columns[0].filterable is False
                         assert result.columns[0].groupby is False
+                        # `override` copies the table-level mapping references,
+                        # so the column-side configuration has to come with
+                        # them or the clone's mapping silently never mirrors.
+                        assert (
+                            result.columns[0].partition_value_transform
+                            == "unix_timestamp(:value)"
+                        )
+                        assert (
+                            result.columns[0].partition_transform_is_monotonic is True
+                        )
 
                         # Verify metrics were duplicated
                         assert len(result.metrics) == 1

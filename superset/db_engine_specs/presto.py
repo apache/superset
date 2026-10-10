@@ -164,6 +164,9 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     A base class that share common functions between Presto and Trino
     """
 
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
 
