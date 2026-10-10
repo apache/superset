@@ -3976,6 +3976,8 @@ msgstr "전체로 돌아가기"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 #, fuzzy
 msgid "Backend"
 msgstr "백엔드"
@@ -12377,6 +12379,8 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 #, fuzzy
 msgid "Host"
 msgstr "호스트"
@@ -20816,6 +20820,7 @@ msgstr "필터"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, fuzzy, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -21828,6 +21833,7 @@ msgstr "슬라이더 및 범위 입력"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
+#. i18n: the short identifier in a dashboard's URL, not the animal
 #, fuzzy
 msgid "Slug"
 msgstr "슬러그"

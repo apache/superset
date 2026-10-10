@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-08 20:10-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -988,9 +988,7 @@ msgstr ""
 msgid "A rule with this name already exists."
 msgstr ""
 
-msgid ""
-"A semantic view's provider query is produced when the chart runs and "
-"returned with its data."
+msgid "A semantic view's provider query is produced when the chart runs and returned with its data."
 msgstr ""
 
 msgid "A set of parameters that become available in the query using Jinja templating syntax"
@@ -2449,6 +2447,8 @@ msgstr ""
 msgid "Back to all"
 msgstr ""
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr ""
 
@@ -7306,6 +7306,8 @@ msgstr ""
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr ""
 
@@ -12123,6 +12125,7 @@ msgstr ""
 msgid "Select values"
 msgstr ""
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button."
 msgstr ""
@@ -12704,6 +12707,7 @@ msgstr ""
 msgid "Slider and range input"
 msgstr ""
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr ""
 
