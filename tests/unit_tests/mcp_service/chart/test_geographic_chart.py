@@ -549,6 +549,7 @@ async def _exercise_public_geographic_entry(  # noqa: C901
     expected_error: str | None = None,
     expected_form_data: dict[str, Any] | None = None,
     invalid_error_code: str = "INVALID_GEOGRAPHIC_RESULT",
+    invalid_error_message: str | None = None,
 ) -> None:
     """Run native public compile/save paths against controlled database results."""
     import importlib
@@ -794,6 +795,8 @@ async def _exercise_public_geographic_entry(  # noqa: C901
                     assert not json.loads(saved["params"]).get("adhoc_filters")
         else:
             assert payload["error"]["error_code"] == invalid_error_code, payload
+            if invalid_error_message is not None:
+                assert invalid_error_message in json.dumps(payload["error"]), payload
 
 
 @pytest.mark.asyncio
@@ -2124,4 +2127,73 @@ async def test_world_map_bubbles_reject_explicit_size_metric_clear(
         persist,
         existing_override={"secondary_metric": form_for("world_map")["metric"]},
         config_override={"show_bubbles": True, "secondary_metric": None},
+        result_override=result_for("world_map"),
+        invalid_error_message="show_bubbles requires secondary_metric",
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("label", "inherited_radius"),
+    [("store_id", False), ("store_id", True), ("latitude", True), ("longitude", True)],
+)
+@pytest.mark.parametrize(
+    ("entry", "persist"),
+    [("update_chart", True), ("update_chart", False), ("update_chart_preview", False)],
+)
+async def test_point_update_rejects_effective_radius_column_collision(
+    label: str, inherited_radius: bool, entry: str, persist: bool
+) -> None:
+    """Merged radius aliases cannot deduplicate effective dimension/coordinates."""
+    metric = {"name": "sales", "aggregate": "SUM", "label": label}
+    existing: dict[str, Any] = {"dimension": "store_id"}
+    config: dict[str, Any] = {}
+    if inherited_radius:
+        existing["point_radius_fixed"] = {
+            "type": "metric",
+            "value": {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"columnName": "sales"},
+                "label": label,
+            },
+        }
+    else:
+        config["radius_metric"] = metric
+    result = result_for("deck_scatter")
+    result["queries"][0]["data"][0]["store_id"] = 10
+    await _exercise_public_geographic_entry(
+        "deck_scatter",
+        False,
+        entry,
+        persist,
+        existing_override=existing,
+        config_override=config,
+        result_override=result,
+        expected_error="conflicts with an effective dimension or coordinate column",
+    )
+
+
+@pytest.mark.parametrize(
+    ("spatial_type", "column_key"),
+    [("geohash", "geohashCol"), ("delimited", "lonlatCol")],
+)
+def test_point_radius_label_cannot_reuse_encoded_coordinate_column(
+    spatial_type: str, column_key: str
+) -> None:
+    """Encoded coordinate fields also participate in SELECT name deduplication."""
+    form = {
+        **form_for("deck_scatter"),
+        "spatial": {"type": spatial_type, column_key: "coordinates"},
+        "point_radius_fixed": {
+            "type": "metric",
+            "value": {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"columnName": "sales"},
+                "label": "coordinates",
+            },
+        },
+    }
+    with pytest.raises(ValueError, match="effective dimension or coordinate column"):
+        DeckScatterChartPlugin().validate_merged_form_data(form, 3)

@@ -455,7 +455,7 @@ test.each([
         extraFormData: {
           filters: [{ col: 'country_name', op: 'IN', val: [expectedValue] }],
         },
-        filterState: { value: ['CAN'], selectedValues: ['CAN'] },
+        filterState: { value: [expectedValue], selectedValues: ['CAN'] },
       });
     }
   },
@@ -511,7 +511,7 @@ test.each([
                 { col: 'country_name', op: 'IN', val: [expectedValue] },
               ],
             },
-            filterState: { value: ['CAN'], selectedValues: ['CAN'] },
+            filterState: { value: [expectedValue], selectedValues: ['CAN'] },
           },
           isCurrentValueSelected: false,
         },

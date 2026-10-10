@@ -163,7 +163,7 @@ type Loader = {
 
 function renderUsaMap(
   rows: Record<string, unknown>[],
-  options: { selectedValues?: string[] } = {},
+  options: { selectedValues?: string[]; regionFormat?: string } = {},
 ) {
   const json = jest
     .spyOn(d3 as unknown as Loader, 'json')
@@ -181,7 +181,7 @@ function renderUsaMap(
         entity: 'state',
         metric: 'sales',
         select_country: 'usa',
-        region_format: 'abbreviation',
+        region_format: options.regionFormat ?? 'abbreviation',
         linear_color_scheme: 'schemeBlues',
       },
       queriesData: [{ data: rows }],
@@ -271,3 +271,26 @@ test('a selected boundary stays clearable after another filter drops its row', (
     json.mockRestore();
   }
 });
+
+test.each([
+  ['name', 'California'],
+  ['abbreviation', 'CA'],
+  ['iso_3166_2', 'US-CA'],
+])(
+  'region format %s uses source values for cross-filter labels',
+  (regionFormat, value) => {
+    const { interact, json, setDataMask } = renderUsaMap(
+      [{ state: value, sales: 10 }],
+      { regionFormat },
+    );
+    try {
+      interact('US-CA');
+      expect(setDataMask).toHaveBeenCalledWith({
+        extraFormData: { filters: [{ col: 'state', op: 'IN', val: [value] }] },
+        filterState: { value: [value], selectedValues: ['US-CA'] },
+      });
+    } finally {
+      json.mockRestore();
+    }
+  },
+);

@@ -707,8 +707,23 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
                 f"Dimension column {dimension!r} reuses a coordinate column; "
                 "choose a separate category column"
             )
+        column_labels = {dimension} if dimension is not None else set()
+        if isinstance(spatial, Mapping):
+            spatial_keys = {
+                "latlong": ("latCol", "lonCol"),
+                "geohash": ("geohashCol",),
+                "delimited": ("lonlatCol",),
+            }.get(spatial.get("type", ""), ())
+            column_labels.update(
+                spatial[key] for key in spatial_keys if spatial.get(key) is not None
+            )
         for metric in self.result_metrics(form_data):
             label = metric_result_label(metric)
+            if label in column_labels:
+                raise ValueError(
+                    f"Radius metric label {label!r} conflicts with an effective "
+                    "dimension or coordinate column; clear or replace the radius metric"
+                )
             if label in {"weight", "position", "extraProps"}:
                 raise ValueError(
                     f"Radius metric label {label!r} conflicts with a native spatial "

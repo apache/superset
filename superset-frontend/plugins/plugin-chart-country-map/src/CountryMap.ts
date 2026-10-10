@@ -222,7 +222,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
             : [],
         },
         filterState: {
-          value: values.length ? values : null,
+          value: values.length ? values.map(sourceValue) : null,
           selectedValues: values.length ? values : null,
         },
       },
