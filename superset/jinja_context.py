@@ -36,7 +36,10 @@ from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
 from superset import db, security_manager
-from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.commands.dataset.exceptions import (
+    DatasetInvalidError,
+    DatasetNotFoundError,
+)
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -65,6 +68,13 @@ if TYPE_CHECKING:
     from superset.security.guest_token import GuestToken
 
 logger = logging.getLogger(__name__)
+
+
+class _Unset:
+    """Sentinel indicating that no filter should be applied."""
+
+
+_UNSET: _Unset = _Unset()
 
 
 class UndefinedTemplateFunctionException(SupersetTemplateException):
@@ -1281,22 +1291,78 @@ def get_template_processor(
 
 
 def dataset_macro(
-    dataset_id: int,
+    dataset_id: int | None = None,
     include_metrics: bool = False,
     columns: list[str] | None = None,
+    schema: str | _Unset | None = _UNSET,
+    catalog: str | _Unset | None = _UNSET,
+    database_id: int | None = None,
+    alias: str | None = None,
+    *,
+    dataset_name: str | None = None,
+    database_name: str | None = None,
 ) -> str:
     """
-    Given a dataset ID, return the SQL that represents it.
+    Given a dataset ID or name, return the SQL that represents it.
+
+    If ``dataset_id`` is provided, the optional ``schema``, ``catalog`` and
+    either ``database_id`` or ``database_name`` parameters are ignored.
+
+    If ``dataset_name`` is provided, the optional ``schema``, ``catalog`` and
+    either ``database_id`` or ``database_name`` parameters are used to narrow down
+    the search when provided. If multiple datasets match the provided criteria, an
+    error is raised because the dataset name is ambiguous.
 
     The generated SQL includes all columns (including computed) by default. Optionally
     the user can also request metrics to be included, and columns to group by.
+
+    The ``alias`` parameter allows the user to specify an explicit alias for the
+    returned subquery.
     """
     # pylint: disable=import-outside-toplevel
+    from sqlalchemy.orm.exc import MultipleResultsFound
+
     from superset.daos.dataset import DatasetDAO
 
-    dataset = DatasetDAO.find_by_id(dataset_id)
+    if (dataset_id is None) == (dataset_name is None):
+        raise SupersetTemplateException(
+            "You must provide either 'dataset_id' or 'dataset_name', but not both."
+        )
+
+    if dataset_name is not None:
+        filters: dict[str, Any] = {}
+        if database_id is not None:
+            filters["database_id"] = database_id
+        if database_name is not None:
+            filters["database_name"] = database_name
+        if catalog is not _UNSET:
+            filters["catalog"] = catalog
+        if schema is not _UNSET:
+            filters["schema"] = schema
+
+        criteria = [
+            f"{dataset_name!r}",
+            *[f"{key}={value!r}" for key, value in filters.items()],
+        ]
+
+        try:
+            dataset = DatasetDAO.get_table_by_catalog_schema_and_name(
+                table_name=dataset_name,
+                **filters,
+            )
+        except MultipleResultsFound as ex:
+            raise DatasetInvalidError(
+                f"Multiple datasets named '{dataset_name}' match the provided criteria."
+                " Please specify additional qualifiers such as schema, catalog,"
+                " or database_id to identify a unique dataset."
+            ) from ex
+    else:
+        criteria = [f"{dataset_id!r}"]
+
+        dataset = DatasetDAO.find_by_id(cast(int, dataset_id))
+
     if not dataset:
-        raise DatasetNotFoundError(f"Dataset {dataset_id} not found!")
+        raise DatasetNotFoundError(f"Dataset {', '.join(criteria)} not found!")
 
     columns = columns or [column.column_name for column in dataset.columns]
     metrics = [metric.metric_name for metric in dataset.metrics]
@@ -1310,7 +1376,13 @@ def dataset_macro(
     }
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
-    return f"(\n{sql}\n) AS dataset_{dataset_id}"
+
+    if alias:
+        safe_alias = dataset.database.quote_identifier(alias)
+    else:
+        safe_alias = f"dataset_{dataset.id}"
+
+    return f"(\n{sql}\n) AS {safe_alias}"
 
 
 def get_dataset_id_from_context(metric_key: str) -> int:

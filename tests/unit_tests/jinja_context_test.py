@@ -31,8 +31,12 @@ from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm.exc import MultipleResultsFound
 
-from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.commands.dataset.exceptions import (
+    DatasetInvalidError,
+    DatasetNotFoundError,
+)
 from superset.connectors.sqla.models import (
     RowLevelSecurityFilter,
     SqlaTable,
@@ -1263,6 +1267,7 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
     ]
 
     dataset = SqlaTable(
+        id=1,
         table_name="old_dataset",
         columns=columns,
         metrics=metrics,
@@ -1292,10 +1297,7 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
     )
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = dataset
-    mocker.patch(
-        "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
-        return_value=[],
-    )
+    DatasetDAO.get_table_by_catalog_schema_and_name.return_value = dataset
 
     space = " "
 
@@ -1305,6 +1307,22 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
 SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, (revenue-expenses) AS profit{space}
 FROM my_schema.old_dataset
 ) AS dataset_1"""  # noqa: S608, E501
+    )
+
+    assert (
+        dataset_macro(dataset_name="old_dataset")
+        == f"""(
+SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, (revenue-expenses) AS profit{space}
+FROM my_schema.old_dataset
+) AS dataset_1"""  # noqa: S608, E501
+    )
+
+    assert (
+        dataset_macro(dataset_name="old_dataset", alias="my_alias")
+        == f"""(
+SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, (revenue-expenses) AS profit{space}
+FROM my_schema.old_dataset
+) AS my_alias"""  # noqa: S608, E501
     )
 
     assert (
@@ -1321,6 +1339,30 @@ FROM my_schema.old_dataset GROUP BY ds, num_boys, revenue, expenses, (revenue-ex
 SELECT ds AS ds, COUNT(*) AS cnt{space}
 FROM my_schema.old_dataset GROUP BY ds
 ) AS dataset_1"""  # noqa: S608
+    )
+
+    # Assert qualifier semantics (schema and catalog propagation)
+    dataset_macro(dataset_name="my_dataset")
+    dataset_macro(dataset_name="my_dataset", schema=None, catalog=None)
+    dataset_macro(dataset_name="my_dataset", schema="my_schema", catalog="my_catalog")
+
+    DatasetDAO.get_table_by_catalog_schema_and_name.assert_has_calls(
+        [
+            mocker.call(table_name="my_dataset"),
+            mocker.call(table_name="my_dataset", schema=None, catalog=None),
+            mocker.call(
+                table_name="my_dataset", schema="my_schema", catalog="my_catalog"
+            ),
+        ],
+        any_order=False,
+    )
+
+    # Assert MultipleResultsFound -> DatasetInvalidError translation
+    DatasetDAO.get_table_by_catalog_schema_and_name.side_effect = MultipleResultsFound
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        dataset_macro(dataset_name="old_dataset")
+    assert "Multiple datasets named 'old_dataset' match the provided criteria" in str(
+        excinfo.value
     )
 
     DatasetDAO.find_by_id.return_value = None
@@ -1340,8 +1382,15 @@ def test_dataset_macro_mutator_with_comments(mocker: MockerFixture) -> None:
         """
         return f"-- begin\n{sql}\n-- end"
 
+    dataset: SqlaTable = SqlaTable(id=1)
+    mocker.patch.object(
+        dataset,
+        "get_query_str_extended",
+        return_value=mocker.MagicMock(sql=mutator("SELECT 1")),
+    )
+
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
-    DatasetDAO.find_by_id().get_query_str_extended().sql = mutator("SELECT 1")
+    DatasetDAO.find_by_id.return_value = dataset
     assert (
         dataset_macro(1)
         == """(

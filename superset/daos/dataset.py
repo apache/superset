@@ -35,6 +35,7 @@ from superset.connectors.sqla.models import (
 from superset.constants import EPOCH_FORMATS
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
+from superset.jinja_context import _UNSET, _Unset
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -676,24 +677,51 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
     @staticmethod
     def get_table_by_catalog_schema_and_name(
-        database_id: int,
-        schema: str | None,
         table_name: str,
-        catalog: str | None = None,
+        database_id: int | None = None,
+        schema: str | _Unset | None = _UNSET,
+        catalog: str | _Unset | None = _UNSET,
+        skip_base_filter: bool = False,
+        *,
+        database_name: str | None = None,
     ) -> SqlaTable | None:
-        # Filter by the full ``(database_id, catalog, schema, table_name)``
-        # uniqueness key so callers can disambiguate datasets that share a
-        # ``table_name`` across schemas or catalogs (#30377).
-        return (
-            db.session.query(SqlaTable)
-            .filter_by(
-                database_id=database_id,
-                catalog=catalog,
-                schema=schema,
-                table_name=table_name,
+        # Filter by ``table_name`` and any additional identification attributes
+        # provided (either ``database_id`` or ``database_name``, ``catalog``,
+        # ``schema``). The full identification tuple, using either ``database_id``
+        # or ``database_name`` with ``catalog`` and ``schema``, can be used to
+        # disambiguate datasets sharing the same ``table_name`` (#30377), while
+        # partial criteria may match multiple datasets (#35662).
+        if database_id is not None and database_name is not None:
+            raise ValueError("Specify either 'database_id' or 'database_name'.")
+
+        query = db.session.query(SqlaTable).filter(SqlaTable.table_name == table_name)
+
+        if not skip_base_filter:
+            query = DatasetDAO._apply_base_filter(query)
+
+        if database_id is not None:
+            query = query.filter(SqlaTable.database_id == database_id)
+
+        if database_name is not None:
+            query = query.filter(
+                SqlaTable.database.has(Database.database_name == database_name)
             )
-            .one_or_none()
-        )
+
+        if catalog is not _UNSET:
+            query = query.filter(
+                SqlaTable.catalog.is_(None)
+                if catalog is None
+                else SqlaTable.catalog == catalog
+            )
+
+        if schema is not _UNSET:
+            query = query.filter(
+                SqlaTable.schema.is_(None)
+                if schema is None
+                else SqlaTable.schema == schema
+            )
+
+        return query.one_or_none()
 
     @classmethod
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
