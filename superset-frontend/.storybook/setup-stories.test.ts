@@ -24,11 +24,19 @@ type Listener = (payload: never) => void;
 interface StoryFixture {
   play?: () => Promise<void>;
   throwPlayFunctionExceptions?: boolean;
+  missingStoryId?: string;
+  reporters?: {
+    type: string;
+    status: string;
+    result?: { violations?: { id: string; help: string }[] };
+  }[];
 }
 
 function createPage({
   play,
   throwPlayFunctionExceptions = false,
+  missingStoryId,
+  reporters = [],
 }: StoryFixture = {}): StoryPage {
   const listeners = new Map<string, Listener>();
   const channel = {
@@ -41,6 +49,11 @@ function createPage({
     addInitScript: async script => script(),
     goto: async () => {
       Reflect.set(globalThis, '__STORYBOOK_ADDONS_CHANNEL__', channel);
+      if (missingStoryId) {
+        channel.emit('storyMissing', missingStoryId);
+        return;
+      }
+
       let status = 'success';
       try {
         await play?.();
@@ -50,7 +63,7 @@ function createPage({
           status = 'error';
         }
       }
-      channel.emit('storyFinished', { status, reporters: [] });
+      channel.emit('storyFinished', { status, reporters });
     },
     waitForFunction: async pageFunction => ({
       jsonValue: async () => pageFunction(),
@@ -108,4 +121,36 @@ test('passes when the story completes without errors', async () => {
       entry,
     ),
   ).resolves.toBeUndefined();
+});
+
+test('fails immediately when the story is missing', async () => {
+  await expect(
+    visitStory(createPage({ missingStoryId: entry.id }), entry),
+  ).rejects.toThrow(new RegExp(`is missing[\\s\\S]*${entry.id}`));
+});
+
+test('includes failed accessibility report violations', async () => {
+  await expect(
+    visitStory(
+      createPage({
+        reporters: [
+          {
+            type: 'a11y',
+            status: 'failed',
+            result: {
+              violations: [
+                {
+                  id: 'color-contrast',
+                  help: 'Text must have sufficient color contrast',
+                },
+              ],
+            },
+          },
+        ],
+      }),
+      entry,
+    ),
+  ).rejects.toThrow(
+    /a11y report failed[\s\S]*- color-contrast: Text must have sufficient color contrast/,
+  );
 });
