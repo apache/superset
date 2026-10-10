@@ -1026,7 +1026,8 @@ class PivotData {
   colKeys: string[][];
   rowTotals: Record<string, Aggregator>;
   colTotals: Record<string, Aggregator>;
-  allTotal: Aggregator;
+  allTotal: Aggregator | null;
+  allTotalFormatter: ((...args: unknown[]) => Aggregator) | null;
   subtotals: SubtotalOptions;
   sorted: boolean;
 
@@ -1103,7 +1104,11 @@ class PivotData {
     this.colKeys = [];
     this.rowTotals = {};
     this.colTotals = {};
-    this.allTotal = this.aggregator(this, [], []);
+    // Created lazily by pushAllTotal() on the first record that lands in it, so
+    // it resolves its formatter through getFormattedAggregator like every other
+    // slot -- see the note there.
+    this.allTotal = null;
+    this.allTotalFormatter = null;
     this.subtotals = subtotals;
     this.sorted = false;
 
@@ -1128,6 +1133,33 @@ class PivotData {
       return this.aggregator;
     }
     return fmtAggs[groupName][String(groupValue)] || this.aggregator;
+  }
+
+  /*
+   * Push a record into the grand-total slot, (re)building that slot's aggregator
+   * whenever the record resolves to a different formatter.
+   *
+   * The grand total has no key of its own, so -- exactly like rowTotals and
+   * colTotals -- its aggregator is derived from the records that reach it rather
+   * than fixed up front. Building it in the constructor from `this.aggregator`
+   * (as this used to) pinned it to `defaultFormatter`, so a metric configured
+   * with a currency or custom d3 format had its total render as a bare number
+   * while its body cells rendered as money.
+   *
+   * Rebuilding on a formatter change is what keeps that honest when several
+   * metrics share the grand total: `push` overwrites the stored value, so a slot
+   * built once from the first metric would go on to render the *last* metric's
+   * value in the *first* metric's format. `getFormattedAggregator` returns a
+   * stable function per metric, so an identity check is enough to spot the
+   * switch, and records that resolve to the same formatter still accumulate.
+   */
+  pushAllTotal(record: PivotRecord): void {
+    const formatter = this.getFormattedAggregator(record);
+    if (!this.allTotal || formatter !== this.allTotalFormatter) {
+      this.allTotalFormatter = formatter;
+      this.allTotal = formatter(this, [], []);
+    }
+    this.allTotal.push(record);
   }
 
   arrSort(attrs: string[], partialOnTop: boolean | undefined, reverse = false) {
@@ -1292,7 +1324,7 @@ class PivotData {
 
     // Place the value in exactly one slot, determined by the level.
     if (rowKey.length === 0 && colKey.length === 0) {
-      this.allTotal.push(record);
+      this.pushAllTotal(record);
     } else if (rowKey.length === 0) {
       this.colTotals[flatColKey].push(record);
       this.colTotals[flatColKey].isSubtotal = isColSubtotal;
@@ -1320,11 +1352,11 @@ class PivotData {
       const realColCount = levelColumns.filter(c => c !== metricKey).length;
       const realRowCount = levelRows.filter(r => r !== metricKey).length;
       if (levelColumns.includes(metricKey) && realColCount === 0) {
-        if (rowKey.length === 0) this.allTotal.push(record);
+        if (rowKey.length === 0) this.pushAllTotal(record);
         else this.rowTotals[flatRowKey]?.push(record);
       }
       if (levelRows.includes(metricKey) && realRowCount === 0) {
-        if (colKey.length === 0) this.allTotal.push(record);
+        if (colKey.length === 0) this.pushAllTotal(record);
         else this.colTotals[flatColKey]?.push(record);
       }
     }
@@ -1345,6 +1377,10 @@ class PivotData {
     }
     return (
       agg || {
+        // Blank cell: no record ever reached this slot. `push` is a no-op so
+        // this satisfies `Aggregator` -- the slot being unset is only observable
+        // through value()/format().
+        push() {},
         value() {
           return null;
         },

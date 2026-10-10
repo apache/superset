@@ -114,6 +114,7 @@ export default function transformProps(
     showXAxisMinMaxLabels = false,
     showYAxis = false,
     showYAxisMinMaxLabels = false,
+    headerAlignment,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
   const {
@@ -416,5 +417,6 @@ export default function transformProps(
     onContextMenu,
     xValueFormatter: formatTime,
     refs,
+    headerAlignment,
   };
 }

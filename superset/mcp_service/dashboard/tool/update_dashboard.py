@@ -43,6 +43,9 @@ from superset.mcp_service.dashboard.schemas import (
     UpdateDashboardRequest,
     UpdateDashboardResponse,
 )
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -310,6 +313,9 @@ async def update_dashboard(
 ) -> UpdateDashboardResponse | DashboardError:
     """Patch an existing dashboard's layout, theme, styling, or metadata.
 
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
+
     Companion to ``generate_dashboard`` for incremental metadata and styling
     edits. An LLM can:
 
@@ -343,6 +349,10 @@ async def update_dashboard(
     dashboard, auth_error = _find_and_authorize_dashboard(request.identifier)
     if auth_error is not None:
         return auth_error
+
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is not None:
+        return UpdateDashboardResponse(managed_externally=True, error=refusal)
 
     validation_error: DashboardError | None = _validate_update_request(
         dashboard, request

@@ -192,6 +192,9 @@ def load_configs(
         if not content:
             continue
 
+        # Bound up front so the ``except ValidationError`` diagnostic below
+        # stays valid even when ``load_yaml`` raises before the assignment
+        # completes (unparseable YAML).
         config: dict[str, Any] | None = None
         prefix = file_name.split("/")[0]
         schema = schemas.get(f"{prefix}/")

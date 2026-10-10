@@ -4121,6 +4121,36 @@ def test_normalize_df_applies_python_date_format_to_unaggregated_columns(
     assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
 
 
+def test_normalize_df_replaces_infinity_without_downcasting_warning() -> None:
+    """Replacing +/-inf in an object column must not emit pandas' silent
+    downcasting ``FutureWarning``, and must still yield a float column."""
+    import warnings
+
+    import numpy as np
+    import pandas as pd
+
+    ts_col = MagicMock(
+        column_name="ts", is_dttm=True, python_date_format=None, datetime_format=None
+    )
+    datasource = _normalize_df_datasource(ts_col)
+    df = pd.DataFrame(
+        {
+            "metric": pd.Series([1.0, np.inf, -np.inf, 2.0], dtype=object),
+            "count": pd.Series([1, 2, -np.inf, 4], dtype=object),
+            "label": ["a", "b", "c", "d"],
+        }
+    )
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        result = datasource.normalize_df(df, _raw_query_object())
+
+    assert result["metric"].dtype == np.float64
+    assert result["metric"].isna().tolist() == [False, True, True, False]
+    assert result["count"].dtype == np.float64
+    assert result["label"].dtype == object
+
+
 @pytest.mark.parametrize(
     "datetime_format,value",
     [
@@ -5777,3 +5807,54 @@ def test_filter_adhoc_column(database: Database) -> None:
     # The adhoc column resolved by label is parenthesized in the WHERE clause,
     # consistent with inline adhoc columns, to guard operator precedence.
     assert "lower((real_name)) LIKE lower('Zona%')" in sql
+
+
+def test_get_query_result_wraps_post_processing_type_error(
+    database: "Database",
+) -> None:
+    """
+    A raw TypeError from pandas inside exec_post_processing (e.g. resample.mean()
+    on a DataFrame that contains object-dtype columns) must be surfaced as
+    QueryObjectValidationError (400) rather than propagating as a system 500.
+    """
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import QueryResult
+
+    table = SqlaTable(table_name="t", database=database)
+
+    # DatetimeIndex + object-dtype "category" column causes
+    # df.resample("1D").mean() to raise TypeError in pandas ≥ 2.x
+    df = pd.DataFrame(
+        {"metric": [1.0, 2.0], "category": ["a", "b"]},
+        index=pd.to_datetime(["2023-01-01", "2023-01-03"]),
+    )
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "resample", "options": {"method": "mean", "rule": "1D"}}
+        ],
+    )
+
+    with (
+        patch.object(
+            table,
+            "query",
+            return_value=QueryResult(
+                df=df,
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            ),
+        ),
+        patch.object(table, "normalize_df", return_value=df),
+        pytest.raises(QueryObjectValidationError),
+    ):
+        table.get_query_result(query_object)

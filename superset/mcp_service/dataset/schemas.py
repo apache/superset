@@ -60,6 +60,7 @@ from superset.mcp_service.system.schemas import (
     TagInfo,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
 from superset.mcp_service.utils.serialization import (
     JsonSafeRows,
     OptionalRowCount,
@@ -70,12 +71,7 @@ from superset.utils import json
 
 
 class DatasetFilter(ColumnOperator):
-    """
-    Filter object for dataset listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
+    """Filter object for dataset listing."""
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "uuid",
@@ -87,10 +83,9 @@ class DatasetFilter(ColumnOperator):
         "changed_by_fk",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='dataset') for "
-        "available filter columns. To filter by a person, first call find_users "
-        "to resolve a name to a user ID, then filter by created_by_fk or "
-        "changed_by_fk with that integer ID.",
+        description="Filter column; see get_schema(model_type='dataset'). "
+        "For people, resolve names to IDs with find_users; filter by "
+        "created_by_fk or changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -275,23 +270,45 @@ class ListDatasetsRequest(
     MetadataCacheControl,
     PaginatedListRequest[DatasetFilter],
 ):
-    """Request schema for list_datasets with clear, unambiguous types.
+    """Request schema for list_datasets with clear, unambiguous types."""
 
-    Unlike its siblings, this schema does NOT parse JSON-string `filters`/
-    `select_columns` into lists — it relies on Pydantic's native list
-    validation instead. Preserved intentionally; see
-    test_list_datasets_with_string_filters.
-    """
+    # Unlike its siblings, this schema does NOT parse JSON-string `filters`/
+    # `select_columns` into lists; it relies on Pydantic's native list
+    # validation instead. Preserved intentionally; see
+    # test_list_datasets_with_string_filters.
+
+    order_column: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Sortable columns: id, table_name, schema, changed_on, created_on; "
+                "changed_on_delta_humanized is an alias for changed_on."
+            ),
+        ),
+    ]
+
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Case-insensitive substring search of schema, SQL, table name, "
+                "and description. A complete UUID is an exact UUID lookup; "
+                "or use a uuid filter. Compare candidate descriptions "
+                "and metadata. Mutually exclusive with 'filters'."
+            ),
+        ),
+    ]
 
     certified: Annotated[
         StrictBool | None,
         Field(
             default=None,
             description=(
-                "Filter by governance certification status. Use true to return "
-                "only certified datasets (preferred when selecting governed "
-                "semantic-layer assets), false to return only uncertified "
-                "datasets, or omit to return both (default)."
+                "Use true to return only certified datasets (preferred for governed "
+                "semantic-layer assets), false to return only uncertified datasets; "
+                "omit to return both (default)."
             ),
         ),
     ]
@@ -635,7 +652,7 @@ UPDATABLE_METRIC_FIELDS: frozenset[str] = frozenset(
 )
 
 
-class MetricCurrency(BaseModel):
+class MetricCurrency(OmittedMeansUnchanged):
     """Currency formatting configuration for a metric."""
 
     symbol: str | None = Field(
@@ -648,7 +665,7 @@ class MetricCurrency(BaseModel):
     )
 
 
-class DatasetMetricProperties(BaseModel):
+class DatasetMetricProperties(OmittedMeansUnchanged):
     """Dataset identifier and writable saved-metric properties."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -946,7 +963,7 @@ UPDATABLE_DATASET_FIELDS: frozenset[str] = frozenset(
 )
 
 
-class UpdateDatasetRequest(BaseModel):
+class UpdateDatasetRequest(OmittedMeansUnchanged):
     """Request schema for update_dataset."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -1115,16 +1132,12 @@ class QueryDatasetFilter(BaseModel):
 
     @model_validator(mode="after")
     def _validate_temporal_range_val(self) -> "QueryDatasetFilter":
-        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
+        """Validate a filter comparator before it reaches the shared parser.
 
-        This operator resolves through ``get_since_until()`` exactly like the
-        dedicated ``time_range`` field does, so an unparseable value here
-        produces the same silent full-table match. Validating only
-        ``time_range`` would leave that gap open to any caller that spells
-        the same filter out longhand.
+        Unlike optional top-level defaults, blank filter values are invalid.
         """
         if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
-            self.val = validate_time_range(self.val)
+            self.val = validate_time_range(self.val, allow_empty=False)
         return self
 
 

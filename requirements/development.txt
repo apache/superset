@@ -112,7 +112,7 @@ cachelib==0.17.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==7.1.8
+cachetools==7.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -176,7 +176,7 @@ click-repl==0.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
-clickhouse-connect==1.8.0
+clickhouse-connect==1.9.0
     # via apache-superset
 cmdstanpy==1.1.0
     # via prophet
@@ -384,7 +384,7 @@ geopy==2.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-gevent==26.8.0
+gevent==26.9.0
     # via apache-superset
 google-api-core==2.33.0
     # via
@@ -451,7 +451,7 @@ hashids==1.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-holidays==0.104
+holidays==0.105
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -568,7 +568,7 @@ mako==1.4.1
     #   -c requirements/base-constraint.txt
     #   alembic
     #   apache-superset
-markdown==3.10.3
+markdown==3.11
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -742,10 +742,6 @@ pluggy==1.5.0
     # via pytest
 polib==1.2.0
     # via apache-superset
-polyline==2.0.4
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 pre-commit==4.1.0
     # via apache-superset
 prison==0.2.1
@@ -1036,7 +1032,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.44.1
+slack-sdk==3.45.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1068,7 +1064,7 @@ sqlalchemy-bigquery==1.17.2
     # via apache-superset
 sqlalchemy-cockroachdb==2.0.4
     # via apache-superset
-sqlalchemy-continuum==1.7.0
+sqlalchemy-continuum==1.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1088,7 +1084,7 @@ sqlalchemy-utils==0.42.1
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.18.0
+sqlglot==30.21.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1126,7 +1122,7 @@ tqdm==4.67.1
     # via
     #   cmdstanpy
     #   prophet
-trino==0.339.0
+trino==0.340.0
     # via
     #   apache-superset
     #   testcontainers
