@@ -648,10 +648,6 @@ _LEGACY_TYPE_BRANCHES = (
         "'y_axis_format': model.y_axis_format, 'show_labels': model.show_labels, "
         "'show_legend': model.show_legend}}"
     ),
-    "superset.mcp_service.chart.compile: viz_type == 'mixed_timeseries'",
-    "superset.mcp_service.chart.compile: viz_type == 'mixed_timeseries'",
-    "superset.mcp_service.chart.compile: viz_type == 'mixed_timeseries'",
-    "superset.mcp_service.chart.compile: viz_type == 'echarts_area'",
     "superset.mcp_service.chart.chart_utils: form_data.get('viz_type') != 'bullet'",
     "superset.mcp_service.chart.chart_utils: viz_type == 'bullet'",
     "superset.mcp_service.chart.chart_utils: viz_type == 'bullet'",

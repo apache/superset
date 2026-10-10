@@ -271,6 +271,42 @@ def test_wide_preview_fold_follows_the_saved_stack_control(
     assert spec["encoding"]["y"]["stack"] == expected
 
 
+@pytest.mark.parametrize(
+    ("viz_type", "stack", "offset"),
+    [
+        ("echarts_timeseries_bar", None, True),
+        ("echarts_timeseries_bar", "Stack", False),
+        ("echarts_timeseries_line", None, False),
+    ],
+)
+def test_wide_preview_unstacked_bars_are_offset_side_by_side(
+    viz_type: str, stack: str | None, offset: bool
+) -> None:
+    """Unstacked folded bars get a series offset instead of overlapping."""
+    form_data: dict[str, Any] = {
+        "viz_type": viz_type,
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+    }
+    if stack is not None:
+        form_data["stack"] = stack
+    result = _generate_vega_lite_preview_from_data(
+        [{"ds": "2026-01-01", "revenue, East": 10, "revenue, West": 20}],
+        form_data,
+    )
+    assert isinstance(result, VegaLitePreview)
+    encoding = result.specification["encoding"]
+    series_field = result.specification["transform"][0]["as"][0]
+    if offset:
+        assert encoding["xOffset"] == {"field": series_field, "type": "nominal"}
+        assert encoding["x"]["type"] == "ordinal"
+        assert encoding["x"]["timeUnit"] == "yearmonthdatehoursminutesseconds"
+    else:
+        assert "xOffset" not in encoding
+        assert encoding["x"]["type"] == "temporal"
+
+
 @pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
 @pytest.mark.parametrize("saved_viz", [True, False])
 @pytest.mark.parametrize("request_offset", [None, "2 weeks ago", "3 weeks ago"])

@@ -5030,3 +5030,40 @@ def test_bullet_native_numeric_controls_parse_alike_on_request_paths(
                 },
             }
         )
+
+
+@pytest.mark.parametrize("preview_first", [False, True])
+def test_bullet_saved_update_filter_clear_drops_time_binding_marker(
+    preview_first: bool,
+) -> None:
+    existing = _saved_bullet_with_filters()
+    assert existing[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "OrderDate"
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Bullet",
+        params=__import__("json").dumps(existing),
+    )
+    config = BulletChartConfig(metric=_simple_metric("Revenue"), filters=[])
+    request = UpdateChartRequest(identifier=9, config=config)
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=_orm_dataset(),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+            return_value=True,
+        ),
+    ):
+        if preview_first:
+            merged = _build_preview_form_data(request, chart, config)
+            assert isinstance(merged, dict)
+        else:
+            payload = _build_update_payload(request, chart, config)
+            assert isinstance(payload, dict)
+            merged = __import__("json").loads(payload["params"])
+
+    assert merged.get("adhoc_filters", []) == []
+    assert MCP_DASHBOARD_TIME_FILTER_SUBJECT not in merged
+    assert validate_merged_bullet_form_data(merged, config) is not None

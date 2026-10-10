@@ -453,6 +453,70 @@ async def test_saved_bullet_get_data_uses_strict_render_model(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("data_format", ["json", "csv"])
+async def test_saved_ungrouped_bullet_get_data_keeps_every_source_row(
+    mcp_server: Any,
+    mock_auth: Any,
+    data_format: str,
+) -> None:
+    """Ungrouped Bullet renders the first row, but data exports keep all rows."""
+    from unittest.mock import patch
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=11,
+        slice_name="Ungrouped Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "bullet", "metric": "Revenue"}',
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"Revenue": 10}, {"Revenue": 20}],
+                        "colnames": ["Revenue"],
+                        "coltypes": [GenericDataType.NUMERIC],
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 11, "format": data_format}},
+            )
+
+    payload = json.loads(result.content[0].text)
+    if data_format == "json":
+        assert [row["Revenue"] for row in payload["data"]] == [10, 20]
+    else:
+        assert payload["csv_data"].split() == ["Revenue", "10", "20"]
+
+
+@pytest.mark.asyncio
 async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
     mcp_server: Any,
     mock_auth: Any,

@@ -33,6 +33,7 @@ from superset.mcp_service.chart.schemas import (
     BulletChartConfig,
     ChartError,
     ColumnRef,
+    MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     resolve_bullet_order_target,
     TablePreview,
     VegaLitePreview,
@@ -418,8 +419,23 @@ class BulletChartPlugin(BaseChartPlugin):
         # values with None and normalizing the dimensions. Its float measure is
         # render-only: exported rows keep the validated source metric so exact
         # BIGINT/Decimal values are not rounded to binary64.
+        # An ungrouped model keeps only the rendered first row; every later
+        # source row was validated by the same resolver and stays exported.
+        model_rows = list(model.rows)
+        if not model.dimensions:
+            try:
+                for source in data[len(model_rows) :]:
+                    model_rows.extend(
+                        resolve_bullet_render_model(
+                            [source], dict(form_data), validate_format=False
+                        ).rows
+                    )
+            except BulletOutputError as ex:
+                return [], ChartError(
+                    error=bounded_exception_message(ex), error_type=ex.error_type
+                )
         rows: list[Any] = []
-        for source, row in zip(data, model.rows, strict=False):
+        for source, row in zip(data, model_rows, strict=True):
             exposed = dict(row)
             if model.metric_field in source:
                 exposed[model.metric_field] = _safe_enum_backing(
@@ -539,11 +555,16 @@ class BulletChartPlugin(BaseChartPlugin):
         # Like the shared overlay, unmodeled native presentation controls
         # survive a same-viz update; query roles of other visualizations and
         # legacy predicate aliases (already folded into adhoc filters) do not.
+        # The time-binding provenance marker follows the merged filters, so it
+        # is never restored once the merge decided the filter sequence.
+        excluded = {"where", "having", "filters"}
+        if "adhoc_filters" in merged:
+            excluded.add(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
         for key, value in saved_form_data.items():
             if (
                 key not in merged
                 and key not in self.query_role_keys
-                and key not in {"where", "having", "filters"}
+                and key not in excluded
             ):
                 merged[key] = value
         return merged

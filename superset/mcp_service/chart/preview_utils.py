@@ -1823,6 +1823,19 @@ def generate_xy_vega_lite_preview(
                 "stack": _xy_vega_lite_stack(form_data.get("stack")),
             }
             encoding["color"] = {"field": series_field, "type": "nominal"}
+            if (
+                spec.get("mark") == "bar"
+                and encoding["y"]["stack"] is None
+                and "x" in encoding
+            ):
+                # Unstacked bars sit side by side like Explore's grouped bars.
+                # Offset channels need a discrete band x scale, so temporal
+                # values stay date-formatted through a full-precision time unit.
+                x_encoding = encoding["x"]
+                if x_encoding.get("type") == "temporal":
+                    x_encoding["timeUnit"] = "yearmonthdatehoursminutesseconds"
+                x_encoding["type"] = "ordinal"
+                encoding["xOffset"] = {"field": series_field, "type": "nominal"}
 
     return preview
 
