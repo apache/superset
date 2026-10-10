@@ -150,6 +150,102 @@ def test_should_raise_exception_duplication_on_multiindex():
         )
 
 
+def test_should_raise_exception_partial_duplication():
+    """
+    A mapping where only some of the new names collide is still a collision.
+
+    `test_should_raise_exception_duplication` drives the guard with a one-entry
+    mapping, where "every new name already exists" and "the result holds a
+    duplicate" are the same condition. With two entries they are not, and the
+    renamed `category` was appended next to the existing one.
+    """
+    with pytest.raises(InvalidPostProcessingError):
+        pp.rename(
+            df=categories_df,
+            columns={
+                "constant": "category",
+                "dept": "department",
+            },
+        )
+
+
+def test_should_raise_exception_partial_duplication_on_multiindex():
+    iterables = [["m1", "m2", "m3"], ["a", "b"]]
+    columns = pd.MultiIndex.from_product(iterables, names=[None, "level1"])
+    df = pd.DataFrame(index=[0, 1], columns=columns, data=1)
+
+    with pytest.raises(InvalidPostProcessingError):
+        pp.rename(
+            df=df,
+            columns={
+                "m1": "m2",
+                "m3": "m4",
+            },
+            level=0,
+        )
+
+
+def test_should_raise_exception_two_sources_one_new_label():
+    """
+    Two columns renamed to the same new label collide with each other.
+
+    Neither new name is present beforehand, so a guard that only looks for
+    existing labels lets this through and pandas ends up with two `cat_or_dept`
+    columns.
+    """
+    with pytest.raises(InvalidPostProcessingError):
+        pp.rename(
+            df=categories_df,
+            columns={
+                "category": "cat_or_dept",
+                "dept": "cat_or_dept",
+            },
+        )
+
+
+def test_should_rename_onto_a_label_the_same_mapping_vacates():
+    """
+    A target that the mapping itself frees up is not a collision.
+
+    `category` is taken when the mapping is read, but the same mapping moves it
+    to `grouping`, so the result holds no duplicate and the rename is valid.
+    """
+    renamed_df = pp.rename(
+        df=categories_df,
+        columns={
+            "category": "grouping",
+            "constant": "category",
+        },
+    )
+
+    assert list(renamed_df.columns) == [
+        "category",
+        "grouping",
+        "dept",
+        "name",
+        "asc_idx",
+        "desc_idx",
+        "idx_nulls",
+    ]
+
+
+def test_should_rename_a_frame_that_already_holds_duplicate_labels():
+    """
+    A frame that arrives with duplicate labels can still be renamed.
+
+    Earlier operations can hand `rename` a frame whose columns already repeat,
+    so the guard asks whether the rename adds a duplicate rather than whether
+    the result holds one. Renaming an unrelated column is left alone, and a
+    rename that would repeat the label again still raises.
+    """
+    df = pd.DataFrame([[1, 2, 3]], columns=["b", "b", "z"])
+
+    assert list(pp.rename(df=df, columns={"z": "w"}).columns) == ["b", "b", "w"]
+
+    with pytest.raises(InvalidPostProcessingError):
+        pp.rename(df=df, columns={"z": "b"})
+
+
 def test_should_raise_exception_invalid_level():
     with pytest.raises(InvalidPostProcessingError):  # noqa: PT012
         pp.rename(
