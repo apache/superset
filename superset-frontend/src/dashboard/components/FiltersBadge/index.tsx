@@ -32,6 +32,7 @@ import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
 import {
   DataMaskStateWithId,
+  DatasourceType,
   Filters,
   JsonObject,
   usePrevious,
@@ -293,9 +294,13 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   );
   const filterCount =
     appliedIndicators.length + appliedCrossFilterIndicators.length;
-  const incompatibleIndicators = indicators.filter(
-    indicator => indicator.status === IndicatorStatus.Incompatible,
-  );
+  const incompatibleIndicators = chart?.form_data?.datasource?.endsWith(
+    `__${DatasourceType.SemanticView}`,
+  )
+    ? indicators.filter(
+        indicator => indicator.status === IndicatorStatus.Incompatible,
+      )
+    : [];
   const totalFilterCount = filterCount + incompatibleIndicators.length;
 
   if (!totalFilterCount) {

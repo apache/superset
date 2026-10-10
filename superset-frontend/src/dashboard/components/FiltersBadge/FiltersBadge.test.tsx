@@ -18,6 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { Store } from 'redux';
+import { DatasourceType } from '@superset-ui/core';
 import { render } from 'spec/helpers/testing-library';
 import {
   CHART_RENDERING_SUCCEEDED,
@@ -30,6 +31,8 @@ import {
   getMockStoreWithFilters,
   getMockStoreWithNativeFilters,
   getMockStoreWithNativeFiltersButNoValues,
+  stateWithFilters,
+  storeWithState,
 } from 'spec/fixtures/mockStore';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
@@ -54,23 +57,42 @@ function setup(store: Store = defaultStore) {
   return render(<FiltersBadge chartId={sliceId} />, { store });
 }
 
-test('keeps the badge visible when the only dashboard filter is rejected', () => {
-  const store = getMockStoreWithFilters();
-  store.dispatch({
-    type: CHART_UPDATE_SUCCEEDED,
-    key: sliceId,
-    queriesResponse: [
-      {
-        status: 'success',
-        applied_filters: [],
-        rejected_filters: [{ column: 'region' }],
+test.each([DatasourceType.Table, DatasourceType.SemanticView])(
+  'only shows rejected dashboard filters for semantic views: %s',
+  datasourceType => {
+    const store = storeWithState({
+      ...stateWithFilters,
+      charts: {
+        ...stateWithFilters.charts,
+        [sliceId]: {
+          ...stateWithFilters.charts[sliceId],
+          form_data: {
+            ...stateWithFilters.charts[sliceId].form_data,
+            datasource: `1__${datasourceType}`,
+          },
+        },
       },
-    ],
-    dashboardFilters,
-  });
-  const { getByRole } = setup(store);
-  expect(getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
-});
+    });
+    store.dispatch({
+      type: CHART_UPDATE_SUCCEEDED,
+      key: sliceId,
+      queriesResponse: [
+        {
+          status: 'success',
+          applied_filters: [],
+          rejected_filters: [{ column: 'region' }],
+        },
+      ],
+      dashboardFilters,
+    });
+    const { queryByTestId, getByRole } = setup(store);
+    if (datasourceType === DatasourceType.SemanticView) {
+      expect(getByRole('button', { name: 'Filters (1)' })).toBeInTheDocument();
+    } else {
+      expect(queryByTestId('applied-filter-count')).not.toBeInTheDocument();
+    }
+  },
+);
 
 // there's this bizarre "active filters" thing
 // that doesn't actually use any kind of state management.
