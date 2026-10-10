@@ -17934,3 +17934,40 @@ msgstr[1] ""
 
 msgid "№"
 msgstr ""
+
+#, python-format
+msgid "%s bytes"
+msgstr ""
+
+#, python-format
+msgid "%s ms"
+msgstr ""
+
+msgid "Cached queries"
+msgstr ""
+
+msgid "Chart load time"
+msgstr ""
+
+msgid "No response data is available yet."
+msgstr ""
+
+msgid "Query inspector"
+msgstr ""
+
+msgid "Response"
+msgstr ""
+
+msgid "Response size"
+msgstr ""
+
+msgid "Returned rows"
+msgstr ""
+
+msgid "Stats"
+msgstr ""
+
+msgid ""
+"Time from chart update start until rendering completes; this is not query "
+"execution time."
+msgstr ""

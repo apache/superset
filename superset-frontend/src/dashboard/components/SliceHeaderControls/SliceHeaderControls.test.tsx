@@ -28,6 +28,7 @@ import mockState from 'spec/fixtures/mockState';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
+import * as chartAction from 'src/components/Chart/chartAction';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 import { chart } from 'src/components/Chart/chartReducer';
 
@@ -148,7 +149,7 @@ const openMenu = async () => {
   await userEvent.click(screen.getByRole('button', { name: 'More Options' }));
 };
 
-test('View query uses the dashboard slice when form data omits slice_id', async () => {
+test('Query inspector uses the dashboard slice when form data omits slice_id', async () => {
   const props = createProps();
   const request = '-- SQL\nSELECT saved_dashboard_chart';
   render(
@@ -176,7 +177,7 @@ test('View query uses the dashboard slice when form data omits slice_id', async 
     },
   );
   await openMenu();
-  await userEvent.click(await screen.findByText('View query'));
+  await userEvent.click(await screen.findByText('Query inspector'));
   await waitFor(() =>
     expect(screen.getByRole('dialog').querySelector('pre')?.textContent).toBe(
       request,
@@ -213,6 +214,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  jest.restoreAllMocks();
   Reflect.deleteProperty(document, 'fullscreenElement');
   // TypedRegistry has no remove(); reset to a no-op so a registered slot does
   // not leak into other tests (the empty array is guarded, so nothing injects).
@@ -726,20 +728,63 @@ test('Should not show "Drill to detail" with only `can_explore`, `can_drill` & `
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should show "View query"', async () => {
+test('Should show "Query inspector"', async () => {
   const props = {
     ...createProps(),
     supersetCanExplore: false,
+    queriesResponse: null,
   };
   props.slice.slice_id = 18;
   renderWrapper(props, {
     Admin: [['can_view_query', 'Dashboard']],
   });
   await openMenu();
-  expect(screen.getByText('View query')).toBeInTheDocument();
+  await userEvent.click(screen.getByText('Query inspector'));
+  expect(screen.getByRole('tab', { name: 'Stats' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('tab', { name: 'Response' }),
+  ).not.toBeInTheDocument();
 });
 
-test('Should not show "View query"', async () => {
+test.each([
+  ['success', '250 ms'],
+  ['rendered', '250 ms'],
+  ['stopped', 'Not available'],
+])(
+  'shows the appropriate chart load time for a %s chart',
+  async (chartStatus, duration) => {
+    const getChartDataRequestSpy = jest
+      .spyOn(chartAction, 'getChartDataRequest')
+      .mockResolvedValue({ response: new Response(), json: { result: [] } });
+    const queriesResponse = [
+      { data: [{ country: 'KR' }, { country: 'US' }], is_cached: true },
+    ];
+    const props = {
+      ...createProps(),
+      chartStatus,
+      queriesResponse,
+      chartUpdateStartTime: 1000,
+      chartUpdateEndTime: 1250,
+    };
+    renderWrapper(props);
+
+    await openMenu();
+    await userEvent.click(screen.getByText('Query inspector'));
+    await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+
+    const stats = screen.getByTestId('query-inspector-stats');
+    expect(stats).toHaveTextContent('Queries1Returned rows2Cached queries1');
+    expect(stats).toHaveTextContent(
+      `Response size${new Blob([
+        JSON.stringify(queriesResponse),
+      ]).size.toLocaleString()} bytes`,
+    );
+    expect(stats).toHaveTextContent(`Chart load time${duration}`);
+    expect(getChartDataRequestSpy).toHaveBeenCalledTimes(1);
+  },
+);
+
+test('Should not show "Query inspector"', async () => {
   const props = {
     ...createProps(),
     supersetCanExplore: false,
@@ -749,7 +794,7 @@ test('Should not show "View query"', async () => {
     Admin: [['invalid_permission', 'Dashboard']],
   });
   await openMenu();
-  expect(screen.queryByText('View query')).not.toBeInTheDocument();
+  expect(screen.queryByText('Query inspector')).not.toBeInTheDocument();
 });
 
 test('Should show "View as table"', async () => {
@@ -837,8 +882,6 @@ test('Dataset drill info API call is made when user can only view chart as table
     ...createProps(),
     supersetCanExplore: false,
   };
-  // "View as table" has its own permission, so label resolution must not be
-  // gated behind Drill to detail.
   renderWrapper(props, {
     Gamma: [
       ['can_view_chart_as_table', 'Dashboard'],
@@ -883,8 +926,6 @@ test('Dataset drill info API call is not made without `can_get_drill_info`', asy
     ...createProps(),
     supersetCanExplore: false,
   };
-  // The endpoint is guarded by `can_get_drill_info` on Dataset, so requesting
-  // it without that permission would only ever produce a 403.
   renderWrapper(props, {
     Gamma: [['can_view_chart_as_table', 'Dashboard']],
   });
@@ -917,7 +958,6 @@ test('Results grid receives verbose names for a view-as-table-only user', async 
       ['can_get_drill_info', 'Dataset'],
     ],
   });
-  // Let the drill_info request settle the way it would while the dashboard loads.
   await waitFor(() => expect(mockCachedSupersetGet).toHaveBeenCalled());
   await openMenu();
   await userEvent.click(screen.getByTestId('view-query-menu-item'));
