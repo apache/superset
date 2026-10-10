@@ -741,7 +741,9 @@ def test_response_size_is_bounded(
             break
 
     assert pages[0].truncated is True
+    assert pages[0].fields_shortened is True
     assert len(pages[0].items) < 100
+    assert pages[-1].truncated is False
     assert all(
         item.description is None or len(item.description) <= 500
         for page in pages
@@ -879,7 +881,8 @@ def test_catalog_oversized_url_is_omitted(
     ):
         first = _page("datasets", page_size=1)
         assert first.items[0].url is None
-        assert first.truncated
+        assert first.fields_shortened
+        assert not first.truncated
         assert (
             len(first.model_dump_json().encode("utf-8")) <= CATALOG_MAX_RESPONSE_BYTES
         )
@@ -932,3 +935,181 @@ async def test_catalog_resource_scope_over_mcp(
                     await client.call_tool(
                         "get_catalog", {"request": {"asset_type": asset_type}}
                     )
+
+
+# ---------------------------------------------------------------------------
+# Completeness signals: next_cursor, truncated and fields_shortened
+# ---------------------------------------------------------------------------
+
+
+def _walk(
+    asset_type: str, page_size: int, **kwargs: Any
+) -> tuple[list[Any], list[int]]:
+    """Follow next_cursor to the end, checking the completeness contract.
+
+    Every page that holds back rows carries a cursor, a page without a cursor
+    is never flagged truncated, and a truncated page always has a cursor.
+    """
+    pages: list[Any] = []
+    cursor = None
+    for _ in range(500):
+        page = _page(asset_type, page_size=page_size, cursor=cursor, **kwargs)
+        pages.append(page)
+        assert len(page.items) <= page_size
+        if page.truncated:
+            assert page.next_cursor is not None
+        if page.next_cursor is None:
+            assert page.truncated is False
+            break
+        assert page.items, "a continuation page must make progress"
+        cursor = page.next_cursor
+    else:
+        pytest.fail("pagination did not terminate")
+    ids = [item.id for page in pages for item in page.items]
+    assert ids == sorted(set(ids)), "pages must not overlap or reorder"
+    return pages, ids
+
+
+def _all_ids(asset_type: str, **kwargs: Any) -> list[int]:
+    """Visible IDs in order, read one row per page as a reference."""
+    _, ids = _walk(asset_type, page_size=1, **kwargs)
+    return ids
+
+
+def test_shortened_description_does_not_flag_complete_page_truncated(
+    catalog_fixtures: SimpleNamespace, act_as: Any
+) -> None:
+    """A complete page with a shortened field is not reported as truncated."""
+    act_as(admin_role())
+    session = catalog_fixtures.session
+    _add_datasets(session, 1, start_id=10, description="d" * 5000)
+    _add_datasets(session, 17, start_id=11)  # 20 datasets in total
+
+    page = _page("datasets", page_size=50)
+    assert len(page.items) == 20
+    assert page.next_cursor is None
+    assert page.truncated is False
+    assert page.fields_shortened is True
+
+
+def test_fields_shortened_follows_the_items_on_each_page(
+    catalog_fixtures: SimpleNamespace, act_as: Any
+) -> None:
+    """Only the page holding the shortened item reports it."""
+    act_as(admin_role())
+    session = catalog_fixtures.session
+    _add_datasets(session, 1, start_id=10, description="d" * 5000)
+    _add_datasets(session, 17, start_id=11)
+
+    pages, ids = _walk("datasets", page_size=10)
+    assert [len(page.items) for page in pages] == [10, 10]
+    assert [page.fields_shortened for page in pages] == [True, False]
+    assert [page.truncated for page in pages] == [False, False]
+    assert len(ids) == 20
+
+
+@pytest.mark.parametrize(
+    ("asset_type", "model_path", "name_column"),
+    [
+        ("databases", "superset.models.core.Database", "database_name"),
+        ("datasets", "superset.connectors.sqla.models.SqlaTable", "table_name"),
+        ("charts", "superset.models.slice.Slice", "slice_name"),
+        ("dashboards", "superset.models.dashboard.Dashboard", "dashboard_title"),
+    ],
+)
+@pytest.mark.parametrize("page_size", [1, 2, 50, 100])
+def test_every_asset_type_pages_completely(
+    catalog_fixtures: SimpleNamespace,
+    act_as: Any,
+    asset_type: str,
+    model_path: str,
+    name_column: str,
+    page_size: int,
+) -> None:
+    """Fewer, equal and more rows than page_size, with a shortened name."""
+    act_as(admin_role())
+    module_name, _, class_name = model_path.rpartition(".")
+    model = getattr(__import__(module_name, fromlist=[class_name]), class_name)
+    row = catalog_fixtures.session.query(model).order_by(model.id).first()
+    setattr(row, name_column, "n" * 1000)
+    catalog_fixtures.session.flush()
+
+    pages, ids = _walk(asset_type, page_size=page_size)
+    expected = [
+        item_id
+        for (item_id,) in catalog_fixtures.session.query(model.id).order_by(model.id)
+    ]
+    assert ids == expected
+    assert pages[0].fields_shortened is True
+    assert not any(page.truncated for page in pages)
+    if page_size >= len(expected):
+        assert len(pages) == 1
+
+
+@pytest.mark.parametrize("total", [99, 100, 101, 250])
+def test_page_size_boundaries(
+    catalog_fixtures: SimpleNamespace, act_as: Any, total: int
+) -> None:
+    """Exactly page_size rows ends without a cursor; one more needs a page."""
+    act_as(admin_role())
+    _add_datasets(catalog_fixtures.session, total - 2, start_id=10)
+
+    pages, ids = _walk("datasets", page_size=100)
+    assert len(ids) == total
+    assert len(pages) == -(-total // 100)
+    assert all(len(page.items) == 100 for page in pages[:-1])
+    assert all(page.next_cursor for page in pages[:-1])
+
+
+def test_byte_bound_cursor_resumes_after_last_item(
+    catalog_fixtures: SimpleNamespace, act_as: Any
+) -> None:
+    """Byte-bound pages hand off with no gap and no duplicate."""
+    act_as(admin_role())
+    _add_datasets(catalog_fixtures.session, 150, start_id=10, description="d" * 5000)
+    expected = _all_ids("datasets")
+
+    pages, ids = _walk("datasets", page_size=100)
+    assert ids == expected
+    byte_bound = [page for page in pages if page.truncated]
+    assert byte_bound, "the long descriptions must trigger the byte bound"
+    for page in byte_bound:
+        assert len(page.items) < 100
+        size = len(page.model_dump_json().encode("utf-8"))
+        assert size <= CATALOG_MAX_RESPONSE_BYTES
+    for page, following in zip(pages, pages[1:], strict=False):
+        last = page.items[-1].id
+        assert following.items[0].id == expected[expected.index(last) + 1]
+
+
+def test_search_with_cursor_pages_only_matches(
+    catalog_fixtures: SimpleNamespace, act_as: Any
+) -> None:
+    """A search-bound cursor walks every match and nothing else."""
+    act_as(admin_role())
+    # bulk_00010 .. bulk_00059; "bulk_0002" matches ids 20-29 only.
+    _add_datasets(catalog_fixtures.session, 50, start_id=10)
+
+    pages, ids = _walk("datasets", page_size=3, search="bulk_0002")
+    assert ids == list(range(20, 30))
+    assert len(pages) == 4
+    assert all(page.next_cursor for page in pages[:-1])
+    assert not any(page.truncated for page in pages)
+
+
+def test_invisible_rows_do_not_create_a_cursor(
+    catalog_fixtures: SimpleNamespace, act_as: Any
+) -> None:
+    """Rows the caller cannot see are filtered in SQL, not counted as more."""
+    act_as(gamma_with_table_a_grant())
+    _add_datasets(catalog_fixtures.session, 120, start_id=10)
+
+    page = _page("datasets", page_size=1)
+    assert [item.name for item in page.items] == ["table_a"]
+    assert page.next_cursor is None
+    assert page.truncated is False
+
+    page = _page("datasets", page_size=100)
+    assert [item.name for item in page.items] == ["table_a"]
+    assert page.next_cursor is None
+    assert page.truncated is False
