@@ -66,14 +66,13 @@ export const formatPermissionLabel = (
 const naturalCollator = new Intl.Collator(undefined, { numeric: true });
 
 /**
- * Ranks how closely a label matches a search term, mirroring the tiers of
- * rankedSearchCompare (exact, prefix, substring; case-sensitive first).
- * Lower is a better match.
+ * Search relevance criteria, in the same order as rankedSearchCompare
+ * (exact, prefix, substring; case-sensitive first).
  */
-const getSearchMatchRank = (label: string, search: string) => {
+const getSearchMatchTiers = (label: string, search: string) => {
   const labelLower = label.toLowerCase();
   const searchLower = search.toLowerCase();
-  const tiers = [
+  return [
     label === search,
     label.startsWith(search),
     labelLower === searchLower,
@@ -81,8 +80,19 @@ const getSearchMatchRank = (label: string, search: string) => {
     label.includes(search),
     labelLower.includes(searchLower),
   ];
-  const rank = tiers.indexOf(true);
-  return rank === -1 ? tiers.length : rank;
+};
+
+/**
+ * Compares search relevance criterion by criterion, like rankedSearchCompare,
+ * so a lower criterion still separates labels that tie on a higher one.
+ */
+const compareSearchMatch = (a: string, b: string, search: string) => {
+  const aTiers = getSearchMatchTiers(a, search);
+  const bTiers = getSearchMatchTiers(b, search);
+  for (let i = 0; i < aTiers.length; i += 1) {
+    if (aTiers[i] !== bTiers[i]) return aTiers[i] ? -1 : 1;
+  }
+  return 0;
 };
 
 /**
@@ -97,9 +107,8 @@ export const comparePermissionOptions = (
   const aLabel = String(a.label ?? '');
   const bLabel = String(b.label ?? '');
   return (
-    (search
-      ? getSearchMatchRank(aLabel, search) - getSearchMatchRank(bLabel, search)
-      : 0) || naturalCollator.compare(aLabel, bLabel)
+    (search ? compareSearchMatch(aLabel, bLabel, search) : 0) ||
+    naturalCollator.compare(aLabel, bLabel)
   );
 };
 

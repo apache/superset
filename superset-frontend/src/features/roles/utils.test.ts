@@ -605,3 +605,13 @@ test('comparePermissionOptions orders equal search matches naturally', () => {
 
   expect(sorted.map(o => o.value)).toEqual([1, 2, 10, 100]);
 });
+
+test('comparePermissionOptions breaks prefix ties on case-sensitive substring', () => {
+  // Both are case-insensitive prefix matches for "CAN", but only the second
+  // also contains "CAN" verbatim, so it ranks first (as rankedSearchCompare does).
+  const canRead = { value: 1, label: 'can read Dashboard' };
+  const canWrite = { value: 2, label: 'can write CANReport' };
+
+  expect(comparePermissionOptions(canRead, canWrite, 'CAN')).toBeGreaterThan(0);
+  expect(comparePermissionOptions(canWrite, canRead, 'CAN')).toBeLessThan(0);
+});

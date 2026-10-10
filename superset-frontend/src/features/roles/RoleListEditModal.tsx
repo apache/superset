@@ -177,15 +177,11 @@ function RoleListEditModal({
         if (cancelled) return;
         permissionFetchSucceeded.current = true;
         const result: RolePermissions[] = response.json.result ?? [];
-        // The API returns permissions in database order; sort them so the
-        // selected tags read in a predictable, natural order.
         setRolePermissions(
-          sortPermissionOptions(
-            result.map(p => ({
-              value: p.id,
-              label: formatPermissionLabel(p.permission_name, p.view_menu_name),
-            })),
-          ),
+          result.map(p => ({
+            value: p.id,
+            label: formatPermissionLabel(p.permission_name, p.view_menu_name),
+          })),
         );
       })
       .catch(() => {
@@ -254,10 +250,13 @@ function RoleListEditModal({
     ) {
       const fetchedIds = new Set(rolePermissions.map(p => p.value));
       const missingIds = stablePermissionIds.filter(id => !fetchedIds.has(id));
-      const allPermissions = [
+      // The API returns permissions in database order; sort them, together
+      // with any unresolved ID placeholders, so the selected tags read in a
+      // predictable, natural order.
+      const allPermissions = sortPermissionOptions([
         ...rolePermissions,
         ...missingIds.map(id => ({ value: id, label: String(id) })),
-      ];
+      ]);
       if (missingIds.length > 0 && permissionFetchSucceeded.current) {
         addDangerToast(
           t('Some permissions could not be resolved and are shown as IDs.'),
