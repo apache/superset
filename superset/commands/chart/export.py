@@ -31,6 +31,8 @@ from superset.commands.export.models import (
     get_extra_export_fields,
 )
 from superset.commands.tag.export import ExportTagsCommand
+from superset.connectors.sqla.models import SqlaTable
+from superset.daos.dataset import DatasetDAO
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
 from superset.semantic_layers.import_export import export_view_reference
@@ -44,6 +46,7 @@ from superset.utils.file import get_filename
 from superset.utils import json
 from superset.utils.core import (
     ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
+    DatasourceType,
     get_annotation_layer_lists,
 )
 from superset.extensions import db, feature_flag_manager, security_manager
@@ -53,6 +56,26 @@ logger = logging.getLogger(__name__)
 
 # keys present in the standard export that are not needed
 REMOVE_KEYS = ["datasource_type", "datasource_name", "url_params"]
+
+
+def find_chart_dataset(model: Slice) -> SqlaTable | None:
+    """Resolve the dataset a chart is built on, soft-deleted ones included.
+
+    ``Slice.table`` is loaded through the soft-delete visibility filter, so a
+    chart whose dataset sits in the trash resolves to ``None`` even though
+    ``datasource_id`` still points at a row. Exporting such a chart off that
+    ``None`` drops both ``dataset_uuid`` and the ``datasets/`` file, and the
+    resulting bundle is rejected by Superset's own importer with
+    ``{"dataset_uuid": ["Missing data for required field."]}``.
+
+    The lookup keeps the DAO base filter, so a dataset the user may not read
+    stays unreachable here just as it does through the relationship.
+    """
+    if model.table:
+        return model.table
+    if model.datasource_type != DatasourceType.TABLE or model.datasource_id is None:
+        return None
+    return DatasetDAO.find_by_id(model.datasource_id, skip_visibility_filter=True)
 
 
 class ExportChartsCommand(ExportModelsCommand):
@@ -88,8 +111,8 @@ class ExportChartsCommand(ExportModelsCommand):
         if model.datasource_type == "semantic_view":
             if model.semantic_view:
                 payload["datasource_ref"] = export_view_reference(model.semantic_view)
-        elif model.table:
-            payload["dataset_uuid"] = str(model.table.uuid)
+        elif dataset := find_chart_dataset(model):
+            payload["dataset_uuid"] = str(dataset.uuid)
 
         # Fetch tags from the database if TAGGING_SYSTEM is enabled
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
@@ -259,9 +282,12 @@ class ExportChartsCommand(ExportModelsCommand):
             lambda: ExportChartsCommand._file_content(model),
         )
 
-        if model.table and export_related:
+        if export_related and (dataset := find_chart_dataset(model)):
             # Pass the shared seen set to the dataset export command
-            yield from ExportDatasetsCommand([model.table.id]).run(seen=seen)
+            yield from ExportDatasetsCommand(
+                [dataset.id],
+                include_deleted=True,
+            ).run(seen=seen)
 
         if export_related:
             yield from ExportChartsCommand._export_annotation_layers(
