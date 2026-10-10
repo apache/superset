@@ -275,13 +275,14 @@ class QueryContextProcessor:
             force_cached=force_cached,
         )
 
-        # If cache is loaded but missing applied_filter_columns and query has filters,
-        # treat as cache miss to ensure fresh query with proper applied_filter_columns
+        # Entries without any filter reporting predate applied/rejected metadata.
+        # Rejected-only results are complete too (e.g. incompatible dashboard filters).
         if (
             query_obj
             and cache_key
             and cache.is_loaded
             and not cache.applied_filter_columns
+            and not cache.rejected_filter_columns
             and query_obj.filter
             and len(query_obj.filter) > 0
         ):

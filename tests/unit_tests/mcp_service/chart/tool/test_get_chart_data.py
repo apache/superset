@@ -3265,7 +3265,7 @@ class TestSavedChartExtraFormDataFilters:
             {"filters": [{"col": "country", "op": "==", "val": "USA"}]}, mcp_server
         )
         filters = loaded["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     @pytest.mark.asyncio
     async def test_adhoc_filters_key_reaches_executed_query(
@@ -3287,7 +3287,7 @@ class TestSavedChartExtraFormDataFilters:
             mcp_server,
         )
         filters = loaded["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     @pytest.mark.asyncio
     async def test_temporal_range_filter_reaches_executed_query(
@@ -3311,6 +3311,7 @@ class TestSavedChartExtraFormDataFilters:
             "col": "order_date",
             "op": "TEMPORAL_RANGE",
             "val": "2024-01-01 : 2024-02-01",
+            "isExtra": True,
         } in filters
 
     @pytest.mark.asyncio
