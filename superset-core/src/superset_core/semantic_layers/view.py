@@ -74,12 +74,12 @@ class SemanticView(ABC):
 
     @property
     def metadata_cache_token(self) -> str | None:
-        """Return the identity captured with these members, or None for legacy views.
+        """Return the ``cache_token`` these members were discovered under.
 
-        A provider using a bound metadata store must return its observation's
-        nonempty token. The host must reject a missing token in that mode rather
-        than silently using legacy cache keys. Never look up a later identity
-        independently of the data used for discovery or compatibility.
+        Providers echo the token passed to ``from_configuration_with_cache_token``;
+        legacy views return None. Report the token captured with the members, never
+        a later one. The host keys its caches on its own metadata generation, not
+        on this value.
         """
         return None
 

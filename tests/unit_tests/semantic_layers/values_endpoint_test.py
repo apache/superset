@@ -34,7 +34,7 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 
 @pytest.fixture
@@ -50,8 +50,6 @@ def semantic_view_datasource(mocker: MockerFixture) -> SemanticView:
         results=pa.table({"category": pa.array(["Books", "Clothing"])}),
     )
     from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
-
-    from superset.semantic_layers.models import SemanticLayer
 
     mocker.patch.dict(
         "superset.semantic_layers.models.registry", {"fixture": ProviderLayer}
@@ -227,8 +225,6 @@ def test_values_cache_excludes_legacy_generation(
 ) -> None:
     from unittest.mock import PropertyMock
 
-    from superset.semantic_layers.models import SemanticLayer
-
     semantic_view_datasource.semantic_layer = SemanticLayer(type="fixture")
     version: PropertyMock = mocker.patch.object(
         SemanticView,
@@ -341,7 +337,7 @@ def test_default_provider_value_cache_key_matches_legacy_bytes(
     mocker: MockerFixture,
     provider_type: str,
 ) -> None:
-    """An SDK-default provider adds no field to the pre-guard cache identity."""
+    """An SDK-default provider adds no producer field to metadata-versioned keys."""
     import hashlib
 
     from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
@@ -374,6 +370,8 @@ def test_default_provider_value_cache_key_matches_legacy_bytes(
         "rls": ["scope-a"],
         "changed_on": "None",
     }
+    if isinstance(datasource, SemanticView):
+        legacy["metadata_version"] = datasource.metadata_generation
     expected: str = (
         "col_values:"
         + hashlib.sha256(json.dumps(legacy, sort_keys=True).encode()).hexdigest()

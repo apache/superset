@@ -19,22 +19,24 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import math
 import uuid
-from collections.abc import Hashable
-from dataclasses import dataclass
+from collections.abc import Callable, Hashable
+from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Any, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 import pandas as pd
 import pyarrow as pa
 import sqlalchemy as sa
+from flask import current_app
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import Mapped, relationship
+from sqlalchemy.orm import Mapped, object_session, relationship, Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy_utils import UUIDType
 from sqlalchemy_utils.types.json import JSONType
@@ -59,7 +61,7 @@ from superset.exceptions import (
     SemanticResultCompletenessError,
 )
 from superset.explorables.base import TimeGrainDict
-from superset.extensions import encrypted_field_factory
+from superset.extensions import db, encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.completeness import provider_completeness
@@ -170,6 +172,55 @@ class ColumnMetadata:
     extra: str | None = None
 
 
+_METADATA_GENERATIONS_KEY: str = "semantic_layer_metadata_generations"
+
+
+@dataclass
+class _MetadataGenerations:
+    """Session-local generations, captured before discovery and forgotten on Save."""
+
+    generations: dict[uuid.UUID, str] = field(default_factory=dict)
+
+    @classmethod
+    def for_session(cls, session: Session) -> _MetadataGenerations:
+        """Keep the memo's storage convention in one place."""
+        if _METADATA_GENERATIONS_KEY not in session.info:
+            session.info[_METADATA_GENERATIONS_KEY] = cls()
+        return cast(_MetadataGenerations, session.info[_METADATA_GENERATIONS_KEY])
+
+    def capture(self, layer: SemanticLayer, session: Session) -> str:
+        """Web, task and MCP operations share a credential-independent identity."""
+        if layer.uuid not in self.generations:
+            namespace: str | Callable[[], str] = current_app.config.get(
+                "SEMANTIC_LAYER_CACHE_NAMESPACE", ""
+            )
+            if callable(namespace):
+                namespace = namespace()
+            if not isinstance(namespace, str):
+                raise TypeError(
+                    "SEMANTIC_LAYER_CACHE_NAMESPACE must resolve to a string"
+                )
+            url: sa.engine.URL = session.get_bind(mapper=SemanticLayer).engine.url
+            driver: str = url.drivername.split("+", 1)[0]
+            identity: list[str | int | None] = (
+                ["namespace", namespace]
+                if namespace
+                else [
+                    driver,
+                    url.host,
+                    url.port,
+                    url.database,
+                ]
+            )
+            scope: str = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
+            self.generations[layer.uuid] = f"{scope}:{layer.uuid}:{layer.cache_version}"
+        return self.generations[layer.uuid]
+
+    def forget(self, layer_uuid: uuid.UUID) -> None:
+        """Permit a fresh capture after an authorized ``cache_version`` increment."""
+        self.generations.pop(layer_uuid, None)
+
+
 class SemanticLayer(AuditMixinNullable, Model):
     """
     Semantic layer model.
@@ -191,6 +242,7 @@ class SemanticLayer(AuditMixinNullable, Model):
     # Tracks the schema version of the configuration JSON field to aid with
     # migrations as the configuration schema evolves over time.
     configuration_version = Column(Integer, nullable=False, default=1)
+    cache_version: Mapped[int] = Column(Integer, nullable=False, server_default="0")
     cache_timeout = Column(Integer, nullable=True)
 
     # Permission string for FAB's datasource_access PVM mechanism.
@@ -271,6 +323,38 @@ class SemanticLayer(AuditMixinNullable, Model):
 
         security_manager.semantic_layer_after_delete(mapper, connection, target)
 
+    @property
+    def metadata_generation(self) -> str:
+        """Capture the database-scoped metadata generation once per session.
+
+        This is the host's cache identity for the layer's metadata: it keys host
+        caches and is passed to providers as ``cache_token``.
+        """
+        session: Session = object_session(self) or db.session
+        return _MetadataGenerations.for_session(session).capture(self, session)
+
+    def clear_metadata_cache(self) -> None:
+        """Rotate atomically in the caller's transaction without provider I/O."""
+        session: Session = object_session(self) or db.session
+        session.execute(
+            sa.update(SemanticLayer)
+            .where(SemanticLayer.uuid == self.uuid)
+            .values(cache_version=SemanticLayer.cache_version + 1)
+            .execution_options(synchronize_session=False)
+        )
+        session.expire(self, ["cache_version"])
+        self.__dict__.pop("implementation", None)
+        _MetadataGenerations.for_session(session).forget(self.uuid)
+        instance: object
+        for instance in session.identity_map.values():
+            if isinstance(instance, SemanticView):
+                # Unknown/expired ownership is safe to forget, without a SELECT.
+                if (
+                    sa.inspect(instance).dict.get("semantic_layer_uuid", self.uuid)
+                    == self.uuid
+                ):
+                    instance.forget_metadata()
+
     @cached_property
     def implementation(
         self,
@@ -281,7 +365,9 @@ class SemanticLayer(AuditMixinNullable, Model):
         # TODO (betodealmeida):
         # return extension_manager.get_contribution("semanticLayers", self.type)
         class_ = registry[self.type]
-        return class_.from_configuration(json.loads(self.configuration))
+        return class_.from_configuration_with_cache_token(
+            json.loads(self.configuration), cache_token=self.metadata_generation
+        )
 
 
 class SemanticView(AuditMixinNullable, Model):
@@ -374,6 +460,8 @@ class SemanticView(AuditMixinNullable, Model):
         """
         Return semantic view implementation.
         """
+        # Pin before the provider can discover any members.
+        self._capture_metadata_generation()
         return self.semantic_layer.implementation.get_semantic_view(
             self.name,
             json.loads(self.configuration),
@@ -776,6 +864,39 @@ class SemanticView(AuditMixinNullable, Model):
     def data_for_slices(self, slices: list[Any]) -> ExplorableData:
         return self.data
 
+    _metadata_generation: str | None = None
+
+    def _capture_metadata_generation(self) -> None:
+        """Bind this view to the layer generation used by its implementation."""
+        if self._metadata_generation is None:
+            self._metadata_generation = self.semantic_layer.metadata_generation
+
+    def forget_metadata(self) -> None:
+        """Discard this view's implementation and captured generation together."""
+        self.__dict__.pop("implementation", None)
+        self._metadata_generation = None
+
+    @property
+    def metadata_generation(self) -> str:
+        """The host metadata generation that keys this view's cached results.
+
+        Unlike the SDK view's ``metadata_cache_token``, which a provider only
+        echoes back, this is the host's own value and the one caches use.
+        """
+        self._capture_metadata_generation()
+        assert self._metadata_generation is not None
+        return self._metadata_generation
+
+    @property
+    def metadata_cache_token(self) -> str:
+        """Deprecated alias of ``metadata_generation``, the host generation.
+
+        Kept only while the containment result cache reads the host generation
+        under this name; remove it once that reads ``metadata_generation``.
+        Not the SDK view's provider-echoed ``metadata_cache_token``.
+        """
+        return self.metadata_generation
+
     @property
     def result_cache_version(self) -> str | None:
         """Read the producer guarantee without constructing its implementation."""
@@ -801,9 +922,10 @@ class SemanticView(AuditMixinNullable, Model):
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         discriminator: tuple[str, str] | None = self.result_cache_discriminator
-        if discriminator is None:
-            return []
-        return [("semantic-result-version", *discriminator)]
+        keys: list[Hashable] = [self.metadata_generation]
+        if discriminator is not None:
+            keys.append(("semantic-result-version", *discriminator))
+        return keys
 
     @property
     def catalog_perm(self) -> str | None:
