@@ -615,7 +615,7 @@ more-itertools==10.8.0
     # via
     #   jaraco-classes
     #   jaraco-functools
-msgpack==1.2.2
+msgpack==1.2.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -834,7 +834,7 @@ pyhive==0.7.0
     # via apache-superset
 pyinstrument==5.1.3
     # via apache-superset
-pyjwt==2.14.0
+pyjwt==2.15.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -853,7 +853,7 @@ pymongo==4.17.0
     #   testcontainers
 pymongosql==0.7.4
     # via apache-superset
-pymssql==2.4.1
+pymssql==2.4.4
     # via
     #   apache-superset
     #   testcontainers
@@ -1021,7 +1021,7 @@ shillelagh==1.4.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-simplejson==4.1.2
+simplejson==4.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

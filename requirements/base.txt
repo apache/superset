@@ -237,7 +237,7 @@ marshmallow-union==0.1.15.post1
     # via apache-superset (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
-msgpack==1.2.2
+msgpack==1.2.3
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
@@ -304,7 +304,7 @@ pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
 pygments==2.20.0
     # via rich
-pyjwt==2.14.0
+pyjwt==2.15.1
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -367,7 +367,7 @@ setuptools==84.0.0
     # via -r requirements/base.in
 shillelagh==1.4.5
     # via apache-superset (pyproject.toml)
-simplejson==4.1.2
+simplejson==4.2.0
     # via apache-superset (pyproject.toml)
 six==1.17.0
     # via
