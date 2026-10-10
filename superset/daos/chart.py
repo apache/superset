@@ -30,12 +30,13 @@ from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import id_or_uuid_filter, Slice
-from superset.utils.core import get_user_id
+from superset.utils.core import DatasourceType, get_user_id
 
 logger = logging.getLogger(__name__)
 
 # Custom filterable fields for charts
 CHART_CUSTOM_FIELDS = {
+    "datasource_id": ["eq", "ne", "in", "nin"],
     "viz_type": ["eq", "in", "like"],
     "datasource_name": ["eq", "in", "like"],
     "editor": ["eq", "in"],
@@ -52,7 +53,7 @@ class ChartDAO(BaseDAO[Slice]):
         query: Query,
         column_operators: list[ColumnOperator] | None = None,
     ) -> Query:
-        """Override to handle editor filters via the chart_editors M2M table."""
+        """Scope dataset IDs to tables and handle editor relationship filters."""
         if not column_operators:
             return query
 
@@ -103,6 +104,8 @@ class ChartDAO(BaseDAO[Slice]):
                     )
                 )
             else:
+                if c.col == "datasource_id":
+                    query = query.filter(Slice.datasource_type == DatasourceType.TABLE)
                 remaining_operators.append(c)
 
         if remaining_operators:

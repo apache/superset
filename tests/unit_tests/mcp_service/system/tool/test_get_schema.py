@@ -20,6 +20,7 @@ Tests for the get_schema unified schema discovery tool.
 """
 
 import importlib
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -225,6 +226,16 @@ class TestGetSchemaToolViaClient:
                 "changed_on_humanized",
             }
             assert required_columns.issubset(set(info["default_select"]))
+
+    @pytest.mark.asyncio
+    async def test_get_schema_chart_datasource_id(self, mcp_server: Any) -> None:
+        """Chart discovery advertises the supported dataset ID operators."""
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "chart"}}
+            )
+        info = json.loads(result.content[0].text)["schema_info"]
+        assert info["filter_columns"]["datasource_id"] == ["eq", "ne", "in", "nin"]
 
     @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
     @pytest.mark.asyncio

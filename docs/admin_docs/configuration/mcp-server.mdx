@@ -1421,6 +1421,10 @@ pagination and counting. For tables with a schema, filter using
 `schema.table_name`. Data-model metadata permission checks also apply to these
 filters and returned identifiers.
 
+`list_charts` filters on `datasource_id` support `eq`, `ne`, `in`, and `nin`.
+These dataset ID filters apply only to table-backed charts, excluding charts
+on other datasource types even when their numeric IDs overlap.
+
 ## Trash Listing (Soft-Deleted Objects)
 
 When the `SOFT_DELETE` feature flag is enabled, deleting a chart or dashboard moves it to trash rather than removing it outright. The `list_charts` and `list_dashboards` tools accept a `deleted_state` parameter to surface those trashed objects:
