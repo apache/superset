@@ -2632,6 +2632,22 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert "category" in caplog.text
 
 
+def test_semantic_view_data_row_offset_capability(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """Expose the optional bounded-offset contract through existing metadata."""
+    declared: frozenset[SemanticViewFeature] = frozenset(
+        {SemanticViewFeature.ROW_OFFSET, SemanticViewFeature.GROUP_LIMIT}
+    )
+    mock_implementation.features = declared
+
+    data: ExplorableData = semantic_view.data
+
+    assert data["semantic_view_features"] == ["GROUP_LIMIT", "ROW_OFFSET"]
+    assert SemanticViewFeature.ROW_OFFSET.value == "ROW_OFFSET"
+
+
 @pytest.mark.parametrize("reason", ["incomplete", "unverified"])
 def test_values_fallback_translates_provider_completeness_error(
     mock_implementation: MagicMock,

@@ -32,4 +32,5 @@ export * from './displayTimeRelatedControls';
 export * from './colorControls';
 export * from './metricColumnFilter';
 export * from './buildSortMetricOrderby';
+export * from './isServerPaginationUnsupported';
 export * from './headerGroups';

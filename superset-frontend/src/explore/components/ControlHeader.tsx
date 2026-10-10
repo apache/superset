@@ -169,16 +169,20 @@ const ControlHeader: FC<ControlHeaderProps> = ({
               prohibits interactive content (including <button>) as a
               descendant of <label>, so a real button tag isn't an option
               here. */}
-          <span
-            // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
-            role="button"
-            tabIndex={0}
-            onClick={onClick}
-            onKeyDown={onClick ? handleKeyboardActivation(onClick) : undefined}
-            style={{ cursor: onClick ? 'pointer' : '' }}
-          >
-            {label}
-          </span>{' '}
+          {onClick ? (
+            <span
+              // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+              role="button"
+              tabIndex={0}
+              onClick={onClick}
+              onKeyDown={handleKeyboardActivation(onClick)}
+              style={{ cursor: 'pointer' }}
+            >
+              {label}
+            </span>
+          ) : (
+            <span>{label}</span>
+          )}{' '}
           {warning && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>

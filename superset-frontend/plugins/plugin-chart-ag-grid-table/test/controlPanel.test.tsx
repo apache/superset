@@ -43,6 +43,12 @@ const findNamedControl = (name: string): ControlConfig | null => {
   return null;
 };
 
+const getPaginationControl = (name: string): ControlConfig => {
+  const control = findNamedControl(name);
+  if (control) return control;
+  throw new Error(`Missing pagination control: ${name}`);
+};
+
 const findConditionalFormattingControl = (): ControlConfig | null =>
   findNamedControl('conditional_formatting');
 
@@ -327,3 +333,249 @@ test('metrics control includes non-filterable columns', () => {
     ]),
   );
 });
+
+test.each([
+  ['semantic_view', undefined, true],
+  ['semantic_view', [], true],
+  ['semantic_view', ['UNKNOWN'], true],
+  ['semantic_view', ['ROW_OFFSET'], false],
+  ['table', undefined, false],
+])(
+  'AG Grid pagination gate: %s with %s disables=%s',
+  (type, features, disabled) => {
+    const panel = getPaginationControl('server_pagination');
+    const length = getPaginationControl('server_page_length');
+    const base = createMockExplore(undefined);
+    const state: ControlPanelState = {
+      ...base,
+      datasource: {
+        id: 1,
+        uid: 'provider-view',
+        type,
+        semantic_view_features: features,
+      } as Dataset,
+      form_data: {
+        ...base.form_data,
+        datasource: `1__${type}`,
+        server_pagination: true,
+      },
+      controls: {
+        ...base.controls,
+        server_pagination: { type: 'CheckboxControl', value: true },
+      },
+    };
+
+    expect(
+      panel.shouldMapStateToProps?.(
+        state,
+        state,
+        state.controls.server_pagination,
+      ),
+    ).toBe(true);
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled,
+      resetLabel: 'Turn off server pagination',
+      disabledReason: 'This semantic view does not support server pagination.',
+    });
+    expect(
+      length.mapStateToProps?.(state, state.controls.server_page_length),
+    ).toMatchObject({ disabled });
+    expect(state.controls.server_pagination.value).toBe(true);
+  },
+);
+
+test('AG Grid fails closed while semantic datasource metadata loads', () => {
+  const panel = getPaginationControl('server_pagination');
+  const base = createMockExplore(undefined);
+  const state: ControlPanelState = {
+    ...base,
+    datasource: null,
+    form_data: { ...base.form_data, datasource: '1__semantic_view' },
+  };
+  expect(
+    panel.mapStateToProps?.(state, state.controls.server_pagination),
+  ).toMatchObject({
+    disabled: true,
+    resetLabel: undefined,
+    disabledReason: undefined,
+  });
+});
+
+test.each([
+  ['1__semantic_view', '2__semantic_view'],
+  ['cube__orders', 'cube__customers'],
+])(
+  'withholds pagination advice for stale metadata %s -> %s',
+  (uid, selected) => {
+    const state = createMockExplore(undefined);
+    state.datasource = {
+      ...state.datasource,
+      id: 1,
+      uid,
+      type: 'semantic_view',
+      semantic_view_features: [],
+    } as Dataset;
+    state.form_data.datasource = selected;
+    const panel = getPaginationControl('server_pagination');
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: true,
+      resetLabel: undefined,
+      disabledReason: undefined,
+    });
+    state.datasource = { ...state.datasource, id: 2, uid: selected } as Dataset;
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: true,
+      resetLabel: 'Turn off server pagination',
+      disabledReason: 'This semantic view does not support server pagination.',
+    });
+  },
+);
+
+test.each([true, false])(
+  'matches Explore id/type independently of provider uid: offset=%s',
+  supportsOffset => {
+    const state = createMockExplore(undefined);
+    state.datasource = {
+      ...state.datasource,
+      id: 42,
+      uid: 'provider-orders',
+      type: 'semantic_view',
+      semantic_view_features: supportsOffset ? ['ROW_OFFSET'] : [],
+    } as Dataset;
+    state.form_data.datasource = '42__semantic_view';
+    const panel = getPaginationControl('server_pagination');
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: !supportsOffset,
+      resetLabel: 'Turn off server pagination',
+      disabledReason: 'This semantic view does not support server pagination.',
+    });
+    state.datasource = {
+      ...state.datasource,
+      id: 43,
+      uid: '42__semantic_view',
+    } as Dataset;
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: true,
+      resetLabel: undefined,
+      disabledReason: undefined,
+    });
+    state.datasource = {
+      ...state.datasource,
+      id: 42,
+      type: 'table',
+    } as Dataset;
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabled: true,
+      resetLabel: undefined,
+      disabledReason: undefined,
+    });
+  },
+);
+
+test.each([undefined, [], ['ROW_OFFSET']])(
+  'AG Grid matches opaque provider uid before parsing datasource type: %s',
+  features => {
+    const base = createMockExplore(undefined);
+    const state: ControlPanelState = {
+      ...base,
+      datasource: {
+        ...base.datasource,
+        uid: 'cube__orders',
+        type: 'semantic_view',
+        semantic_view_features: features,
+      } as Dataset,
+      form_data: { ...base.form_data, datasource: 'cube__orders' },
+    };
+    const disabled = !features?.includes('ROW_OFFSET');
+    for (const name of ['server_pagination', 'server_page_length']) {
+      expect(
+        getPaginationControl(name).mapStateToProps?.(
+          state,
+          state.controls[name],
+        ),
+      ).toMatchObject({ disabled });
+    }
+  },
+);
+
+test('ignores stale offset capability when switching opaque semantic UIDs', () => {
+  const state = createMockExplore(undefined);
+  state.datasource = {
+    ...state.datasource,
+    uid: 'cube__orders',
+    type: 'semantic_view',
+    semantic_view_features: ['ROW_OFFSET'],
+  } as Dataset;
+  state.form_data.datasource = 'cube__customers';
+
+  for (const name of ['server_pagination', 'server_page_length']) {
+    expect(
+      getPaginationControl(name).mapStateToProps?.(state, state.controls[name]),
+    ).toMatchObject({ disabled: true });
+  }
+});
+
+test.each(['server_pagination', 'server_page_length'])(
+  'AG Grid %s ignores stale offset capability from another semantic view',
+  name => {
+    const base = createMockExplore(undefined);
+    const state: ControlPanelState = {
+      ...base,
+      datasource: {
+        ...base.datasource,
+        uid: '1__semantic_view',
+        type: 'semantic_view',
+        semantic_view_features: ['ROW_OFFSET'],
+      } as Dataset,
+      form_data: {
+        ...base.form_data,
+        datasource: '2__semantic_view',
+        server_pagination: true,
+      },
+    };
+
+    expect(
+      getPaginationControl(name).mapStateToProps?.(state, state.controls[name]),
+    ).toMatchObject({ disabled: true });
+    expect(state.form_data.server_pagination).toBe(true);
+  },
+);
+
+test.each([
+  ['table', 'semantic_view', true],
+  ['semantic_view', 'table', false],
+])(
+  'AG Grid trusts form datasource %s -> %s while metadata is stale',
+  (previous, next, disabled) => {
+    const panel = getPaginationControl('server_pagination');
+    const base = createMockExplore(undefined);
+    const state: ControlPanelState = {
+      ...base,
+      datasource: {
+        ...base.datasource,
+        type: previous,
+        semantic_view_features: [],
+      } as Dataset,
+      form_data: {
+        ...base.form_data,
+        datasource: `2__${next}`,
+        server_pagination: true,
+      },
+    };
+    expect(
+      panel.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({ disabled });
+  },
+);

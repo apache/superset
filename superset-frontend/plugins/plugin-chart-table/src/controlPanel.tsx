@@ -39,6 +39,8 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  isServerPaginationUnsupported,
+  hasMatchingDatasourceMetadata,
   getHeaderGroupsControlProps,
   getTimeComparisonColumnKeys,
   ConditionalFormattingConfig,
@@ -438,6 +440,16 @@ const config: ControlPanelConfig = {
                 'Enable server side pagination of results (experimental feature)',
               ),
               default: false,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+                disabledReason: hasMatchingDatasourceMetadata(state)
+                  ? t('This semantic view does not support server pagination.')
+                  : undefined,
+                resetLabel: hasMatchingDatasourceMetadata(state)
+                  ? t('Turn off server pagination')
+                  : undefined,
+              }),
             },
           },
         ],
@@ -450,6 +462,10 @@ const config: ControlPanelConfig = {
               label: t('Server Page Length'),
               default: 10,
               choices: SERVER_PAGE_SIZE_OPTIONS,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => ({
+                disabled: isServerPaginationUnsupported(state),
+              }),
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),

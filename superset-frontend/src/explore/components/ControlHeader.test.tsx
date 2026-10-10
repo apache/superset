@@ -26,6 +26,25 @@ import ControlHeader from './ControlHeader';
 
 const description = 'This control filters the whole chart.';
 
+test('noninteractive labels do not add a dead keyboard stop', () => {
+  render(<ControlHeader name="time_range" label="Date Range" />);
+
+  const label = screen.getByText('Date Range');
+  expect(label).not.toHaveAttribute('role');
+  expect(label).not.toHaveAttribute('aria-disabled');
+  expect(label).not.toHaveAttribute('tabindex');
+});
+
+test('interactive labels remain keyboard-accessible buttons', () => {
+  const onClick = jest.fn();
+  render(<ControlHeader label="Toggle option" onClick={onClick} />);
+  const label = screen.getByRole('button', { name: 'Toggle option' });
+  expect(label).toHaveAttribute('tabindex', '0');
+  expect(label).not.toHaveAttribute('aria-disabled');
+  fireEvent.keyDown(label, { key: 'Enter' });
+  expect(onClick).toHaveBeenCalledTimes(1);
+});
+
 test('does not render the description icon until the control is hovered', () => {
   const { rerender } = render(
     <ControlHeader

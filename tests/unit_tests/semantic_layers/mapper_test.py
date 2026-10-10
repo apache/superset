@@ -17,7 +17,7 @@
 
 from datetime import date, datetime, time, timezone
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 from zoneinfo import ZoneInfo
 
 import freezegun
@@ -4233,6 +4233,58 @@ def test_abc_only_provider_validates_and_maps(mocker: MockerFixture) -> None:
 
     assert {metric.name for metric in queries[0].metrics} == {"total_sales"}
     assert {dim.name for dim in queries[0].dimensions} == {"category"}
+
+
+@pytest.mark.parametrize("offset", [None, -1, 0, 2])
+@pytest.mark.parametrize("limit", [None, 0, 2])
+def test_row_offset_mapping_without_advertised_capability(
+    mock_datasource: MagicMock, offset: int | None, limit: int | None
+) -> None:
+    """Keep direct callers provider-local even when UI support is absent."""
+    mock_datasource.implementation.features = frozenset()
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        row_offset=offset,
+        row_limit=limit,
+        orderby=[("category", True)],
+    )
+
+    queries: list[SemanticQuery] = map_query_object(query_object)
+
+    assert len(queries) == 1
+    assert queries[0].offset == (offset or 0)
+    assert queries[0].limit == limit
+    assert queries[0].order is not None
+    assert queries[0].order[0][1] == OrderDirection.ASC
+    assert isinstance(queries[0].order[0][0], Dimension)
+    assert queries[0].order[0][0].name == "category"
+
+
+def test_unadvertised_offset_reaches_provider(
+    mock_datasource: MagicMock, mocker: MockerFixture
+) -> None:
+    """Do not add host-wide rejection for capable but unadvertised providers."""
+    mock_datasource.implementation.features = frozenset()
+    result: SemanticResult = SemanticResult(
+        requests=[], results=pa.table({"category": ["third"], "total_sales": [3.0]})
+    )
+    execute: Mock = mocker.Mock(return_value=result)
+    mock_datasource.implementation.get_table = execute
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        row_offset=2,
+        row_limit=2,
+    )
+
+    get_results(query_object)
+
+    execute.assert_called_once()
+    assert execute.call_args.args[0].offset == 2
+    assert execute.call_args.args[0].limit == 2
 
 
 def test_required_comparison_completeness_failure_rejects_main_result(

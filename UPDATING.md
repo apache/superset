@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Explore control headers without a click action render as plain text, not disabled buttons; interactive headers retain keyboard activation.
+
 - Malformed explicit `time_range` values are rejected with a validation error
   (HTTP 400 on chart-data requests) instead of silently producing an upper-bound-only
   scan. Update saved charts, dashboard filters, imports, and API callers to use
@@ -119,6 +121,16 @@ assists people when migrating to a new version.
   exports. Ordinary table bundles retain their existing format. The examples
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
+
+### Table and AG Grid server pagination for semantic views
+
+Table and AG Grid Table charts backed by semantic views require the optional `ROW_OFFSET`
+capability to enable Server pagination. Missing capability metadata disables
+the control with an explanation; SQL datasets are unchanged. Saved pagination
+settings are not rewritten. Users can explicitly turn off an unsupported
+saved setting; provider errors remain authoritative until that edit.
+Extension providers must use a compatible core version before declaring the
+new capability.
 
 ### Alerts & Reports: runtime configuration and per-schedule "Run As" executor (SIP-209)
 
