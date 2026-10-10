@@ -687,6 +687,9 @@ async def update_chart(  # noqa: C901
     - config is optional — omit it to rename a chart without changing its visualization
     - To append table columns without restating the existing list, use add_columns
 
+    config takes the same chart configuration as generate_chart; call
+    get_chart_type_schema(chart_type) for a chart type's fields and examples.
+
     Example usage (preview, default):
     ```json
     {
@@ -708,71 +711,23 @@ async def update_chart(  # noqa: C901
     }
     ```
 
-    Example usage (persist immediately):
-    ```json
-    {
-        "identifier": 123,
-        "generate_preview": false,
-        "config": {"chart_type": "table", "columns": [{"name": "region"}]}
-    }
-    ```
+    Sunburst updates preserve omitted saved presentation and filter settings;
+    pass filters=[] explicitly to clear filters.
 
-    Update a Sunburst while preserving omitted saved presentation and filter
-    settings (pass filters=[] explicitly to clear filters):
-    ```json
-    {
-        "identifier": 123,
-        "config": {
-            "chart_type": "sunburst",
-            "hierarchy": [{"name": "region"}, {"name": "country"}],
-            "metric": {"name": "revenue", "aggregate": "SUM"},
-            "show_total": true
-        }
-    }
-    ```
-
-    Add a table column while preserving existing columns and metrics:
-    ```json
-    {
-        "identifier": 123,
-        "add_columns": [{"name": "go_live_date", "aggregate": "MIN"}]
-    }
-    ```
-
+    Add a table column while preserving existing columns and metrics.
     add_columns combines with chart_name to append and rename in one call.
     Columns already on the chart are ignored, so repeating a column is safe:
     ```json
     {
         "identifier": 123,
         "chart_name": "Go-Live Tracker",
-        "add_columns": [{"name": "region"}]
+        "add_columns": [{"name": "go_live_date", "aggregate": "MIN"}]
     }
     ```
 
-    Example usage with a custom SQL metric (ratios, conditional aggregations,
-    unit conversions). Pass 'sql_expression' instead of 'name'+'aggregate'.
-    A 'label' is required:
-    ```json
-    {
-        "identifier": 123,
-        "config": {
-            "chart_type": "xy",
-            "x": {"name": "date"},
-            "y": [{
-                "sql_expression":
-                    "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / "
-                    "NULLIF(COUNT(*), 0)",
-                "label": "Win Rate"
-            }],
-            "kind": "line"
-        }
-    }
-    ```
-
-    Use when:
-    - Modifying existing saved chart
-    - Updating title, filters, or visualization settings
-    - Changing chart type or data columns
+    For a custom SQL metric (ratios, conditional aggregations, unit
+    conversions), pass 'sql_expression' with a required 'label' instead of
+    'name'+'aggregate'.
 
     Returns:
     - Updated chart info, form_data (reflects what was saved), and metadata

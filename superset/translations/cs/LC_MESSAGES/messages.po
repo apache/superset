@@ -1893,6 +1893,9 @@ msgstr "Dimenze"
 msgid "All filters"
 msgstr "Všechny filtry"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Všechny panely"
 
@@ -2892,6 +2895,8 @@ msgstr "Zpět"
 msgid "Back to all"
 msgstr "Zpět na vše"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Backend"
 
@@ -4411,6 +4416,9 @@ msgstr "Sloupce ke čtení"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Sloupce k zobrazení v tooltipu."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Kombinovat metriky"
@@ -8438,6 +8446,9 @@ msgstr "Název skupiny"
 msgid "Group remaining as \"Others\""
 msgstr "Zůstávající řádky seskupit do skupiny \"Ostatní\""
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "Seskupení"
@@ -8551,6 +8562,8 @@ msgstr "Vodorovné zarovnání"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Hostitel"
 
@@ -9418,6 +9431,11 @@ msgid "Least recently modified"
 msgstr "Nejméně nedávno změněné"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -10951,6 +10969,10 @@ msgstr "Graf nenalezen"
 
 msgid "Not in"
 msgstr "Není v"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Není null"
@@ -14097,6 +14119,7 @@ msgstr "Vyberte uživatele"
 msgid "Select values"
 msgstr "Vyberte hodnoty"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14810,6 +14833,7 @@ msgstr "Posuvník"
 msgid "Slider and range input"
 msgstr "Vstup posuvník a rozsah"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -15982,6 +16006,11 @@ msgstr "Sloupec, který se má použít jako cíl hrany."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Sloupec byl v databázi smazán nebo přejmenován."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Konfigurace pro vrstvy mapy"

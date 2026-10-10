@@ -1882,6 +1882,9 @@ msgstr "Dimensijas"
 msgid "All filters"
 msgstr "Visi filtri"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Visi paneļi"
 
@@ -2861,6 +2864,8 @@ msgstr "Atpakaļ"
 msgid "Back to all"
 msgstr "Atpakaļ uz visu"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Aizmugure"
 
@@ -4364,6 +4369,9 @@ msgstr "Lasāmās kolonnas"
 
 msgid "Columns to show in the tooltip."
 msgstr "Kolonnas, kas jāparāda paskaidrē."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Apvienot rādītājus"
@@ -8287,6 +8295,9 @@ msgstr "Grupas nosaukums"
 msgid "Group remaining as \"Others\""
 msgstr "Grupēt atlikušos kā \"Others\""
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "Grupēšana"
 
@@ -8397,6 +8408,8 @@ msgstr "Horizontālais līdzinājums"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Resursdators"
 
@@ -9237,6 +9250,11 @@ msgid "Least recently modified"
 msgstr "Visvecāk modificēts"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -10743,6 +10761,10 @@ msgstr "Diagramma nav atrasta"
 
 msgid "Not in"
 msgstr "Neietilpst"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nav tukšs"
@@ -13819,6 +13841,7 @@ msgstr "Izvēlēties lietotājus"
 msgid "Select values"
 msgstr "Izvēlieties vērtības"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14514,6 +14537,7 @@ msgstr "Slīdnis"
 msgid "Slider and range input"
 msgstr "Slīdnis un diapazona ievade"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -15674,6 +15698,11 @@ msgstr "Kolonna, kuru izmantot kā malas mērķi."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Kolonna datubāzē tika dzēsta vai pārdēvēta."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Kartes slāņu konfigurācija"

@@ -807,6 +807,8 @@ function DatabaseList({
       },
       {
         accessor: 'backend',
+        // i18n: the kind of system behind a connection: a database engine
+        // (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
         Header: t('Backend'),
         size: 'xl',
         disableSortBy: true,

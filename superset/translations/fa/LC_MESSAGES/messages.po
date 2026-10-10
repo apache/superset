@@ -1917,6 +1917,9 @@ msgstr "ابعاد"
 msgid "All filters"
 msgstr "تمام فیلترها"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "همه پنل‌ها"
 
@@ -2949,6 +2952,8 @@ msgstr "بازگشت"
 msgid "Back to all"
 msgstr "بازگشت به همه"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "پشتیبان"
 
@@ -4557,6 +4562,9 @@ msgstr "ستون‌ها را برای خواندن انتخاب کنید"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "راهنمای تیتر ستون"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "ترکیب معیارها"
@@ -8776,6 +8784,9 @@ msgstr "نام گروه"
 msgid "Group remaining as \"Others\""
 msgstr "گروه‌بندی باقی‌مانده به عنوان \"سایرین\""
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "دامنه‌گذاری"
@@ -8898,6 +8909,8 @@ msgstr "تراز افقی"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "میزبان"
 
@@ -9819,6 +9832,11 @@ msgid "Least recently modified"
 msgstr "آخرین تغییرات کمتر شده"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11412,6 +11430,10 @@ msgstr "نمودار یافت نشد"
 
 msgid "Not in"
 msgstr "نه در"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "غیر خالی"
@@ -14649,6 +14671,7 @@ msgstr "مالکین را انتخاب کنید"
 msgid "Select values"
 msgstr "مالکین را انتخاب کنید"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -15402,6 +15425,7 @@ msgstr "سخت"
 msgid "Slider and range input"
 msgstr "لغزنده و ورودی محدوده"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "اسلاگ"
 
@@ -16627,6 +16651,11 @@ msgstr "ستونی که قرار است به عنوان هدف لبه استفا
 
 msgid "The column was deleted or renamed in the database."
 msgstr "ستون در پایگاه داده حذف یا تغییر نام داده شده است."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

@@ -1838,6 +1838,9 @@ msgstr "பரிமாணமா (Is dimension)"
 msgid "All filters"
 msgstr "அனைத்து வடிகட்டிகள்"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "அனைத்து பேனல்கள் (panels)"
 
@@ -2823,6 +2826,8 @@ msgstr "பின்செல்"
 msgid "Back to all"
 msgstr "அனைத்திற்கும் திரும்பு"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "பின்னணி (Backend)"
 
@@ -4322,6 +4327,9 @@ msgstr "வாசிக்க வேண்டிய நெடுவரிசை�
 
 msgid "Columns to show in the tooltip."
 msgstr "உதவிக்குறிப்பில் காட்ட வேண்டிய நெடுவரிசைகள்."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "அளவீடுகளை இணைக்கவும்"
@@ -8209,6 +8217,9 @@ msgstr "குழுவின் பெயர்"
 msgid "Group remaining as \"Others\""
 msgstr "மீதமுள்ளவற்றை \"ஏனையவை\" என குழுவாக்கு"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "குழுவாக்கம்"
 
@@ -8318,6 +8329,8 @@ msgstr "கிடைமட்ட சீரமைப்பு"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "ஹோஸ்ட் (Host)"
 
@@ -9146,6 +9159,11 @@ msgid "Least recently modified"
 msgstr "மிகக் குறைவாக மாற்றப்பட்டது"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -10589,6 +10607,10 @@ msgstr "முடிவுகள் எதுவும் காணப்பட�
 
 msgid "Not in"
 msgstr "இதில் இல்லை"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "காலியாக இல்லை (Not null)"
@@ -13541,6 +13563,7 @@ msgstr "பயனர்களைத் தேர்ந்தெடு"
 msgid "Select values"
 msgstr "மதிப்புகளைத் தேர்ந்தெடு"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14209,6 +14232,7 @@ msgstr "ஸ்லைடர்"
 msgid "Slider and range input"
 msgstr "ஸ்லைடர் மற்றும் வரம்பு உள்ளீடு"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "ஸ்லக் (Slug)"
 
@@ -15299,6 +15323,11 @@ msgstr "விளிம்பின் இலக்காகப் பயன்�
 
 msgid "The column was deleted or renamed in the database."
 msgstr "தரவுத்தளத்தில் நெடுவரிசை நீக்கப்பட்டது அல்லது மறுபெயரிடப்பட்டது."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "வரைபட அடுக்குகளுக்கான உள்ளமைப்பு"

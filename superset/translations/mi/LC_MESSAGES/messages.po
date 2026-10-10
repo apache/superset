@@ -1903,6 +1903,9 @@ msgstr "Āhuahanga"
 msgid "All filters"
 msgstr "Tātari katoa"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Papa katoa"
 
@@ -2942,6 +2945,8 @@ msgstr "Hoki"
 msgid "Back to all"
 msgstr "Hoki ki te katoa"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Tuarongo"
 
@@ -4529,6 +4534,9 @@ msgstr "Tīwae hei pānui"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Kītukutuku pane tīwae"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Whakakotahi ine"
@@ -8677,6 +8685,9 @@ msgstr "Ingoa rōpū"
 msgid "Group remaining as \"Others\""
 msgstr "Whakaropu i ngā toenga hei \"Ētahi Atu\""
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "Korahi"
@@ -8798,6 +8809,8 @@ msgstr "Whakarite whakapae"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Tūmau"
 
@@ -9697,6 +9710,11 @@ msgid "Least recently modified"
 msgstr "I whakarerekeahia tata nei iti rawa"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11256,6 +11274,10 @@ msgstr "Kāore i kitea te kauwhata"
 
 msgid "Not in"
 msgstr "Kāore i roto i"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Ehara i te kore"
@@ -14478,6 +14500,7 @@ msgstr "Tīpakohia rangatira"
 msgid "Select values"
 msgstr "Tīpakohia tūranga"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -15223,6 +15246,7 @@ msgstr "Mārō"
 msgid "Slider and range input"
 msgstr "Paheke me te tāuru āhua"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -16429,6 +16453,11 @@ msgstr "Te tīwae ka whakamahia hei whāinga o te tapa."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "I mukua, i whakaingoahia-anō rānei te tīwae i te pātengi raraunga."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Te whirihora mō ngā papa mahere"

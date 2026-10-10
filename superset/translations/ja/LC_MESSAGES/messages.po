@@ -1714,6 +1714,9 @@ msgstr "すべてのディメンション"
 msgid "All filters"
 msgstr "すべてのフィルター"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "すべてのパネル"
 
@@ -2621,6 +2624,8 @@ msgstr "戻る"
 msgid "Back to all"
 msgstr "すべてに戻る"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "バックエンド"
 
@@ -4006,6 +4011,9 @@ msgstr "読み込む列"
 
 msgid "Columns to show in the tooltip."
 msgstr "ツールチップに表示する列"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "メトリックを結合"
@@ -7652,6 +7660,9 @@ msgstr "グループ名"
 msgid "Group remaining as \"Others\""
 msgstr "残りの項目を「その他」にまとめる"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "グループ化"
 
@@ -7759,6 +7770,8 @@ msgstr "水平方向の配置"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "ホスト"
 
@@ -8572,6 +8585,11 @@ msgid "Least recently modified"
 msgstr "更新日が古い順"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -9981,6 +9999,10 @@ msgstr "見つかりません"
 
 msgid "Not in"
 msgstr "次を含まない (Not in)"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "NULLではない"
@@ -12856,6 +12878,7 @@ msgstr "ユーザーを選択"
 msgid "Select values"
 msgstr "値を選択"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -13478,6 +13501,7 @@ msgstr "スライダー"
 msgid "Slider and range input"
 msgstr "スライダーと範囲入力"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "スラッグ"
 
@@ -14535,6 +14559,11 @@ msgstr "エッジのターゲット(終点)として使用する列。"
 
 msgid "The column was deleted or renamed in the database."
 msgstr "データベース内で列が削除されたか、名前が変更されました。"
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "マップレイヤーの設定"

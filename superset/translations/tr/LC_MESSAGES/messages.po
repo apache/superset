@@ -1888,6 +1888,9 @@ msgstr "Tüm boyutlar"
 msgid "All filters"
 msgstr "Tüm filtreler"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Tüm paneller"
 
@@ -2938,6 +2941,8 @@ msgstr "Geri dön"
 msgid "Back to all"
 msgstr "Geri dön"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Backend"
 
@@ -4508,6 +4513,9 @@ msgstr "Kolonlar bulunamadı"
 
 msgid "Columns to show in the tooltip."
 msgstr "Takımda göstermek için sütunlar."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Ekle metrics"
@@ -8650,6 +8658,9 @@ msgstr "Grup adı"
 msgid "Group remaining as \"Others\""
 msgstr "Grup \"Diğerleri\" olarak kaldı"
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "çalışıyor"
@@ -8765,6 +8776,8 @@ msgstr "yatay hizalama"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Host"
 
@@ -9655,6 +9668,11 @@ msgid "Least recently modified"
 msgstr "Least son zamanlarda değiştirilmiş"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11239,6 +11257,10 @@ msgstr "Bulunamadı"
 
 msgid "Not in"
 msgstr "Değil"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Çıplak Değil"
@@ -14442,6 +14464,7 @@ msgstr "Sorguyu sil"
 msgid "Select values"
 msgstr "Dosya seç"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -15191,6 +15214,7 @@ msgstr "Kullanıcı"
 msgid "Slider and range input"
 msgstr "Slider ve aralık girişi"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -16401,6 +16425,11 @@ msgstr "Köşe kenar hedefi olarak kullanılır."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "sütun veritabanında silindi veya değiştirildi."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Harita katmanları için yapılandırma"

@@ -2199,6 +2199,9 @@ msgstr "Sve dimenzije"
 msgid "All filters"
 msgstr "Svi filteri"
 
+msgid "All groupable columns"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "All panels"
 msgstr "Svi paneli"
@@ -3405,6 +3408,8 @@ msgid "Back to all"
 msgstr "Nazad na sve"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Bekend"
 
@@ -5239,6 +5244,9 @@ msgstr "Kolone za čitanje"
 # ru, uk]
 msgid "Columns to show in the tooltip."
 msgstr "Kolone za prikaz u oblačiću."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Combine metrics"
@@ -10061,6 +10069,9 @@ msgstr "Naziv grupe"
 msgid "Group remaining as \"Others\""
 msgstr "Grupiši preostale kao \"Ostalo\""
 
+msgid "Groupable columns"
+msgstr ""
+
 # ru, uk]
 msgid "Grouping"
 msgstr "Grupisanje"
@@ -10201,6 +10212,8 @@ msgstr "Horizontalno poravnanje"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Host"
 
@@ -11247,6 +11260,11 @@ msgid "Least recently modified"
 msgstr "Najmanje nedavno izmenjeno"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -13055,6 +13073,10 @@ msgstr "Nije pronađeno"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Not in"
 msgstr "Nije u"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Not null"
@@ -16809,6 +16831,7 @@ msgid "Select values"
 msgstr "Izaberite vrednosti"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -17609,6 +17632,7 @@ msgstr "Klizač"
 msgid "Slider and range input"
 msgstr "Klizač i unos opsega"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -18980,6 +19004,11 @@ msgstr "Kolona koja se koristi kao odredište grane."
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The column was deleted or renamed in the database."
 msgstr "Kolona je obrisana ili preimenovana u bazi podataka."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "The configuration for the map layers"

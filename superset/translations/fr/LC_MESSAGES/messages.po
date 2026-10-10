@@ -1853,6 +1853,9 @@ msgstr "Toutes les dimensions"
 msgid "All filters"
 msgstr "Tous les filtres"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Tous les panneaux"
 
@@ -2882,6 +2885,8 @@ msgstr "Retour"
 msgid "Back to all"
 msgstr "Retour à tout"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Serveur"
 
@@ -4416,6 +4421,9 @@ msgstr "Colonnes à lire"
 
 msgid "Columns to show in the tooltip."
 msgstr "Colonnes à afficher dans l'infobulle"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combiner les mesures"
@@ -8385,6 +8393,9 @@ msgstr "Nom du groupe"
 msgid "Group remaining as \"Others\""
 msgstr "Grouper le reste sous « Autres »"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "Grouper"
 
@@ -8497,6 +8508,8 @@ msgstr "Alignement horizontal"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Hôte"
 
@@ -9352,6 +9365,11 @@ msgid "Least recently modified"
 msgstr "Dernière modification en date"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -10857,6 +10875,10 @@ msgstr "Non trouvé"
 
 msgid "Not in"
 msgstr "Pas dans"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Non nul"
@@ -13987,6 +14009,7 @@ msgstr "Sélectionner les utilisateurs"
 msgid "Select values"
 msgstr "Sélectionner des valeurs"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14680,6 +14703,7 @@ msgstr "Curseur"
 msgid "Slider and range input"
 msgstr "Curseur et entrée de plage"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -15851,6 +15875,11 @@ msgstr "La colonne à utiliser comme cible de l'arête."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "La colonne a été supprimée ou renommée dans la base de données."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "La configuration des couches de la carte"

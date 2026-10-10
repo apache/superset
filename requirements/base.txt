@@ -84,7 +84,7 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==6.2.4
     # via apache-superset (pyproject.toml)
-cryptography==50.0.1
+cryptography==50.0.2
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -237,7 +237,7 @@ marshmallow-union==0.1.15.post1
     # via apache-superset (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
-msgpack==1.2.2
+msgpack==1.2.3
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
@@ -304,7 +304,7 @@ pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
 pygments==2.20.0
     # via rich
-pyjwt==2.14.0
+pyjwt==2.15.1
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -367,7 +367,7 @@ setuptools==84.0.0
     # via -r requirements/base.in
 shillelagh==1.4.5
     # via apache-superset (pyproject.toml)
-simplejson==4.1.2
+simplejson==4.2.0
     # via apache-superset (pyproject.toml)
 six==1.17.0
     # via
@@ -375,7 +375,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.44.1
+slack-sdk==3.45.0
     # via apache-superset (pyproject.toml)
 sqlalchemy==2.0.52
     # via
@@ -388,7 +388,7 @@ sqlalchemy==2.0.52
     #   shillelagh
     #   sqlalchemy-continuum
     #   sqlalchemy-utils
-sqlalchemy-continuum==1.7.0
+sqlalchemy-continuum==1.8.0
     # via apache-superset (pyproject.toml)
 sqlalchemy-utils==0.42.1
     # via

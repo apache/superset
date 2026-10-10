@@ -1992,6 +1992,9 @@ msgstr "Toate dimensiunile"
 msgid "All filters"
 msgstr "Toate filtrele"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Toate panourile"
 
@@ -3038,6 +3041,8 @@ msgstr "Înapoi"
 msgid "Back to all"
 msgstr "Înapoi la toate"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Backend"
 
@@ -4632,6 +4637,9 @@ msgstr "Coloane de citit"
 
 msgid "Columns to show in the tooltip."
 msgstr "Coloane de afișat în tooltip."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combină indicatori"
@@ -8848,6 +8856,9 @@ msgstr "Numele grupului"
 msgid "Group remaining as \"Others\""
 msgstr "Grupează restul ca \"Altele\""
 
+msgid "Groupable columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, lv, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -8970,6 +8981,8 @@ msgstr "Aliniere orizontală"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Gazdă"
 
@@ -9892,6 +9905,11 @@ msgid "Least recently modified"
 msgstr "Cel mai puțin modificat recent"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11489,6 +11507,10 @@ msgstr "Negăsit"
 
 msgid "Not in"
 msgstr "Nu în"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nu null"
@@ -14725,6 +14747,7 @@ msgstr "Selectează utilizatori"
 msgid "Select values"
 msgstr "Selectează valori"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -15482,6 +15505,7 @@ msgstr "Glisor"
 msgid "Slider and range input"
 msgstr "Glisor și intrare interval"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -16714,6 +16738,11 @@ msgstr "Coloana de folosit ca țintă a muchiei."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Coloana a fost ștearsă sau redenumită în baza de date."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Configurația pentru straturile hărții"

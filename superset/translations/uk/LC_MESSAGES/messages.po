@@ -1900,6 +1900,9 @@ msgstr "Виміри"
 msgid "All filters"
 msgstr "Усі фільтри"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Усі панелі"
 
@@ -2872,6 +2875,8 @@ msgstr "Назад"
 msgid "Back to all"
 msgstr "Назад до всіх"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Рушій"
 
@@ -4370,6 +4375,9 @@ msgstr "Стовпці, які читати"
 
 msgid "Columns to show in the tooltip."
 msgstr "Стовпці, які показувати у підказках."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Поєднати показники"
@@ -8299,6 +8307,9 @@ msgstr "Назва групи"
 msgid "Group remaining as \"Others\""
 msgstr "Згрупувати решту як «Інші»"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "Групування"
 
@@ -8408,6 +8419,8 @@ msgstr "Горизонтальне вирівнювання"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Вузол"
 
@@ -9245,6 +9258,11 @@ msgid "Least recently modified"
 msgstr "Давно без змін"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -10747,6 +10765,10 @@ msgstr "Діаграму не знайдено"
 
 msgid "Not in"
 msgstr "Не в"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Не порожній"
@@ -13821,6 +13843,7 @@ msgstr "Вибрати користувачів"
 msgid "Select values"
 msgstr "Вибрати значення"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14519,6 +14542,7 @@ msgstr "Повзунок"
 msgid "Slider and range input"
 msgstr "Повзунок і смужка діапазону"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Хвостик"
 
@@ -15681,6 +15705,11 @@ msgstr "Стовпець, який використовується як кін�
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Стовпець вилучено або перейменовано у базі даних."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Налаштування шарів карти"

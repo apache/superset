@@ -1965,6 +1965,9 @@ msgstr "维度"
 msgid "All filters"
 msgstr "所有過濾器"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "應用於所有面板"
 
@@ -3016,6 +3019,8 @@ msgstr "返回"
 msgid "Back to all"
 msgstr "返回到列表"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "後端"
 
@@ -4672,6 +4677,9 @@ msgstr "要讀取的列"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "列標題提示"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "整合指標"
@@ -9054,6 +9062,9 @@ msgstr "群組名稱"
 msgid "Group remaining as \"Others\""
 msgstr "將剩餘項目分組為「其他」"
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "範圍"
@@ -9189,6 +9200,8 @@ msgstr "水平對齊"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "主機"
 
@@ -10158,6 +10171,11 @@ msgid "Least recently modified"
 msgstr "最近未經常修改"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11850,6 +11868,10 @@ msgstr ""
 #, fuzzy
 msgid "Not in"
 msgstr "Not In"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "非空"
@@ -15225,6 +15247,7 @@ msgstr "選擇所有者"
 msgid "Select values"
 msgstr "選擇所有者"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -15972,6 +15995,7 @@ msgstr "線性"
 msgid "Slider and range input"
 msgstr "滑桿和範圍輸入"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -17240,6 +17264,11 @@ msgstr "要作為邊的目標的欄位。"
 
 msgid "The column was deleted or renamed in the database."
 msgstr "該列已在資料庫中删除或重命名。"
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]

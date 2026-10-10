@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-08 20:10-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -988,9 +988,7 @@ msgstr ""
 msgid "A rule with this name already exists."
 msgstr ""
 
-msgid ""
-"A semantic view's provider query is produced when the chart runs and "
-"returned with its data."
+msgid "A semantic view's provider query is produced when the chart runs and returned with its data."
 msgstr ""
 
 msgid "A set of parameters that become available in the query using Jinja templating syntax"
@@ -1595,6 +1593,9 @@ msgid "All dimensions"
 msgstr ""
 
 msgid "All filters"
+msgstr ""
+
+msgid "All groupable columns"
 msgstr ""
 
 msgid "All panels"
@@ -2446,6 +2447,8 @@ msgstr ""
 msgid "Back to all"
 msgstr ""
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr ""
 
@@ -3745,6 +3748,9 @@ msgid "Columns to read"
 msgstr ""
 
 msgid "Columns to show in the tooltip."
+msgstr ""
+
+msgid "Columns viewers can choose to group charts by."
 msgstr ""
 
 msgid "Combine metrics"
@@ -7192,6 +7198,9 @@ msgstr ""
 msgid "Group remaining as \"Others\""
 msgstr ""
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr ""
 
@@ -7297,6 +7306,8 @@ msgstr ""
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr ""
 
@@ -8071,6 +8082,9 @@ msgid "Least recently modified"
 msgstr ""
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid "Leave empty, or keep every column selected, to let viewers group by any groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid "Leave on the deployment default unless you need to force asynchronous loading on or off for this dashboard."
@@ -9416,6 +9430,10 @@ msgid "Not found"
 msgstr ""
 
 msgid "Not in"
+msgstr ""
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
 msgstr ""
 
 msgid "Not null"
@@ -12113,6 +12131,7 @@ msgstr ""
 msgid "Select values"
 msgstr ""
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button."
 msgstr ""
@@ -12697,6 +12716,7 @@ msgstr ""
 msgid "Slider and range input"
 msgstr ""
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr ""
 
@@ -13635,6 +13655,9 @@ msgid "The column to be used as the target of the edge."
 msgstr ""
 
 msgid "The column was deleted or renamed in the database."
+msgstr ""
+
+msgid "The columns allowed for this control are no longer in the dataset. Ask the dashboard owner to update it."
 msgstr ""
 
 msgid "The configuration for the map layers"
