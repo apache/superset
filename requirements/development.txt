@@ -1122,7 +1122,7 @@ tqdm==4.67.1
     # via
     #   cmdstanpy
     #   prophet
-trino==0.339.0
+trino==0.340.0
     # via
     #   apache-superset
     #   testcontainers
