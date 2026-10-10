@@ -17,7 +17,13 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { act, render, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 import SemanticLayerModal from './SemanticLayerModal';
 
@@ -74,14 +80,14 @@ beforeEach(() => {
   mockedGet
     .mockResolvedValueOnce({
       json: {
-        result: [{ id: 'snowflake', name: 'Snowflake', description: '' }],
+        result: [{ id: 'example', name: 'Example', description: '' }],
       },
     })
     .mockResolvedValueOnce({
       json: {
         result: {
           name: 'Layer 1',
-          type: 'snowflake',
+          type: 'example',
           configuration: { warehouse: 'wh0' },
         },
       },
@@ -115,7 +121,7 @@ test('posts configuration schema refresh after debounce', async () => {
     expect(mockedPost).toHaveBeenNthCalledWith(1, {
       endpoint: '/api/v1/semantic_layer/schema/configuration',
       jsonPayload: {
-        type: 'snowflake',
+        type: 'example',
         configuration: { warehouse: 'wh0' },
       },
     });
@@ -127,7 +133,7 @@ test('posts configuration schema refresh after debounce', async () => {
     expect(mockedPost).toHaveBeenNthCalledWith(2, {
       endpoint: '/api/v1/semantic_layer/schema/configuration',
       jsonPayload: {
-        type: 'snowflake',
+        type: 'example',
         configuration: { warehouse: 'wh1' },
       },
     });
@@ -156,14 +162,14 @@ test('clears dependent field value when parent dependency changes', async () => 
   mockedGet
     .mockResolvedValueOnce({
       json: {
-        result: [{ id: 'snowflake', name: 'Snowflake', description: '' }],
+        result: [{ id: 'example', name: 'Example', description: '' }],
       },
     })
     .mockResolvedValueOnce({
       json: {
         result: {
           name: 'Layer 1',
-          type: 'snowflake',
+          type: 'example',
           configuration: { database: 'db1' },
         },
       },
@@ -224,4 +230,196 @@ test('cancels pending schema refresh when dependencies become unsatisfied', asyn
 
   // No additional POST should have fired; the cancelled timer must not land.
   expect(mockedPost).toHaveBeenCalledTimes(1);
+});
+
+const completeCredentials = {
+  account_identifier: 'ORGNAME-ACCOUNTNAME',
+  auth: {
+    auth_type: 'private_key',
+    username: 'synthetic_user',
+    private_key:
+      '-----BEGIN PRIVATE KEY-----\nSYNTHETIC\n-----END PRIVATE KEY-----',
+  },
+};
+const snowflakeSchema = {
+  type: 'object',
+  properties: {
+    database: {
+      type: 'string',
+      'x-dynamic': true,
+      'x-dependsOn': ['account_identifier', 'auth'],
+    },
+  },
+};
+const safeConfigurationError =
+  'Could not use these connection details. Check the account identifier, username, credentials, database and schema.';
+
+async function setupSnowflake(configuration: Record<string, unknown> = {}) {
+  mockJsonFormsChangeTriggered = true;
+  props.addDangerToast.mockClear();
+  mockedGet.mockReset();
+  mockedGet
+    .mockResolvedValueOnce({
+      json: { result: [{ id: 'snowflake', name: 'Snowflake' }] },
+    })
+    .mockResolvedValueOnce({
+      json: { result: { name: 'Snowflake', type: 'snowflake', configuration } },
+    });
+  mockedPost.mockResolvedValue({ json: { result: snowflakeSchema } });
+  render(<SemanticLayerModal {...props} />);
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
+}
+
+test.each([
+  { ...completeCredentials, account_identifier: ' ' },
+  {
+    ...completeCredentials,
+    auth: { ...completeCredentials.auth, username: '' },
+  },
+  {
+    ...completeCredentials,
+    auth: {
+      ...completeCredentials.auth,
+      private_key: '-----BEGIN PRIVATE KEY-----',
+    },
+  },
+  {
+    ...completeCredentials,
+    auth: { ...completeCredentials.auth, private_key: 'XXXXXXXXXX' },
+  },
+  {
+    ...completeCredentials,
+    auth: {
+      ...completeCredentials.auth,
+      private_key:
+        '-----BEGIN ENCRYPTED PRIVATE KEY-----\nSYNTHETIC\n-----END ENCRYPTED PRIVATE KEY-----',
+    },
+  },
+])('does not refresh with incomplete Snowflake credentials: %#', async data => {
+  await setupSnowflake();
+  await act(async () => {
+    capturedOnChange!({ data, errors: [] });
+    jest.advanceTimersByTime(501);
+  });
+  expect(mockedPost).toHaveBeenCalledTimes(1);
+});
+
+test('waits for editing to stop and cancels a refresh when the key becomes incomplete', async () => {
+  await setupSnowflake();
+  await act(async () => {
+    capturedOnChange!({ data: completeCredentials, errors: [] });
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+  });
+  expect(mockedPost).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    capturedOnChange!({
+      data: {
+        ...completeCredentials,
+        auth: { ...completeCredentials.auth, private_key: 'partial' },
+      },
+      errors: [],
+    });
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(501);
+  });
+  expect(mockedPost).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    capturedOnChange!({ data: completeCredentials, errors: [] });
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(501);
+  });
+  expect(mockedPost).toHaveBeenCalledTimes(2);
+  expect(mockedPost.mock.calls[1][0].jsonPayload.configuration).toEqual(
+    completeCredentials,
+  );
+});
+
+test('loads a static edit schema for masked credentials but preserves them on Save', async () => {
+  const configuration = {
+    ...completeCredentials,
+    auth: { ...completeCredentials.auth, private_key: 'XXXXXXXXXX' },
+  };
+  await setupSnowflake(configuration);
+  expect(mockedPost.mock.calls[0][0].jsonPayload.configuration).toBeUndefined();
+  await act(async () => {
+    capturedOnChange!({ data: configuration, errors: [] });
+  });
+  (SupersetClient.put as jest.Mock).mockResolvedValueOnce({ json: {} });
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(SupersetClient.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        jsonPayload: { name: 'Snowflake', configuration },
+      }),
+    ),
+  );
+});
+
+test.each(['warning', 'rejection'])(
+  'replaces refresh %s with a fixed safe message',
+  async mode => {
+    await setupSnowflake();
+    if (mode === 'warning')
+      mockedPost.mockResolvedValueOnce({
+        json: {
+          result: snowflakeSchema,
+          warning: 'SECRET <root>: value_error',
+        },
+      });
+    else
+      mockedPost.mockRejectedValueOnce(new Error('SECRET <root>: value_error'));
+    await act(async () => {
+      capturedOnChange!({ data: completeCredentials, errors: [] });
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(501);
+    });
+    await waitFor(() =>
+      expect(props.addDangerToast).toHaveBeenCalledWith(safeConfigurationError),
+    );
+    expect(props.addDangerToast.mock.calls.flat().join()).not.toContain(
+      'SECRET',
+    );
+  },
+);
+
+test('replaces edit-fetch failure with a safe message', async () => {
+  props.addDangerToast.mockClear();
+  mockedPost.mockRejectedValueOnce(new Error('SECRET <root>: value_error'));
+  render(<SemanticLayerModal {...props} />);
+  await waitFor(() =>
+    expect(props.addDangerToast).toHaveBeenCalledWith(
+      'An error occurred while fetching the semantic layer',
+    ),
+  );
+});
+
+test('replaces Save failure with a safe message', async () => {
+  await setupSnowflake(completeCredentials);
+  (SupersetClient.put as jest.Mock).mockRejectedValueOnce(
+    new Error('SECRET <root>: value_error'),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(props.addDangerToast).toHaveBeenCalledWith(
+      'An error occurred while updating the semantic layer',
+    ),
+  );
+});
+
+test('non-Snowflake save failure uses neutral operation wording', async () => {
+  props.addDangerToast.mockClear();
+  render(<SemanticLayerModal {...props} />);
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
+  (SupersetClient.put as jest.Mock).mockRejectedValueOnce(new Error('SECRET'));
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() =>
+    expect(props.addDangerToast).toHaveBeenCalledWith(
+      'An error occurred while updating the semantic layer',
+    ),
+  );
 });

@@ -1,0 +1,44 @@
+---
+title: Semantic layer connections
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements. See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership. The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+## Provider-defined connection forms
+
+Installed semantic-layer extensions supply their connection fields and help text.
+Required fields are marked with an asterisk. Examples in empty fields are placeholders,
+not selected values. Follow the provider's field help for optional and conditionally
+required settings.
+
+A nullable password is displayed as one optional password input. Leaving an untouched
+null value blank preserves it; clearing a value sends an empty string. Providers decide
+how these values are interpreted.
+
+Providers can mark a private-key field with `x-input-type: pem` to request a multiline
+editor. Paste the whole key, including matching BEGIN and END lines. The inline check
+only checks the private-key envelope, not cryptographic validity. Password-protected
+keys also need their passphrase. The hint is for private keys, not certificates.
+
+Automatic metadata discovery is debounced. Discovery failures do not prevent entering
+manual values when suggestions are unavailable. Errors use fixed messages rather than
+displaying provider exceptions. Saved secrets remain masked while editing; retaining
+a mask preserves the saved secret on Save. Changing connection dependencies can clear
+dependent selections, so check those fields before saving.

@@ -19,7 +19,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
-import { Input, Select, Button } from '@superset-ui/core/components';
+import { Form, Input, Select, Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { JsonForms } from '@jsonforms/react';
 import type { JsonSchema, UISchemaElement } from '@jsonforms/core';
@@ -38,16 +38,44 @@ import {
   buildUiSchema,
   getDynamicDependencies,
   areDependenciesSatisfied,
+  areSnowflakeCredentialsComplete,
   serializeDependencyValues,
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from './jsonFormsHelpers';
 
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
+
+  .ant-form-item {
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+  }
+  .ant-form-item-label {
+    padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  }
+  .ant-form-item-extra {
+    color: ${({ theme }) => theme.colorTextSecondary};
+    font-size: ${({ theme }) => theme.fontSizeSM}px;
+  }
+  .ant-form-item-required::before {
+    order: 1;
+    margin-inline: ${({ theme }) => theme.sizeUnit / 2}px 0;
+  }
+  .ant-divider {
+    display: none;
+  }
 `;
 
 type Step = 'type' | 'config';
 type ValidationMode = 'ValidateAndHide' | 'ValidateAndShow';
+
+const configurationErrorMessage = (type: string) =>
+  type === 'snowflake'
+    ? t(
+        'Could not use these connection details. Check the account identifier, username, credentials, database and schema.',
+      )
+    : t(
+        'Could not refresh metadata. Check the connection details and your permissions.',
+      );
 
 interface SemanticLayerType {
   id: string;
@@ -132,22 +160,15 @@ export default function SemanticLayerModal({
         });
         applySchema(json.result);
         if (json.warning) {
-          addDangerToast(String(json.warning));
+          addDangerToast(configurationErrorMessage(type));
         }
         if (isInitialFetch) setStep('config');
-      } catch (error) {
-        const clientError = await getClientErrorObject(error);
-        if (isInitialFetch) {
-          addDangerToast(
-            clientError.error ||
-              t('An error occurred while fetching the configuration schema'),
-          );
-        } else {
-          addDangerToast(
-            clientError.error ||
-              t('An error occurred while refreshing the configuration schema'),
-          );
-        }
+      } catch {
+        addDangerToast(
+          isInitialFetch
+            ? t('An error occurred while fetching the configuration schema')
+            : configurationErrorMessage(type),
+        );
       } finally {
         if (isInitialFetch) setLoading(false);
         else setRefreshingSchema(false);
@@ -168,21 +189,26 @@ export default function SemanticLayerModal({
         setSelectedType(layer.type);
         setFormData(layer.configuration ?? {});
         setHasErrors(false);
-        // In edit mode, fetch the enriched schema using the full saved
-        // configuration so that dynamic dropdowns (account, project,
-        // environment) show their human-readable labels immediately rather
-        // than flashing raw IDs while the background refresh completes.
+        // Masked Snowflake credentials cannot enrich the schema; preserve them
+        // in formData for Save, but fetch only the static form until re-entered.
         const { json: schemaJson } = await SupersetClient.post({
           endpoint: '/api/v1/semantic_layer/schema/configuration',
-          jsonPayload: { type: layer.type, configuration: layer.configuration },
+          jsonPayload: {
+            type: layer.type,
+            configuration:
+              layer.type !== 'snowflake' ||
+              areSnowflakeCredentialsComplete(layer.configuration ?? {})
+                ? layer.configuration
+                : undefined,
+          },
         });
         applySchema(schemaJson.result);
+        if (schemaJson.warning)
+          addDangerToast(configurationErrorMessage(layer.type));
         setStep('config');
-      } catch (error) {
-        const clientError = await getClientErrorObject(error);
+      } catch {
         addDangerToast(
-          clientError.error ||
-            t('An error occurred while fetching the semantic layer'),
+          t('An error occurred while fetching the semantic layer'),
         );
       } finally {
         setLoading(false);
@@ -261,13 +287,11 @@ export default function SemanticLayerModal({
         addSuccessToast(t('Semantic layer created'));
       }
       onHide();
-    } catch (error) {
-      const clientError = await getClientErrorObject(error);
+    } catch {
       addDangerToast(
-        clientError.error ||
-          (isEditMode
-            ? t('An error occurred while updating the semantic layer')
-            : t('An error occurred while creating the semantic layer')),
+        isEditMode
+          ? t('An error occurred while updating the semantic layer')
+          : t('An error occurred while creating the semantic layer'),
       );
     } finally {
       setSaving(false);
@@ -302,7 +326,10 @@ export default function SemanticLayerModal({
       const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
         areDependenciesSatisfied(deps, data, configSchema ?? undefined),
       );
-      if (!hasSatisfiedDeps) {
+      if (
+        !hasSatisfiedDeps ||
+        (selectedType === 'snowflake' && !areSnowflakeCredentialsComplete(data))
+      ) {
         if (debounceTimerRef.current) {
           clearTimeout(debounceTimerRef.current);
           debounceTimerRef.current = null;
@@ -317,9 +344,8 @@ export default function SemanticLayerModal({
       if (snapshot === lastDepSnapshotRef.current) return;
       lastDepSnapshotRef.current = snapshot;
 
-      // Flip the loading state immediately so dependent fields are disabled
-      // through the debounce window — otherwise the user keeps seeing the
-      // stale options for ~500ms before the request even fires.
+      // Indicate pending discovery through the debounce window without
+      // preventing manual entry while suggestions are unavailable.
       setRefreshingSchema(true);
 
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -430,12 +456,7 @@ export default function SemanticLayerModal({
             {configSchema && (
               // Wrap in a form with autocomplete="off" so browsers do not
               // autofill credential fields (service token, account, etc.).
-              // eslint-disable-next-line jsx-a11y/no-redundant-roles
-              <form
-                role="presentation"
-                autoComplete="off"
-                onSubmit={e => e.preventDefault()}
-              >
+              <Form layout="vertical" autoComplete="off">
                 <JsonForms
                   schema={configSchema}
                   uischema={uiSchema}
@@ -446,7 +467,7 @@ export default function SemanticLayerModal({
                   validationMode={validationMode}
                   onChange={handleFormChange}
                 />
-              </form>
+              </Form>
             )}
           </>
         )}

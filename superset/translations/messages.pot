@@ -1922,9 +1922,6 @@ msgstr ""
 msgid "An error occurred while pruning logs "
 msgstr ""
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -4119,11 +4116,17 @@ msgstr ""
 msgid "Could not parse the CSS to convert @import rules. Check for syntax errors and try again."
 msgstr ""
 
+msgid "Could not refresh metadata. Check the connection details and your permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr ""
 
 msgid "Could not resolve the user to impersonate on the database connection. The query was not run, because running it would have connected as the wrong user."
+msgstr ""
+
+msgid "Could not use these connection details. Check the account identifier, username, credentials, database and schema."
 msgstr ""
 
 msgid "Could not validate the user in the current session."
@@ -7486,6 +7489,9 @@ msgstr ""
 
 #, python-format
 msgid "Include description to be sent with %s"
+msgstr ""
+
+msgid "Include matching BEGIN and END private key lines."
 msgstr ""
 
 msgid "Include series name as an axis"
