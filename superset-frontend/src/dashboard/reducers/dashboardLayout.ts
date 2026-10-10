@@ -264,13 +264,13 @@ const actionHandlers: Record<
 
     // move children of current root to be children of the dragging tab
     const rootComponent = state[DASHBOARD_ROOT_ID];
-    const topLevelId = rootComponent.children[0];
+    const [topLevelId] = rootComponent.children;
     const topLevelComponent = state[topLevelId];
 
     if (source.id !== NEW_COMPONENTS_SOURCE_ID) {
       // component already exists
       const draggingTabs = state[dragging.id];
-      const draggingTabId = draggingTabs.children[0];
+      const [draggingTabId] = draggingTabs.children;
       const draggingTab = state[draggingTabId];
 
       // move all children except the one that is dragging
@@ -327,7 +327,7 @@ const actionHandlers: Record<
 
   [DELETE_TOP_LEVEL_TABS](state: DashboardLayout): DashboardLayout {
     const rootComponent = state[DASHBOARD_ROOT_ID];
-    const topLevelId = rootComponent.children[0];
+    const [topLevelId] = rootComponent.children;
     const topLevelTabs = state[topLevelId];
 
     if (topLevelTabs.type !== TABS_TYPE) return state;

@@ -831,7 +831,7 @@ describe('plugin-chart-table', () => {
           <TableChart {...transformProps(testData.basic)} sticky={false} />,
         );
 
-        const firstDataRow = screen.getAllByRole('rowgroup')[1];
+        const [, firstDataRow] = screen.getAllByRole('rowgroup');
         const cells = firstDataRow.querySelectorAll('td');
         expect(cells).toHaveLength(12);
         // Date is rendered as ISO string format
@@ -856,7 +856,7 @@ describe('plugin-chart-table', () => {
           '1',
         );
 
-        const firstDataRow = screen.getAllByRole('rowgroup')[1];
+        const [, firstDataRow] = screen.getAllByRole('rowgroup');
         const cells = firstDataRow.querySelectorAll('td');
         expect(cells[0]).toHaveTextContent('Michael');
         expect(cells[2]).toHaveTextContent('12.346%');
@@ -1190,7 +1190,7 @@ describe('plugin-chart-table', () => {
         expect(headerRows.length).toBe(2);
 
         // Get group headers from the first row (th elements with colSpan > 1 or group headers)
-        const groupHeaderRow = headerRows[0];
+        const [groupHeaderRow] = headerRows;
         const groupHeaders = groupHeaderRow.querySelectorAll('th');
 
         // Extract group header text content (filter out empty placeholder headers)
@@ -1423,7 +1423,7 @@ describe('plugin-chart-table', () => {
 
         // Row 2 should have a cell bar in value4 column (value: 100)
         const row2Cells = rows[1].querySelectorAll('td');
-        const value4Cell = row2Cells[4]; // 5th column (0-indexed)
+        const [, , , , value4Cell] = row2Cells; // 5th column (0-indexed)
         const value4Bar = value4Cell.querySelector('div.cell-bar');
         expect(value4Bar).toBeTruthy();
       });
@@ -2184,7 +2184,7 @@ describe('plugin-chart-table', () => {
           (call: any[]) => call[0]?.filterState?.filters,
         );
         expect(crossFilterCall).toBeDefined();
-        const firstCallArg = crossFilterCall![0];
+        const [firstCallArg] = crossFilterCall!;
         // Should set the filter
         expect(firstCallArg.filterState.filters).toEqual({
           name: ['Michael'],
@@ -2227,7 +2227,7 @@ describe('plugin-chart-table', () => {
           (call: any[]) => call[0]?.filterState !== undefined,
         );
         expect(clearCall).toBeDefined();
-        const secondCallArg = clearCall![0];
+        const [secondCallArg] = clearCall!;
         // Should clear the filter
         expect(secondCallArg.filterState.filters).toBeNull();
         expect(secondCallArg.extraFormData.filters).toEqual([]);
@@ -2313,7 +2313,7 @@ describe('plugin-chart-table', () => {
           (call: any[]) => call[0]?.filterState?.filters,
         );
         expect(crossFilterCall).toBeDefined();
-        const firstCallArg = crossFilterCall![0];
+        const [firstCallArg] = crossFilterCall!;
 
         // Now re-render with the filters from the first click
         // This simulates what happens via Redux in the real app
@@ -2427,7 +2427,7 @@ describe('plugin-chart-table', () => {
           metrics: ['sum__num'],
         };
 
-        const { data } = testData.basic.queriesData[0];
+        const [{ data }] = testData.basic.queriesData;
         const totalBeforeFilter = data.reduce(
           (sum, row) => sum + Number(row.sum__num || 0),
           0,
@@ -2986,8 +2986,8 @@ describe('plugin-chart-table', () => {
       fireEvent.click(cell);
 
       expect(setDataMask).toHaveBeenCalled();
-      const lastCall =
-        setDataMask.mock.calls[setDataMask.mock.calls.length - 1][0];
+      const [lastCall] =
+        setDataMask.mock.calls[setDataMask.mock.calls.length - 1];
       const { filters } = lastCall.extraFormData;
       expect(filters).toHaveLength(1);
       // Should emit the original column name, not the label
@@ -3418,10 +3418,10 @@ describe('Drill-to-Detail Temporal Range Logic', () => {
     });
     render(<TableChart {...props} sticky={false} />);
 
-    const tbody = screen.getAllByRole('rowgroup')[1];
+    const [, tbody] = screen.getAllByRole('rowgroup');
     fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
 
-    const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
+    const [[, , { drillToDetail }]] = onContextMenu.mock.calls;
     return drillToDetail.find((f: any) => f.col === '__timestamp');
   };
 

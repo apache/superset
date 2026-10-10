@@ -40,7 +40,7 @@ describe('reduxStateToLocalStorageHelper', () => {
 
   test('should empty query.results if query.startDttm is > LOCALSTORAGE_MAX_QUERY_AGE_MS', () => {
     // make sure sample data contains old query
-    const oldQuery = queries[0];
+    const [oldQuery] = queries;
     const { id, startDttm } = oldQuery;
     expect(Date.now() - startDttm).toBeGreaterThan(
       LOCALSTORAGE_MAX_QUERY_AGE_MS,

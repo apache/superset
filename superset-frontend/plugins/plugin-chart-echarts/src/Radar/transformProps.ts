@@ -108,7 +108,7 @@ export default function transformProps(
     legendIndex,
   } = chartProps;
   const refs: Refs = {};
-  const { data = [] } = queriesData[0];
+  const [{ data = [] }] = queriesData;
   const globalMax = findGlobalMax(data, Object.keys(data[0] || {}));
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 

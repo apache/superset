@@ -87,7 +87,7 @@ export const validateForm = async (
         field => field.name[0] === 'filters',
       );
       if (filterError) {
-        const filterId = filterError.name[1];
+        const [, filterId] = filterError.name;
         setCurrentFilterId(filterId);
       }
     }

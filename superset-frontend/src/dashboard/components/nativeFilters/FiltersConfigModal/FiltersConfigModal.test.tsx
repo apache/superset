@@ -1029,7 +1029,7 @@ test('restores a deleted filter via the "Restore filter" button', async () => {
   defaultRender(state, { ...props, createNewOnOpen: false });
 
   const filterContainer = screen.getByTestId('filter-title-container');
-  const firstTab = within(filterContainer).getAllByRole('tab')[0];
+  const [firstTab] = within(filterContainer).getAllByRole('tab');
   fireEvent.click(
     within(firstTab).getByRole('button', { name: REMOVE_FILTER_BUTTON_REGEX }),
   );
@@ -1066,7 +1066,7 @@ test('undoes a filter deletion via the sidebar "Undo?" link', async () => {
   defaultRender(state, { ...props, createNewOnOpen: false });
 
   const filterContainer = screen.getByTestId('filter-title-container');
-  const firstTab = within(filterContainer).getAllByRole('tab')[0];
+  const [firstTab] = within(filterContainer).getAllByRole('tab');
   fireEvent.click(
     within(firstTab).getByRole('button', { name: REMOVE_FILTER_BUTTON_REGEX }),
   );

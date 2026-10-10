@@ -117,14 +117,16 @@ export default function transformProps(
     headerAlignment,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
-  const {
-    data = [],
-    colnames = [],
-    coltypes = [],
-    from_dttm: fromDatetime,
-    to_dttm: toDatetime,
-    detected_currency: detectedCurrency,
-  } = queriesData[0];
+  const [
+    {
+      data = [],
+      colnames = [],
+      coltypes = [],
+      from_dttm: fromDatetime,
+      to_dttm: toDatetime,
+      detected_currency: detectedCurrency,
+    },
+  ] = queriesData;
 
   const aggregatedQueryData = queriesData.length > 1 ? queriesData[1] : null;
 
@@ -167,7 +169,7 @@ export default function transformProps(
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
   }
   if (sortedData.length > 0) {
-    timestamp = sortedData[0][0];
+    [[timestamp]] = sortedData;
 
     // Raw aggregation uses server-side data, all others use client-side
     if (aggregation === 'raw' && hasAggregatedData && aggregatedData) {
@@ -203,8 +205,8 @@ export default function transformProps(
   if (compareLag > 0 && sortedData.length > 0) {
     const compareIndex = compareLag;
     if (compareIndex < sortedData.length) {
-      const compareFromValue = sortedData[compareIndex][1];
-      const compareToValue = sortedData[0][1];
+      const [, compareFromValue] = sortedData[compareIndex];
+      const [[, compareToValue]] = sortedData;
       // compare values must both be non-nulls
       if (compareToValue !== null && compareFromValue !== null) {
         percentChange = compareFromValue

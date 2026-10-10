@@ -228,7 +228,7 @@ function checkI18nTemplates(ast, filepath) {
       ) {
         const args = path.node.arguments;
         if (args.length > 0 && args[0].type === 'TemplateLiteral') {
-          const templateLiteral = args[0];
+          const [templateLiteral] = args;
           if (templateLiteral.expressions.length > 0) {
             // eslint-disable-next-line no-console
             console.error(

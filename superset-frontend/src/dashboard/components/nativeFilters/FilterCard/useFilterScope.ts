@@ -38,7 +38,7 @@ export const useFilterScope = (filter: FilterElement) => {
 
   return useMemo(() => {
     let topLevelTabs: string[] | undefined;
-    const topElementId = layout[DASHBOARD_ROOT_ID].children[0];
+    const [topElementId] = layout[DASHBOARD_ROOT_ID].children;
     if (topElementId.startsWith('TABS-')) {
       topLevelTabs = layout[topElementId].children;
     }

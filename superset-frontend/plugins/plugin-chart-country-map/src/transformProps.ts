@@ -53,7 +53,7 @@ export default function transformProps(chartProps: ChartProps) {
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { data: rawData, detected_currency: detectedCurrency } = queriesData[0];
+  const [{ data: rawData, detected_currency: detectedCurrency }] = queriesData;
 
   // The legacy explore_json endpoint renamed the entity and metric columns
   // server-side; the v1 chart data endpoint returns them under their own

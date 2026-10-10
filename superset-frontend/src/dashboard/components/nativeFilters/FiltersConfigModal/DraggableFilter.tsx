@@ -66,7 +66,7 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
   dragType = FILTER_TYPE,
   children,
 }) => {
-  const itemId = filterIds[0];
+  const [itemId] = filterIds;
   const isDividerItem = isDivider(itemId);
 
   const {

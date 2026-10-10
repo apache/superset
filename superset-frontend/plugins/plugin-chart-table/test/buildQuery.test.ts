@@ -33,14 +33,14 @@ const basicFormData: TableChartFormData = {
 };
 
 test('omits dormant grain only for known non-temporal selected columns', () => {
-  const query = buildQueryUncached({
+  const [query] = buildQueryUncached({
     ...basicFormData,
     datasource: '2__semantic_view',
     metrics: ['orders'],
     groupby: ['country'],
     temporal_columns_lookup: { country: false },
     time_grain_sqla: TimeGranularity.DAY,
-  }).queries[0];
+  }).queries;
   expect(query.columns).toEqual(['country']);
   expect(query.extras).not.toHaveProperty('time_grain_sqla');
 });
@@ -71,14 +71,14 @@ test.each<Partial<TableChartFormData>>([
 ])(
   'preserves grain for active, ambiguous or out-of-scope input %j',
   overrides => {
-    const query = buildQueryUncached({
+    const [query] = buildQueryUncached({
       ...basicFormData,
       datasource: '2__semantic_view',
       metrics: ['orders'],
       groupby: [],
       time_grain_sqla: TimeGranularity.DAY,
       ...overrides,
-    }).queries[0];
+    }).queries;
     expect(query.extras?.time_grain_sqla).toBe(TimeGranularity.DAY);
   },
 );
@@ -223,14 +223,14 @@ const extraQueryFormData: TableChartFormData = {
 test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
   'preserves semantic temporal references with grain %s',
   grain => {
-    const query = buildQueryUncached({
+    const [query] = buildQueryUncached({
       ...basicFormData,
       datasource: '2__semantic_view',
       metrics: ['average_order_value'],
       groupby: ['metric_time'],
       time_grain_sqla: grain,
       temporal_columns_lookup: { metric_time: true },
-    }).queries[0];
+    }).queries;
 
     expect(query.columns).toEqual([
       {
@@ -247,14 +247,14 @@ test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
 );
 
 test('preserves semantic reference when a filter overrides the chart grain', () => {
-  const query = buildQueryUncached({
+  const [query] = buildQueryUncached({
     ...basicFormData,
     datasource: '2__semantic_view',
     groupby: ['metric_time'],
     time_grain_sqla: TimeGranularity.DAY,
     extra_form_data: { time_grain_sqla: TimeGranularity.MONTH },
     temporal_columns_lookup: { metric_time: true },
-  }).queries[0];
+  }).queries;
 
   expect(query.columns).toEqual([
     {
@@ -271,25 +271,25 @@ test('preserves semantic reference when a filter overrides the chart grain', () 
 test.each(['2__semantic_view', '11__table'])(
   'retains raw temporal columns without a grain for %s',
   datasource => {
-    const query = buildQueryUncached({
+    const [query] = buildQueryUncached({
       ...basicFormData,
       datasource,
       groupby: ['metric_time'],
       temporal_columns_lookup: { metric_time: true },
-    }).queries[0];
+    }).queries;
 
     expect(query.columns).toEqual(['metric_time']);
   },
 );
 
 test('semantic raw table drops ordering for a column no longer selected', () => {
-  const query = buildQueryUncached({
+  const [query] = buildQueryUncached({
     ...basicFormData,
     datasource: '2__semantic_view',
     query_mode: QueryMode.Raw,
     all_columns: ['played_at', 'song_name'],
     order_by_cols: ['["artist_name",false]', '["played_at",false]'],
-  }).queries[0];
+  }).queries;
 
   expect(query.columns).toEqual(['played_at', 'song_name']);
   expect(query.orderby).toEqual([['played_at', false]]);
@@ -301,7 +301,7 @@ test.each([
 ])(
   'semantic aggregate clears raw ordering with $label',
   ({ percentMetrics }) => {
-    const query = buildQueryUncached({
+    const [query] = buildQueryUncached({
       ...basicFormData,
       datasource: '2__semantic_view',
       query_mode: QueryMode.Aggregate,
@@ -310,7 +310,7 @@ test.each([
       percent_metrics: percentMetrics,
       all_columns: ['played_at'],
       order_by_cols: ['["played_at",false]'],
-    }).queries[0];
+    }).queries;
 
     expect(query.columns).toEqual(['song_name']);
     expect(query.orderby).toEqual([]);
@@ -323,7 +323,7 @@ test.each([
 ])(
   'semantic aggregate retains valid paginated $label ordering',
   ({ key, metrics }) => {
-    const query = buildQueryUncached(
+    const [query] = buildQueryUncached(
       {
         ...basicFormData,
         datasource: '2__semantic_view',
@@ -333,14 +333,14 @@ test.each([
         server_pagination: true,
       },
       { ownState: { sortBy: [{ key, desc: true }] } },
-    ).queries[0];
+    ).queries;
 
     expect(query.orderby).toEqual([[key, false]]);
   },
 );
 
 test('semantic aggregate retains a paginated temporal column sort', () => {
-  const query = buildQueryUncached(
+  const [query] = buildQueryUncached(
     {
       ...basicFormData,
       datasource: '2__semantic_view',
@@ -352,20 +352,20 @@ test('semantic aggregate retains a paginated temporal column sort', () => {
       server_pagination: true,
     },
     { ownState: { sortBy: [{ key: 'metric_time', desc: true }] } },
-  ).queries[0];
+  ).queries;
 
   expect(query.orderby).toEqual([['metric_time', false]]);
 });
 
 test('semantic aggregate retains an explicit sort-by metric outside selected metrics', () => {
-  const query = buildQueryUncached({
+  const [query] = buildQueryUncached({
     ...basicFormData,
     datasource: '2__semantic_view',
     query_mode: QueryMode.Aggregate,
     groupby: ['song_name'],
     metrics: ['sum'],
     timeseries_limit_metric: 'count',
-  }).queries[0];
+  }).queries;
 
   expect(query.orderby).toEqual([['count', true]]);
 });
@@ -376,7 +376,7 @@ test.each([
 ])(
   'semantic aggregate rejects stale paginated raw ordering with $label',
   ({ percentMetrics }) => {
-    const query = buildQueryUncached(
+    const [query] = buildQueryUncached(
       {
         ...basicFormData,
         datasource: '2__semantic_view',
@@ -389,7 +389,7 @@ test.each([
         order_by_cols: ['["played_at",false]'],
       },
       { ownState: { sortBy: [{ key: 'played_at', desc: true }] } },
-    ).queries[0];
+    ).queries;
 
     expect(query.columns).toEqual(['song_name']);
     expect(query.orderby).toEqual([]);
@@ -414,7 +414,7 @@ test.each([
 ])(
   'preserves $label ordering outside the semantic raw filter',
   ({ datasource, queryMode, metrics, expectedOrderby }) => {
-    const query = buildQueryUncached({
+    const [query] = buildQueryUncached({
       ...basicFormData,
       datasource,
       query_mode: queryMode,
@@ -422,7 +422,7 @@ test.each([
       groupby: ['song_name'],
       all_columns: ['played_at'],
       order_by_cols: ['["artist_name",false]'],
-    }).queries[0];
+    }).queries;
 
     expect(query.orderby).toEqual(expectedOrderby);
   },
@@ -431,12 +431,12 @@ test.each([
 test.each([TimeGranularity.DAY, TimeGranularity.MONTH])(
   'preserves ordinary dataset temporal SQL with grain %s',
   grain => {
-    const query = buildQueryUncached({
+    const [query] = buildQueryUncached({
       ...basicFormData,
       groupby: ['metric_time'],
       time_grain_sqla: grain,
       temporal_columns_lookup: { metric_time: true },
-    }).queries[0];
+    }).queries;
 
     expect(query.columns).toEqual([
       {
@@ -456,13 +456,13 @@ test('does not mark a semantic SQL expression as a declared column reference', (
     sqlExpression: 'metric_time + 1',
     label: 'shifted_time',
   };
-  const query = buildQueryUncached({
+  const [query] = buildQueryUncached({
     ...basicFormData,
     datasource: '2__semantic_view',
     groupby: [expression],
     time_grain_sqla: TimeGranularity.DAY,
     temporal_columns_lookup: { shifted_time: true, metric_time: true },
-  }).queries[0];
+  }).queries;
 
   expect(query.columns).toEqual([expression]);
   expect(query.columns?.[0]).not.toHaveProperty('isColumnReference');
@@ -471,12 +471,12 @@ test('does not mark a semantic SQL expression as a declared column reference', (
 describe('plugin-chart-table', () => {
   describe('buildQuery', () => {
     test('should add post-processing and ignore duplicate metrics', () => {
-      const query = buildQueryCached({
+      const [query] = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
         metrics: ['aaa', 'aaa'],
         percent_metrics: ['bbb', 'bbb'],
-      }).queries[0];
+      }).queries;
       expect(query.metrics).toEqual(['aaa', 'bbb']);
       expect(query.post_processing).toEqual([
         {
@@ -490,36 +490,36 @@ describe('plugin-chart-table', () => {
     });
 
     test('should not add metrics in raw records mode', () => {
-      const query = buildQueryCached({
+      const [query] = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Raw,
         columns: ['a'],
         metrics: ['aaa', 'aaa'],
         percent_metrics: ['bbb', 'bbb'],
-      }).queries[0];
+      }).queries;
       expect(query.metrics).toBeUndefined();
       expect(query.post_processing).toEqual([]);
     });
 
     test('should not add post-processing when there is no percent metric', () => {
-      const query = buildQueryCached({
+      const [query] = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
         metrics: ['aaa'],
         percent_metrics: [],
-      }).queries[0];
+      }).queries;
       expect(query.metrics).toEqual(['aaa']);
       expect(query.post_processing).toEqual([]);
     });
 
     test('should not add post-processing in raw records mode', () => {
-      const query = buildQueryCached({
+      const [query] = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Raw,
         metrics: ['aaa'],
         columns: ['rawcol'],
         percent_metrics: ['ccc'],
-      }).queries[0];
+      }).queries;
       expect(query.metrics).toBeUndefined();
       expect(query.columns).toEqual(['rawcol']);
       expect(query.post_processing).toEqual([]);
@@ -531,50 +531,50 @@ describe('plugin-chart-table', () => {
     ])(
       'orders by the sort-by metric in aggregate mode when order_desc is $orderDesc',
       ({ orderDesc, expectedAscending }) => {
-        const query = buildQueryCached({
+        const [query] = buildQueryCached({
           ...basicFormData,
           query_mode: QueryMode.Aggregate,
           groupby: ['col1'],
           metrics: ['first_metric', 'sort_metric'],
           timeseries_limit_metric: 'sort_metric',
           order_desc: orderDesc,
-        }).queries[0];
+        }).queries;
         expect(query.orderby).toEqual([['sort_metric', expectedAscending]]);
       },
     );
 
     test('orders by the first metric descending in aggregate mode without a sort-by metric', () => {
-      const query = buildQueryCached({
+      const [query] = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
         groupby: ['col1'],
         metrics: ['first_metric', 'second_metric'],
         order_desc: false,
-      }).queries[0];
+      }).queries;
       expect(query.orderby).toEqual([['first_metric', false]]);
     });
 
     test('maps order_by_cols to orderby in raw records mode', () => {
-      const query = buildQueryCached({
+      const [query] = buildQueryCached({
         ...basicFormData,
         query_mode: QueryMode.Raw,
         columns: ['col1', 'col2'],
         order_by_cols: ['["col1", true]', '["col2", false]'],
-      }).queries[0];
+      }).queries;
       expect(query.orderby).toEqual([
         ['col1', true],
         ['col2', false],
       ]);
     });
     test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
-      const query = buildQueryCached({
+      const [query] = buildQueryCached({
         ...basicFormData,
         groupby: ['col1'],
         query_mode: QueryMode.Aggregate,
         time_grain_sqla: TimeGranularity.MONTH,
         extra_form_data: { time_grain_sqla: TimeGranularity.QUARTER },
         temporal_columns_lookup: { col1: true },
-      }).queries[0];
+      }).queries;
       expect(query.columns?.[0]).toEqual({
         timeGrain: TimeGranularity.QUARTER,
         columnType: 'BASE_AXIS',
@@ -584,13 +584,13 @@ describe('plugin-chart-table', () => {
       });
     });
     test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
-      const query = buildQueryCached({
+      const [query] = buildQueryCached({
         ...basicFormData,
         time_grain_sqla: TimeGranularity.MONTH,
         groupby: ['col1'],
         query_mode: QueryMode.Aggregate,
         temporal_columns_lookup: { col1: true },
-      }).queries[0];
+      }).queries;
       expect(query.columns?.[0]).toEqual({
         timeGrain: TimeGranularity.MONTH,
         columnType: 'BASE_AXIS',
@@ -760,7 +760,7 @@ describe('plugin-chart-table', () => {
         // row_limit mode + show_totals -> [main, totals].
         expect(queries).toHaveLength(2);
 
-        const totalsQuery = queries[1];
+        const [, totalsQuery] = queries;
 
         // Exactly one op (contribution) — the time-comparison operator from the
         // main query must not be carried over to the single-row totals query.

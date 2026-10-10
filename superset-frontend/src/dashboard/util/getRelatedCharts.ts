@@ -126,8 +126,7 @@ export function getRelatedChartsForChartCustomization(
       if (!sliceDataset) return false;
 
       const sliceDatasetParts = String(sliceDataset).split('__');
-      const sliceDatasetId = sliceDatasetParts[0];
-      const sliceDatasourceType = sliceDatasetParts[1];
+      const [sliceDatasetId, sliceDatasourceType] = sliceDatasetParts;
 
       if (sliceDatasetId !== targetDatasetId) return false;
       if (

@@ -188,7 +188,7 @@ describe('SelectFilterPlugin', () => {
       },
     });
 
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
     await userEvent.click(screen.getByTitle('girl'));
     expect(
@@ -260,7 +260,7 @@ describe('SelectFilterPlugin', () => {
     getWrapper({ multiSelect: false, inverseSelection: true });
 
     // Get the main filter select (second combobox)
-    const filterSelect = screen.getAllByRole('combobox')[1];
+    const [, filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
 
     expect(await screen.findByTitle('girl')).toBeInTheDocument();
@@ -285,7 +285,7 @@ describe('SelectFilterPlugin', () => {
 
   test('Select single null (empty) value', async () => {
     getWrapper();
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.click(screen.getByTitle(NULL_STRING));
@@ -309,7 +309,7 @@ describe('SelectFilterPlugin', () => {
 
   test('receives the correct filter when search all options', async () => {
     getWrapper({ searchAllOptions: true, multiSelect: false });
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.click(screen.getByTitle('girl'));
@@ -330,7 +330,7 @@ describe('SelectFilterPlugin', () => {
 
   test('number of fired queries when searching', async () => {
     getWrapper({ searchAllOptions: true });
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('combobox'), 'a');
@@ -376,7 +376,7 @@ describe('SelectFilterPlugin', () => {
         },
       },
     );
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('combobox'), '1');
@@ -492,7 +492,7 @@ describe('SelectFilterPlugin', () => {
       },
     );
 
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
 
     // When sortMetric is specified, options should appear in the original data order
@@ -566,7 +566,7 @@ describe('SelectFilterPlugin', () => {
       },
     );
 
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
 
     // When sortMetric is not specified, options should be sorted alphabetically
@@ -640,7 +640,7 @@ describe('SelectFilterPlugin', () => {
       },
     );
 
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
 
     // When sortAscending is false and no sortMetric, options should be sorted
@@ -714,7 +714,7 @@ describe('SelectFilterPlugin', () => {
       },
     );
 
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
 
     // When sortMetric is specified, original order should be preserved regardless
@@ -788,7 +788,7 @@ describe('SelectFilterPlugin', () => {
       },
     );
 
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
 
     // Options should appear in ascending numeric order (2, 10, 100), not
@@ -867,7 +867,7 @@ describe('SelectFilterPlugin', () => {
       },
     );
 
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
 
     const options = screen.getAllByRole('option');
@@ -990,7 +990,7 @@ describe('SelectFilterPlugin', () => {
 
   test('keeps "Select all" pinned to the full column while searching (creatable false)', async () => {
     const setDataMaskMock = renderValueFilter({ creatable: false });
-    const filterSelect = screen.getAllByRole('combobox')[0];
+    const [filterSelect] = screen.getAllByRole('combobox');
     await userEvent.click(filterSelect);
     // Baseline: full-column count before searching.
     expect(await screen.findByText('Select all (5)')).toBeInTheDocument();

@@ -111,9 +111,9 @@ describe('QueryLimitSelect', () => {
       { maxRow: 50000 },
       mockStore(initialState),
     );
-    const dropdown = baseElement.getElementsByClassName(
+    const [dropdown] = baseElement.getElementsByClassName(
       'ant-dropdown-trigger',
-    )[0];
+    );
 
     await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
@@ -133,9 +133,9 @@ describe('QueryLimitSelect', () => {
       { maxRow: 5 },
       mockStore(initialState),
     );
-    const dropdown = baseElement.getElementsByClassName(
+    const [dropdown] = baseElement.getElementsByClassName(
       'ant-dropdown-trigger',
-    )[0];
+    );
 
     await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
@@ -153,9 +153,9 @@ describe('QueryLimitSelect', () => {
       { maxRow: 10000 },
       mockStore(initialState),
     );
-    const dropdown = baseElement.getElementsByClassName(
+    const [dropdown] = baseElement.getElementsByClassName(
       'ant-dropdown-trigger',
-    )[0];
+    );
 
     await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
@@ -174,9 +174,9 @@ describe('QueryLimitSelect', () => {
     const store = mockStore(initialState);
     const expectedIndex = 1;
     const { baseElement, getAllByRole, getByRole } = setup({}, store);
-    const dropdown = baseElement.getElementsByClassName(
+    const [dropdown] = baseElement.getElementsByClassName(
       'ant-dropdown-trigger',
-    )[0];
+    );
 
     await userEvent.click(dropdown);
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());

@@ -57,7 +57,7 @@ export const getDatasourceTypeFromDatasourceId = (
   if (typeof datasetId !== 'string') {
     return DatasourceType.Table;
   }
-  const suffix = datasetId.split('__')[1];
+  const [, suffix] = datasetId.split('__');
   return suffix === DatasourceType.SemanticView
     ? DatasourceType.SemanticView
     : DatasourceType.Table;

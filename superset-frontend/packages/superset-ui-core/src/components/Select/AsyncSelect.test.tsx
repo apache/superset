@@ -321,7 +321,7 @@ test('should sort selected to the top when in multi mode', async () => {
 });
 
 test('searches for label or value', async () => {
-  const option = OPTIONS[11];
+  const [, , , , , , , , , , , option] = OPTIONS;
   render(<AsyncSelect {...defaultProps} />);
   const search = option.value;
   await type(search.toString());
@@ -640,8 +640,8 @@ test('changes the selected item in single mode', async () => {
 test('deselects an item in multiple mode', async () => {
   render(<AsyncSelect {...defaultProps} mode="multiple" />);
   await open();
-  const option3 = OPTIONS[2];
-  const option8 = OPTIONS[7];
+  const [, , option3] = OPTIONS;
+  const [, , , , , , , option8] = OPTIONS;
   await userEvent.click(await findSelectOption(option8.label));
   await userEvent.click(await findSelectOption(option3.label));
 

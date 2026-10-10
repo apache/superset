@@ -115,7 +115,7 @@ describe('sqlLabReducer', () => {
     let qe: SqlLabState['queryEditors'][number] | undefined;
     beforeEach(() => {
       newState = { ...initialState };
-      defaultQueryEditor = newState.queryEditors[0];
+      [defaultQueryEditor] = newState.queryEditors;
       const action = {
         type: actions.ADD_QUERY_EDITOR,
         queryEditor: { ...initialState.queryEditors[0], id: 'abcd' },
@@ -161,7 +161,7 @@ describe('sqlLabReducer', () => {
       );
     });
     test('should select the latest query editor when tabHistory is empty', () => {
-      const currentQE = newState.queryEditors[0];
+      const [currentQE] = newState.queryEditors;
       newState = {
         ...initialState,
         tabHistory: [initialState.queryEditors[0].id],
@@ -441,7 +441,7 @@ describe('sqlLabReducer', () => {
         table: newTable,
       };
       newState = sqlLabReducer(initialState, action);
-      newTable = newState.tables[0];
+      [newTable] = newState.tables;
     });
     test('should add a table', () => {
       // Testing that beforeEach actually added the table

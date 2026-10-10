@@ -102,7 +102,7 @@ function extractValue(
       .map((pt: any) => pt[fieldName])
       .filter((v: any) => v !== undefined && v !== null);
     if (allVals.length > 0) {
-      value = allVals[0];
+      [value] = allVals;
       return { value, allValues: allVals };
     }
   }

@@ -57,7 +57,7 @@ export default function buildQuery(rawFormData: QueryFormData) {
         : rawFormData.comparison_type,
   };
   return buildQueryContext(formData, baseQueryObject => {
-    const firstMetric = ensureIsArray(baseQueryObject.metrics)[0];
+    const [firstMetric] = ensureIsArray(baseQueryObject.metrics);
     const queryObject = {
       ...baseQueryObject,
       is_timeseries: true,

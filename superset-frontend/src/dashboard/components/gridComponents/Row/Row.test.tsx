@@ -241,7 +241,7 @@ test.skip('should render a BackgroundStyleDropdown when focused', () => {
   // we cannot set props on the Row because of the WithDragDropContext wrapper
   rerender(<Row {...props} component={rowWithoutChildren} editMode />);
   const buttons = screen.getAllByRole('button');
-  const settingsButton = buttons[1];
+  const [, settingsButton] = buttons;
   fireEvent.click(settingsButton);
 
   expect(screen.queryByTestId('background-style-dropdown')).toBeTruthy();

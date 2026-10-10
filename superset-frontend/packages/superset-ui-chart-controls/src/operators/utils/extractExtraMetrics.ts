@@ -28,7 +28,7 @@ export function extractExtraMetrics(
 ): QueryFormMetric[] {
   const { groupby, timeseries_limit_metric, x_axis_sort, metrics } = formData;
   const extra_metrics: QueryFormMetric[] = [];
-  const limitMetric = ensureIsArray(timeseries_limit_metric)[0];
+  const [limitMetric] = ensureIsArray(timeseries_limit_metric);
   if (
     !(groupby || []).length &&
     limitMetric &&

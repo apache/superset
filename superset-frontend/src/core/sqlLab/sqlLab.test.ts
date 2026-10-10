@@ -184,7 +184,7 @@ test('onDidQueryRun fires with QueryContext on START_QUERY', () => {
   mockStore.dispatch({ type: START_QUERY, query });
 
   expect(listener).toHaveBeenCalledTimes(1);
-  const ctx = listener.mock.calls[0][0];
+  const [[ctx]] = listener.mock.calls;
   expect(ctx.clientId).toBe('q-1');
   expect(ctx.tab.id).toBe(EDITOR_ID);
   expect(ctx.tab.databaseId).toBe(1);
@@ -220,7 +220,7 @@ test('onDidQuerySuccess fires with QueryResultContext on QUERY_SUCCESS', () => {
   mockStore.dispatch({ type: QUERY_SUCCESS, query, results });
 
   expect(listener).toHaveBeenCalledTimes(1);
-  const ctx = listener.mock.calls[0][0];
+  const [[ctx]] = listener.mock.calls;
   expect(ctx.remoteId).toBe(42);
   expect(ctx.executedSql).toBe('SELECT 1');
   expect(ctx.result.columns).toHaveLength(1);
@@ -238,7 +238,7 @@ test('onDidQueryStop fires with QueryContext on STOP_QUERY', () => {
   mockStore.dispatch({ type: STOP_QUERY, query });
 
   expect(listener).toHaveBeenCalledTimes(1);
-  const ctx = listener.mock.calls[0][0];
+  const [[ctx]] = listener.mock.calls;
   expect(ctx.clientId).toBe('q-1');
   expect(ctx.tab.id).toBe(EDITOR_ID);
 
@@ -271,7 +271,7 @@ test('onDidQueryFail fires with QueryErrorResultContext on QUERY_FAILED', () => 
   });
 
   expect(listener).toHaveBeenCalledTimes(1);
-  const ctx = listener.mock.calls[0][0];
+  const [[ctx]] = listener.mock.calls;
   expect(ctx.errorMessage).toBe('table not found');
   expect(ctx.errors).toHaveLength(1);
 
@@ -353,7 +353,7 @@ test('onDidCloseTab fires with Tab on REMOVE_QUERY_EDITOR', async () => {
   mockStore.dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
 
   expect(listener).toHaveBeenCalledTimes(1);
-  const tab = listener.mock.calls[0][0];
+  const [[tab]] = listener.mock.calls;
   expect(tab.id).toBe(EDITOR_ID);
   expect(tab.title).toBe('Untitled Query 1');
   expect(tab.databaseId).toBe(1);
@@ -380,7 +380,7 @@ test('onDidChangeActiveTab fires with Tab on SET_ACTIVE_QUERY_EDITOR', () => {
   });
 
   expect(listener).toHaveBeenCalledTimes(1);
-  const tab = listener.mock.calls[0][0];
+  const [[tab]] = listener.mock.calls;
   expect(tab.id).toBe(EDITOR_ID);
   expect(tab.title).toBe('Untitled Query 1');
   expect(tab.databaseId).toBe(1);
@@ -404,7 +404,7 @@ test('onDidCreateTab fires with Tab on ADD_QUERY_EDITOR', () => {
   mockStore.dispatch({ type: ADD_QUERY_EDITOR, queryEditor: newEditor });
 
   expect(listener).toHaveBeenCalledTimes(1);
-  const tab = listener.mock.calls[0][0];
+  const [[tab]] = listener.mock.calls;
   expect(tab.id).toBe('new-tab');
   expect(tab.title).toBe('New Query');
   expect(tab.databaseId).toBe(1);

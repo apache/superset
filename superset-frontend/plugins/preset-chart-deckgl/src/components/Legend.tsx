@@ -72,7 +72,7 @@ const CLOSING_BRACKETS = '])';
 // getBuckets: brackets on the ends, two comma-separated bounds in between.
 // Returns the parsed pieces, or null when the label isn't interval notation.
 const parseInterval = (label: string) => {
-  const open = label[0];
+  const { 0: open } = label;
   const close = label[label.length - 1];
   if (!OPENING_BRACKETS.includes(open) || !CLOSING_BRACKETS.includes(close)) {
     return null;

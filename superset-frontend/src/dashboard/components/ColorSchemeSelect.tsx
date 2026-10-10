@@ -85,7 +85,7 @@ const ColorSchemeSelect = ({
   const options = useMemo(() => {
     const allColorOptions: string[] = [];
     const filteredColorOptions = choices.filter(o => {
-      const option = o[0];
+      const [option] = o;
       const isValidColorOption =
         option !== 'SUPERSET_DEFAULT' && !allColorOptions.includes(option);
       allColorOptions.push(option);

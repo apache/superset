@@ -653,7 +653,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       return columnsMeta;
     }
     const allColumns = comparisonColumns[0].key;
-    const main = comparisonLabels[0];
+    const [main] = comparisonLabels;
     const showAllColumns = selectedComparisonColumns.includes(allColumns);
 
     return columnsMeta.filter(({ label, key }) => {
@@ -1060,7 +1060,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
     sortedEntries.forEach(([key, value]) => {
       // Calculate the number of placeholder columns needed before the current header
-      const startPosition = value[0];
+      const [startPosition] = value;
       const colSpan = value.length;
       // Retrieve the originalLabel from the first column in this group.
       // Use visibleColumnsMeta to ensure consistent indexing with the actual table columns.

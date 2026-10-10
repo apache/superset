@@ -60,7 +60,7 @@ test('should generate a 2x2 grid for metrics mode', () => {
   expect(grid!.cells[0]).toHaveLength(2);
 
   // Check first cell
-  const firstCell = grid!.cells[0][0];
+  const [[firstCell]] = grid!.cells;
   expect(firstCell).toBeDefined();
   expect(firstCell!.id).toBe('cell-0-0');
   expect(firstCell!.row).toBe(0);
@@ -101,7 +101,7 @@ test('should generate grid for dimensions mode', () => {
   expect(grid!.cells[0]).toHaveLength(2);
 
   // Check that filters are applied correctly
-  const firstCell = grid!.cells[0][0];
+  const [[firstCell]] = grid!.cells;
   expect(firstCell!.formData.adhoc_filters).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
@@ -387,7 +387,7 @@ test('should not escape HTML entities in cell titles', () => {
   const grid = generateMatrixifyGrid(formDataWithSpecialChars);
 
   expect(grid).not.toBeNull();
-  const firstCell = grid!.cells[0][0];
+  const [[firstCell]] = grid!.cells;
   // Should NOT escape HTML entities
   expect(firstCell!.title).toBe('Sales & Revenue < Q1 > Q2');
   expect(firstCell!.title).not.toContain('&amp;');
@@ -407,7 +407,7 @@ test('should apply chart-specific configurations', () => {
 
   expect(grid).not.toBeNull();
   // Check that chart-specific configs are preserved
-  const cell = grid!.cells[0][0];
+  const [[cell]] = grid!.cells;
   expect(cell!.formData.row_limit).toBe(100);
   expect(cell!.formData.time_range).toBe('Last month');
   expect(cell!.formData.granularity_sqla).toBe('day');
@@ -463,7 +463,7 @@ test('should preserve existing adhoc filters', () => {
 
   const grid = generateMatrixifyGrid(formDataWithFilters);
   expect(grid).not.toBeNull();
-  const cell = grid!.cells[0][0];
+  const [[cell]] = grid!.cells;
 
   // In metrics mode, filters are not added per cell
   expect(cell!.formData.adhoc_filters).toHaveLength(1);
@@ -536,7 +536,7 @@ test('should handle invalid Handlebars template gracefully', () => {
   const grid = generateMatrixifyGrid(formDataWithBadTemplate);
   expect(grid).not.toBeNull();
   // Should not throw - returns empty title on template error
-  const firstCell = grid!.cells[0][0];
+  const [[firstCell]] = grid!.cells;
   expect(firstCell!.title).toBe('');
 });
 
@@ -589,11 +589,11 @@ test('should skip dimension filter when value is undefined (lines 151, 165)', ()
   const grid = generateMatrixifyGrid(formData);
   expect(grid).not.toBeNull();
   // Cell at row=0, col=0 has undefined values on both axes — no filters applied
-  const cell00 = grid!.cells[0][0];
+  const [[cell00]] = grid!.cells;
   expect(cell00).toBeDefined();
   expect(cell00!.formData.adhoc_filters ?? []).toEqual([]);
   // Cell at row=1, col=1 has defined values — filters applied
-  const cell11 = grid!.cells[1][1];
+  const [, [, cell11]] = grid!.cells;
   expect(cell11!.formData.adhoc_filters).toEqual(
     expect.arrayContaining([
       expect.objectContaining({ subject: 'country', comparator: 'USA' }),
@@ -683,7 +683,7 @@ test('should preserve slice_id and dashboardId for embedded dashboard permission
   const grid = generateMatrixifyGrid(formDataWithDashboardContext);
 
   expect(grid).not.toBeNull();
-  const cell = grid!.cells[0][0];
+  const [[cell]] = grid!.cells;
 
   // slice_id must be preserved for embedded dashboard permission checks
   // The backend uses slice_id to verify the chart belongs to the dashboard

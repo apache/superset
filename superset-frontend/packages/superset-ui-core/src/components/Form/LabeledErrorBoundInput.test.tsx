@@ -66,7 +66,7 @@ describe('LabeledErrorBoundInput', () => {
 
     const label = screen.getByText(/username/i);
     const textboxInput = screen.getByRole('textbox');
-    const tooltipIcon = screen.getAllByRole('img')[0];
+    const [tooltipIcon] = screen.getAllByRole('img');
 
     fireEvent.mouseOver(tooltipIcon);
 

@@ -204,7 +204,7 @@ describe('BigNumberViz trendline context menu', () => {
 
     expect(stop).toHaveBeenCalledTimes(1);
     expect(onContextMenu).toHaveBeenCalledTimes(1);
-    const [x, y, payload] = onContextMenu.mock.calls[0];
+    const [[x, y, payload]] = onContextMenu.mock.calls;
     expect(x).toBe(15);
     expect(y).toBe(25);
     expect(payload.drillToDetail).toEqual([
@@ -230,7 +230,7 @@ describe('BigNumberViz trendline context menu', () => {
       },
     });
 
-    const [, , payload] = onContextMenu.mock.calls[0];
+    const [[, , payload]] = onContextMenu.mock.calls;
     expect(payload.drillToDetail).toEqual([
       expect.objectContaining({ col: 'legacy_ds', grain: 'P1D' }),
     ]);

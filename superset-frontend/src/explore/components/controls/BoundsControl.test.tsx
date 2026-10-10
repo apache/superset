@@ -37,7 +37,7 @@ test('renders two inputs', () => {
 
 test('receives null on non-numeric', async () => {
   render(<BoundsControl {...defaultProps} />);
-  const minInput = screen.getAllByRole('spinbutton')[0];
+  const [minInput] = screen.getAllByRole('spinbutton');
   await userEvent.type(minInput, '1');
   await userEvent.clear(minInput);
   await waitFor(() =>
@@ -47,8 +47,8 @@ test('receives null on non-numeric', async () => {
 
 test('calls onChange with correct values', async () => {
   render(<BoundsControl {...defaultProps} />);
-  const minInput = screen.getAllByRole('spinbutton')[0];
-  const maxInput = screen.getAllByRole('spinbutton')[1];
+  const [minInput] = screen.getAllByRole('spinbutton');
+  const [, maxInput] = screen.getAllByRole('spinbutton');
   await userEvent.type(minInput, '1');
   await userEvent.type(maxInput, '2');
   await waitFor(() =>
@@ -58,7 +58,7 @@ test('calls onChange with correct values', async () => {
 
 test('receives 0 value', async () => {
   render(<BoundsControl {...defaultProps} />);
-  const minInput = screen.getAllByRole('spinbutton')[0];
+  const [minInput] = screen.getAllByRole('spinbutton');
   await userEvent.type(minInput, '0');
   await waitFor(() =>
     expect(defaultProps.onChange).toHaveBeenLastCalledWith([0, null]),

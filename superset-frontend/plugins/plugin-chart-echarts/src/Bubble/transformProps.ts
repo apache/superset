@@ -113,7 +113,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendIndex,
   } = chartProps;
 
-  const { data = [] } = queriesData[0];
+  const [{ data = [] }] = queriesData;
   const {
     x,
     y,
