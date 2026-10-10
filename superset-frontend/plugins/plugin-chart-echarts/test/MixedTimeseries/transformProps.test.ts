@@ -38,6 +38,7 @@ import {
   LabelPositionEnum,
 } from '../../src';
 import transformProps from '../../src/MixedTimeseries/transformProps';
+import * as formatters from '../../src/utils/formatters';
 import {
   DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesFormData,
@@ -899,6 +900,49 @@ test('xAxisForceCategorical forces Category axis regardless of Numeric coltype',
   const xAxis = echartOptions.xAxis as { type: string };
 
   expect(xAxis.type).toBe(AxisType.Category);
+});
+
+test('the x-axis data-extent scan stays behind the Time-axis check', () => {
+  // The data-extent scan coerces every record's x value, so it is only worth
+  // running for the Time axis, whose padded ticks are the ones that need
+  // flooring. On any other axis type the result is never read, and walking
+  // the records on each render is pure overhead.
+  const nonTemporalRows = [
+    { __timestamp: 1745784000000, metric: 10 },
+    { __timestamp: 1745870400000, metric: 20 },
+  ];
+  const nonTemporalQueryData = createTestQueryData(nonTemporalRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+  const nonTemporalProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [nonTemporalQueryData, nonTemporalQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+    },
+    queriesData: [nonTemporalQueryData, nonTemporalQueryData],
+  });
+
+  const getXAxisDomainSpy = jest.spyOn(formatters, 'getXAxisDomain');
+  try {
+    const { echartOptions } = transformProps(nonTemporalProps);
+    const xAxis = echartOptions.xAxis as { type: string };
+
+    expect(xAxis.type).not.toBe(AxisType.Time);
+    expect(getXAxisDomainSpy).not.toHaveBeenCalled();
+  } finally {
+    getXAxisDomainSpy.mockRestore();
+  }
 });
 
 // labelMap/labelMapB must be keyed by the rendered series names or the

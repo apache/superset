@@ -28,6 +28,7 @@ import {
 } from '@superset-ui/core';
 import {
   coerceTemporalMs,
+  createPaddedExtentFloorFormatter,
   createSpacedXAxisFormatter,
   getPercentFormatter,
   getTooltipTimeFormatter,
@@ -503,4 +504,57 @@ describe('getXAxisDomain', () => {
       undefined,
     ]);
   });
+});
+
+test('smart date x-axis formatter ignores sub-second noise on padded-extent ticks', () => {
+  // ECharts pads the time axis beyond the data extent; a boundary tick on
+  // that padding carries sub-second noise and would otherwise render as
+  // '.943ms' (#44698). The flooring lives in createPaddedExtentFloorFormatter
+  // (see below), so it only applies to ticks outside the data domain.
+  const base = getXAxisFormatter(SMART_DATE_ID) as TimeFormatter;
+  const formatter = createPaddedExtentFloorFormatter(
+    base,
+    Date.UTC(2004, 0, 1),
+    Date.UTC(2009, 0, 1),
+  );
+  // A padded max tick past the last data point must not fall into the
+  // millisecond tier.
+  const paddedBoundary = Date.UTC(2009, 0, 1) + 943;
+  expect(formatter(paddedBoundary)).toBe('2009');
+  expect(formatter(paddedBoundary)).not.toContain('ms');
+  // A tick inside the domain keeps its genuine sub-second precision.
+  const genuine = Date.UTC(2006, 0, 1) + 500;
+  expect(formatter(genuine)).toBe(base.format(genuine));
+});
+
+test('createPaddedExtentFloorFormatter passes through in-domain ticks untouched', () => {
+  const base = getXAxisFormatter(SMART_DATE_ID) as TimeFormatter;
+  const domainMin = Date.UTC(2004, 0, 1);
+  const domainMax = Date.UTC(2009, 0, 1);
+  const formatter = createPaddedExtentFloorFormatter(
+    base,
+    domainMin,
+    domainMax,
+  );
+  // Ticks on the domain edges themselves are real data, not padding.
+  expect(formatter(domainMin)).toBe(base.format(domainMin));
+  expect(formatter(domainMax)).toBe(base.format(domainMax));
+  // Padding ticks below the domain floor to the nearest second too.
+  const paddedMin = domainMin - 943;
+  expect(formatter(paddedMin)).toBe(base.format(domainMin - 1000));
+});
+
+test('createPaddedExtentFloorFormatter with no domain falls back to formatting as-is', () => {
+  // No temporal data -> getXAxisDomain returns undefined bounds; the wrapper
+  // must not floor anything (nothing is provably padding) and must still
+  // format values rather than crash.
+  const base = getXAxisFormatter(SMART_DATE_ID) as TimeFormatter;
+  const formatter = createPaddedExtentFloorFormatter(
+    base,
+    undefined,
+    undefined,
+  );
+  const noisy = Date.UTC(2009, 0, 1) + 943;
+  expect(formatter(noisy)).toBe(base.format(noisy));
+  expect(typeof formatter('2009-01-01')).toBe('string');
 });
