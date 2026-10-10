@@ -107,7 +107,7 @@ dependencies = [
 
     "shillelagh[gsheetsapi]>=1.4.5, <2.0",
     "sshtunnel>=0.4.0, <0.5",
-    "simplejson>=4.1.2",
+    "simplejson>=4.2.0",
     "slack_sdk>=3.45.0, <4",
     "sqlalchemy>=2.0.52, <2.1",
     "sqlalchemy-continuum>=1.8.0, <2.0.0",
@@ -233,7 +233,7 @@ kylin = ["kylinpy>=2.8.4, <2.9"]
 mariadb = ["apache-superset[mysql]"]
 monetdb = ["sqlalchemy-monetdb>=2.1.0, <3", "pymonetdb>=1.9.1, <2"]
 mongodb = ["pymongosql>=0.7.4, <1"]
-mssql = ["pymssql>=2.4.0, <3"]
+mssql = ["pymssql>=2.4.2, <3"]
 # motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
 motherduck = ["apache-superset[duckdb]"]
 mysql = ["mysqlclient>=2.3.0, <3"]
