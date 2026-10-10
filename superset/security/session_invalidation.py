@@ -38,9 +38,11 @@ import math
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from flask import flash, has_request_context, request, session
+from flask import current_app, flash, has_request_context, request, session
 from flask_babel import gettext as __
+from flask_jwt_extended.exceptions import JWTExtendedException
 from flask_login import current_user, logout_user
+from flask_login.config import COOKIE_NAME as DEFAULT_REMEMBER_COOKIE_NAME
 from sqlalchemy import event, inspect, or_
 from sqlalchemy.exc import IntegrityError
 from werkzeug.wrappers import Response
@@ -49,6 +51,11 @@ logger = logging.getLogger(__name__)
 
 #: Session key holding the epoch-seconds timestamp of when the session logged in.
 SESSION_LOGIN_AT_KEY = "_login_at"
+
+#: Session key Flask-Login stamps with the logged-in user's id. Its absence means
+#: the request carries no session login, and therefore no session this mechanism
+#: could invalidate.
+_FLASK_LOGIN_USER_KEY = "_user_id"
 
 # Health checks are deliberately independent of authentication and the metadata
 # database, so they must not resolve ``current_user`` or perform session checks.
@@ -99,6 +106,22 @@ def is_session_invalidated(
     return login_at < _as_utc_timestamp(invalidated_at)
 
 
+def _has_session_login() -> bool:
+    """
+    Whether the request carries a session login this mechanism could invalidate.
+
+    That is either a login already in the session, or one Flask-Login is about
+    to restore from the "remember me" cookie — it does so while resolving
+    ``current_user``, which happens after this ``before_request`` hook runs.
+    """
+    if _FLASK_LOGIN_USER_KEY in session:
+        return True
+    remember_cookie = current_app.config.get(
+        "REMEMBER_COOKIE_NAME", DEFAULT_REMEMBER_COOKIE_NAME
+    )
+    return remember_cookie in request.cookies
+
+
 def _get_user_invalidated_at(user: Any) -> Optional[datetime]:
     extra_attributes = getattr(user, "extra_attributes", None)
     if not extra_attributes:
@@ -111,16 +134,28 @@ def enforce_session_validity() -> Optional[Response]:
     ``before_request`` hook: force logout of sessions invalidated by the user's
     epoch.
 
+    Requests that carry no session login are skipped before ``current_user`` is
+    resolved, so the hook stays off the hot path of anonymous traffic.
+
     Fails open — any error here logs a warning and allows the request rather
     than risk locking everyone out on a bug in the check.
     """
-    # Do this before touching current_user: it is a LocalProxy whose resolution
-    # may query the metadata DB. Probes do not need session invalidation
-    # enforcement. Flask matches the URL in ``RequestContext.push()``, before
-    # ``preprocess_request()`` runs the ``before_request`` funcs, so
-    # ``request.endpoint`` is already resolved here.
-    if has_request_context() and request.endpoint == _HEALTH_CHECK_ENDPOINT:
-        return None
+    # Both checks below run before touching ``current_user``: it is a LocalProxy
+    # whose resolution may query the metadata DB, and a deployment-provided
+    # Flask-Login ``request_loader`` may *raise* for requests carrying no
+    # credentials instead of returning the anonymous user. Flask matches the URL
+    # in ``RequestContext.push()``, before ``preprocess_request()`` runs the
+    # ``before_request`` funcs, so ``request.endpoint`` is already resolved here.
+    if has_request_context():
+        # Probes do not need session invalidation enforcement.
+        if request.endpoint == _HEALTH_CHECK_ENDPOINT:
+            return None
+        # Only session logins are enforceable here: the epoch is compared against
+        # ``_login_at``, which is stamped into the session at login. A request
+        # with no session login — an anonymous page load, a static asset, an API
+        # call authenticated by token — has nothing for this hook to invalidate.
+        if not _has_session_login():
+            return None
 
     try:
         user = current_user
@@ -144,6 +179,13 @@ def enforce_session_validity() -> Optional[Response]:
         logout_user()
         session.clear()
         flash(__("Your session has ended. Please sign in again."), "warning")
+        return None
+    except JWTExtendedException:
+        # Resolving ``current_user`` went through a JWT-based Flask-Login loader
+        # that found no usable token. That is an ordinary unauthenticated
+        # request, not a malfunction of this check, so it is logged at debug:
+        # warning-level noise here would be emitted on every anonymous request.
+        logger.debug("No authenticated JWT; skipping session-invalidation check")
         return None
     except Exception:  # noqa: BLE001  # pylint: disable=broad-except
         logger.warning(
