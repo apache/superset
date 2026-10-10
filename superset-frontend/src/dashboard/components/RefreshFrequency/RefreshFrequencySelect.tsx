@@ -16,11 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useEffect, useState } from 'react';
+import {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Input } from '@superset-ui/core/components';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
+import { RootState } from 'src/dashboard/types';
 
 // Minimum custom refresh interval in seconds
 export const MINIMUM_REFRESH_INTERVAL = 1;
@@ -50,8 +59,16 @@ const CustomContent = styled.div`
   }
 `;
 
+/**
+ * Structured refresh frequency option representation.
+ */
+export interface RefreshFrequencyOption {
+  value: number;
+  label: string;
+}
+
 // Standard refresh frequency options used across modals
-export const REFRESH_FREQUENCY_OPTIONS = [
+export const REFRESH_FREQUENCY_OPTIONS: RefreshFrequencyOption[] = [
   { value: 0, label: t("Don't refresh") },
   { value: 10, label: t('10 seconds') },
   { value: 30, label: t('30 seconds') },
@@ -65,14 +82,36 @@ export const REFRESH_FREQUENCY_OPTIONS = [
   { value: -1, label: t('Custom') },
 ];
 
-const isPresetValue = (frequency: number) =>
-  REFRESH_FREQUENCY_OPTIONS.some(
-    option => option.value === frequency && option.value !== -1,
-  );
+/**
+ * Checks if a given frequency matches one of the preset options.
+ *
+ * @param frequency The refresh frequency in seconds to check.
+ * @param options The list of available refresh frequency options to match against.
+ * @returns True if frequency is found in preset options, false otherwise.
+ */
+export const isPresetValue = (
+  frequency: number,
+  options: RefreshFrequencyOption[] = REFRESH_FREQUENCY_OPTIONS,
+) => options.some(option => option.value === frequency && option.value !== -1);
 
-const getCustomValue = (frequency: number) =>
-  !isPresetValue(frequency) && frequency > 0 ? frequency.toString() : '';
+/**
+ * Formats a custom frequency as a string value for the custom input.
+ *
+ * @param frequency The refresh frequency in seconds.
+ * @param options The list of active preset options.
+ * @returns The custom frequency formatted as string if not a preset, or empty string.
+ */
+export const getCustomValue = (
+  frequency: number,
+  options: RefreshFrequencyOption[] = REFRESH_FREQUENCY_OPTIONS,
+) =>
+  !isPresetValue(frequency, options) && frequency > 0
+    ? frequency.toString()
+    : '';
 
+/**
+ * Normalizes refresh limit value from milliseconds to seconds if needed.
+ */
 const normalizeRefreshLimitSeconds = (
   refreshLimit?: number,
 ): number | undefined => {
@@ -87,44 +126,111 @@ const normalizeRefreshLimitSeconds = (
   return refreshLimit;
 };
 
-interface RefreshFrequencySelectProps {
+/**
+ * Props for the RefreshFrequencySelect component.
+ */
+export interface RefreshFrequencySelectProps {
+  /** The currently selected refresh frequency in seconds. */
   value: number;
+  /** Callback fired when a new refresh frequency is selected or typed. */
   onChange: (value: number) => void;
+  /** Optional override for available interval options as [seconds, label] tuples. */
+  options?: [number, string][];
 }
 
 /**
- * Shared refresh frequency select component
- * Used in both PropertiesModal and RefreshIntervalModal
+ * Shared refresh frequency select component.
+ *
+ * Renders radio buttons for available auto refresh frequencies.
+ * Reads configured intervals dynamically from Redux store
+ * (state.dashboardInfo.common.conf.DASHBOARD_AUTO_REFRESH_INTERVALS)
+ * with a fallback to REFRESH_FREQUENCY_OPTIONS if unconfigured.
+ * Also supports direct options prop override and custom numeric interval entry.
  */
 export const RefreshFrequencySelect = ({
   value,
   onChange,
+  options: optionsProp,
 }: RefreshFrequencySelectProps) => {
-  // Separate radio selection state from value state
-  const [radioSelection, setRadioSelection] = useState(() =>
-    isPresetValue(value) ? value : -1,
+  const configuredIntervals = useSelector(
+    (state: RootState) =>
+      state.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS ??
+      state.dashboardInfo?.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
   );
 
-  const [customValue, setCustomValue] = useState(() => getCustomValue(value));
+  const activeOptions = useMemo(() => {
+    const rawOptions = optionsProp ?? configuredIntervals;
+    if (Array.isArray(rawOptions) && rawOptions.length > 0) {
+      const validOptions = rawOptions
+        .filter(
+          item =>
+            Array.isArray(item) &&
+            typeof item[0] === 'number' &&
+            !Number.isNaN(item[0]) &&
+            typeof item[1] === 'string',
+        )
+        .map(([interval, label]) => ({
+          value: interval,
+          label: t(label),
+        }));
+      if (validOptions.length > 0) {
+        return validOptions;
+      }
+    }
+    return REFRESH_FREQUENCY_OPTIONS.slice(0, -1);
+  }, [optionsProp, configuredIntervals]);
+
+  const isPreset = useCallback(
+    (frequency: number) => isPresetValue(frequency, activeOptions),
+    [activeOptions],
+  );
+
+  const getCustom = useCallback(
+    (frequency: number) => getCustomValue(frequency, activeOptions),
+    [activeOptions],
+  );
+
+  // Separate radio selection state from value state
+  const [radioSelection, setRadioSelection] = useState(() =>
+    isPreset(value) ? value : -1,
+  );
+
+  const [customValue, setCustomValue] = useState(() => getCustom(value));
+  const lastEmittedCustomValueRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const selection = isPresetValue(value) ? value : -1;
+    if (lastEmittedCustomValueRef.current !== null) {
+      if (lastEmittedCustomValueRef.current === value) {
+        lastEmittedCustomValueRef.current = null;
+        return;
+      }
+      lastEmittedCustomValueRef.current = null;
+    }
+    const selection = isPreset(value) ? value : -1;
     setRadioSelection(selection);
-    setCustomValue(selection === -1 ? getCustomValue(value) : '');
-  }, [value]);
+    if (selection === -1) {
+      setCustomValue(getCustom(value));
+    }
+  }, [value, isPreset, getCustom]);
 
   const handleRadioChange = (event: RadioChangeEvent) => {
     const selectedValue = Number(event.target.value);
     setRadioSelection(selectedValue);
 
     if (selectedValue === -1) {
-      // Custom selected - use current custom value or minimum
-      const numValue = parseInt(customValue, 10) || MINIMUM_REFRESH_INTERVAL;
+      // Custom selected - use current custom value if >= minimum, otherwise fallback to minimum
+      const parsed = parseInt(customValue, 10);
+      const numValue =
+        !Number.isNaN(parsed) && parsed >= MINIMUM_REFRESH_INTERVAL
+          ? parsed
+          : MINIMUM_REFRESH_INTERVAL;
+      lastEmittedCustomValueRef.current = numValue;
       onChange(numValue);
-      if (!customValue) {
+      if (Number.isNaN(parsed) || parsed < MINIMUM_REFRESH_INTERVAL) {
         setCustomValue(MINIMUM_REFRESH_INTERVAL.toString());
       }
     } else {
+      lastEmittedCustomValueRef.current = null;
       onChange(selectedValue);
     }
   };
@@ -135,13 +241,14 @@ export const RefreshFrequencySelect = ({
 
     const numValue = parseInt(inputValue, 10);
     if (numValue >= MINIMUM_REFRESH_INTERVAL) {
+      lastEmittedCustomValueRef.current = numValue;
       onChange(numValue);
     }
   };
 
   return (
     <StyledRadioGroup value={radioSelection} onChange={handleRadioChange}>
-      {REFRESH_FREQUENCY_OPTIONS.slice(0, -1).map(option => (
+      {activeOptions.map(option => (
         <Radio key={option.value} value={option.value}>
           {option.label}
         </Radio>
