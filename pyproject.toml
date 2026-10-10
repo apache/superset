@@ -50,7 +50,7 @@ dependencies = [
     "flask-cors>=6.0.5, <7.0",
     "croniter>=6.2.4",
     "cron-descriptor",
-    "cryptography>=50.0.1, <51.0.0",
+    "cryptography>=50.0.2, <51.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <4.0.0",
     "flask-appbuilder>=5.2.3, <6.0.0",
@@ -94,7 +94,6 @@ dependencies = [
     "parsedatetime",
     "paramiko>=3.4.0, <4.0", # 4.0 removed DSSKey, still referenced by sshtunnel
     "Pillow>=12.3.0, <13", # raise floor to match resolved pin; closes SCA false-positive on 11.x-range CVEs already fixed in 12.3.0
-    "polyline>=2.0.4, <3.0",
     "pydantic>=2.13.5",
     "pyparsing>=3.3.2, <4",
     "python-dateutil",
@@ -109,9 +108,9 @@ dependencies = [
     "shillelagh[gsheetsapi]>=1.4.5, <2.0",
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=4.1.2",
-    "slack_sdk>=3.44.0, <4",
+    "slack_sdk>=3.45.0, <4",
     "sqlalchemy>=2.0.52, <2.1",
-    "sqlalchemy-continuum>=1.6.0, <2.0.0",
+    "sqlalchemy-continuum>=1.8.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
     # Dialect-specific gaps/bugs against this pin are worked around in
     # superset/sql/dialects/ (e.g. starrocks.py); check there for anything
@@ -214,7 +213,7 @@ fastmcp = [
 # landed (discussion #40273).
 firebird = ["sqlalchemy-firebird>=2.2.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
-gevent = ["gevent>=26.8.0"]
+gevent = ["gevent>=26.9.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
 hana = ["hdbcli==2.30.27", "sqlalchemy_hana==3.0.3"]
 hive = [
@@ -257,7 +256,7 @@ pinot = ["pinotdb[sqlalchemy]>=8.0.0, <10.0.0"]
 playwright = ["playwright>=1.63.0, <2"]
 postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
-trino = ["trino>=0.339.0"]
+trino = ["trino>=0.340.0"]
 prophet = ["prophet>=1.4.0, <2"]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own
@@ -281,7 +280,7 @@ tdengine = [
     "taospy>=2.8.10",
     "taos-ws-py>=0.7.0"
 ]
-teradata = ["teradatasql>=20.0.0.68"]
+teradata = ["teradatasql>=20.0.0.69"]
 # TimescaleDB is a genuine Postgres extension, not a fork - connects via the
 # plain postgresql dialect, same driver as postgres.
 timescaledb = ["apache-superset[postgres]"]
@@ -354,7 +353,7 @@ combine_as_imports = true
 include_trailing_comma = true
 line_length = 88
 known_first_party = "superset, apache-superset-core, apache-superset-extensions-cli"
-known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, polyline, rison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, syntaqlite, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
+known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, marshmallow-union, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, rison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, syntaqlite, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
 multi_line_output = 3
 order_by_type = false
 
@@ -592,10 +591,6 @@ authorized_licenses = [
 ]
 [tool.liccheck.authorized_packages]
 # --------------------------------------------------------------
-# These are ok, checked manually
-# Seems ok, might need legal review
-# https://github.com/urschrei/pypolyline/blob/master/LICENSE.md
-polyline = "2"
 # NumPy 2.x reports a combined SPDX license expression covering vendored
 # code (BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0), all of which
 # are permissive OSI-approved licenses; the package itself remains

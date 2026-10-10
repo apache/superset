@@ -199,7 +199,7 @@ croniter==6.2.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-cryptography==50.0.1
+cryptography==50.0.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -384,7 +384,7 @@ geopy==2.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-gevent==26.8.0
+gevent==26.9.0
     # via apache-superset
 google-api-core==2.33.0
     # via
@@ -742,10 +742,6 @@ pluggy==1.5.0
     # via pytest
 polib==1.2.0
     # via apache-superset
-polyline==2.0.4
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 pre-commit==4.1.0
     # via apache-superset
 prison==0.2.1
@@ -1036,7 +1032,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.44.1
+slack-sdk==3.45.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1068,7 +1064,7 @@ sqlalchemy-bigquery==1.17.2
     # via apache-superset
 sqlalchemy-cockroachdb==2.0.4
     # via apache-superset
-sqlalchemy-continuum==1.7.0
+sqlalchemy-continuum==1.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1126,7 +1122,7 @@ tqdm==4.67.1
     # via
     #   cmdstanpy
     #   prophet
-trino==0.339.0
+trino==0.340.0
     # via
     #   apache-superset
     #   testcontainers

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-07 14:21-0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -551,6 +551,13 @@ msgid ""
 msgstr ""
 "%s ставки није могло бити означено јер немате дозволе за уређивање свих "
 "изабраних објеката."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%s metric"
@@ -1614,6 +1621,11 @@ msgstr "Додај упозорење"
 msgid "Add an annotation layer"
 msgstr "Додај слој анотација"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Add an item"
 msgstr "Додај ставку"
@@ -2055,6 +2067,9 @@ msgstr "Упозорење је наишло на грешку при изврш
 msgid "Alert is active"
 msgstr "Упозорење је активно"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Alert name"
@@ -2123,6 +2138,18 @@ msgstr "Упозорења"
 msgid "Alerts & Reports"
 msgstr "Упозорења и извештаји"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Alerts & reports"
@@ -2134,6 +2161,9 @@ msgstr "Поравнај +/-"
 
 msgid "Align +/- for all columns"
 msgstr "Поравнај +/- за све колоне"
+
+msgid "Alignment"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "All"
@@ -2167,6 +2197,9 @@ msgstr "Све димензије"
 # zh, zh_TW]
 msgid "All filters"
 msgstr "Сви филтери"
+
+msgid "All groupable columns"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "All panels"
@@ -2267,6 +2300,9 @@ msgstr "Дозволи корисницима да бирају више вре�
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Allowed Domains (comma separated)"
 msgstr "Дозвољени домени (раздвојени зарезом)"
+
+msgid "Allowed e-mail domains"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Alphabetical"
@@ -2653,6 +2689,9 @@ msgstr ""
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Дошло је до грешке приликом приказивања визуализације: %s"
 
+msgid "An error occurred while saving the configuration"
+msgstr ""
+
 msgid "An error occurred while saving the semantic view"
 msgstr "Дошло је до грешке приликом чувања семантичког приказа"
 
@@ -2923,6 +2962,9 @@ msgid ""
 msgstr ""
 "Могу се додати све базе података које дозвољавају повезивање путем SQL "
 "Alchemy УРИ-ја. Сазнајте како повезати управљачки програм базе података "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -3365,6 +3407,8 @@ msgid "Back to all"
 msgstr "Назад на све"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Бекенд"
 
@@ -4885,11 +4929,18 @@ msgstr "Код копиран!"
 msgid "Collapse"
 msgstr "Скупи"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 # ru, uk]
 msgid "Collapse All"
 msgstr "Скупи све"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -5191,6 +5242,9 @@ msgstr "Колоне за читање"
 msgid "Columns to show in the tooltip."
 msgstr "Колоне за приказ у облачићу."
 
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Combine metrics"
 msgstr "Комбинуј метрике"
@@ -5478,6 +5532,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "Садржи текст (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 msgid "Content format"
 msgstr "Формат садржаја"
@@ -5528,6 +5588,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -8247,6 +8310,9 @@ msgstr "Омогући Matrixify"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -8719,6 +8785,9 @@ msgstr "Изузми изабране вредности"
 msgid "Excluded subjects"
 msgstr "Изузети субјекти"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Executed SQL"
 msgstr "Извршен SQL"
@@ -8740,6 +8809,10 @@ msgstr "Дневник извршавања"
 msgid "Existing dataset"
 msgstr "Постојећи скуп података"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -8751,9 +8824,16 @@ msgstr "Изађи из приказа преко целог екрана"
 msgid "Expand"
 msgstr "Прошири"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 # ru, uk]
 msgid "Expand All"
 msgstr "Прошири све"
+
+msgid "Expand JSON"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Expand all"
@@ -9719,6 +9799,9 @@ msgstr ""
 "{percent}. \\н представља нови ред. Компатибилност са ECharts:\n"
 "{a} (серија), {b} (назив), {c} (вредност), {d} (проценат)"
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 # ru, sk, uk]
 msgid ""
 "Format metrics or columns with currency symbols as prefixes or suffixes. "
@@ -9979,6 +10062,9 @@ msgstr "Назив групе"
 msgid "Group remaining as \"Others\""
 msgstr "Групиши преостале као \"Остало\""
 
+msgid "Groupable columns"
+msgstr ""
+
 # ru, uk]
 msgid "Grouping"
 msgstr "Груписање"
@@ -10116,6 +10202,11 @@ msgstr "Хоризонтално (Врх)"
 msgid "Horizontal alignment"
 msgstr "Хоризонтално поравнање"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Хост"
 
@@ -10367,6 +10458,9 @@ msgid "Include a description that will be sent with your report"
 msgstr "Укључите опис који ће бити послат са вашим извештајем"
 
 msgid "Include a link back to Superset"
+msgstr ""
+
+msgid "Include attachment"
 msgstr ""
 
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
@@ -10623,6 +10717,14 @@ msgstr "Неважећи код валуте у сачуваним мерама"
 msgid "Invalid date/timestamp format"
 msgstr "Неважећи формат датума/временске ознаке"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Invalid executor type"
 msgstr "Неважећи тип извршитеља"
@@ -10828,6 +10930,9 @@ msgstr "JSON конфигурација"
 # zh_TW]
 msgid "JSON Metadata"
 msgstr "JSON метаподаци"
+
+msgid "JSON in cell"
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "JSON metadata"
@@ -11151,6 +11256,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -11283,6 +11393,9 @@ msgstr "Like (без обзира на велика и мала слова)"
 # ru, uk]
 msgid "Limit"
 msgstr "Ограничење"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Limit type"
@@ -12618,6 +12731,9 @@ msgstr "Нема примењених филтера"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "No available filters."
 msgstr "Нема доступних филтера."
@@ -12801,6 +12917,9 @@ msgstr "Нису пронађене сачуване метрике"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "No stored results found, you need to re-run your query"
 msgstr "Нису пронађени сачувани резултати, потребно је да поново извршите упит"
@@ -12947,6 +13066,10 @@ msgstr "Није пронађено"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Not in"
 msgstr "Није у"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Not null"
@@ -13248,6 +13371,9 @@ msgstr "Само укупно"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Дозвољене су само `SELECT` наредбе"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "Примењује се само када „Тип ознаке” није подешен на проценат."
@@ -13255,6 +13381,9 @@ msgstr "Примењује се само када „Тип ознаке” ни
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "Примењује се само када је „Тип ознаке” подешен да приказује вредности."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 msgid "Only exact match is available for non-string columns."
 msgstr "Само потпуно подударање је доступно за колоне које нису текстуалне."
@@ -13323,6 +13452,9 @@ msgstr ""
 # zh_TW]
 msgid "Open Datasource tab"
 msgstr "Отвори картицу извора података"
+
+msgid "Open JSON"
+msgstr ""
 
 # uk]
 msgid "Open SQL Lab in a new tab"
@@ -14286,7 +14418,7 @@ msgid "Prefix or suffix"
 msgstr "Префикс или суфикс"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
@@ -14905,6 +15037,12 @@ msgstr ""
 msgid "Replace"
 msgstr "Замени"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Report"
 msgstr "Извештај"
@@ -14986,6 +15124,12 @@ msgstr "Распоред извештаја још увек ради, одбиј
 msgid "Report Schedule log prune failed."
 msgstr "Скраћивање дневника распореда извештаја није успело."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Report Schedule not found."
 msgstr "Распоред извештаја није пронађен."
@@ -15017,6 +15161,9 @@ msgstr "Извештај није успео"
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 msgid "Report is active"
 msgstr "Извештај је активан"
+
+msgid "Report minimum interval"
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -15063,6 +15210,9 @@ msgstr "Извештај ажуриран"
 # zh_TW]
 msgid "Reports"
 msgstr "Извештаји"
+
+msgid "Reports require a content format"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Repulsion"
@@ -15506,6 +15656,18 @@ msgstr "Извршите упит да бисте приказали истор�
 msgid "Run a query to display results"
 msgstr "Извршите упит да бисте приказали резултате"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Run current query"
 msgstr "Изврши тренутни упит"
@@ -15678,6 +15840,9 @@ msgstr "НИЗ"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "SUN"
 msgstr "НЕД"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -16647,6 +16812,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Изаберите тип шеме боја коју желите да користите."
 
+msgid "Select user"
+msgstr ""
+
 # uk]
 msgid "Select users"
 msgstr "Изаберите кориснике"
@@ -16656,6 +16824,7 @@ msgid "Select values"
 msgstr "Изаберите вредности"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -16744,6 +16913,9 @@ msgstr "Семантички преглед је ажуриран"
 msgid "Semantic views"
 msgstr "Семантички прегледи"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -16767,6 +16939,9 @@ msgid "Send as text"
 msgstr "Пошаљи као текст"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -17450,6 +17625,7 @@ msgstr "Клизач"
 msgid "Slider and range input"
 msgstr "Клизач и унос опсега"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -17490,6 +17666,11 @@ msgid "Solid background"
 msgstr ""
 
 msgid "Some charts did not finish loading. The export may be incomplete."
+msgstr ""
+
+msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
 msgstr ""
 
 msgid ""
@@ -17747,6 +17928,9 @@ msgstr "Просторни"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Specific Date/Time"
 msgstr "Одређени датум/време"
+
+msgid "Specific user"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Specify name to CREATE TABLE AS schema in: public"
@@ -18688,6 +18872,9 @@ msgid ""
 "type DELETE again to continue."
 msgstr ""
 
+msgid "The alert query executor is only allowed on alerts"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The annotation has been saved"
 msgstr "Анотација је сачувана"
@@ -18809,6 +18996,11 @@ msgstr "Колона која се користи као одредиште гр
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The column was deleted or renamed in the database."
 msgstr "Колона је обрисана или преименована у бази података."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "The configuration for the map layers"
@@ -19066,6 +19258,12 @@ msgstr ""
 "вредност филтера'\n"
 "                    и није их могуће учитати, што спречава приказивање\n"
 "                    контролне табле: %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 # uk]
 msgid "The font size of the point labels"
@@ -19787,6 +19985,18 @@ msgstr "Корисник је успешно ажуриран."
 msgid "The user was updated successfully"
 msgstr "Корисник је успешно ажуриран"
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr "Комбинација корисник/лозинка није важећа (нетачна лозинка за корисника)."
@@ -20224,6 +20434,12 @@ msgstr "Ово су скупови података на које ће се ов
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -20300,6 +20516,12 @@ msgstr "Ова радња ће трајно обрисати регистрац�
 # ja, lv, mi, ru, sk, uk]
 msgid "This action will permanently delete the user."
 msgstr "Ова радња ће трајно обрисати корисника."
+
+msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -20710,6 +20932,11 @@ msgstr ""
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -21591,6 +21818,9 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Није могуће учитати контролну таблу"
 
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
@@ -21937,6 +22167,9 @@ msgstr "Употреба"
 msgid "Use %s to open in a new tab."
 msgstr "Користите %s да бисте отворили у новој картици."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Use Area Proportions"
 msgstr "Користи пропорције површине"
@@ -21986,6 +22219,12 @@ msgstr "Користи тренутни опсег"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Користи формат датума чак и када вредност метрике није временска ознака"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 # uk]
 msgid "Use gradient"
@@ -22047,6 +22286,9 @@ msgstr "Корисничко име"
 # sk, uk]
 msgid "User Registrations"
 msgstr "Регистрације корисника"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "User doesn't have the proper permissions."
@@ -22747,6 +22989,11 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr "Када је означено, мапа ће се зумирати на ваше податке након сваког упита"
 
 msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
+
+msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
 "candles use the decrease color. Turn off to use one series color, with a "
 "filled body for increases and a hollow body for decreases."
@@ -23431,6 +23678,19 @@ msgid ""
 msgstr ""
 "Можете креирати нови графикон или користити постојеће са панела са десне "
 "стране"
+
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -24409,6 +24669,9 @@ msgstr "сваки минут"
 msgid "every month"
 msgstr "сваки месец"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "expand"
 msgstr "прошири"
@@ -24642,6 +24905,9 @@ msgstr "минут"
 msgid "minute(s)"
 msgstr "минут(а)"
 
+msgid "minutes"
+msgstr ""
+
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 msgid "month"
@@ -24833,6 +25099,10 @@ msgstr "поново покрени"
 msgid "recent"
 msgstr "недавно"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "recipients"
 msgstr "примаоци"
@@ -24865,6 +25135,9 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "безбедност_на_нивоу_редова"
 
+msgid "run as"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "running"
 msgstr "у току"
@@ -24872,6 +25145,10 @@ msgstr "у току"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "save"
 msgstr "сачувај"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 # sk, uk]
 #. do-not-translate
@@ -25127,3 +25404,14 @@ msgstr[2] ""
 
 msgid "№"
 msgstr "№"
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
+msgid "No provider query is available for this run."
+msgstr ""
+
+msgid "The provider query will be available after the chart runs."
+msgstr ""

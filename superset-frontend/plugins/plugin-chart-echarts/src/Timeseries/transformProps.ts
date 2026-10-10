@@ -371,6 +371,7 @@ export default function transformProps(
     minorTicks,
     gridlines,
     axisTicks,
+    valueAxisLabels,
     onlyTotal,
     opacity,
     orientation,
@@ -1578,9 +1579,9 @@ export default function transformProps(
     minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
     splitLine: { show: isSmallChart ? false : gridlines },
     axisLabel: {
-      show: !isMicroChart,
-      showMinLabel: !isMicroChart,
-      showMaxLabel: !isMicroChart,
+      show: isMicroChart ? false : valueAxisLabels,
+      showMinLabel: isMicroChart ? false : valueAxisLabels,
+      showMaxLabel: isMicroChart ? false : valueAxisLabels,
       hideOverlap: true,
       formatter: getYAxisFormatter(
         metrics,

@@ -84,7 +84,7 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==6.2.4
     # via apache-superset (pyproject.toml)
-cryptography==50.0.1
+cryptography==50.0.2
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -279,8 +279,6 @@ pillow==12.3.0
     # via apache-superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
-polyline==2.0.4
-    # via apache-superset (pyproject.toml)
 prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.51
@@ -377,7 +375,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.44.1
+slack-sdk==3.45.0
     # via apache-superset (pyproject.toml)
 sqlalchemy==2.0.52
     # via
@@ -390,7 +388,7 @@ sqlalchemy==2.0.52
     #   shillelagh
     #   sqlalchemy-continuum
     #   sqlalchemy-utils
-sqlalchemy-continuum==1.7.0
+sqlalchemy-continuum==1.8.0
     # via apache-superset (pyproject.toml)
 sqlalchemy-utils==0.42.1
     # via

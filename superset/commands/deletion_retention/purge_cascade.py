@@ -31,8 +31,9 @@ Cascade tiers:
 * **Owned children** (``delete-orphan``, no independent existence) — a
   dataset's columns and metrics, hard-deleted with it.
 * **Independently-owned entities** (a dashboard's charts, a chart's dataset)
-  are **preserved**. A live chart's loose ``datasource_id`` to a purged
-  dataset is left dangling — legacy hard-delete semantics, no guard.
+  are **preserved**. A chart on a purged dataset is kept but detached:
+  its ``datasource_id`` and denormalized permission fields are cleared, as an
+  ORM hard delete of the dataset leaves them.
 * **Version history** — the entity's own ``*_version`` shadows and
   the ``version_changes`` scoped to them, plus an orphan-sweep of any
   ``version_transaction`` left owning zero surviving shadows. Runs
