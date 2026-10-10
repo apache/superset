@@ -16,14 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Input } from '@superset-ui/core/components';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
+import { RootState } from 'src/dashboard/types';
 
 // Minimum custom refresh interval in seconds
 export const MINIMUM_REFRESH_INTERVAL = 1;
+
+// Radio value that selects the free-form interval input rather than a preset
+export const CUSTOM_REFRESH_FREQUENCY = -1;
+
+export type RefreshFrequencyOption = { value: number; label: string };
 
 const StyledRadioGroup = styled(Radio.Group)`
   padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
@@ -50,7 +57,10 @@ const CustomContent = styled.div`
   }
 `;
 
-// Standard refresh frequency options used across modals
+// Standard refresh frequency options used when the deployment ships no
+// DASHBOARD_AUTO_REFRESH_INTERVALS value (embedded or partially bootstrapped
+// payloads). The `Custom` entry is a UI affordance, not an interval, so it is
+// kept out of the configured list.
 export const REFRESH_FREQUENCY_OPTIONS = [
   { value: 0, label: t("Don't refresh") },
   { value: 10, label: t('10 seconds') },
@@ -62,16 +72,72 @@ export const REFRESH_FREQUENCY_OPTIONS = [
   { value: 21600, label: t('6 hours') },
   { value: 43200, label: t('12 hours') },
   { value: 86400, label: t('24 hours') },
-  { value: -1, label: t('Custom') },
+  { value: CUSTOM_REFRESH_FREQUENCY, label: t('Custom') },
 ];
 
-const isPresetValue = (frequency: number) =>
-  REFRESH_FREQUENCY_OPTIONS.some(
-    option => option.value === frequency && option.value !== -1,
+const isPresetValue = (frequency: number, options: RefreshFrequencyOption[]) =>
+  options.some(
+    option =>
+      option.value === frequency && option.value !== CUSTOM_REFRESH_FREQUENCY,
   );
 
-const getCustomValue = (frequency: number) =>
-  !isPresetValue(frequency) && frequency > 0 ? frequency.toString() : '';
+// `Number(null)`, `Number('')` and `Number([])` all yield 0, and 0 is a real
+// interval, so a bare Number() would smuggle malformed entries in as valid.
+const toIntervalSeconds = (value: unknown): number => {
+  const isNumeric = typeof value === 'number' || typeof value === 'string';
+  return isNumeric && String(value).trim() !== '' ? Number(value) : Number.NaN;
+};
+
+/**
+ * Builds the interval list from DASHBOARD_AUTO_REFRESH_INTERVALS, which reaches
+ * the browser as a list of `[seconds, label]` pairs. Labels run through `t()`
+ * so translated UIs render the English defaults from config.py localized;
+ * `t()` passes strings it has no entry for back unchanged, so operator-authored
+ * non-English labels survive verbatim. Anything that is not a well-formed
+ * non-empty list falls back to the built-in options rather than rendering an
+ * empty selector.
+ */
+export const getRefreshFrequencyOptions = (
+  configuredIntervals?: unknown,
+): RefreshFrequencyOption[] => {
+  const options: RefreshFrequencyOption[] = [];
+  const seen = new Set<number>();
+
+  (Array.isArray(configuredIntervals) ? configuredIntervals : []).forEach(
+    pair => {
+      if (!Array.isArray(pair)) {
+        return;
+      }
+      const [value, label] = pair;
+      const seconds = toIntervalSeconds(value);
+      const isLabelled = typeof label === 'string' && label.trim() !== '';
+      if (!Number.isFinite(seconds) || seconds < 0 || !isLabelled) {
+        return;
+      }
+      // Deployment overrides are unvalidated; a repeated interval would render
+      // duplicate React keys and two simultaneously-checked radios.
+      if (seen.has(seconds)) {
+        return;
+      }
+      seen.add(seconds);
+      options.push({ value: seconds, label: t(label) });
+    },
+  );
+
+  // Negative intervals never survive the guard above, so a configured list
+  // cannot carry the Custom entry; only the built-in list already has it.
+  return options.length
+    ? [...options, { value: CUSTOM_REFRESH_FREQUENCY, label: t('Custom') }]
+    : REFRESH_FREQUENCY_OPTIONS;
+};
+
+const getCustomValue = (
+  frequency: number,
+  options: RefreshFrequencyOption[],
+) =>
+  !isPresetValue(frequency, options) && frequency > 0
+    ? frequency.toString()
+    : '';
 
 const normalizeRefreshLimitSeconds = (
   refreshLimit?: number,
@@ -100,24 +166,48 @@ export const RefreshFrequencySelect = ({
   value,
   onChange,
 }: RefreshFrequencySelectProps) => {
-  // Separate radio selection state from value state
-  const [radioSelection, setRadioSelection] = useState(() =>
-    isPresetValue(value) ? value : -1,
+  const configuredIntervals = useSelector(
+    (state: RootState) =>
+      // The select also mounts from the Dashboard List / Home pages, where no
+      // dashboard has been hydrated yet; the bootstrapped store carries the
+      // same config there.
+      state.dashboardInfo?.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS ??
+      state.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
+  );
+  const options = useMemo(
+    () => getRefreshFrequencyOptions(configuredIntervals),
+    [configuredIntervals],
+  );
+  const presets = options.filter(
+    option => option.value !== CUSTOM_REFRESH_FREQUENCY,
   );
 
-  const [customValue, setCustomValue] = useState(() => getCustomValue(value));
+  // Separate radio selection state from value state
+  const [radioSelection, setRadioSelection] = useState(() =>
+    isPresetValue(value, options) ? value : CUSTOM_REFRESH_FREQUENCY,
+  );
+
+  const [customValue, setCustomValue] = useState(() =>
+    getCustomValue(value, options),
+  );
 
   useEffect(() => {
-    const selection = isPresetValue(value) ? value : -1;
+    const selection = isPresetValue(value, options)
+      ? value
+      : CUSTOM_REFRESH_FREQUENCY;
     setRadioSelection(selection);
-    setCustomValue(selection === -1 ? getCustomValue(value) : '');
-  }, [value]);
+    setCustomValue(
+      selection === CUSTOM_REFRESH_FREQUENCY
+        ? getCustomValue(value, options)
+        : '',
+    );
+  }, [value, options]);
 
   const handleRadioChange = (event: RadioChangeEvent) => {
     const selectedValue = Number(event.target.value);
     setRadioSelection(selectedValue);
 
-    if (selectedValue === -1) {
+    if (selectedValue === CUSTOM_REFRESH_FREQUENCY) {
       // Custom selected - use current custom value or minimum
       const numValue = parseInt(customValue, 10) || MINIMUM_REFRESH_INTERVAL;
       onChange(numValue);
@@ -139,15 +229,17 @@ export const RefreshFrequencySelect = ({
     }
   };
 
+  const isCustomSelected = radioSelection === CUSTOM_REFRESH_FREQUENCY;
+
   return (
     <StyledRadioGroup value={radioSelection} onChange={handleRadioChange}>
-      {REFRESH_FREQUENCY_OPTIONS.slice(0, -1).map(option => (
+      {presets.map(option => (
         <Radio key={option.value} value={option.value}>
           {option.label}
         </Radio>
       ))}
 
-      <Radio value={-1}>
+      <Radio value={CUSTOM_REFRESH_FREQUENCY}>
         <CustomContent>
           {t('Custom')}
           <Input
@@ -156,7 +248,7 @@ export const RefreshFrequencySelect = ({
             value={customValue}
             onChange={handleCustomInputChange}
             placeholder={`${MINIMUM_REFRESH_INTERVAL}+`}
-            disabled={radioSelection !== -1}
+            disabled={!isCustomSelected}
             onClick={e => e.stopPropagation()}
           />
           <span>{t('seconds')}</span>
