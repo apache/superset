@@ -328,7 +328,16 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
 
         if "text/html" in request.accept_mimetypes and not app.config["DEBUG"]:
             path = files("superset") / "static/assets/500.html"
-            return send_file(path, max_age=0), 500
+            # Try to serve HTML file; fall back to JSON if it can't be read. This
+            # is the last-resort handler, so ``500.html`` being absent (a webpack
+            # artifact missing in API-only/unbuilt deployments) or unreadable must
+            # not raise its own ``OSError`` and collapse the response to a bare
+            # 500 with no SIP-40 body. A sibling handler whose ``send_file`` raises
+            # lands here too, so it degrades to a SIP-40 500 rather than a bare one.
+            try:
+                return send_file(path, max_age=0), 500
+            except OSError:
+                pass
 
         return json_error_response(
             [
