@@ -1,3 +1,4 @@
+import { DASHBOARD_FILTERS_STORAGE_PREFIX } from 'src/utils/localStorageHelpers';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -375,6 +376,14 @@ const RightMenu = ({
     try {
       window.localStorage.removeItem('redux');
       window.sessionStorage.removeItem('login_attempted');
+      // Clear dashboard native filters persistence to prevent leaking saved
+      // filter selections (which may contain business-sensitive data) to the
+      // next user logging in on the same browser profile.
+      Object.keys(window.localStorage).forEach(key => {
+        if (key.startsWith(DASHBOARD_FILTERS_STORAGE_PREFIX)) {
+          window.localStorage.removeItem(key);
+        }
+      });
       // Purge the namespaced Cache API store so cached GET responses are not
       // retained on the device after the session ends. Best-effort: the
       // returned promise is not awaited since logout navigates away.
