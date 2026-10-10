@@ -143,7 +143,15 @@ export default function PartitionColumnFields({
     [datasource, allColumns],
   );
   const issueFor = (field: PartitionMappingIssue['field']) =>
-    issues.find(issue => issue.field === field)?.message;
+    issues.find(issue => issue.field === field);
+  // Non-blocking issues are saveable, so they read as warnings. The implicit
+  // self-mapping is the one that reaches here: the owner can save through it,
+  // and danger styling on a message beside an enabled Save button says the
+  // opposite of what the button is doing.
+  const issueType = (issue: PartitionMappingIssue) =>
+    issue.blocking === false ? 'warning' : 'danger';
+  const partitionColumnIssue = issueFor('partition_column');
+  const mappedColumnIssue = issueFor('partition_mapped_column');
 
   // "Map a different column instead" normally opens the currently-mapped
   // column's row, which is where the picker lives. When the mapped column *is*
@@ -181,9 +189,12 @@ export default function PartitionColumnFields({
         allowClear
         data-test="partition-column-select"
       />
-      {issueFor('partition_column') && (
-        <Typography.Text type="danger" data-test="partition-column-error">
-          {issueFor('partition_column')}
+      {partitionColumnIssue && (
+        <Typography.Text
+          type={issueType(partitionColumnIssue)}
+          data-test="partition-column-error"
+        >
+          {partitionColumnIssue.message}
         </Typography.Text>
       )}
       <Typography.Text type="secondary">
@@ -227,12 +238,12 @@ export default function PartitionColumnFields({
                   </>
                 )}
               </Flex>
-              {issueFor('partition_mapped_column') && (
+              {mappedColumnIssue && (
                 <Typography.Text
-                  type="danger"
+                  type={issueType(mappedColumnIssue)}
                   data-test="partition-mapped-column-error"
                 >
-                  {issueFor('partition_mapped_column')}
+                  {mappedColumnIssue.message}
                 </Typography.Text>
               )}
               <Typography.Text type="secondary">
