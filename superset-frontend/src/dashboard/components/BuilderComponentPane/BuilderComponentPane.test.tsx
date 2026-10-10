@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import BuilderComponentPane from '.';
 
 jest.mock('src/dashboard/containers/SliceAdder', () => () => (
@@ -40,4 +40,19 @@ test('BuilderComponentPane has correct tabs in correct order', () => {
   expect(screen.getByRole('tab', { selected: true })).toHaveTextContent(
     'Charts',
   );
+});
+
+test('renders Filter Card under Layout elements', () => {
+  render(<BuilderComponentPane topOffset={115} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState: {
+      dashboardState: {
+        nativeFiltersBarOpen: false,
+      },
+    },
+  });
+
+  fireEvent.click(screen.getByText('Layout elements'));
+  expect(screen.getByText('Filter Card')).toBeInTheDocument();
 });

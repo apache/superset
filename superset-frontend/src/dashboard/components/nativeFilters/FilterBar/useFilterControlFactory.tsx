@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -25,7 +26,12 @@ import {
   Filter,
   isFilterDivider,
 } from '@superset-ui/core';
-import { FilterBarOrientation } from 'src/dashboard/types';
+import {
+  DashboardLayout,
+  FilterBarOrientation,
+  RootState,
+} from 'src/dashboard/types';
+import { FILTER_TYPE } from 'src/dashboard/util/componentTypes';
 import FilterControl from './FilterControls/FilterControl';
 import { useFilters } from './state';
 import FilterDivider from './FilterControls/FilterDivider';
@@ -37,9 +43,32 @@ export const useFilterControlFactory = (
   onClearAllComplete?: (filterId: string) => void,
 ) => {
   const filters = useFilters();
+  const dashboardLayout = useSelector<RootState, DashboardLayout>(
+    state => state.dashboardLayout?.present || {},
+  );
+
+  const canvasFilterIds = useMemo(() => {
+    const ids = new Set<string>();
+    Object.values(dashboardLayout).forEach(item => {
+      const filterId =
+        item?.type === FILTER_TYPE ? String(item?.meta?.filterId || '') : '';
+      if (filterId && filterId in filters) {
+        ids.add(filterId);
+      }
+    });
+    return ids;
+  }, [dashboardLayout, filters]);
+
   const filterValues = useMemo(
-    () => Object.values(filters) as (Filter | Divider)[],
-    [filters],
+    () =>
+      (Object.values(filters) as (Filter | Divider)[]).filter(
+        filter =>
+          isFilterDivider(filter) ||
+          !canvasFilterIds.has(filter.id) ||
+          (Boolean(filter.requiredFirst) &&
+            dataMaskSelected[filter.id]?.filterState?.value === undefined),
+      ),
+    [filters, canvasFilterIds, dataMaskSelected],
   );
   const filtersWithValues: (Filter | Divider)[] = useMemo(
     () =>

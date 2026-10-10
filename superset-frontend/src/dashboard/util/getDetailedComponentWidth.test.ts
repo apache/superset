@@ -85,6 +85,12 @@ describe('getDetailedComponentWidth', () => {
 
       expect(
         getDetailedComponentWidth({
+          component: { id: '', type: types.FILTER_TYPE, meta: { width: 4 } },
+        }),
+      ).toEqual({ width: 4, occupiedWidth: 4, minimumWidth: 1 });
+
+      expect(
+        getDetailedComponentWidth({
           component: { id: '', type: types.COLUMN_TYPE, meta: { width: 3 } },
         }),
         // note: occupiedWidth is zero for columns/see test below
@@ -191,6 +197,16 @@ describe('getDetailedComponentWidth', () => {
         width: 2,
         minimumWidth: GRID_MIN_COLUMN_COUNT,
         occupiedWidth: 2,
+      });
+
+      expect(
+        getDetailedComponentWidth({
+          component: { id: '', type: types.FILTER_TYPE, meta: { width: 4 } },
+        }),
+      ).toEqual({
+        width: 4,
+        minimumWidth: GRID_MIN_COLUMN_COUNT,
+        occupiedWidth: 4,
       });
 
       expect(

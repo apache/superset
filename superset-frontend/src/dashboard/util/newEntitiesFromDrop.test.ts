@@ -23,6 +23,7 @@ import {
   ROW_TYPE,
   TABS_TYPE,
   TAB_TYPE,
+  FILTER_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import type { DashboardComponentMap } from 'src/dashboard/types';
@@ -106,5 +107,65 @@ describe('newEntitiesFromDrop', () => {
     const newChart = result[newChartId];
     expect(newChart.type).toBe(CHART_TYPE);
     expect(newChart.parents).toEqual(['a', newRowId]);
+  });
+
+  test('should create a Row if the drag entity is FILTER_TYPE dropped on DASHBOARD_GRID', () => {
+    const result = newEntitiesFromDrop({
+      dropResult: {
+        destination: { id: 'a', type: DASHBOARD_GRID_TYPE, index: 0 },
+        dragging: { id: '', type: FILTER_TYPE, meta: {} },
+        source: { id: 'b', type: FILTER_TYPE, index: 0 },
+      } as DropResult,
+      layout: {
+        a: {
+          id: 'a',
+          type: DASHBOARD_GRID_TYPE,
+          children: [],
+          meta: {},
+        },
+      } as unknown as DashboardComponentMap,
+    });
+
+    const newRowId = result.a.children[0];
+    const newFilterId = result[newRowId].children[0];
+
+    expect(result.a.children).toHaveLength(1);
+    expect(Object.keys(result)).toHaveLength(3);
+    const newRow = result[newRowId];
+    expect(newRow.type).toBe(ROW_TYPE);
+    expect(newRow.parents).toEqual(['a']);
+    const newFilter = result[newFilterId];
+    expect(newFilter.type).toBe(FILTER_TYPE);
+    expect(newFilter.parents).toEqual(['a', newRowId]);
+  });
+
+  test('should create a Row if the drag entity is FILTER_TYPE dropped on TAB', () => {
+    const result = newEntitiesFromDrop({
+      dropResult: {
+        destination: { id: 'tab-1', type: TAB_TYPE, index: 0 },
+        dragging: { id: '', type: FILTER_TYPE, meta: {} },
+        source: { id: 'b', type: FILTER_TYPE, index: 0 },
+      } as DropResult,
+      layout: {
+        'tab-1': {
+          id: 'tab-1',
+          type: TAB_TYPE,
+          children: [],
+          meta: {},
+        },
+      } as unknown as DashboardComponentMap,
+    });
+
+    const newRowId = result['tab-1'].children[0];
+    const newFilterId = result[newRowId].children[0];
+
+    expect(result['tab-1'].children).toHaveLength(1);
+    expect(Object.keys(result)).toHaveLength(3);
+    const newRow = result[newRowId];
+    expect(newRow.type).toBe(ROW_TYPE);
+    expect(newRow.parents).toEqual(['tab-1']);
+    const newFilter = result[newFilterId];
+    expect(newFilter.type).toBe(FILTER_TYPE);
+    expect(newFilter.parents).toEqual(['tab-1', newRowId]);
   });
 });
