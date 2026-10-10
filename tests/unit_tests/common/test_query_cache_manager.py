@@ -55,3 +55,21 @@ class TestQueryCacheManagerGet:
         assert result.is_loaded == miss_result.is_loaded
         assert result.cache_value == miss_result.cache_value
         assert result.status == miss_result.status
+
+    def test_result_cache_hit_does_not_replay_semantic_cache_provenance(self) -> None:
+        mock_cache: MagicMock = MagicMock()
+        mock_cache.get.return_value = {
+            "df": None,
+            "query": "provider query",
+            "semantic_cache_status": "HIT",
+            "dttm": "2026-08-04T00:00:00+00:00",
+        }
+
+        with patch(
+            "superset.common.utils.query_cache_manager._cache",
+            {CacheRegion.DEFAULT: mock_cache},
+        ):
+            result: QueryCacheManager = QueryCacheManager.get(key="some-key")
+
+        assert result.is_cached is True
+        assert result.semantic_cache_status == "MISS"

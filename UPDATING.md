@@ -24,6 +24,11 @@ assists people when migrating to a new version.
 
 ## Next
 
+- `SEMANTIC_LAYER_CONTAINMENT_CACHE` is off by default; opted-in providers can
+  reuse cached semantic-view results for narrower queries. Containment keys include
+  the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
+  `SEMANTIC_LAYERS`; configure shared persistent `DATA_CACHE_CONFIG` and Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every web/worker process.
+
 - Malformed explicit `time_range` values are rejected with a validation error
   (HTTP 400 on chart-data requests) instead of silently producing an upper-bound-only
   scan. Update saved charts, dashboard filters, imports, and API callers to use

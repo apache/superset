@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import redis
@@ -33,6 +34,25 @@ if redis.call('get', KEYS[1]) == ARGV[1] then
 else
     return 0
 end
+"""
+
+_COMPARE_AND_EXPIRE_SCRIPT: str = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+  return redis.call('expire', KEYS[1], ARGV[2])
+end
+return 0
+"""
+
+_COMPARE_AND_SET_LUA: str = """
+if redis.call('get', KEYS[1]) ~= ARGV[1] then
+    return 0
+end
+if tonumber(ARGV[3]) > 0 then
+    redis.call('set', KEYS[2], ARGV[2], 'EX', ARGV[3])
+else
+    redis.call('set', KEYS[2], ARGV[2])
+end
+return 1
 """
 
 
@@ -104,6 +124,35 @@ class RedisCommandsMixin:
         :returns: 1 if the key was deleted, 0 otherwise
         """
         return int(self._cache.eval(_COMPARE_AND_DELETE_LUA, 1, name, expected))
+
+    def acquire_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        """Acquire an expiring lease only when the key is unowned."""
+        return bool(self._cache.set(key, owner_token, nx=True, ex=lease_seconds))
+
+    def compare_owner_and_set(
+        self,
+        lease_key: str,
+        owner_token: str,
+        key: str,
+        value: bytes,
+        timeout: int,
+    ) -> bool:
+        """Fence a serialized value write on this client's lease atomically."""
+        evaluate: Callable[..., object] = self._cache.eval
+        return bool(
+            evaluate(
+                _COMPARE_AND_SET_LUA, 2, lease_key, key, owner_token, value, timeout
+            )
+        )
+
+    def release_owner_token(self, key: str, owner_token: str) -> bool:
+        """Release the lease only when the caller still owns it."""
+        return bool(self.compare_and_delete(key, owner_token))
 
     def publish(self, channel: str, message: str) -> int:
         """
@@ -182,6 +231,23 @@ class RedisCommandsMixin:
     def expire(self, name: str, seconds: int) -> bool:
         """Set a TTL (seconds) on a key; used to bound signal-stream growth."""
         return bool(self._cache.expire(name, seconds))
+
+    def refresh_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        """Extend an expiring lease only while the caller still owns it."""
+        return bool(
+            self._cache.eval(
+                _COMPARE_AND_EXPIRE_SCRIPT,
+                1,
+                key,
+                owner_token,
+                lease_seconds,
+            )
+        )
 
 
 class RedisCacheBackend(RedisCommandsMixin, RedisCache):
@@ -280,12 +346,18 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
         ssl_ca_certs: str | None = None,
         socket_timeout: float | None = None,
         socket_connect_timeout: float | None = None,
+        force_master_ip: str | None = None,
         **kwargs: Any,
     ) -> None:
         # Sentinel dont directly support SSL
         # Initialize Sentinel without SSL parameters
         self._sentinel = Sentinel(
             sentinels,
+            **(
+                {"force_master_ip": force_master_ip}
+                if force_master_ip is not None
+                else {}
+            ),
             # See the matching comment in RedisCacheBackend.__init__: pin the
             # pre-redis-py-8 defaults (no socket timeout, RESP2) explicitly
             # for the sentinel-node connections too, so this bump doesn't

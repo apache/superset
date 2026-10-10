@@ -23,9 +23,47 @@ change production connection behavior (redis-py 8 defaults to RESP3 on
 the wire and a 5s socket timeout).
 """
 
+from typing import Any
 from unittest import mock
 
+import pytest
 from pytest_mock import MockerFixture
+from redis.exceptions import ConnectionError as RedisConnectionError
+
+
+@pytest.mark.parametrize("force_master_ip", [None, "127.0.0.2"])
+def test_sentinel_omits_unset_force_master_ip(force_master_ip: str | None) -> None:
+    """Older supported redis-py clients must not receive an unknown None kwarg."""
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    with mock.patch("superset.coordination.cache_backend.Sentinel") as sentinel:
+        RedisSentinelCacheBackend(
+            sentinels=[("localhost", 26379)],
+            master="main",
+            force_master_ip=force_master_ip,
+        )
+    arguments: dict[str, Any] = sentinel.call_args.kwargs
+    if force_master_ip is None:
+        assert "force_master_ip" not in arguments
+    else:
+        assert arguments["force_master_ip"] == force_master_ip
+
+
+def test_compare_owner_and_set_uses_two_keys_and_preserves_rejection() -> None:
+    """A rejected lease comparison must never be reported as a successful SET."""
+    from superset.coordination.cache_backend import RedisCacheBackend
+
+    backend: RedisCacheBackend = object.__new__(RedisCacheBackend)
+    client: mock.MagicMock = mock.MagicMock()
+    backend._cache = client
+    client.eval.return_value = 0
+    assert not backend.compare_owner_and_set("lease", "stale", "value", b"old", 60)
+    arguments: tuple[Any, ...] = client.eval.call_args.args
+    assert arguments[1:] == (2, "lease", "value", "stale", b"old", 60)
+    assert "redis.call('get', KEYS[1]) ~= ARGV[1]" in arguments[0]
+    client.set.assert_not_called()
+    client.eval.return_value = 1
+    assert backend.compare_owner_and_set("lease", "fresh", "value", b"new", 0)
 
 
 def test_redis_cache_backend_pins_protocol_and_timeout_defaults(
@@ -215,3 +253,154 @@ def test_redis_sentinel_cache_backend_stream_helpers(mocker: MockerFixture) -> N
     assert eval_args[1:] == (1, "lock", "tok")  # numkeys, KEYS[1], ARGV[1]
     master.eval.return_value = 0
     assert backend.compare_and_delete("lock", "other") == 0
+
+
+@pytest.mark.parametrize("backend_name", ["redis", "sentinel"])
+def test_owner_token_acquire_uses_atomic_set_nx_with_ttl(
+    backend_name: str,
+) -> None:
+    from superset.coordination.cache_backend import (
+        RedisCacheBackend,
+        RedisSentinelCacheBackend,
+    )
+
+    backend_type: type[RedisCacheBackend] | type[RedisSentinelCacheBackend] = (
+        RedisCacheBackend if backend_name == "redis" else RedisSentinelCacheBackend
+    )
+    backend: RedisCacheBackend | RedisSentinelCacheBackend = object.__new__(
+        backend_type
+    )
+    cache: mock.Mock = mock.Mock()
+    cache.set.return_value = True
+    backend._cache = cache
+
+    acquired: bool = backend.acquire_owner_token("bucket", "owner-a", 15)
+
+    assert acquired is True
+    cache.set.assert_called_once_with("bucket", "owner-a", nx=True, ex=15)
+
+
+@pytest.mark.parametrize("backend_name", ["redis", "sentinel"])
+def test_owner_token_release_is_atomic_compare_and_delete(
+    backend_name: str,
+) -> None:
+    from superset.coordination.cache_backend import (
+        RedisCacheBackend,
+        RedisSentinelCacheBackend,
+    )
+
+    backend_type: type[RedisCacheBackend] | type[RedisSentinelCacheBackend] = (
+        RedisCacheBackend if backend_name == "redis" else RedisSentinelCacheBackend
+    )
+    backend: RedisCacheBackend | RedisSentinelCacheBackend = object.__new__(
+        backend_type
+    )
+    cache: mock.Mock = mock.Mock()
+    cache.eval.return_value = 0
+    backend._cache = cache
+
+    released: bool = backend.release_owner_token("bucket", "stale-owner")
+
+    assert released is False
+    script: str = cache.eval.call_args.args[0]
+    assert "redis.call('get', KEYS[1]) == ARGV[1]" in script
+    assert "redis.call('del', KEYS[1])" in script
+    assert cache.eval.call_args.args[1:] == (1, "bucket", "stale-owner")
+
+
+@pytest.mark.parametrize("backend_name", ["redis", "sentinel"])
+def test_owner_token_refresh_is_atomic_compare_and_expire(
+    backend_name: str,
+) -> None:
+    from superset.coordination.cache_backend import (
+        RedisCacheBackend,
+        RedisSentinelCacheBackend,
+    )
+
+    backend_type: type[RedisCacheBackend] | type[RedisSentinelCacheBackend] = (
+        RedisCacheBackend if backend_name == "redis" else RedisSentinelCacheBackend
+    )
+    backend: RedisCacheBackend | RedisSentinelCacheBackend = object.__new__(
+        backend_type
+    )
+    cache: mock.Mock = mock.Mock()
+    cache.eval.return_value = 1
+    backend._cache = cache
+
+    refreshed: bool = backend.refresh_owner_token("bucket", "owner-a", 15)
+
+    assert refreshed is True
+    script: str = cache.eval.call_args.args[0]
+    assert "redis.call('get', KEYS[1]) == ARGV[1]" in script
+    assert "redis.call('expire', KEYS[1], ARGV[2])" in script
+    assert cache.eval.call_args.args[1:] == (1, "bucket", "owner-a", 15)
+
+
+class _OwnerStore:
+    def __init__(self) -> None:
+        self.values: dict[str, str] = {}
+
+    def set(
+        self,
+        key: str,
+        value: str,
+        *,
+        nx: bool,
+        ex: int,
+    ) -> bool:
+        if nx and key in self.values:
+            return False
+        self.values[key] = value
+        return ex > 0
+
+    def eval(
+        self,
+        script: str,
+        key_count: int,
+        key: str,
+        owner_token: str,
+    ) -> int:
+        assert script
+        assert key_count == 1
+        if self.values.get(key) != owner_token:
+            return 0
+        del self.values[key]
+        return 1
+
+
+def test_expired_owner_cannot_release_successor_token() -> None:
+    from superset.coordination.cache_backend import RedisCacheBackend
+
+    backend: RedisCacheBackend = object.__new__(RedisCacheBackend)
+    cache: _OwnerStore = _OwnerStore()
+    backend._cache = cache
+
+    assert backend.acquire_owner_token("bucket", "owner-a", 1)
+    assert backend.acquire_owner_token("bucket", "owner-b", 1) is False
+    del cache.values["bucket"]
+    assert backend.acquire_owner_token("bucket", "owner-b", 1)
+    assert backend.release_owner_token("bucket", "owner-a") is False
+    assert cache.values["bucket"] == "owner-b"
+    assert backend.release_owner_token("bucket", "owner-b") is True
+
+
+@pytest.mark.parametrize("operation", ["acquire", "release", "refresh"])
+def test_owner_token_backend_errors_propagate(operation: str) -> None:
+    from superset.coordination.cache_backend import RedisCacheBackend
+
+    backend: RedisCacheBackend = object.__new__(RedisCacheBackend)
+    cache: mock.Mock = mock.Mock()
+    getattr(
+        cache, "set" if operation == "acquire" else "eval"
+    ).side_effect = RedisConnectionError("unavailable")
+    backend._cache = cache
+
+    def operation_call() -> bool:
+        if operation == "acquire":
+            return backend.acquire_owner_token("bucket", "owner", 1)
+        if operation == "refresh":
+            return backend.refresh_owner_token("bucket", "owner", 1)
+        return backend.release_owner_token("bucket", "owner")
+
+    with pytest.raises(RedisConnectionError, match="unavailable"):
+        operation_call()

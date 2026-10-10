@@ -36,3 +36,28 @@ test('Rendering TooltipContent correctly - with timestep', () => {
       .fromNow()}. Click to force-refresh`,
   );
 });
+
+test('Rendering TooltipContent for semantic cache', () => {
+  render(<TooltipContent cacheSource="semantic" />);
+  expect(screen.getByTestId('tooltip-content')).toHaveTextContent(
+    'Loaded from semantic cache. Click to force-refresh',
+  );
+});
+
+test('Rendering timestamped TooltipContent for semantic cache', () => {
+  render(
+    <TooltipContent cachedTimestamp="01-01-2000" cacheSource="semantic" />,
+  );
+  expect(screen.getByTestId('tooltip-content')?.textContent).toBe(
+    `Loaded from semantic cache ${extendedDayjs
+      .utc('01-01-2000')
+      .fromNow()}. Click to force-refresh`,
+  );
+});
+
+test('Rendering TooltipContent for ordinary cache', () => {
+  render(<TooltipContent cacheSource="result" />);
+  expect(screen.getByTestId('tooltip-content')).toHaveTextContent(
+    'Loaded from cache. Click to force-refresh',
+  );
+});

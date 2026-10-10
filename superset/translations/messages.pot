@@ -8309,6 +8309,9 @@ msgstr ""
 msgid "Loaded from cache"
 msgstr ""
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr ""
 
@@ -8870,6 +8873,9 @@ msgid "Missing URL parameters"
 msgstr ""
 
 msgid "Mixed Chart"
+msgstr ""
+
+msgid "Mixed cache"
 msgstr ""
 
 msgid "Modified"
@@ -12152,6 +12158,9 @@ msgid "Semantic View"
 msgstr ""
 
 msgid "Semantic Views"
+msgstr ""
+
+msgid "Semantic cache"
 msgstr ""
 
 msgid "Semantic layer"
