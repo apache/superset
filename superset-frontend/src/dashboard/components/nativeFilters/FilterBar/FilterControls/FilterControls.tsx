@@ -423,8 +423,6 @@ const FilterControls: FC<FilterControlsProps> = ({
       toggleSection,
       theme,
       hideHeader,
-      handleChartCustomizationChange,
-      dataMaskSelected,
     ],
   );
 
@@ -657,6 +655,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                         rendererCrossFilter={rendererCrossFilter}
                         customizationRenderer={customizationRenderer}
                         showCollapsePanel={showCollapsePanel}
+                        // Out-of-scope collapsible panels inside opened dropdown content
                         forceRenderOutOfScope={hasRequiredFirst}
                       />
                       {showCustomizationCollapsePanel && (
@@ -671,7 +670,6 @@ const FilterControls: FC<FilterControlsProps> = ({
                 }
               : undefined
           }
-          forceRender={hasRequiredFirst}
           ref={popoverRef}
           onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
             if (

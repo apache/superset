@@ -20,6 +20,11 @@ import type { CSSProperties } from 'react';
 import { screen, render } from '@superset-ui/core/spec';
 import { Button, DropdownContainer, Icons } from '..';
 
+jest.mock('remark-gfm', () => () => jest.fn());
+jest.mock('react-ace', () => () => <div data-test="mock-ace-editor" />, {
+  virtual: true,
+});
+
 const generateItems = (n: number) =>
   Array.from({ length: n }).map((_, i) => ({
     id: `el-${i + 1}`,
@@ -155,7 +160,7 @@ test('accepts custom style props', () => {
   render(<DropdownContainer items={generateItems(2)} style={customStyle} />);
 
   const container = screen.getByTestId('container');
-  expect(container).toHaveStyle('background-color: rgb(255, 0, 0)');
+  expect(container).toHaveStyle('background-color: red');
   expect(container).toHaveStyle('padding: 10px');
 });
 
@@ -248,4 +253,27 @@ test('clips the item row while remeasuring, then restores it', () => {
    * the new overflow index is applied the consumer's value comes back. */
   expect(measured[0]).toBe('hidden');
   expect(measured.at(-1)).toBe('visible');
+});
+
+test('does not force render popover content when forceRender is not specified', () => {
+  const dropdownContent = jest.fn(() => <div>Custom dropdown content</div>);
+  render(
+    <DropdownContainer
+      items={generateItems(3)}
+      dropdownContent={dropdownContent}
+    />,
+  );
+  expect(screen.queryByText('Custom dropdown content')).not.toBeInTheDocument();
+});
+
+test('renders popover content when forceRender is true', () => {
+  const dropdownContent = () => <div>Forced dropdown content</div>;
+  render(
+    <DropdownContainer
+      items={generateItems(3)}
+      dropdownContent={dropdownContent}
+      forceRender
+    />,
+  );
+  expect(screen.getByText('Forced dropdown content')).toBeInTheDocument();
 });

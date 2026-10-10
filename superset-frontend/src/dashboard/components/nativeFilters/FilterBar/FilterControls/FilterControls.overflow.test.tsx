@@ -29,12 +29,18 @@ import {
   act,
   createStore,
   render,
+  screen,
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import FilterControls from './FilterControls';
+
+jest.mock('remark-gfm', () => () => jest.fn());
+jest.mock('react-ace', () => () => <div data-test="mock-ace-editor" />, {
+  virtual: true,
+});
 
 // Capture every props snapshot DropdownContainer receives, plus the latest
 // onOverflowingStateChange callback. Tests drive overflow by invoking the
@@ -48,6 +54,8 @@ const callbackRef: {
     | ((s: { overflowed: string[]; notOverflowed: string[] }) => void)
     | null;
 } = { current: null };
+
+let mockUseRealDropdownContainer = false;
 
 // Real DropdownContainer partitions `items` into a visible main row and an
 // overflow slice by array index (`items.slice(0, overflowingIndex)` /
@@ -95,8 +103,14 @@ const mockDropdownClose = jest.fn();
 // resolves to this subpath, so the mock is picked up transparently.
 jest.mock('@superset-ui/core/components/DropdownContainer', () => {
   const React = jest.requireActual('react');
+  const { DropdownContainer: RealDropdownContainer } = jest.requireActual(
+    '@superset-ui/core/components/DropdownContainer',
+  );
   const MockDropdownContainer = React.forwardRef(
     (props: DropdownContainerProps, ref: React.Ref<unknown>) => {
+      if (mockUseRealDropdownContainer) {
+        return <RealDropdownContainer {...props} ref={ref} />;
+      }
       dropdownContainerProps.push(props);
       callbackRef.current = props.onOverflowingStateChange ?? null;
       React.useImperativeHandle(ref, () => ({
@@ -234,6 +248,7 @@ const fireOverflow = (overflowed: string[], notOverflowed: string[]) => {
 };
 
 beforeEach(() => {
+  mockUseRealDropdownContainer = false;
   dropdownContainerProps.length = 0;
   callbackRef.current = null;
   mockOverflowingIndex = -1;
@@ -564,4 +579,175 @@ test('focusing a filter that has not overflowed does not open the dropdown', asy
   });
 
   expect(mockDropdownOpen).not.toHaveBeenCalled();
+});
+
+test('initializes horizontal bar with items when native filters are configured', async () => {
+  const filters = [
+    createSelectNativeFilter('NATIVE_FILTER-1', 'country'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'city'),
+  ];
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().items).toHaveLength(2);
+});
+
+test('renders native filters with requiredFirst and default values in the horizontal row', async () => {
+  const filters = [
+    {
+      ...createSelectNativeFilter('NATIVE_FILTER-1', 'account'),
+      requiredFirst: true,
+    },
+    createSelectNativeFilter('NATIVE_FILTER-2', 'region'),
+  ];
+  const dataMask = buildDataMaskSelected(filters, ['NATIVE_FILTER-1']);
+  renderHorizontal(filters, dataMask);
+
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().items).toHaveLength(2);
+  expect(latestProps().items.map(i => i.id)).toEqual([
+    'NATIVE_FILTER-1',
+    'NATIVE_FILTER-2',
+  ]);
+});
+
+test('maintains filter item order in horizontal bar', async () => {
+  const filters = [
+    createSelectNativeFilter('NATIVE_FILTER-1', 'alpha'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'beta'),
+    createSelectNativeFilter('NATIVE_FILTER-3', 'gamma'),
+  ];
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().items.map(i => i.id)).toEqual([
+    'NATIVE_FILTER-1',
+    'NATIVE_FILTER-2',
+    'NATIVE_FILTER-3',
+  ]);
+});
+
+test('provides correct filter count when filters include requiredFirst', async () => {
+  const filters = [
+    {
+      ...createSelectNativeFilter('NATIVE_FILTER-1', 'account'),
+      requiredFirst: true,
+    },
+    createSelectNativeFilter('NATIVE_FILTER-2', 'country'),
+    createSelectNativeFilter('NATIVE_FILTER-3', 'status'),
+  ];
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().items).toHaveLength(3);
+});
+
+// Regression test group for issue #45050:
+// Prevents DropdownContainer closed popover from stealing OutPortal nodes
+// into hidden DOM when requiredFirst native filters and table cross-filters coexist.
+test('does not pass forceRender to DropdownContainer even when a filter has requiredFirst (regression test for #45050)', async () => {
+  const filters = [
+    {
+      ...createSelectNativeFilter('NATIVE_FILTER-1', 'account'),
+      requiredFirst: true,
+    },
+    createSelectNativeFilter('NATIVE_FILTER-2', 'flow'),
+  ];
+
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().forceRender).toBeFalsy();
+});
+
+test('preserves item element stability across overflow state transitions', async () => {
+  const filters = [
+    createSelectNativeFilter('NATIVE_FILTER-1', 'country'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'city'),
+  ];
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+
+  await waitFor(() => expect(callbackRef.current).toBeTruthy());
+
+  fireOverflow(['NATIVE_FILTER-2'], ['NATIVE_FILTER-1']);
+
+  await waitFor(() => expect(latestProps().dropdownContent).toBeDefined());
+  expect(latestProps().items).toHaveLength(2);
+});
+
+test('integrates requiredFirst filter with default value without triggering forced popover render (#45050)', async () => {
+  const accountFilter = {
+    ...createSelectNativeFilter('NATIVE_FILTER-ACCOUNT', 'Account'),
+    requiredFirst: true,
+  };
+  const dateFilter = createSelectNativeFilter(
+    'NATIVE_FILTER-DATE',
+    'Date range',
+  );
+  const filters = [accountFilter, dateFilter];
+  const dataMask = buildDataMaskSelected(filters, ['NATIVE_FILTER-DATE']);
+
+  renderHorizontal(filters, dataMask);
+
+  await waitFor(() => expect(latestProps()).toBeTruthy());
+  expect(latestProps().forceRender).toBeFalsy();
+  expect(latestProps().items).toHaveLength(2);
+  expect(latestProps().items[0].id).toBe('NATIVE_FILTER-ACCOUNT');
+  expect(latestProps().items[1].id).toBe('NATIVE_FILTER-DATE');
+});
+
+test('keeps native controls reachable in row or More popover with real DropdownContainer when cross-filter chip is added and popover is closed (#45050)', async () => {
+  mockUseRealDropdownContainer = true;
+
+  const accountFilter = {
+    ...createSelectNativeFilter('NATIVE_FILTER-ACCOUNT', 'Account'),
+    requiredFirst: true,
+  };
+  const dateFilter = createSelectNativeFilter(
+    'NATIVE_FILTER-DATE',
+    'Date range',
+  );
+  const flowFilter = createSelectNativeFilter('NATIVE_FILTER-FLOW', 'Flow');
+  const filters = [accountFilter, dateFilter, flowFilter];
+
+  const stateWithCrossFilterAndNativeFilters = {
+    ...buildStateWithOneCrossFilter(),
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Horizontal,
+      metadata: {
+        native_filter_configuration: filters,
+      },
+    },
+    nativeFilters: {
+      filters: filters.reduce(
+        (acc, f) => ({ ...acc, [f.id]: f }),
+        {} as Record<string, ReturnType<typeof createSelectNativeFilter>>,
+      ),
+      filtersState: {},
+    },
+  };
+
+  render(
+    <FilterControls
+      dataMaskSelected={buildDataMaskSelected(filters)}
+      onFilterSelectionChange={jest.fn()}
+      onPendingCustomizationDataMaskChange={jest.fn()}
+      chartCustomizationValues={[]}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: stateWithCrossFilterAndNativeFilters,
+    },
+  );
+
+  // The cross-filter chip is rendered
+  expect(await screen.findByText(CROSS_FILTER_CHART_NAME)).toBeInTheDocument();
+
+  // The native filters remain reachable (Account, Date range, Flow) in the DOM
+  // (either in the horizontal row or inside More filters)
+  expect(screen.getByText('Account')).toBeInTheDocument();
+  expect(screen.getByText('Date range')).toBeInTheDocument();
+  expect(screen.getByText('Flow')).toBeInTheDocument();
 });
