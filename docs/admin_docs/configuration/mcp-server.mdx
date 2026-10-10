@@ -1019,6 +1019,37 @@ until such clients have migrated, and in multi-pod deployments switch every pod
 together (or keep each client session on pods in one mode) so that a session
 started in compatibility mode is not routed to a pod in native mode.
 
+#### Compact native listing
+
+Native mode can optionally bound each listed tool description, which shrinks
+the `tools/list` response without changing what clients can call:
+
+```python
+MCP_NATIVE_TOOL_LIST_CONFIG = {
+    "compact": True,  # default: False
+    "max_description_length": 300,  # prose budget per tool
+}
+```
+
+Descriptions keep whole paragraphs first, then whole sentences. Once a whole
+paragraph fits the budget, a following heading, `IMPORTANT` block, or list is
+not partly advertised. An overlong first paragraph can be cut at a sentence
+boundary, even if it is structured. Calling instructions authored on a tool's
+`request` parameter stay untruncated in the input schema and are not deducted
+from the native prose budget. Names, input and output schemas (including nullable
+unions, constraints, and definitions), and annotations are unchanged, and calls
+are validated against the same server-side models, so only the listed prose
+differs. Chart tools point to `get_chart_type_schema`, which returns each chart
+type's fields, required fields, and examples. The setting has no effect in
+compatibility mode, whose search results are bounded by
+`MCP_TOOL_SEARCH_CONFIG["max_description_length"]`.
+
+Both default and factory startup read `MCP_TOOL_SEARCH_CONFIG` and
+`MCP_NATIVE_TOOL_LIST_CONFIG` from the Flask application configuration, falling
+back to the module defaults when a setting is absent.
+
+The recorded inventory includes catalog totals for both listings.
+
 Compatibility mode remains supported. Any change to its default will be listed
 in `UPDATING.md`, and setting `enabled` explicitly keeps the chosen mode
 regardless of the default.
@@ -1052,7 +1083,7 @@ MCP_TOOL_SEARCH_CONFIG = {
 | `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search                                                                                                                                                                                                                                                     |
 | `include_schemas`        | `True`    | Include the full `inputSchema` in search results by default. When `False` ("summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Full schemas are always used when a tool is actually invoked via `call_tool`. |
 | `compact_schemas`        | `True`    | Legacy setting selecting the default description limit (300 when `True`, 0 when `False`) if `max_description_length` is omitted. Input schemas preserve `$defs`, `$ref`, nullable unions, and constraints in either mode; titles are omitted. Clients should resolve references within each tool's `inputSchema`.                                                                                                                                      |
-| `max_description_length` | `300`     | Budget for discovery prose and request-wrapper instructions (0 = no prose truncation). Complete paragraphs are retained, followed by complete sentences of the next paragraph unless it is a list, heading, or IMPORTANT block. Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
+| `max_description_length` | `300`     | Budget for discovery prose alone (0 = no prose truncation). Complete paragraphs are retained, followed by complete sentences of the next paragraph unless it is a list, heading, or IMPORTANT block. Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
 
 The no-query catalog uses the same bounded serializer as targeted search.
 Chart creation/update and virtual-dataset tools keep request wrapping, save/preview
@@ -1064,10 +1095,9 @@ Calling constraints are authored as a `Field(description=...)` on the tool's
 `request` parameter and served as the `request` property's schema description, so
 schema-first clients can identify the wrapper without remembering previous calls.
 Summary mode preserves these instructions in `parameters_hint`. Instructions are
-never truncated: their length is deducted from the prose budget first. A request
-model's own docstring is not a calling instruction and is never deducted. If a
-configured limit is smaller than the instructions, prose is omitted rather than
-cutting the instructions. Built-in calling instructions are capped at 300
+never truncated and do not consume the prose budget in either mode, matching
+native compact listings. A request model's own docstring is not a calling
+instruction. Built-in calling instructions are capped at 300
 characters by regression tests, and the complete tool entries retain per-tool
 size budgets. Field-level descriptions in the default full input schema also
 preserve tool-specific search semantics, sortable columns, chart pagination, and
