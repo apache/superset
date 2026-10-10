@@ -701,6 +701,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables experimental tabs UI for Alerts and Reports
     # @lifecycle: development
     "ALERT_REPORT_TABS": False,
+    # Canvas: the AI-first successor to dashboards, whose widgets are placed on
+    # a canvas. When off, its API is not registered; existing canvases are kept.
+    # @lifecycle: development
+    "CANVAS": False,
     # Enables experimental chart plugins
     # @lifecycle: development
     "CHART_PLUGINS_EXPERIMENTAL": False,
@@ -1288,6 +1292,20 @@ ENABLE_UI_THEME_ADMINISTRATION = True  # Allows admins to set system themes via 
 
 # Default theme mode for sessions without a saved user preference.
 THEME_DEFAULT_MODE: Literal["default", "dark", "system"] = "system"
+
+# Canvas widget previews (the ``preview_widget`` MCP tool) run the widget's
+# query on their own. With a renderer service set here, they also return the
+# resolved chart option, render warnings and an image: Superset POSTs the
+# widget's props, its rows, the theme and the canvas colors to
+# ``<url>/render/echarts`` and expects ``{"png": <base64>, "option": {...},
+# "warnings": [...]}`` back.
+CANVAS_WIDGET_RENDERER_URL: str | None = None
+
+# Canvas drafts expire after this long without a write.
+CANVAS_DRAFT_TTL_SECONDS: int = 7 * 24 * 60 * 60
+# How often, in seconds, an open draft page checks for changes made elsewhere,
+# such as by an agent working in the same draft. 0 turns checking off.
+CANVAS_DRAFT_POLL_INTERVAL: int = 5
 
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
@@ -3425,6 +3443,7 @@ SUBJECTS_RELATED_TYPES_RLS: list[SubjectType] | None = [
 ]
 SUBJECTS_RELATED_TYPES_ALERT_REPORTS: list[SubjectType] | None = None
 SUBJECTS_RELATED_TYPES_THEMES: list[SubjectType] | None = None
+SUBJECTS_RELATED_TYPES_CANVASES: list[SubjectType] | None = None
 
 
 # Extra dynamic query filters make it possible to limit which objects are shown

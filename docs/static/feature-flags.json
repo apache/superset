@@ -22,6 +22,12 @@
         "description": "Enables experimental tabs UI for Alerts and Reports"
       },
       {
+        "name": "CANVAS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Canvas: the AI-first successor to dashboards, whose widgets are placed on a canvas. When off, its API is not registered; existing canvases are kept."
+      },
+      {
         "name": "CHART_PLUGINS_EXPERIMENTAL",
         "default": false,
         "lifecycle": "development",

@@ -639,7 +639,13 @@ def _spec(
 # a second one.
 COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
     "add_chart_to_existing_dashboard": _spec("dashboard", "dashboard"),
+    "apply_canvas_ops": _spec("canvas", "ops"),
     "apply_dashboard_filters": _spec("dashboard"),
+    "apply_canvas_draft_ops": _spec("canvas draft", "ops"),
+    "commit_canvas_draft": _spec("canvas draft"),
+    "create_canvas": _spec("canvas", "ops"),
+    "create_canvas_draft": _spec("canvas draft"),
+    "delete_canvas_draft": _spec("canvas draft"),
     "create_dataset": _spec("dataset"),
     "create_dataset_metric": _spec("dataset", "metric"),
     "create_theme": _spec("theme", reports_success=True),
@@ -661,6 +667,7 @@ COMMITTED_WRITE_SPECS: Dict[str, CommittedWriteSpec] = {
     "restore_dashboard": _spec("dashboard", reports_success=True),
     "restore_dataset": _spec("dataset", reports_success=True),
     "save_sql_query": _spec("saved query"),
+    "update_canvas": _spec("canvas"),
     "update_chart": _spec("chart", "chart", reports_success=True),
     "update_dashboard": _spec("dashboard", "dashboard"),
     "update_dataset": _spec("dataset", "updated_properties"),
