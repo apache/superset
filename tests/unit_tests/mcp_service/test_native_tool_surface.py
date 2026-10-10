@@ -295,7 +295,6 @@ async def test_largest_native_entry_fits_one_gateway_page(mode: str) -> None:
     assert sizes[largest] <= GATEWAY_PAGE_BYTE_LIMIT, (largest, sizes[largest])
 
 
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mode", OUTPUT_MODES)
 async def test_compatibility_listing_fits_one_gateway_page(mode: str) -> None:
