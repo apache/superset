@@ -205,7 +205,7 @@ fastmcp = [
     # than that until Dependabot proposed mcp 2.1.1 and the resolver caught
     # the conflict (#43876). Capped to match what fastmcp 3.x actually
     # supports until this extra moves to fastmcp 4.x, which accepts mcp 2.x.
-    "mcp>=1.29.1,<2.0",
+    "mcp>=2.3.0,<3.0",
 ]
 # sqlalchemy-firebird >=2.0.0 unconditionally requires SQLAlchemy 2.0 on
 # Python >=3.8 (which covers Superset's >=3.11 floor), with no dual-compat
