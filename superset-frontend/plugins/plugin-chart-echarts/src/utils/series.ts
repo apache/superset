@@ -33,7 +33,6 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
@@ -921,10 +920,7 @@ export function getLegendProps(
         }
       : {}),
     selected: legendState ?? {},
-    selector: [
-      { type: 'all', title: t('All') },
-      { type: 'inverse', title: t('Inv') },
-    ],
+    selector: ['all', 'inverse'],
     selectorLabel: {
       show: showSelectorLegend,
       fontFamily: theme.fontFamily,

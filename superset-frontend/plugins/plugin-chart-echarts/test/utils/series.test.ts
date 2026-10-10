@@ -131,10 +131,7 @@ const {
 } = require('../../src/utils/legendLayout');
 
 const expectedThemeProps = {
-  selector: [
-    { type: 'all', title: 'All' },
-    { type: 'inverse', title: 'Inv' },
-  ],
+  selector: ['all', 'inverse'],
   selected: {},
   selectorLabel: {
     show: true,
@@ -1180,6 +1177,7 @@ describe('getLegendProps', () => {
       true,
       theme,
       true,
+      true,
     );
     const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
     const SAFETY_MARGIN = 15;
@@ -1286,10 +1284,7 @@ describe('getLegendProps', () => {
       theme,
       false,
     );
-    expect(legend.selector).toEqual([
-      { type: 'all', title: 'All' },
-      { type: 'inverse', title: 'Inv' },
-    ]);
+    expect(legend.selector).toEqual(['all', 'inverse']);
     expect(legend.selectorLabel).toEqual(
       expect.objectContaining({ show: false }),
     );

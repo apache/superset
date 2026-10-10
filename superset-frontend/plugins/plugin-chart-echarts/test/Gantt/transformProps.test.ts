@@ -141,10 +141,7 @@ describe('Gantt transformProps', () => {
           legend: expect.objectContaining({
             show: true,
             type: 'scroll',
-            selector: [
-              { type: 'all', title: 'All' },
-              { type: 'inverse', title: 'Inv' },
-            ],
+            selector: ['all', 'inverse'],
           }),
           tooltip: {
             formatter: expect.anything(),
