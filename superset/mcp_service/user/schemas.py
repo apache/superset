@@ -36,6 +36,7 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedListRequest,
     PaginatedResponse,
 )
+from superset.mcp_service.utils.permissions_utils import get_user_role_names
 
 logger = __import__("logging").getLogger(__name__)
 
@@ -94,9 +95,10 @@ class UserInfo(BaseModel):
     )
     roles: list[str] | None = Field(
         None,
-        description="Assigned role names (only returned with data model metadata "
-        "access via get_user_info; not available in list_users because roles "
-        "is a relationship, not a selectable column)",
+        description="Role names the user holds, assigned directly or through a "
+        "group (only returned with data model metadata access via get_user_info; "
+        "not available in list_users because roles is a relationship, not a "
+        "selectable column)",
     )
 
     @field_validator("roles", mode="before")
@@ -195,18 +197,7 @@ def serialize_user_object(
 
     roles: list[str] | None = None
     if include_sensitive and include_roles:
-        user_roles = getattr(user, "roles", None)
-        if user_roles is not None:
-            roles = []
-            for r in user_roles:
-                try:
-                    if hasattr(r, "name") and isinstance(r.name, str):
-                        roles.append(r.name)
-                except (AttributeError, DetachedInstanceError):
-                    logger.debug(
-                        "Skipping role that raised exception in serialize_user_object"
-                    )
-                    continue
+        roles = get_user_role_names(user)
 
     return UserInfo(
         id=getattr(user, "id", None),
