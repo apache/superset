@@ -15,14 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 import io
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session
 from werkzeug.datastructures import FileStorage
 
 from superset.commands.database.exceptions import DatabaseUploadFileTooLarge
 from superset.commands.database.uploaders.base import UploadCommand
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.extensions import db
+from superset.models.core import Database
+from superset.utils.core import override_user
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def _file(contents: bytes) -> FileStorage:
@@ -429,3 +437,137 @@ def test_run_updates_catalog_on_existing_dataset_with_none_catalog(
 
     assert existing_table.catalog == "default_catalog"
     existing_table.fetch_metadata.assert_called_once()
+
+
+def _mapped_upload_dataset(table_name: str) -> SqlaTable:
+    """
+    A persisted dataset over ``table_name`` mapping ``event_time`` onto
+    ``dt_epoch``, as a re-upload into the same table would find.
+
+    Written under `override_user` because `AuditMixinNullable` reads `g.user`
+    on insert and these tests have no request context.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pfm_upload_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    dataset = SqlaTable(
+        table_name=table_name,
+        database=database,
+        database_id=database.id,
+        # The default schema the command resolves for SQLite, so the re-upload
+        # lookup finds this dataset rather than creating a second one.
+        schema="main",
+        catalog=None,
+        main_dttm_col="event_time",
+        columns=[
+            TableColumn(column_name="event_time", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="dt_epoch", type="BIGINT"),
+        ],
+    )
+    dataset.partition_column = "dt_epoch"
+    dataset.partition_mapped_column = "event_time"
+    dataset.columns[0].partition_value_transform = "unix_timestamp(:value)"
+    dataset.columns[0].partition_transform_is_monotonic = True
+    with override_user(_upload_admin()):
+        db.session.add(dataset)
+        db.session.flush()
+    return dataset
+
+
+def _upload_admin() -> User:
+    return User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+
+def _run_upload_into(
+    dataset: SqlaTable, mocker: MockerFixture, fetch_metadata: Any
+) -> None:
+    """Drive `UploadCommand.run` against an existing dataset, with the
+    warehouse write and the metadata read both stubbed."""
+    mocker.patch(
+        "superset.commands.database.uploaders.base.DatabaseDAO.find_by_id",
+        return_value=dataset.database,
+    )
+    mocker.patch(
+        "superset.commands.database.uploaders.base.schema_allows_file_upload",
+        return_value=True,
+    )
+    mocker.patch.object(SqlaTable, "fetch_metadata", fetch_metadata)
+    command = UploadCommand(
+        model_id=dataset.database_id,
+        table_name=dataset.table_name,
+        file=_file(b"col\n1\n"),
+        schema=None,
+        reader=MagicMock(),
+    )
+    with override_user(_upload_admin()):
+        command.run()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_reupload_clears_a_mapping_whose_partition_column_went_away(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A re-upload replaces an existing dataset's columns through
+    `fetch_metadata`, which writes them itself rather than going through
+    `DatasetDAO.update` -- so neither of the mapping's repairs ran, and a file
+    that no longer carries the partition column left `partition_column` naming
+    a column that is gone. Every later edit of that dataset then failed the
+    mapping validation.
+    """
+    dataset = _mapped_upload_dataset("pfm_upload")
+
+    _run_upload_into(
+        dataset,
+        mocker,
+        lambda self, commit=True: setattr(
+            self,
+            "columns",
+            [c for c in self.columns if c.column_name != "dt_epoch"],
+        ),
+    )
+
+    assert dataset.partition_column is None
+    assert dataset.partition_mapped_column is None
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_reupload_disarms_a_transform_the_new_default_datetime_column_holds(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The other half of the pair, for the same reason `RefreshDatasetCommand`
+    runs the cleanup on both sides of the metadata write: `fetch_metadata` can
+    *move* the effective mapped column by setting `main_dttm_col`, which brings
+    a transform parked on the newly-default column live under a mapping nobody
+    authored. Run only afterwards, the cleanup resolves the new mapping, finds
+    that column effective, skips it, and erases the owner's real transform
+    instead.
+    """
+    dataset = _mapped_upload_dataset("pfm_upload_move")
+    dataset.partition_mapped_column = None
+    parked = TableColumn(column_name="other_time", is_dttm=True, type="TIMESTAMP")
+    parked.partition_value_transform = "to_unixtime(:value)"
+    parked.partition_transform_is_monotonic = True
+    dataset.columns.append(parked)
+    with override_user(_upload_admin()):
+        db.session.flush()
+
+    _run_upload_into(
+        dataset,
+        mocker,
+        lambda self, commit=True: setattr(self, "main_dttm_col", "other_time"),
+    )
+
+    transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
+    assert transforms["event_time"] is None
+    assert transforms["other_time"] is None
