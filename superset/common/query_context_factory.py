@@ -29,7 +29,7 @@ from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
 from superset.extensions import security_manager
 from superset.models.slice import Slice
-from superset.security.manager import SupersetSecurityManager
+from superset.security.manager import STOCK_RAISE_FOR_ACCESS
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 
@@ -38,15 +38,14 @@ if TYPE_CHECKING:
 
 
 def _uses_stock_raise_for_access() -> bool:
-    """Whether the security manager keeps the stock ``raise_for_access``.
+    """Check the resolved method against the original stock function.
 
-    The semantic preflight passes an empty ``queries`` list, which only the
-    stock check is known not to read. ``__class__`` resolves through the
-    security manager proxy to the configured manager's class.
+    The semantic preflight passes empty queries. Instance wrappers and operator
+    reassignment of the base-class method must keep the completed-context path.
     """
     return (
-        security_manager.__class__.raise_for_access
-        is SupersetSecurityManager.raise_for_access
+        getattr(security_manager.raise_for_access, "__func__", None)
+        is STOCK_RAISE_FOR_ACCESS
     )
 
 

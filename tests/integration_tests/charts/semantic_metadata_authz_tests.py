@@ -17,13 +17,14 @@
 """Check whether denied chart-data requests call semantic provider metadata."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
 import sqlalchemy as sa
 from flask import current_app, g, Response
 
+from superset.common.query_context import QueryContext
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
@@ -38,11 +39,6 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
-
-
-def _query_context_checks(spy: Mock) -> int:
-    """Count access decisions made on a query context (preflight or final)."""
-    return sum(1 for call in spy.call_args_list if "query_context" in call.kwargs)
 
 
 class TestSemanticMetadataAuthorization(SupersetTestCase):
@@ -156,9 +152,10 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 ),
                 patch.object(security_manager, "can_access", side_effect=can_access),
                 patch.object(
-                    security_manager,
+                    QueryContext,
                     "raise_for_access",
-                    wraps=security_manager.raise_for_access,
+                    autospec=True,
+                    side_effect=QueryContext.raise_for_access,
                 ) as access_spy,
             ):
                 response: Response = self.client.post(
@@ -172,7 +169,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             assert response.status_code == 200, response.json
             provider.get_dimensions.assert_called()
             # The preflight and the final check each decide on a query context.
-            assert _query_context_checks(access_spy) == 2
+            assert access_spy.call_count == 2
         finally:
             db.session.rollback()
             db.session.delete(view)
@@ -247,7 +244,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             """Authorizes per requested query, like a column or metric check."""
 
             def raise_for_access(self, **kwargs: Any) -> None:
-                query_context: Any = kwargs.get("query_context")
+                query_context: QueryContext | None = kwargs.get("query_context")
                 if query_context is not None and not query_context.queries:
                     raise SupersetSecurityException(
                         SupersetError(
@@ -419,9 +416,10 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 ),
                 patch.object(security_manager, "is_viewer", return_value=True),
                 patch.object(
-                    security_manager,
+                    QueryContext,
                     "raise_for_access",
-                    wraps=security_manager.raise_for_access,
+                    autospec=True,
+                    side_effect=QueryContext.raise_for_access,
                 ) as access_spy,
             ):
                 response: Response = self.client.post(
@@ -439,7 +437,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 )
             assert response.status_code == 200, response.json
             provider.get_dimensions.assert_called()
-            assert _query_context_checks(access_spy) == 2
+            assert access_spy.call_count == 2
         finally:
             db.session.rollback()
             db.session.execute(
@@ -525,6 +523,87 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
+    def test_instance_wrapped_access_check_still_sees_queries(self) -> None:
+        """An instance wrapper receives only the completed query context."""
+        self._assert_wrapped_access_check_still_sees_queries("instance")
+
+    def test_class_wrapped_access_check_still_sees_queries(self) -> None:
+        """A reassigned base-class method receives only the completed context."""
+        self._assert_wrapped_access_check_still_sees_queries("class")
+
+    def _assert_wrapped_access_check_still_sees_queries(
+        self, override_target: Literal["instance", "class"]
+    ) -> None:
+        """Instance and base-class wrappers receive only the completed context."""
+        self.login("gamma")
+        layer: SemanticLayer = SemanticLayer(name="wrapped-metadata-layer", type="test")
+        view: SemanticView = SemanticView(
+            name="wrapped-metadata-view", semantic_layer=layer
+        )
+        db.session.add(view)
+        db.session.commit()
+        provider: Mock = Mock()
+        provider.get_dimensions.return_value = set()
+        provider.get_metrics.return_value = set()
+        manager: SupersetSecurityManager = security_manager._get_current_object()  # noqa: SLF001
+        original_check: Callable[..., None] = manager.raise_for_access
+        original_can_access: Callable[[str, str], bool] = manager.can_access
+        query_counts: list[int] = []
+
+        def wrapped_access(**kwargs: Any) -> None:
+            """Model a configured wrapper that inspects the first requested query."""
+            context: QueryContext | None = kwargs.get("query_context")
+            if context is not None:
+                query_counts.append(len(context.queries))
+                assert context.queries[0] is not None
+            original_check(**kwargs)
+
+        def class_wrapped_access(
+            manager_self: SupersetSecurityManager, **kwargs: Any
+        ) -> None:
+            """Bind the configured base-class wrapper like an ordinary method."""
+            assert manager_self is manager
+            wrapped_access(**kwargs)
+
+        def can_access(permission_name: str, view_name: str) -> bool:
+            """Grant Gamma this semantic datasource for the request."""
+            if permission_name == "datasource_access" and view_name == view.perm:
+                return True
+            return original_can_access(permission_name, view_name)
+
+        target: SupersetSecurityManager | type[SupersetSecurityManager] = (
+            manager if override_target == "instance" else SupersetSecurityManager
+        )
+        replacement: Callable[..., None] = (
+            wrapped_access if override_target == "instance" else class_wrapped_access
+        )
+        try:
+            with (
+                patch.object(target, "raise_for_access", replacement),
+                patch.object(manager, "can_access", side_effect=can_access),
+                patch.object(
+                    SemanticView,
+                    "implementation",
+                    new_callable=PropertyMock,
+                    return_value=provider,
+                ),
+            ):
+                response: Response = self.client.post(
+                    "/api/v1/chart/data",
+                    json={
+                        "datasource": {"id": view.id, "type": "semantic_view"},
+                        "queries": [{"columns": [], "metrics": []}],
+                        "result_type": "query",
+                    },
+                )
+            assert response.status_code == 200, response.json
+            assert query_counts == [1]
+        finally:
+            db.session.rollback()
+            db.session.delete(view)
+            db.session.delete(layer)
+            db.session.commit()
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_dataset_chart_data_is_unchanged(self) -> None:
         """The semantic preflight does not affect SQL chart-data requests."""
@@ -535,9 +614,10 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
         assert dataset is not None
         access_spy: Mock
         with patch.object(
-            security_manager,
+            QueryContext,
             "raise_for_access",
-            wraps=security_manager.raise_for_access,
+            autospec=True,
+            side_effect=QueryContext.raise_for_access,
         ) as access_spy:
             response: Response = self.client.post(
                 "/api/v1/chart/data",
@@ -549,4 +629,4 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             )
         assert response.status_code == 200, response.json
         # Admin passes either way, so pin that a SQL dataset gets no preflight.
-        assert _query_context_checks(access_spy) == 1
+        assert access_spy.call_count == 1

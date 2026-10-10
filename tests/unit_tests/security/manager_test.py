@@ -5792,6 +5792,7 @@ def test_raise_for_access_dashboard_paths_never_read_queries_for_non_guest(
         side_effect=AssertionError("raise_for_access read query_context.queries")
     )
 
+    excinfo: pytest.ExceptionInfo[SupersetSecurityException]
     with pytest.raises(SupersetSecurityException) as excinfo:
         sm.raise_for_access(query_context=query_context)
 
@@ -5891,6 +5892,7 @@ def test_raise_for_access_dashboard_final_check_never_reads_queries_for_non_gues
     if dashboard_granted:
         sm.raise_for_access(query_context=query_context)
     else:
+        excinfo: pytest.ExceptionInfo[SupersetSecurityException]
         with pytest.raises(SupersetSecurityException) as excinfo:
             sm.raise_for_access(query_context=query_context)
         assert (
