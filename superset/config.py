@@ -1080,6 +1080,9 @@ SOFT_DELETE_RETENTION_DAYS_FUNC: Callable[[], int] | None = None
 # built-in chart, dashboard and dataset roots are never affected.
 PURGE_POLICIES_FUNC: Callable[[], Any] | None = None
 SOFT_DELETE_PURGE_DRY_RUN: bool = False
+# Maximum committed root purges per scheduled run; 0 or None is unlimited.
+# Set an int in superset_config.py; this key has no automatic environment parsing.
+SOFT_DELETE_PURGE_MAX_PER_RUN: int | None = 1000
 
 # Retention policy for the purge audit log itself (the durable evidence the
 # purge task writes). Pruning is deletion-only and scheduled
@@ -1908,6 +1911,11 @@ def _normalize_version_history_retention_days(value: object, *, legacy: bool) ->
 
 
 VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+# Maximum committed transactions pruned per scheduled run; 0 or None is unlimited.
+# Set an int in superset_config.py; this key has no automatic environment parsing.
+VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN: int | None = 1000
+# Set a bool in superset_config.py; this key has no automatic environment parsing.
+VERSION_HISTORY_PRUNE_DRY_RUN: bool = False
 _version_history_retention_seed: int = VERSION_HISTORY_RETENTION_DAYS
 
 # Sentinel for "key not configured at all", distinct from any configured value

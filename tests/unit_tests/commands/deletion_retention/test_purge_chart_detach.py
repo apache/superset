@@ -280,24 +280,22 @@ def test_failed_purge_rolls_back_chart_detach(
 
 def test_dry_run_purge_changes_no_chart(session: Session, app_context: None) -> None:
     """A dry run counts eligible datasets and never touches their charts."""
-    from superset.tasks.deletion_retention import _purge_model
+    from superset.tasks.deletion_retention import _purge_model, _PurgeModelResult
 
     dataset: SqlaTable
     orphan: Slice
     dataset, orphan, _, _ = _trashed_dataset_with_charts(session)
     before: tuple[Any, ...] = (orphan.datasource_id, orphan.perm, orphan.schema_perm)
 
-    purged: int
-    would_purge: int
-    failures: int
-    blocked: int
-    scan_failures: int
-    purged, would_purge, failures, blocked, scan_failures = _purge_model(
-        SqlaTable, datetime(2021, 1, 1), True
-    )
+    result: _PurgeModelResult = _purge_model(SqlaTable, datetime(2021, 1, 1), True)
     session.expire_all()
 
-    assert (purged, would_purge, failures, blocked, scan_failures) == (0, 1, 0, 0, 0)
+    assert result.purged == 0
+    assert result.would_purge == 1
+    assert result.failures == 0
+    assert result.blocked == 0
+    assert result.scan_failures == 0
+    assert result.commit_uncertain is False
     chart: Slice = session.get(Slice, orphan.id)
     assert (chart.datasource_id, chart.perm, chart.schema_perm) == before
     assert session.get(SqlaTable, dataset.id) is not None
