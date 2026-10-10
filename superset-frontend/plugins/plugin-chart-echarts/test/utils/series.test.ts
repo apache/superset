@@ -1278,16 +1278,21 @@ describe('getLegendProps', () => {
     });
   });
 
-  test('hides All and Inv buttons when showSelectorLegend is false', () => {
-    expect(
-      getLegendProps(
-        LegendType.Plain,
-        LegendOrientation.Top,
-        true,
-        theme,
-        false,
-      ).selector,
-    ).toBe(false);
+  test('hides All and Inv button labels when showSelectorLegend is false', () => {
+    const legend = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Top,
+      true,
+      theme,
+      false,
+    );
+    expect(legend.selector).toEqual([
+      { type: 'all', title: 'All' },
+      { type: 'inverse', title: 'Inv' },
+    ]);
+    expect(legend.selectorLabel).toEqual(
+      expect.objectContaining({ show: false }),
+    );
   });
 });
 

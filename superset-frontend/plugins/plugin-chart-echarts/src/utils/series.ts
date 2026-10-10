@@ -32,15 +32,15 @@ import {
   NumberFormatter,
   TimeFormatter,
   ValueFormatter,
-} from "@superset-ui/core";
-import { t } from "@apache-superset/core/translation";
-import { SupersetTheme } from "@apache-superset/core/theme";
-import { GenericDataType } from "@apache-superset/core/common";
-import { SortSeriesType, LegendPaddingType } from "@superset-ui/chart-controls";
-import { format } from "echarts/core";
-import type { LegendComponentOption } from "echarts/components";
-import type { SeriesOption } from "echarts";
-import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from "lodash-es";
+} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme } from '@apache-superset/core/theme';
+import { GenericDataType } from '@apache-superset/core/common';
+import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
+import { format } from 'echarts/core';
+import type { LegendComponentOption } from 'echarts/components';
+import type { SeriesOption } from 'echarts';
+import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
 import {
   NULL_STRING,
   ONE_DAY_MS,
@@ -48,15 +48,15 @@ import {
   TIMEGRAIN_TO_TIMESTAMP,
   TIMESERIES_CONSTANTS,
   WEEKLY_TIME_GRAINS,
-} from "../constants";
+} from '../constants';
 import {
   EchartsTimeseriesSeriesType,
   LegendOrientation,
   LegendType,
   StackType,
-} from "../types";
-import { defaultLegendPadding } from "../defaults";
-import { coerceTemporalMs, getXAxisDomain } from "./formatters";
+} from '../types';
+import { defaultLegendPadding } from '../defaults';
+import { coerceTemporalMs, getXAxisDomain } from './formatters';
 
 function isDefined<T>(value: T | undefined | null): boolean {
   return value !== undefined && value !== null;
@@ -87,10 +87,10 @@ const APPROX_CHAR_WIDTH_RATIO = 0.62;
 function getTextMeasureContext(
   theme: SupersetTheme,
 ): CanvasRenderingContext2D | null {
-  if (typeof document === "undefined") {
+  if (typeof document === 'undefined') {
     return null;
   }
-  const context = document.createElement("canvas").getContext("2d");
+  const context = document.createElement('canvas').getContext('2d');
   if (context) {
     context.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
   }
@@ -114,12 +114,12 @@ export type LegendLayoutResult = {
 };
 
 function getLegendLabel(item: LegendDataItem): string {
-  if (typeof item === "string" || typeof item === "number") {
+  if (typeof item === 'string' || typeof item === 'number') {
     return String(item);
   }
 
   if (item?.name === undefined || item.name === null) {
-    return "";
+    return '';
   }
 
   return String(item.name);
@@ -180,7 +180,7 @@ function hasLegendLabel(item: LegendDataItem): boolean {
     return false;
   }
 
-  if (typeof item === "object") {
+  if (typeof item === 'object') {
     return item.name !== null && item.name !== undefined;
   }
 
@@ -193,7 +193,7 @@ function getLegendLabels(items: LegendDataItem[]): string[] {
 
 function getLegendItemWidths(labels: string[], theme: SupersetTheme): number[] {
   return labels.map(
-    (label) =>
+    label =>
       DEFAULT_LEGEND_ICON_WIDTH +
       LEGEND_ICON_LABEL_GAP +
       measureTextWidth(label, theme),
@@ -410,7 +410,7 @@ export function getLegendLayoutResult({
   }
 
   const resolvedLegendMargin =
-    typeof legendMargin === "number"
+    typeof legendMargin === 'number'
       ? legendMargin
       : defaultLegendPadding[orientation];
   const legendLabels = getLegendLabels(legendItems);
@@ -462,7 +462,7 @@ export function extractDataTotalValues(
   } = opts;
   const excludedKeys = new Set([xAxisCol, ...(extraMetricLabels ?? [])]);
   if (stack) {
-    data.forEach((datum) => {
+    data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
         if (excludedKeys.has(curr)) {
           return prev;
@@ -477,7 +477,7 @@ export function extractDataTotalValues(
         // Normalize to Number before summing so BigInt and Number values
         // can be combined without throwing (see #36401).
         const numericValue =
-          typeof value === "bigint" ? Number(value) : (value as number);
+          typeof value === 'bigint' ? Number(value) : (value as number);
         return prev + numericValue;
       }, 0);
       totalStackedValues.push(values);
@@ -490,7 +490,7 @@ export function extractDataTotalValues(
   };
 }
 
-const DEFAULT_STACK_GROUP = "__default__";
+const DEFAULT_STACK_GROUP = '__default__';
 
 /**
  * Computes, per stack group, which series index is the "topmost" (i.e. the
@@ -564,28 +564,28 @@ export function sortAndFilterSeries(
   sortSeriesAscending?: boolean,
 ): string[] {
   const seriesNames = Object.keys(rows[0])
-    .filter((key) => key !== xAxis)
-    .filter((key) => !extraMetricLabels.includes(key));
+    .filter(key => key !== xAxis)
+    .filter(key => !extraMetricLabels.includes(key));
 
   let aggregator: (name: string) => { name: string; value: any };
 
   switch (sortSeriesType) {
     case SortSeriesType.Sum:
-      aggregator = (name) => ({ name, value: sumBy(rows, name) });
+      aggregator = name => ({ name, value: sumBy(rows, name) });
       break;
     case SortSeriesType.Min:
-      aggregator = (name) => ({ name, value: minBy(rows, name)?.[name] });
+      aggregator = name => ({ name, value: minBy(rows, name)?.[name] });
       break;
     case SortSeriesType.Max:
-      aggregator = (name) => ({ name, value: maxBy(rows, name)?.[name] });
+      aggregator = name => ({ name, value: maxBy(rows, name)?.[name] });
       break;
     case SortSeriesType.Avg:
-      aggregator = (name) => ({ name, value: meanBy(rows, name) });
+      aggregator = name => ({ name, value: meanBy(rows, name) });
       break;
     default: {
       const collator = new Intl.Collator(undefined, {
         numeric: true,
-        sensitivity: "base",
+        sensitivity: 'base',
       });
       return seriesNames.sort((a, b) =>
         sortSeriesAscending ? collator.compare(a, b) : collator.compare(b, a),
@@ -597,8 +597,8 @@ export function sortAndFilterSeries(
 
   return orderBy(
     sortedValues,
-    ["value", "name"],
-    [sortSeriesAscending ? "asc" : "desc", "asc"],
+    ['value', 'name'],
+    [sortSeriesAscending ? 'asc' : 'desc', 'asc'],
   ).map(({ name }) => name);
 }
 
@@ -610,7 +610,7 @@ export function sortRows(
   xAxisSortSeriesAscending: boolean,
 ) {
   const sortedRows = rows.map((row, idx) => {
-    let sortKey: DataRecordValue = "";
+    let sortKey: DataRecordValue = '';
     let aggregate: number | undefined;
     let entries = 0;
     Object.entries(row).forEach(([key, value]) => {
@@ -620,7 +620,7 @@ export function sortRows(
       }
       if (
         xAxisSortSeries === SortSeriesType.Name ||
-        typeof value !== "number"
+        typeof value !== 'number'
       ) {
         return;
       }
@@ -664,7 +664,7 @@ export function sortRows(
 
     const value =
       xAxisSortSeries === SortSeriesType.Name
-        ? typeof sortKey === "string"
+        ? typeof sortKey === 'string'
           ? sortKey.toLowerCase()
           : sortKey
         : aggregate;
@@ -679,8 +679,8 @@ export function sortRows(
 
   return orderBy(
     sortedRows,
-    ["value"],
-    [xAxisSortSeriesAscending ? "asc" : "desc"],
+    ['value'],
+    [xAxisSortSeriesAscending ? 'asc' : 'desc'],
   ).map(({ row, totalStackedValue }) => ({ row, totalStackedValue }));
 }
 
@@ -716,7 +716,7 @@ export function extractSeries(
     xAxisType,
   } = opts;
   if (data.length === 0) return [[], [], undefined];
-  const rows: DataRecord[] = data.map((datum) => {
+  const rows: DataRecord[] = data.map(datum => {
     // Query results with integers beyond Number.MAX_SAFE_INTEGER are
     // parsed as native BigInt (see
     // packages/superset-ui-core/src/connection/callApi/parseResponse.ts).
@@ -725,9 +725,9 @@ export function extractSeries(
     // calculations (getBaselineSeriesForStream) run, so BigInt and Number
     // values can be combined without throwing (see #36401).
     const normalized: DataRecord = {};
-    Object.keys(datum).forEach((key) => {
+    Object.keys(datum).forEach(key => {
       const value = datum[key];
-      normalized[key] = typeof value === "bigint" ? Number(value) : value;
+      normalized[key] = typeof value === 'bigint' ? Number(value) : value;
     });
     normalized[xAxis] =
       datum[xAxis] === null && xAxisType === AxisType.Category
@@ -757,14 +757,14 @@ export function extractSeries(
         }));
 
   let minPositiveValue: number | undefined;
-  const finalSeries = sortedSeries.map((name) => ({
+  const finalSeries = sortedSeries.map(name => ({
     id: name,
     name,
     data: sortedRows
       .map(({ row, totalStackedValue }, idx) => {
         const currentValue = row[name];
         if (
-          typeof currentValue === "number" &&
+          typeof currentValue === 'number' &&
           currentValue > 0 &&
           (minPositiveValue === undefined || minPositiveValue > currentValue)
         ) {
@@ -790,15 +790,15 @@ export function extractSeries(
           // normalizes it), so dividing a raw BigInt datum value by it
           // throws; normalize to Number first (see #36401).
           const numericValue =
-            typeof value === "bigint"
+            typeof value === 'bigint'
               ? Number(value)
               : ((value || 0) as number);
           value = numericValue / totalStackedValue;
         }
         return [row[xAxis], value];
       })
-      .filter((obs) => !removeNulls || (obs[0] !== null && obs[1] !== null))
-      .map((obs) => (isHorizontal ? [obs[1], obs[0]] : obs)),
+      .filter(obs => !removeNulls || (obs[0] !== null && obs[1] !== null))
+      .map(obs => (isHorizontal ? [obs[1], obs[0]] : obs)),
   }));
   return [
     finalSeries,
@@ -822,12 +822,12 @@ export function formatSeriesName(
   if (name === undefined || name === null) {
     return NULL_STRING;
   }
-  if (typeof name === "boolean" || typeof name === "bigint") {
+  if (typeof name === 'boolean' || typeof name === 'bigint') {
     return name.toString();
   }
   if (name instanceof Date || coltype === GenericDataType.Temporal) {
     const normalizedName =
-      typeof name === "string" ? normalizeTimestamp(name) : name;
+      typeof name === 'string' ? normalizeTimestamp(name) : name;
     const d =
       normalizedName instanceof Date
         ? normalizedName
@@ -835,7 +835,7 @@ export function formatSeriesName(
 
     return timeFormatter ? timeFormatter(d) : d.toISOString();
   }
-  if (typeof name === "number") {
+  if (typeof name === 'number') {
     return numberFormatter ? numberFormatter(name) : name.toString();
   }
   return name;
@@ -844,7 +844,7 @@ export function formatSeriesName(
 export const getColtypesMapping = ({
   coltypes = [],
   colnames = [],
-}: Pick<ChartDataResponseResult, "coltypes" | "colnames">): Record<
+}: Pick<ChartDataResponseResult, 'coltypes' | 'colnames'>): Record<
   string,
   GenericDataType
 > =>
@@ -867,14 +867,14 @@ export function extractGroupbyLabel({
   coltypeMapping?: Record<string, GenericDataType>;
 }): string {
   return ensureIsArray(groupby)
-    .map((val) =>
+    .map(val =>
       formatSeriesName(datum[val], {
         numberFormatter,
         timeFormatter,
         ...(coltypeMapping[val] && { coltype: coltypeMapping[val] }),
       }),
     )
-    .join(", ");
+    .join(', ');
 }
 
 /**
@@ -907,8 +907,8 @@ export function getLegendProps(
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,
     )
-      ? "horizontal"
-      : "vertical",
+      ? 'horizontal'
+      : 'vertical',
     show,
     type,
     ...(type === LegendType.Scroll
@@ -921,11 +921,9 @@ export function getLegendProps(
         }
       : {}),
     selected: legendState ?? {},
-    // `selectorLabel.show` only hides the button text. `selector: false` removes
-    // the All/Inv buttons themselves.
     selector: [
-      { type: "all", title: t("All") },
-      { type: "inverse", title: t("Inv") },
+      { type: 'all', title: t('All') },
+      { type: 'inverse', title: t('Inv') },
     ],
     selectorLabel: {
       show: showSelectorLegend,
@@ -945,7 +943,7 @@ export function getLegendProps(
       legend.left = 0;
       if (padding?.left) {
         legend.textStyle = {
-          overflow: "truncate",
+          overflow: 'truncate',
           width: getLegendWidth(padding.left),
         };
       }
@@ -955,7 +953,7 @@ export function getLegendProps(
       legend.top = zoomable ? TIMESERIES_CONSTANTS.legendRightTopOffset : 0;
       if (padding?.right) {
         legend.textStyle = {
-          overflow: "truncate",
+          overflow: 'truncate',
           width: getLegendWidth(padding.right),
         };
       }
@@ -1002,7 +1000,7 @@ export function getChartPadding(
   } else if (
     margin === null ||
     margin === undefined ||
-    typeof margin === "string"
+    typeof margin === 'string'
   ) {
     legendMargin = defaultLegendPadding[orientation];
   } else {
@@ -1034,12 +1032,12 @@ export function getChartPadding(
 
 export function dedupSeries(series: SeriesOption[]): SeriesOption[] {
   const counter = new Map<string, number>();
-  return series.map((row) => {
+  return series.map(row => {
     let { id } = row;
     if (id === undefined) return row;
     id = String(id);
     const count = counter.get(id) || 0;
-    const suffix = count > 0 ? ` (${count})` : "";
+    const suffix = count > 0 ? ` (${count})` : '';
     counter.set(id, count + 1);
     return {
       ...row,
@@ -1127,7 +1125,7 @@ export function getTemporalTickValues(
     return undefined;
   }
   const values = new Set<number>();
-  data.forEach((row) => {
+  data.forEach(row => {
     const timestamp = coerceTemporalMs(row[xAxisLabel]);
     if (Number.isFinite(timestamp)) {
       values.add(timestamp);
@@ -1150,7 +1148,7 @@ export function resolveTemporalTickValues(
   annotationLayers: AnnotationLayer[],
 ): number[] | undefined {
   const hasTimeseriesAnnotation = annotationLayers.some(
-    (layer) => layer.show && isTimeseriesAnnotationLayer(layer),
+    layer => layer.show && isTimeseriesAnnotationLayer(layer),
   );
   return hasTimeseriesAnnotation
     ? undefined
@@ -1257,8 +1255,8 @@ export function getTemporalAxisTickConfig(
       // chart puts this axis on the side, where they misplace the labels.
       ...(showMaxLabel &&
         !isHorizontal && {
-          alignMaxLabel: "right",
-          alignMinLabel: "left",
+          alignMaxLabel: 'right',
+          alignMinLabel: 'left',
         }),
       ...(labelCustomValues && { customValues: labelCustomValues }),
     },
@@ -1277,10 +1275,10 @@ export function getOverMaxHiddenFormatter(
   const shouldHideIfOverMax = !!max || max === 0;
 
   return new NumberFormatter({
-    formatFunc: (value) =>
+    formatFunc: value =>
       `${
         shouldHideIfOverMax && value > max
-          ? ""
+          ? ''
           : formatter?.format(value) || value
       }`,
     id: NumberFormats.OVER_MAX_HIDDEN,
@@ -1293,8 +1291,8 @@ export function calculateLowerLogTick(minPositiveValue: number) {
 }
 
 type BoundsType = {
-  min?: number | "dataMin";
-  max?: number | "dataMax";
+  min?: number | 'dataMin';
+  max?: number | 'dataMax';
   scale?: true;
 };
 
@@ -1313,12 +1311,12 @@ export function getMinAndMaxFromBounds(
     if (min !== undefined) {
       ret.min = min;
     } else if (seriesType !== EchartsTimeseriesSeriesType.Bar) {
-      ret.min = "dataMin";
+      ret.min = 'dataMin';
     }
     if (max !== undefined) {
       ret.max = max;
     } else if (seriesType !== EchartsTimeseriesSeriesType.Bar) {
-      ret.max = "dataMax";
+      ret.max = 'dataMax';
     }
     return ret;
   }
@@ -1400,8 +1398,8 @@ export function getTimeCompareStackId(
   }
   // Each timeCompare is its own stack so it doesn't stack on top of original ones
   return (
-    timeCompare.find((value) => {
-      if (typeof name === "string") {
+    timeCompare.find(value => {
+      if (typeof name === 'string') {
         // offset is represented as <offset>, group by list
         return (
           name.includes(`${value},`) ||
@@ -1414,7 +1412,7 @@ export function getTimeCompareStackId(
   );
 }
 
-const TOOLTIP_SERIES_KEY = "seriesId";
+const TOOLTIP_SERIES_KEY = 'seriesId';
 export function extractTooltipKeys(
   forecastValue: any[],
   yIndex: number,
@@ -1425,10 +1423,10 @@ export function extractTooltipKeys(
     return forecastValue
       .slice()
       .sort((a, b) => b.data[yIndex] - a.data[yIndex])
-      .map((value) => value[TOOLTIP_SERIES_KEY]);
+      .map(value => value[TOOLTIP_SERIES_KEY]);
   }
   if (richTooltip) {
-    return forecastValue.map((s) => s[TOOLTIP_SERIES_KEY]);
+    return forecastValue.map(s => s[TOOLTIP_SERIES_KEY]);
   }
   return [forecastValue[0][TOOLTIP_SERIES_KEY]];
 }
@@ -1436,7 +1434,7 @@ export function extractTooltipKeys(
 export function groupData(data: DataRecord[], by?: string | null) {
   const seriesMap: Map<DataRecordValue | undefined, DataRecord[]> = new Map();
   if (by) {
-    data.forEach((datum) => {
+    data.forEach(datum => {
       const value = seriesMap.get(datum[by]);
       if (value) {
         value.push(datum);

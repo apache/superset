@@ -1491,9 +1491,10 @@ test('hides legend selector buttons when showSelectorLegend is false', () => {
       },
     }),
   );
-  expect((scroll.echartOptions.legend as { selector?: unknown }).selector).toBe(
-    false,
-  );
+  expect(
+    (scroll.echartOptions.legend as { selectorLabel?: { show?: boolean } })
+      .selectorLabel?.show,
+  ).toBe(false);
 });
 
 test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
