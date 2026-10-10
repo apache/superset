@@ -19,6 +19,7 @@
 
 import { render, screen } from '@superset-ui/core/spec';
 import ValueCell from './ValueCell';
+import { Constants } from '@superset-ui/core/components';
 
 const mockColumn = {
   key: 'test-column',
@@ -28,10 +29,13 @@ const mockColumn = {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ValueCell', () => {
-  test('should render a formatted value', () => {
-    render(<ValueCell value={300} column={mockColumn} />);
+  test('should render positive number', () => {
+    const { container } = render(<ValueCell value={300} column={mockColumn} />);
 
     expect(screen.getByText('300.00')).toBeInTheDocument();
+    expect(
+      container.querySelector('span[data-value="300"]'),
+    ).toBeInTheDocument();
   });
 
   test('should render decimal values', () => {
@@ -40,30 +44,39 @@ describe('ValueCell', () => {
     expect(screen.getByText('1.50')).toBeInTheDocument();
   });
 
-  test('should render zero', () => {
-    render(<ValueCell value={0} column={mockColumn} />);
-
-    expect(screen.getByText('0.00')).toBeInTheDocument();
-  });
-
-  test('should render negative values', () => {
-    render(<ValueCell value={-200} column={mockColumn} />);
-
-    expect(screen.getByText('-200.00')).toBeInTheDocument();
-  });
-
-  test('should render an error message instead of the value', () => {
-    render(
-      <ValueCell
-        value={null}
-        errorMsg="The time lag set at 10 is too large"
-        column={mockColumn}
-      />,
+  test('should render negative number', () => {
+    const { container } = render(
+      <ValueCell value={-123.456} column={mockColumn} />,
     );
 
+    expect(screen.getByText('-123.46')).toBeInTheDocument();
     expect(
-      screen.getByText(/The time lag set at 10 is too large/),
+      container.querySelector('span[data-value="-123.456"]'),
     ).toBeInTheDocument();
+  });
+
+  test('should render zero', () => {
+    const { container } = render(<ValueCell value={0} column={mockColumn} />);
+
+    expect(screen.getByText('0.00')).toBeInTheDocument();
+    expect(container.querySelector('span[data-value="0"]')).toBeInTheDocument();
+  });
+
+  test('should render null value', () => {
+    render(<ValueCell value={null} column={mockColumn} />);
+
+    expect(screen.getByText(Constants.NULL_DISPLAY)).toBeInTheDocument();
+  });
+
+  test('should render number without format', () => {
+    const columnWithoutFormat = {
+      key: 'test-column',
+      label: 'Test Column',
+    };
+
+    render(<ValueCell value={300} column={columnWithoutFormat} />);
+
+    expect(screen.getByText('300')).toBeInTheDocument();
   });
 
   test('should apply color styling when bounds are provided', () => {
@@ -76,8 +89,22 @@ describe('ValueCell', () => {
       <ValueCell value={300} column={columnWithBounds} />,
     );
 
-    const span = container.querySelector('span[data-value="300"]');
+    const span = container.querySelector('span[data-value="300"] span');
+    expect(span).toHaveAttribute(
+      'style',
+      expect.stringMatching(/color: rgb\([0-9]{1,3}, [0-9]{1,3}, [0-9]{1,3}\)/),
+    );
+  });
 
-    expect(span).toBeInTheDocument();
+  test('should render error message', () => {
+    render(
+      <ValueCell
+        value={null}
+        column={mockColumn}
+        errorMsg="This is an error message"
+      />,
+    );
+
+    expect(screen.getByText('This is an error message')).toBeInTheDocument();
   });
 });
