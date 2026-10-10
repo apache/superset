@@ -17,12 +17,13 @@
 import logging
 from typing import Any
 
-from flask import current_app, request, Response
+from flask import current_app, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison as parse_rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
+from flask_login import current_user, login_user
 from flask_wtf.csrf import generate_csrf
 from marshmallow import (
     EXCLUDE,
@@ -44,11 +45,13 @@ from superset.commands.exceptions import ForbiddenError
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
+from superset.security import login_token as login_token_utils
 from superset.security.guest_token import (
     build_guest_token_audit_payload,
     GuestTokenResourceType,
 )
 from superset.utils.core import get_user_id
+from superset.utils.decorators import transaction
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
@@ -152,6 +155,18 @@ class RolesResponseSchema(PermissiveSchema):
     result = fields.List(fields.Nested(RoleResponseSchema))
 
 
+class LoginTokenResponseSchema(Schema):
+    access_token = fields.String(
+        metadata={
+            "description": "Opaque single-use token. Carries no identity data; it "
+            "is only a handle to a short-lived server-side record."
+        }
+    )
+    expires_at = fields.Integer(
+        metadata={"description": "Unix timestamp after which the token is rejected."}
+    )
+
+
 guest_token_create_schema = GuestTokenCreateSchema()
 
 
@@ -159,6 +174,7 @@ class SecurityRestApi(BaseSupersetApi):
     resource_name = "security"
     allow_browser_login = True
     openapi_spec_tag = "Security"
+    openapi_spec_component_schemas = (LoginTokenResponseSchema,)
 
     @expose("/csrf_token/", methods=("GET",))
     @event_logger.log_this
@@ -278,6 +294,207 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response(403, message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+    @expose("/login-token/", methods=("POST",))
+    # Request data is deliberately excluded from the event log. A resolver may
+    # read the caller's proof of identity -- an OIDC id token, an internal
+    # service credential -- from the body or query string, and
+    # ``collect_request_payload`` would otherwise persist it verbatim into
+    # ``logs.json``, including on rejection. The one-time token's TTL bounds
+    # nothing about that upstream credential's lifetime.
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.login_token",
+        include_request_data=False,
+    )
+    @safe
+    @statsd_metrics
+    @transaction()
+    def login_token(self) -> Response:
+        """Mint a one-time login token for iframe embedding.
+        ---
+        post:
+          summary: Mint a one-time login token
+          description: >-
+            Exchanges a caller-supplied proof of identity for an opaque, single-use
+            token that GET on this same path trades for a session cookie. Intended
+            to be called server-to-server by a trusted parent application so the
+            underlying credential never reaches the browser. The
+            LOGIN_TOKEN_IDENTITY_RESOLVER hook decides what counts as proof.
+          responses:
+            200:
+              description: The minted token and its expiry
+              content:
+                application/json:
+                  schema: LoginTokenResponseSchema
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not login_token_utils.is_enabled():
+            # 404 rather than 403: with the feature off there is nothing here to
+            # be forbidden from, and this keeps the surface closed by default.
+            return self.response_404()
+
+        if (userinfo := login_token_utils.resolve_identity(request)) is None:
+            return self.response_401()
+
+        token, expires_on = login_token_utils.mint(userinfo)
+        logger.info(
+            "One-time login token minted for '%s' from %s",
+            userinfo.get("username") or userinfo.get("email"),
+            request.remote_addr,
+        )
+        return self.response(
+            200,
+            access_token=token,
+            expires_at=int(expires_on.timestamp()),
+        )
+
+    @expose("/login-token/", methods=("GET",))
+    # Request data is excluded from the event log for the same reason as on mint:
+    # the token travels in the query string, and ``collect_request_payload``
+    # would otherwise copy it into ``logs.json``. A row written while the token
+    # is still live -- for instance by a request that fails before the burn
+    # commits -- would be a redeemable credential at rest. The action name is
+    # left as the default, so existing log queries are unaffected.
+    @event_logger.log_this_with_context(include_request_data=False)
+    @statsd_metrics
+    @safe
+    @transaction()
+    def login_with_token(self) -> Response:
+        """Consume a one-time login token and establish a session.
+        ---
+        get:
+          summary: Consume a one-time login token
+          description: >-
+            Reached by navigating an iframe to this URL. Exchanges the token for a
+            standard session cookie and redirects to `next`, so the frame holds an
+            ordinary Superset session with the user's own roles and row-level
+            security. The token is deleted on use.
+          parameters:
+          - in: query
+            name: token
+            required: true
+            schema:
+              type: string
+            description: The opaque token returned by POST on this path
+          - in: query
+            name: next
+            required: false
+            schema:
+              type: string
+            description: >-
+              Site-relative path to redirect to, e.g. `/dashboard/1/`. Must begin
+              with a single `/`; absolute URLs and protocol-relative values are
+              rejected and fall back to `/`.
+          responses:
+            302:
+              description: Session established; redirect to `next`
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not login_token_utils.is_enabled():
+            return self.response_404()
+
+        token = request.args.get("token", "")
+        # A single failure mode for unknown, malformed, expired and already-spent
+        # tokens, so the response cannot be used to probe which one it was.
+        if not token or (userinfo := login_token_utils.consume(token)) is None:
+            return self.response_401()
+
+        # Refuse to replace a different user's session. A token is a bearer
+        # credential that is not bound to a browser, so without this an attacker
+        # who mints for their own identity and gets a signed-in victim's frame to
+        # navigate here would silently swap the victim into the attacker's
+        # account (login CSRF). The token is already burned, so a refused one
+        # cannot be retried, and the check runs before provisioning so a refused
+        # exchange never registers or updates the attacker's account.
+        #
+        # The comparison is between accounts, not strings: the identifier is
+        # resolved through ``find_user`` exactly as ``auth_user_oauth`` will
+        # resolve it, which is case-insensitive by default (AUTH_USERNAME_CI).
+        # Comparing the raw string would refuse a user whose resolver returns
+        # "alice" for the account "Alice" -- breaking every reload of a
+        # legitimate embed after the first, with the token already burned. An
+        # identity that matches no account yet is never the signed-in user, so
+        # it is refused as well.
+        #
+        # This only narrows the residual risk: a victim with no Superset session,
+        # the usual case for an embed, still has nothing here to compare against.
+        resolved_username = userinfo.get("username") or userinfo.get("email")
+        if getattr(current_user, "is_authenticated", False):
+            resolved_user = self.appbuilder.sm.find_user(username=resolved_username)
+            current_user_id = getattr(current_user, "id", None)
+            is_same_account = (
+                resolved_user is not None and resolved_user.id == current_user_id
+            )
+        else:
+            is_same_account = True
+        if not is_same_account:
+            logger.warning(
+                "Refused a one-time login token for '%s': the frame already holds "
+                "a session for a different user",
+                resolved_username,
+            )
+            return self.response_401()
+
+        # ``consume`` has already committed the burn, so nothing here can make a
+        # spent token redeemable again. Provisioning failures are still caught
+        # and reported as a denial rather than allowed to escape: an exception
+        # would otherwise surface as a 500, which is indistinguishable from an
+        # outage to the parent application and invites a retry with a token that
+        # no longer exists.
+        try:
+            user = self.appbuilder.sm.auth_user_oauth(userinfo)
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Provisioning failed for a one-time login token")
+            user = None
+
+        if user is None:
+            # Provisioning declined the identity: the user is deactivated, or
+            # AUTH_USER_REGISTRATION is off and they have no account yet.
+            logger.warning(
+                "One-time login token resolved an identity that could not be "
+                "provisioned: '%s'",
+                userinfo.get("username") or userinfo.get("email"),
+            )
+            return self.response_401()
+
+        # ``login_user`` refuses an inactive user by returning ``False`` and
+        # setting no session. ``auth_user_oauth`` checks ``is_active`` first, but
+        # an account disabled between that check and this call would otherwise
+        # get a 302 into an anonymous frame, with the token already burned and
+        # nothing for the parent application to act on.
+        if not login_user(user):
+            logger.warning(
+                "One-time login token resolved to '%s', but the session could not "
+                "be established",
+                user,
+            )
+            return self.response_401()
+        logger.info("Session established from a one-time login token for '%s'", user)
+
+        # Only ever redirect to a value that has passed the relative-path check.
+        # Assigning into a separate variable inside the guarded branch — rather
+        # than reassigning the request-derived one — keeps the sanitizer on the
+        # path to the redirect, which taint analysis can follow.
+        requested_next = request.args.get("next") or "/"
+        safe_next_url = "/"
+        if login_token_utils.is_safe_next_path(requested_next):
+            safe_next_url = requested_next
+        else:
+            logger.warning(
+                "Rejected `next` on login-token consume: not a relative path"
+            )
+
+        return redirect(safe_next_url)
 
 
 class RoleRestAPI(BaseSupersetApi):
