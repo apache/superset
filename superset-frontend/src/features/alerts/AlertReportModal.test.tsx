@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { ErrorTypeEnum } from '@superset-ui/core';
 import {
   act,
   render,
@@ -33,6 +34,10 @@ import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import * as navigationUtils from 'src/utils/navigationUtils';
 import { AlertObject, NotificationMethodOption } from './types';
 import { SubjectType } from 'src/types/Subject';
+import {
+  getErrorMessageComponentRegistry,
+  TimeoutErrorMessage,
+} from 'src/components/ErrorMessage';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -2220,6 +2225,532 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
     { timeout: 10000 },
   );
 }, 45000);
+
+test.each(['older', 'latest'] as const)(
+  'overlapping filter requests preserve the latest selection when %s finishes first',
+  async firstToFinish => {
+    fetchMock.removeRoute(tabsEndpoint);
+    fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
+
+    type Response = {
+      json: { result: { data: { country: string }[] }[] };
+    };
+    let resolveOlder!: (response: Response) => void;
+    let resolveLatest!: (response: Response) => void;
+    const olderRequest = new Promise<Response>(resolve => {
+      resolveOlder = resolve;
+    });
+    const latestRequest = new Promise<Response>(resolve => {
+      resolveLatest = resolve;
+    });
+    mockGetChartDataRequest
+      .mockReturnValueOnce(olderRequest)
+      .mockReturnValueOnce(latestRequest);
+
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      useRedux: true,
+    });
+    await userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    const filterSelect = screen.getByRole('combobox', {
+      name: /select filter/i,
+    });
+    const valueSelect = screen.getByRole('combobox', {
+      name: /select value/i,
+    });
+    const selectCountry = async () => {
+      fireEvent.mouseDown(filterSelect);
+      await userEvent.click(await screen.findByText('Country Filter'));
+    };
+    await waitFor(() => expect(filterSelect).toBeEnabled());
+    await selectCountry();
+    await waitFor(() =>
+      expect(mockGetChartDataRequest).toHaveBeenCalledTimes(1),
+    );
+    expect(valueSelect).toBeDisabled();
+
+    const clearIcon = filterSelect
+      .closest('.ant-select')!
+      .querySelector('.ant-select-clear [aria-label="close-circle"]')!;
+    await userEvent.click(clearIcon);
+    await selectCountry();
+    await waitFor(() =>
+      expect(mockGetChartDataRequest).toHaveBeenCalledTimes(2),
+    );
+
+    const olderResponse: Response = {
+      json: { result: [{ data: [{ country: 'Stale country' }] }] },
+    };
+    const latestResponse: Response = {
+      json: { result: [{ data: [{ country: 'Latest country' }] }] },
+    };
+    if (firstToFinish === 'older') {
+      await act(async () => {
+        resolveOlder(olderResponse);
+        await olderRequest;
+      });
+      expect(valueSelect).toBeDisabled();
+      expect(
+        valueSelect.closest('.ant-select')!.querySelector('[aria-busy="true"]'),
+      ).toBeInTheDocument();
+    }
+
+    await act(async () => {
+      resolveLatest(latestResponse);
+      await latestRequest;
+    });
+    await waitFor(() => expect(valueSelect).toBeEnabled());
+
+    if (firstToFinish === 'latest') {
+      await act(async () => {
+        resolveOlder(olderResponse);
+        await olderRequest;
+      });
+    }
+
+    fireEvent.mouseDown(valueSelect);
+    expect(await screen.findByText('Latest country')).toBeInTheDocument();
+    expect(screen.queryByText('Stale country')).not.toBeInTheDocument();
+    expect(
+      valueSelect.closest('.ant-select')!.querySelector('[aria-busy="true"]'),
+    ).not.toBeInTheDocument();
+  },
+);
+
+test('an older filter request rejection does not replace the latest options with an error', async () => {
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
+
+  type Response = {
+    json: { result: { data: { country: string }[] }[] };
+  };
+  let rejectOlder!: (error: Error) => void;
+  let resolveLatest!: (response: Response) => void;
+  const olderRequest = new Promise<Response>((_, reject) => {
+    rejectOlder = reject;
+  });
+  const latestRequest = new Promise<Response>(resolve => {
+    resolveLatest = resolve;
+  });
+  mockGetChartDataRequest
+    .mockReturnValueOnce(olderRequest)
+    .mockReturnValueOnce(latestRequest);
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+
+  const filterSelect = screen.getByRole('combobox', {
+    name: /select filter/i,
+  });
+  const valueSelect = screen.getByRole('combobox', {
+    name: /select value/i,
+  });
+  const selectCountry = async () => {
+    fireEvent.mouseDown(filterSelect);
+    await userEvent.click(await screen.findByText('Country Filter'));
+  };
+  await waitFor(() => expect(filterSelect).toBeEnabled());
+  await selectCountry();
+  await waitFor(() => expect(mockGetChartDataRequest).toHaveBeenCalledTimes(1));
+
+  const clearIcon = filterSelect
+    .closest('.ant-select')!
+    .querySelector('.ant-select-clear [aria-label="close-circle"]')!;
+  await userEvent.click(clearIcon);
+  await selectCountry();
+  await waitFor(() => expect(mockGetChartDataRequest).toHaveBeenCalledTimes(2));
+
+  await act(async () => {
+    resolveLatest({
+      json: { result: [{ data: [{ country: 'Latest country' }] }] },
+    });
+    await latestRequest;
+  });
+  await waitFor(() => expect(valueSelect).toBeEnabled());
+
+  await act(async () => {
+    rejectOlder(new Error('Older request failed'));
+    await olderRequest.catch(() => {});
+  });
+
+  fireEvent.mouseDown(valueSelect);
+  const latestCountryOption = await screen.findByText('Latest country');
+  expect(latestCountryOption).toBeInTheDocument();
+  await userEvent.click(latestCountryOption);
+  expect(screen.queryByText('Cannot load filter')).not.toBeInTheDocument();
+  expect(screen.queryByText('Network error')).not.toBeInTheDocument();
+});
+
+test('pending filter options follow the filter when an earlier row is deleted', async () => {
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
+  let resolveCity!: (response: {
+    json: { result: { data: { city: string }[] }[] };
+  }) => void;
+  const cityRequest = new Promise<{
+    json: { result: { data: { city: string }[] }[] };
+  }>(resolve => {
+    resolveCity = resolve;
+  });
+  mockGetChartDataRequest
+    .mockResolvedValueOnce({
+      json: { result: [{ data: [{ country: 'US' }] }] },
+    })
+    .mockReturnValueOnce(cityRequest);
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  const countrySelect = screen.getByRole('combobox', {
+    name: /select filter/i,
+  });
+  await waitFor(() => expect(countrySelect).toBeEnabled());
+  fireEvent.mouseDown(countrySelect);
+  await userEvent.click(await screen.findByText('Country Filter'));
+  await waitFor(() =>
+    expect(
+      screen.getByRole('combobox', { name: /select value/i }),
+    ).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByText(/apply another dashboard filter/i));
+  fireEvent.mouseDown(
+    screen.getAllByRole('combobox', { name: /select filter/i })[1],
+  );
+  const dropdowns = document.querySelectorAll('.ant-select-dropdown');
+  await userEvent.click(
+    await within(dropdowns[dropdowns.length - 1] as HTMLElement).findByText(
+      'City Filter',
+    ),
+  );
+  await waitFor(() => expect(mockGetChartDataRequest).toHaveBeenCalledTimes(2));
+  fireEvent.click(document.querySelectorAll('.filters-trashcan')[0]);
+  expect(
+    screen.getAllByRole('combobox', { name: /select filter/i }),
+  ).toHaveLength(1);
+  const valueSelect = screen.getByRole('combobox', { name: /select value/i });
+  expect(valueSelect).toBeDisabled();
+  expect(
+    valueSelect.closest('.ant-select')!.querySelector('[aria-busy="true"]'),
+  ).toBeInTheDocument();
+  await act(async () => {
+    resolveCity({ json: { result: [{ data: [{ city: 'London' }] }] } });
+    await cityRequest;
+  });
+  await waitFor(() => expect(valueSelect).toBeEnabled());
+  fireEvent.mouseDown(valueSelect);
+  expect(await screen.findByText('London')).toBeInTheDocument();
+});
+
+test('deleting an earlier row preserves a later filter error', async () => {
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
+  mockGetChartDataRequest
+    .mockResolvedValueOnce({
+      json: { result: [{ data: [{ country: 'US' }] }] },
+    })
+    .mockRejectedValueOnce(new Error('City request failed'));
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  const countrySelect = screen.getByRole('combobox', {
+    name: /select filter/i,
+  });
+  await waitFor(() => expect(countrySelect).toBeEnabled());
+  fireEvent.mouseDown(countrySelect);
+  await userEvent.click(await screen.findByText('Country Filter'));
+  await waitFor(() =>
+    expect(
+      screen.getByRole('combobox', { name: /select value/i }),
+    ).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByText(/apply another dashboard filter/i));
+  fireEvent.mouseDown(
+    screen.getAllByRole('combobox', { name: /select filter/i })[1],
+  );
+  const dropdowns = document.querySelectorAll('.ant-select-dropdown');
+  await userEvent.click(
+    await within(dropdowns[dropdowns.length - 1] as HTMLElement).findByText(
+      'City Filter',
+    ),
+  );
+
+  expect(await screen.findByText('Cannot load filter')).toBeInTheDocument();
+  fireEvent.click(document.querySelectorAll('.filters-trashcan')[0]);
+
+  expect(
+    screen.getAllByRole('combobox', { name: /select filter/i }),
+  ).toHaveLength(1);
+  expect(screen.getByText('Cannot load filter')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('combobox', { name: /select value/i }),
+  ).not.toBeInTheDocument();
+});
+
+test.each(
+  ['filter_select', 'filter_timegrain'].flatMap(filterType => [
+    {
+      filterType,
+      error: new Error('Failed to load'),
+      errorTitle: 'Cannot load filter',
+    },
+    {
+      filterType,
+      error: new TypeError('Failed to fetch'),
+      errorTitle: 'Network error',
+    },
+  ]),
+)(
+  '$filterType request failure shows $errorTitle and clears it on a new selection',
+  async ({ filterType, error, errorTitle }) => {
+    const filters = tabsWithFilters.result.native_filters.all.map(filter => ({
+      ...filter,
+      filterType,
+    }));
+    fetchMock.removeRoute(tabsEndpoint);
+    fetchMock.get(
+      tabsEndpoint,
+      {
+        result: {
+          ...tabsWithFilters.result,
+          native_filters: { all: filters, TAB_1: filters, TAB_2: filters },
+        },
+      },
+      { name: tabsEndpoint },
+    );
+    mockGetChartDataRequest.mockRejectedValueOnce(error);
+    const store = createStore({}, reducerIndex);
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+    await userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+    const filterSelect = screen.getByRole('combobox', {
+      name: /select filter/i,
+    });
+    await waitFor(() => expect(filterSelect).toBeEnabled());
+    fireEvent.mouseDown(filterSelect);
+    await userEvent.click(await screen.findByText('Country Filter'));
+    expect(await screen.findByText(errorTitle)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: /select value/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      (store.getState() as Record<string, unknown>).messageToasts,
+    ).toHaveLength(0);
+    await userEvent.click(
+      filterSelect
+        .closest('.ant-select')!
+        .querySelector('.ant-select-clear [aria-label="close-circle"]')!,
+    );
+    mockGetChartDataRequest.mockResolvedValueOnce({
+      json: {
+        result: [{ data: [{ country: 'US', duration: 'P1D', name: 'Day' }] }],
+      },
+    });
+    expect(screen.queryByText(errorTitle)).not.toBeInTheDocument();
+    fireEvent.mouseDown(filterSelect);
+    await userEvent.click(await screen.findByText('Country Filter'));
+    await waitFor(() =>
+      expect(
+        screen.getByRole('combobox', { name: /select value/i }),
+      ).toBeEnabled(),
+    );
+    fireEvent.mouseDown(
+      screen.getByRole('combobox', { name: /select value/i }),
+    );
+    expect(
+      await screen.findByText(filterType === 'filter_select' ? 'US' : 'Day'),
+    ).toBeInTheDocument();
+  },
+);
+
+test('registered timeout errors for filter options cannot be dismissed', async () => {
+  const registry = getErrorMessageComponentRegistry();
+  registry.registerValue(
+    ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+    TimeoutErrorMessage,
+  );
+  try {
+    fetchMock.removeRoute(tabsEndpoint);
+    fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
+    mockGetChartDataRequest.mockRejectedValueOnce(
+      Object.assign(new Error('Request timed out'), {
+        statusText: 'timeout',
+        timeout: 30_000,
+      }),
+    );
+
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      useRedux: true,
+    });
+    await userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+    const filterSelect = screen.getByRole('combobox', {
+      name: /select filter/i,
+    });
+    await waitFor(() => expect(filterSelect).toBeEnabled());
+    fireEvent.mouseDown(filterSelect);
+    await userEvent.click(await screen.findByText('Country Filter'));
+
+    const timeoutTitle = await screen.findByText('Timeout error');
+    const timeoutAlert = timeoutTitle.closest('.ant-alert');
+    expect(timeoutAlert).toBeInTheDocument();
+    expect(
+      within(timeoutAlert as HTMLElement).queryByRole('button', {
+        name: /close/i,
+      }),
+    ).not.toBeInTheDocument();
+    expect(timeoutTitle).toBeInTheDocument();
+  } finally {
+    registry.remove(ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR);
+  }
+});
+
+test('filter_range request failure keeps both manual inputs editable', async () => {
+  const rangeFilter = {
+    ...tabsWithFilters.result.native_filters.all[0],
+    filterType: 'filter_range',
+  };
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(
+    tabsEndpoint,
+    {
+      result: {
+        ...tabsWithFilters.result,
+        native_filters: {
+          all: [rangeFilter],
+          TAB_1: [rangeFilter],
+          TAB_2: [rangeFilter],
+        },
+      },
+    },
+    { name: tabsEndpoint },
+  );
+  let rejectRequest!: (error: Error) => void;
+  const optionsRequest = new Promise<{
+    json: { result: { data: { country: string }[] }[] };
+  }>((_, reject) => {
+    rejectRequest = reject;
+  });
+  mockGetChartDataRequest.mockReturnValueOnce(optionsRequest);
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+  const filterSelect = screen.getByRole('combobox', {
+    name: /select filter/i,
+  });
+  await waitFor(() => expect(filterSelect).toBeEnabled());
+  fireEvent.mouseDown(filterSelect);
+  await userEvent.click(await screen.findByText('Country Filter'));
+  await waitFor(() => expect(mockGetChartDataRequest).toHaveBeenCalledTimes(1));
+
+  await act(async () => {
+    rejectRequest(new Error('Failed to load range options'));
+    await optionsRequest.catch(() => {});
+    await Promise.resolve();
+  });
+
+  const rangeInputs = document.querySelectorAll(
+    '.inline-container .ant-input-number-input',
+  );
+  expect(rangeInputs).toHaveLength(2);
+  rangeInputs.forEach(input => expect(input).toBeEnabled());
+  expect(screen.queryByText('Cannot load filter')).not.toBeInTheDocument();
+});
+
+test.each(['success', 'failure'])(
+  'saved report filters show loading until option request %s',
+  async outcome => {
+    const savedFilter = {
+      ...tabsWithFilters.result.native_filters.all[0],
+      id: 'NATIVE_FILTER-abc123',
+      name: 'Country',
+    };
+    fetchMock.removeRoute(tabsEndpoint);
+    fetchMock.get(
+      tabsEndpoint,
+      {
+        result: {
+          ...tabsWithFilters.result,
+          native_filters: { all: [savedFilter], TAB_1: [savedFilter] },
+        },
+      },
+      { name: tabsEndpoint },
+    );
+    let resolveRequest!: (response: {
+      json: { result: { data: { country: string }[] }[] };
+    }) => void;
+    let rejectRequest!: (error: Error) => void;
+    const request = new Promise<{
+      json: { result: { data: { country: string }[] }[] };
+    }>((resolve, reject) => {
+      resolveRequest = resolve;
+      rejectRequest = reject;
+    });
+    mockGetChartDataRequest.mockReturnValueOnce(request);
+    const store = createStore({}, reducerIndex);
+    render(
+      <AlertReportModal
+        {...generateMockedProps(true, true)}
+        alert={{ ...validAlert, id: 3 }}
+      />,
+      { store },
+    );
+    await userEvent.click(screen.getByTestId('contents-panel'));
+    await waitFor(() =>
+      expect(mockGetChartDataRequest).toHaveBeenCalledTimes(1),
+    );
+    const valueSelect = screen.getByRole('combobox', { name: /select value/i });
+    expect(valueSelect).toBeDisabled();
+    expect(
+      valueSelect.closest('.ant-select')!.querySelector('[aria-busy="true"]'),
+    ).toBeInTheDocument();
+    await act(async () => {
+      if (outcome === 'success') {
+        resolveRequest({
+          json: {
+            result: [{ data: [{ country: 'USA' }, { country: 'Canada' }] }],
+          },
+        });
+      } else {
+        rejectRequest(new Error('Failed to load'));
+      }
+      await request.catch(() => {});
+    });
+    expect(
+      document.querySelector('[aria-busy="true"]'),
+    ).not.toBeInTheDocument();
+    if (outcome === 'success') {
+      expect(valueSelect).toBeEnabled();
+      expect(
+        (store.getState() as Record<string, unknown>).messageToasts,
+      ).toHaveLength(0);
+      expect(screen.getByText('USA')).toBeInTheDocument();
+      fireEvent.mouseDown(valueSelect);
+      expect(await screen.findByText('Canada')).toBeInTheDocument();
+    } else {
+      expect(
+        screen.queryByRole('combobox', { name: /select value/i }),
+      ).not.toBeInTheDocument();
+      expect(await screen.findByText('Cannot load filter')).toBeInTheDocument();
+      expect(
+        (store.getState() as Record<string, unknown>).messageToasts,
+      ).toHaveLength(0);
+    }
+  },
+);
 
 const setupAnchorMocks = (
   nativeFilters: Record<string, unknown>,
