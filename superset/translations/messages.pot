@@ -12154,6 +12154,12 @@ msgstr ""
 msgid "Semantic Views"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. "
+"Use one dimension per name and grain."
+msgstr ""
+
 msgid "Semantic layer"
 msgstr ""
 

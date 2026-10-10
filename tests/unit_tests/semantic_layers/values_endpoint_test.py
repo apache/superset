@@ -27,12 +27,14 @@ from unittest.mock import MagicMock
 
 import pyarrow as pa
 import pytest
+from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     Dimension,
     SemanticRequest,
     SemanticResult,
 )
+from werkzeug.test import TestResponse
 
 from superset.semantic_layers.models import SemanticView
 
@@ -399,3 +401,29 @@ def test_versioned_suggestions_are_unavailable_before_cache(
     }
     cache.get.assert_not_called()
     implementation.get_values.assert_not_called()
+
+
+def test_ambiguous_values_are_a_400_without_query_or_cache_write(
+    client: FlaskClient,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    """Report catalog ambiguity before executing or caching a values query."""
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    implementation.get_dimensions.return_value = [
+        Dimension("first", "category", pa.utf8()),
+        Dimension("second", "category", pa.utf8()),
+    ]
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+
+    response: TestResponse = client.get(
+        "/api/v1/datasource/semantic_view/1/column/category/values/"
+    )
+
+    assert response.status_code == 400
+    assert response.json is not None
+    assert "ambiguous" in response.json["message"]
+    implementation.get_values.assert_not_called()
+    cache.set.assert_not_called()

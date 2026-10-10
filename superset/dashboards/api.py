@@ -365,6 +365,7 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
 # needs to render its charts are kept. This is a stricter version of the
 # narrowing DashboardDatasetSchema.post_dump already applies to guest users.
 DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
+    "metadata_error",
     "sql",
     "select_star",
     "fetch_values_predicate",

@@ -160,3 +160,41 @@ test('prefers the semantic API error over a stale alert after datasource metadat
     screen.queryByText('Stale client-side rendering error'),
   ).not.toBeInTheDocument();
 });
+
+test('shows a dataset metadata error and clears it after datasource replacement', () => {
+  const message =
+    "Semantic dimension 'event_time' has ambiguous variants for grain 'P1M'. Use one ID per name and grain.";
+  const { rerender } = render(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="loading"
+      datasource={{
+        ...PLACEHOLDER_DATASOURCE,
+        id: 2,
+        uid: '2__semantic_view',
+        type: DatasourceType.SemanticView,
+        metadata_error: message,
+      }}
+      datasetsStatus={ResourceStatus.Complete}
+    />,
+  );
+  expect(screen.getByText(message)).toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  rerender(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="loading"
+      datasource={{
+        ...PLACEHOLDER_DATASOURCE,
+        id: 1,
+        uid: '1__semantic_view',
+        type: DatasourceType.SemanticView,
+      }}
+      datasetsStatus={ResourceStatus.Complete}
+    />,
+  );
+  expect(screen.queryByText(message)).not.toBeInTheDocument();
+  expect(screen.getByRole('status')).toBeInTheDocument();
+});

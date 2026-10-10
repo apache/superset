@@ -339,6 +339,9 @@ class DatabaseSchema(Schema):
 
 
 class DashboardDatasetSchema(Schema):
+    metadata_error: fields.String = fields.String(
+        metadata={"description": "Validation error for this dataset only."}
+    )
     supports_drill_to_detail: fields.Bool = fields.Bool()
     supports_samples: fields.Bool = fields.Bool()
     parent: fields.Dict = fields.Dict()

@@ -44,6 +44,7 @@ from superset_core.semantic_layers.layer import (
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
+    Metric,
     Operator,
     PredicateType,
 )
@@ -62,6 +63,10 @@ from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.completeness import provider_completeness
+from superset.semantic_layers.dimension_resolution import (
+    DimensionUsage,
+    resolve_dimensions,
+)
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -72,41 +77,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-# Known grains ranked finest to coarsest by their ISO-8601 durations, so that
-# collapsing same-named grain variants picks the least-aggregated one
-# deterministically. Grains outside this table rank after every known one.
-_GRAIN_FINENESS: dict[str, int] = {
-    "PT1S": 0,
-    "PT1M": 1,
-    "PT1H": 2,
-    "P1D": 3,
-    "P1W": 4,
-    "P1M": 5,
-    "P3M": 6,
-    "P1Y": 7,
-}
-
-
-def _grain_preference(dimension: Any) -> tuple[int, int, str]:
-    """Sort key for choosing among same-named grain variants.
-
-    The unaggregated variant (``grain is None``) always wins; otherwise the
-    finest grain does, with the grain's representation as a deterministic
-    tie-break. ``get_dimensions()`` returns an unordered set, so without an
-    explicit preference the collapsed pick — and with it column metadata and
-    value suggestions — would vary run to run.
-    """
-    grain = getattr(dimension, "grain", None)
-    if grain is None:
-        return (0, 0, "")
-    representation = str(getattr(grain, "representation", grain))
-    return (
-        1,
-        _GRAIN_FINENESS.get(representation, len(_GRAIN_FINENESS)),
-        representation,
-    )
 
 
 def get_column_type(semantic_type: pa.DataType) -> GenericDataType:
@@ -556,24 +526,18 @@ class SemanticView(AuditMixinNullable, Model):
         ]
 
     @property
-    def _unique_dimensions(self) -> list[Any]:
+    def _unique_dimensions(self) -> list[Dimension]:
         # A semantic view may expose multiple ``Dimension`` objects sharing the
         # same ``name`` but different grains (one variant per supported time
         # grain). For column-list purposes we collapse these into a single
         # entry; the available grains are surfaced separately via
         # ``get_time_grains`` and ``data["time_grain_sqla"]``. The variant
-        # kept is chosen by ``_grain_preference`` (unaggregated, else finest
-        # grain) rather than by encounter order: ``get_dimensions()`` is an
-        # unordered set, and both the column metadata and the filter-value
-        # suggestions built from this list must not vary run to run.
-        seen: dict[str, Any] = {}
-        for dimension in self.implementation.get_dimensions():
-            incumbent = seen.get(dimension.name)
-            if incumbent is None or (
-                _grain_preference(dimension) < _grain_preference(incumbent)
-            ):
-                seen[dimension.name] = dimension
-        return list(seen.values())
+        # kept uses the same default/ambiguity policy as query mapping.
+        return list(
+            resolve_dimensions(
+                self.implementation.get_dimensions(), usage=DimensionUsage.METADATA
+            ).values()
+        )
 
     @property
     def columns(self) -> list[ColumnMetadata]:
@@ -873,6 +837,23 @@ class SemanticView(AuditMixinNullable, Model):
     def query_language(self) -> str | None:
         return None
 
+    def _compat_selection(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> tuple[set[Metric], set[Dimension]]:
+        """Resolve both compatibility projections through one selection policy."""
+        metric_map: dict[str, Metric] = {
+            metric.name: metric for metric in self.implementation.get_metrics()
+        }
+        dim_map: dict[str, Dimension] = resolve_dimensions(
+            self.implementation.get_dimensions(), usage=DimensionUsage.COMPATIBILITY
+        )
+        return (
+            {metric_map[name] for name in selected_metrics if name in metric_map},
+            {dim_map[name] for name in selected_dimensions if name in dim_map},
+        )
+
     def get_compatible_metrics(
         self,
         selected_metrics: list[str],
@@ -884,11 +865,14 @@ class SemanticView(AuditMixinNullable, Model):
         Translates string names to semantic-layer objects, delegates to the
         view implementation, and translates the result back to names.
         """
-        metric_map = {m.name: m for m in self.implementation.get_metrics()}
-        dim_map = {d.name: d for d in self.implementation.get_dimensions()}
-        sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
-        sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
-        compatible = self.implementation.get_compatible_metrics(sel_metrics, sel_dims)
+        sel_metrics: set[Metric]
+        sel_dims: set[Dimension]
+        sel_metrics, sel_dims = self._compat_selection(
+            selected_metrics, selected_dimensions
+        )
+        compatible: set[Metric] = self.implementation.get_compatible_metrics(
+            sel_metrics, sel_dims
+        )
         return [m.name for m in compatible]
 
     def get_compatible_dimensions(
@@ -904,11 +888,12 @@ class SemanticView(AuditMixinNullable, Model):
         Collapse grain variants into sorted unique names, also bounding
         the shared list_metrics projection.
         """
-        metric_map = {m.name: m for m in self.implementation.get_metrics()}
-        dim_map = {d.name: d for d in self.implementation.get_dimensions()}
-        sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
-        sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
-        compatible = self.implementation.get_compatible_dimensions(
+        sel_metrics: set[Metric]
+        sel_dims: set[Dimension]
+        sel_metrics, sel_dims = self._compat_selection(
+            selected_metrics, selected_dimensions
+        )
+        compatible: set[Dimension] = self.implementation.get_compatible_dimensions(
             sel_metrics, sel_dims
         )
         return sorted({d.name for d in compatible})

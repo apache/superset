@@ -52,6 +52,7 @@ from superset.models.helpers import (
 )
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.models import SemanticView
 from superset.subjects.models import (
     dashboard_editors,
@@ -417,6 +418,18 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                     payload: dict[str, Any] = dict(
                         datasource.data_for_slices(list(slices))
                     )
+                except AmbiguousDimensionError as ex:
+                    if not isinstance(datasource, SemanticView):
+                        raise
+                    # Expose only the host's validation diagnostic, after access.
+                    payload = {
+                        "id": datasource.id,
+                        "type": datasource.type,
+                        "name": datasource.name,
+                        "metadata_error": str(ex),
+                        "supports_samples": datasource.supports_samples,
+                        "supports_drill_to_detail": datasource.supports_drill_to_detail,
+                    }
                 except Exception as ex:  # noqa: BLE001
                     if not isinstance(datasource, SemanticView):
                         raise

@@ -3916,6 +3916,10 @@
           "main_dttm_col": {
             "type": "string"
           },
+          "metadata_error": {
+            "description": "Validation error for this dataset only.",
+            "type": "string"
+          },
           "metrics": {
             "items": {
               "type": "object"
