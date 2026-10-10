@@ -157,6 +157,10 @@ class UpdateSemanticViewCommand(BaseCommand):
         self._model = SemanticViewDAO.find_by_id(self._model_id)
         if not self._model:
             raise SemanticViewNotFoundError()
+        try:
+            self._model.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise SemanticViewForbiddenError() from ex
 
         if not current_user_can_modify_object(self._model):
             raise SemanticViewForbiddenError()
