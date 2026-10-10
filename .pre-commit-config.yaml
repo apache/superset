@@ -25,7 +25,10 @@ repos:
       - id: mypy
         name: mypy (main)
         args: [--check-untyped-defs]
-        exclude: ^superset-extensions-cli/
+        # tests/mypy_fixtures/ holds sole-input regression guards (see the
+        # "mypy (sole-input fixtures)" hook below); checking them alongside
+        # the rest of the tree would hide exactly what they guard against.
+        exclude: ^superset-extensions-cli/|^tests/mypy_fixtures/
         additional_dependencies: [
             types-cachetools,
             types-simplejson,
@@ -46,6 +49,35 @@ repos:
         name: mypy (superset-extensions-cli)
         args: [--check-untyped-defs]
         files: ^superset-extensions-cli/
+      - id: mypy
+        alias: mypy-sole-input-fixtures
+        name: mypy (sole-input fixtures)
+        # Regression guards that only mean something when mypy checks the
+        # fixture as its ONLY input: a type that resolves one way with the
+        # whole tree loaded and another way in a scoped per-PR run (e.g.
+        # UUIDMixin.uuid, see tests/mypy_fixtures/uuid_mixin_nullable.py).
+        # Manual stage, so neither a local `pre-commit run --all-files` nor
+        # the per-PR / nightly runs of the main hook pick it up; CI invokes
+        # it explicitly, one fixture at a time, in
+        # .github/workflows/pre-commit.yml. --no-incremental keeps it from
+        # reusing full-tree types the main hook may already have cached.
+        args: [--check-untyped-defs, --no-incremental]
+        files: ^tests/mypy_fixtures/
+        exclude: ^tests/mypy_fixtures/__init__\.py$
+        stages: [manual]
+        # Keep in sync with "mypy (main)" above.
+        additional_dependencies: [
+            types-cachetools,
+            types-simplejson,
+            types-python-dateutil,
+            types-requests,
+            types-pytz,
+            types-croniter,
+            types-PyYAML,
+            types-setuptools,
+            types-paramiko,
+            types-Markdown,
+          ]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
