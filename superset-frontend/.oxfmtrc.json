@@ -18,7 +18,6 @@
     "*-topo.json",
     "storybook-static/",
     "*.snap",
-    "/.nx/workspace-data",
-    ".storybook/storybook-tests.json"
+    "/.nx/workspace-data"
   ]
 }
