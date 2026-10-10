@@ -263,6 +263,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     !manualBounds && typeof row?.min === 'number' ? row.min : undefined;
   const max =
     !manualBounds && typeof row?.max === 'number' ? row.max : undefined;
+  // Null aggregates (empty or all-null column) leave the range unbounded;
+  // only a present, non-numeric aggregate marks the column unusable.
+  const isNonNumericBound = (value: unknown) =>
+    value !== null && value !== undefined && typeof value !== 'number';
+  const nonNumericColumn =
+    !manualBounds &&
+    (isNonNumericBound(row?.min) || isNonNumericBound(row?.max));
 
   const sliderStep = useMemo(
     () =>
@@ -352,7 +359,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   );
 
   useEffect(() => {
-    if (!manualBounds && min === undefined && max === undefined) {
+    if (nonNumericColumn) {
       return;
     }
 
@@ -454,7 +461,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const handleChange = useCallback(
     (newValue: number | null, index: 0 | 1) => {
-      if (!manualBounds && min === undefined && max === undefined) {
+      if (nonNumericColumn) {
         return;
       }
 
@@ -509,6 +516,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       min,
       max,
       manualBounds,
+      nonNumericColumn,
       enableEmptyFilter,
       enableSingleValue,
       updateDataMaskError,
@@ -553,12 +561,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   );
 
   const getMessageAndStatus = useCallback(() => {
-    const defaultMessage = manualBounds
-      ? t('Leave a bound empty for an unbounded range.')
-      : t('Choose numbers between %(min)s and %(max)s', {
-          min,
-          max,
-        });
+    const defaultMessage =
+      manualBounds || min === undefined || max === undefined
+        ? t('Leave a bound empty for an unbounded range.')
+        : t('Choose numbers between %(min)s and %(max)s', {
+            min,
+            max,
+          });
 
     if (error) {
       return { message: error, status: 'error' as const };
@@ -674,7 +683,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         onChange={val => handleChange(val, index)}
         onKeyDown={handleKeyDown}
         aria-label={manualBounds ? label : undefined}
-        placeholder={manualBounds ? '' : `${bound}`}
+        placeholder={manualBounds || bound === undefined ? '' : `${bound}`}
         style={{ width: '100%' }}
         status={filterState.validateStatus}
         data-test={
@@ -724,8 +733,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   return (
     <FilterPluginStyle height={height} width={width}>
-      {!manualBounds &&
-      (Number.isNaN(Number(min)) || Number.isNaN(Number(max))) ? (
+      {nonNumericColumn ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
         <FormItem aria-labelledby={`filter-name-${formData.nativeFilterId}`}>

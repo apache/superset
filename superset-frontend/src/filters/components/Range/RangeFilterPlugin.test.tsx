@@ -781,3 +781,53 @@ test.each([undefined, SingleValueType.Exact])(
     );
   },
 );
+
+test.each([
+  ['an all-null numeric column', [{ min: null, max: null }]],
+  ['an empty result', []],
+])('keeps unbounded inputs usable for %s', (_label, data) => {
+  const setDataMask = jest.fn();
+  render(
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        queriesData: [{ ...rangeProps.queriesData[0], rowcount: 0, data }],
+        formData: { ...rangeProps.formData, defaultValue: undefined },
+        filterState: { value: [null, null] },
+      } as unknown as ChartProps) as PluginFilterRangeProps)}
+      setDataMask={setDataMask}
+    />,
+  );
+  expect(
+    screen.queryByText('Chosen non-numeric column'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+  const [lower, upper] = screen.getAllByRole('spinbutton');
+  expect(lower).toHaveAttribute('placeholder', '');
+  expect(upper).toHaveAttribute('placeholder', '');
+  expect(
+    screen.getByText('Leave a bound empty for an unbounded range.'),
+  ).toBeInTheDocument();
+  fireEvent.change(lower, { target: { value: '-3' } });
+  fireEvent.blur(lower);
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: { filters: [{ col: 'SP_POP_TOTL', op: '>=', val: -3 }] },
+    }),
+  );
+});
+
+test('flags a column whose aggregates are not numeric', () => {
+  render(
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        queriesData: [
+          { ...rangeProps.queriesData[0], data: [{ min: 'a', max: 'z' }] },
+        ],
+      } as unknown as ChartProps) as PluginFilterRangeProps)}
+      setDataMask={jest.fn()}
+    />,
+  );
+  expect(screen.getByText('Chosen non-numeric column')).toBeInTheDocument();
+});
