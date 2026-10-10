@@ -1158,6 +1158,16 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
             ["url1"],
             ["dashboard/p/url1/?force=false"],
         ),
+        # Regression: a non-string anchor (extra is an untyped marshmallow
+        # Dict, so anchor may be any JSON value) makes json.loads raise a raw
+        # TypeError, not JSONDecodeError. It must be caught and fall back to a
+        # single-tab permalink rather than crashing the report job (#44404
+        # follow-up).
+        (
+            42,
+            ["url1"],
+            ["dashboard/p/url1/"],
+        ),
     ],
 )
 @patch(
