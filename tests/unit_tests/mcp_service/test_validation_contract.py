@@ -25,7 +25,7 @@ import pytest
 from fastmcp import FastMCP
 from fastmcp.client import Client
 from fastmcp.server.middleware import MiddlewareContext
-from fastmcp.tools.tool import ToolResult
+from fastmcp.tools import ToolResult
 from mcp.types import CallToolRequestParams, TextContent
 from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationError
 
@@ -306,7 +306,9 @@ async def test_structured_tool_error_is_unchanged(
         result = await client.call_tool_mcp("domain_error", {})
     assert result.isError is is_error
     assert result.content == [TextContent(type="text", text=original_text)]
-    assert result.meta == {"test_marker": "unchanged"}
+    # FastMCP 4 adds server identity metadata alongside the tool metadata.
+    assert result.meta is not None
+    assert result.meta["test_marker"] == "unchanged"
     assert result.structuredContent == (payload if structured else None)
 
 

@@ -32,7 +32,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastmcp.exceptions import ToolError
-from fastmcp.tools.tool import ToolResult
+from fastmcp.tools import ToolResult
 from mcp import types as mt
 from sqlalchemy.exc import OperationalError
 

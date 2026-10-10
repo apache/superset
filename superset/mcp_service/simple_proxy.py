@@ -39,7 +39,7 @@ proxy: FastMCP | None = None
 def signal_handler(signum: int, frame: Any) -> None:
     """Handle shutdown signals gracefully"""
     logger.info("Received signal %s, shutting down gracefully...", signum)
-    # The proxy handles its own cleanup
+    # create_proxy() handles its own cleanup
     sys.exit(0)
 
 
