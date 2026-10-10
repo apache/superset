@@ -108,7 +108,10 @@ class DatasourceDAO(BaseDAO[Datasource]):
         if model is Query:
             # Query.perm and schema checks read the database for every member.
             query = query.options(joinedload(Query.database))
-        return {item.id: item for item in query.filter(model.id.in_(ids)).all()}
+        return {
+            item.id: item
+            for item in query.filter(model.id.in_(ids)).all()  # type: ignore[union-attr]
+        }
 
     @staticmethod
     def build_dataset_query(
