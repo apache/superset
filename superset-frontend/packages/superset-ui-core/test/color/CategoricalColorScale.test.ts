@@ -76,7 +76,7 @@ describe('CategoricalColorScale', () => {
     >;
     let getNextAvailableColorSpy: jest.SpyInstance<
       string,
-      [currentLabel: string, currentColor: string]
+      [currentLabel: string, currentColor: string, reservedColors?: Set<string>]
     >;
 
     beforeEach(() => {
@@ -250,6 +250,7 @@ describe('CategoricalColorScale', () => {
       expect(getNextAvailableColorSpy).toHaveBeenCalledWith(
         'testValue4',
         'blue',
+        expect.any(Set),
       );
 
       getNextAvailableColorSpy.mockClear();
@@ -275,6 +276,70 @@ describe('CategoricalColorScale', () => {
       expect(dashScale.chartLabelsColorMap.get('Trains')).toBe('red');
       expect(dashScale.chartLabelsColorMap.get('Classic Cars')).not.toBe('red');
       expect(dashScale.chartLabelsColorMap.get('Classic Cars')).toBeDefined();
+    });
+    test('returns distinct colors within a chart when the dashboard color map is incomplete (issue #36406)', () => {
+      const PALETTE = ['lightblue', 'darkblue', 'green'];
+      const labelsColorMap = getLabelsColorMap();
+      labelsColorMap.source = LabelsColorMapSource.Dashboard;
+
+      // the first chart renders first and claims the head of the palette
+      const chart1Scale = new CategoricalColorScale(PALETTE);
+      chart1Scale.getColor('Playstation', 1, 'preset');
+      chart1Scale.getColor('Xbox', 1, 'preset');
+
+      // the second chart has an extra label missing from the shared color map
+      const chart2Scale = new CategoricalColorScale(PALETTE);
+      const pcColor = chart2Scale.getColor('PC', 2, 'preset');
+      const playstationColor = chart2Scale.getColor('Playstation', 2, 'preset');
+      const xboxColor = chart2Scale.getColor('Xbox', 2, 'preset');
+
+      // shared labels keep the color assigned by the first chart
+      expect(playstationColor).toBe('lightblue');
+      expect(xboxColor).toBe('darkblue');
+      // the new label must not be handed a color owned by another label
+      expect(new Set([pcColor, playstationColor, xboxColor]).size).toBe(3);
+    });
+    test('returns distinct colors within a chart when the shared color map is empty (issue #36406)', () => {
+      const PALETTE = ['lightblue', 'darkblue', 'green'];
+      const labelsColorMap = getLabelsColorMap();
+      labelsColorMap.source = LabelsColorMapSource.Dashboard;
+
+      const scale = new CategoricalColorScale(PALETTE);
+      const colors = ['PC', 'Playstation', 'Xbox'].map(label =>
+        scale.getColor(label, 7, 'preset'),
+      );
+
+      expect(colors).toEqual(PALETTE);
+    });
+    test('keeps forced colors even when they duplicate a shared color (issue #36406)', () => {
+      const PALETTE = ['lightblue', 'darkblue', 'green'];
+      const labelsColorMap = getLabelsColorMap();
+      labelsColorMap.source = LabelsColorMapSource.Dashboard;
+
+      const chart1Scale = new CategoricalColorScale(PALETTE);
+      chart1Scale.getColor('Playstation', 1, 'preset');
+
+      // PC is pinned to the same color as the shared Playstation label
+      const chart2Scale = new CategoricalColorScale(PALETTE, {
+        PC: 'lightblue',
+      });
+      expect(chart2Scale.getColor('PC', 2, 'preset')).toBe('lightblue');
+      expect(chart2Scale.getColor('Playstation', 2, 'preset')).toBe(
+        'lightblue',
+      );
+    });
+    test('a new label avoids colors reserved by forced colors (issue #36406)', () => {
+      const PALETTE = ['lightblue', 'darkblue', 'green'];
+      const labelsColorMap = getLabelsColorMap();
+      labelsColorMap.source = LabelsColorMapSource.Dashboard;
+
+      // Xbox has a custom label color matching the head of the palette
+      const scale = new CategoricalColorScale(PALETTE, { Xbox: 'lightblue' });
+      const pcColor = scale.getColor('PC', 3, 'preset');
+      const xboxColor = scale.getColor('Xbox', 3, 'preset');
+
+      expect(xboxColor).toBe('lightblue');
+      expect(pcColor).not.toBe('lightblue');
     });
   });
 
@@ -590,8 +655,12 @@ describe('CategoricalColorScale', () => {
 
       const PALETTE = ['red', 'blue', 'green'];
 
+      // the whole palette is claimed by another chart, so a new label in
+      // chart B cannot avoid a color owned by a dashboard label
       const chartAScale = new CategoricalColorScale(PALETTE);
       chartAScale.getColor('Trains', 101, 'testScheme');
+      chartAScale.getColor('Boats', 101, 'testScheme');
+      chartAScale.getColor('Planes', 101, 'testScheme');
 
       const chartBScale = new CategoricalColorScale(PALETTE);
       const addSliceSpy = jest.spyOn(
@@ -599,7 +668,6 @@ describe('CategoricalColorScale', () => {
         'addSlice',
       );
       chartBScale.getColor('Classic Cars', 102, 'testScheme');
-      chartBScale.getColor('Model T', 102, 'testScheme');
       chartBScale.getColor('Trains', 102, 'testScheme');
 
       expect(chartBScale.chartLabelsColorMap.get('Trains')).toBe('red');
