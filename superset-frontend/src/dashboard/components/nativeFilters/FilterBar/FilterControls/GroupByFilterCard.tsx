@@ -22,6 +22,7 @@ import {
   DataMask,
   DataMaskStateWithId,
   DatasourceType,
+  ensureIsArray,
   Filter,
   useTruncation,
   ChartCustomization,
@@ -49,6 +50,8 @@ import { RootState } from 'src/dashboard/types';
 import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { applyColumnAllowlist } from 'src/chartCustomizations/components/DynamicGroupBy/columnAllowlist';
+import { StatusMessage } from 'src/chartCustomizations/components/common';
 import { dispatchChartCustomizationHoverAction } from './utils';
 import {
   displayControlBindingKey,
@@ -414,6 +417,31 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     [sortAscending],
   );
 
+  // Builder-configured allowlist of columns viewers are allowed to group by.
+  const columnsAllowlist = customizationItem.controlValues?.columnsAllowlist as
+    | string[]
+    | undefined;
+
+  const allowedColumnOptions = useMemo(
+    () =>
+      applyColumnAllowlist(
+        columnOptions,
+        columnsAllowlist,
+        ensureIsArray<string>(currentValue),
+      ),
+    [columnOptions, columnsAllowlist, currentValue],
+  );
+
+  // Every column the builder allowed is gone from the dataset (dropped or no
+  // longer groupable). Rather than a silently empty control, viewers get a
+  // message; the control is not opened up to all columns behind the builder's
+  // back.
+  const allowlistUnavailable =
+    !loading &&
+    columnOptions.length > 0 &&
+    ensureIsArray(columnsAllowlist).length > 0 &&
+    applyColumnAllowlist(columnOptions, columnsAllowlist).length === 0;
+
   const columnDisplayName = useMemo(() => {
     if (customizationItem.name) {
       return customizationItem.name;
@@ -591,7 +619,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
               placeholder={t('Search columns...')}
               value={currentValue}
               onChange={handleColumnChange}
-              options={columnOptions}
+              options={allowedColumnOptions}
               showSearch
               mode={canSelectMultiple ? 'multiple' : undefined}
               filterOption={(input, option) =>
@@ -621,7 +649,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
             placeholder={t('Search columns...')}
             value={currentValue}
             onChange={handleColumnChange}
-            options={columnOptions}
+            options={allowedColumnOptions}
             showSearch
             mode={canSelectMultiple ? 'multiple' : undefined}
             filterOption={(input, option) =>
@@ -635,6 +663,13 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
         </div>
       )}
 
+      {allowlistUnavailable && (
+        <StatusMessage status="warning">
+          {t(
+            'The columns allowed for this control are no longer in the dataset. Ask the dashboard owner to update it.',
+          )}
+        </StatusMessage>
+      )}
       {loading && (
         <div style={{ textAlign: 'center', marginTop: 8 }}>
           <Loading position="inline" size="s" muted />
@@ -643,5 +678,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     </div>
   );
 };
+
+export { applyColumnAllowlist };
 
 export default GroupByFilterCard;

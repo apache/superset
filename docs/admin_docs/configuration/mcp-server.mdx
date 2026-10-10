@@ -110,10 +110,79 @@ retains its call's slot rather than exhausting cancellation capacity for new
 calls. One warning with the call ID records abandonment. A timeout does not guarantee that warehouse writes were
 rolled back, so do not blindly retry mutating SQL.
 
+## Externally managed dashboards
+
+MCP dashboard mutation tools refuse changes to externally managed dashboards,
+including ownership and access-role changes, layout and filter edits, chart
+membership, certification, deletion, and restoration. Their responses set
+`managed_externally: true` and explain that the external system is the source
+of truth; changing Superset permissions or retrying does not override it.
+Read-only dashboard tools and certification's inspect-only call remain available.
+
+## Native filter defaults
+
+`manage_native_filters` accepts `default_value` for select filters. An empty
+list clears the selection. With `enable_empty_filter: true`, that explicit
+empty default matches no rows in both the dashboard UI and server-side
+dashboard chart queries, including for UI-created non-exact select filters.
+Creating a required select filter without `default_value` also stores this
+match-nothing default, unless `default_to_first_item` is enabled.
+Inverse-selection filters retain the UI's no-predicate behavior for empty
+selections. Disabling `enable_empty_filter` removes the empty default's
+match-nothing predicate without requiring another `default_value` update.
+Explicit defaults, including an empty list, cannot be combined with
+`default_to_first_item: true`. Creating a first-item filter or enabling that
+option on an existing filter leaves the stored selection unset so the dashboard
+can choose the first available item after loading options. Toggling
+`enable_empty_filter` on a first-item filter preserves that behavior rather than
+storing an explicit empty selection or match-nothing predicate. Any update to
+a first-item filter also clears a defined legacy stored selection (including
+`null`) when first-item mode remains enabled, allowing automatic selection.
+Select filters with legacy string-column
+targets support both default updates and applied selections.
+
+## Bounding dashboard dataset metadata
+
+`get_dashboard_datasets` lists a dashboard's datasets and semantic views with
+column and metric details. Its optional `max_columns` and `max_metrics`
+parameters limit the number of columns (0–100, default 100) and metrics (0–50,
+default 50) returned **per dataset**. Columns and metrics are sorted by name
+before the caps apply, so repeated calls return the same subset. For a wide
+dashboard, start with smaller caps or omit the details entirely:
+
+```json
+{
+  "request": {
+    "identifier": 123,
+    "max_columns": 0,
+    "max_metrics": 0
+  }
+}
+```
+
+Dataset identities, chart counts, and total column and metric counts are
+retained. `columns_truncated` and `metrics_truncated` are true whenever fewer
+items are returned than the dataset contains, including when a cap of 0 omits a
+nonempty list. Use `get_dataset_info` to fetch details for an individual
+dataset. Omitting both parameters returns up to 100 columns and 50 metrics per
+dataset. The caps bound per-dataset details, not the number of datasets or the
+entire response's byte size; a dashboard with many datasets can still exceed the
+server's configured byte limit.
+
 ## Dashboard filter notifications
 
 `apply_dashboard_filters` supports exact-match select filters without inverse
-selection, and time filters. Inverse-selection configurations are rejected.
+selection, time filters, numeric range filters, and time-grain filters. Range
+bounds must be finite numbers representable as floats, or null; booleans are
+rejected. Range permalink labels use the dashboard's smart number formatting
+with ASCII minus signs, falling back to plain numeric representations if
+formatting overflows; time-grain labels come from
+the target datasource's grain names when available. Time grains must be supported
+by the filter's target dataset's database engine, as listed in the datasource's
+`time_grain_sqla` options. If the filter has a nonempty configured allowlist, the
+selected grain must also appear in that list. An unresolved target dataset is
+rejected.
+Inverse-selection configurations are rejected.
 Select filters configured for contains, starts-with, or ends-with matching are
 rejected rather than silently applying exact matching. A single-select filter
 accepts at most one value; a longer list is rejected rather than stored as a
@@ -165,11 +234,13 @@ The MCP process and websocket transport must use the same
 Framework feature flag.
 
 The response's `live_update_pushed` field reports publication success, not
-browser receipt or application. Without a backend, an identifiable principal,
-or a successful publish, it is `false`; the created `dashboard_url` remains
-the fallback. An open dashboard resolves matching notifications through the
-existing dashboard permalink API and applies the returned filters without a
-reload. A “Filters applied from chat” toast offers **Undo**, restoring the
+browser receipt or application. When `WEBSOCKET_ENABLE` is disabled or unset,
+no notification is published and this field is `false`. Without a backend,
+`can_read` on `Realtime` for the calling principal, an identifiable principal,
+or a successful publish, it is also `false`; the created
+`dashboard_url` remains the fallback. An open dashboard resolves matching
+notifications through the existing dashboard permalink API and applies the
+returned filters without a reload. A “Filters applied from chat” toast offers **Undo**, restoring the
 affected filters' previous selections. The toast carries an action, so it has
 no auto-dismiss timer and stays up until Undo or its close button is used,
 which keeps the action reachable for keyboard and assistive-technology users.
@@ -887,9 +958,105 @@ MCP_STORE_CONFIG = {
 | `event_store_max_events` | `100`   | Maximum events retained per session                      |
 | `event_store_ttl`        | `3600`  | Event TTL in seconds                                     |
 
+### Tool discovery modes
+
+The MCP server can advertise its tools in two ways. Both modes serve the same
+registered tool definitions through the same middleware, authentication, and
+permission checks; only the `tools/list` response differs.
+
+| Mode                      | `MCP_TOOL_SEARCH_CONFIG["enabled"]` | `tools/list` returns                                                       | Calling tools                                         |
+| ------------------------- | ----------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Compatibility (default)   | `True`                              | The pinned `always_visible` tools plus `search_tools` and `call_tool`      | Through the `call_tool` proxy, or directly by name    |
+| Native                    | `False`                             | Every tool the caller may use, under its real name                         | Directly by name with `tools/call`                    |
+
+Every registered tool can be called directly by name in both modes. In native
+mode each listed tool carries its full description, input schema, and
+read-only/destructive/idempotent/open-world annotations, plus its output schema
+when `MCP_STRUCTURED_OUTPUT_ENABLED = True`. The listing is a single page with
+no cursor. Schema `$ref` definitions are inlined on the wire, with nullable
+unions and constraints preserved, and calls are validated against the same
+server-side models in either mode.
+
+The native listing is much larger than the compatibility listing, and it grows
+when structured output is enabled. Per-tool description lengths, schema sizes,
+and catalog totals for both structured-output settings are recorded in
+`tests/unit_tests/mcp_service/native_tool_inventory.json` and enforced by
+regression tests. Clients and gateways that cap the size of a single list
+response should be checked against those totals before switching modes.
+
+#### Authorization in both modes
+
+- `tools/list` in native mode and `search_tools` in compatibility mode apply the
+  same visibility check: RBAC, token scopes, the restricted-principal tool
+  policy, and data-model metadata access.
+- Each tool enforces the same checks again when it is called, so naming a
+  hidden tool directly, or passing it to `call_tool`, is rejected with the same
+  error. Revoked permissions take effect on the next request.
+- Tools in `ALLOWED_UNPROTECTED` (`generate_bug_report`) intentionally run
+  without authentication for every caller in both modes.
+- When no authentication source is configured at all (development only),
+  native `tools/list` shows every tool, while `search_tools` returns only tools
+  without a permission requirement. Protected calls are rejected in both modes
+  until a user can be resolved.
+- `call_tool` returns the same result as a direct call, including `isError`,
+  validation details, and `structuredContent` when structured output is
+  enabled.
+
+#### Migrating to native mode
+
+1. Confirm that every client used with the deployment calls tools by name from
+   `tools/list` and accepts the size of the full listing. Clients that load
+   tool definitions lazily on their own side work with native mode.
+2. Choose `MCP_STRUCTURED_OUTPUT_ENABLED` separately; it is independent of the
+   discovery mode.
+3. Set `MCP_TOOL_SEARCH_CONFIG["enabled"] = False`. To roll back, set it to
+   `True`; no client or server state needs migrating.
+
+Clients that call tools by name work against servers in either mode. Clients
+that only know `search_tools` and `call_tool` fail against a server in native
+mode, because those two tools are not served there. Keep compatibility mode
+until such clients have migrated, and in multi-pod deployments switch every pod
+together (or keep each client session on pods in one mode) so that a session
+started in compatibility mode is not routed to a pod in native mode.
+
+#### Compact native listing
+
+Native mode can optionally bound each listed tool description, which shrinks
+the `tools/list` response without changing what clients can call:
+
+```python
+MCP_NATIVE_TOOL_LIST_CONFIG = {
+    "compact": True,  # default: False
+    "max_description_length": 300,  # prose budget per tool
+}
+```
+
+Descriptions keep whole paragraphs first, then whole sentences. Once a whole
+paragraph fits the budget, a following heading, `IMPORTANT` block, or list is
+not partly advertised. An overlong first paragraph can be cut at a sentence
+boundary, even if it is structured. Calling instructions authored on a tool's
+`request` parameter stay untruncated in the input schema and are not deducted
+from the native prose budget. Names, input and output schemas (including nullable
+unions, constraints, and definitions), and annotations are unchanged, and calls
+are validated against the same server-side models, so only the listed prose
+differs. Chart tools point to `get_chart_type_schema`, which returns each chart
+type's fields, required fields, and examples. The setting has no effect in
+compatibility mode, whose search results are bounded by
+`MCP_TOOL_SEARCH_CONFIG["max_description_length"]`.
+
+Both default and factory startup read `MCP_TOOL_SEARCH_CONFIG` and
+`MCP_NATIVE_TOOL_LIST_CONFIG` from the Flask application configuration, falling
+back to the module defaults when a setting is absent.
+
+The recorded inventory includes catalog totals for both listings.
+
+Compatibility mode remains supported. Any change to its default will be listed
+in `UPDATING.md`, and setting `enabled` explicitly keeps the chosen mode
+regardless of the default.
+
 ### Tool Search
 
-By default the MCP server exposes a lightweight tool-search interface instead of advertising every tool at once. This reduces the initial context sent to the LLM by ~70%, which lowers cost and latency. The AI client discovers tools on demand by calling `search_tools` and then invokes them via `call_tool`.
+In compatibility mode the MCP server exposes a lightweight tool-search interface instead of advertising every tool at once, which keeps the initial tool listing small. The AI client discovers tools on demand by calling `search_tools` and then invokes them via `call_tool`.
 
 ```python
 MCP_TOOL_SEARCH_CONFIG = {
@@ -916,7 +1083,26 @@ MCP_TOOL_SEARCH_CONFIG = {
 | `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search                                                                                                                                                                                                                                                     |
 | `include_schemas`        | `True`    | Include the full `inputSchema` in search results by default. When `False` ("summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Full schemas are always used when a tool is actually invoked via `call_tool`. |
 | `compact_schemas`        | `True`    | Legacy setting selecting the default description limit (300 when `True`, 0 when `False`) if `max_description_length` is omitted. Input schemas preserve `$defs`, `$ref`, nullable unions, and constraints in either mode; titles are omitted. Clients should resolve references within each tool's `inputSchema`.                                                                                                                                      |
-| `max_description_length` | `300`     | Truncate tool descriptions in search results (0 = no truncation). Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
+| `max_description_length` | `300`     | Budget for discovery prose alone (0 = no prose truncation). Complete paragraphs are retained, followed by complete sentences of the next paragraph unless it is a list, heading, or IMPORTANT block. Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
+
+The no-query catalog uses the same bounded serializer as targeted search.
+Chart creation/update and virtual-dataset tools keep request wrapping, save/preview
+behavior, required URL display, and workflow guidance in request metadata rather
+than relying on truncated introductory prose. Paragraph truncation never leaves a
+partial IMPORTANT block or numbered workflow in the catalog.
+
+Calling constraints are authored as a `Field(description=...)` on the tool's
+`request` parameter and served as the `request` property's schema description, so
+schema-first clients can identify the wrapper without remembering previous calls.
+Summary mode preserves these instructions in `parameters_hint`. Instructions are
+never truncated and do not consume the prose budget in either mode, matching
+native compact listings. A request model's own docstring is not a calling
+instruction. Built-in calling instructions are capped at 300
+characters by regression tests, and the complete tool entries retain per-tool
+size budgets. Field-level descriptions in the default full input schema also
+preserve tool-specific search semantics, sortable columns, chart pagination, and
+layout guidance. These details are not included in schema-free summary mode.
+This setting does not change result-size limits or schema validation.
 
 :::tip
 Set `enabled: False` to revert to the traditional "show all tools at once" behavior, which some clients or workflows may prefer.
@@ -930,7 +1116,9 @@ the caller are eligible. Pinned `always_visible` tools remain in `list_tools`
 rather than search results; non-exact queries retain BM25 ranking or regex
 catalog ordering.
 
-Tool search reduces the initial token cost from ~15–20K tokens (full catalog) down to ~4–5K tokens (pinned tools + search interface) — roughly 85% savings at the start of each conversation.
+Tool search keeps the initial listing to the pinned tools and the search
+interface; see the recorded inventory above for the size of the full native
+catalog it replaces.
 
 ### Session & CSRF
 
@@ -967,6 +1155,7 @@ Each tool declares one or more required FAB permissions. The table below maps to
 | `list_dashboards`, `get_dashboard_info`, `generate_dashboard`, `add_chart_to_existing_dashboard`         | `can_read` on `Dashboard` (read), `can_write` on `Dashboard` (mutate) |
 | `get_dashboard_data`                                                                                     | `can_read` on `Dashboard` **and** `can_read` on `Chart` (it reads chart data across the dashboard) |
 | `list_datasets`, `get_dataset_info`, `create_virtual_dataset`                                            | `can_read` on `Dataset` (read), `can_write` on `Dataset` (mutate)     |
+| `list_metrics`, `get_table`, `get_compatible_dimensions`, `get_compatible_metrics`                        | `can_read` on `Dataset`, plus a data-model metadata permission (`can_get_drill_info`, `can_get_or_create_dataset`, or `can_write` on `Dataset`); external semantic views also enforce their own datasource access check |
 | `list_databases`, `get_database_info`                                                                    | `can_read` on `Database`                                              |
 | `get_catalog`                                                                                            | `can_read` on the requested asset class (`Database`, `Dataset`, `Chart`, or `Dashboard`); databases and datasets also require data-model metadata access, otherwise the page is marked `restricted` |
 | `execute_sql`                                                                                            | `can_execute_sql_query` on `SQLLab`                                   |
@@ -1007,7 +1196,13 @@ Every MCP request passes through a middleware stack before reaching the tool fun
 | `ResponseSizeGuardMiddleware`       | Measures serialized response size, warns at 80% of limit, blocks at limit              | Enabled (configurable via `MCP_RESPONSE_SIZE_CONFIG`) |
 | `ResponseCachingMiddleware`         | Caches read-heavy tool responses (in-memory or Redis)                                  | Disabled (enable via `MCP_CACHE_CONFIG`)              |
 
-Additional middleware classes (`RateLimitMiddleware`, `FieldPermissionsMiddleware`, `PrivateToolMiddleware`) are implemented in `superset/mcp_service/middleware.py` but are not added to the default pipeline. They are available for operators who want to layer them in via a custom startup path.
+`RBACToolVisibilityMiddleware` sits between the compatibility and logging
+middleware and filters `tools/list` to the tools the caller may use.
+
+The MCP service applies no request rate limiting of its own. Deployments that
+need rate limits enforce them in front of the MCP endpoint, for example in a
+gateway or reverse proxy, where they apply to native and compatibility-mode
+calls alike.
 
 `StructuredContentStripperMiddleware` is a deprecated compatibility class for
 custom startup paths that retains its original stripping behavior. Replace it with
@@ -1129,6 +1324,7 @@ names do not make nonnumeric values eligible.
 
 - Ensure the MCP server and Superset share the same `superset_config.py`
 - Check server logs at startup -- tool registration errors are logged with the tool name and reason
+- In native mode (`MCP_TOOL_SEARCH_CONFIG["enabled"] = False`) `search_tools` and `call_tool` are not served; call tools by name or re-enable compatibility mode
 
 ### Client can't connect
 
@@ -1145,10 +1341,13 @@ names do not make nonnumeric values eligible.
 
 ### Response too large
 
-- If a tool call returns an error about exceeding size limits, the response size guard is blocking an oversized result
-- Reduce `page_size` or `limit` parameters, use `select_columns` to exclude large fields, or add filters to narrow results
-- To adjust the threshold, change `max_bytes` in `MCP_RESPONSE_SIZE_CONFIG`
-- To disable the guard entirely, set `MCP_RESPONSE_SIZE_CONFIG = {"enabled": False}`
+Two independent limits can reject a large result. Check the error type to tell them apart:
+
+- **Response size guard (configurable).** An error about exceeding the response size limit comes from `ResponseSizeGuardMiddleware`, which measures the serialized tool response.
+  - Reduce `page_size` or `limit` parameters, use `select_columns` to exclude large fields, or add filters to narrow results
+  - To adjust the threshold, change `max_bytes` in `MCP_RESPONSE_SIZE_CONFIG`
+  - To disable the guard entirely, set `MCP_RESPONSE_SIZE_CONFIG = {"enabled": False}`
+- **Chart query result limits (mandatory).** An `InvalidQueryResult` error such as "Chart query returned too many rows" or "hostile or oversized row data" comes from validation of the chart query result itself, before any response is built. These limits are fixed safety bounds and are **not** affected by `MCP_RESPONSE_SIZE_CONFIG`; raising `max_bytes` or disabling the guard does not change them. They cap a result at 50,000 rows per query and 100,000 rows in total, 4,096 columns, 2,500,000 values, 16 MiB of JSON, and 65,536 UTF-8 bytes per text cell (binary cells are bounded by the same per-cell limit). To resolve them, reduce the chart's row limit, add filters, select fewer or narrower columns, or aggregate the data.
 
 ---
 
@@ -1262,7 +1461,7 @@ The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gaug
 Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
 specification instead of `NoDataError`, matching their unsaved previews.
 
-Gauge data inspection and JSON/CSV/XLSX exports preserve source groups, including NULL and non-finite metric values, using the same row-count and completeness semantics as other chart types. The default XLSX exporter writes non-finite floats as `nan`, `inf`, or `-inf` text, matching CSV and distinguishing them from blank NULL cells. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
+Gauge data inspection and JSON/CSV/XLSX exports preserve source groups using the same row-count and completeness semantics as other chart types. Shared result normalization converts non-finite floats to null before export: JSON returns null, and CSV and both XLSX writers produce blank cells. These values are indistinguishable from SQL NULL; exports do not retain `nan`, `inf`, or `-inf` text. An overflowing aggregate can therefore appear as a missing value. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
 
 Gauge previews retain data-derived automatic bounds even when configured interval thresholds extend beyond the visible range; Vega previews clip those thresholds into adjacent, non-overlapping bands. Explicit min/max bounds still constrain intervals. All-zero data with both bounds omitted uses a nondegenerate preview range of 0–1. On same-dataset Gauge updates, clearing or changing the dashboard temporal binding preserves user-authored temporal ranges; dataset rebinds discard old query roles and filters. The native `"No filter"` sentinel is a neutral dashboard temporal binding, not a conflicting restriction. Duplicate generated neutral bindings self-heal on updates without removing user-authored ranges. Restating the existing dataset ID without a config is allowed; changing the Gauge dataset still requires a complete config. Native restrictive temporal filters that conflict with the top-level range or another restrictive temporal filter are rejected rather than silently dropped. Unsupported native filter operators are rejected with an indexed error. Native `TEMPORAL_RANGE` adhoc filters require an explicit string comparator; `"No filter"`, empty strings, and whitespace represent an unrestricted range.
 
@@ -1296,6 +1495,10 @@ def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
 The callable must be cheap and in-process (consult already-loaded feature flags or request-local context) -- do not perform network I/O per call. If it raises, the registry fails closed (the plugin is hidden) and logs a warning.
 
 Disabling a plugin only stops new charts of that type from being created. Existing saved charts of that type keep their plugin's query, result-validation and preview behavior in `get_chart_data`, `get_chart_preview` and `get_chart_sql`. Updates through `update_chart` and `update_chart_preview` also retain the plugin's configuration completion, column validation, merge rules, and compile checks. Gauge and Treemap compile checks use a safe 10-row fallback for malformed (including boolean) or nonpositive saved row limits. Malformed Gantt query fields return a validation error rather than a generic data-retrieval error. Funnel Vega-Lite previews return `InvalidFormData` when a stage reference has no resolvable result label. Mixed timeseries queries keep each axis's series grouping separate from the time-axis column. Saved charts with a scalar `groupby` retain the full column name in Waterfall queries and Funnel/Histogram Vega-Lite previews.
+
+Saved Histogram and Gantt charts apply `time_range` to the date column selected
+by `granularity_sqla`. A normalized `granularity` override takes precedence,
+including an explicit clear.
 
 ## Security Best Practices
 
@@ -1355,6 +1558,11 @@ For Generic Chart Axes charts, both MCP overrides and dashboard time-grain
 filters update the `BASE_AXIS` column's `timeGrain`, regardless of its position
 in the query's `columns` list. Other columns are left untouched. Queries without
 a `BASE_AXIS` column continue to use `extras.time_grain_sqla`.
+Same-visualization updates that supply only a non-null `time_grain` preserve saved
+temporal range filters. Explicitly setting `time_grain` to null clears saved
+temporal state, including `time_range` and temporal range filters; it does not
+preserve the date restriction. Supply `time_range` or `temporal_column` to change
+the temporal restriction or binding.
 
 ### Exploring large dashboard layouts
 
@@ -1488,18 +1696,105 @@ preservation of complex SQL restrictions.
 
 ## Result serialization
 
-Data-bearing tool responses sanitize row values, column samples, and statistics
-even when Python producers supply tuples, sets, generators, or read-only mappings.
-Missing and non-finite values become JSON `null`; non-UTF-8 binary values become
-base64 strings prefixed with `base64:`. Boolean row counts are treated as
+Data-bearing tool responses sanitize row values, column samples, and statistics.
+Tuple-valued cells and NumPy arrays (including arrays materialized by Arrow) are
+returned as JSON arrays. Nested values share the same depth, item, and byte
+limits as list-valued cells; unsupported containers and subclasses are rejected.
+Nested maps stringify exact built-in string, integer, float, boolean, and null
+keys within the key-size budget; arbitrary key objects and subclasses are rejected.
+Missing and non-finite floating-point values become JSON `null`; non-UTF-8 binary
+values become base64 strings prefixed with `base64:`. Boolean row counts are treated as
 unavailable, producing `null` for nullable counts and `0` for non-nullable counts,
 rather than being interpreted as one or zero rows.
+Concrete psycopg2 and psycopg PostgreSQL ranges, including ranges nested in
+array cells, become bounded driver-style text (for example, `"[1, 10)"`).
+Range subclasses and unsupported or oversized endpoints are rejected; arbitrary
+objects are not stringified.
+Finite SQL Decimal values retain their precision during chart validation and
+CSV export, but use the existing JSON number format in rows, query results,
+column samples, and statistics. As with other floating-point JSON numbers,
+clients should not rely on exact decimal precision in that projection.
+
+Rebuilt `get_chart_data` queries retrieve the requested row limit rather than
+a saved Table's server-pagination page size. CSV and Excel exports are not
+restricted to the first Explore page, and explicit limits apply before execution.
+Same-visualization Bubble updates preserve omitted `series`, `row_limit`, and
+`color_scheme`; `series: null` explicitly removes grouping.
+Saved Mixed Timeseries Vega-Lite previews honor the requested width and height.
+Both Mixed Timeseries queries validate SIMPLE filter clauses and column references;
+unsupported SIMPLE HAVING filters are rejected rather than silently discarded.
+Same-visualization Mixed Timeseries updates preserve omitted secondary-query
+controls, including time range, row limits, time grain, rolling/resample settings,
+and saved or adhoc ranking metrics. New typed Mixed Timeseries charts default
+secondary grouping to empty rather than inheriting primary grouping.
+Omitted primary and secondary grouping on updates retain their saved values;
+`group_by: []`/`null` and `group_by_secondary: []`/`null` clear only that query's
+grouping. Explicit secondary controls and clears replace the saved values.
+Same-visualization aggregate Table updates preserve native percent-metric columns;
+raw-mode updates, visualization changes, and dataset rebinds do not carry them over.
+Same-visualization Table updates preserve saved ordering when `sort_by` is
+omitted; `sort_by: []` clears it. Same-visualization XY updates preserve saved
+series grouping when `group_by` is omitted; `group_by: []` clears it. Omitted
+`series_limit_metric` and `timeseries_limit_metric` preserve saved series ranking.
+Either spelling replaces the saved ranking when supplied; `null` clears it. Native XY
+`BASE_AXIS` SQL x-axis objects carry their `timeGrain` into the chart's
+`time_grain` unless a panel-level `time_grain` or `time_grain_sqla` is supplied.
+Table compile and preview row caps take precedence over saved row limits;
+server pagination can reduce a cap only when its page size is positive.
+Grouped Mixed Timeseries Vega-Lite previews fold all flattened series columns,
+so every primary-query group remains visible rather than only the first numeric
+column. Saved Big Number axes using `column_name` mappings retain time-range
+bindings and time-grain bucketing like string axes.
+Sort-only Timeseries metrics retain their raw values when displayed metrics
+undergo rolling or cumulative processing.
+Timeseries compile checks skip rolling windows and forecasting on their bounded
+two-row sample; full previews and data queries still apply those analytics, so
+compile success does not validate their full-history behavior.
+
+If a successful `generate_chart` or `update_chart` write produces response
+content beyond serialization limits, the response retains `success: true` and
+the saved `chart.id`, with a warning and optional content omitted. Retrieve the
+chart by that ID instead of retrying the write. Unsaved responses that exceed
+these limits still return a structured failure.
 
 ## Chart data column counts
 
 For saved and unsaved charts, `get_chart_data` column metadata excludes missing
 values from `unique_count`. Values serialized as JSON `null`, including NaN,
 NaT, and non-finite numbers, contribute to `null_count` instead.
+
+## Big Number headlines
+
+For Big Number charts (`big_number` and `big_number_total`), `get_chart_data`
+and `get_dashboard_data` return a `headline` object holding the number the chart
+displays. Agents should report `headline.value` rather than reading or summing
+the data rows: for the trendline variant the rows are a time series, and the
+displayed number is derived from the whole series by the chart's aggregation.
+
+| Field | Contents |
+| --- | --- |
+| `value` | The displayed number, or `null` when it cannot be computed exactly |
+| `aggregation` | `total` for `big_number_total`; otherwise the chart's aggregation (`LAST_VALUE`, `sum`, `mean`, `min`, `max`, `median`, or `raw`) |
+| `rows_used` | The number of non-null values aggregated |
+| `reason` | Why `value` is `null` |
+
+A headline is only returned when it matches the rendered chart, so `value` is
+`null` with a `reason` when:
+
+- The query returned no rows, the metric column is missing, or every metric
+  value is null.
+- The chart applies a rolling window or resampling that the executed query did
+  not include, or the fetch was truncated at the row limit.
+- The aggregation picks the latest value (`LAST_VALUE`) and some rows have no
+  usable timestamp. The chart's ordering of such rows depends on row order, so
+  the value it shows cannot be determined exactly. Order-independent
+  aggregations still include those rows.
+- The aggregation is `raw` ("Overall value") and the chart has no saved query
+  context. That value comes from a second query that only a saved query context
+  carries, so unsaved and `form_data_key` requests return `null`.
+
+When `form_data_key` is supplied, the headline follows the unsaved visualization
+type, including when switching to or from a Big Number chart.
 
 ## Dataset query dimensions and nested fields
 
@@ -1584,6 +1879,20 @@ structured errors instead of apparently successful previews, charts or exports.
 
 ## Dataset discovery and routing
 
+`list_datasets`, `get_dataset_info`, `update_dataset`, and `query_dataset`
+operate on registered **SQL datasets** (physical tables or virtual SQL queries),
+not external semantic views. `create_dataset` registers a physical table as a
+SQL dataset; it does not create or register semantic views. The `certified`
+filter in `list_datasets` selects certified SQL datasets, not external views.
+
+For existing semantic views, use `list_metrics` to discover metrics and
+`get_table` to query them, retaining the returned source and view identity.
+These tools do not provision or edit semantic views. A dataset not-found error
+offers this routing guidance without establishing whether a semantic view
+exists or is accessible. Numeric IDs can overlap across source types; do not
+reuse a semantic-view ID as a SQL-dataset ID or substitute another source.
+All tool permissions, feature flags, and datasource access checks still apply.
+
 `list_datasets` searches table name, **description**, schema, and SQL using
 escaped, case-insensitive substring matching. Write descriptions with business
 terminology to make differently named datasets discoverable. A complete UUID
@@ -1656,3 +1965,59 @@ predicate, whose behavior varied by database. It is not an indexed
 full-text search: large catalogs and long descriptions can increase scan time.
 Benchmark with your metadata database and catalog size when tuning discovery
 latency.
+
+### Managing and applying dashboard native filters
+
+`manage_native_filters` requires a numeric dataset column when adding a
+`filter_range` filter or changing its dataset/column target. Select filters
+continue to accept nonnumeric columns.
+
+Dividers are visual separators and are always in scope. When updating a
+`divider` with `manage_native_filters`, use `name` to change its title and
+`description` to change its description; `scope_chart_ids` is rejected.
+`apply_dashboard_filters` excludes dividers from its available-filter error lists.
+
+For `apply_dashboard_filters`, pass `time_grain` as a list containing at most
+one datasource-supported duration (for example, `["P1D"]`). Custom engine
+durations are accepted when exposed in the datasource's time-grain options,
+rather than limited to a fixed enum.
+A nonempty `time_grains` list in the saved filter configuration restricts the
+allowed selection to grains that appear in both that list and the target dataset's
+supported time grains; missing or empty lists use the dataset's supported grains.
+Pass `[]` to clear an optional time-grain filter; required filters cannot be
+cleared.
+
+## Missing chart columns
+
+`generate_chart`, `update_chart`, `update_chart_preview` and
+`generate_explore_link` all validate column references through
+`validate_and_compile` and return the same structured errors.
+
+A reference to a missing column returns `column_not_found` with up to three
+similar physical column names ("Did you mean: ..."), or explicit no-match
+guidance when nothing is close enough. Saved metrics — both names and
+expressions — are excluded from these candidates for dimension and `WHERE`
+references, because only a physical column is legal there and suggesting a
+metric leads to invalid `SUM(metric)` SQL. SIMPLE `HAVING` filters are
+unsupported, so their column errors do not suggest saved metrics either. When a
+reference in a metric slot (`y`, `metric`, Sunburst `secondary_metric`, or an
+aggregated table column, for example) near-misses a saved metric name, the error
+adds a hint to reference it as `{"name": "<metric>", "saved_metric": true}`
+instead. Dimension references never receive this hint, even when they carry an
+`aggregate`.
+
+When more than one distinct column is missing, the error type is
+`multiple_invalid_columns`. The invalid names appear in escaped, length-limited
+details, and the three-candidate cap is **shared across all missing columns**,
+filled round-robin so each missing column gets a turn.
+
+Column errors carry a bounded `dataset_context`: up to ten column names and ten
+saved-metric names from the authorized dataset, names only — never SQL
+expressions. Suggested candidates are listed first so they are never cut by the
+bound (a hinted saved metric leads `available_metrics` the same way), and the
+error says `Showing 10 of N columns` or `Showing 10 of N saved metrics` when a
+list is partial.
+Context names are returned verbatim per the Tool Result Value Contract.
+"Did you mean" column candidates also preserve dataset spelling, including
+quotes and ampersands, with a 200-character bound per candidate. Use
+`get_dataset_info` for the complete schema.

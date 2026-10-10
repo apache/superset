@@ -21,6 +21,7 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
+from fastmcp.tools.tool import Tool
 from jsonschema import Draft202012Validator
 
 from superset.mcp_service.app import mcp
@@ -53,10 +54,10 @@ def budgeted_bytes(text: str) -> int:
 
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
-    "apply_dashboard_filters": 2_900,
+    "apply_dashboard_filters": 3_700,
     "create_dataset": 1_800,
     "create_dataset_metric": 2_800,
-    "create_theme": 1_100,
+    "create_theme": 1_200,
     "create_virtual_dataset": 3_700,
     "delete_chart": 1_100,
     "delete_dashboard": 1_100,
@@ -80,7 +81,8 @@ TOOL_BUDGETS = {
     "get_compatible_metrics": 1_500,
     "get_dashboard_data": 2_400,
     "get_dashboard_datasets": 1_100,
-    "get_dashboard_info": 3_100,
+    # Independent prose/instruction budgets: 3,178 bytes plus snapshot headroom.
+    "get_dashboard_info": 3_300,
     "get_dashboard_layout": 1_600,
     "get_database_info": 1_400,
     "get_dataset_info": 2_400,
@@ -121,9 +123,12 @@ TOOL_BUDGETS = {
     "list_themes": 3_000,
     "list_users": 2_900,
     "manage_dashboard_certification": 1_900,
+    "manage_dashboard_markdown": 7_000,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,
-    "manage_native_filters": 6_700,
+    # Includes filter-bar dividers and select-filter default values:
+    # 10,380 bytes, rounded up plus the standard 100-byte headroom.
+    "manage_native_filters": 10_500,
     "open_sql_lab_with_context": 1_800,
     "query_dataset": 3_700,
     "remove_chart_from_dashboard": 1_300,
@@ -132,7 +137,7 @@ TOOL_BUDGETS = {
     "restore_dataset": 1_100,
     "save_sql_query": 1_600,
     "update_chart": 4_100,
-    "update_chart_preview": 2_000,
+    "update_chart_preview": 2_200,
     "update_dashboard": 4_200,
     "update_dataset": 2_300,
     "update_dataset_metric": 3_100,
@@ -144,6 +149,34 @@ async def test_inventory_budgets_cover_every_registered_tool() -> None:
     """New or renamed tools must get explicit budgets instead of escaping checks."""
     tools = await mcp.list_tools(run_middleware=False)
     assert {tool.name for tool in tools} == set(TOOL_BUDGETS)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "name",
+    [
+        "list_datasets",
+        "get_dataset_info",
+        "create_dataset",
+        "update_dataset",
+        "query_dataset",
+    ],
+)
+async def test_sql_dataset_inventory_routes_semantic_view_callers(name: str) -> None:
+    """Keep SQL scope in compact discovery and routing in tool descriptions."""
+    tool: Tool | None = await mcp.get_tool(name)
+    assert tool is not None
+    description: str = _create_search_result_serializer(MCP_TOOL_SEARCH_CONFIG)([tool])[
+        0
+    ]["description"]
+    assert "SQL dataset" in description
+    assert tool.description is not None
+    assert "semantic view" in tool.description
+    assert "list_metrics" in tool.description
+    assert "get_table" in tool.description
+    assert "semantic view" in description
+    assert "list_metrics" in description
+    assert "get_table" in description
 
 
 @pytest.mark.asyncio

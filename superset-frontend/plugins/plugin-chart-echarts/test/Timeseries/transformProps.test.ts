@@ -2850,6 +2850,37 @@ test('temporal x-axis enables trigger events when no dimensions are set', () => 
   expect(xAxis.triggerEvent).toBe(true);
 });
 
+test('categorical x-axis enables trigger events when dimensions are set', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['metric'],
+      groupby: ['status'],
+      x_axis: 'category_column',
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          { category_column: 'Product A', 'metric, RESOLVED': 10 },
+          { category_column: 'Product B', 'metric, RESOLVED': 20 },
+        ],
+        {
+          colnames: ['category_column', 'metric, RESOLVED'],
+          coltypes: [GenericDataType.String, GenericDataType.Numeric],
+        },
+      ),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const xAxis = echartOptions.xAxis as {
+    triggerEvent?: boolean;
+    type: string;
+  };
+
+  expect(xAxis.type).toBe(AxisType.Category);
+  expect(xAxis.triggerEvent).toBe(true);
+});
+
 test('temporal x coltype forced categorical yields a Category axis with date labels', () => {
   // Issue #28204: with a temporal x-axis (e.g. weekly grain) the default Time
   // scale places ticks at "nice" intervals that don't line up with the buckets.
@@ -3722,6 +3753,66 @@ test('applies gridlines to the value axis after a horizontal orientation swaps i
   // The transform swaps the axes for a horizontal chart, so the value axis —
   // and the gridlines belonging to it — end up on xAxis.
   expect((echartOptions.xAxis as any).splitLine.show).toBe(false);
+});
+
+type AxisLabelOptions = {
+  axisLabel: {
+    show?: boolean;
+    showMinLabel?: boolean;
+    showMaxLabel?: boolean;
+  };
+  splitLine?: { show?: boolean };
+};
+
+test('shows the value axis labels by default', () => {
+  const { echartOptions } = transformProps(createTestChartProps({}));
+  const { axisLabel } = echartOptions.yAxis as AxisLabelOptions;
+
+  expect(axisLabel.show).toBe(true);
+  expect(axisLabel.showMinLabel).toBe(true);
+  expect(axisLabel.showMaxLabel).toBe(true);
+});
+
+test('hides the value axis labels including the boundary ones', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({ formData: { valueAxisLabels: false } }),
+  );
+  const yAxis = echartOptions.yAxis as AxisLabelOptions;
+  const xAxis = echartOptions.xAxis as AxisLabelOptions;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+  expect(yAxis.axisLabel.showMinLabel).toBe(false);
+  expect(yAxis.axisLabel.showMaxLabel).toBe(false);
+  expect(yAxis.splitLine?.show).toBe(true);
+  expect(xAxis.axisLabel.show).toBeUndefined();
+});
+
+test('keeps the value axis labels off on a micro chart even when enabled', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      height: TIMESERIES_CONSTANTS.microChartHeight - 1,
+      formData: { valueAxisLabels: true },
+    }),
+  );
+  const { axisLabel } = echartOptions.yAxis as AxisLabelOptions;
+
+  expect(axisLabel.show).toBe(false);
+  expect(axisLabel.showMinLabel).toBe(false);
+  expect(axisLabel.showMaxLabel).toBe(false);
+});
+
+test('hides the value axis labels after a horizontal orientation swaps the axis', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      formData: {
+        orientation: OrientationType.Horizontal,
+        valueAxisLabels: false,
+      },
+    }),
+  );
+  const xAxis = echartOptions.xAxis as AxisLabelOptions;
+
+  expect(xAxis.axisLabel.show).toBe(false);
 });
 
 test('#39899 - horizontal orientation does not over-thin the time axis labels', () => {
