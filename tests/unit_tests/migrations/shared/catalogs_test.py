@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json  # noqa: TID251
+from typing import Any
 
 import pytest
-from flask import current_app
+import sqlalchemy as sa
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -26,583 +26,136 @@ from superset.migrations.shared.catalogs import (
     downgrade_catalog_perms,
     upgrade_catalog_perms,
 )
-from superset.migrations.shared.security_converge import (
-    Permission,
-    PermissionView,
-    ViewMenu,
+
+metadata = sa.MetaData()
+
+dbs = sa.Table(
+    "dbs",
+    metadata,
+    sa.Column("id", sa.Integer, primary_key=True),
+    sa.Column("database_name", sa.String(250)),
+    sa.Column("sqlalchemy_uri", sa.String(1024)),
+    sa.Column("encrypted_extra", sa.Text),
 )
-from superset.superset_typing import OAuth2ClientConfig
+view_menu = sa.Table(
+    "ab_view_menu",
+    metadata,
+    sa.Column("id", sa.Integer, primary_key=True),
+    sa.Column("name", sa.String(250)),
+)
+tables = sa.Table(
+    "tables",
+    metadata,
+    sa.Column("id", sa.Integer, primary_key=True),
+    sa.Column("database_id", sa.Integer),
+    sa.Column("schema", sa.String(255)),
+    sa.Column("schema_perm", sa.String(1000)),
+    sa.Column("catalog", sa.String(256)),
+    sa.Column("catalog_perm", sa.String(1000)),
+)
+query = sa.Table(
+    "query",
+    metadata,
+    sa.Column("id", sa.Integer, primary_key=True),
+    sa.Column("database_id", sa.Integer),
+    sa.Column("catalog", sa.String(256)),
+)
+
+# Engine sets passed by the migrations that call these helpers.
+MIGRATION_ENGINES = [
+    {"postgresql"},
+    {"databricks"},
+    {"trino", "presto", "bigquery", "snowflake"},
+    None,
+]
 
 
-@pytest.fixture
-def oauth2_config() -> OAuth2ClientConfig:
-    """
-    Config for GSheets OAuth2.
-    """
+def _snapshot(session: Session) -> dict[str, list[Any]]:
     return {
-        "id": "XXX.apps.googleusercontent.com",
-        "secret": "GOCSPX-YYY",
-        "scope": " ".join(
-            [
-                "https://www.googleapis.com/auth/drive.readonly "
-                "https://www.googleapis.com/auth/spreadsheets "
-                "https://spreadsheets.google.com/feeds"
-            ]
-        ),
-        "redirect_uri": "http://localhost:8088/api/v1/oauth2/",
-        "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
-        "token_request_uri": "https://oauth2.googleapis.com/token",
-        "request_content_type": "json",
+        table.name: [tuple(row) for row in session.execute(table.select())]
+        for table in metadata.sorted_tables
     }
 
 
-def test_upgrade_catalog_perms(mocker: MockerFixture, session: Session) -> None:
+@pytest.fixture
+def populated_session(session: Session) -> Session:
     """
-    Test the `upgrade_catalog_perms` function.
-
-    The function is called when catalogs are introduced into a new DB engine spec.
+    A metadata DB with existing databases (including catalog-capable engines and
+    an encrypted ``encrypted_extra``), datasets, queries and schema permissions.
     """
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-    from superset.models.slice import Slice
-    from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
-
-    engine = session.get_bind()
-    Database.metadata.create_all(engine)
-
-    mocker.patch("superset.migrations.shared.catalogs.op")
-    db = mocker.patch("superset.migrations.shared.catalogs.db")
-    db.Session.return_value = session
-
-    mocker.patch.object(
-        Database,
-        "get_all_schema_names",
-        return_value=["public", "information_schema"],
+    metadata.create_all(session.get_bind())
+    session.execute(
+        dbs.insert(),
+        [
+            {
+                "id": 1,
+                "database_name": "my_postgres",
+                "sqlalchemy_uri": "postgresql://user:pass@unreachable:5432/db",
+                "encrypted_extra": None,
+            },
+            {
+                "id": 2,
+                "database_name": "my_bigquery",
+                "sqlalchemy_uri": "bigquery://my-project",
+                # stored encrypted at rest, so not valid JSON
+                "encrypted_extra": "gAAAAABlZ2VuY3J5cHRlZA==",
+            },
+            {
+                "id": 3,
+                "database_name": "my_trino",
+                "sqlalchemy_uri": "trino://unreachable:8080/hive",
+                "encrypted_extra": '{"oauth2_client_info": {"id": "x"}}',
+            },
+        ],
     )
-    mocker.patch.object(
-        Database,
-        "get_all_catalog_names",
-        return_value=["db", "other_catalog"],
+    session.execute(
+        view_menu.insert(),
+        [
+            {"id": 1, "name": "[my_postgres].[public]"},
+            {"id": 2, "name": "[my_bigquery].[dataset]"},
+        ],
     )
-
-    database = Database(
-        database_name="my_db",
-        sqlalchemy_uri="postgresql://localhost/db",
+    session.execute(
+        tables.insert(),
+        [
+            {
+                "id": 1,
+                "database_id": 1,
+                "schema": "public",
+                "schema_perm": "[my_postgres].[public]",
+            },
+            {
+                "id": 2,
+                "database_id": 2,
+                "schema": "dataset",
+                "schema_perm": "[my_bigquery].[dataset]",
+            },
+        ],
     )
-    dataset = SqlaTable(
-        table_name="my_table",
-        database=database,
-        catalog=None,
-        schema="public",
-        catalog_perm=None,
-        schema_perm="[my_db].[public]",
-    )
-    session.add(dataset)
-    session.commit()
-
-    chart = Slice(
-        slice_name="my_chart",
-        datasource_type="table",
-        datasource_id=dataset.id,
-        catalog_perm=None,
-        schema_perm="[my_db].[public]",
-    )
-    query = Query(
-        client_id="foo",
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    saved_query = SavedQuery(
-        database=database,
-        sql="SELECT * FROM public.t",
-        catalog=None,
-        schema="public",
-    )
-    tab_state = TabState(
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    table_schema = TableSchema(
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    session.add_all([chart, query, saved_query, tab_state, table_schema])
-    session.commit()
-
-    # before migration
-    assert dataset.catalog is None
-    assert query.catalog is None
-    assert saved_query.catalog is None
-    assert tab_state.catalog is None
-    assert table_schema.catalog is None
-    assert dataset.catalog_perm is None
-    assert dataset.schema_perm == "[my_db].[public]"
-    assert chart.catalog_perm is None
-    assert chart.schema_perm == "[my_db].[public]"
-    assert (
-        session.query(ViewMenu.name, Permission.name)
-        .join(PermissionView, ViewMenu.id == PermissionView.view_menu_id)
-        .join(Permission, PermissionView.permission_id == Permission.id)
-        .all()
-    ) == [
-        ("[my_db].(id:1)", "database_access"),
-        ("[my_db].[my_table](id:1)", "datasource_access"),
-        ("[my_db].[public]", "schema_access"),
-    ]
-
-    upgrade_catalog_perms()
-    session.commit()
-
-    # add dataset/chart in new catalog
-    new_dataset = SqlaTable(
-        table_name="my_table",
-        database=database,
-        catalog="other_catalog",
-        schema="public",
-        schema_perm="[my_db].[other_catalog].[public]",
-        catalog_perm="[my_db].[other_catalog]",
-    )
-    session.add(new_dataset)
-    session.commit()
-
-    new_chart = Slice(
-        slice_name="my_chart",
-        datasource_type="table",
-        datasource_id=new_dataset.id,
-    )
-    session.add(new_chart)
-    session.commit()
-
-    # after migration
-    assert dataset.catalog == "db"
-    assert query.catalog == "db"
-    assert saved_query.catalog == "db"
-    assert tab_state.catalog == "db"
-    assert table_schema.catalog == "db"
-    assert dataset.catalog_perm == "[my_db].[db]"
-    assert dataset.schema_perm == "[my_db].[db].[public]"
-    assert chart.catalog_perm == "[my_db].[db]"
-    assert chart.schema_perm == "[my_db].[db].[public]"
-    assert (
-        session.query(ViewMenu.name, Permission.name)
-        .join(PermissionView, ViewMenu.id == PermissionView.view_menu_id)
-        .join(Permission, PermissionView.permission_id == Permission.id)
-        .all()
-    ) == [
-        ("[my_db].(id:1)", "database_access"),
-        ("[my_db].[my_table](id:1)", "datasource_access"),
-        ("[my_db].[db].[public]", "schema_access"),
-        ("[my_db].[db]", "catalog_access"),
-        ("[my_db].[other_catalog]", "catalog_access"),
-        ("[my_db].[other_catalog].[public]", "schema_access"),
-        ("[my_db].[other_catalog].[information_schema]", "schema_access"),
-        ("[my_db].[my_table](id:2)", "datasource_access"),
-    ]
-
-    # do a downgrade
-    downgrade_catalog_perms()
-    session.commit()
-
-    # revert
-    assert dataset.catalog is None
-    assert query.catalog is None
-    assert saved_query.catalog is None
-    assert tab_state.catalog is None
-    assert table_schema.catalog is None
-    assert dataset.catalog_perm is None
-    assert dataset.schema_perm == "[my_db].[public]"
-    assert chart.catalog_perm is None
-    assert chart.schema_perm == "[my_db].[public]"
-    assert (
-        session.query(ViewMenu.name, Permission.name)
-        .join(PermissionView, ViewMenu.id == PermissionView.view_menu_id)
-        .join(Permission, PermissionView.permission_id == Permission.id)
-        .all()
-    ) == [
-        ("[my_db].(id:1)", "database_access"),
-        ("[my_db].[my_table](id:1)", "datasource_access"),
-        ("[my_db].[public]", "schema_access"),
-    ]
-
-    # make sure new dataset/chart were deleted
-    assert session.query(SqlaTable).all() == [dataset]
-    assert session.query(Slice).all() == [chart]
+    session.execute(query.insert(), [{"id": 1, "database_id": 1}])
+    return session
 
 
-def test_upgrade_catalog_perms_graceful(
+@pytest.mark.parametrize("engines", MIGRATION_ENGINES)
+def test_catalog_migrations_do_not_touch_existing_databases(
     mocker: MockerFixture,
-    session: Session,
+    populated_session: Session,
+    engines: set[str] | None,
 ) -> None:
     """
-    Test the `upgrade_catalog_perms` function when it fails to connect to the DB.
-
-    During the migration we try to connect to the analytical database to get the list of
-    schemas. This should fail gracefully and not raise an exception, since the database
-    could be offline, and the permissions can be generated later then the admin enables
-    catalog browsing on the database (permissions are always synced on a DB update, see
-    `UpdateDatabaseCommand`).
+    The catalog migrations run cleanly with existing databases, never connect to
+    them, and leave the metadata DB unchanged on upgrade and downgrade.
     """
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-    from superset.models.slice import Slice
-    from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
-
-    engine = session.get_bind()
-    Database.metadata.create_all(engine)
-
-    mocker.patch("superset.migrations.shared.catalogs.op")
-    db = mocker.patch("superset.migrations.shared.catalogs.db")
-    db.Session.return_value = session
-
-    mocker.patch.object(
-        Database,
-        "get_all_schema_names",
-        side_effect=Exception("Failed to connect to the database"),
+    create_engine = mocker.patch(
+        "sqlalchemy.create_engine",
+        side_effect=AssertionError("migration must not connect to a database"),
     )
-    mocker.patch("superset.migrations.shared.catalogs.op", session)
+    before = _snapshot(populated_session)
 
-    database = Database(
-        database_name="my_db",
-        sqlalchemy_uri="postgresql://localhost/db",
-    )
-    dataset = SqlaTable(
-        table_name="my_table",
-        database=database,
-        catalog=None,
-        schema="public",
-        schema_perm="[my_db].[public]",
-    )
-    session.add(dataset)
-    session.commit()
+    upgrade_catalog_perms(engines=engines)
+    assert _snapshot(populated_session) == before
 
-    chart = Slice(
-        slice_name="my_chart",
-        datasource_type="table",
-        datasource_id=dataset.id,
-    )
-    query = Query(
-        client_id="foo",
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    saved_query = SavedQuery(
-        database=database,
-        sql="SELECT * FROM public.t",
-        catalog=None,
-        schema="public",
-    )
-    tab_state = TabState(
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    table_schema = TableSchema(
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    session.add_all([chart, query, saved_query, tab_state, table_schema])
-    session.commit()
+    downgrade_catalog_perms(engines=engines)
+    assert _snapshot(populated_session) == before
 
-    # before migration
-    assert dataset.catalog is None
-    assert query.catalog is None
-    assert saved_query.catalog is None
-    assert tab_state.catalog is None
-    assert table_schema.catalog is None
-    assert dataset.schema_perm == "[my_db].[public]"
-    assert chart.schema_perm == "[my_db].[public]"
-    assert session.query(ViewMenu.name).all() == [
-        ("[my_db].(id:1)",),
-        ("[my_db].[my_table](id:1)",),
-        ("[my_db].[public]",),
-    ]
-
-    upgrade_catalog_perms()
-    session.commit()
-
-    # after migration
-    assert dataset.catalog == "db"
-    assert query.catalog == "db"
-    assert saved_query.catalog == "db"
-    assert tab_state.catalog == "db"
-    assert table_schema.catalog == "db"
-    assert dataset.schema_perm == "[my_db].[db].[public]"
-    assert chart.schema_perm == "[my_db].[db].[public]"
-    assert session.query(ViewMenu.name).all() == [
-        ("[my_db].(id:1)",),
-        ("[my_db].[my_table](id:1)",),
-        ("[my_db].[db].[public]",),
-        ("[my_db].[db]",),
-    ]
-
-    downgrade_catalog_perms()
-    session.commit()
-
-    # revert
-    assert dataset.catalog is None
-    assert query.catalog is None
-    assert saved_query.catalog is None
-    assert tab_state.catalog is None
-    assert table_schema.catalog is None
-    assert dataset.schema_perm == "[my_db].[public]"
-    assert chart.schema_perm == "[my_db].[public]"
-    assert session.query(ViewMenu.name).all() == [
-        ("[my_db].(id:1)",),
-        ("[my_db].[my_table](id:1)",),
-        ("[my_db].[public]",),
-    ]
-
-
-def test_upgrade_catalog_perms_oauth_connection(
-    mocker: MockerFixture,
-    session: Session,
-    oauth2_config: OAuth2ClientConfig,
-) -> None:
-    """
-    Test the `upgrade_catalog_perms` function when the DB is set up using OAuth.
-
-    During the migration we try to connect to the analytical database to get the list of
-    schemas. This step should be skipped if the database is set up using OAuth and not
-    raise an exception.
-    """
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-    from superset.models.slice import Slice
-    from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
-
-    engine = session.get_bind()
-    Database.metadata.create_all(engine)
-
-    mocker.patch("superset.migrations.shared.catalogs.op")
-    db = mocker.patch("superset.migrations.shared.catalogs.db")
-    db.Session.return_value = session
-    add_non_default_catalogs = mocker.patch(
-        "superset.migrations.shared.catalogs.add_non_default_catalogs"
-    )
-    mocker.patch("superset.migrations.shared.catalogs.op", session)
-
-    database = Database(
-        database_name="my_db",
-        sqlalchemy_uri="bigquery://my-test-project",
-        encrypted_extra=json.dumps({"oauth2_client_info": oauth2_config}),
-    )
-    dataset = SqlaTable(
-        table_name="my_table",
-        database=database,
-        catalog=None,
-        schema="public",
-        schema_perm="[my_db].[public]",
-    )
-    session.add(dataset)
-    session.commit()
-
-    chart = Slice(
-        slice_name="my_chart",
-        datasource_type="table",
-        datasource_id=dataset.id,
-    )
-    query = Query(
-        client_id="foo",
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    saved_query = SavedQuery(
-        database=database,
-        sql="SELECT * FROM public.t",
-        catalog=None,
-        schema="public",
-    )
-    tab_state = TabState(
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    table_schema = TableSchema(
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    session.add_all([chart, query, saved_query, tab_state, table_schema])
-    session.commit()
-
-    # before migration
-    assert dataset.catalog is None
-    assert query.catalog is None
-    assert saved_query.catalog is None
-    assert tab_state.catalog is None
-    assert table_schema.catalog is None
-    assert dataset.schema_perm == "[my_db].[public]"
-    assert chart.schema_perm == "[my_db].[public]"
-    assert session.query(ViewMenu.name).all() == [
-        ("[my_db].(id:1)",),
-        ("[my_db].[my_table](id:1)",),
-        ("[my_db].[public]",),
-    ]
-
-    upgrade_catalog_perms()
-    session.commit()
-
-    # after migration
-    assert dataset.catalog == "my-test-project"
-    assert query.catalog == "my-test-project"
-    assert saved_query.catalog == "my-test-project"
-    assert tab_state.catalog == "my-test-project"
-    assert table_schema.catalog == "my-test-project"
-    assert dataset.schema_perm == "[my_db].[my-test-project].[public]"
-    assert chart.schema_perm == "[my_db].[my-test-project].[public]"
-    assert session.query(ViewMenu.name).all() == [
-        ("[my_db].(id:1)",),
-        ("[my_db].[my_table](id:1)",),
-        ("[my_db].[my-test-project].[public]",),
-        ("[my_db].[my-test-project]",),
-    ]
-
-    add_non_default_catalogs.assert_not_called()
-
-    downgrade_catalog_perms()
-    session.commit()
-
-    # revert
-    assert dataset.catalog is None
-    assert query.catalog is None
-    assert saved_query.catalog is None
-    assert tab_state.catalog is None
-    assert table_schema.catalog is None
-    assert dataset.schema_perm == "[my_db].[public]"
-    assert chart.schema_perm == "[my_db].[public]"
-    assert session.query(ViewMenu.name).all() == [
-        ("[my_db].(id:1)",),
-        ("[my_db].[my_table](id:1)",),
-        ("[my_db].[public]",),
-    ]
-
-
-def test_upgrade_catalog_perms_simplified_migration(
-    mocker: MockerFixture,
-    session: Session,
-) -> None:
-    """
-    Test the `upgrade_catalog_perms` function when the ``CATALOGS_SIMPLIFIED_MIGRATION``
-    config is set to ``True``.
-
-    This should only update existing permissions + create a new permission
-    for the default catalog.
-    """
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import Database
-    from superset.models.slice import Slice
-    from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
-
-    engine = session.get_bind()
-    Database.metadata.create_all(engine)
-
-    mocker.patch("superset.migrations.shared.catalogs.op")
-    db = mocker.patch("superset.migrations.shared.catalogs.db")
-    db.Session.return_value = session
-    add_non_default_catalogs = mocker.patch(
-        "superset.migrations.shared.catalogs.add_non_default_catalogs"
-    )
-    mocker.patch("superset.migrations.shared.catalogs.op", session)
-
-    database = Database(
-        database_name="my_db",
-        sqlalchemy_uri="bigquery://my-test-project",
-    )
-    dataset = SqlaTable(
-        table_name="my_table",
-        database=database,
-        catalog=None,
-        schema="public",
-        schema_perm="[my_db].[public]",
-    )
-    session.add(dataset)
-    session.commit()
-
-    chart = Slice(
-        slice_name="my_chart",
-        datasource_type="table",
-        datasource_id=dataset.id,
-    )
-    query = Query(
-        client_id="foo",
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    saved_query = SavedQuery(
-        database=database,
-        sql="SELECT * FROM public.t",
-        catalog=None,
-        schema="public",
-    )
-    tab_state = TabState(
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    table_schema = TableSchema(
-        database=database,
-        catalog=None,
-        schema="public",
-    )
-    session.add_all([chart, query, saved_query, tab_state, table_schema])
-    session.commit()
-
-    # before migration
-    assert dataset.catalog is None
-    assert query.catalog is None
-    assert saved_query.catalog is None
-    assert tab_state.catalog is None
-    assert table_schema.catalog is None
-    assert dataset.schema_perm == "[my_db].[public]"
-    assert chart.schema_perm == "[my_db].[public]"
-    assert session.query(ViewMenu.name).all() == [
-        ("[my_db].(id:1)",),
-        ("[my_db].[my_table](id:1)",),
-        ("[my_db].[public]",),
-    ]
-
-    with current_app.test_request_context():
-        current_app.config["CATALOGS_SIMPLIFIED_MIGRATION"] = True
-        upgrade_catalog_perms()
-        session.commit()
-
-    # after migration
-    assert dataset.catalog == "my-test-project"
-    assert query.catalog == "my-test-project"
-    assert saved_query.catalog == "my-test-project"
-    assert tab_state.catalog == "my-test-project"
-    assert table_schema.catalog == "my-test-project"
-    assert dataset.schema_perm == "[my_db].[my-test-project].[public]"
-    assert chart.schema_perm == "[my_db].[my-test-project].[public]"
-    assert session.query(ViewMenu.name).all() == [
-        ("[my_db].(id:1)",),
-        ("[my_db].[my_table](id:1)",),
-        ("[my_db].[my-test-project].[public]",),
-        ("[my_db].[my-test-project]",),
-    ]
-
-    add_non_default_catalogs.assert_not_called()
-
-    downgrade_catalog_perms()
-    session.commit()
-
-    # revert
-    assert dataset.catalog is None
-    assert query.catalog is None
-    assert saved_query.catalog is None
-    assert tab_state.catalog is None
-    assert table_schema.catalog is None
-    assert dataset.schema_perm == "[my_db].[public]"
-    assert chart.schema_perm == "[my_db].[public]"
-    assert session.query(ViewMenu.name).all() == [
-        ("[my_db].(id:1)",),
-        ("[my_db].[my_table](id:1)",),
-        ("[my_db].[public]",),
-    ]
+    create_engine.assert_not_called()
