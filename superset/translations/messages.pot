@@ -17306,6 +17306,9 @@ msgstr ""
 msgid "e.g. 127.0.0.1"
 msgstr ""
 
+msgid "e.g. 1433"
+msgstr ""
+
 msgid "e.g. 5432"
 msgstr ""
 
