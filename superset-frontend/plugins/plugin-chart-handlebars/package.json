@@ -43,7 +43,7 @@
     "@superset-ui/core": "*",
     "ace-builds": "^1.4.14",
     "dayjs": "^1.11.21",
-    "handlebars": "^4.7.9",
+    "handlebars": "^4.7.10",
     "lodash": "^4.18.1",
     "react": "^18.3.0",
     "react-ace": "^10.1.0",
