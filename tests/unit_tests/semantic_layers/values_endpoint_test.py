@@ -399,3 +399,83 @@ def test_versioned_suggestions_are_unavailable_before_cache(
     }
     cache.get.assert_not_called()
     implementation.get_values.assert_not_called()
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize("search", [False, True])
+@pytest.mark.parametrize(
+    "code",
+    [
+        "UNSUPPORTED_QUERY",
+        "UNSUPPORTED_OFFSET",
+        "INVALID_FILTER",
+        "INVALID_QUERY",
+        "unknown-private-code",
+    ],
+)
+def test_values_provider_rejection_matches_chart_error(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    guest: bool,
+    search: bool,
+    code: str,
+) -> None:
+    """Use sync-chart guidance without an unfiltered retry or cache write."""
+    from superset_core.semantic_layers.errors import SemanticQueryRejectedError
+
+    from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    rejection: SemanticQueryRejectedError = SemanticQueryRejectedError(code)
+    implementation.get_values.side_effect = rejection
+    expected: SemanticLayerQueryRejectedError = SemanticLayerQueryRejectedError(
+        rejection.code
+    )
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+
+    response: Any = _get(
+        client, "category/values/?q=oo" if search else "category/values/"
+    )
+
+    assert response.status_code == expected.status == 400
+    assert response.json["errors"][0]["message"] == expected.message
+    assert "private" not in response.get_data(as_text=True)
+    implementation.get_values.assert_called_once()
+    cache.set.assert_not_called()
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize("search", [False, True])
+@pytest.mark.parametrize("fault", [ValueError, RuntimeError, TimeoutError])
+def test_values_provider_fault_stays_server_error(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    guest: bool,
+    search: bool,
+    fault: type[Exception],
+) -> None:
+    """Provider bugs are not caller errors and must not trigger an unfiltered retry."""
+    from superset.semantic_layers.exceptions import SemanticLayerExecutionError
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    implementation.get_values.side_effect = fault("private-provider-diagnostic")
+    expected: SemanticLayerExecutionError = SemanticLayerExecutionError()
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+
+    response: Any = _get(
+        client, "category/values/?q=oo" if search else "category/values/"
+    )
+
+    assert response.status_code == expected.status == 500
+    assert response.json["errors"][0]["message"] == expected.message
+    assert "private" not in response.get_data(as_text=True)
+    implementation.get_values.assert_called_once()
+    cache.set.assert_not_called()

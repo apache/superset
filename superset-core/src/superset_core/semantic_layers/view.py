@@ -115,12 +115,21 @@ class SemanticView(ABC):
         when the result is incomplete or its completeness cannot be verified;
         never return a partial result instead.
         Do not drop ``filters`` and retry when a filtered request is incomplete.
+
+        Raise SemanticQueryRejectedError for deliberate input rejection, such as a
+        search filter the dimension cannot apply; the host returns it to the user
+        as a client error with host-owned guidance. Leave operational and
+        unexpected failures unclassified; the host reports them as server errors.
+        The host never retries a failed request without its ``filters``.
         """
 
     @abstractmethod
     def get_table(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a semantic query and return the results.
+
+        Raise SemanticQueryRejectedError for deliberate input rejection.
+        Leave operational and unexpected failures unclassified.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;
@@ -131,6 +140,8 @@ class SemanticView(ABC):
     def get_row_count(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a query and return the number of rows the result would have.
+
+        Raise SemanticQueryRejectedError for deliberate input rejection.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;

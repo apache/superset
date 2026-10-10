@@ -17934,3 +17934,21 @@ msgstr[1] ""
 
 msgid "№"
 msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then try "
+"again."
+msgstr ""
+
+msgid "The semantic query is invalid. Check its fields and options, then try again."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off pagination"
+" or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""

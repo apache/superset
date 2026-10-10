@@ -46,6 +46,7 @@ from superset_core.semantic_layers.types import (
     Filter,
     Operator,
     PredicateType,
+    SemanticResult,
 )
 from superset_core.semantic_layers.view import (
     SemanticView as SemanticViewABC,
@@ -55,13 +56,12 @@ from superset.common.query_object import QueryObject
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,
-    SemanticResultCompletenessError,
 )
 from superset.explorables.base import TimeGrainDict
 from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
-from superset.semantic_layers.completeness import provider_completeness
+from superset.semantic_layers.exceptions import execute_semantic_query
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -433,9 +433,9 @@ class SemanticView(AuditMixinNullable, Model):
         the standard filter model: case sensitivity follows the provider's
         collation (no case-folding operator), and ``%``/``_`` in the search
         term act as wildcards (no portable escape declaration; over-matching
-        is the safe failure for suggestions). A provider that rejects the
-        narrowing filter — a non-text dimension, say — falls back to the
-        unfiltered bounded page with a logged warning rather than an error.
+        is the safe failure for suggestions). Provider rejections and faults
+        use the same host classification as chart queries. A failed search
+        never retries without its narrowing filter.
 
         ``get_values`` takes no limit or order, so both are applied here:
         sorted ascending (nulls first) and then truncated, so the page is
@@ -449,42 +449,27 @@ class SemanticView(AuditMixinNullable, Model):
         a metric name included — which the endpoint reports as the caller's
         error naming the column, exactly as a dataset does.
         """
-        dimensions = {
+        dimensions: dict[str, Dimension] = {
             dimension.name: dimension for dimension in self._unique_dimensions
         }
         if column_name not in dimensions:
             raise KeyError(column_name)
-        dimension = dimensions[column_name]
-
-        if search:
-            narrowing = Filter(
+        dimension: Dimension = dimensions[column_name]
+        narrowing: Filter | None = (
+            Filter(
                 type=PredicateType.WHERE,
                 column=dimension,
                 operator=Operator.LIKE,
                 value=f"%{search}%",
             )
-            try:
-                with provider_completeness():
-                    result = self.implementation.get_values(dimension, {narrowing})
-            except SemanticResultCompletenessError:
-                raise
-            except Exception:  # pylint: disable=broad-exception-caught
-                # The narrowing filter is best-effort: a provider that cannot
-                # apply it must degrade to the bounded first page (the picker
-                # still narrows within it), never to an error — but say so,
-                # or the degradation is the next silent failure.
-                logger.warning(
-                    "Semantic view %s rejected the value-search filter on "
-                    "dimension %s; returning the unfiltered page",
-                    self.uuid,
-                    dimension.name,
-                    exc_info=True,
-                )
-                with provider_completeness():
-                    result = self.implementation.get_values(dimension, None)
-        else:
-            with provider_completeness():
-                result = self.implementation.get_values(dimension, None)
+            if search
+            else None
+        )
+        result: SemanticResult = execute_semantic_query(
+            self.implementation.get_values,
+            dimension,
+            {narrowing} if narrowing is not None else None,
+        )
 
         # Some drivers report zero rows as ``results is None``.
         if result.results is None or result.results.num_rows == 0:
