@@ -1168,6 +1168,38 @@ def test_preview_declines_an_equality_the_chart_path_declines(
     probe.assert_not_called()
 
 
+def test_preview_explains_an_offset_bearing_sample_as_its_own_case(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    A value carrying a UTC offset declines whatever the column's resolution,
+    because a transform is evaluated in the database's own frame. Reported
+    through the precision-loss message, that told the owner to "map a column
+    the engine compares in full" -- which a full-resolution column already is,
+    so the advice was unfollowable.
+    """
+    with patch(PROBE, return_value=[1767229200]) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "partition_column": "region_key",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-01T01:00:00+01:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "offset"
+    assert "UTC offset" in result["error"]
+    # The advice the resolution decline carries must not appear here.
+    assert "compares in full" not in result["error"]
+    assert "emitted_predicate" not in result
+    probe.assert_not_called()
+
+
 def test_preview_and_the_chart_path_agree_about_a_coarse_column(
     app: Flask, client: Any, full_api_access: None, dataset: Any
 ) -> None:

@@ -72,9 +72,10 @@ from superset.connectors.sqla.partition_mapping import (
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.oracle import OracleEngineSpec
+from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement
-from superset.utils.core import FilterOperator, override_user
+from superset.utils.core import FilterOperator, GenericDataType, override_user
 
 
 @pytest.fixture(autouse=True)
@@ -291,6 +292,54 @@ def test_equality_mirrors_safely_only_guards_string_columns(
 
     with app.app_context():
         assert equality_mirrors_safely(_column(type_), _Spec) is expected
+
+
+@pytest.mark.parametrize(
+    "type_, expected",
+    [
+        # The padded types: `'US'` and `'US '` are equal in the column, and
+        # `lower()` of the two is not.
+        ("CHAR(2)", False),
+        ("CHAR", False),
+        ("CHARACTER(2)", False),
+        ("NCHAR(2)", False),
+        # What PostgreSQL reflection reports for a `CHAR(n)` column.
+        ("BPCHAR", False),
+        ("bpchar(2)", False),
+        ("NATIONAL CHARACTER(2)", False),
+        # The variable-width types start with the same letters and must not be
+        # caught by it.
+        ("VARCHAR(2)", True),
+        ("NVARCHAR(2)", True),
+        ("CHARACTER VARYING(2)", True),
+        ("TEXT", True),
+    ],
+)
+def test_a_padded_character_column_declines_equality_on_a_byte_exact_engine(
+    app: Flask, type_: str, expected: bool
+) -> None:
+    """
+    `binary_string_comparison` speaks for the engine's default comparison,
+    which PostgreSQL declares -- and a `CHAR(2)` there still matches a filter
+    for `'US '` against a stored `'US'`, so the mirror `lower('US ')` excludes
+    the row. Padding is a property of the type, so it is asked per column.
+    """
+
+    class _Spec(BaseEngineSpec):
+        binary_string_comparison = True
+
+    with app.app_context():
+        assert equality_mirrors_safely(_column(type_), _Spec) is expected
+
+
+def test_redshift_does_not_opt_in_to_byte_exact_comparison() -> None:
+    """
+    Redshift ignores trailing blanks for `VARCHAR` as well as `CHAR`, so the
+    `True` it inherits from `PostgresBaseEngineSpec` would be wrong.
+    """
+    from superset.db_engine_specs.redshift import RedshiftEngineSpec
+
+    assert RedshiftEngineSpec.binary_string_comparison is False
 
 
 def test_equality_mirrors_safely_fails_closed_on_an_unresolvable_type(
@@ -1356,6 +1405,38 @@ def test_the_postgres_full_text_query_functions_are_denied_by_default(
     assert function in DISALLOWED_SQL_FUNCTIONS["postgresql"]
 
 
+@pytest.mark.parametrize(
+    "function", ["getxml", "getxmltype", "newcontext", "newcontextfromhierarchy"]
+)
+def test_the_oracle_query_running_xml_functions_are_denied_by_default(
+    function: str,
+) -> None:
+    """
+    `DBMS_XMLGEN.GETXML('select secret from vault')` runs its text argument as
+    a query -- the same blind spot as the PostgreSQL families above, on the
+    engine both reviewers named. Listed bare because the package prefix never
+    reaches the matcher: sqlglot parses the call as an anonymous function named
+    `GETXML`, and `get_disallowed_functions` compares against that name.
+    """
+    assert function in DISALLOWED_SQL_FUNCTIONS["oracle"]
+
+
+def test_a_package_qualified_denied_function_is_refused(app: Flask) -> None:
+    """
+    The wiring half for the bare-name listing above: the denylist entry has to
+    match a call written with its package prefix, which is the only way anyone
+    writes these.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="oracle://u@h/d")
+    transform = "DBMS_XMLGEN.GETXML('select secret from vault') || :value"
+
+    with app.app_context():
+        reason = stored_expression_error(database, None, None, transform)
+
+    assert reason is not None
+    assert "getxml" in reason
+
+
 def test_a_denied_query_running_text_function_is_refused(app: Flask) -> None:
     """
     The wiring half, and the only thing that proves the *name* matching works
@@ -1855,12 +1936,10 @@ def test_a_connection_mutator_keys_the_probe_cache_per_caller(app: Flask) -> Non
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
-        # ISO, which `datetime.fromisoformat` covers including the basic form.
+        # Extended ISO, which every engine reads.
         ("2026-01-01", True),
         ("2026-01-01 00:00:00", True),
         ("2026-01-01T10:08:11", True),
-        ("20260101", True),
-        ("20260706100811", True),
         # Ordinary text, which is the whole point.
         ("us", False),
         ("US", False),
@@ -1869,23 +1948,63 @@ def test_a_connection_mutator_keys_the_probe_cache_per_caller(app: Flask) -> Non
         # A month key is not a date any engine reads, so it declines -- on a
         # *text* partition column it never reaches this gate.
         ("202601", False),
-        # `strptime` accepts unpadded fields, so a bare epoch parsed happily as
-        # `%Y%m%d%H%M%S` (1767-02-25 06:00) and was emitted as a date literal --
-        # the exact bad-literal error this gate exists to stop. The round-trip
-        # is what rejects it.
+        # The basic forms are what an engine has to claim. `fromisoformat`
+        # parses them, so the universal branch is held to the extended shape.
+        ("20260101", False),
+        ("20260706100811", False),
         ("1767225600", False),
         ("1767225600000", False),
     ],
 )
-def test_only_text_an_engine_reads_as_an_instant_suits_a_temporal_key(
+def test_only_text_every_engine_reads_as_an_instant_suits_a_temporal_key(
     value: str, expected: bool
 ) -> None:
     """
     `_PROBE_RESULT_TYPES` admits `str` for a temporal partition column so a day
     key keeps working. It admitted every string, so `lower(:value)` answering
     `'us'` passed and the chart failed at the database instead.
+
+    An engine that has declared nothing gets the extended ISO forms and no
+    more: BigQuery coerces a STRING literal to `DATE` only in the canonical
+    form, so admitting `'20260115'` there failed the chart rather than losing
+    the pruning.
     """
-    assert _reads_as_temporal(value) is expected
+    assert _reads_as_temporal(value, BaseEngineSpec) is expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        # `'20260115'::date` is 2026-01-15 on PostgreSQL, so the day key this
+        # feature exists for mirrors there.
+        ("20260101", True),
+        ("20260706100811", True),
+        ("2026-01-01", True),
+        # Still not a date, declared formats or not. `strptime` accepts
+        # unpadded fields, so a bare epoch parsed happily as `%Y%m%d%H%M%S`
+        # (1767-02-25 06:00) and was emitted as a date literal -- the exact
+        # bad-literal error this gate exists to stop. The round-trip rejects it.
+        ("1767225600", False),
+        ("1767225600000", False),
+        ("202601", False),
+        ("us", False),
+    ],
+)
+def test_an_engine_that_reads_a_day_key_says_so(value: str, expected: bool) -> None:
+    """
+    Which text reads as an instant is the engine's answer, declared in
+    `temporal_literal_formats`; PostgreSQL's date input takes the unseparated
+    forms as well as the ISO ones.
+    """
+    assert _reads_as_temporal(value, PostgresEngineSpec) is expected
+
+
+def test_the_base_spec_claims_no_day_key_format() -> None:
+    """
+    Default closed: an engine that has not said it reads a day key declines
+    the mirror, which costs the pruning rather than the query.
+    """
+    assert BaseEngineSpec.temporal_literal_formats == ()
 
 
 def test_a_type_mismatch_does_not_poison_the_shared_transform_verdict(
@@ -1989,6 +2108,31 @@ def test_a_probe_result_is_judged_against_the_partition_column(
     if mismatched:
         assert error is not None
         assert "dt_epoch" in error
+
+
+def test_a_numeric_partition_column_flagged_temporal_takes_a_number() -> None:
+    """
+    A `BIGINT` partition key bucketed by `python_date_format = epoch_s` is
+    temporal to `TableColumn.type_generic` and a number to the engine. The gate
+    is about the comparison, so it asks the engine spec: an epoch transform's
+    integer is held, where the semantic flag refused it and cost a working
+    mapping its mirror.
+    """
+    column = _partition_column("BIGINT", is_dttm=True, python_date_format="epoch_s")
+
+    assert column.type_generic == GenericDataType.TEMPORAL
+    assert probed_value_type_error(column, [1767225600]) is None
+
+
+def test_a_timestamp_column_still_refuses_a_number() -> None:
+    """
+    The fallback is per-column, not blanket: a real `TIMESTAMP` resolves to
+    `TEMPORAL` through the engine spec too, so it keeps refusing the epoch a
+    transform returns for it.
+    """
+    column = _partition_column("TIMESTAMP", is_dttm=True)
+
+    assert probed_value_type_error(column, [1767225600]) is not None
 
 
 def test_a_column_whose_type_says_nothing_is_left_alone() -> None:

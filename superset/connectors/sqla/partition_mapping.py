@@ -290,18 +290,54 @@ MIRRORABLE_OPERATORS = MIRRORABLE_ALWAYS | MIRRORABLE_IF_MONOTONIC
 PREVIEWABLE_OPERATORS = MIRRORABLE_OPERATORS - {FilterOperator.TEMPORAL_RANGE}
 
 
-#: Returned by `ExploreMixin.mirror_probe_request` for a filter no mirror can
-#: stand in for: one the engine compares more coarsely than the value carries, a
-#: value it cannot render as a literal, or an ``IN`` list with a member of
-#: either kind. A sentinel rather than `None`, because `None` is a filter value
-#: in its own right.
-#:
-#: Lives here rather than beside that method so the preview can read it too:
-#: `superset.models.helpers` imports this module, so the sentinel can only cross
-#: the boundary in this direction. Both callers have to recognise the same
-#: object -- a preview that answered "valid" for a request the chart path
-#: declines is the drift this is here to prevent.
-UNMIRRORABLE = object()
+class Unmirrorable:
+    """
+    A filter no mirror can stand in for, and why.
+
+    Returned by `ExploreMixin.mirror_probe_request` for a value the engine
+    compares more coarsely than the filter carries, one it cannot render as a
+    literal, one in a time frame the transform would discard, or an ``IN`` list
+    with a member of any of those kinds. An object rather than `None`, because
+    `None` is a filter value in its own right.
+
+    The reason rides along because the preview has to explain the decline to
+    the owner, and the two declines want different advice: "the engine compares
+    less of this value than you typed, so map a column it compares in full" is
+    sound guidance for a `DATE` column and actively misleading for an
+    offset-bearing bound on a `TIMESTAMP` one, which already is such a column.
+    Carried rather than re-derived so the preview's explanation cannot come
+    apart from the chart path's decision.
+
+    Lives here rather than beside that method so the preview can read it too:
+    `superset.models.helpers` imports this module, so these can only cross the
+    boundary in this direction. Both callers recognise the same instances -- a
+    preview that answered "valid" for a request the chart path declines is the
+    drift this is here to prevent.
+    """
+
+    __slots__ = ("reason",)
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+
+    def __repr__(self) -> str:
+        return f"<Unmirrorable {self.reason}>"
+
+
+#: The ordinary decline: whatever the mirror cannot be built from, with the
+#: engine's own comparison resolution as the reason an owner can act on.
+UNMIRRORABLE = Unmirrorable("resolution")
+
+#: A value carrying a UTC offset, declined whatever the column's resolution.
+#: A transform such as ``CAST(:value AS TIMESTAMP)`` drops the offset, so even
+#: an engine that compares the whole instant would be probed in the wrong
+#: frame -- which is not something mapping a different column fixes.
+UNMIRRORABLE_OFFSET = Unmirrorable("offset")
+
+
+def is_unmirrorable(value: Any) -> bool:
+    """Whether `mirror_probe_request` declined this request."""
+    return isinstance(value, Unmirrorable)
 
 
 #: A transform that preserves ordering need not be *strictly* increasing: a day
@@ -356,6 +392,46 @@ def mirrorable_operators(
     return set(operators)
 
 
+#: Declared types whose comparison ignores trailing blanks.
+#:
+#: The fixed-width character types, which the SQL standard has compare as
+#: though both sides were padded to the same length -- so ``'US'`` and
+#: ``'US '`` are equal in a ``CHARACTER(3)``, while ``lower()`` of the two is
+#: not. Spelled out rather than matched by prefix because the variable-width
+#: names start with the same letters: ``VARCHAR`` and ``CHARACTER VARYING``
+#: compare the blanks and must not land here.
+PADDED_CHARACTER_TYPES = frozenset(
+    {
+        "CHAR",
+        "NCHAR",
+        # PostgreSQL's own name for ``CHARACTER``, which is what reflection
+        # reports for a ``CHAR(n)`` column there.
+        "BPCHAR",
+        "CHARACTER",
+        "NATIONAL CHAR",
+        "NATIONAL CHARACTER",
+    }
+)
+
+
+def _is_padded_character_type(column: TableColumn) -> bool:
+    """
+    Whether ``column``'s declared type compares without its trailing blanks.
+
+    Read off the declared type rather than the engine spec's resolved one: the
+    specs map ``CHAR`` and ``VARCHAR`` onto the same `sqlalchemy.String`, so
+    the distinction this needs is gone by then. The length suffix is dropped
+    and the name matched against `PADDED_CHARACTER_TYPES`, so an unfamiliar
+    spelling answers ``False`` and the engine-level flag decides as before --
+    this gate adds a decline rather than lifting one. A column with no
+    declared type has nothing to read, and answers the same way.
+    """
+    if not isinstance(column.type, str):
+        return False
+    native = re.sub(r"\s+", " ", column.type.strip().upper())
+    return native.split("(")[0].strip() in PADDED_CHARACTER_TYPES
+
+
 def equality_mirrors_safely(
     column: TableColumn | None,
     db_engine_spec: type[BaseEngineSpec],
@@ -378,6 +454,16 @@ def equality_mirrors_safely(
     which is an assertion about the same comparison semantics this is checking
     for -- so the declaration covers it where equality has nothing to cover it.
 
+    Padding is asked about per column, because it is a property of the *type*
+    rather than of the engine. ``binary_string_comparison`` speaks for an
+    engine's default text comparison, and on PostgreSQL -- which declares it
+    -- a ``CHAR(2)`` still matches a filter for ``'US '`` against a stored
+    ``'US'``, because the standard says a padded character type compares
+    without its trailing blanks. The mirror ``region_key = lower('US ')`` then
+    excludes the row. So a fixed-width character type declines whatever the
+    engine says, and an engine that ignores trailing blanks on its *variable*
+    types says so by not declaring the flag at all (see `RedshiftEngineSpec`).
+
     What this cannot see is a column that declares its own collation
     (``country COLLATE NOCASE``) on an otherwise byte-exact engine. Neither
     SQLAlchemy's reflection nor the engine specs expose it, so on such a column
@@ -385,6 +471,12 @@ def equality_mirrors_safely(
     """
     if column is None:
         return True
+    # Ahead of the generic-type question, which a padded type can lose: the
+    # specs map ``CHARACTER`` onto no generic type at all on some engines, and
+    # a fixed-width character type is a string whether or not Superset can say
+    # so from the name.
+    if _is_padded_character_type(column):
+        return False
     try:
         is_string = column.type_generic == utils.GenericDataType.STRING
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
@@ -2241,12 +2333,31 @@ def _preview_probe(
         _probe_input(datasource, mapped_col, operator, sample_values),
         mapped_col,
     )
-    if value is UNMIRRORABLE:
+    if is_unmirrorable(value):
         # The same step the chart path applies, so the preview cannot promise a
-        # mirror the query declines. Its own reason: the transform is fine and
-        # the engine evaluates it, the filter just carries more of the value
-        # than the engine compares on this column -- which is the column's type
-        # talking, not a broken expression.
+        # mirror the query declines -- and it reports the reason that step
+        # recorded rather than deriving one of its own, which is what let the
+        # offset case be explained as a precision loss it is not.
+        if value.reason == "offset":
+            # The transform is fine and the column may well compare the whole
+            # instant; what cannot be mirrored is the frame. Advising a
+            # different column here would send the owner after a column they
+            # already have.
+            return {
+                "valid": False,
+                "reason": "offset",
+                "sample_input": sample_input,
+                "error": _(
+                    "A filter value carrying a UTC offset is not mirrored: a "
+                    "transform is evaluated in the database's own time frame, "
+                    "so the mirrored predicate could ask for a partition the "
+                    "matching rows are not in. Write the bound without an "
+                    "offset to mirror this filter.",
+                ),
+            }
+        # The transform is fine and the engine evaluates it, the filter just
+        # carries more of the value than the engine compares on this column --
+        # which is the column's type talking, not a broken expression.
         return {
             "valid": False,
             "reason": "resolution",
@@ -2602,7 +2713,7 @@ _PROBE_RESULT_TYPES: dict[utils.GenericDataType, tuple[type, ...]] = {
     utils.GenericDataType.NUMERIC: (numbers.Number,),
     utils.GenericDataType.BOOLEAN: (bool,),
     # A day key such as ``to_char(:value, 'YYYYMMDD')`` is legitimately text,
-    # so ``str`` is admitted -- but only for text an engine reads as an
+    # so ``str`` is admitted -- but only for text *this* engine reads as an
     # instant. `_reads_as_temporal` is the second half of this entry.
     utils.GenericDataType.TEMPORAL: (datetime, date, str),
     # Text, and not a number rendered as one. Not every engine accepts a number
@@ -2617,15 +2728,20 @@ _PROBE_RESULT_TYPES: dict[utils.GenericDataType, tuple[type, ...]] = {
 }
 
 
-#: Day/second keys a temporal column accepts as text, beyond ISO 8601.
-#: ``YYYYMMDD`` is the commonest bucketing key this feature exists for, and
-#: Postgres, Trino and BigQuery all read it as a date.
-_TEMPORAL_KEY_FORMATS = ("%Y%m%d", "%Y%m%d%H%M%S", "%Y-%m-%d %H:%M:%S")
+#: The extended ISO 8601 date, which every engine reads as a date.
+#:
+#: Used to tell an ISO value apart from a merely ISO-*parseable* one:
+#: `datetime.fromisoformat` also accepts the basic forms -- ``20260115``,
+#: ``20260706100811`` -- and those are exactly what an engine may not read.
+#: BigQuery coerces a STRING literal to ``DATE`` only in the canonical
+#: ``YYYY-MM-DD`` form, so admitting the basic forms everywhere emitted
+#: ``part_date = '20260115'`` there and failed the chart.
+_ISO_DATE_PREFIX_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
 
 
-def _reads_as_temporal(value: str) -> bool:
+def _reads_as_temporal(value: str, db_engine_spec: type[BaseEngineSpec]) -> bool:
     """
-    Whether an engine would read this text as a date or timestamp.
+    Whether this engine would read this text as a date or timestamp.
 
     `_PROBE_RESULT_TYPES` admits ``str`` for a temporal partition column
     because a day key such as ``to_char(:value, 'YYYYMMDD')`` is legitimately
@@ -2636,17 +2752,26 @@ def _reads_as_temporal(value: str) -> bool:
     refuses once the predicate is already in the statement -- so a chart that
     worked before the mapping returns an error rather than losing its pruning.
 
+    Which text counts is per engine beyond the extended ISO forms, because the
+    day key this feature exists for is not universal: PostgreSQL reads
+    ``'20260115'`` as a date, BigQuery coerces a STRING literal to ``DATE``
+    only in the canonical ``YYYY-MM-DD`` form, and Trino wants an explicit
+    cast. So an engine names what it reads in
+    `BaseEngineSpec.temporal_literal_formats` and says nothing by default,
+    which declines and costs only the pruning.
+
     Answered by parsing, not by asking the engine: the check runs on the
     chart-query path, where a second round trip is the cost this module spends
     its effort avoiding. Parsing is also the conservative direction -- anything
-    unrecognised declines, and declining costs only the pruning.
+    unrecognised declines.
     """
-    try:
-        datetime.fromisoformat(value)
-        return True
-    except ValueError:
-        pass
-    for fmt in _TEMPORAL_KEY_FORMATS:
+    if _ISO_DATE_PREFIX_RE.match(value):
+        try:
+            datetime.fromisoformat(value)
+            return True
+        except ValueError:
+            pass
+    for fmt in db_engine_spec.temporal_literal_formats:
         try:
             # Round-tripped, because `strptime` accepts unpadded fields: a bare
             # epoch such as ``1767225600`` otherwise parses as
@@ -2660,6 +2785,32 @@ def _reads_as_temporal(value: str) -> bool:
         except ValueError:
             continue
     return False
+
+
+def _native_generic_type(
+    column: "TableColumn",
+) -> utils.GenericDataType | None:
+    """
+    What the engine spec makes of ``column``'s declared type.
+
+    `TableColumn.type_generic` answers ``TEMPORAL`` for every column carrying
+    ``is_dttm``, which is the right answer for a chart's time axis and the
+    wrong one for a comparison: an epoch ``BIGINT`` is a number to the engine
+    however it is labelled here. Falls back to the flag where the spec has no
+    answer, so a type Superset cannot resolve is no worse off than before.
+    """
+    try:
+        column_spec = column.db_engine_spec.get_column_spec(
+            column.type, db_extra=column.db_extra
+        )
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        column_spec = None
+    if column_spec is not None and column_spec.generic_type is not None:
+        return column_spec.generic_type
+    try:
+        return column.type_generic
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        return None
 
 
 def probed_value_type_error(
@@ -2688,11 +2839,19 @@ def probed_value_type_error(
     clear mismatch. ``bool`` is excluded from ``NUMERIC`` on purpose: it
     satisfies `isinstance(x, int)` -- and `numbers.Number` -- while rendering
     as ``true``, which is not a number to any engine that cares.
+
+    The type asked for is the one the engine spec reads out of the column's
+    *native* type, not `TableColumn.type_generic`, which answers ``TEMPORAL``
+    for anything carrying ``is_dttm`` whatever the column physically stores.
+    What this gate is about is the comparison the engine will perform, and a
+    ``BIGINT`` partition key flagged temporal through ``python_date_format =
+    epoch_s`` compares as a number: asking the semantic flag refused the
+    integer such a transform correctly returns, and cost a working mapping its
+    mirror. Same source as `ExploreMixin._in_column_number_type` uses for the
+    same reason, with the flag kept as the fallback for a type the spec cannot
+    resolve.
     """
-    try:
-        generic_type = partition_column.type_generic
-    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
-        return None
+    generic_type = _native_generic_type(partition_column)
     if generic_type is None:
         return None
 
@@ -2710,13 +2869,13 @@ def probed_value_type_error(
             bool in allowed or not isinstance(value, bool)
         )
         # A temporal column admits text, but only text the engine will read as
-        # an instant -- `isinstance` alone let any string through. See
-        # `_reads_as_temporal`.
+        # an instant -- `isinstance` alone let any string through, and which
+        # text an engine reads is its own answer. See `_reads_as_temporal`.
         if (
             held
             and generic_type == utils.GenericDataType.TEMPORAL
             and isinstance(value, str)
-            and not _reads_as_temporal(value)
+            and not _reads_as_temporal(value, partition_column.db_engine_spec)
         ):
             held = False
         if not held:

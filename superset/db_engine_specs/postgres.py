@@ -181,6 +181,12 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     # The engine's default text comparison is binary, so a mirrored
     # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
     binary_string_comparison = True
+
+    # PostgreSQL's date/time input reads the unseparated forms as well as the
+    # ISO ones -- ``'20260115'::date`` is 2026-01-15 -- so a ``YYYYMMDD``
+    # bucketing key mirrors here. Redshift inherits the same input parsing.
+    temporal_literal_formats = ("%Y%m%d", "%Y%m%d%H%M%S")
+
     supports_multivalues_insert = True
 
     # The time grain templates below spell ``DATE_TRUNC`` units in lowercase.

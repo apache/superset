@@ -325,11 +325,14 @@ export default function PartitionMappingSection({
       {/* Only one of preview and error is ever visible. */}
       {!loading && preview && !preview.valid && (
         <Alert
-          // A range that won't mirror, or an operator this column's type puts
-          // out of reach, is a live warning about the checkbox and the column
-          // above -- not a broken transform; calling it an error would be wrong.
+          // A range that won't mirror, an operator this column's type puts out
+          // of reach, or a bound whose time frame the transform would discard,
+          // is a live warning about the checkbox and the column above -- not a
+          // broken transform; calling it an error would be wrong.
           type={
-            preview.reason === 'operator' || preview.reason === 'resolution'
+            preview.reason === 'operator' ||
+            preview.reason === 'resolution' ||
+            preview.reason === 'offset'
               ? 'warning'
               : 'error'
           }
