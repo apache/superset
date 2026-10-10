@@ -60,6 +60,7 @@ export interface PartitionMappingPreview {
     | 'validation'
     | 'operator'
     | 'resolution'
+    | 'offset'
     | 'engine'
     | 'type'
     | 'unconfigured';

@@ -93,6 +93,14 @@ an exception: `to_char(:value, 'YYYYMMDD')`, `date(:value)` and
 partition key, which is exactly what a daily-partitioned table wants. Check the
 box for these.
 
+One caveat if your partition column is **temporal** and the transform answers with *text*: a
+mirror such as `part_date = '20260115'` only works where the database reads that form as a
+date. PostgreSQL and Redshift do; BigQuery coerces a string literal to `DATE` only as
+`YYYY-MM-DD`, and Trino wants an explicit cast, so on those an unseparated day key does not
+mirror and the preview says so. The separator-bearing forms — `2026-01-15`,
+`2026-01-15 00:00:00` — mirror everywhere. Either write the separators into the transform, or
+make the partition column's own type match what the transform returns.
+
 When the box is unchecked, `=` and `IN` filters still mirror; ranges do not.
 
 ## What is and isn't mirrored
@@ -119,11 +127,18 @@ compares `col` the way the transform was written against. Under a case-insensiti
 it does not: a stored `country` of `'us'` satisfies a filter for `'US'`, while the mirror is
 derived from `'US'` and excludes the row. So `=` and `IN` on a **text** mapped column only
 mirror on engines whose default text comparison is exact — Hive, Impala, Trino, Presto,
-Spark, Databricks, PostgreSQL, Snowflake, BigQuery and SQLite. On MySQL and SQL Server, whose
-default collations are case-insensitive, a text mapping is stored and shown but no `=` or
-`IN` filter mirrors through it; map a numeric or temporal column instead. Numeric and
-temporal comparison is exact everywhere, and ranges are unaffected either way — checking
-**Transform preserves ordering** is already a statement about the column's own ordering.
+Spark, Databricks, PostgreSQL, Snowflake, BigQuery and SQLite. On MySQL, SQL Server and
+Redshift, whose default comparisons ignore case or trailing blanks, a text mapping is stored
+and shown but no `=` or `IN` filter mirrors through it; map a numeric or temporal column
+instead. Numeric and temporal comparison is exact everywhere, and ranges are unaffected
+either way — checking **Transform preserves ordering** is already a statement about the
+column's own ordering.
+
+A **fixed-width** character type is its own case, on every engine: `CHAR(2)`, `CHARACTER(2)`
+and PostgreSQL's `bpchar` compare without their trailing blanks, so a stored `'US'` matches a
+filter for `'US '` while `lower('US ')` does not match the partition key. Mapping such a
+column stores and shows, and `=` and `IN` do not mirror through it. `VARCHAR` and `CHARACTER
+VARYING` are unaffected.
 
 One case Superset cannot check for you: a column that declares its own collation, such as
 `country COLLATE NOCASE`, on an engine that is otherwise exact. Nothing in the metadata
@@ -149,9 +164,17 @@ compares coarsely, a datetime typed in any other format — `07/06/2026 10:08:11
 `2026/07/06 10:08:11`, `July 6 2026 10:08:11` — does not mirror, for any operator, and no
 pruning indicator appears. The filter itself is unaffected; the query is correct and simply
 reads the whole table. Write the bound in ISO 8601, or pick it from the filter popover, and
-the mirror comes back. None of this applies where the engine compares the whole value: on a
-`TIMESTAMP` column any format your database accepts mirrors, because there is nothing left
-for Superset to resolve.
+the mirror comes back. Most of this stops applying where the engine compares the whole
+value: on a `TIMESTAMP` column any format your database accepts mirrors, because there is
+nothing left for Superset to resolve.
+
+**One exception on every column: a UTC offset.** A bound written as
+`2026-01-01T01:00:00+01:00` does not mirror, on a `TIMESTAMP` column as much as on a `DATE`
+one, and no pruning indicator appears. Your transform is evaluated by the database in its
+own time frame — `CAST(:value AS TIMESTAMP)` discards the offset rather than converting
+through it — so a mirror built from the offset-bearing value could ask for a partition the
+matching rows are not in. Write the bound without an offset, in the frame the column is
+stored in, and it mirrors. The preview says so in those words when a sample carries one.
 
 If `=` and `IN` on a date column matter to you, map a `TIMESTAMP` column instead: the engine
 then compares the whole value and every operator mirrors.

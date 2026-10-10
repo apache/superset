@@ -37,6 +37,7 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.connectors.sqla.partition_mapping import RawProbeValue
 from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
+from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.models.core import Database
 from superset.superset_typing import QueryObjectDict
 from superset.utils import json
@@ -259,8 +260,8 @@ def test_a_day_key_still_mirrors_onto_a_temporal_partition_column(
 ) -> None:
     """
     The narrowing above must not cost the case the text admission exists for:
-    `to_char(:value, 'YYYYMMDD')` answers with a day key, and Postgres, Trino
-    and BigQuery all read that as a date.
+    `to_char(:value, 'YYYYMMDD')` answers with a day key, which PostgreSQL
+    reads as a date and so declares in `temporal_literal_formats`.
 
     Its sibling `test_a_day_key_still_mirrors_onto_a_text_partition_column`
     covers the same transform onto a *text* key, which is the other axis --
@@ -276,6 +277,43 @@ def test_a_day_key_still_mirrors_onto_a_temporal_partition_column(
     )
 
     with app.app_context():
+        with patch.object(SqliteEngineSpec, "temporal_literal_formats", ("%Y%m%d",)):
+            with patch(PROBE, return_value=["20260101"]):
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "country",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": "US",
+                        }
+                    ],
+                )
+
+    assert "part_date = '20260101'" in sql
+
+
+def test_a_day_key_declines_where_the_engine_has_not_claimed_it(
+    app: Flask,
+) -> None:
+    """
+    BigQuery coerces a STRING literal to `DATE` only in the canonical
+    `YYYY-MM-DD` form and Trino wants an explicit cast, so `part_date =
+    '20260101'` fails the whole chart there rather than merely losing its
+    pruning. An engine that has not declared the format declines instead.
+    """
+    table = _with_date_partition_column(
+        _table(
+            transform="to_char(:value, 'YYYYMMDD')",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+        )
+    )
+
+    assert SqliteEngineSpec.temporal_literal_formats == ()
+
+    with app.app_context():
         with patch(PROBE, return_value=["20260101"]):
             sql = _query(
                 table,
@@ -284,7 +322,7 @@ def test_a_day_key_still_mirrors_onto_a_temporal_partition_column(
                 ],
             )
 
-    assert "part_date = '20260101'" in sql
+    assert "part_date" not in sql
 
 
 def test_in_filter_mirrors_element_wise(app: Flask) -> None:
@@ -1695,8 +1733,10 @@ def test_an_offset_bearing_string_declines_on_a_full_resolution_column(
         ("INTEGER", 1.0, [1]),
         # A non-integral value matches no integer row; nothing to protect.
         ("INTEGER", 1.5, [1.5]),
-        # A float column holds 1.0, whose text is not the text of 1.
-        ("REAL", 1, [1.0]),
+        # A REAL column is left alone: PostgreSQL renders the column's own
+        # value as `'1'` but the literal `1.0` as `'1.0'`, so coercing would
+        # mirror onto a key no matching row holds.
+        ("REAL", 1, [1]),
         # A DECIMAL's text depends on a scale the spec does not expose.
         ("DECIMAL", 1, [1]),
     ],

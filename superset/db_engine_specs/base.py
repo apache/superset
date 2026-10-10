@@ -599,6 +599,21 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # specs exposes it -- so on such a column the assumption remains the
     # owner's, like ``p = T(mapped_col)`` itself.
     binary_string_comparison: bool = False
+
+    # Text forms this engine reads as a date or timestamp when one is compared
+    # against a temporal column, beyond the separator-bearing ISO 8601 forms
+    # every engine takes. `strftime`/`strptime` patterns.
+    #
+    # Partition filter mapping needs this. A bucketing key such as
+    # ``to_char(:value, 'YYYYMMDD')`` is legitimately text, so the mirror
+    # ``part_date = '20260115'`` has to be allowed against a ``DATE`` partition
+    # column -- but only where the engine reads it. BigQuery coerces a STRING
+    # literal to ``DATE`` only in the canonical ``YYYY-MM-DD`` form and Trino
+    # wants an explicit cast, so on those the predicate fails the whole chart
+    # rather than merely losing its pruning. Empty by default, so an engine
+    # that has not said so declines the mirror and keeps the query working.
+    temporal_literal_formats: tuple[str, ...] = ()
+
     allows_alias_in_orderby = True
     allows_sql_comments = True
     allows_escaped_colons = True

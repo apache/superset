@@ -100,6 +100,14 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     max_column_name_length = 127
     default_driver = "psycopg2"
 
+    # Unlike PostgreSQL, Redshift ignores trailing blanks when it compares
+    # character values -- for ``VARCHAR`` as well as ``CHAR`` -- so ``'US '``
+    # and ``'US'`` are equal here and the inherited ``True`` would be wrong.
+    # Partition filter mapping reads this to decide whether ``col = v`` implies
+    # ``T(col) = T(v)``; under this comparison it does not, because ``lower()``
+    # of the two differs by a space the engine was ignoring.
+    binary_string_comparison = False
+
     sqlalchemy_uri_placeholder = (
         "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"
     )

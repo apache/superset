@@ -95,6 +95,7 @@ from superset.common.utils.time_range_utils import (
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
     grain_bucket_width,
+    is_unmirrorable,
     LOWER_BOUND_OPERATORS,
     mirror_operator,
     normalize_mixed_numbers,
@@ -102,6 +103,7 @@ from superset.connectors.sqla.partition_mapping import (
     raw_probe_value,
     resolve_partition_mapping,
     UNMIRRORABLE,
+    UNMIRRORABLE_OFFSET,
     UPPER_BOUND_OPERATORS,
 )
 from superset.constants import (
@@ -477,7 +479,11 @@ _UNRENDERABLE = object()
 #: two decline for different reasons: that one is an engine that cannot render a
 #: literal at all, which is worth a warning, and this one is an ordinary filter
 #: the mirror has to stay quiet about.
+#:
+#: `_UNMIRRORABLE_OFFSET` is the same decline with the reason the preview needs
+#: to explain it; `is_unmirrorable` recognises either.
 _UNMIRRORABLE = UNMIRRORABLE
+_UNMIRRORABLE_OFFSET = UNMIRRORABLE_OFFSET
 
 
 def _instant_from_filter_value(value: Any) -> Optional[datetime]:
@@ -4702,11 +4708,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ``'1'`` -- then mirrors to a partition value no matching row holds.
         Probing at the value the column would hold keeps ``T(col) = T(v)``.
 
-        Only lossless conversions: an integral number for an integer column, a
-        number a float represents exactly for a float column. Anything else is
-        returned unchanged -- a non-integral value on an integer column matches
-        no row, so its mirror cannot drop one, and a ``DECIMAL`` column's text
-        depends on a scale the spec does not expose.
+        Integer columns only. A non-integral value on an integer column is
+        returned unchanged -- it matches no row, so its mirror cannot drop one.
+
+        Nothing is converted for an approximate or exact decimal column, even
+        though ``1`` and ``1.0`` are the same number to a ``REAL``. What the
+        transform sees is the *literal*, and how an engine renders one is not
+        something the engine spec exposes: on PostgreSQL ``CAST(1.0 AS TEXT)``
+        is ``'1.0'`` while the ``REAL`` column holding that value renders as
+        ``'1'``, so coercing the value to ``float`` mirrored onto a partition
+        key no matching row holds -- the same failure this helper exists to
+        stop, in the other direction. A ``DECIMAL`` column says it louder,
+        since its text also depends on a scale the spec does not carry. For
+        both, the rendering stays the owner's assumption, like
+        ``p = T(mapped_col)`` itself.
         """
         if (
             col is None
@@ -4733,8 +4748,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             except (OverflowError, ValueError):
                 # Infinity and NaN have no integer, and match no integer row.
                 return value
-        if issubclass(type_class, sa.Float) and float(value) == value:
-            return float(value)
         return value
 
     def _mirror_probe_input(
@@ -4815,9 +4828,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         # Ahead of the full-resolution return: a transform such as
         # `CAST(:value AS TIMESTAMP)` drops the offset, so even an engine that
-        # compares the whole instant would probe it in the wrong frame.
+        # compares the whole instant would probe it in the wrong frame. Its own
+        # reason, because mapping a column the engine compares in full -- the
+        # advice the resolution decline carries -- does not help here.
         if parsed.tzinfo is not None:
-            return _UNMIRRORABLE
+            return _UNMIRRORABLE_OFFSET
 
         if self._engine_literal_resolution(parsed, col) is LiteralResolution.FULL:
             return (
@@ -5027,7 +5042,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             (col for col in self.columns if col.column_name == column_name), None
         )
         probe_value = self.mirror_probe_request(operator, value, mapped_col)
-        if probe_value is UNMIRRORABLE:
+        if is_unmirrorable(probe_value):
             return
         sink.append((operator, probe_value))
 
@@ -5038,7 +5053,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col: Optional["TableColumn"],
     ) -> Any:
         """
-        ``value`` as the mirror may probe the transform at, or `UNMIRRORABLE`.
+        ``value`` as the mirror may probe the transform at, or an `Unmirrorable`.
 
         The whole of what has to happen to a filter value before it can be
         probed, in one place because two callers need it: the chart query path,
@@ -5075,12 +5090,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             members = tuple(
                 self._mirror_probe_input(operator, item, col) for item in value
             )
-            if any(member is UNMIRRORABLE for member in members):
+            if declined := next(
+                (member for member in members if is_unmirrorable(member)), None
+            ):
                 # One member the engine compares more coarsely than the mirror
                 # can be built from is the whole list's problem: dropping just
                 # that member is the same narrowing the `None` guard above
-                # refuses. So the list declines entire.
-                return UNMIRRORABLE
+                # refuses. So the list declines entire, carrying the first
+                # member's reason -- the one an owner reading the preview would
+                # have to fix first anyway.
+                return declined
             return members
 
         if value is None:
