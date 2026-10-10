@@ -108,9 +108,9 @@ dependencies = [
     "shillelagh[gsheetsapi]>=1.4.5, <2.0",
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=4.1.2",
-    "slack_sdk>=3.44.0, <4",
+    "slack_sdk>=3.45.0, <4",
     "sqlalchemy>=2.0.52, <2.1",
-    "sqlalchemy-continuum>=1.6.0, <2.0.0",
+    "sqlalchemy-continuum>=1.8.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
     # Dialect-specific gaps/bugs against this pin are worked around in
     # superset/sql/dialects/ (e.g. starrocks.py); check there for anything
@@ -213,7 +213,7 @@ fastmcp = [
 # landed (discussion #40273).
 firebird = ["sqlalchemy-firebird>=2.2.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
-gevent = ["gevent>=26.8.0"]
+gevent = ["gevent>=26.9.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
 hana = ["hdbcli==2.30.27", "sqlalchemy_hana==3.0.3"]
 hive = [
@@ -256,7 +256,7 @@ pinot = ["pinotdb[sqlalchemy]>=8.0.0, <10.0.0"]
 playwright = ["playwright>=1.63.0, <2"]
 postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
-trino = ["trino>=0.339.0"]
+trino = ["trino>=0.340.0"]
 prophet = ["prophet>=1.4.0, <2"]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own

@@ -1361,6 +1361,16 @@ All MCP tool calls are logged to Superset's event logger, the same system used b
 
 This means MCP activity is auditable alongside normal user activity. No additional configuration is required — logging is on by default whenever the event logger is enabled in your Superset deployment.
 
+### Tool Metrics
+
+The configured stats logger records one outcome counter
+(`mcp.tool.<tool_name>.success`, `.warning`, or `.error`) and one timing
+(`mcp.tool.<tool_name>.time`) per tool execution. Calls forwarded through the
+tool-search proxy, including a custom `call_tool_name`, use the target tool's
+metrics without a second counter or timing from the proxy. This applies to both
+successful and failed calls; exceptions raised by the proxy itself are still
+counted.
+
 ## Tool Pagination
 
 MCP list tools (`list_datasets`, `list_charts`, `list_dashboards`, `list_databases`) use **offset pagination** via `page` (1-based) and `page_size` parameters. Responses include `page`, `page_size`, `total_count`, `total_pages`, `has_previous`, and `has_next`. To iterate through all results:
