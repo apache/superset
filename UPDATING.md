@@ -30,6 +30,7 @@ assists people when migrating to a new version.
   comparison operands also return query validation errors. The semantic result
   cache key includes a protocol version, so pre-upgrade answers are not reused
   and semantic caches warm again after deployment.
+  Chart-backed annotation results also get a one-time cold cache after upgrade.
 - SDK adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
   members (`Filter | OrFilter`) before reading leaf attributes. `get_values`
   remains `set[Filter] | None`. Host filter-value typing also permits NULL within

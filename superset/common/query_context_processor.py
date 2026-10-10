@@ -489,7 +489,11 @@ class QueryContextProcessor:
                 )
                 if discriminator is not None:
                     source_versions[str(layer_value)] = discriminator
-        context: dict[str, Any] = {"user_id": get_user_id(), "source_rls": source_rls}
+        context: dict[str, Any] = {
+            "user_id": get_user_id(),
+            "source_rls": source_rls,
+            "semantic_filter_protocol": "semantic-null-filters-v1",
+        }
         if source_versions:
             context["semantic_result_versions"] = source_versions
         return context
