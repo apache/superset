@@ -75,13 +75,10 @@ test('shows loading state during initial data fetch', () => {
     setTimeout(() => resolve({ result: [], count: 0 }), 10000),
   );
   fetchMock.removeRoutes({
-    names: [
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    ],
+    names: [API_ENDPOINTS.DATASETS, API_ENDPOINTS.DATASETS],
   });
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
 
   renderDatasetList(mockAdminUser);
 
@@ -98,13 +95,10 @@ test('maintains component structure during loading', () => {
     setTimeout(() => resolve({ result: [], count: 0 }), 10000),
   );
   fetchMock.removeRoutes({
-    names: [
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    ],
+    names: [API_ENDPOINTS.DATASETS, API_ENDPOINTS.DATASETS],
   });
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
 
   renderDatasetList(mockAdminUser);
 
@@ -262,9 +256,7 @@ test('makes correct initial API call on load', async () => {
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(0);
   });
 });
@@ -273,9 +265,7 @@ test('API call includes correct page size', async () => {
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(0);
     const { url } = calls[0];
     expect(url).toContain('page_size');
@@ -290,7 +280,7 @@ test('typing in name filter updates input value and triggers API with decoded se
 
   // Record initial API calls
   const initialCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Type in search box and press Enter to trigger search
@@ -304,9 +294,7 @@ test('typing in name filter updates input value and triggers API with decoded se
   // Wait for API call after Enter key press
   await waitFor(
     () => {
-      const calls = fetchMock.callHistory.calls(
-        API_ENDPOINTS.DATASOURCE_COMBINED,
-      );
+      const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
       expect(calls.length).toBeGreaterThan(initialCallCount);
 
       // Get latest API call
@@ -426,9 +414,7 @@ test('component requires explicit mocks for all API endpoints', async () => {
   await waitForDatasetsPageReady();
 
   // Verify that critical endpoints were called and had mocks available
-  const newDatasetsCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
-  );
+  const newDatasetsCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const newInfoCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS_INFO);
 
   // These should have been called during render
@@ -650,3 +636,36 @@ test.each([false, true])(
     }
   },
 );
+
+const listRequestUrls = (pattern: RegExp) =>
+  fetchMock.callHistory
+    .calls()
+    .map(call => call.url)
+    .filter(url => pattern.test(url));
+
+test('lists datasets through the dataset API when semantic layers are off', async () => {
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  expect(listRequestUrls(/\/api\/v1\/datasource\/\?q=/)).toHaveLength(0);
+});
+
+test('lists datasets through the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    await waitFor(() => {
+      expect(
+        listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
