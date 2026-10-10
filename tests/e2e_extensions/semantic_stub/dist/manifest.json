@@ -1,0 +1,10 @@
+{
+  "publisher": "superset-e2e",
+  "name": "semantic-stub",
+  "displayName": "E2E Semantic Stub",
+  "version": "1.0.0",
+  "description": "Test-only in-memory semantic layer for Playwright. Never ship.",
+  "backend": {
+    "entrypoint": "superset_e2e_semantic_stub"
+  }
+}
