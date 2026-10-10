@@ -168,7 +168,11 @@ export const RefreshFrequencySelect = ({
 }: RefreshFrequencySelectProps) => {
   const configuredIntervals = useSelector(
     (state: RootState) =>
-      state.dashboardInfo?.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
+      // The select also mounts from the Dashboard List / Home pages, where no
+      // dashboard has been hydrated yet; the bootstrapped store carries the
+      // same config there.
+      state.dashboardInfo?.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS ??
+      state.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
   );
   const options = useMemo(
     () => getRefreshFrequencyOptions(configuredIntervals),

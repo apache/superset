@@ -17,10 +17,12 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { render, screen } from 'spec/helpers/testing-library';
 import {
   CUSTOM_REFRESH_FREQUENCY,
   getRefreshFrequencyOptions,
   getRefreshWarningMessage,
+  RefreshFrequencySelect,
   REFRESH_FREQUENCY_OPTIONS,
   validateRefreshFrequency,
 } from './RefreshFrequencySelect';
@@ -164,4 +166,50 @@ test('getRefreshFrequencyOptions keeps the first of two entries sharing an inter
     { value: 600, label: 'Ten minutes' },
     { value: CUSTOM_REFRESH_FREQUENCY, label: 'Custom' },
   ]);
+});
+
+const INTERVALS = [
+  [0, "Don't refresh"],
+  [600, '10 minutes'],
+  [3600, '1 hour'],
+];
+
+test('the configured intervals are read from the bootstrapped store when no dashboard is hydrated', () => {
+  // The select also mounts from the Dashboard List / Home pages, where only
+  // the bootstrapped state.common carries the deployment config.
+  render(<RefreshFrequencySelect value={0} onChange={jest.fn()} />, {
+    useRedux: true,
+    initialState: {
+      common: { conf: { DASHBOARD_AUTO_REFRESH_INTERVALS: INTERVALS } },
+    },
+  });
+
+  expect(screen.getByRole('radio', { name: '10 minutes' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('radio', { name: '10 seconds' }),
+  ).not.toBeInTheDocument();
+});
+
+test('the hydrated dashboard config wins over the bootstrapped one', () => {
+  render(<RefreshFrequencySelect value={0} onChange={jest.fn()} />, {
+    useRedux: true,
+    initialState: {
+      dashboardInfo: {
+        common: {
+          conf: {
+            DASHBOARD_AUTO_REFRESH_INTERVALS: [
+              [0, "Don't refresh"],
+              [600, '10 minutes'],
+            ],
+          },
+        },
+      },
+      common: { conf: { DASHBOARD_AUTO_REFRESH_INTERVALS: INTERVALS } },
+    },
+  });
+
+  expect(screen.getByRole('radio', { name: '10 minutes' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('radio', { name: '1 hour' }),
+  ).not.toBeInTheDocument();
 });
