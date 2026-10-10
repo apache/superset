@@ -1388,7 +1388,10 @@ def test_purge_rejects_invalid_cap(invalid: object) -> None:
         task._purge_impl(30, False, max_per_run=cast(int | None, invalid))
 
 
-def test_purge_remainder_failure_keeps_committed_totals(app_context: None) -> None:
+@pytest.mark.parametrize("rollback_fails", [False, True])
+def test_purge_remainder_failure_keeps_committed_totals(
+    app_context: None, rollback_fails: bool
+) -> None:
     """A post-commit count failure cannot turn successful purges into an error."""
     from superset.models.slice import Slice
     from superset.tasks import deletion_retention as task
@@ -1406,7 +1409,11 @@ def test_purge_remainder_failure_keeps_committed_totals(app_context: None) -> No
         patch.object(task, "_scan_purge_models", return_value=scan),
         patch.object(task, "_count_eligible", side_effect=RuntimeError("count failed")),
         patch.object(task.audit, "reconcile_pending"),
-        patch.object(task.db.session, "rollback") as rollback,
+        patch.object(
+            task.db.session,
+            "rollback",
+            side_effect=RuntimeError("rollback failed") if rollback_fails else None,
+        ) as rollback,
     ):
         result: dict[str, Any] = task._purge_impl(30, False, max_per_run=2)
 

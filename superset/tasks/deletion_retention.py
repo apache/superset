@@ -287,11 +287,14 @@ def _add_purge_cap_stats(
                 _count_eligible(model, cutoff) for model in scan.supported_models
             )
         except Exception:  # pylint: disable=broad-except
-            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning(
                 "deletion_retention: remainder count failed after purge",
                 exc_info=True,
             )
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except Exception:  # pylint: disable=broad-except
+                logger.exception("deletion_retention: remainder count rollback failed")
             stats_logger_manager.instance.incr(
                 f"{_METRIC_PREFIX}.remainder_count_failed"
             )
