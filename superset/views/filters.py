@@ -403,8 +403,9 @@ class SoftDeleteApiMixin:
         """Run the bound restore command with the concrete API's error mapping."""
         api: BaseSupersetModelRestApi = cast("BaseSupersetModelRestApi", self)
         try:
-            self.restore_command_cls(uuid).run()
-            return api.response(200, message="OK")
+            command: BaseRestoreCommand[Any] = self.restore_command_cls(uuid)
+            command.run()
+            return api.response(200, message=" ".join(["OK", *command.warnings]))
         except self.soft_delete_not_found_errors:
             return api.response_404()
         except self.soft_delete_forbidden_errors:

@@ -67,6 +67,18 @@ you can view but not edit still appear in the list. The **Recover** and
 that object type; recovering a specific object can still be refused if you
 are not one of its editors.
 
+If a dashboard filter or display control references a semantic view that was
+deleted while the dashboard was archived, recovery removes that entire control
+and its cascade links. Unaffected controls, including table filters, are preserved.
+The REST and MCP restore responses include a warning in their `message` field; review the
+remaining filters before relying on the restored dashboard's results. A disabled
+provider or missing datasource permission alone does not remove a control whose
+semantic view still exists.
+
+Controls with invalid semantic view IDs are also removed. If the stored metadata
+is malformed, recovery still succeeds but leaves the metadata unchanged and skips
+filter cleanup; the response warns that the dashboard's filters need review.
+
 ## Deleting an object permanently
 
 Use the **Delete permanently** action on a row to remove an object for good.
