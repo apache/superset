@@ -1903,6 +1903,9 @@ msgstr "Dimensions"
 msgid "All filters"
 msgstr "Tots els filtres"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Tots els panells"
 
@@ -4566,6 +4569,9 @@ msgstr "Columnes a llegir"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Informació d'ajuda de l'encapçalament de columna"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combinar mètriques"
@@ -8765,6 +8771,9 @@ msgstr "Nom del grup"
 msgid "Group remaining as \"Others\""
 msgstr "Agrupa la resta com a \"Altres\""
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "Àmbit d'aplicació"
@@ -9796,6 +9805,11 @@ msgid "Least recently modified"
 msgstr "Menys recentment modificat"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11378,6 +11392,10 @@ msgstr "Gràfic no trobat"
 
 msgid "Not in"
 msgstr "No en"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "No nul"
@@ -16571,6 +16589,11 @@ msgstr "La columna a usar com a objectiu de la vora."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "La columna va ser eliminada o reanomenada a la base de dades."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "La configuració per les capes del mapa"
