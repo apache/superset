@@ -57,7 +57,11 @@ from superset.mcp_service.chart.chart_helpers import (
     rejected_requested_filter_columns,
     resolve_form_data_datasource,
 )
-from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.chart_utils import (
+    DatasetValidationResult,
+    validate_chart_dataset,
+    validate_chart_semantic_view,
+)
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
     null_data_is_empty,
@@ -86,7 +90,7 @@ from superset.mcp_service.utils.response_utils import (
     format_data_columns,
     format_data_quality,
 )
-from superset.utils.core import GenericDataType
+from superset.utils.core import DatasourceType, GenericDataType
 from superset.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -552,10 +556,13 @@ async def _get_chart_data(  # noqa: C901
         logger.info("Getting data for chart %s: %s", chart_id, chart_name)
 
         # Guests skip the RBAC check (authorize_query covers it) but keep the
-        # existence check, so a deleted dataset still returns
+        # existence check, so a deleted dataset or semantic view still returns
         # DatasetNotAccessible.
-        validation_result = validate_chart_dataset(
-            chart_datasource_id, check_access=not guest_scope.is_guest_read()
+        check_access: bool = not guest_scope.is_guest_read()
+        validation_result: DatasetValidationResult = (
+            validate_chart_semantic_view(chart_datasource_id, check_access=check_access)
+            if chart_datasource_type == DatasourceType.SEMANTIC_VIEW.value
+            else validate_chart_dataset(chart_datasource_id, check_access=check_access)
         )
         if not validation_result.is_valid:
             await ctx.warning(
