@@ -220,10 +220,13 @@ class StubOrdersView(SemanticView):
 class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
     configuration_class: type[StubConfiguration] = StubConfiguration
 
+    def __init__(self, configuration: StubConfiguration) -> None:
+        """Keep validated configuration available to host schema requests."""
+        self.configuration: StubConfiguration = configuration
+
     @classmethod
     def from_configuration(cls, configuration: dict[str, Any]) -> StubSemanticLayer:
-        StubConfiguration.model_validate(configuration)
-        return cls()
+        return cls(StubConfiguration.model_validate(configuration))
 
     @classmethod
     def get_configuration_schema(

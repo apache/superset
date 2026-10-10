@@ -22,6 +22,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 from unittest.mock import PropertyMock
+from uuid import uuid4
 
 import pytest
 from flask.testing import FlaskClient
@@ -121,6 +122,33 @@ def test_stub_rejects_configuration_and_unknown_views(
         stub_layer.from_configuration({"account": "unexpected"})
     with pytest.raises(ValueError, match="no semantic view"):
         stub_layer.from_configuration({}).get_semantic_view("missing", {})
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
+)
+def test_stub_runtime_schema_through_host_api(
+    client: FlaskClient,
+    full_api_access: None,
+    stub_layer: type[SemanticLayer[Any, Any]],
+    mocker: MockerFixture,
+) -> None:
+    """The host can obtain runtime schema from a stored stub configuration."""
+    layer: SemanticLayerModel = SemanticLayerModel(
+        uuid=uuid4(), type=STUB_TYPE, configuration="{}"
+    )
+    mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid", return_value=layer
+    )
+    mocker.patch.object(SemanticLayerModel, "raise_for_access")
+
+    response: TestResponse = client.post(
+        f"/api/v1/semantic_layer/{layer.uuid}/schema/runtime", json={}
+    )
+
+    assert response.status_code == 200, response.json
+    assert response.json is not None
+    assert response.json["result"] == {"type": "object", "properties": {}}
 
 
 def test_chart_data_through_host_mapper(
