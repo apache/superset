@@ -2180,6 +2180,9 @@ msgstr ""
 msgid "Apply metrics on"
 msgstr ""
 
+msgid "Apply theme"
+msgstr ""
+
 msgid "April"
 msgstr ""
 
@@ -3393,6 +3396,9 @@ msgstr ""
 msgid "Clear local theme"
 msgstr ""
 
+msgid "Clear override (inherit)"
+msgstr ""
+
 msgid "Clear search"
 msgstr ""
 
@@ -3670,6 +3676,9 @@ msgstr ""
 
 #, python-format
 msgid "Column name [%s] is duplicated"
+msgstr ""
+
+msgid "Column options"
 msgstr ""
 
 #, python-format
@@ -8503,6 +8512,9 @@ msgstr ""
 msgid "Mark a column as temporal in \"Edit datasource\" modal"
 msgstr ""
 
+msgid "Markdown options"
+msgstr ""
+
 msgid "Marker"
 msgstr ""
 
@@ -11266,6 +11278,9 @@ msgstr ""
 msgid "Row limit"
 msgstr ""
 
+msgid "Row options"
+msgstr ""
+
 msgid "Row settings"
 msgstr ""
 
@@ -13363,6 +13378,9 @@ msgid "Tables"
 msgstr ""
 
 msgid "Tabs"
+msgstr ""
+
+msgid "Tabs options"
 msgstr ""
 
 msgid "Tabular"
