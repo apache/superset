@@ -32,6 +32,7 @@ import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { user, testQuery, mockdatasets } from 'src/SqlLab/fixtures';
 import { FeatureFlag, SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
 
 const mockedProps = {
   visible: true,
@@ -201,7 +202,7 @@ describe('SaveDatasetModal', () => {
     });
 
     // Select the first "existing dataset" from the listbox
-    const option = screen.getAllByText('coolest table 0')[1];
+    const option = screen.getAllByText('schema 0.coolest table 0')[0];
     await userEvent.click(option);
 
     // Overwrite button should now be enabled
@@ -232,7 +233,7 @@ describe('SaveDatasetModal', () => {
     });
 
     // Select the first "existing dataset" from the listbox
-    const option = screen.getAllByText('coolest table 0')[1];
+    const option = screen.getAllByText('schema 0.coolest table 0')[0];
     await userEvent.click(option);
 
     // Click the overwrite button to access the confirmation screen
@@ -252,6 +253,137 @@ describe('SaveDatasetModal', () => {
     expect(
       screen.getByRole('button', { name: /overwrite/i }),
     ).toBeInTheDocument();
+  });
+
+  test('distinguishes datasets that share a table name and overwrites the selected one', async () => {
+    // Datasets are unique by database, catalog, schema and table name, so the
+    // same table name can legitimately appear several times.
+    const sameNameDatasets = [
+      {
+        ...mockdatasets[0],
+        id: 11,
+        database: { database_name: 'warehouse' },
+        schema: 'staging',
+        table_name: 'task_instance',
+      },
+      {
+        ...mockdatasets[0],
+        id: 22,
+        database: { database_name: 'warehouse' },
+        schema: 'prod',
+        table_name: 'task_instance',
+      },
+      // Same schema and table as the one above — only the database differs
+      {
+        ...mockdatasets[0],
+        id: 33,
+        database: { database_name: 'analytics' },
+        catalog: 'reporting',
+        schema: 'prod',
+        table_name: 'task_instance',
+      },
+    ];
+    // Pad past a single API page so the search cannot be served from options
+    // already in memory — it has to reach the API.
+    const PAGE_SIZE = 100;
+    const allDatasets = [
+      ...sameNameDatasets,
+      ...Array.from({ length: PAGE_SIZE * 2 }, (_, i) => ({
+        ...mockdatasets[0],
+        id: 1000 + i,
+        database: { database_name: 'warehouse' },
+        schema: `schema_${i}`,
+        table_name: `table_${i}`,
+      })),
+    ];
+    // Filter and paginate the way the API does — a mock that returns
+    // everything regardless of the search hides server-side mismatches.
+    const getSpy = jest
+      .spyOn(SupersetClient, 'get')
+      .mockImplementation(({ endpoint }: any) => {
+        const { filters } = rison.decode(
+          endpoint.slice(endpoint.indexOf('q=') + 2),
+        ) as { filters: { col: string; opr: string; value: any }[] };
+        const matches = allDatasets.filter(dataset =>
+          filters.every(({ col, value }) =>
+            col === 'table_name' ? dataset.table_name.includes(value) : true,
+          ),
+        );
+        return Promise.resolve({
+          json: { result: matches.slice(0, PAGE_SIZE), count: matches.length },
+        }) as any;
+      });
+    const putSpy = jest
+      .spyOn(SupersetClient, 'put')
+      .mockResolvedValue({ json: { result: { id: 33 } } } as any);
+
+    renderModal();
+
+    await userEvent.click(
+      screen.getByRole('radio', { name: /overwrite existing/i }),
+    );
+    const combobox = screen.getByRole('combobox', {
+      name: /existing dataset/i,
+    });
+    await userEvent.click(combobox);
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    await waitFor(() => {
+      const loading = screen.queryByText('Loading...');
+      expect(loading === null || !loading.checkVisibility()).toBe(true);
+    });
+
+    await userEvent.type(combobox, 'task_instance');
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    expect(
+      await screen.findAllByText('warehouse.staging.task_instance'),
+    ).toHaveLength(1);
+    expect(
+      await screen.findAllByText('warehouse.prod.task_instance'),
+    ).toHaveLength(1);
+    expect(
+      await screen.findAllByText('analytics.reporting.prod.task_instance'),
+    ).toHaveLength(1);
+
+    // Qualifying the search narrows the list, skipping the catalog included.
+    await userEvent.clear(combobox);
+    await userEvent.click(combobox);
+    await userEvent.type(combobox, 'analytics.prod.task_instance');
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    await act(async () => {
+      jest.runAllTimers();
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByText('warehouse.prod.task_instance'),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByText('warehouse.staging.task_instance'),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByText('analytics.reporting.prod.task_instance'),
+    );
+    await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+    await screen.findByText(/are you sure you want to overwrite this dataset/i);
+    await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
+
+    await waitFor(() => {
+      expect(
+        putSpy.mock.calls.some(([req]) =>
+          req.endpoint?.includes('api/v1/dataset/33'),
+        ),
+      ).toBe(true);
+    });
+
+    getSpy.mockRestore();
+    putSpy.mockRestore();
   });
 
   test('sends the schema when creating the dataset', async () => {
@@ -409,8 +541,8 @@ describe('SaveDatasetModal', () => {
       expect(loading === null || !loading.checkVisibility()).toBe(true);
     });
     // Pick an existing dataset (use the listbox item, not the input mirror)
-    const options = await screen.findAllByText('coolest table 0');
-    await userEvent.click(options[1]);
+    const options = await screen.findAllByText('schema 0.coolest table 0');
+    await userEvent.click(options[0]);
     // First overwrite click → confirmation screen
     await userEvent.click(screen.getByRole('button', { name: /overwrite/i }));
     // Wait for the confirmation screen to render
