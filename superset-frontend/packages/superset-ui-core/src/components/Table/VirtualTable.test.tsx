@@ -19,19 +19,17 @@
 import { render, screen, waitFor } from '@superset-ui/core/spec';
 import type { ColumnsType } from 'antd/es/table';
 import { Table } from './index';
+import { OnResizeCallback } from 'react-resize-detector';
 
 // jsdom never measures the container, so tests that need a width set this one.
 let mockTableWidth: number | undefined;
 jest.mock('react-resize-detector', () => {
   const { useEffect } = jest.requireActual('react');
   return {
-    useResizeDetector: ({
-      onResize,
-    }: {
-      onResize?: (width?: number) => void;
-    }) => {
+    useResizeDetector: ({ onResize }: { onResize?: OnResizeCallback }) => {
       useEffect(() => {
-        if (mockTableWidth !== undefined) onResize?.(mockTableWidth);
+        if (mockTableWidth !== undefined)
+          onResize?.({ width: mockTableWidth } as any);
       }, [onResize]);
       return { ref: () => undefined };
     },
