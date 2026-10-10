@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Engine-level cancellation for GTF chart-data query tasks.
+"""Engine-level cancellation for chart-data queries.
 
 The chart-data execution path (``Database.get_df``) has none of SQL Lab's
 cancel plumbing, so a GTF abort/timeout could only mark the task terminal while
@@ -29,6 +29,15 @@ the warehouse query kept running. This module adds the missing seam:
 
 Only engines that return a cancel id before execution participate; others
 capture nothing and are simply not cancellable (the abort still frees the task).
+
+The same seam backs Explore's Stop button on the *synchronous* path. There the
+cancel has to arrive on a different request (and likely a different worker) than
+the one blocked on the query, so ``cancellable_chart_query`` publishes the
+captured handle to the cache under a key derived from the requesting user and
+the client-generated ``client_id``, and ``cancel_chart_query_for_user`` resolves
+it back. Because the user id is part of the key, a lookup can only ever find the
+requester's own query: a client-supplied ``client_id`` naming somebody else's
+query simply misses.
 """
 
 from __future__ import annotations
@@ -37,6 +46,8 @@ import logging
 from contextlib import closing, contextmanager
 from contextvars import ContextVar
 from typing import Any, Callable, cast, Iterator, TYPE_CHECKING
+
+from flask import current_app
 
 from superset.stats_logger import BaseStatsLogger
 
@@ -137,8 +148,6 @@ def cancel_chart_query(
     :param app: Flask app for config/DB access from the background thread
     :returns: True if the engine reported the query cancelled
     """
-    from flask import current_app
-
     stats_logger: BaseStatsLogger = (app or current_app).config.get(
         "STATS_LOGGER", BaseStatsLogger()
     )
@@ -168,3 +177,170 @@ def cancel_chart_query(
             exc_info=True,
         )
         return False
+
+
+def _registry_key(user_id: int, client_id: str) -> str:
+    """Cache key for a user's in-flight, cancellable chart query.
+
+    The user id is part of the key rather than a field compared after lookup, so
+    a ``client_id`` is only ever resolvable within the namespace of the user who
+    registered it. A caller passing somebody else's ``client_id`` gets a miss —
+    it cannot read, cancel, or overwrite another user's entry.
+    """
+    return f"chart-query-cancel:{user_id}:{client_id}"
+
+
+def _registry_ttl() -> int:
+    """How long a cancel handle stays resolvable.
+
+    A synchronous chart query cannot outlive the web request running it, so the
+    webserver timeout is the natural upper bound. Entries are discarded as soon
+    as the query returns; this TTL only bounds the leak when a worker dies
+    mid-query.
+    """
+    return int(current_app.config.get("SUPERSET_WEBSERVER_TIMEOUT", 60))
+
+
+@contextmanager
+def cancellable_chart_query(
+    client_id: "str | None", database: "Database | None"
+) -> Iterator[None]:
+    """Let the requesting user cancel this synchronous chart query by ``client_id``.
+
+    Captures the engine cancel id off the live cursor (for engines that expose
+    one before execution) and publishes it so a concurrent Stop request — which
+    lands on a different worker while this one is blocked on the query — can kill
+    the backend session. Engines without cancel support capture nothing and the
+    query stays non-cancellable, exactly as before.
+
+    A no-op without a ``client_id``, without a database (e.g. the annotation
+    datasource, which queries Superset's own metadata DB), or for an
+    unauthenticated request — an anonymous viewer of a public dashboard has no
+    user id to scope the handle to, and an unscoped handle would be cancellable
+    by any other anonymous visitor.
+    """
+    # Inline (also below, and in _publish_cancel_handle/_discard_cancel_handle/
+    # cancel_chart_query_for_user): the unit tests patch get_user_id and
+    # cache_manager at their defining modules (superset.utils.core,
+    # superset.extensions), not here. A module-level `from ... import X` binds
+    # X once at import time, before any test patch runs, so the patch would
+    # silently never take effect; re-importing on every call picks up the
+    # patched object instead.
+    from superset.utils.core import get_user_id
+
+    user_id = get_user_id()
+    if not client_id or database is None or user_id is None:
+        yield
+        return
+
+    # Rebound as non-optional locals: mypy does not carry the narrowing above
+    # into the nested function below.
+    owner_id: int = user_id
+    query_id: str = client_id
+    target: "Database" = database
+    database_id = target.id
+    captured = False
+
+    def _sink(cursor: Any) -> None:
+        # Republish for every cursor rather than only the first: one query
+        # object can execute several statements in turn (e.g. the grouping-sets
+        # fallback), each on whatever connection the pool hands out, and the
+        # handle must always name the session that is executing right now.
+        nonlocal captured
+        cancel_id = capture_cancel_query_id(target, cursor)
+        if cancel_id is None:
+            return
+        captured = True
+        _publish_cancel_handle(owner_id, query_id, database_id, cancel_id)
+
+    try:
+        with capture_cancel_id(_sink):
+            yield
+    finally:
+        if captured:
+            _discard_cancel_handle(owner_id, query_id)
+
+
+def _publish_cancel_handle(
+    user_id: int, client_id: str, database_id: int, cancel_query_id: str
+) -> None:
+    """Publish a cancel handle for the owning user. Best-effort."""
+    # Inline for test-patchability; see cancellable_chart_query's comment.
+    from superset.extensions import cache_manager
+
+    try:
+        cache_manager.chart_query_cancel_cache.set(
+            _registry_key(user_id, client_id),
+            {"database_id": database_id, "cancel_query_id": cancel_query_id},
+            timeout=_registry_ttl(),
+        )
+    except Exception:  # noqa: BLE001 pylint: disable=broad-except
+        # Forfeits cancellability for this query; never breaks its execution.
+        logger.warning("Could not publish chart query cancel handle", exc_info=True)
+
+
+def _discard_cancel_handle(
+    user_id: int, client_id: str, expected_cancel_query_id: "str | None" = None
+) -> None:
+    """Drop a cancel handle once its query is no longer running. Best-effort.
+
+    When ``expected_cancel_query_id`` is given, the entry is only deleted if it
+    still names that id. Sequential cursors within one query (e.g. the
+    grouping-sets fallback) republish the same key as each statement starts;
+    without this check, discarding a handle resolved just before a newer
+    cursor's republish would delete that newer, still-live entry instead of
+    the stale one that was actually acted on.
+    """
+    # Inline for test-patchability; see cancellable_chart_query's comment.
+    from superset.extensions import cache_manager
+
+    key = _registry_key(user_id, client_id)
+    try:
+        if expected_cancel_query_id is not None:
+            current = cache_manager.chart_query_cancel_cache.get(key)
+            if (
+                not current
+                or current.get("cancel_query_id") != expected_cancel_query_id
+            ):
+                return
+        cache_manager.chart_query_cancel_cache.delete(key)
+    except Exception:  # noqa: BLE001 pylint: disable=broad-except
+        logger.warning("Could not discard chart query cancel handle", exc_info=True)
+
+
+def cancel_chart_query_for_user(client_id: str) -> bool:
+    """Cancel the requesting user's running chart query, if it is cancellable.
+
+    :returns: True if the engine reported the query cancelled. False covers both
+        "no such in-flight query for this user" and "the engine declined" — the
+        caller cannot distinguish them, which is deliberate: it keeps the
+        endpoint from confirming whether a given ``client_id`` exists.
+    """
+    # Inline for test-patchability; see cancellable_chart_query's comment.
+    from superset.daos.database import DatabaseDAO
+    from superset.extensions import cache_manager
+    from superset.utils.core import get_user_id
+
+    user_id = get_user_id()
+    if user_id is None:
+        return False
+
+    try:
+        handle = cache_manager.chart_query_cancel_cache.get(
+            _registry_key(user_id, client_id)
+        )
+    except Exception:  # noqa: BLE001 pylint: disable=broad-except
+        logger.warning("Could not read chart query cancel handle", exc_info=True)
+        return False
+
+    if not handle:
+        return False
+
+    database = DatabaseDAO.find_by_id(handle["database_id"])
+    if database is None:
+        return False
+
+    cancelled = cancel_chart_query(database, handle["cancel_query_id"])
+    if cancelled:
+        _discard_cancel_handle(user_id, client_id, handle["cancel_query_id"])
+    return cancelled
