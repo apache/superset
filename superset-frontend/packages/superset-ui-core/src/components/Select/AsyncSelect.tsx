@@ -101,6 +101,11 @@ const Error = ({ error }: { error: string }) => (
 const getQueryCacheKey = (value: string, page: number, pageSize: number) =>
   `${value};${page};${pageSize}`;
 
+const normalizeOptionLabel = (label: unknown): string | undefined =>
+  typeof label === 'string' || typeof label === 'number'
+    ? String(label).trim().toLowerCase()
+    : undefined;
+
 /**
  * This component is a customized version of the Antdesign 4.X Select component
  * https://ant.design/components/select/.
@@ -376,10 +381,21 @@ const AsyncSelect = forwardRef(
         if (data && Array.isArray(data) && data.length) {
           // unique option values should always be case sensitive so don't lowercase
           const dataValues = new Set(data.map(opt => opt.value));
+          const dataLabels = new Set(
+            data.map(option => normalizeOptionLabel(option.label)),
+          );
           // merges with existing and creates unique options
           setSelectOptions(prevOptions => {
             mergedData = prevOptions
-              .filter(previousOption => !dataValues.has(previousOption.value))
+              .filter(
+                previousOption =>
+                  !dataValues.has(previousOption.value) &&
+                  (!previousOption.isNewOption ||
+                    hasOption(previousOption.value, selectValueRef.current) ||
+                    !dataLabels.has(
+                      normalizeOptionLabel(previousOption.label),
+                    )),
+              )
               .concat(data)
               // Forward-compat: TS 6.0 infers stricter antd option types; widen
               // the comparator to accept the broader DefaultOptionType shape.
@@ -475,8 +491,15 @@ const AsyncSelect = forwardRef(
               // typed when the server returns no match.
               setSelectOptions(prevOptions => {
                 const dataValues = new Set(data.map(opt => opt.value));
+                const dataLabels = new Set(
+                  data.map(option => normalizeOptionLabel(option.label)),
+                );
                 const preservedNew = prevOptions.filter(
-                  opt => opt.isNewOption && !dataValues.has(opt.value),
+                  opt =>
+                    opt.isNewOption &&
+                    (hasOption(opt.value, selectValueRef.current) ||
+                      (!dataValues.has(opt.value) &&
+                        !dataLabels.has(normalizeOptionLabel(opt.label)))),
                 );
                 return preservedNew
                   .concat(data)
@@ -530,7 +553,6 @@ const AsyncSelect = forwardRef(
 
     const searchStateRef = useRef({
       allowNewOptions,
-      fullSelectOptions,
       selectValue,
       allValuesLoaded,
       loadingEnabled,
@@ -542,7 +564,6 @@ const AsyncSelect = forwardRef(
     useEffect(() => {
       searchStateRef.current = {
         allowNewOptions,
-        fullSelectOptions,
         selectValue,
         allValuesLoaded,
         loadingEnabled,
@@ -557,7 +578,6 @@ const AsyncSelect = forwardRef(
         debounce((search: string) => {
           const {
             allowNewOptions,
-            fullSelectOptions,
             selectValue,
             allValuesLoaded,
             loadingEnabled,
@@ -570,19 +590,34 @@ const AsyncSelect = forwardRef(
 
           if (allowNewOptions) {
             const unquotedSearch = stripSurroundingQuotes(searchValue);
-            const newOption = unquotedSearch &&
-              !hasOption(unquotedSearch, fullSelectOptions, true) && {
-                label: unquotedSearch,
-                value: unquotedSearch,
-                isNewOption: true,
-              };
-            const cleanSelectOptions = fullSelectOptions.filter(
-              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-            );
-            const newOptions = newOption
-              ? [newOption, ...cleanSelectOptions]
-              : cleanSelectOptions;
-            setSelectOptions(newOptions);
+            setSelectOptions(prevOptions => {
+              const cleanOptions = prevOptions.filter(
+                option =>
+                  !option.isNewOption || hasOption(option.value, selectValue),
+              );
+              const normalizedSearch = normalizeOptionLabel(unquotedSearch);
+              const hasMatchingLabel = cleanOptions.some(
+                option =>
+                  normalizedSearch !== undefined &&
+                  normalizeOptionLabel(option.label) === normalizedSearch,
+              );
+              if (
+                !unquotedSearch ||
+                hasOption(unquotedSearch, cleanOptions, true) ||
+                hasMatchingLabel
+              ) {
+                return cleanOptions;
+              }
+
+              return [
+                {
+                  label: unquotedSearch,
+                  value: unquotedSearch,
+                  isNewOption: true,
+                },
+                ...cleanOptions,
+              ];
+            });
           }
 
           if (

@@ -1721,6 +1721,129 @@ test('cancels pending debounce on unmount', async () => {
   expect(mockOnSearch).not.toHaveBeenCalled();
 });
 
+test.each([
+  ['My dashboard', 'My dashboard', 123],
+  ['test dashboard', 'Test Dashboard', 456],
+  ['  Spaced Name  ', 'Spaced Name', 999],
+])(
+  'uses the server option when its label matches a new option (%s)',
+  async (search, label, value) => {
+    const loadOptions = jest.fn(async (query: string) =>
+      query === search
+        ? { data: [{ label, value }], totalCount: 1 }
+        : { data: [], totalCount: 100 },
+    );
+    const onChange = jest.fn();
+
+    render(
+      <AsyncSelect
+        {...defaultProps}
+        allowNewOptions
+        filterOption={false}
+        onChange={onChange}
+        options={loadOptions}
+      />,
+    );
+
+    await open();
+    await type(search);
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith(
+        search,
+        0,
+        defaultProps.pageSize,
+      ),
+    );
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent(label);
+
+    await userEvent.click(await findSelectOption(label));
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({ label, value }),
+        expect.objectContaining({ label, value }),
+      ),
+    );
+  },
+);
+
+test('preserves a new option when the server response has no matching label', async () => {
+  const loadOptions = jest.fn(async (search: string) =>
+    search === 'New Dashboard'
+      ? { data: [{ label: 'Other Dashboard', value: 789 }], totalCount: 1 }
+      : { data: [], totalCount: 100 },
+  );
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      filterOption={false}
+      options={loadOptions}
+    />,
+  );
+
+  await open();
+  await type('New Dashboard');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'New Dashboard',
+      0,
+      defaultProps.pageSize,
+    ),
+  );
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(2);
+  expect(options[0]).toHaveTextContent('New Dashboard');
+  expect(options[1]).toHaveTextContent('Other Dashboard');
+});
+
+test('removes a new option when a pending base fetch returns a matching label', async () => {
+  let resolveBase: (value: {
+    data: { label: string; value: number }[];
+    totalCount: number;
+  }) => void = () => {};
+  const loadOptions = jest.fn((search: string) => {
+    if (!search) {
+      return new Promise<{
+        data: { label: string; value: number }[];
+        totalCount: number;
+      }>(resolve => {
+        resolveBase = resolve;
+      });
+    }
+    return Promise.resolve({ data: [], totalCount: 100 });
+  });
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      filterOption={false}
+      options={loadOptions}
+    />,
+  );
+
+  await open();
+  await type('My dashboard');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'My dashboard',
+      0,
+      defaultProps.pageSize,
+    ),
+  );
+
+  resolveBase({
+    data: [{ label: 'My dashboard', value: 123 }],
+    totalCount: 1,
+  });
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+  expect(options[0]).toHaveTextContent('My dashboard');
+});
+
 test('renders the option label directly in the option content without a Space wrapper', async () => {
   render(<AsyncSelect {...defaultProps} />);
   await open();
