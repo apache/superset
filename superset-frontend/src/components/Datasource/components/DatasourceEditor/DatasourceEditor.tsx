@@ -1658,6 +1658,22 @@ function DatasourceEditor({
     [databaseColumns, calculatedColumns],
   );
 
+  // What `syncMetadata` reads once its request comes back. A `useCallback`
+  // captures its closure when the sync *starts*, so the state it merges
+  // against is whatever existed then, and adding to the dependency list cannot
+  // reach an invocation already in flight. Clicking "Remove mapping" while a
+  // sync was pending therefore had the response merge against the pre-click
+  // snapshot: an unchanged column passes through `updateColumns` verbatim, so
+  // the transform and monotonicity flag came back and the mapping the owner
+  // had just removed was live again -- and `clearUnmappedTransformsAcrossMove`
+  // could not undo it, because both of its sides were snapshots too.
+  const currentColumnsRef = useRef(currentColumns);
+  const datasourceRef = useRef(datasource);
+  useEffect(() => {
+    currentColumnsRef.current = currentColumns;
+    datasourceRef.current = datasource;
+  }, [currentColumns, datasource]);
+
   const syncMetadata = useCallback(async () => {
     // Abort previous syncMetadata if still pending
     if (abortControllers.current.syncMetadata) {
@@ -1672,8 +1688,13 @@ function DatasourceEditor({
     try {
       const newCols = await fetchSyncedColumns(datasource, signal);
 
+      // Everything past the `await` reads the refs rather than the closure;
+      // see their declaration.
+      const liveColumns = currentColumnsRef.current;
+      const liveDatasource = datasourceRef.current;
+
       const columnChanges = updateColumns(
-        currentColumns,
+        liveColumns,
         newCols,
         addSuccessToast,
       );
@@ -1681,7 +1702,7 @@ function DatasourceEditor({
       // showing a mapping that points at a column the table no longer has and
       // the owner has no way to tell why pruning stopped.
       const clearedMapping = clearDanglingPartitionMapping(
-        datasource,
+        liveDatasource,
         columnChanges.finalColumns,
       );
       // A sync can move which column the mapping mirrors, so the one-transform
@@ -1694,13 +1715,13 @@ function DatasourceEditor({
       // row counts quietly short. `updateColumns` passes an unchanged column
       // through verbatim and `buildPayload` then sends it as if the owner had
       // written it, so the server cannot tell the difference either.
-      const syncedDatasource = { ...datasource, ...clearedMapping };
+      const syncedDatasource = { ...liveDatasource, ...clearedMapping };
       const enforceMapping = isFeatureEnabled(
         FeatureFlag.PartitionFilterMapping,
       );
       const finalColumns = enforceMapping
         ? clearUnmappedTransformsAcrossMove(
-            datasource,
+            liveDatasource,
             syncedDatasource,
             columnChanges.finalColumns,
           )
@@ -1714,7 +1735,11 @@ function DatasourceEditor({
         // The default datetime column can be a calculated one, which the sync
         // does not touch and `finalColumns` does not carry.
         setCalculatedColumns(prev =>
-          clearUnmappedTransformsAcrossMove(datasource, syncedDatasource, prev),
+          clearUnmappedTransformsAcrossMove(
+            liveDatasource,
+            syncedDatasource,
+            prev,
+          ),
         );
       }
       if (clearedMapping) {
@@ -1731,8 +1756,8 @@ function DatasourceEditor({
         );
       }
 
-      if (datasource.id !== undefined) {
-        clearDatasetCache(datasource.id);
+      if (liveDatasource.id !== undefined) {
+        clearDatasetCache(liveDatasource.id);
       }
 
       addSuccessToast(t('Metadata has been synced'));

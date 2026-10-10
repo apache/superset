@@ -401,17 +401,25 @@ test('DatasourceEditor source pins syncMetadata to the live column state', () =>
     'utf8',
   );
 
-  // The merge reads the live state, not the mount-time snapshot.
-  expect(src).toMatch(
-    /const columnChanges = updateColumns\(\s*currentColumns,/,
-  );
+  // The merge reads the live state, not the mount-time snapshot -- and reads
+  // it through the ref, so an invocation already in flight when the owner
+  // changes something sees the change too. A closure capture could not: the
+  // callback's `currentColumns` is fixed when the sync starts.
+  expect(src).toMatch(/const columnChanges = updateColumns\(\s*liveColumns,/);
   expect(src).not.toMatch(
     /const columnChanges = updateColumns\(\s*datasource\.columns,/,
   );
+  expect(src).toMatch(
+    /const liveColumns = currentColumnsRef\.current;\s*const liveDatasource = datasourceRef\.current;/,
+  );
 
-  // And the live state is both column collections, memoized on both.
+  // And the live state is both column collections, memoized on both, with the
+  // refs tracking that memo and the datasource.
   expect(src).toMatch(
     /const currentColumns = useMemo\(\s*[\s\S]{0,900}?\(\) => \[\.\.\.databaseColumns, \.\.\.calculatedColumns\],\s*\[databaseColumns, calculatedColumns\],/,
+  );
+  expect(src).toMatch(
+    /currentColumnsRef\.current = currentColumns;\s*datasourceRef\.current = datasource;/,
   );
 });
 
@@ -439,13 +447,15 @@ test('DatasourceEditor source pins the sync to the mapping it leaves behind', ()
     'utf8',
   );
 
-  // The repair is resolved into the mapping the move lands on.
+  // The repair is resolved into the mapping the move lands on -- off the live
+  // datasource, so a mapping removed while the sync was in flight is the one
+  // the move starts from.
   expect(src).toMatch(
-    /const syncedDatasource = \{ \.\.\.datasource, \.\.\.clearedMapping \};/,
+    /const syncedDatasource = \{ \.\.\.liveDatasource, \.\.\.clearedMapping \};/,
   );
   // Both sides are passed, in that order, and before the columns are set.
   expect(src).toMatch(
-    /clearUnmappedTransformsAcrossMove\(\s*datasource,\s*syncedDatasource,\s*columnChanges\.finalColumns,?\s*\)[\s\S]{0,400}?setColumns\(\{/,
+    /clearUnmappedTransformsAcrossMove\(\s*liveDatasource,\s*syncedDatasource,\s*columnChanges\.finalColumns,?\s*\)[\s\S]{0,400}?setColumns\(\{/,
   );
   // Never the repaired side alone, which is the shape NEW-R12-01 was.
   expect(src).not.toMatch(
@@ -454,7 +464,7 @@ test('DatasourceEditor source pins the sync to the mapping it leaves behind', ()
   // Calculated columns too: the default datetime column can be one, and the
   // sync does not carry them.
   expect(src).toMatch(
-    /setCalculatedColumns\(prev =>\s*clearUnmappedTransformsAcrossMove\(datasource, syncedDatasource, prev\),\s*\);/,
+    /setCalculatedColumns\(prev =>\s*clearUnmappedTransformsAcrossMove\(\s*liveDatasource,\s*syncedDatasource,\s*prev,?\s*\),\s*\);/,
   );
 });
 
