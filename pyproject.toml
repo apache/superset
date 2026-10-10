@@ -110,7 +110,7 @@ dependencies = [
     "simplejson>=4.1.2",
     "slack_sdk>=3.45.0, <4",
     "sqlalchemy>=2.0.52, <2.1",
-    "sqlalchemy-continuum>=1.6.0, <2.0.0",
+    "sqlalchemy-continuum>=1.8.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
     # Dialect-specific gaps/bugs against this pin are worked around in
     # superset/sql/dialects/ (e.g. starrocks.py); check there for anything

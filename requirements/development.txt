@@ -1064,7 +1064,7 @@ sqlalchemy-bigquery==1.17.2
     # via apache-superset
 sqlalchemy-cockroachdb==2.0.4
     # via apache-superset
-sqlalchemy-continuum==1.7.0
+sqlalchemy-continuum==1.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
