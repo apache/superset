@@ -46,6 +46,7 @@ import {
 } from 'antd/es/select';
 import { debounce, isEqual, uniq } from 'lodash-es';
 import { Constants, Icons } from '@superset-ui/core/components';
+import { Space } from '../Space';
 import {
   getValue,
   hasOption,
@@ -63,6 +64,7 @@ import {
   splitWithQuoteEscaping,
   stripSurroundingQuotes,
   isEqual as utilsIsEqual,
+  isNewOption,
 } from './utils';
 import {
   AsyncSelectProps,
@@ -81,6 +83,7 @@ import {
   StyledHeader,
   StyledSelect,
   StyledStopOutlined,
+  StyledNewOptionBadge,
 } from './styles';
 import {
   DEFAULT_PAGE_SIZE,
@@ -343,10 +346,12 @@ const AsyncSelect = forwardRef(
           setSelectValue(array.filter(element => element !== value));
         }
         // removes new option
-        if (option.isNewOption) {
+        if (isNewOption(option)) {
           setSelectOptions(
             fullSelectOptions.filter(
-              option => getValue(option.value) !== getValue(value),
+              opt =>
+                getValue(opt.value) !== getValue(value) &&
+                getValue(opt.label) !== getValue(value),
             ),
           );
         }
@@ -379,7 +384,19 @@ const AsyncSelect = forwardRef(
           // merges with existing and creates unique options
           setSelectOptions(prevOptions => {
             mergedData = prevOptions
-              .filter(previousOption => !dataValues.has(previousOption.value))
+              .filter(previousOption => {
+                if (dataValues.has(previousOption.value)) {
+                  return false;
+                }
+                if (
+                  isNewOption(previousOption) &&
+                  (hasOption(previousOption.label as V, data, true) ||
+                    hasOption(previousOption.value as V, data, true))
+                ) {
+                  return false;
+                }
+                return true;
+              })
               .concat(data)
               // Forward-compat: TS 6.0 infers stricter antd option types; widen
               // the comparator to accept the broader DefaultOptionType shape.
@@ -476,7 +493,11 @@ const AsyncSelect = forwardRef(
               setSelectOptions(prevOptions => {
                 const dataValues = new Set(data.map(opt => opt.value));
                 const preservedNew = prevOptions.filter(
-                  opt => opt.isNewOption && !dataValues.has(opt.value),
+                  opt =>
+                    isNewOption(opt) &&
+                    !dataValues.has(opt.value) &&
+                    !hasOption(opt.label as V, data, true) &&
+                    !hasOption(opt.value as V, data, true),
                 );
                 return preservedNew
                   .concat(data)
@@ -678,6 +699,11 @@ const AsyncSelect = forwardRef(
 
     const handleClear = () => {
       setSelectValue(undefined);
+      if (allowNewOptions) {
+        setSelectOptions(prevOptions =>
+          prevOptions.filter(opt => !isNewOption(opt)),
+        );
+      }
       if (onClear) {
         onClear();
       }
@@ -903,7 +929,16 @@ const AsyncSelect = forwardRef(
           }
           onClear={handleClear}
           options={fullSelectOptions}
-          optionRender={option => option.label || option.value}
+          optionRender={option => (
+            <Space>
+              {option.label || option.value}
+              {(isNewOption(option.data) || isNewOption(option)) && (
+                <StyledNewOptionBadge data-test="new-option-badge">
+                  {t('new')}
+                </StyledNewOptionBadge>
+              )}
+            </Space>
+          )}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           tokenSeparators={quoteAwareTokenSeparators}

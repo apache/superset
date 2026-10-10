@@ -33,6 +33,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, formatNumber, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
+import { Space } from '../Space';
 import {
   BaseOptionType,
   DefaultOptionType,
@@ -57,6 +58,7 @@ import {
   splitWithQuoteEscaping,
   stripSurroundingQuotes,
   isEqual as utilsIsEqual,
+  isNewOption,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -66,6 +68,7 @@ import {
   StyledHeader,
   StyledSelect,
   StyledStopOutlined,
+  StyledNewOptionBadge,
 } from './styles';
 import {
   DEFAULT_SORT_COMPARATOR,
@@ -501,6 +504,14 @@ const Select = forwardRef(
             ),
         );
       }
+      if (allowNewOptions) {
+        setSelectOptions(prevOptions =>
+          prevOptions.filter(opt => !isNewOption(opt)),
+        );
+        setVisibleOptions(prevOptions =>
+          prevOptions.filter(opt => !isNewOption(opt)),
+        );
+      }
       fireOnChange();
     };
 
@@ -512,9 +523,11 @@ const Select = forwardRef(
         setSelectValue(array);
 
         // removes new option
-        if (option.isNewOption) {
+        if (isNewOption(option)) {
           const updatedOptions = fullSelectOptions.filter(
-            option => getValue(option.value) !== getValue(value),
+            opt =>
+              getValue(opt.value) !== getValue(value) &&
+              getValue(opt.label) !== getValue(value),
           );
           setSelectOptions(updatedOptions);
           setVisibleOptions(updatedOptions);
@@ -532,6 +545,7 @@ const Select = forwardRef(
       allowNewOptions,
       fullSelectOptions,
       selectValue,
+      initialOptions,
       handleFilterOption,
       onSearch,
     });
@@ -542,6 +556,7 @@ const Select = forwardRef(
         allowNewOptions,
         fullSelectOptions,
         selectValue,
+        initialOptions,
         handleFilterOption,
         onSearch,
       };
@@ -555,6 +570,7 @@ const Select = forwardRef(
             allowNewOptions,
             fullSelectOptions,
             selectValue,
+            initialOptions,
             handleFilterOption,
             onSearch,
           } = stateRef.current;
@@ -567,11 +583,12 @@ const Select = forwardRef(
           if (allowNewOptions) {
             const optionsWithoutTemporary = ensureIsArray(
               fullSelectOptions,
-            ).filter(opt => !opt.isNewOption);
+            ).filter(opt => !isNewOption(opt));
             const unquotedSearch = stripSurroundingQuotes(searchValue);
             const shouldCreateNewOption =
               unquotedSearch &&
-              !hasOption(unquotedSearch, optionsWithoutTemporary, true);
+              !hasOption(unquotedSearch, optionsWithoutTemporary, true) &&
+              !hasOption(unquotedSearch, initialOptions, true);
 
             const newOption = shouldCreateNewOption && {
               label: unquotedSearch,
@@ -579,7 +596,7 @@ const Select = forwardRef(
               isNewOption: true,
             };
             const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
-              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+              opt => !isNewOption(opt) || hasOption(opt.value, selectValue),
             );
             updatedOptions = newOption
               ? [newOption, ...cleanSelectOptions]
@@ -1054,7 +1071,16 @@ const Select = forwardRef(
             )
           }
           options={visibleOptions}
-          optionRender={option => option.label || option.value}
+          optionRender={option => (
+            <Space>
+              {option.label || option.value}
+              {(isNewOption(option.data) || isNewOption(option)) && (
+                <StyledNewOptionBadge data-test="new-option-badge">
+                  {t('new')}
+                </StyledNewOptionBadge>
+              )}
+            </Space>
+          )}
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}

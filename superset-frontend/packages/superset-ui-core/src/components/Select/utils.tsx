@@ -42,6 +42,10 @@ export function getValue(
   return isLabeledValue(option) ? option.value : option;
 }
 
+export function isNewOption(option: unknown): boolean {
+  return isObject(option) && Boolean(option.isNewOption);
+}
+
 export function isEqual(
   a: V | CustomLabeledValue,
   b: V | CustomLabeledValue,
@@ -54,23 +58,33 @@ export function isEqual(
   // When comparing the values we use the equality
   // operator to automatically convert different types
   // eslint-disable-next-line eqeqeq
-  return actualA == actualB;
+  if (actualA == actualB) {
+    return true;
+  }
+  if (typeof actualA === 'string' && typeof actualB === 'string') {
+    return actualA.trim() === actualB.trim();
+  }
+  return false;
 }
 
 export function getOption(
-  value: V,
+  value: V | CustomLabeledValue,
   options?: V | CustomLabeledValue | (V | CustomLabeledValue)[],
   checkLabel = false,
 ): V | CustomLabeledValue {
   const optionsArray = ensureIsArray(options);
+  const targetValue = isObject(value) ? value.value : value;
+  const targetLabel = isObject(value) ? value.label : value;
   return optionsArray.find(
     x =>
-      isEqual(x, value, 'value') || (checkLabel && isEqual(x, value, 'label')),
+      isEqual(x, targetValue, 'value') ||
+      (checkLabel &&
+        (isEqual(x, targetLabel, 'label') || isEqual(x, targetValue, 'label'))),
   );
 }
 
 export function hasOption(
-  value: V,
+  value: V | CustomLabeledValue,
   options?: V | CustomLabeledValue | (V | CustomLabeledValue)[],
   checkLabel = false,
 ): boolean {

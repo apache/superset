@@ -157,3 +157,17 @@ export const StyledBulkActionsContainer = styled(Flex)`
     }
   `}
 `;
+
+export const StyledNewOptionBadge = styled.span`
+  ${({ theme }) => `
+    display: inline-block;
+    padding: 0 ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeSM - 2}px;
+    line-height: ${theme.sizeUnit * 4}px;
+    color: ${theme.colorTextSecondary};
+    background-color: ${theme.colorFillTertiary};
+    border-radius: ${theme.borderRadiusSM}px;
+    margin-left: ${theme.sizeUnit}px;
+    vertical-align: middle;
+  `}
+`;
