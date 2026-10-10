@@ -350,8 +350,11 @@ Where the comment goes decides whether it is extracted:
 - A blank line between the comment and the call drops the comment.
 - A comment inside the call's parentheses is dropped.
 - In Python, the comment is dropped when the string starts on the line after
-  `_(` and nothing follows the string. Put the string on the same line as `_(`,
-  or follow it with a comma. A wrapped `t(` call in TypeScript keeps the comment.
+  `_(` and only a comment, such as `# noqa: E501`, or nothing follows the
+  string. Put the string on the same line as `_(`, or follow it with a comma.
+  A wrapped `t(` call in TypeScript keeps the comment.
+- When two calls are on one line, only the first call gets the comment. Put
+  each call on its own line.
 - Every comment line between the `i18n:` line and the call is published with
   the note. Put lint directives and other comments above the `i18n:` line.
 
