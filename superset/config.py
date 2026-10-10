@@ -2585,6 +2585,24 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getMacro",
         "getSetting",
     },
+    # Oracle functions that run a query handed to them as text. Same blind spot
+    # as PostgreSQL's XML and full-text families above: the statement they
+    # execute is a string, so the expression has no FROM clause and no
+    # sub-query of its own for a table-reference gate to see, and the rows come
+    # back without the dataset grants or row-level security the caller is
+    # subject to.
+    #
+    # Named bare rather than package-qualified: `DBMS_XMLGEN.GETXML(...)`
+    # parses as an anonymous function called `GETXML`, so the package prefix
+    # never reaches the matcher. `getclobval` and `extract` are deliberately
+    # absent -- they read an XMLType the caller already has rather than
+    # building one from a query.
+    "oracle": {
+        "getxml",
+        "getxmltype",
+        "newcontext",
+        "newcontextfromhierarchy",
+    },
 }
 
 # Per-engine blocklist of system catalog tables/views that should not be queried.

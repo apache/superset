@@ -106,12 +106,15 @@ assists people when migrating to a new version.
   with no FROM clause and no sub-query, cleared every gate that reasons about
   table references. `ts_rewrite` and `ts_stat` run their text argument as a
   query, so the statement they execute is a string with no clause of its own for
-  such a gate to see. The denylist is shared with SQL Lab and Charts, so a
-  deployment relying on any of those seven functions there will now see it
-  refused -- including a deployment that never enables
-  `PARTITION_FILTER_MAPPING`, since the denylist is not gated on the feature
-  flag. Override `DISALLOWED_SQL_FUNCTIONS` in `superset_config.py` if that is
-  intended.
+  such a gate to see. The same reasoning adds a new `oracle` entry naming
+  `getxml`, `getxmltype`, `newcontext` and `newcontextfromhierarchy`, the
+  `DBMS_XMLGEN` / `DBMS_XMLQUERY` calls that run a query handed to them as
+  text; they are listed by bare name because that is what the parser sees for a
+  package-qualified call. The denylist is shared with SQL Lab and Charts, so a
+  deployment relying on any of these functions there will now see it refused --
+  including a deployment that never enables `PARTITION_FILTER_MAPPING`, since
+  the denylist is not gated on the feature flag. Override
+  `DISALLOWED_SQL_FUNCTIONS` in `superset_config.py` if that is intended.
 
 - A partition value transform is now refused if it changes data --
   `nextval(:value)`, a stored-procedure call, a PostgreSQL large-object writer.
