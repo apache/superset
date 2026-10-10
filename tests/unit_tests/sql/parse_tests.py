@@ -1830,6 +1830,23 @@ def test_postgres_parses_timescaledb_hyperfunctions(sql: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT JSON_VALUE(h, '$.a' RETURNING BIGINT) AS x FROM t",
+        "SELECT JSON_VALUE(h, CONCAT('$[''', d, ''']') RETURNING BIGINT) AS x FROM t",
+    ],
+)
+def test_druid_parses_json_value_returning(sql: str) -> None:
+    """
+    Regression for #36954: Druid's ``JSON_VALUE`` takes a ``RETURNING <type>``
+    clause, and a virtual dataset using it failed with "Unable to parse SQL"
+    even though Druid itself runs the query. sqlglot parses the clause for the
+    Druid dialect since 30.12.0, so this pins it against a future upgrade.
+    """
+    assert "RETURNING BIGINT" in SQLScript(sql, "druid").format()
+
+
+@pytest.mark.parametrize(
     "engine",
     ["oracle", "postgresql", "trino", "presto", "hive", "base"],
 )
