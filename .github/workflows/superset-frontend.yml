@@ -114,6 +114,9 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 15
     permissions:
+      # Declaring any permission drops the defaults, and the checkout below
+      # needs read access wherever the repository is not public.
+      contents: read
       id-token: write
     steps:
       - name: Checkout Code

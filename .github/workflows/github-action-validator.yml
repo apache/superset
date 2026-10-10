@@ -48,5 +48,19 @@ jobs:
       - name: Test docs-deploy freshness gate
         run: bash .github/workflows/scripts/check-docs-deploy-freshness.test.sh
 
+      - name: Test code scanning availability check
+        run: bash .github/workflows/scripts/check-code-scanning-available.test.sh
+
+      # A repository without code scanning (e.g. a private fork or mirror
+      # without GitHub Code Security) rejects the SARIF upload. The audit
+      # still runs there; its findings are reported in the job log instead.
+      - name: Check code scanning availability
+        id: code-scanning
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .github/workflows/scripts/check-code-scanning-available.sh
+
       - name: Check for security issues on GHA workflows
         uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          advanced-security: ${{ steps.code-scanning.outputs.available != 'false' }}
