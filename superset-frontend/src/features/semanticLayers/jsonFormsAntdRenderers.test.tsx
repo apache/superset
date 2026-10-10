@@ -183,12 +183,12 @@ const credentialSchema = {
       type: 'object',
       title: 'Private key',
       properties: {
-        username: {
+        identity: {
           type: 'string',
           title: 'Username',
-          description: 'Snowflake user.',
+          description: 'User for this connection.',
         },
-        private_key: {
+        key_material: {
           type: 'string',
           title: 'Private key',
           format: 'password',
@@ -197,7 +197,7 @@ const credentialSchema = {
           description: keyHelp,
           examples: [pemPlaceholder],
         },
-        private_key_password: {
+        passphrase: {
           title: 'Private key password',
           description: passwordHelp,
           default: null,
@@ -207,7 +207,7 @@ const credentialSchema = {
           ],
         },
       },
-      required: ['username', 'private_key'],
+      required: ['identity', 'key_material'],
     },
     Password: {
       type: 'object',
@@ -219,7 +219,7 @@ const credentialSchema = {
     },
   },
   properties: {
-    auth: {
+    credentials: {
       title: 'Authentication',
       oneOf: [{ $ref: '#/$defs/PrivateKey' }, { $ref: '#/$defs/Password' }],
     },
@@ -233,10 +233,10 @@ function setupCredentials(privateKey = '', password?: string | null) {
       schema={credentialSchema}
       uischema={buildUiSchema(credentialSchema)}
       data={{
-        auth: {
-          username: 'synthetic_user',
-          private_key: privateKey,
-          ...(password === undefined ? {} : { private_key_password: password }),
+        credentials: {
+          identity: 'synthetic_user',
+          key_material: privateKey,
+          ...(password === undefined ? {} : { passphrase: password }),
         },
       }}
       renderers={renderers}
@@ -261,18 +261,18 @@ test.each([null, undefined, '', 'XXXXXXXXXX'])(
     // The real auth union remains selectable.
     expect(screen.getByRole('radio', { name: 'Password' })).toBeInTheDocument();
     await waitFor(() => expect(onChange).toHaveBeenCalled());
-    expect(onChange.mock.calls.at(-1)[0].data.auth.private_key_password).toBe(
+    expect(onChange.mock.calls.at(-1)[0].data.credentials.passphrase).toBe(
       password,
     );
     fireEvent.change(input, { target: { value: 'synthetic-passphrase' } });
     await waitFor(() =>
-      expect(onChange.mock.calls.at(-1)[0].data.auth.private_key_password).toBe(
+      expect(onChange.mock.calls.at(-1)[0].data.credentials.passphrase).toBe(
         'synthetic-passphrase',
       ),
     );
     fireEvent.change(input, { target: { value: '' } });
     await waitFor(() =>
-      expect(onChange.mock.calls.at(-1)[0].data.auth.private_key_password).toBe(
+      expect(onChange.mock.calls.at(-1)[0].data.credentials.passphrase).toBe(
         '',
       ),
     );
@@ -286,12 +286,14 @@ test('PEM control preserves newlines and shows its shape and help', async () => 
   expect(input).toHaveAttribute('placeholder', pemPlaceholder);
   expect(input).toHaveAttribute('autoComplete', 'new-password');
   expect(screen.getByText(keyHelp)).toBeVisible();
-  expect(screen.getByText('Snowflake user.')).toBeVisible();
+  expect(screen.getByText('User for this connection.')).toBeVisible();
   const value =
     '-----BEGIN PRIVATE KEY-----\nSYNTHETIC\n-----END PRIVATE KEY-----';
   fireEvent.change(input, { target: { value } });
   await waitFor(() =>
-    expect(onChange.mock.calls.at(-1)[0].data.auth.private_key).toBe(value),
+    expect(onChange.mock.calls.at(-1)[0].data.credentials.key_material).toBe(
+      value,
+    ),
   );
   expect(input).toHaveValue(value);
 });
@@ -314,7 +316,7 @@ test('saved masked key does not gain a PEM error or change its value', async () 
     screen.queryByText('Include matching BEGIN and END private key lines.'),
   ).not.toBeInTheDocument();
   await waitFor(() => expect(onChange).toHaveBeenCalled());
-  expect(onChange.mock.calls.at(-1)[0].data.auth.private_key).toBe(
+  expect(onChange.mock.calls.at(-1)[0].data.credentials.key_material).toBe(
     'XXXXXXXXXX',
   );
   expect(onChange.mock.calls.at(-1)[0].errors).toEqual([]);

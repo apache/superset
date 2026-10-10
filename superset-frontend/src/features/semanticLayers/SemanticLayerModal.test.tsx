@@ -233,70 +233,75 @@ test('cancels pending schema refresh when dependencies become unsatisfied', asyn
 });
 
 const completeCredentials = {
-  account_identifier: 'ORGNAME-ACCOUNTNAME',
-  auth: {
-    auth_type: 'private_key',
-    username: 'synthetic_user',
-    private_key:
+  endpoint: 'example-account',
+  credentials: {
+    method: 'key_material',
+    identity: 'synthetic_user',
+    key_material:
       '-----BEGIN PRIVATE KEY-----\nSYNTHETIC\n-----END PRIVATE KEY-----',
   },
 };
-const snowflakeSchema = {
+const exampleSchema = {
   type: 'object',
   properties: {
     database: {
       type: 'string',
       'x-dynamic': true,
-      'x-dependsOn': ['account_identifier', 'auth'],
+      'x-dependsOn': ['endpoint', 'credentials'],
     },
   },
 };
 const safeConfigurationError =
   'Could not refresh metadata. Check the connection details and your permissions.';
 
-async function setupSnowflake(configuration: Record<string, unknown> = {}) {
+async function setupExampleProvider(
+  configuration: Record<string, unknown> = {},
+) {
   mockJsonFormsChangeTriggered = true;
   props.addDangerToast.mockClear();
   mockedGet.mockReset();
   mockedGet
     .mockResolvedValueOnce({
-      json: { result: [{ id: 'snowflake', name: 'Snowflake' }] },
+      json: { result: [{ id: 'example', name: 'Example' }] },
     })
     .mockResolvedValueOnce({
-      json: { result: { name: 'Snowflake', type: 'snowflake', configuration } },
+      json: { result: { name: 'Example', type: 'example', configuration } },
     });
-  mockedPost.mockResolvedValue({ json: { result: snowflakeSchema } });
+  mockedPost.mockResolvedValue({ json: { result: exampleSchema } });
   render(<SemanticLayerModal {...props} />);
   await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
 }
 
 test.each([
-  { ...completeCredentials, account_identifier: ' ' },
+  { ...completeCredentials, endpoint: ' ' },
   {
     ...completeCredentials,
-    auth: { ...completeCredentials.auth, username: '' },
+    credentials: { ...completeCredentials.credentials, identity: '' },
   },
   {
     ...completeCredentials,
-    auth: {
-      ...completeCredentials.auth,
-      private_key: '-----BEGIN PRIVATE KEY-----',
+    credentials: {
+      ...completeCredentials.credentials,
+      key_material: '-----BEGIN PRIVATE KEY-----',
     },
   },
   {
     ...completeCredentials,
-    auth: { ...completeCredentials.auth, private_key: 'XXXXXXXXXX' },
+    credentials: {
+      ...completeCredentials.credentials,
+      key_material: 'XXXXXXXXXX',
+    },
   },
   {
     ...completeCredentials,
-    auth: {
-      ...completeCredentials.auth,
-      private_key:
+    credentials: {
+      ...completeCredentials.credentials,
+      key_material:
         '-----BEGIN ENCRYPTED PRIVATE KEY-----\nSYNTHETIC\n-----END ENCRYPTED PRIVATE KEY-----',
     },
   },
 ])('leaves incomplete credential decisions to the provider: %#', async data => {
-  await setupSnowflake();
+  await setupExampleProvider();
   await act(async () => {
     capturedOnChange!({ data, errors: [] });
     jest.advanceTimersByTime(501);
@@ -306,7 +311,7 @@ test.each([
 });
 
 test('debounces edits without interpreting provider credentials', async () => {
-  await setupSnowflake();
+  await setupExampleProvider();
   await act(async () => {
     capturedOnChange!({ data: completeCredentials, errors: [] });
   });
@@ -318,7 +323,10 @@ test('debounces edits without interpreting provider credentials', async () => {
     capturedOnChange!({
       data: {
         ...completeCredentials,
-        auth: { ...completeCredentials.auth, private_key: 'partial' },
+        credentials: {
+          ...completeCredentials.credentials,
+          key_material: 'partial',
+        },
       },
       errors: [],
     });
@@ -328,7 +336,8 @@ test('debounces edits without interpreting provider credentials', async () => {
   });
   expect(mockedPost).toHaveBeenCalledTimes(2);
   expect(
-    mockedPost.mock.calls[1][0].jsonPayload.configuration.auth.private_key,
+    mockedPost.mock.calls[1][0].jsonPayload.configuration.credentials
+      .key_material,
   ).toBe('partial');
   await act(async () => {
     capturedOnChange!({ data: completeCredentials, errors: [] });
@@ -345,9 +354,12 @@ test('debounces edits without interpreting provider credentials', async () => {
 test('passes masked credentials to the provider for edit schema and preserves them on Save', async () => {
   const configuration = {
     ...completeCredentials,
-    auth: { ...completeCredentials.auth, private_key: 'XXXXXXXXXX' },
+    credentials: {
+      ...completeCredentials.credentials,
+      key_material: 'XXXXXXXXXX',
+    },
   };
-  await setupSnowflake(configuration);
+  await setupExampleProvider(configuration);
   expect(mockedPost.mock.calls[0][0].jsonPayload.configuration).toEqual(
     configuration,
   );
@@ -359,7 +371,7 @@ test('passes masked credentials to the provider for edit schema and preserves th
   await waitFor(() =>
     expect(SupersetClient.put).toHaveBeenCalledWith(
       expect.objectContaining({
-        jsonPayload: { name: 'Snowflake', configuration },
+        jsonPayload: { name: 'Example', configuration },
       }),
     ),
   );
@@ -368,11 +380,11 @@ test('passes masked credentials to the provider for edit schema and preserves th
 test.each(['warning', 'rejection'])(
   'replaces refresh %s with a fixed safe message',
   async mode => {
-    await setupSnowflake();
+    await setupExampleProvider();
     if (mode === 'warning')
       mockedPost.mockResolvedValueOnce({
         json: {
-          result: snowflakeSchema,
+          result: exampleSchema,
           warning: 'SECRET <root>: value_error',
         },
       });
@@ -405,7 +417,7 @@ test('replaces edit-fetch failure with a safe message', async () => {
 });
 
 test('replaces Save failure with a safe message', async () => {
-  await setupSnowflake(completeCredentials);
+  await setupExampleProvider(completeCredentials);
   (SupersetClient.put as jest.Mock).mockRejectedValueOnce(
     new Error('SECRET <root>: value_error'),
   );
@@ -417,7 +429,7 @@ test('replaces Save failure with a safe message', async () => {
   );
 });
 
-test('non-Snowflake save failure uses neutral operation wording', async () => {
+test('save failure without credential fields uses neutral operation wording', async () => {
   props.addDangerToast.mockClear();
   render(<SemanticLayerModal {...props} />);
   await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
