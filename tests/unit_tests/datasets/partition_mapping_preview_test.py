@@ -497,14 +497,19 @@ def test_preview_is_rate_limited_per_user_and_dataset(
         "value_transform": "unix_timestamp(:value)",
         "sample_values": ["2026-01-15"],
     }
+    # Frozen, because the budget is bucketed on
+    # `int(time.time()) // PREVIEW_RATE_LIMIT_WINDOW`: a minute rolling over
+    # part-way through the sequence hands the later requests a fresh bucket and
+    # fails this on a build that is working correctly.
     with patch(PROBE, return_value=[1]):
-        statuses = [
-            client.post(
-                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
-                json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
-            ).status_code
-            for day in range(1, 5)
-        ]
+        with patch("superset.datasets.api.time.time", return_value=1_800_000_000):
+            statuses = [
+                client.post(
+                    f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                    json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
+                ).status_code
+                for day in range(1, 5)
+            ]
 
     assert statuses[:2] == [200, 200]
     assert 429 in statuses[2:]
@@ -525,14 +530,18 @@ def test_the_budget_is_spent_exactly_once_per_request(
         "value_transform": "unix_timestamp(:value)",
         "sample_values": ["2026-01-15"],
     }
+    # Frozen for the same reason as the sequence above, and more sharply: this
+    # asserts the exact statuses, so one rolled-over bucket turns the tail into
+    # `[200, 200]` and fails a correct build.
     with patch(PROBE, return_value=[1]):
-        statuses = [
-            client.post(
-                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
-                json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
-            ).status_code
-            for day in range(1, 6)
-        ]
+        with patch("superset.datasets.api.time.time", return_value=1_800_000_000):
+            statuses = [
+                client.post(
+                    f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                    json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
+                ).status_code
+                for day in range(1, 6)
+            ]
 
     assert statuses == [200, 200, 200, 429, 429]
 
