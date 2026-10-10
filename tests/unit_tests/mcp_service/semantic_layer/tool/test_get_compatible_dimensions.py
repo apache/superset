@@ -159,6 +159,7 @@ async def test_get_compatible_dimensions_builtin_unknown_selection(
     assert "Unknown dimension: 'bogus_dim'" in data["error"]
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_compatible_dimensions_external_happy_path(
     mcp_server: FastMCP,
@@ -183,6 +184,7 @@ async def test_get_compatible_dimensions_external_happy_path(
     mock_view.get_compatible_dimensions.assert_called_once_with(["bookings"], [])
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_compatible_dimensions_mutual_exclusion_validation(
     mcp_server: FastMCP,
@@ -230,6 +232,7 @@ async def test_get_compatible_dimensions_privacy_check(mcp_server: FastMCP) -> N
     assert data["error_type"] == "DataModelMetadataRestricted"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_compatible_dimensions_external_access_denied(
     mcp_server: FastMCP,
@@ -266,6 +269,7 @@ async def test_get_compatible_dimensions_not_found(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "NotFound"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_compatible_dimensions_external_not_found(
     mcp_server: FastMCP,
@@ -316,6 +320,7 @@ async def test_get_compatible_dimensions_builtin_empty_selection(
     assert names == {"region", "category"}
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_compatible_dimensions_external_empty_selection(
     mcp_server: FastMCP,

@@ -919,3 +919,25 @@ def test_orphaned_dashboard_target_does_not_abort_mixed_export(
     dataset_export.assert_called_once_with([81])
     with pytest.raises(refs.SemanticReferenceError, match="requires datasourceRef"):
         refs.resolve_bundle_references({"dashboards/orphan.yaml": exported})
+
+
+def test_reference_export_follows_runtime_flip(
+    view: SemanticView,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Turning the feature off retains the established bundle rejection."""
+    expected: dict[str, str] = refs.export_view_reference(view)
+    configs: dict[str, Any] = {"charts/chart.yaml": chart_config()}
+    expected_import: dict[str, dict[str, Any]] = refs.resolve_bundle_references(configs)
+    monkeypatch.setattr(
+        refs.feature_flag_manager, "is_feature_enabled", lambda flag: False
+    )
+    with pytest.raises(refs.SemanticReferenceError, match="require SEMANTIC_LAYERS"):
+        refs.export_view_reference(view)
+    with pytest.raises(refs.SemanticReferenceError, match="require SEMANTIC_LAYERS"):
+        refs.resolve_bundle_references(configs)
+    monkeypatch.setattr(
+        refs.feature_flag_manager, "is_feature_enabled", lambda flag: True
+    )
+    assert refs.export_view_reference(view) == expected
+    assert refs.resolve_bundle_references(configs) == expected_import

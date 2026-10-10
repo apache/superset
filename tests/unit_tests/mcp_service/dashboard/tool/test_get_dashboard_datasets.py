@@ -41,6 +41,8 @@ from superset.semantic_layers.models import (
 )
 from superset.utils import json
 
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
 get_dashboard_datasets_module = import_module(
     "superset.mcp_service.dashboard.tool.get_dashboard_datasets"
 )

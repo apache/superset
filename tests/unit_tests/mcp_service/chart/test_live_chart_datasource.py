@@ -54,6 +54,8 @@ from superset.models.slice import Slice
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
 get_chart_info_module = import_module("superset.mcp_service.chart.tool.get_chart_info")
 list_charts_module = import_module("superset.mcp_service.chart.tool.list_charts")
 

@@ -529,6 +529,37 @@ def test_inject_contribution_totals_includes_decimal_metrics(
     assert "label" not in totals
 
 
+@pytest.mark.parametrize("enabled", [False, True])
+def test_execute_semantic_query_refuses_disabled_worker(
+    mocker: MockerFixture, enabled: bool
+) -> None:
+    """The worker reconstructs through the real datasource gate before cache/query."""
+    from superset.semantic_layers.access import SemanticLayersDisabledError
+    from superset.tasks.async_queries import execute_chart_query
+
+    payload: SerializedQuery = _serialized_query()
+    payload["datasource"] = {"id": 17, "type": "semantic_view"}
+    mocker.patch(
+        "superset.feature_flag_manager.is_feature_enabled", return_value=enabled
+    )
+    mocker.patch("superset.tasks.async_queries._resolve_user")
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch("superset.tasks.async_queries.get_context")
+    mocker.patch("superset.common.query_context.QueryContext.get_df_payload_result")
+    lookup: mock.MagicMock = mocker.patch("superset.daos.datasource.db.session.query")
+    execute: mock.MagicMock = mocker.patch(
+        "superset.semantic_layers.models.SemanticView.get_query_result"
+    )
+    if enabled:
+        execute_chart_query.func(payload, user_id=7)
+        lookup.assert_called_once()
+    else:
+        with pytest.raises(SemanticLayersDisabledError):
+            execute_chart_query.func(payload, user_id=7)
+        lookup.assert_not_called()
+    execute.assert_not_called()
+
+
 @pytest.mark.parametrize("reason", ["incomplete", "unverified", None])
 def test_completeness_failure_does_not_publish_task_success(
     mocker: MockerFixture,

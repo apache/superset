@@ -89,6 +89,10 @@ from superset.mcp_service.utils.serialization import (
     OptionalRowCount,
     RowCount,
 )
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -229,6 +233,11 @@ class ChartInfo(BaseModel):
         ),
     )
 
+    unavailable_reason: str | None = Field(
+        None,
+        description="Reason chart data is unavailable, when its feature is disabled",
+    )
+
     model_config = ConfigDict(
         from_attributes=True,
         ser_json_timedelta="iso8601",
@@ -243,14 +252,21 @@ class ChartInfo(BaseModel):
         Otherwise, include all fields (default behavior).
         """
         # Get full serialization
-        data = filter_user_directory_fields(serializer(self))
+        data: dict[str, Any] = filter_user_directory_fields(serializer(self))
+        if data.get("unavailable_reason") is None:
+            data.pop("unavailable_reason", None)
 
         # Check if we have a context with select_columns
         if info.context and isinstance(info.context, dict):
             select_columns = info.context.get("select_columns")
             if select_columns:
                 # Filter to only requested fields
-                return {k: v for k, v in data.items() if k in select_columns}
+                return {
+                    k: v
+                    for k, v in data.items()
+                    if k in select_columns
+                    or (k == "unavailable_reason" and v is not None)
+                }
 
         return data
 
@@ -648,6 +664,12 @@ def serialize_chart_object(
                 )
 
     return ChartInfo(
+        unavailable_reason=(
+            SemanticLayersDisabledError.message
+            if getattr(chart, "datasource_type", None) == "semantic_view"
+            and not is_semantic_layers_enabled()
+            else None
+        ),
         id=chart_id,
         slice_name=getattr(chart, "slice_name", None),
         viz_type=_viz_type,

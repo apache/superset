@@ -38,6 +38,10 @@ from superset.mcp_service.semantic_layer.schemas import (
     SemanticLayerError,
 )
 from superset.mcp_service.utils.query_utils import validate_names
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +99,12 @@ async def get_compatible_dimensions(
         )
     )
 
+    if request.view_id is not None and not is_semantic_layers_enabled():
+        return SemanticLayerError.create(
+            error=SemanticLayersDisabledError.message,
+            error_type="SemanticLayersDisabledError",
+        )
+
     if not user_can_view_data_model_metadata():
         return SemanticLayerError.create(
             error="You don't have permission to access dataset details for your role.",
@@ -112,6 +122,14 @@ async def get_compatible_dimensions(
             error_type="ValidationError",
         )
 
+    return await _resolve_compatible_dimensions(request, ctx)
+
+
+async def _resolve_compatible_dimensions(
+    request: GetCompatibleDimensionsRequest,
+    ctx: Context,
+) -> CompatibleDimensionsResponse | SemanticLayerError:
+    """Resolve members after the tool validates availability and source selection."""
     try:
         # ------------------------------------------------------------------
         # Built-in dataset path

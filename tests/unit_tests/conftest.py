@@ -40,6 +40,23 @@ from superset.initialization import SupersetAppInitializer
 
 
 @pytest.fixture
+def semantic_layers_enabled(app_context: None) -> Iterator[None]:
+    """Enable semantic behavior explicitly and restore the host hook after each test."""
+    previous: Callable[[str, bool], bool] | None = (
+        feature_flag_manager._is_feature_enabled_func
+    )
+
+    def resolve(name: str, default: bool) -> bool:
+        """Override only the semantic flag and preserve other host decisions."""
+        if name == "SEMANTIC_LAYERS":
+            return True
+        return previous(name, default) if previous else default
+
+    with patch.object(feature_flag_manager, "_is_feature_enabled_func", resolve):
+        yield
+
+
+@pytest.fixture
 def session_engine() -> Engine:
     """
     The engine behind ``session``; a module may override it for one test file.

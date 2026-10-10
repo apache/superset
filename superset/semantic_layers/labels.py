@@ -29,6 +29,7 @@ Mirror of superset-frontend/src/features/semanticLayers/label.ts.
 from __future__ import annotations
 
 from flask_babel import lazy_gettext as _
+from flask_babel.speaklater import LazyString
 
 
 def _sl(legacy: str, semantic: str) -> str:
@@ -100,6 +101,8 @@ def databases_label_lower() -> str:
 # ---------------------------------------------------------------------------
 
 
-def database_connections_menu_label() -> str:
+def database_connections_menu_label() -> LazyString:
     """Menu entry label: "Database Connections" / "Data Connections" """
-    return _sl(_("Database Connections"), _("Data Connections"))
+    return LazyString(
+        lambda: str(_sl(_("Database Connections"), _("Data Connections")))
+    )

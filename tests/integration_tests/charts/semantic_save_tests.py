@@ -30,6 +30,7 @@ from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.subjects.models import Subject
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 
 
 class TestSemanticChartSave(SupersetTestCase):
@@ -38,6 +39,7 @@ class TestSemanticChartSave(SupersetTestCase):
     @parameterized.expand(
         [("create", False), ("update", False), ("create", True), ("update", True)]
     )
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_semantic_chart_save(self, operation: str, denied: bool) -> None:
         """Save-as and overwrite populate names and retain the access gate."""
         self.login("admin")
@@ -123,6 +125,7 @@ class TestSemanticChartSave(SupersetTestCase):
             db.session.commit()
 
     @parameterized.expand([("create",), ("update",), ("form_data",)])
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_gamma_denial_does_not_load_provider(self, operation: str) -> None:
         """A denied Gamma request must return 403 even when its provider is down."""
         self.login("gamma")
@@ -195,6 +198,49 @@ class TestSemanticChartSave(SupersetTestCase):
                 assert chart.slice_name == "gamma-owned-chart"
         finally:
             db.session.rollback()
+            if chart is not None:
+                db.session.delete(chart)
+            db.session.delete(view)
+            db.session.delete(layer)
+            db.session.commit()
+
+    @with_feature_flags(SEMANTIC_LAYERS=False)
+    def test_semantic_chart_save_refused_when_disabled(self) -> None:
+        """The disabled feature rejects semantic saves without creating a chart."""
+        self.login("admin")
+        layer: SemanticLayer = SemanticLayer(name="disabled-save-layer", type="test")
+        view: SemanticView = SemanticView(
+            name="disabled-save-view", semantic_layer=layer
+        )
+        db.session.add(view)
+        db.session.commit()
+        try:
+            response: Response = self.client.post(
+                "/api/v1/chart/",
+                json={
+                    "slice_name": "disabled-semantic-save",
+                    "datasource_id": view.id,
+                    "datasource_type": "semantic_view",
+                    "viz_type": "table",
+                },
+            )
+            assert response.status_code == 422
+            assert response.json["message"]["_schema"] == [
+                "Semantic layers are not enabled."
+            ]
+            assert (
+                db.session.query(Slice)
+                .filter_by(slice_name="disabled-semantic-save")
+                .count()
+                == 0
+            )
+        finally:
+            db.session.rollback()
+            chart: Slice | None = (
+                db.session.query(Slice)
+                .filter_by(slice_name="disabled-semantic-save")
+                .one_or_none()
+            )
             if chart is not None:
                 db.session.delete(chart)
             db.session.delete(view)

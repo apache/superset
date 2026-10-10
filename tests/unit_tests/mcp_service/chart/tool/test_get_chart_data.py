@@ -5651,6 +5651,54 @@ class TestBigNumberHeadline:
             assert headline["aggregation"] == expected_aggregation
 
 
+@pytest.mark.asyncio
+async def test_disabled_semantic_chart_returns_availability_error(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    """Semantic chart data is refused before validation, cache or provider work."""
+    import importlib
+    from types import ModuleType
+    from unittest.mock import patch
+
+    from fastmcp import Client
+    from fastmcp.client.client import CallToolResult
+
+    from superset.models.slice import Slice
+
+    client: Client
+    command: MagicMock
+    validate: MagicMock
+    module: ModuleType = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    chart: Slice = Slice(
+        id=17,
+        slice_name="semantic",
+        datasource_id=17,
+        datasource_type="semantic_view",
+        viz_type="table",
+        params="{}",
+    )
+    with (
+        patch("superset.feature_flag_manager.is_feature_enabled", return_value=False),
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(module, "validate_chart_dataset") as validate,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 17}}
+            )
+    payload: dict[str, Any] = json.loads(result.content[0].text)
+    assert payload["error"] == "Semantic layers are not enabled."
+    assert payload["error_type"] == "SemanticLayersDisabledError"
+    validate.assert_not_called()
+    command.assert_not_called()
+
+
 @pytest.mark.parametrize("engine", ["csv", "openpyxl", "xlsxwriter"])
 def test_gauge_exports_and_docs_describe_nonfinite_as_blank(engine: str) -> None:
     """Document the lossy non-finite normalization shared by all exporters."""

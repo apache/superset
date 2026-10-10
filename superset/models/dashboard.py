@@ -52,6 +52,9 @@ from superset.models.helpers import (
 )
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+)
 from superset.semantic_layers.models import SemanticView
 from superset.subjects.models import (
     dashboard_editors,
@@ -382,7 +385,10 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         # datasource_id would merge unrelated datasources with colliding ids.
         slices_by_datasource: dict[tuple[str, int], set[Slice]] = defaultdict(set)
 
+        semantic_layers_enabled: bool = is_semantic_layers_enabled()
         for slc in self.slices:
+            if slc.datasource_type == "semantic_view" and not semantic_layers_enabled:
+                continue
             slices_by_datasource[(slc.datasource_type, slc.datasource_id)].add(slc)
 
         result: list[tuple[BaseDatasource | SemanticView, dict[str, Any]]] = []

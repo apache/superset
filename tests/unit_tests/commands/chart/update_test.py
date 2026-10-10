@@ -37,6 +37,8 @@ from superset.models.slice import Slice
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
 
 @pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
 def test_update_rejects_null_type_without_mutating_chart(
