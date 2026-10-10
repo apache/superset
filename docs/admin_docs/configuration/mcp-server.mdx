@@ -958,9 +958,105 @@ MCP_STORE_CONFIG = {
 | `event_store_max_events` | `100`   | Maximum events retained per session                      |
 | `event_store_ttl`        | `3600`  | Event TTL in seconds                                     |
 
+### Tool discovery modes
+
+The MCP server can advertise its tools in two ways. Both modes serve the same
+registered tool definitions through the same middleware, authentication, and
+permission checks; only the `tools/list` response differs.
+
+| Mode                      | `MCP_TOOL_SEARCH_CONFIG["enabled"]` | `tools/list` returns                                                       | Calling tools                                         |
+| ------------------------- | ----------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Compatibility (default)   | `True`                              | The pinned `always_visible` tools plus `search_tools` and `call_tool`      | Through the `call_tool` proxy, or directly by name    |
+| Native                    | `False`                             | Every tool the caller may use, under its real name                         | Directly by name with `tools/call`                    |
+
+Every registered tool can be called directly by name in both modes. In native
+mode each listed tool carries its full description, input schema, and
+read-only/destructive/idempotent/open-world annotations, plus its output schema
+when `MCP_STRUCTURED_OUTPUT_ENABLED = True`. The listing is a single page with
+no cursor. Schema `$ref` definitions are inlined on the wire, with nullable
+unions and constraints preserved, and calls are validated against the same
+server-side models in either mode.
+
+The native listing is much larger than the compatibility listing, and it grows
+when structured output is enabled. Per-tool description lengths, schema sizes,
+and catalog totals for both structured-output settings are recorded in
+`tests/unit_tests/mcp_service/native_tool_inventory.json` and enforced by
+regression tests. Clients and gateways that cap the size of a single list
+response should be checked against those totals before switching modes.
+
+#### Authorization in both modes
+
+- `tools/list` in native mode and `search_tools` in compatibility mode apply the
+  same visibility check: RBAC, token scopes, the restricted-principal tool
+  policy, and data-model metadata access.
+- Each tool enforces the same checks again when it is called, so naming a
+  hidden tool directly, or passing it to `call_tool`, is rejected with the same
+  error. Revoked permissions take effect on the next request.
+- Tools in `ALLOWED_UNPROTECTED` (`generate_bug_report`) intentionally run
+  without authentication for every caller in both modes.
+- When no authentication source is configured at all (development only),
+  native `tools/list` shows every tool, while `search_tools` returns only tools
+  without a permission requirement. Protected calls are rejected in both modes
+  until a user can be resolved.
+- `call_tool` returns the same result as a direct call, including `isError`,
+  validation details, and `structuredContent` when structured output is
+  enabled.
+
+#### Migrating to native mode
+
+1. Confirm that every client used with the deployment calls tools by name from
+   `tools/list` and accepts the size of the full listing. Clients that load
+   tool definitions lazily on their own side work with native mode.
+2. Choose `MCP_STRUCTURED_OUTPUT_ENABLED` separately; it is independent of the
+   discovery mode.
+3. Set `MCP_TOOL_SEARCH_CONFIG["enabled"] = False`. To roll back, set it to
+   `True`; no client or server state needs migrating.
+
+Clients that call tools by name work against servers in either mode. Clients
+that only know `search_tools` and `call_tool` fail against a server in native
+mode, because those two tools are not served there. Keep compatibility mode
+until such clients have migrated, and in multi-pod deployments switch every pod
+together (or keep each client session on pods in one mode) so that a session
+started in compatibility mode is not routed to a pod in native mode.
+
+#### Compact native listing
+
+Native mode can optionally bound each listed tool description, which shrinks
+the `tools/list` response without changing what clients can call:
+
+```python
+MCP_NATIVE_TOOL_LIST_CONFIG = {
+    "compact": True,  # default: False
+    "max_description_length": 300,  # prose budget per tool
+}
+```
+
+Descriptions keep whole paragraphs first, then whole sentences. Once a whole
+paragraph fits the budget, a following heading, `IMPORTANT` block, or list is
+not partly advertised. An overlong first paragraph can be cut at a sentence
+boundary, even if it is structured. Calling instructions authored on a tool's
+`request` parameter stay untruncated in the input schema and are not deducted
+from the native prose budget. Names, input and output schemas (including nullable
+unions, constraints, and definitions), and annotations are unchanged, and calls
+are validated against the same server-side models, so only the listed prose
+differs. Chart tools point to `get_chart_type_schema`, which returns each chart
+type's fields, required fields, and examples. The setting has no effect in
+compatibility mode, whose search results are bounded by
+`MCP_TOOL_SEARCH_CONFIG["max_description_length"]`.
+
+Both default and factory startup read `MCP_TOOL_SEARCH_CONFIG` and
+`MCP_NATIVE_TOOL_LIST_CONFIG` from the Flask application configuration, falling
+back to the module defaults when a setting is absent.
+
+The recorded inventory includes catalog totals for both listings.
+
+Compatibility mode remains supported. Any change to its default will be listed
+in `UPDATING.md`, and setting `enabled` explicitly keeps the chosen mode
+regardless of the default.
+
 ### Tool Search
 
-By default the MCP server exposes a lightweight tool-search interface instead of advertising every tool at once. This reduces the initial context sent to the LLM by ~70%, which lowers cost and latency. The AI client discovers tools on demand by calling `search_tools` and then invokes them via `call_tool`.
+In compatibility mode the MCP server exposes a lightweight tool-search interface instead of advertising every tool at once, which keeps the initial tool listing small. The AI client discovers tools on demand by calling `search_tools` and then invokes them via `call_tool`.
 
 ```python
 MCP_TOOL_SEARCH_CONFIG = {
@@ -987,7 +1083,7 @@ MCP_TOOL_SEARCH_CONFIG = {
 | `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search                                                                                                                                                                                                                                                     |
 | `include_schemas`        | `True`    | Include the full `inputSchema` in search results by default. When `False` ("summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Full schemas are always used when a tool is actually invoked via `call_tool`. |
 | `compact_schemas`        | `True`    | Legacy setting selecting the default description limit (300 when `True`, 0 when `False`) if `max_description_length` is omitted. Input schemas preserve `$defs`, `$ref`, nullable unions, and constraints in either mode; titles are omitted. Clients should resolve references within each tool's `inputSchema`.                                                                                                                                      |
-| `max_description_length` | `300`     | Budget for discovery prose and request-wrapper instructions (0 = no prose truncation). Complete paragraphs are retained, followed by complete sentences of the next paragraph unless it is a list, heading, or IMPORTANT block. Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
+| `max_description_length` | `300`     | Budget for discovery prose alone (0 = no prose truncation). Complete paragraphs are retained, followed by complete sentences of the next paragraph unless it is a list, heading, or IMPORTANT block. Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
 
 The no-query catalog uses the same bounded serializer as targeted search.
 Chart creation/update and virtual-dataset tools keep request wrapping, save/preview
@@ -999,10 +1095,9 @@ Calling constraints are authored as a `Field(description=...)` on the tool's
 `request` parameter and served as the `request` property's schema description, so
 schema-first clients can identify the wrapper without remembering previous calls.
 Summary mode preserves these instructions in `parameters_hint`. Instructions are
-never truncated: their length is deducted from the prose budget first. A request
-model's own docstring is not a calling instruction and is never deducted. If a
-configured limit is smaller than the instructions, prose is omitted rather than
-cutting the instructions. Built-in calling instructions are capped at 300
+never truncated and do not consume the prose budget in either mode, matching
+native compact listings. A request model's own docstring is not a calling
+instruction. Built-in calling instructions are capped at 300
 characters by regression tests, and the complete tool entries retain per-tool
 size budgets. Field-level descriptions in the default full input schema also
 preserve tool-specific search semantics, sortable columns, chart pagination, and
@@ -1021,7 +1116,9 @@ the caller are eligible. Pinned `always_visible` tools remain in `list_tools`
 rather than search results; non-exact queries retain BM25 ranking or regex
 catalog ordering.
 
-Tool search reduces the initial token cost from ~15–20K tokens (full catalog) down to ~4–5K tokens (pinned tools + search interface) — roughly 85% savings at the start of each conversation.
+Tool search keeps the initial listing to the pinned tools and the search
+interface; see the recorded inventory above for the size of the full native
+catalog it replaces.
 
 ### Session & CSRF
 
@@ -1099,7 +1196,13 @@ Every MCP request passes through a middleware stack before reaching the tool fun
 | `ResponseSizeGuardMiddleware`       | Measures serialized response size, warns at 80% of limit, blocks at limit              | Enabled (configurable via `MCP_RESPONSE_SIZE_CONFIG`) |
 | `ResponseCachingMiddleware`         | Caches read-heavy tool responses (in-memory or Redis)                                  | Disabled (enable via `MCP_CACHE_CONFIG`)              |
 
-Additional middleware classes (`RateLimitMiddleware`, `FieldPermissionsMiddleware`, `PrivateToolMiddleware`) are implemented in `superset/mcp_service/middleware.py` but are not added to the default pipeline. They are available for operators who want to layer them in via a custom startup path.
+`RBACToolVisibilityMiddleware` sits between the compatibility and logging
+middleware and filters `tools/list` to the tools the caller may use.
+
+The MCP service applies no request rate limiting of its own. Deployments that
+need rate limits enforce them in front of the MCP endpoint, for example in a
+gateway or reverse proxy, where they apply to native and compatibility-mode
+calls alike.
 
 `StructuredContentStripperMiddleware` is a deprecated compatibility class for
 custom startup paths that retains its original stripping behavior. Replace it with
@@ -1221,6 +1324,7 @@ names do not make nonnumeric values eligible.
 
 - Ensure the MCP server and Superset share the same `superset_config.py`
 - Check server logs at startup -- tool registration errors are logged with the tool name and reason
+- In native mode (`MCP_TOOL_SEARCH_CONFIG["enabled"] = False`) `search_tools` and `call_tool` are not served; call tools by name or re-enable compatibility mode
 
 ### Client can't connect
 
