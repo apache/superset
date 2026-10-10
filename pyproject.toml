@@ -280,7 +280,7 @@ tdengine = [
     "taospy>=2.8.10",
     "taos-ws-py>=0.7.0"
 ]
-teradata = ["teradatasql>=20.0.0.68"]
+teradata = ["teradatasql>=20.0.0.69"]
 # TimescaleDB is a genuine Postgres extension, not a fork - connects via the
 # plain postgresql dialect, same driver as postgres.
 timescaledb = ["apache-superset[postgres]"]
