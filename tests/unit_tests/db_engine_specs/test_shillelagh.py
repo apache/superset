@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 import sqlite3
 from contextlib import closing
 from datetime import datetime
@@ -23,8 +22,26 @@ import pytest
 from sqlalchemy import create_engine, text
 
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
+from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.db_engine_specs.superset import SupersetEngineSpec
 from superset.models.core import Database
+
+
+def test_shillelagh_properties() -> None:
+    assert ShillelaghEngineSpec.engine == "shillelagh"
+    assert ShillelaghEngineSpec.engine_name == "Shillelagh"
+    assert ShillelaghEngineSpec.default_driver == "apsw"
+    assert issubclass(ShillelaghEngineSpec, SqliteEngineSpec)
+    assert ShillelaghEngineSpec.allows_joins is True
+    assert ShillelaghEngineSpec.allows_subqueries is True
+
+
+def test_shillelagh_metadata() -> None:
+    metadata = ShillelaghEngineSpec.metadata
+    assert "Shillelagh is a Python library" in metadata["description"]
+    assert metadata["logo"] == "shillelagh.png"
+    assert "shillelagh[gsheetsapi]" in metadata["pypi_packages"]
+    assert metadata["connection_string"] == "shillelagh://"
 
 
 @pytest.fixture

@@ -14,16 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-# pylint: disable=import-outside-toplevel
-
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.ocient import (
     _point_list_to_wkt,
     _sanitized_ocient_type_codes,
+    OcientEngineSpec,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -32,7 +32,54 @@ def ocient_is_installed() -> bool:
     return len(_sanitized_ocient_type_codes) > 0
 
 
-# (msg,expected)
+def test_ocient_properties() -> None:
+    assert OcientEngineSpec.engine == "ocient"
+    assert OcientEngineSpec.engine_name == "Ocient"
+    assert OcientEngineSpec.force_column_alias_quotes is True
+    assert OcientEngineSpec.max_column_name_length == 30
+    assert OcientEngineSpec.cte_alias == "cte__"
+
+
+def test_ocient_metadata() -> None:
+    metadata = OcientEngineSpec.metadata
+    assert metadata["description"] == "Ocient is a hyperscale data analytics database."
+    assert metadata["logo"] == "ocient.png"
+    assert "sqlalchemy-ocient" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 4050
+
+
+def test_ocient_epoch_to_dttm() -> None:
+    assert (
+        OcientEngineSpec.epoch_to_dttm().format(col="ts")
+        == "DATEADD(S, ts, '1970-01-01')"
+    )
+    assert (
+        OcientEngineSpec.epoch_ms_to_dttm().format(col="ts")
+        == "DATEADD(MS, ts, '1970-01-01')"
+    )
+
+
+@pytest.mark.parametrize(
+    "time_grain,expected",
+    [
+        (None, "ts"),
+        (TimeGrain.SECOND, "ROUND(ts, 'SECOND')"),
+        (TimeGrain.MINUTE, "ROUND(ts, 'MINUTE')"),
+        (TimeGrain.HOUR, "ROUND(ts, 'HOUR')"),
+        (TimeGrain.DAY, "ROUND(ts, 'DAY')"),
+        (TimeGrain.WEEK, "ROUND(ts, 'WEEK')"),
+        (TimeGrain.MONTH, "ROUND(ts, 'MONTH')"),
+        (TimeGrain.QUARTER_YEAR, "ROUND(ts, 'QUARTER')"),
+        (TimeGrain.YEAR, "ROUND(ts, 'YEAR')"),
+    ],
+)
+def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
+    assert (
+        OcientEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+        == expected
+    )
+
+
 MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
     (
         "The referenced user does not exist (User 'mj' not found)",

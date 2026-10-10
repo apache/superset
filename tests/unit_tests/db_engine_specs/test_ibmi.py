@@ -14,22 +14,36 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 import pytest
 
 from superset.constants import TimeGrain
+from superset.db_engine_specs.db2 import Db2EngineSpec
+from superset.db_engine_specs.ibmi import IBMiEngineSpec
 
 
-def test_epoch_to_dttm() -> None:
-    """
-    Test the `epoch_to_dttm` method.
-    """
-    from superset.db_engine_specs.ibmi import IBMiEngineSpec
+def test_ibmi_properties() -> None:
+    assert IBMiEngineSpec.engine == "ibmi"
+    assert IBMiEngineSpec.engine_name == "IBM Db2 for i"
+    assert IBMiEngineSpec.max_column_name_length == 128
+    assert issubclass(IBMiEngineSpec, Db2EngineSpec)
 
+
+def test_ibmi_metadata() -> None:
+    metadata = IBMiEngineSpec.metadata
+    assert "IBM Db2 for i" in metadata["description"]
+    assert metadata["logo"] == "ibm-db2.svg"
+    assert "sqlalchemy-ibmi" in metadata["pypi_packages"]
     assert (
-        IBMiEngineSpec.epoch_to_dttm().format(col="epoch_dttm")
-        == "(DAYS(epoch_dttm) - DAYS('1970-01-01')) * 86400"
-        " + MIDNIGHT_SECONDS(epoch_dttm)"
+        metadata["connection_string"]
+        == "ibmi://{username}:{password}@{host}/{database}"
+    )
+    assert "default_port" not in metadata
+
+
+def test_ibmi_epoch_to_dttm() -> None:
+    assert (
+        IBMiEngineSpec.epoch_to_dttm().format(col="ts")
+        == "(DAYS(ts) - DAYS('1970-01-01')) * 86400 + MIDNIGHT_SECONDS(ts)"
     )
 
 
@@ -70,7 +84,5 @@ def test_time_grain_expressions(grain: TimeGrain, expected_expression: str) -> N
     """
     Test that time grain expressions generate the expected SQL.
     """
-    from superset.db_engine_specs.ibmi import IBMiEngineSpec
-
     actual = IBMiEngineSpec._time_grain_expressions[grain].format(col="my_col")
     assert actual == expected_expression

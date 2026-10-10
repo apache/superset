@@ -279,6 +279,8 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
         "pypi_packages": ["clickhouse-sqlalchemy"],
         "connection_string": "clickhouse://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
+        "docs_url": "https://clickhouse.com/docs/",
+        "sqlalchemy_docs_url": "https://github.com/xzkostyan/clickhouse-sqlalchemy",
     }
 
     @classmethod

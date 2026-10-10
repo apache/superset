@@ -21,11 +21,7 @@ from .db2 import Db2EngineSpec
 
 
 class IBMiEngineSpec(Db2EngineSpec):
-    """IBM Db2 for i (AS/400) engine spec.
-
-    Note: Documentation is in Db2EngineSpec's compatible_databases section.
-    This spec exists for runtime support of the ibmi driver.
-    """
+    """IBM Db2 for i (AS/400) engine spec."""
 
     engine = "ibmi"
     engine_name = "IBM Db2 for i"
