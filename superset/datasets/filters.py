@@ -19,6 +19,7 @@
 from flask_babel import lazy_gettext as _
 from sqlalchemy import not_, or_
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.subjects.filters import EditableFilter
@@ -40,21 +41,29 @@ class DatasetIsNullOrEmptyFilter(BaseFilter):  # pylint: disable=too-few-public-
         return query.filter(filter_clause)
 
 
+def dataset_certified_clause(certified: bool) -> ColumnElement[bool]:
+    """Predicate for "dataset is (not) certified".
+
+    A dataset is certified when its ``extra`` JSON carries a ``certification``
+    key. Shared by ``DatasetCertifiedFilter`` and the combined datasource list
+    so the two endpoints cannot disagree on what "certified" means.
+    """
+    check_value = '%"certification":%'
+    if certified:
+        return SqlaTable.extra.ilike(check_value)
+    return or_(
+        SqlaTable.extra.notlike(check_value),
+        SqlaTable.extra.is_(None),
+    )
+
+
 class DatasetCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("Is certified")
     arg_name = "dataset_is_certified"
 
     def apply(self, query: Query, value: bool) -> Query:
-        check_value = '%"certification":%'
-        if value is True:
-            return query.filter(SqlaTable.extra.ilike(check_value))
-        if value is False:
-            return query.filter(
-                or_(
-                    SqlaTable.extra.notlike(check_value),
-                    SqlaTable.extra.is_(None),
-                )
-            )
+        if value is True or value is False:
+            return query.filter(dataset_certified_clause(value))
         return query
 
 

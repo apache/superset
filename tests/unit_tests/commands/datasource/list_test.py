@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -21,43 +22,22 @@ from sqlalchemy import literal, select
 
 from superset.commands.datasource.list import (
     _dataset_schema,
+    _Filters,
     _semantic_view_schema,
     GetCombinedDatasourceListCommand,
 )
 
 
 def test_parse_filters_semantic_view_requires_dataset_operator() -> None:
-    (
-        source_type,
-        name_filter,
-        sql_filter,
-        type_filter,
-        database_id,
-        semantic_layer_uuid,
-        schema_filter,
-    ) = GetCombinedDatasourceListCommand._parse_filters(
+    filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "sql", "opr": "eq", "value": "semantic_view"}]
     )
 
-    assert source_type == "all"
-    assert name_filter is None
-    assert sql_filter is None
-    assert type_filter is None
-    assert database_id is None
-    assert semantic_layer_uuid is None
-    assert schema_filter is None
+    assert filters == _Filters()
 
 
 def test_parse_filters_semantic_view_with_dataset_operator() -> None:
-    (
-        source_type,
-        name_filter,
-        sql_filter,
-        type_filter,
-        database_id,
-        semantic_layer_uuid,
-        schema_filter,
-    ) = GetCombinedDatasourceListCommand._parse_filters(
+    filters = GetCombinedDatasourceListCommand._parse_filters(
         [
             {
                 "col": "sql",
@@ -67,81 +47,167 @@ def test_parse_filters_semantic_view_with_dataset_operator() -> None:
         ]
     )
 
-    assert source_type == "all"
-    assert name_filter is None
-    assert sql_filter is None
-    assert type_filter == "semantic_view"
-    assert database_id is None
-    assert semantic_layer_uuid is None
-    assert schema_filter is None
+    assert filters == _Filters(type_filter="semantic_view")
 
 
 def test_parse_filters_sql_bool_requires_dataset_operator() -> None:
-    (
-        source_type,
-        name_filter,
-        sql_filter,
-        type_filter,
-        database_id,
-        semantic_layer_uuid,
-        schema_filter,
-    ) = GetCombinedDatasourceListCommand._parse_filters(
+    filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "sql", "opr": "eq", "value": True}]
     )
 
-    assert source_type == "all"
-    assert name_filter is None
-    assert sql_filter is None
-    assert type_filter is None
-    assert database_id is None
-    assert semantic_layer_uuid is None
-    assert schema_filter is None
+    assert filters == _Filters()
 
 
 def test_parse_filters_extracts_schema() -> None:
-    (
-        source_type,
-        name_filter,
-        sql_filter,
-        type_filter,
-        database_id,
-        semantic_layer_uuid,
-        schema_filter,
-    ) = GetCombinedDatasourceListCommand._parse_filters(
+    filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "schema", "opr": "eq", "value": "main"}]
     )
 
-    assert schema_filter == "main"
-    assert source_type == "all"
-    assert name_filter is None
-    assert sql_filter is None
-    assert type_filter is None
-    assert database_id is None
-    assert semantic_layer_uuid is None
+    assert filters == _Filters(schema_filter="main")
 
 
 def test_parse_filters_ignores_schema_with_wrong_operator() -> None:
-    (*_, schema_filter) = GetCombinedDatasourceListCommand._parse_filters(
+    filters = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "schema", "opr": "ct", "value": "main"}]
     )
 
-    assert schema_filter is None
+    assert filters.schema_filter is None
 
 
 def test_parse_filters_schema_boundary_values() -> None:
     # An empty string is a real value: it becomes ``schema == ''`` (matching
     # empty-schema rows, not NULL), mirroring the canonical /api/v1/dataset/
     # FilterEqual behavior.
-    (*_, empty) = GetCombinedDatasourceListCommand._parse_filters(
+    empty = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "schema", "opr": "eq", "value": ""}]
     )
-    assert empty == ""
+    assert empty.schema_filter == ""
 
     # A null value is ignored so no schema filter is applied.
-    (*_, missing) = GetCombinedDatasourceListCommand._parse_filters(
+    missing = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "schema", "opr": "eq", "value": None}]
     )
-    assert missing is None
+    assert missing.schema_filter is None
+
+
+def test_parse_filters_extracts_editors() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "editors", "opr": "rel_m_m", "value": 31}]
+    )
+
+    assert filters == _Filters(editors_filter=31)
+
+
+def test_parse_filters_extracts_changed_by() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "changed_by", "opr": "rel_o_m", "value": 48}]
+    )
+
+    assert filters == _Filters(changed_by_filter=48)
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_parse_filters_extracts_certified(value: bool) -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "id", "opr": "dataset_is_certified", "value": value}]
+    )
+
+    assert filters == _Filters(certified_filter=value)
+
+
+def test_parse_filters_accepts_relation_ids_sent_as_strings() -> None:
+    # The Subject/user ids reach the API as option values, which the browser
+    # may serialize as strings; the canonical endpoint coerces them to int.
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [
+            {"col": "editors", "opr": "rel_m_m", "value": "31"},
+            {"col": "changed_by", "opr": "rel_o_m", "value": "48"},
+        ]
+    )
+
+    assert filters == _Filters(editors_filter=31, changed_by_filter=48)
+
+
+@pytest.mark.parametrize(
+    "bad_filter",
+    [
+        {"col": "editors", "opr": "rel_m_m", "value": "not-an-id"},
+        {"col": "changed_by", "opr": "rel_o_m", "value": "not-an-id"},
+        {"col": "id", "opr": "dataset_is_certified", "value": "yes"},
+    ],
+)
+def test_parse_filters_rejects_malformed_values(bad_filter: dict[str, Any]) -> None:
+    with pytest.raises(ValueError, match=bad_filter["col"]):
+        GetCombinedDatasourceListCommand._parse_filters([bad_filter])
+
+
+def test_parse_filters_rejects_unknown_column() -> None:
+    # The canonical /api/v1/dataset/ answers 400 for a column it cannot filter
+    # on. Dropping it silently would return an unfiltered list that looks
+    # filtered, which is how the Editor / Modified by / Certified filters went
+    # unnoticed.
+    with pytest.raises(ValueError, match="not allowed to filter"):
+        GetCombinedDatasourceListCommand._parse_filters(
+            [{"col": "owners", "opr": "rel_m_m", "value": 1}]
+        )
+
+
+@pytest.mark.parametrize(
+    "bad_filter",
+    [
+        {"col": "editors", "opr": "eq", "value": 1},
+        {"col": "changed_by", "opr": "rel_m_m", "value": 1},
+        {"col": "id", "opr": "eq", "value": True},
+    ],
+)
+def test_parse_filters_rejects_wrong_operator_on_relation_columns(
+    bad_filter: dict[str, Any],
+) -> None:
+    with pytest.raises(ValueError, match="not allowed on column"):
+        GetCombinedDatasourceListCommand._parse_filters([bad_filter])
+
+
+def test_parse_filters_combines_every_filter_the_datasets_page_sends() -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters(
+        [
+            {"col": "table_name", "opr": "ct", "value": "sales"},
+            {"col": "sql", "opr": "dataset_is_null_or_empty", "value": False},
+            {"col": "database", "opr": "rel_o_m", "value": 7},
+            {"col": "schema", "opr": "eq", "value": "public"},
+            {"col": "editors", "opr": "rel_m_m", "value": 31},
+            {"col": "id", "opr": "dataset_is_certified", "value": True},
+            {"col": "changed_by", "opr": "rel_o_m", "value": 48},
+        ]
+    )
+
+    assert filters == _Filters(
+        name_filter="sales",
+        sql_filter=False,
+        database_id=7,
+        schema_filter="public",
+        editors_filter=31,
+        certified_filter=True,
+        changed_by_filter=48,
+    )
+
+
+@pytest.mark.parametrize(
+    ("filters", "expected"),
+    [
+        (_Filters(), False),
+        (_Filters(schema_filter="main"), True),
+        (_Filters(editors_filter=31), True),
+        (_Filters(certified_filter=True), True),
+        # Semantic views are never certified, so "not certified" matches them.
+        (_Filters(certified_filter=False), False),
+        # Semantic views are audited, so they have a changed_by.
+        (_Filters(changed_by_filter=48), False),
+    ],
+)
+def test_dataset_only_marks_filters_semantic_views_cannot_match(
+    filters: _Filters, expected: bool
+) -> None:
+    assert filters.dataset_only is expected
 
 
 def test_resolve_source_type_semantic_view_filter_forces_semantic_layer() -> None:
@@ -187,7 +253,7 @@ def test_resolve_source_type_schema_filter_forces_database() -> None:
         source_type="all",
         sql_filter=None,
         type_filter=None,
-        schema_filter="main",
+        dataset_only=True,
     )
 
     assert source_type == "database"
@@ -204,7 +270,7 @@ def test_resolve_source_type_explicit_semantic_layer_wins_over_schema() -> None:
         source_type="semantic_layer",
         sql_filter=None,
         type_filter=None,
-        schema_filter="main",
+        dataset_only=True,
     )
 
     assert source_type == "semantic_layer"
@@ -223,7 +289,7 @@ def test_resolve_source_type_semantic_view_type_plus_schema_is_empty() -> None:
         source_type="all",
         sql_filter=None,
         type_filter="semantic_view",
-        schema_filter="main",
+        dataset_only=True,
     )
 
     assert source_type == "empty"
@@ -242,7 +308,7 @@ def test_resolve_source_type_views_only_user_with_schema_is_empty() -> None:
         source_type="all",
         sql_filter=None,
         type_filter=None,
-        schema_filter="main",
+        dataset_only=True,
     )
 
     assert source_type == "empty"
@@ -290,7 +356,7 @@ def test_resolve_connection_semantic_layer_uuid_with_schema_is_empty() -> None:
         source_type="all",
         database_id=None,
         semantic_layer_uuid="uuid-123",
-        schema_filter="main",
+        dataset_only=True,
     )
 
     assert source_type == "empty"
@@ -302,7 +368,7 @@ def test_resolve_connection_semantic_layer_uuid_without_schema() -> None:
         source_type="all",
         database_id=None,
         semantic_layer_uuid="uuid-123",
-        schema_filter=None,
+        dataset_only=False,
     )
 
     assert source_type == "semantic_layer"
@@ -315,7 +381,7 @@ def test_resolve_connection_explicit_semantic_layer_ignores_schema() -> None:
         source_type="semantic_layer",
         database_id=None,
         semantic_layer_uuid="uuid-123",
-        schema_filter="main",
+        dataset_only=True,
     )
 
     assert source_type == "semantic_layer"

@@ -32,8 +32,10 @@ from superset.daos.exceptions import (
     DatasourceTypeNotSupportedError,
     DatasourceValueIsIncorrect,
 )
+from superset.datasets.filters import dataset_certified_clause
 from superset.models.sql_lab import Query, SavedQuery
 from superset.semantic_layers.models import SemanticLayer, SemanticView
+from superset.subjects.models import sqlatable_editors
 from superset.utils.core import DatasourceType
 from superset.utils.filters import get_dataset_access_filters
 
@@ -116,8 +118,15 @@ class DatasourceDAO(BaseDAO[Datasource]):
         sql_filter: bool | None,
         database_id: int | None = None,
         schema_filter: str | None = None,
+        editors_filter: int | None = None,
+        changed_by_filter: int | None = None,
+        certified_filter: bool | None = None,
     ) -> Select:
-        """Build a SELECT for datasets, applying access and content filters."""
+        """Build a SELECT for datasets, applying access and content filters.
+
+        ``editors_filter`` is a ``Subject`` id (user, role or group), the same
+        value the Editor dropdown sends to ``/api/v1/dataset/``.
+        """
         ds_table = SqlaTable.__table__
         db_table = sqla_models.Database.__table__
         ds_q = select(
@@ -164,14 +173,33 @@ class DatasourceDAO(BaseDAO[Datasource]):
         if schema_filter is not None:
             ds_q = ds_q.where(SqlaTable.schema == schema_filter)
 
+        if editors_filter is not None:
+            # ``IN (subquery)`` rather than a join: a dataset with several
+            # editors must still come back once, and counts stay exact.
+            ds_q = ds_q.where(
+                ds_table.c.id.in_(
+                    select(sqlatable_editors.c.table_id).where(
+                        sqlatable_editors.c.subject_id == editors_filter
+                    )
+                )
+            )
+
+        if changed_by_filter is not None:
+            ds_q = ds_q.where(ds_table.c.changed_by_fk == changed_by_filter)
+
+        if certified_filter is not None:
+            ds_q = ds_q.where(dataset_certified_clause(certified_filter))
+
         return ds_q
 
     @staticmethod
     def build_semantic_view_query(
         name_filter: str | None,
         semantic_layer_uuid: str | None = None,
+        changed_by_filter: int | None = None,
     ) -> Select:
-        """Build a SELECT for semantic views, applying name and layer filters."""
+        """Build a SELECT for semantic views, applying name, layer and
+        last-modified-by filters."""
         sv_table = SemanticView.__table__
         sv_q = select(
             sv_table.c.id.label("item_id"),
@@ -198,6 +226,9 @@ class DatasourceDAO(BaseDAO[Datasource]):
 
         if semantic_layer_uuid is not None:
             sv_q = sv_q.where(SemanticView.semantic_layer_uuid == semantic_layer_uuid)
+
+        if changed_by_filter is not None:
+            sv_q = sv_q.where(sv_table.c.changed_by_fk == changed_by_filter)
 
         return sv_q
 

@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any, cast
 
 from sqlalchemy import union_all
@@ -34,6 +35,70 @@ logger = logging.getLogger(__name__)
 
 _dataset_schema = DatasetListSchema()
 _semantic_view_schema = SemanticViewListSchema()
+
+# Relation filters the Datasets page sends, each with the operator the canonical
+# ``/api/v1/dataset/`` endpoint declares for it.
+_EDITORS_COLUMN = "editors"
+_CHANGED_BY_COLUMN = "changed_by"
+_CERTIFIED_COLUMN = "id"
+_LEGACY_COLUMNS = {
+    "source_type",
+    "table_name",
+    "sql",
+    "database",
+    "semantic_layer_uuid",
+    "schema",
+}
+_RELATION_OPERATORS = {
+    _EDITORS_COLUMN: "rel_m_m",
+    _CHANGED_BY_COLUMN: "rel_o_m",
+    _CERTIFIED_COLUMN: "dataset_is_certified",
+}
+
+
+@dataclass(frozen=True)
+class _Filters:
+    """Typed form of the rison filters accepted by the combined list.
+
+    Every attribute is optional. ``None`` means "no such filter"; a boolean or
+    id means the filter was sent and has to be honoured.
+    """
+
+    source_type: str = "all"
+    name_filter: str | None = None
+    sql_filter: bool | None = None
+    type_filter: str | None = None
+    database_id: int | None = None
+    semantic_layer_uuid: str | None = None
+    schema_filter: str | None = None
+    editors_filter: int | None = None
+    changed_by_filter: int | None = None
+    certified_filter: bool | None = None
+
+    @property
+    def dataset_only(self) -> bool:
+        """Whether a filter is set that no semantic view can match.
+
+        Semantic views have no schema and no editors, and are never certified,
+        so under AND semantics such a filter excludes them. ``certified=False``
+        and ``changed_by`` are not in this group: a semantic view is not
+        certified, and it is audited like any other model.
+        """
+        return (
+            self.schema_filter is not None
+            or self.editors_filter is not None
+            or self.certified_filter is True
+        )
+
+
+def _relation_id(col: str, value: Any) -> int:
+    """Coerce a relation filter value to an id, as the canonical endpoint does."""
+    if isinstance(value, bool):
+        raise ValueError(f"Invalid value for filter column: {col}")
+    try:
+        return int(value)
+    except (TypeError, ValueError) as ex:
+        raise ValueError(f"Invalid value for filter column: {col}") from ex
 
 
 class GetCombinedDatasourceListCommand(BaseCommand):
@@ -63,41 +128,29 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         order_direction = self._args.get("order_direction", "desc")
         filters = self._args.get("filters", [])
 
-        (
-            source_type,
-            name_filter,
-            sql_filter,
-            type_filter,
-            database_id,
-            semantic_layer_uuid,
-            schema_filter,
-        ) = self._parse_filters(filters)
+        parsed = self._parse_filters(filters)
 
         source_type = self._resolve_connection_source_type(
-            source_type,
-            database_id,
-            semantic_layer_uuid,
-            schema_filter,
+            parsed.source_type,
+            parsed.database_id,
+            parsed.semantic_layer_uuid,
+            parsed.dataset_only,
         )
         # A connection filter can already resolve to "empty" (e.g. a semantic-layer
         # connection combined with a dataset-only schema filter); don't let the
         # content-filter resolution override that terminal decision.
         if source_type != "empty":
             source_type = self._resolve_source_type(
-                source_type, sql_filter, type_filter, schema_filter
+                source_type,
+                parsed.sql_filter,
+                parsed.type_filter,
+                parsed.dataset_only,
             )
 
         if source_type == "empty":
             return {"count": 0, "result": []}
 
-        combined = self._build_combined_query(
-            source_type,
-            name_filter,
-            sql_filter,
-            database_id,
-            semantic_layer_uuid,
-            schema_filter,
-        )
+        combined = self._build_combined_query(source_type, parsed)
         total_count, rows = DatasourceDAO.paginate_combined_query(
             combined, order_column, order_direction, page, page_size
         )
@@ -111,7 +164,7 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         source_type: str,
         database_id: int | None,
         semantic_layer_uuid: str | None,
-        schema_filter: str | None = None,
+        dataset_only: bool = False,
     ) -> str:
         # A connection filter implicitly narrows the source type: selecting a
         # database ID means "show only datasets", and selecting a semantic layer
@@ -121,31 +174,34 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             if database_id is not None:
                 return "database"
             elif semantic_layer_uuid is not None:
-                # A semantic-layer connection selects only that layer's
-                # (schema-less) views, so a dataset-only schema filter matches
+                # A semantic-layer connection selects only that layer's views,
+                # so a dataset-only filter (schema, editors, certified) matches
                 # nothing: the honest result is empty. Unlike an explicit
                 # Source="Semantic layer" selection (handled in
                 # _resolve_source_type), the user never picked a source type
                 # here, so the "explicit selection wins" rule does not apply.
-                if schema_filter is not None:
+                if dataset_only:
                     return "empty"
                 return "semantic_layer"
 
         return source_type
 
     @staticmethod
-    def _build_combined_query(
-        source_type: str,
-        name_filter: str | None,
-        sql_filter: bool | None,
-        database_id: int | None,
-        semantic_layer_uuid: str | None,
-        schema_filter: str | None = None,
-    ) -> Any:
+    def _build_combined_query(source_type: str, filters: _Filters) -> Any:
         ds_q = DatasourceDAO.build_dataset_query(
-            name_filter, sql_filter, database_id, schema_filter
+            filters.name_filter,
+            filters.sql_filter,
+            filters.database_id,
+            filters.schema_filter,
+            filters.editors_filter,
+            filters.changed_by_filter,
+            filters.certified_filter,
         )
-        sv_q = DatasourceDAO.build_semantic_view_query(name_filter, semantic_layer_uuid)
+        sv_q = DatasourceDAO.build_semantic_view_query(
+            filters.name_filter,
+            filters.semantic_layer_uuid,
+            filters.changed_by_filter,
+        )
 
         if source_type == "database":
             return ds_q.subquery()
@@ -205,18 +261,21 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         source_type: str,
         sql_filter: bool | None,
         type_filter: str | None,
-        schema_filter: str | None = None,
+        dataset_only: bool = False,
     ) -> str:
         """Narrow source_type based on access flags, sql filter, and type filter.
+
+        ``dataset_only`` is true when a filter is set that no semantic view can
+        match (see ``_Filters.dataset_only``).
 
         Returns one of: "database", "semantic_layer", "all", or "empty".
         "empty" signals that the caller should short-circuit and return no results
         (used when the user explicitly requests semantic views but lacks access).
 
         Resolution follows a single precedence order (highest to lowest). This
-        is what makes a dataset-only filter (schema/sql) combined with a
-        semantic-view result behave consistently across entry points, with one
-        deliberate exception noted below:
+        is what makes a dataset-only filter (schema, editors, certified, sql)
+        combined with a semantic-view result behave consistently across entry
+        points, with one deliberate exception noted below:
 
         1. Access — a principal never sees a source type it cannot read; a
            dataset-only filter applied by a user without dataset access yields
@@ -248,12 +307,12 @@ class GetCombinedDatasourceListCommand(BaseCommand):
                 return "empty"
             return "database"
         if not self._can_read_datasets:
-            # schema and sql_filter are both dataset-only, so a semantic-views-only
-            # user matches nothing under AND semantics; return "empty" rather than
+            # These filters are dataset-only, so a semantic-views-only user
+            # matches nothing under AND semantics; return "empty" rather than
             # showing views with the filter dropped (mirrors the
             # not-can_read_semantic_views branch above and the
-            # schema/Type="Semantic View" case below).
-            if schema_filter is not None or sql_filter is not None:
+            # dataset-only/Type="Semantic View" case below).
+            if dataset_only or sql_filter is not None:
                 return "empty"
             return "semantic_layer"
         # An explicit source_type selection ("database" or "semantic_layer") always
@@ -261,17 +320,19 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         # Source="Database" filter and showing inconsistent results.
         if source_type in ("database", "semantic_layer"):
             return source_type
-        # sql_filter (physical/virtual toggle) and schema both only apply to
-        # datasets (semantic views have no schema), so either narrows to datasets.
-        if sql_filter is not None or schema_filter is not None:
-            # A schema filter combined with an explicit Type="Semantic View" is
-            # contradictory: no semantic view has a schema, so under AND semantics
-            # the honest result is zero rows rather than silently dropping either
-            # filter. This pair is reachable because the Schema control is not part
-            # of the frontend cascade. (Via the UI, sql_filter and type_filter come
-            # from one control and cannot collide; a direct API payload could set
-            # both, in which case sql_filter wins — see _apply_sql_null_filter.)
-            if schema_filter is not None and type_filter == "semantic_view":
+        # sql_filter (physical/virtual toggle) and the dataset-only filters
+        # (semantic views have no schema or editors and are never certified)
+        # only apply to datasets, so any of them narrows to datasets.
+        if sql_filter is not None or dataset_only:
+            # A dataset-only filter combined with an explicit Type="Semantic
+            # View" is contradictory: no semantic view can match it, so under
+            # AND semantics the honest result is zero rows rather than silently
+            # dropping either filter. This pair is reachable because those
+            # controls are not part of the frontend cascade. (Via the UI,
+            # sql_filter and type_filter come from one control and cannot
+            # collide; a direct API payload could set both, in which case
+            # sql_filter wins — see _apply_sql_null_filter.)
+            if dataset_only and type_filter == "semantic_view":
                 return "empty"
             return "database"
         # Explicit semantic-view type filter (only reached when source_type="all")
@@ -298,63 +359,79 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         return type_filter, sql_filter
 
     @staticmethod
-    def _parse_filters(
-        filters: list[dict[str, Any]],
-    ) -> tuple[
-        str, str | None, bool | None, str | None, int | None, str | None, str | None
-    ]:
-        """
-        Translate raw rison filter dicts into typed query parameters.
+    def _parse_legacy_filter(
+        col: str, opr: Any, value: Any, current: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Parse the columns the combined list supported from the start.
 
-        Returns:
-            source_type:        "all" | "database" | "semantic_layer"
-            name_filter:        substring to match against name/table_name
-            sql_filter:         True → physical only, False → virtual only, None → both
-            type_filter:        "semantic_view" when caller wants only
-                                semantic views
-            database_id:        filter datasets to a specific database ID
-            semantic_layer_uuid: filter semantic views to a specific semantic layer UUID
-            schema_filter:      filter datasets to a specific schema name
+        These stay lenient: an operator that is not the expected one is ignored
+        rather than rejected. ``current`` carries the fields parsed so far, for
+        the ``sql`` filter that updates two of them at once.
         """
-        source_type = "all"
-        name_filter: str | None = None
-        sql_filter: bool | None = None
-        type_filter: str | None = None
-        database_id: int | None = None
-        semantic_layer_uuid: str | None = None
-        schema_filter: str | None = None
+        if col == "source_type":
+            return {"source_type": value or "all"}
+        if col == "table_name" and opr == "ct":
+            return {"name_filter": value}
+        if col == "sql" and opr == "dataset_is_null_or_empty":
+            type_filter, sql_filter = (
+                GetCombinedDatasourceListCommand._apply_sql_null_filter(
+                    value, current.get("type_filter"), current.get("sql_filter")
+                )
+            )
+            return {"type_filter": type_filter, "sql_filter": sql_filter}
+        if col == "database" and value is not None:
+            try:
+                return {"database_id": int(value)}
+            except (TypeError, ValueError):
+                return {}
+        if col == "semantic_layer_uuid" and value is not None:
+            return {"semantic_layer_uuid": str(value)}
+        if col == "schema" and opr == "eq" and value is not None:
+            return {"schema_filter": str(value)}
+        return {}
 
+    @staticmethod
+    def _parse_relation_filter(col: str, opr: Any, value: Any) -> dict[str, Any]:
+        """Parse a column the canonical dataset endpoint filters with a fixed
+        operator. Anything else is rejected, as that endpoint does."""
+        if opr != _RELATION_OPERATORS[col]:
+            raise ValueError(f"Filter operation: {opr} not allowed on column: {col}")
+        if value is None:
+            return {}
+        if col == _EDITORS_COLUMN:
+            return {"editors_filter": _relation_id(col, value)}
+        if col == _CHANGED_BY_COLUMN:
+            return {"changed_by_filter": _relation_id(col, value)}
+        if isinstance(value, bool):
+            return {"certified_filter": value}
+        raise ValueError(f"Invalid value for filter column: {col}")
+
+    @staticmethod
+    def _parse_filters(filters: list[dict[str, Any]]) -> _Filters:
+        """
+        Translate raw rison filter dicts into a typed ``_Filters``.
+
+        Raises ``ValueError`` (answered as 400) for a column the endpoint cannot
+        filter on, and for an operator or value the relation filters do not
+        accept. The canonical ``/api/v1/dataset/`` rejects the same inputs;
+        dropping them here would return an unfiltered list that looks filtered.
+        """
+        fields: dict[str, Any] = {}
         for f in filters:
             col = f.get("col")
-            opr = f.get("opr")
-            value = f.get("value")
-
-            if col == "source_type":
-                source_type = value or "all"
-            elif col == "table_name" and f.get("opr") == "ct":
-                name_filter = value
-            elif col == "sql" and opr == "dataset_is_null_or_empty":
-                type_filter, sql_filter = (
-                    GetCombinedDatasourceListCommand._apply_sql_null_filter(
-                        value, type_filter, sql_filter
+            if col in _RELATION_OPERATORS:
+                fields.update(
+                    GetCombinedDatasourceListCommand._parse_relation_filter(
+                        col, f.get("opr"), f.get("value")
                     )
                 )
-            elif col == "database" and value is not None:
-                try:
-                    database_id = int(value)
-                except (TypeError, ValueError):
-                    pass
-            elif col == "semantic_layer_uuid" and value is not None:
-                semantic_layer_uuid = str(value)
-            elif col == "schema" and opr == "eq" and value is not None:
-                schema_filter = str(value)
+            elif col in _LEGACY_COLUMNS:
+                fields.update(
+                    GetCombinedDatasourceListCommand._parse_legacy_filter(
+                        col, f.get("opr"), f.get("value"), fields
+                    )
+                )
+            else:
+                raise ValueError(f"Filter column: {col} not allowed to filter")
 
-        return (
-            source_type,
-            name_filter,
-            sql_filter,
-            type_filter,
-            database_id,
-            semantic_layer_uuid,
-            schema_filter,
-        )
+        return _Filters(**fields)
