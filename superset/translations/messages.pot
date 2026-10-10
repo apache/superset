@@ -7219,6 +7219,9 @@ msgstr ""
 msgid "HTTP Path"
 msgstr ""
 
+msgid "HTTPS will be used to connect to the Druid SQL endpoint."
+msgstr ""
+
 msgid "Handlebars"
 msgstr ""
 
@@ -17307,6 +17310,9 @@ msgid "e.g. 127.0.0.1"
 msgstr ""
 
 msgid "e.g. 5432"
+msgstr ""
+
+msgid "e.g. 8082 (8888 for the router)"
 msgstr ""
 
 msgid "e.g. AccountAdmin"
