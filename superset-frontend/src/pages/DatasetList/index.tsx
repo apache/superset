@@ -583,7 +583,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       });
 
       return SupersetClient.get({
-        endpoint: `/api/v1/datasource/?q=${queryParams}`,
+        // The combined endpoint only exists to list semantic views next to
+        // datasets. Without semantic layers every row is a dataset, so use the
+        // canonical dataset API, as the Databases list does: it supports every
+        // filter on this page and is gated by the Dataset permission alone.
+        endpoint: `${
+          isFeatureEnabled(SEMANTIC_LAYERS_FLAG)
+            ? '/api/v1/datasource/'
+            : '/api/v1/dataset/'
+        }?q=${queryParams}`,
       })
         .then(({ json = {} }) => {
           setDatasets(json.result);
