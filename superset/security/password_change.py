@@ -34,6 +34,7 @@ import logging
 from typing import Any, Optional
 
 from flask import current_app, flash, g, redirect, request, url_for
+from flask_appbuilder.security.manager import AUTH_REMOTE_USER
 from flask_babel import gettext as __
 from sqlalchemy.exc import IntegrityError
 
@@ -170,6 +171,55 @@ def _is_exempt_endpoint(endpoint: Optional[str]) -> bool:
     return view_class in _EXEMPT_VIEW_CLASSES
 
 
+def _profile_page_reachable(security_manager: Any) -> bool:
+    """Return whether the current user can reach ``UserInfoView.list``.
+
+    It requires ``can_read`` on ``user``, which ``sync_role_definitions`` only
+    grants to the built-in Admin/Alpha/Gamma roles -- a custom role is never
+    guaranteed to hold it. A user without it who gets redirected there hits
+    FAB's own access-denied redirect (to login), which, since they're already
+    authenticated, bounces straight back to the index -- which re-runs this
+    hook and redirects to the profile page again, looping forever.
+    """
+    return security_manager is not None and bool(
+        security_manager.has_access("can_read", "user")
+    )
+
+
+def _logout_fallback_candidates(security_manager: Any) -> list[str]:
+    """Build the ordered list of logout endpoints to try as a last resort."""
+    candidates = []
+    auth_view = getattr(security_manager, "auth_view", None)
+    # Only redirect to the registered auth view's logout if that view is
+    # itself exempt from this hook; otherwise the redirect would loop.
+    if (
+        auth_view is not None
+        and getattr(auth_view, "endpoint", None) in _EXEMPT_VIEW_CLASSES
+    ):
+        candidates.append(f"{auth_view.endpoint}.logout")
+    candidates.append("AuthDBView.logout")
+    return candidates
+
+
+def _flash_no_profile_access() -> Optional[tuple[str, int]]:
+    """Explain that the user's role cannot reach the profile page.
+
+    Under ``AUTH_REMOTE_USER`` a logout redirect cannot help: the unchanged
+    REMOTE_USER header re-authenticates the user immediately and the request
+    loops. In that case return a terminal ``(body, status)`` response for the
+    caller to return; otherwise flash the message and return ``None``.
+    """
+    message = __(
+        "Your role does not have access to the profile page "
+        "needed to change your password. Contact an "
+        "administrator."
+    )
+    if current_app.config.get("AUTH_TYPE") == AUTH_REMOTE_USER:
+        return message, 403
+    flash(message, "danger")
+    return None
+
+
 def register_password_change_enforcement(app: Any) -> None:
     """Register the before-request hook that enforces pending password changes.
 
@@ -194,42 +244,33 @@ def register_password_change_enforcement(app: Any) -> None:
         if not user or getattr(user, "is_anonymous", True):
             return None
 
-        if _is_exempt_endpoint(request.endpoint):
-            return None
-
-        # Exempt the whole registered health blueprint, including version(),
+        # The whole registered health blueprint, including version(), is exempt
         # independently of individual route paths or view function names.
-        if request.blueprint == health_blueprint.name:
+        if (
+            _is_exempt_endpoint(request.endpoint)
+            or request.blueprint == health_blueprint.name
+        ):
             return None
 
         if not password_change_required(user):
             return None
 
-        flash(__("You must change your password before continuing."), "warning")
-        # Resolve the SPA profile page. If that endpoint can't be resolved
-        # (e.g. a deployment that does not register ``UserInfoView``), fall
-        # back to logout, which is always exempt from this enforcement. The
-        # logout endpoint is derived from the *registered* auth view so the
-        # fallback works for non-DB auth backends (LDAP, OAuth, remote-user)
-        # too, with ``AuthDBView.logout`` as a last resort. We must NOT fall
-        # back to "/" or any other non-exempt route: the index re-runs this
-        # same hook and would trap the user in an infinite 302 loop. If no
-        # exempt target can be resolved at all, return an error response rather
-        # than redirect, so a flagged user can never get stuck looping.
-        candidates = [_PROFILE_PAGE_ENDPOINT]
-        auth_view = getattr(
-            getattr(getattr(current_app, "appbuilder", None), "sm", None),
-            "auth_view",
-            None,
-        )
-        # Only redirect to the registered auth view's logout if that view is
-        # itself exempt from this hook; otherwise the redirect would loop.
-        if (
-            auth_view is not None
-            and getattr(auth_view, "endpoint", None) in _EXEMPT_VIEW_CLASSES
-        ):
-            candidates.append(f"{auth_view.endpoint}.logout")
-        candidates.append("AuthDBView.logout")
+        # Resolve the SPA profile page, if the user can actually reach it, with
+        # logout as the fallback -- which is always exempt from this
+        # enforcement. We must NOT fall back to "/" or any other non-exempt
+        # route: the index re-runs this same hook and would trap the user in
+        # an infinite 302 loop. If no exempt target can be resolved at all,
+        # return an error response rather than redirect, so a flagged user can
+        # never get stuck looping.
+        security_manager = getattr(getattr(current_app, "appbuilder", None), "sm", None)
+        profile_reachable = _profile_page_reachable(security_manager)
+        terminal = None if profile_reachable else _flash_no_profile_access()
+        if terminal is not None:
+            return terminal
+        if profile_reachable:
+            flash(__("You must change your password before continuing."), "warning")
+        candidates = [_PROFILE_PAGE_ENDPOINT] if profile_reachable else []
+        candidates.extend(_logout_fallback_candidates(security_manager))
         for endpoint in candidates:
             try:
                 return redirect(url_for(endpoint))

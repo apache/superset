@@ -16929,6 +16929,11 @@ msgstr ""
 msgid "Your report could not be deleted"
 msgstr ""
 
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
+
 msgid "Your session has ended. Please sign in again."
 msgstr ""
 
