@@ -20,17 +20,15 @@
 // Source: https://gist.github.com/AriPerkkio/99b9eedc7d8f71ff6e6770f9425a4be4
 import { defineConfig } from '@playwright/test';
 
-const storybookUrl = process.env.STORYBOOK_URL ?? 'http://localhost:6006';
+const storybookUrl = 'http://localhost:6006';
 export default defineConfig({
   testDir: '.',
   globalSetup: 'setup-stories.ts',
   use: { baseURL: storybookUrl },
   fullyParallel: true,
-  webServer: process.env.STORYBOOK_URL
-    ? undefined
-    : {
-        command: 'npm run storybook -- --ci',
-        url: `${storybookUrl}/index.json`,
-        reuseExistingServer: true,
-      },
+  webServer: {
+    command: 'npm run storybook -- --ci',
+    url: `${storybookUrl}/index.json`,
+    reuseExistingServer: true,
+  },
 });

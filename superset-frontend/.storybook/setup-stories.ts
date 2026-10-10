@@ -56,7 +56,7 @@ export interface StoryPage {
   ): Promise<{ jsonValue(): Promise<T> }>;
 }
 
-const storybookURL = process.env.STORYBOOK_URL ?? 'http://localhost:6006';
+const storybookURL = 'http://localhost:6006';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const indexFile = resolve(join(__dirname, './storybook-tests.json'));
