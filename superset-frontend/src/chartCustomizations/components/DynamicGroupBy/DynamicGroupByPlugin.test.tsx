@@ -79,3 +79,59 @@ test('preserves source order when sorting is disabled', async () => {
   renderPlugin(undefined);
   expect(await getOpenedOptionOrder()).toEqual(['banana', 'apple', 'cherry']);
 });
+
+const renderDefaultPicker = ({
+  formData = {},
+  filterState = { value: [] as string[] },
+}: {
+  formData?: Record<string, unknown>;
+  filterState?: { value: string[] };
+}) => {
+  const setDataMask = jest.fn();
+  const chartProps = new ChartProps({
+    ...baseProps,
+    filterState,
+    hooks: { setDataMask },
+    formData: { ...baseProps.formData, ...formData },
+    theme: supersetTheme,
+  });
+  render(
+    <PluginFilterDynamicGroupBy
+      {...(transformProps(chartProps) as unknown as PluginFilterGroupByProps)}
+    />,
+  );
+  return setDataMask;
+};
+
+test('default-value picker offers only allowlisted columns', async () => {
+  renderDefaultPicker({ formData: { columnsAllowlist: ['apple', 'cherry'] } });
+  expect(await getOpenedOptionOrder()).toEqual(['apple', 'cherry']);
+});
+
+test('default-value picker offers only groupable columns when no allowlist narrows it', async () => {
+  renderDefaultPicker({ formData: { groupableColumns: ['banana', 'apple'] } });
+  expect(await getOpenedOptionOrder()).toEqual(['banana', 'apple']);
+});
+
+test('drops an existing default that the allowlist excludes', async () => {
+  const setDataMask = renderDefaultPicker({
+    formData: { columnsAllowlist: ['apple'] },
+    filterState: { value: ['apple', 'cherry'] },
+  });
+
+  expect(setDataMask).toHaveBeenLastCalledWith({
+    extraFormData: { custom_form_data: { groupby: ['apple'] } },
+    filterState: { label: 'apple', value: ['apple'] },
+  });
+});
+
+test('leaves a default untouched when nothing restricts the columns', () => {
+  const setDataMask = renderDefaultPicker({
+    filterState: { value: ['apple', 'cherry'] },
+  });
+
+  expect(setDataMask).toHaveBeenLastCalledWith({
+    extraFormData: { custom_form_data: { groupby: ['apple', 'cherry'] } },
+    filterState: { label: 'apple, cherry', value: ['apple', 'cherry'] },
+  });
+});

@@ -1714,6 +1714,9 @@ msgstr "すべてのディメンション"
 msgid "All filters"
 msgstr "すべてのフィルター"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "すべてのパネル"
 
@@ -4006,6 +4009,9 @@ msgstr "読み込む列"
 
 msgid "Columns to show in the tooltip."
 msgstr "ツールチップに表示する列"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "メトリックを結合"
@@ -7652,6 +7658,9 @@ msgstr "グループ名"
 msgid "Group remaining as \"Others\""
 msgstr "残りの項目を「その他」にまとめる"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "グループ化"
 
@@ -8572,6 +8581,11 @@ msgid "Least recently modified"
 msgstr "更新日が古い順"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -9981,6 +9995,10 @@ msgstr "見つかりません"
 
 msgid "Not in"
 msgstr "次を含まない (Not in)"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "NULLではない"
@@ -14535,6 +14553,11 @@ msgstr "エッジのターゲット(終点)として使用する列。"
 
 msgid "The column was deleted or renamed in the database."
 msgstr "データベース内で列が削除されたか、名前が変更されました。"
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "マップレイヤーの設定"

@@ -1880,6 +1880,9 @@ msgstr "Todas las dimensiones"
 msgid "All filters"
 msgstr "Todos los filtros"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Todos los paneles"
 
@@ -4504,6 +4507,9 @@ msgstr "Columnas a leer"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Información sobre herramientas del encabezado de columna"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combinar métricas"
@@ -8638,6 +8644,9 @@ msgstr "Nombre del grupo"
 msgid "Group remaining as \"Others\""
 msgstr "Agrupar restantes como \"Otros\""
 
+msgid "Groupable columns"
+msgstr ""
+
 #, fuzzy
 msgid "Grouping"
 msgstr "Ejecutando alcance"
@@ -9657,6 +9666,11 @@ msgid "Least recently modified"
 msgstr "Modificado menos recientemente"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -11222,6 +11236,10 @@ msgstr "No se ha encontrado ningún gráfico"
 
 msgid "Not in"
 msgstr "No está en"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "No es nulo"
@@ -16381,6 +16399,11 @@ msgid "The column was deleted or renamed in the database."
 msgstr ""
 "La columna se ha eliminado o se le ha cambiado el nombre en la base de "
 "datos."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "La configuración de las capas del mapa"

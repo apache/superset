@@ -114,6 +114,36 @@ class TestLoggingMiddlewareOnCallTool:
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
     @pytest.mark.asyncio
+    async def test_on_call_tool_preserves_returned_error_result(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """An error returned as a result keeps isError and is logged as failed.
+
+        The tool-search call_tool proxy forwards a call whose inner middleware
+        chain has already converted the exception into an error result, so
+        the outer chain receives a returned result rather than an exception.
+        """
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="call_tool", params={"name": "create_theme"})
+        error_result = ToolResult(
+            content=[mt.TextContent(type="text", text="Error: Permission denied")],
+            is_error=True,
+        )
+        call_next = AsyncMock(return_value=error_result)
+
+        result = await middleware.on_call_tool(ctx, call_next)
+
+        assert result.is_error is True
+        assert result.content == error_result.content
+        assert result.meta is not None
+        assert "mcp_call_id" in result.meta
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["curated_payload"]["success"] is False
+        assert call_kwargs["curated_payload"]["tool"] == "call_tool"
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
     async def test_on_call_tool_logs_failure_on_tool_error(
         self, mock_get_user_id, mock_event_logger
     ) -> None:

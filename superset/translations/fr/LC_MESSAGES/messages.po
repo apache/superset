@@ -1853,6 +1853,9 @@ msgstr "Toutes les dimensions"
 msgid "All filters"
 msgstr "Tous les filtres"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Tous les panneaux"
 
@@ -4416,6 +4419,9 @@ msgstr "Colonnes à lire"
 
 msgid "Columns to show in the tooltip."
 msgstr "Colonnes à afficher dans l'infobulle"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combiner les mesures"
@@ -8385,6 +8391,9 @@ msgstr "Nom du groupe"
 msgid "Group remaining as \"Others\""
 msgstr "Grouper le reste sous « Autres »"
 
+msgid "Groupable columns"
+msgstr ""
+
 msgid "Grouping"
 msgstr "Grouper"
 
@@ -9352,6 +9361,11 @@ msgid "Least recently modified"
 msgstr "Dernière modification en date"
 
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -10857,6 +10871,10 @@ msgstr "Non trouvé"
 
 msgid "Not in"
 msgstr "Pas dans"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Non nul"
@@ -15851,6 +15869,11 @@ msgstr "La colonne à utiliser comme cible de l'arête."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "La colonne a été supprimée ou renommée dans la base de données."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "La configuration des couches de la carte"

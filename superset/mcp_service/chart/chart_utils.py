@@ -1322,6 +1322,111 @@ def add_orientation_config(form_data: Dict[str, Any], config: XYChartConfig) -> 
         form_data["orientation"] = config.orientation
 
 
+def _match_y_metric_label(y_cols: list[ColumnRef], sort_lower: str) -> str | None:
+    """Find matching metric label for sort_by among Y-axis metrics."""
+    aggregate_aliases = {"STDDEV": "STDDEV_SAMP", "VAR": "VAR_SAMP"}
+    for y_col in y_cols:
+        metric_obj = create_metric_object(y_col)
+        metric_label = (
+            metric_obj
+            if isinstance(metric_obj, str)
+            else (metric_obj.get("label") or "")
+        )
+        agg = y_col.aggregate or ""
+        norm_agg = aggregate_aliases.get(agg.upper(), agg.upper())
+        col_name = (y_col.name or "").lower()
+        col_label = (y_col.label or "").lower()
+        sql_expr = (y_col.sql_expression or "").lower()
+        metric_label_lower = metric_label.lower()
+
+        agg_matches: set[str] = set()
+        if agg and y_col.name:
+            agg_matches.add(f"{agg}({y_col.name})".lower())
+        if norm_agg and y_col.name:
+            agg_matches.add(f"{norm_agg}({y_col.name})".lower())
+
+        if (
+            sort_lower == col_name
+            or sort_lower == metric_label_lower
+            or (col_label and sort_lower == col_label)
+            or (sort_lower in agg_matches)
+            or (sql_expr and sort_lower == sql_expr)
+        ):
+            return metric_label
+    return None
+
+
+def add_xy_sort_config(
+    form_data: Dict[str, Any], config: XYChartConfig, x_is_temporal: bool
+) -> None:
+    """Apply sort configuration to form_data for XY charts.
+
+    When ``config.sort_by`` is present:
+    - If ``x_is_temporal``: records a warning in ``form_data["_mcp_warnings"]``
+      and does not override temporal sorting.
+    - If ``group_by`` is set: records a warning and ignores ``sort_by`` because
+      x-axis sort applies only to single-series charts in Superset.
+    - If the sort target does not match the x-axis column or a y-axis metric:
+      records a warning and does not apply ``x_axis_sort``.
+    - If valid and non-temporal: resolves the sort target to the corresponding
+      metric label (or dimension column name) and sets ``form_data["x_axis_sort"]``
+      and ``form_data["x_axis_sort_asc"]``.
+    When ``config.sort_by`` is not specified, maintains existing default behavior.
+    """
+    if not config.sort_by:
+        return
+
+    sort_entry = config.sort_by
+    if not isinstance(sort_entry, SortByConfig):
+        from superset.mcp_service.chart.schemas import _coerce_sort_item
+
+        coerced = _coerce_sort_item(sort_entry)
+        if not isinstance(coerced, SortByConfig):
+            return
+        sort_entry = coerced
+
+    if x_is_temporal:
+        x_name = config.x.name if config.x else "x"
+        form_data.setdefault("_mcp_warnings", []).append(
+            f"sort_by='{sort_entry.column}' was ignored because the x-axis "
+            f"column '{x_name}' is temporal. Temporal charts sort "
+            f"chronologically by the time axis."
+        )
+        return
+
+    if form_data.get("groupby"):
+        form_data.setdefault("_mcp_warnings", []).append(
+            f"sort_by='{sort_entry.column}' was ignored because group_by is "
+            "set; the x-axis sort applies only to single-series charts."
+        )
+        return
+
+    sort_lower = sort_entry.column.lower()
+    x_name = (config.x.name or "").lower() if config.x else None
+    x_label = (config.x.label or "").lower() if config.x else None
+
+    # If sorting by the x-axis dimension itself (case-insensitive check)
+    if config.x and (
+        (x_name and sort_lower == x_name) or (x_label and sort_lower == x_label)
+    ):
+        sort_target = config.x.name or config.x.label
+    else:
+        # Match against y metrics (by column name, metric label, agg expr, or sql)
+        matched_label = _match_y_metric_label(config.y, sort_lower)
+        if not matched_label:
+            form_data.setdefault("_mcp_warnings", []).append(
+                f"sort_by='{sort_entry.column}' was ignored: XY charts can "
+                "only sort by the x-axis or a y-axis metric."
+            )
+            return
+        sort_target = matched_label
+
+    form_data["x_axis_sort"] = sort_target
+    form_data["x_axis_sort_asc"] = sort_entry.ascending
+    form_data.pop("x_axis_sort_series_type", None)
+    form_data.pop("x_axis_sort_series_ascending", None)
+
+
 def configure_temporal_handling(
     form_data: Dict[str, Any],
     x_is_temporal: bool,
@@ -1648,6 +1753,7 @@ def map_xy_config(  # noqa: C901
     add_color_scheme(form_data, config.color_scheme)
     add_currency_format(form_data, config.currency_format)
     add_xy_data_label_options(form_data, config, x_is_temporal)
+    add_xy_sort_config(form_data, config, x_is_temporal)
 
     return form_data
 
