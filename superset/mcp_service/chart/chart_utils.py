@@ -3897,6 +3897,29 @@ def merge_update_form_data(  # noqa: C901
         if len(native_matches) == 1:
             existing_binding = native_matches[0]
             existing_subject = incoming_subject
+    if (
+        existing_binding is None
+        and existing_subject is None
+        and range_explicit
+        and not subject_authoritative
+        and "filters" not in explicit_fields
+    ):
+        # A range-only update on an unmarked chart adopts its saved temporal
+        # filter even when Explore bound it to a column other than the mapper's
+        # proposed subject. Zero or several native ranges stay ambiguous, so the
+        # proposed binding is added instead of guessing which one to rewrite.
+        unmarked_matches = [
+            filter_
+            for filter_ in existing_filters
+            if isinstance(filter_, dict)
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+            and filter_.get("expressionType") == "SIMPLE"
+            and filter_.get("clause") == "WHERE"
+            and isinstance(filter_.get("subject"), str)
+        ]
+        if len(unmarked_matches) == 1:
+            existing_binding = unmarked_matches[0]
+            existing_subject = existing_binding["subject"]
 
     chosen_binding: dict[str, Any] | None = None
     chosen_subject: Any = None

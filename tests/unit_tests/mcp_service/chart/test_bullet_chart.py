@@ -2923,6 +2923,89 @@ def test_bullet_time_range_only_updates_saved_subject_on_every_update_path(
     assert merged["adhoc_filters"][1]["comparator"] == expected_comparator
 
 
+@pytest.mark.parametrize(
+    ("time_range", "expected_comparator"),
+    [("Last month", "Last month"), (None, "No filter")],
+)
+@pytest.mark.parametrize("path", ["immediate", "preview_first", "cached"])
+def test_bullet_range_only_update_adopts_single_unmarked_native_binding(
+    time_range: str | None, expected_comparator: str, path: str
+) -> None:
+    # Explore saved the time filter on a non-main column with no MCP marker.
+    existing = _saved_bullet_with_filters()
+    existing.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    existing_filters = existing["adhoc_filters"]
+    assert isinstance(existing_filters, list)
+    existing_filters[1] = {**existing_filters[1], "subject": "EventDate"}
+    config = BulletChartConfig(metric=_simple_metric(), time_range=time_range)
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Bullet",
+        params=__import__("json").dumps(existing),
+    )
+    request = UpdateChartRequest(identifier=9, config=config)
+
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=_orm_dataset(),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+            return_value=True,
+        ),
+    ):
+        if path == "immediate":
+            payload = _build_update_payload(request, chart, config)
+            assert isinstance(payload, dict)
+            merged = __import__("json").loads(payload["params"])
+        elif path == "preview_first":
+            result = _build_preview_form_data(request, chart, config)
+            assert isinstance(result, dict)
+            merged = result
+        else:
+            merged = map_config_to_form_data(config, dataset_id=7)
+            merge_update_form_data(existing, merged, config)
+
+    assert merged[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "EventDate"
+    assert [item["subject"] for item in merged["adhoc_filters"]] == [
+        "Status",
+        "EventDate",
+    ]
+    assert merged["adhoc_filters"][1]["comparator"] == expected_comparator
+
+
+def test_bullet_range_only_update_keeps_several_unmarked_native_bindings() -> None:
+    # Several unmarked native ranges are ambiguous, so none is adopted: the
+    # saved predicates stay untouched and the dataset-default binding is added.
+    existing = _saved_bullet_with_filters()
+    existing.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    filters = existing["adhoc_filters"]
+    assert isinstance(filters, list)
+    filters[1] = {**filters[1], "subject": "EventDate"}
+    filters.append({**filters[1], "comparator": "Last week"})
+    saved = [dict(filter_) for filter_ in filters]
+    config = BulletChartConfig(metric=_simple_metric(), time_range="Last month")
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=_orm_dataset(),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+            return_value=True,
+        ),
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    merge_update_form_data(existing, mapped, config)
+
+    assert mapped["adhoc_filters"][:3] == saved
+    assert mapped["adhoc_filters"][3]["subject"] == "OrderDate"
+    assert mapped["adhoc_filters"][3]["comparator"] == "Last month"
+    assert mapped[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "OrderDate"
+
+
 def test_bullet_subject_only_update_preserves_saved_active_range() -> None:
     existing = _saved_bullet_with_filters()
     config = BulletChartConfig(metric=_simple_metric(), temporal_column="EventDate")
