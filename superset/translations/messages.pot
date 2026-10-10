@@ -1922,9 +1922,6 @@ msgstr ""
 msgid "An error occurred while pruning logs "
 msgstr ""
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -4117,6 +4114,9 @@ msgid "Could not load metadata for this configuration; showing the default form.
 msgstr ""
 
 msgid "Could not parse the CSS to convert @import rules. Check for syntax errors and try again."
+msgstr ""
+
+msgid "Could not refresh metadata. Check the connection details and your permissions."
 msgstr ""
 
 #, python-format
@@ -7486,6 +7486,9 @@ msgstr ""
 
 #, python-format
 msgid "Include description to be sent with %s"
+msgstr ""
+
+msgid "Include matching BEGIN and END private key lines."
 msgstr ""
 
 msgid "Include series name as an axis"

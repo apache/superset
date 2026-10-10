@@ -123,3 +123,201 @@ test('enum control opens an antd 6 dropdown and selects an option', async () => 
     ),
   );
 });
+
+const pemPlaceholder =
+  '-----BEGIN PRIVATE KEY-----\nMIIEv…\n-----END PRIVATE KEY-----';
+
+test('ordinary string controls retain the vendor default display', () => {
+  const schema: JsonSchema = {
+    type: 'object',
+    properties: {
+      schema: { type: 'string', title: 'Schema', default: 'PUBLIC' },
+    },
+  };
+  render(
+    <JsonForms
+      schema={schema}
+      uischema={buildUiSchema(schema)}
+      data={{}}
+      renderers={renderers}
+      cells={cellRegistryEntries}
+    />,
+  );
+  expect(screen.getByRole('textbox', { name: 'Schema' })).toHaveValue('PUBLIC');
+});
+
+test.each([false, true])(
+  'manual fields remain typeable when discovery is pending: %s',
+  refreshingSchema => {
+    const schema = {
+      type: 'object',
+      properties: {
+        database: {
+          type: 'string',
+          title: 'Database',
+          'x-dynamic': true,
+          'x-dependsOn': ['account'],
+        },
+      },
+    } as JsonSchema;
+    render(
+      <JsonForms
+        schema={schema}
+        uischema={buildUiSchema(schema)}
+        data={{}}
+        renderers={renderers}
+        cells={cellRegistryEntries}
+        config={{ refreshingSchema, formData: { account: 'synthetic' } }}
+      />,
+    );
+    expect(screen.getByRole('textbox', { name: 'Database' })).toBeEnabled();
+  },
+);
+const keyHelp = 'Paste the whole key, including the BEGIN and END lines.';
+const passwordHelp = 'Leave blank for an unencrypted key.';
+// Pydantic's SecretStr | None inside a discriminated auth union.
+const credentialSchema = {
+  type: 'object',
+  $defs: {
+    PrivateKey: {
+      type: 'object',
+      title: 'Private key',
+      properties: {
+        identity: {
+          type: 'string',
+          title: 'Username',
+          description: 'User for this connection.',
+        },
+        key_material: {
+          type: 'string',
+          title: 'Private key',
+          format: 'password',
+          writeOnly: true,
+          'x-input-type': 'pem',
+          description: keyHelp,
+          examples: [pemPlaceholder],
+        },
+        passphrase: {
+          title: 'Private key password',
+          description: passwordHelp,
+          default: null,
+          anyOf: [
+            { type: 'string', format: 'password', writeOnly: true },
+            { type: 'null' },
+          ],
+        },
+      },
+      required: ['identity', 'key_material'],
+    },
+    Password: {
+      type: 'object',
+      title: 'Password',
+      properties: {
+        password: { type: 'string', format: 'password', title: 'Password' },
+      },
+      required: ['password'],
+    },
+  },
+  properties: {
+    credentials: {
+      title: 'Authentication',
+      oneOf: [{ $ref: '#/$defs/PrivateKey' }, { $ref: '#/$defs/Password' }],
+    },
+  },
+} as JsonSchema;
+
+function setupCredentials(privateKey = '', password?: string | null) {
+  const onChange = jest.fn();
+  render(
+    <JsonForms
+      schema={credentialSchema}
+      uischema={buildUiSchema(credentialSchema)}
+      data={{
+        credentials: {
+          identity: 'synthetic_user',
+          key_material: privateKey,
+          ...(password === undefined ? {} : { passphrase: password }),
+        },
+      }}
+      renderers={renderers}
+      cells={cellRegistryEntries}
+      onChange={onChange}
+    />,
+  );
+  return onChange;
+}
+
+test.each([null, undefined, '', 'XXXXXXXXXX'])(
+  'nullable password is one optional input for %s',
+  async password => {
+    const onChange = setupCredentials('XXXXXXXXXX', password);
+    const input = screen.getByLabelText('Private key password');
+    expect(input).toHaveAttribute('type', 'password');
+    expect(input).toHaveAttribute('autoComplete', 'new-password');
+    expect(input).toHaveValue(password ?? '');
+    expect(screen.queryByText('anyOf-0')).not.toBeInTheDocument();
+    expect(screen.queryByText('anyOf-1')).not.toBeInTheDocument();
+    expect(screen.getByText(passwordHelp)).toBeVisible();
+    // The real auth union remains selectable.
+    expect(screen.getByRole('radio', { name: 'Password' })).toBeInTheDocument();
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(onChange.mock.calls.at(-1)[0].data.credentials.passphrase).toBe(
+      password,
+    );
+    fireEvent.change(input, { target: { value: 'synthetic-passphrase' } });
+    await waitFor(() =>
+      expect(onChange.mock.calls.at(-1)[0].data.credentials.passphrase).toBe(
+        'synthetic-passphrase',
+      ),
+    );
+    fireEvent.change(input, { target: { value: '' } });
+    await waitFor(() =>
+      expect(onChange.mock.calls.at(-1)[0].data.credentials.passphrase).toBe(
+        '',
+      ),
+    );
+  },
+);
+
+test('PEM control preserves newlines and shows its shape and help', async () => {
+  const onChange = setupCredentials();
+  const input = screen.getByRole('textbox', { name: 'Private key' });
+  expect(input.tagName).toBe('TEXTAREA');
+  expect(input).toHaveAttribute('placeholder', pemPlaceholder);
+  expect(input).toHaveAttribute('autoComplete', 'new-password');
+  expect(screen.getByText(keyHelp)).toBeVisible();
+  expect(screen.getByText('User for this connection.')).toBeVisible();
+  const value =
+    '-----BEGIN PRIVATE KEY-----\nSYNTHETIC\n-----END PRIVATE KEY-----';
+  fireEvent.change(input, { target: { value } });
+  await waitFor(() =>
+    expect(onChange.mock.calls.at(-1)[0].data.credentials.key_material).toBe(
+      value,
+    ),
+  );
+  expect(input).toHaveValue(value);
+});
+
+test.each([
+  'SYNTHETIC',
+  '-----BEGIN PRIVATE KEY-----\nSYNTHETIC',
+  '-----BEGIN PRIVATE KEY-----\nSYNTHETIC\n-----END RSA PRIVATE KEY-----',
+])('PEM control explains missing or mismatched boundaries: %s', privateKey => {
+  setupCredentials(privateKey);
+  expect(
+    screen.getByText('Include matching BEGIN and END private key lines.'),
+  ).toBeVisible();
+  expect(screen.getByRole('textbox', { name: 'Private key' })).toBeEnabled();
+});
+
+test('saved masked key does not gain a PEM error or change its value', async () => {
+  const onChange = setupCredentials('XXXXXXXXXX');
+  expect(
+    screen.queryByText('Include matching BEGIN and END private key lines.'),
+  ).not.toBeInTheDocument();
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+  expect(onChange.mock.calls.at(-1)[0].data.credentials.key_material).toBe(
+    'XXXXXXXXXX',
+  );
+  expect(onChange.mock.calls.at(-1)[0].errors).toEqual([]);
+});
