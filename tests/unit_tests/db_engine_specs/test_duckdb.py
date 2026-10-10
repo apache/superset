@@ -435,8 +435,17 @@ def test_backslash_filter_value_compiles_verbatim_and_matches() -> None:
     assert "'name\\email'" in compiled
 
     with engine.connect() as conn:
+        conn.execute(text("CREATE TABLE t (columnA VARCHAR)"))
+        conn.execute(
+            text("INSERT INTO t VALUES (:v), (:o)"),
+            [{"v": value, "o": "other"}],
+        )
+        # feed the compiled IN-list through the driver as a table function so
+        # the literal SQL text itself (not a bound parameter) is exercised
         rows = conn.execute(
-            text("SELECT * FROM (VALUES ('name\\email'), ('other')) t(columnA) "
-                    f"WHERE columnA IN {compiled[compiled.index('('):]}")
+            text(
+                # IN-list text comes from SQLAlchemy's literal compiler
+                f"SELECT * FROM t WHERE columnA IN {compiled[compiled.index('(') :]}"  # noqa: S608
+            )
         ).fetchall()
         assert [row[0] for row in rows] == [value]
