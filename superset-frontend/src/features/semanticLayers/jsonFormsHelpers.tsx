@@ -45,43 +45,6 @@ export function hasPemBoundaries(value: unknown): value is string {
   );
 }
 
-/**
- * Snowflake extension auth contract; generic dependency presence is insufficient.
- * Refresh readiness only: save validation must still accept masked secrets.
- */
-export function areSnowflakeCredentialsComplete(
-  data: Record<string, unknown>,
-): boolean {
-  const auth = data.auth as Record<string, unknown> | undefined;
-  const present = (value: unknown) =>
-    typeof value === 'string' && !!value.trim();
-  const secret = (value: unknown) =>
-    typeof value === 'string' && value.length > 0 && value !== 'XXXXXXXXXX';
-  if (
-    !present(data.account_identifier) ||
-    !auth ||
-    typeof auth !== 'object' ||
-    !present(auth.username)
-  )
-    return false;
-  if (
-    auth.auth_type === 'private_key' ||
-    (auth.auth_type === undefined && 'private_key' in auth)
-  ) {
-    return (
-      hasPemBoundaries(auth.private_key) &&
-      (!/ENCRYPTED PRIVATE KEY|Proc-Type:\s*4,ENCRYPTED/.test(
-        auth.private_key,
-      ) ||
-        secret(auth.private_key_password))
-    );
-  }
-  return (
-    (auth.auth_type === undefined || auth.auth_type === 'user_password') &&
-    secret(auth.password)
-  );
-}
-
 /** Only collapse a nullable password, not a genuine choice of auth methods. */
 function nullablePasswordSchema(schema: JsonSchema): JsonSchema | undefined {
   return schema.anyOf?.length === 2 &&

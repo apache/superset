@@ -38,7 +38,6 @@ import {
   buildUiSchema,
   getDynamicDependencies,
   areDependenciesSatisfied,
-  areSnowflakeCredentialsComplete,
   serializeDependencyValues,
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from './jsonFormsHelpers';
@@ -68,14 +67,10 @@ const ModalContent = styled.div`
 type Step = 'type' | 'config';
 type ValidationMode = 'ValidateAndHide' | 'ValidateAndShow';
 
-const configurationErrorMessage = (type: string) =>
-  type === 'snowflake'
-    ? t(
-        'Could not use these connection details. Check the account identifier, username, credentials, database and schema.',
-      )
-    : t(
-        'Could not refresh metadata. Check the connection details and your permissions.',
-      );
+const configurationErrorMessage = () =>
+  t(
+    'Could not refresh metadata. Check the connection details and your permissions.',
+  );
 
 interface SemanticLayerType {
   id: string;
@@ -160,14 +155,14 @@ export default function SemanticLayerModal({
         });
         applySchema(json.result);
         if (json.warning) {
-          addDangerToast(configurationErrorMessage(type));
+          addDangerToast(configurationErrorMessage());
         }
         if (isInitialFetch) setStep('config');
       } catch {
         addDangerToast(
           isInitialFetch
             ? t('An error occurred while fetching the configuration schema')
-            : configurationErrorMessage(type),
+            : configurationErrorMessage(),
         );
       } finally {
         if (isInitialFetch) setLoading(false);
@@ -189,22 +184,13 @@ export default function SemanticLayerModal({
         setSelectedType(layer.type);
         setFormData(layer.configuration ?? {});
         setHasErrors(false);
-        // Masked Snowflake credentials cannot enrich the schema; preserve them
-        // in formData for Save, but fetch only the static form until re-entered.
+        // Providers decide whether the saved configuration can enrich the schema.
         const { json: schemaJson } = await SupersetClient.post({
           endpoint: '/api/v1/semantic_layer/schema/configuration',
-          jsonPayload: {
-            type: layer.type,
-            configuration:
-              layer.type !== 'snowflake' ||
-              areSnowflakeCredentialsComplete(layer.configuration ?? {})
-                ? layer.configuration
-                : undefined,
-          },
+          jsonPayload: { type: layer.type, configuration: layer.configuration },
         });
         applySchema(schemaJson.result);
-        if (schemaJson.warning)
-          addDangerToast(configurationErrorMessage(layer.type));
+        if (schemaJson.warning) addDangerToast(configurationErrorMessage());
         setStep('config');
       } catch {
         addDangerToast(
@@ -326,10 +312,7 @@ export default function SemanticLayerModal({
       const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
         areDependenciesSatisfied(deps, data, configSchema ?? undefined),
       );
-      if (
-        !hasSatisfiedDeps ||
-        (selectedType === 'snowflake' && !areSnowflakeCredentialsComplete(data))
-      ) {
+      if (!hasSatisfiedDeps) {
         if (debounceTimerRef.current) {
           clearTimeout(debounceTimerRef.current);
           debounceTimerRef.current = null;

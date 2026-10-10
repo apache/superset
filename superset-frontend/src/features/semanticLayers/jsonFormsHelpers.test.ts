@@ -21,7 +21,6 @@ import type { JsonSchema, UISchemaElement } from '@jsonforms/core';
 import {
   stableSerialize,
   areDependenciesSatisfied,
-  areSnowflakeCredentialsComplete,
   sanitizeSchema,
   buildUiSchema,
   getDynamicDependencies,
@@ -35,68 +34,6 @@ const control = {
   scope: '#',
 } as unknown as UISchemaElement;
 const ctx = { rootSchema: {} as JsonSchema, config: {} };
-
-test.each([
-  { auth_type: 'user_password', username: 'user', password: 'synthetic' },
-  { username: 'user', password: 'synthetic' },
-  {
-    username: 'user',
-    private_key:
-      '-----BEGIN ENCRYPTED PRIVATE KEY-----\nSYNTHETIC\n-----END ENCRYPTED PRIVATE KEY-----',
-    private_key_password: ' ',
-  },
-  {
-    username: 'user',
-    private_key:
-      '-----BEGIN PRIVATE KEY-----\nSYNTHETIC\n-----END PRIVATE KEY-----',
-  },
-  {
-    auth_type: 'private_key',
-    username: 'user',
-    private_key:
-      '-----BEGIN ENCRYPTED PRIVATE KEY-----\r\nSYNTHETIC\r\n-----END ENCRYPTED PRIVATE KEY-----',
-    private_key_password: 'synthetic',
-  },
-])('complete Snowflake credentials allow discovery: %#', auth => {
-  expect(
-    areSnowflakeCredentialsComplete({
-      account_identifier: 'legacy_locator',
-      auth,
-    }),
-  ).toBe(true);
-});
-
-test.each([
-  null,
-  {},
-  'invalid',
-  { username: 'user', password: 'XXXXXXXXXX' },
-  { username: 'user', password: '' },
-  {
-    username: 'user',
-    private_key:
-      '-----BEGIN RSA PRIVATE KEY-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-256-CBC,SYNTHETIC\n\nSYNTHETIC\n-----END RSA PRIVATE KEY-----',
-  },
-  { auth_type: 'unknown', username: 'user', password: 'synthetic' },
-  {
-    username: 'user',
-    private_key:
-      '-----BEGIN PRIVATE KEY-----\nSYNTHETIC\n-----END RSA PRIVATE KEY-----',
-  },
-  {
-    username: 'user',
-    private_key:
-      '-----BEGIN ENCRYPTED PRIVATE KEY-----\nSYNTHETIC\n-----END ENCRYPTED PRIVATE KEY-----',
-    private_key_password: 'XXXXXXXXXX',
-  },
-])(
-  'incomplete or masked Snowflake credentials do not allow discovery: %#',
-  auth => {
-    expect(
-      areSnowflakeCredentialsComplete({ account_identifier: 'account', auth }),
-    ).toBe(false);
-  },
-);
 
 test('areDependenciesSatisfied returns true for present dependency values', () => {
   expect(

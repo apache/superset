@@ -252,7 +252,7 @@ const snowflakeSchema = {
   },
 };
 const safeConfigurationError =
-  'Could not use these connection details. Check the account identifier, username, credentials, database and schema.';
+  'Could not refresh metadata. Check the connection details and your permissions.';
 
 async function setupSnowflake(configuration: Record<string, unknown> = {}) {
   mockJsonFormsChangeTriggered = true;
@@ -295,16 +295,17 @@ test.each([
         '-----BEGIN ENCRYPTED PRIVATE KEY-----\nSYNTHETIC\n-----END ENCRYPTED PRIVATE KEY-----',
     },
   },
-])('does not refresh with incomplete Snowflake credentials: %#', async data => {
+])('leaves incomplete credential decisions to the provider: %#', async data => {
   await setupSnowflake();
   await act(async () => {
     capturedOnChange!({ data, errors: [] });
     jest.advanceTimersByTime(501);
   });
-  expect(mockedPost).toHaveBeenCalledTimes(1);
+  expect(mockedPost).toHaveBeenCalledTimes(2);
+  expect(mockedPost.mock.calls[1][0].jsonPayload.configuration).toEqual(data);
 });
 
-test('waits for editing to stop and cancels a refresh when the key becomes incomplete', async () => {
+test('debounces edits without interpreting provider credentials', async () => {
   await setupSnowflake();
   await act(async () => {
     capturedOnChange!({ data: completeCredentials, errors: [] });
@@ -325,26 +326,31 @@ test('waits for editing to stop and cancels a refresh when the key becomes incom
   await act(async () => {
     jest.advanceTimersByTime(501);
   });
-  expect(mockedPost).toHaveBeenCalledTimes(1);
+  expect(mockedPost).toHaveBeenCalledTimes(2);
+  expect(
+    mockedPost.mock.calls[1][0].jsonPayload.configuration.auth.private_key,
+  ).toBe('partial');
   await act(async () => {
     capturedOnChange!({ data: completeCredentials, errors: [] });
   });
   await act(async () => {
     jest.advanceTimersByTime(501);
   });
-  expect(mockedPost).toHaveBeenCalledTimes(2);
-  expect(mockedPost.mock.calls[1][0].jsonPayload.configuration).toEqual(
+  expect(mockedPost).toHaveBeenCalledTimes(3);
+  expect(mockedPost.mock.calls[2][0].jsonPayload.configuration).toEqual(
     completeCredentials,
   );
 });
 
-test('loads a static edit schema for masked credentials but preserves them on Save', async () => {
+test('passes masked credentials to the provider for edit schema and preserves them on Save', async () => {
   const configuration = {
     ...completeCredentials,
     auth: { ...completeCredentials.auth, private_key: 'XXXXXXXXXX' },
   };
   await setupSnowflake(configuration);
-  expect(mockedPost.mock.calls[0][0].jsonPayload.configuration).toBeUndefined();
+  expect(mockedPost.mock.calls[0][0].jsonPayload.configuration).toEqual(
+    configuration,
+  );
   await act(async () => {
     capturedOnChange!({ data: configuration, errors: [] });
   });

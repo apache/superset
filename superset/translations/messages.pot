@@ -4126,9 +4126,6 @@ msgstr ""
 msgid "Could not resolve the user to impersonate on the database connection. The query was not run, because running it would have connected as the wrong user."
 msgstr ""
 
-msgid "Could not use these connection details. Check the account identifier, username, credentials, database and schema."
-msgstr ""
-
 msgid "Could not validate the user in the current session."
 msgstr ""
 
