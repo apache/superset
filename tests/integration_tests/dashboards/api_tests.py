@@ -6437,6 +6437,244 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.status_code == 404
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_cache_dashboard_screenshot_recomputes_stale_updated(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_cache_task,
+    ):
+        """A force-less request whose cached UPDATED entry is older than
+        THUMBNAIL_UPDATED_CACHE_TTL -- but still valid and correctly scoped --
+        must reschedule the Celery task. This exercises the endpoint's
+        ``check_updated_staleness=screenshot_obj.supports_updated_staleness``
+        wiring (True only for dashboards); dropping that argument makes the
+        endpoint serve the stale entry (200) instead, failing this test.
+
+        ``get_current_api_generation_cache_key`` must be mocked to a resolvable
+        pointer: without it the request has no prior generation, so the endpoint
+        takes the ordinary first-render/cache-miss branch (also a 202) and the
+        stale-payload assertion below would pass even if the staleness wiring were
+        reverted."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"\x89PNG\r\n\x1a\nfake image data",
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=stale_timestamp,
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+
+        assert cache_resp.status_code == 202
+        mock_cache_task.delay.assert_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_cache_dashboard_screenshot_stale_refresh_retains_last_good_image(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        """A force-less staleness refresh must not publish an imageless successor
+        generation. The new generation carries the prior valid capture, so the
+        read path keeps serving it while the refresh renders and a failed render
+        retains it (ERROR keeps the image) instead of 404ing ``image_url``. The
+        successor stays in progress (so concurrent producers coalesce) and the
+        worker's force-less ``should_trigger_task`` still recomputes it.
+
+        Reverting the carry-over leaves the successor imageless, so
+        ``get_image()`` below raises and the test fails."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        retained_image = b"\x89PNG\r\n\x1a\nfake image data"
+        # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            retained_image,
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=stale_timestamp,
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+
+        assert cache_resp.status_code == 202
+        mock_cache_task.delay.assert_called_once()
+
+        # The successor generation persisted for the worker carries the last-good
+        # image, stays in progress (so producers coalesce) and stays triggerable
+        # (so the worker still re-renders).
+        assert mock_store_cache_payload.called
+        successor = mock_store_cache_payload.call_args[0][1]
+        assert successor.get_invalid_image_reason() is None
+        # Load-bearing assertion: reverting the carry-over leaves the successor
+        # imageless, so get_image() raises here. The in-progress/triggerable
+        # assertions below also hold for an imageless PENDING successor, so they
+        # guard against retain_image wrongly flipping status -- not the carry.
+        assert successor.get_image().read() == retained_image
+        assert successor.is_in_progress()
+        assert successor.should_trigger_task(
+            force=False,
+            expected_scope=f"dashboard:{dashboard.id}",
+            check_updated_staleness=True,
+        ), "successor must remain triggerable so the worker re-renders"
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.store_cache_payload")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.set_current_api_generation_cache_key",
+        return_value=True,
+    )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.get_current_api_generation_cache_key",
+        return_value="cache-key",
+    )
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_cache_dashboard_screenshot_retry_rotation_retains_last_good_image(
+        self,
+        mock_get_from_cache_key,
+        mock_current_cache_key,
+        mock_set_current_cache_key,
+        mock_store_cache_payload,
+        mock_cache_task,
+    ):
+        """After a staleness refresh fails, the last-good image must survive the
+        retry that rotates to a fresh generation. The predecessor is now ERROR
+        (not UPDATED) but still carries valid, scope-matching bytes past the
+        error-cache TTL, so the force-less retry both re-triggers and carries the
+        image onto the new successor -- image_url keeps serving it instead of
+        404ing. Gating the carry on ``is_updated()`` would drop it here."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        retained_image = b"\x89PNG\r\n\x1a\nfake image data"
+        # A retained, valid, correctly-scoped image whose generation is in ERROR
+        # backoff and 2 days old -- past the 1-day THUMBNAIL_ERROR_CACHE_TTL, so a
+        # force-less request re-triggers via the expired-ERROR branch.
+        stale_timestamp = (datetime.now() - timedelta(days=2)).isoformat()
+        errored = ScreenshotCachePayload(
+            retained_image,
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=stale_timestamp,
+        )
+        errored.status = StatusValues.ERROR
+        mock_get_from_cache_key.return_value = errored
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+
+        assert cache_resp.status_code == 202
+        mock_cache_task.delay.assert_called_once()
+
+        assert mock_store_cache_payload.called
+        successor = mock_store_cache_payload.call_args[0][1]
+        # Load-bearing: an is_updated()-gated carry would leave this imageless and
+        # get_image() would raise.
+        assert successor.get_image().read() == retained_image
+        assert successor.is_in_progress()
+
+    @with_feature_flags(THUMBNAILS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_thumbnail")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_thumbnail_does_not_recompute_stale_updated(
+        self, mock_get_from_cache_key, mock_cache_task
+    ):
+        """The card-list thumbnail path must never opt into updated-staleness
+        recompute. A force-less request whose cached UPDATED entry is older than
+        THUMBNAIL_UPDATED_CACHE_TTL -- but still valid and correctly scoped --
+        must be served straight from cache (200), not rescheduled.
+
+        Higher stakes than the chart mirror: ``DashboardScreenshot.supports_
+        updated_staleness`` is True, so were the card path to copy
+        ``check_updated_staleness=screenshot_obj.supports_updated_staleness`` the
+        stale entry would be rescheduled (202, no cached bytes). Because the card
+        path calls ``should_trigger_task()`` with no kwarg, the assertions below
+        hold and this pins that the flag is not propagated here."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
+        # Naive to match the cache's naive `datetime.now()` timestamps: a tz-aware
+        # value here would either be read as future on a UTC-ahead host or raise
+        # when subtracted from naive now().
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data",
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=stale_timestamp,
+        )
+
+        # Resolve the digest under the requesting user so the endpoint serves the
+        # entry instead of redirecting to the canonical digest.
+        with override_user(self.get_user(ADMIN_USERNAME)):
+            digest = dashboard.digest
+
+        rv = self.client.get(f"api/v1/dashboard/{dashboard.id}/thumbnail/{digest}/")
+
+        assert rv.status_code == 200
+        mock_cache_task.delay.assert_not_called()
+        assert rv.data == b"fake image data"
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch(
