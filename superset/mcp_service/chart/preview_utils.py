@@ -50,7 +50,7 @@ from superset.mcp_service.chart.sunburst import (
     normalize_and_validate_sunburst_result_data,
     resolve_sunburst_result_roles,
 )
-from superset.utils.core import get_column_name
+from superset.utils.core import DatasourceType, get_column_name
 
 logger = logging.getLogger(__name__)
 
@@ -116,16 +116,34 @@ def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
     return columns_from_form_data(form_data)
 
 
+def _preview_source_exists(dataset_id: int, datasource_type: str) -> bool:
+    """Resolve the requested family without changing the table lookup path."""
+    # avoid app-init regression: preview constants load before models initialize.
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.extensions import db
+    from superset.mcp_service.chart.datasource_resolver import resolve_semantic_view
+
+    if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+        return resolve_semantic_view(dataset_id) is not None
+    if datasource_type == DatasourceType.TABLE.value:
+        return db.session.get(SqlaTable, dataset_id) is not None
+    raise ValueError("Unsupported chart datasource type")
+
+
 def generate_preview_from_form_data(
-    form_data: Dict[str, Any], dataset_id: int, preview_format: str
+    form_data: Dict[str, Any],
+    dataset_id: int,
+    preview_format: str,
+    datasource_type: str = "table",
 ) -> Any:
     """
     Generate preview from form data without a saved chart.
 
     Args:
         form_data: Chart configuration form data
-        dataset_id: Dataset ID
+        dataset_id: Dataset (or semantic view) ID
         preview_format: Preview format (ascii, table, etc.)
+        datasource_type: "table" (default) or "semantic_view"
 
     Returns:
         Preview object or ChartError
@@ -141,11 +159,8 @@ def generate_preview_from_form_data(
         # Execute query to get data
         from superset.charts.data.form_data import set_query_context_form_data
         from superset.commands.chart.data.get_data_command import ChartDataCommand
-        from superset.connectors.sqla.models import SqlaTable
-        from superset.extensions import db
 
-        dataset = db.session.get(SqlaTable, dataset_id)
-        if not dataset:
+        if not _preview_source_exists(dataset_id, datasource_type):
             return ChartError(
                 error=f"Dataset {dataset_id} not found", error_type="DatasetNotFound"
             )
@@ -159,14 +174,14 @@ def generate_preview_from_form_data(
         query_form_data = canonicalize_operation_form_data(
             deepcopy(form_data),
             datasource_id=dataset_id,
+            datasource_type=datasource_type,
         )
-        query_form_data["datasource"] = f"{dataset_id}__table"
         query_context_obj = build_query_context_from_form_data(
             query_form_data,
             row_limit=form_data.get("row_limit", 100),
             force=False,
         )
-        set_query_context_form_data(query_context_obj, dataset_id, "table")
+        set_query_context_form_data(query_context_obj, dataset_id, datasource_type)
 
         # Execute query
         command = ChartDataCommand(query_context_obj)

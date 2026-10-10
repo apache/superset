@@ -168,6 +168,15 @@ class ChartTypePlugin(Protocol):
         """
         ...
 
+    def apply_temporal_columns(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        temporal_columns: set[str],
+    ) -> None:
+        """Correct mapped time-axis fields using authorized view metadata."""
+        ...
+
     def post_map_validate(
         self,
         config: Any,
@@ -527,6 +536,14 @@ class BaseChartPlugin:
         raise NotImplementedError(
             f"{self.__class__.__name__}.to_form_data() is not implemented"
         )
+
+    def apply_temporal_columns(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        temporal_columns: set[str],
+    ) -> None:
+        """Leave mapped form data unchanged when this plugin has no time axis."""
 
     def post_map_validate(
         self,

@@ -53,6 +53,96 @@ from superset.utils.core import GenericDataType, merge_extra_form_data
 
 METRIC = ColumnRef(name="revenue", aggregate="SUM")
 CATEGORY = ColumnRef(name="region")
+SAVED_METRIC: ColumnRef = ColumnRef(name="revenue", saved_metric=True)
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        XYChartConfig(x=CATEGORY, y=[SAVED_METRIC]),
+        MixedTimeseriesChartConfig(
+            x=CATEGORY, y=[SAVED_METRIC], y_secondary=[SAVED_METRIC]
+        ),
+    ],
+)
+def test_semantic_categorical_axis_uses_published_temporality(
+    config: ChartConfig,
+) -> None:
+    form_data: dict[str, Any] = map_config_to_form_data(
+        config, temporal_columns={"metric_time"}
+    )
+
+    assert form_data["granularity_sqla"] is None
+    assert form_data["x_axis_sort_series_type"] == "name"
+    assert not any(
+        item.get("subject") == "region" and item.get("operator") == "TEMPORAL_RANGE"
+        for item in form_data.get("adhoc_filters", [])
+    )
+
+
+def test_semantic_temporal_axis_keeps_time_binding() -> None:
+    form_data: dict[str, Any] = map_config_to_form_data(
+        XYChartConfig(x=ColumnRef(name="metric_time"), y=[SAVED_METRIC]),
+        temporal_columns={"metric_time"},
+    )
+
+    assert form_data["granularity_sqla"] == "metric_time"
+    assert any(
+        item.get("subject") == "metric_time"
+        and item.get("operator") == "TEMPORAL_RANGE"
+        for item in form_data.get("adhoc_filters", [])
+    )
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        BigNumberChartConfig(
+            chart_type="big_number",
+            metric=SAVED_METRIC,
+            show_trendline=True,
+            temporal_column="region",
+            time_grain="P1D",
+        ),
+        WaterfallChartConfig(
+            x_axis=CATEGORY,
+            metric=SAVED_METRIC,
+            time_grain="P1D",
+        ),
+    ],
+)
+def test_semantic_categorical_axis_rejects_temporal_chart_intent(
+    config: ChartConfig,
+) -> None:
+    with pytest.raises(ValueError, match="temporal"):
+        map_config_to_form_data(config, temporal_columns={"metric_time"})
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        BigNumberChartConfig(
+            chart_type="big_number",
+            metric=SAVED_METRIC,
+            show_trendline=True,
+            temporal_column="metric_time",
+            time_grain="P1D",
+        ),
+        WaterfallChartConfig(
+            x_axis=ColumnRef(name="metric_time"),
+            metric=SAVED_METRIC,
+            time_grain="P1D",
+        ),
+    ],
+)
+def test_semantic_temporal_axis_keeps_chart_time_grain(
+    config: ChartConfig,
+) -> None:
+    form_data: dict[str, Any] = map_config_to_form_data(
+        config, temporal_columns={"metric_time"}
+    )
+    assert form_data["granularity_sqla"] == "metric_time"
+    assert form_data["time_grain_sqla"] == "P1D"
 
 
 def _chart_configs() -> list[ChartConfig]:

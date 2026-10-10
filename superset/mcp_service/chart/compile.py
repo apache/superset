@@ -59,6 +59,7 @@ from superset.mcp_service.common.error_schemas import (
     DatasetContext,
 )
 from superset.mcp_service.constants import CONNECTION_ERROR_TYPES
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,7 @@ class CompileResult:
 def _compile_chart(  # noqa: C901
     form_data: Dict[str, Any],
     dataset_id: int,
+    datasource_type: str = "table",
 ) -> CompileResult:
     """Execute a bounded chart query to verify its base query and result contract.
 
@@ -128,8 +130,8 @@ def _compile_chart(  # noqa: C901
         query_form_data = canonicalize_operation_form_data(
             deepcopy(form_data),
             datasource_id=dataset_id,
+            datasource_type=datasource_type,
         )
-        query_form_data["datasource"] = f"{dataset_id}__table"
         # Rolling windows and forecasts require history the bounded compile
         # sample cannot supply. Keep the saved controls intact for full queries.
         for key in ("rolling_type", "rolling_type_b", "forecastEnabled"):
@@ -140,7 +142,7 @@ def _compile_chart(  # noqa: C901
             force=False,
         )
         try:
-            set_query_context_form_data(query_context, dataset_id, "table")
+            set_query_context_form_data(query_context, dataset_id, datasource_type)
         except TypeError:
             logger.debug("Query-context form data could not be serialized")
 
@@ -208,7 +210,10 @@ def _compile_chart(  # noqa: C901
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
-        if _classify_as_database_error(exc, dataset_id):
+        if (
+            datasource_type == DatasourceType.TABLE.value
+            and _classify_as_database_error(exc, dataset_id)
+        ):
             logger.warning(
                 "Database connection error during chart compile check: %s: %s",
                 type(exc).__name__,

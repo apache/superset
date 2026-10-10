@@ -189,10 +189,21 @@ def validate_chart_dataset(
         )
 
 
+def _basic_explore_url(
+    base_url: str, datasource_type: str, datasource_id: int | str
+) -> str:
+    """Plain Explore URL for a datasource, used when no form_data can be stored."""
+    return (
+        f"{base_url}/explore/?datasource_type={datasource_type}"
+        f"&datasource_id={datasource_id}"
+    )
+
+
 def generate_explore_link(
     dataset_id: int | str,
     form_data: Dict[str, Any],
     prefer_permalink: bool = True,
+    datasource_type: str = "table",
 ) -> str:
     """Generate an explore link for the given dataset and form data.
 
@@ -217,12 +228,20 @@ def generate_explore_link(
     )
     from superset.utils.core import DatasourceType
 
-    base_url = get_superset_base_url()
-    numeric_dataset_id = None
-    dataset = None
+    base_url: str = get_superset_base_url()
+    numeric_dataset_id: int | None = None
+    dataset: SqlaTable | None = None
 
     try:
-        if isinstance(dataset_id, int) or (
+        source_found: bool = False
+        if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+            # Non-table Explorables (semantic views) were resolved by the caller
+            # through the Explorable registry; only the numeric id is needed here.
+            numeric_dataset_id = int(dataset_id)
+            source_found = True
+        elif datasource_type != DatasourceType.TABLE.value:
+            raise ValueError(f"Unsupported datasource type: {datasource_type}")
+        elif isinstance(dataset_id, int) or (
             isinstance(dataset_id, str) and dataset_id.isdecimal()
         ):
             numeric_dataset_id = (
@@ -235,11 +254,9 @@ def generate_explore_link(
             if dataset:
                 numeric_dataset_id = dataset.id
 
-        if not dataset or numeric_dataset_id is None:
+        if not (source_found or dataset) or numeric_dataset_id is None:
             # Fallback to basic explore URL
-            return (
-                f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
-            )
+            return _basic_explore_url(base_url, datasource_type, dataset_id)
 
         # Bind operation-owned fields to this unsaved Explore state. The local
         # import avoids the chart_utils -> chart_helpers -> schemas cycle.
@@ -250,8 +267,8 @@ def generate_explore_link(
         form_data_with_datasource = canonicalize_operation_form_data(
             form_data,
             datasource_id=numeric_dataset_id,
+            datasource_type=datasource_type,
         )
-        form_data_with_datasource["datasource"] = f"{numeric_dataset_id}__table"
 
         # Try durable permalink first (DB-backed key-value store, does not expire).
         # CreateExplorePermalinkCommand wraps its internal failures (encode/create/
@@ -275,7 +292,7 @@ def generate_explore_link(
 
         # Fall back to ephemeral form_data_key (Redis-backed cache)
         cmd_params = CommandParameters(
-            datasource_type=DatasourceType.TABLE,
+            datasource_type=DatasourceType(datasource_type),
             datasource_id=numeric_dataset_id,
             chart_id=0,  # 0 for new charts
             tab_id=None,
@@ -295,11 +312,8 @@ def generate_explore_link(
         # silently masked behind a fallback URL.
         logger.debug("Explore link generation fallback due to: %s", e)
         if numeric_dataset_id is not None:
-            return (
-                f"{base_url}/explore/?datasource_type=table"
-                f"&datasource_id={numeric_dataset_id}"
-            )
-        return f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
+            return _basic_explore_url(base_url, datasource_type, numeric_dataset_id)
+        return _basic_explore_url(base_url, datasource_type, dataset_id)
 
 
 def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> "SqlaTable | None":
@@ -323,6 +337,7 @@ def is_column_truly_temporal(
     column_name: str,
     dataset_id: int | str | None,
     dataset: "SqlaTable | None" = None,
+    temporal_columns: set[str] | None = None,
 ) -> bool:
     """
     Check if a column is truly temporal, mirroring TableColumn.is_temporal
@@ -333,10 +348,15 @@ def is_column_truly_temporal(
         dataset_id: Dataset ID to look up column metadata
         dataset: Optional pre-fetched dataset, reused as-is to avoid a
             redundant DAO lookup when the caller already resolved it.
+        temporal_columns: Published temporal column names from an authorized
+            semantic view. An empty set means no columns are temporal.
 
     Returns:
         True if the column should be treated as temporal, False otherwise
     """
+
+    if temporal_columns is not None:
+        return column_name.lower() in {name.lower() for name in temporal_columns}
 
     if not dataset_id and dataset is None:
         return True  # Default to temporal if we can't check (backward compatible)
@@ -382,6 +402,7 @@ def map_config_to_form_data(
     dataset_id: int | str | None = None,
     *,
     include_disabled: bool = False,
+    temporal_columns: set[str] | None = None,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data via the plugin registry.
 
@@ -411,6 +432,11 @@ def map_config_to_form_data(
 
     form_data = plugin.to_form_data(config, dataset_id=dataset_id)
 
+    # A semantic target has authoritative temporal metadata but no dataset ID.
+    # Let the owning plugin adjust any fallback fields it mapped.
+    if temporal_columns is not None:
+        plugin.apply_temporal_columns(config, form_data, temporal_columns)
+
     # Run post-map validation (e.g. BigNumber trendline temporal type check).
     # Raise ValueError to preserve backward-compatible error handling in callers.
     # Include details and suggestions so callers logging str(e) surface actionable
@@ -424,7 +450,9 @@ def map_config_to_form_data(
             parts.append("Suggestions: " + "; ".join(error.suggestions))
         raise ValueError(" ".join(parts))
 
-    _bind_dashboard_time_range_filter(form_data, config, dataset_id)
+    _bind_dashboard_time_range_filter(
+        form_data, config, dataset_id, temporal_columns=temporal_columns
+    )
     return form_data
 
 
@@ -1475,7 +1503,9 @@ def _ensure_generated_temporal_binding(form_data: Dict[str, Any], column: str) -
 
 
 def _uses_mapper_owned_temporal_binding(
-    form_data: Dict[str, Any], dataset_id: int | str | None
+    form_data: Dict[str, Any],
+    dataset_id: int | str | None,
+    temporal_columns: set[str] | None = None,
 ) -> bool:
     """Whether a mapper supplied a validated natural time-filter binding."""
     existing_binding = form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
@@ -1489,19 +1519,24 @@ def _uses_mapper_owned_temporal_binding(
     # Mappers such as Gantt own their natural time field even though it is
     # neither x_axis nor granularity_sqla. Validate the physical type rather
     # than trusting the internal marker alone.
-    return _is_temporal_for_dashboard_binding(existing_binding, dataset_id)
+    return _is_temporal_for_dashboard_binding(
+        existing_binding, dataset_id, temporal_columns=temporal_columns
+    )
 
 
 def _bind_explicit_temporal_column(
     form_data: Dict[str, Any],
     config: ChartConfig,
     dataset_id: int | str | None,
+    temporal_columns: set[str] | None = None,
 ) -> bool:
     """Bind an explicit time subject and report whether fallback is disabled."""
     if "temporal_column" not in config.model_fields_set:
         return False
     if temporal_column := getattr(config, "temporal_column", None):
-        if _is_temporal_for_dashboard_binding(temporal_column, dataset_id):
+        if _is_temporal_for_dashboard_binding(
+            temporal_column, dataset_id, temporal_columns=temporal_columns
+        ):
             granularity = form_data.get("granularity_sqla")
             if isinstance(granularity, str) and granularity != temporal_column:
                 # QueryContextFactory gives granularity precedence over a temporal
@@ -1518,11 +1553,16 @@ def _bind_dashboard_time_range_filter(
     form_data: Dict[str, Any],
     config: ChartConfig,
     dataset_id: int | str | None,
+    temporal_columns: set[str] | None = None,
 ) -> None:
     """Bind charts without time configuration to a temporal filter subject."""
-    if _uses_mapper_owned_temporal_binding(form_data, dataset_id):
+    if _uses_mapper_owned_temporal_binding(
+        form_data, dataset_id, temporal_columns=temporal_columns
+    ):
         return
-    if _bind_explicit_temporal_column(form_data, config, dataset_id):
+    if _bind_explicit_temporal_column(
+        form_data, config, dataset_id, temporal_columns=temporal_columns
+    ):
         return
 
     dataset = None
@@ -1539,7 +1579,7 @@ def _bind_dashboard_time_range_filter(
 
     granularity = form_data.get("granularity_sqla")
     if isinstance(granularity, str) and _is_temporal_for_dashboard_binding(
-        granularity, dataset_id, dataset
+        granularity, dataset_id, dataset, temporal_columns=temporal_columns
     ):
         # Temporal XY mappers create the neutral filter before this binding pass.
         # Record its provenance so preview updates can replace it if the subject
@@ -1550,7 +1590,7 @@ def _bind_dashboard_time_range_filter(
 
     x_axis = form_data.get("x_axis")
     if isinstance(x_axis, str) and _is_temporal_for_dashboard_binding(
-        x_axis, dataset_id, dataset
+        x_axis, dataset_id, dataset, temporal_columns=temporal_columns
     ):
         _ensure_temporal_adhoc_filter(form_data, x_axis)
         form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = x_axis
@@ -1558,7 +1598,7 @@ def _bind_dashboard_time_range_filter(
 
     main_dttm_col = getattr(dataset, "main_dttm_col", None)
     if isinstance(main_dttm_col, str) and _is_temporal_for_dashboard_binding(
-        main_dttm_col, dataset_id, dataset
+        main_dttm_col, dataset_id, dataset, temporal_columns=temporal_columns
     ):
         _ensure_temporal_adhoc_filter(form_data, main_dttm_col)
         form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = main_dttm_col
@@ -1568,9 +1608,14 @@ def _is_temporal_for_dashboard_binding(
     column: str,
     dataset_id: int | str | None,
     dataset: "SqlaTable | None" = None,
+    temporal_columns: set[str] | None = None,
 ) -> bool:
     """Check temporal metadata without making chart mapping fail on lookup errors."""
     try:
+        if temporal_columns is not None:
+            return is_column_truly_temporal(
+                column, dataset_id, dataset=dataset, temporal_columns=temporal_columns
+            )
         return is_column_truly_temporal(column, dataset_id, dataset=dataset)
     except (AttributeError, RuntimeError, ValueError, SQLAlchemyError) as ex:
         logger.debug(

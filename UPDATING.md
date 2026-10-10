@@ -197,6 +197,15 @@ seconds, now matches no rows, even with a Datetime format set. Columns declared
 as `INTEGER` are not affected. On Shillelagh and the meta database, a bound
 with a time of day is cut to its date.
 
+### MCP chart target aliases
+
+Chart tools interpret legacy `datasource_id` with `datasource_type`:
+`table` (the default when omitted) selects a dataset; `semantic_view` selects a
+view. For table-only requests, an explicit `dataset_id` takes precedence over
+`datasource_id`. Unsupported types or conflicting semantic selectors return
+validation errors instead of silently selecting a table. Prefer `dataset_id`
+or `view_id`.
+
 ### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
 
 `DBS_AVAILABLE_DENYLIST` is matched against an engine spec's `default_driver`.

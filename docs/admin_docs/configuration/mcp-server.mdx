@@ -327,6 +327,44 @@ Permissions and row-level security apply exactly as they do without it.
 
 ---
 
+## Semantic-view chart targets
+
+`generate_chart` and `generate_explore_link` require exactly one source selector:
+`dataset_id` for a table dataset, or `view_id` for a semantic view. View selectors
+accept UUIDs or legacy numeric IDs. The numeric ID spaces are independent: a
+dataset ID must not be reused as a view ID.
+
+The legacy `datasource_id` alias defaults to a table when `datasource_type` is
+omitted. With `datasource_type: "semantic_view"`, it selects a view instead.
+For table-only requests, an explicit `dataset_id` takes precedence over
+`datasource_id`. Unsupported types and conflicting semantic selectors are rejected.
+
+Semantic configurations use saved metric names, for example
+`{"name": "revenue", "saved_metric": true}`, and dimensions published by the view.
+Ad-hoc aggregates and SQL expressions are rejected. Missing and inaccessible
+views return the same `view_not_found` error without exposing view metadata.
+
+`update_chart` accepts at most one replacement selector; omitting both retains
+the chart's source. Rebinding validates retained query roles, preserves the
+selected source family in previews and stored parameters, and clears stale
+query context. An incompatible retained configuration must be replaced with a
+configuration valid for the target. Validation includes the second series of
+mixed-timeseries charts: saved metrics, dimensions, sort references and filters.
+It also checks Gantt time and tooltip fields, histogram columns, and table
+percentage metrics. Unknown visualization types are rejected because their
+retained query roles cannot be validated. Bubble sorting accepts a published
+saved metric in its native single-metric format.
+Scalar saved dimension names are treated as singleton lists. A semantic-view-to-
+table transition requires access to the replacement table before validation or
+preview caching. Title-only updates of query-backed and saved-query-backed charts
+retain their source family and chart authorization.
+
+Saving semantic charts requires the host's semantic-view chart save/access
+support ([#44169](https://github.com/apache/superset/pull/44169)). MCP delegates
+writes to the existing chart commands and does not bypass that prerequisite or
+chart edit permissions. Link generation alone does not establish that a chart
+was saved or that a provider query executed successfully.
+
 ## Quick Start
 
 Get the MCP server running locally and connect an AI client in three steps.
