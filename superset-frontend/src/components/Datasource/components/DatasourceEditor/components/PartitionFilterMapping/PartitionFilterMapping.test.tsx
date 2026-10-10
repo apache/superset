@@ -1140,3 +1140,48 @@ test('a mapped column that really is absent is still reported', () => {
     screen.getByText(/long_gone is not a column on this dataset/),
   ).toBeInTheDocument();
 });
+
+test('a self-mapping the owner can save through reads as a warning', () => {
+  // The implicit self-mapping -- no override, and `main_dttm_col` happens to
+  // equal the partition column -- is non-blocking on purpose, on both sides:
+  // a dataset already in that state has to stay editable. Danger styling on a
+  // message beside an enabled Save button said the opposite of what the button
+  // was doing.
+  const { rerender } = render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'dt_epoch',
+        partition_column: 'dt_epoch',
+        partition_mapped_column: null,
+      }}
+      columns={COLUMNS}
+      allColumns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  const implicit = screen.getByTestId('partition-column-error');
+  expect(implicit).toHaveTextContent(/mapped onto itself/);
+  expect(implicit).toHaveClass('ant-typography-warning');
+
+  // The explicit one is something the owner asked for and can take back, so it
+  // blocks the save and keeps the error styling.
+  rerender(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        partition_mapped_column: 'dt_epoch',
+      }}
+      columns={COLUMNS}
+      allColumns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  const explicit = screen.getByTestId('partition-column-error');
+  expect(explicit).toHaveTextContent(/mapped onto itself/);
+  expect(explicit).toHaveClass('ant-typography-danger');
+});
