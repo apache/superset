@@ -194,6 +194,7 @@ export default function transformProps(
     legendType,
     legendSort,
     showLegend,
+    showSelectorLegend,
     baseEdgeWidth,
     baseNodeSize,
     edgeSymbol,
@@ -313,6 +314,7 @@ export default function transformProps(
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -376,6 +378,7 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
       ),

@@ -1466,6 +1466,37 @@ test('moves a visible horizontal Plain legend into a custom HTML legend and rest
   expect('contentHeight' in transformed).toBe(false);
 });
 
+test('hides legend selector buttons when showSelectorLegend is false', () => {
+  const plain = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+        showSelectorLegend: false,
+      },
+    }),
+  );
+  expect(getCustomLegend(plain)?.showSelectors).toBe(false);
+
+  const scroll = transformProps(
+    createTestChartProps({
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Scroll,
+        showLegend: true,
+        showSelectorLegend: false,
+      },
+    }),
+  );
+  expect(
+    (scroll.echartOptions.legend as { selectorLabel?: { show?: boolean } })
+      .selectorLabel?.show,
+  ).toBe(false);
+});
+
 test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
   'uses the custom HTML legend for a %s-oriented Plain legend',
   legendOrientation => {

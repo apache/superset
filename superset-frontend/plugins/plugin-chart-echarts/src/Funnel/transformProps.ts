@@ -128,6 +128,7 @@ export default function transformProps(
     inContextMenu,
     showTooltipLabels,
     showLegend,
+    showSelectorLegend,
     sliceId,
     percentCalculationType,
   }: EchartsFunnelFormData = {
@@ -270,6 +271,7 @@ export default function transformProps(
     legendMargin: resolvedLegendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -335,6 +337,7 @@ export default function transformProps(
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
       ),

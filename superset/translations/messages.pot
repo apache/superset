@@ -7612,6 +7612,9 @@ msgstr ""
 msgid "Intervals"
 msgstr ""
 
+msgid "Inv"
+msgstr ""
+
 msgid "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'."
 msgstr ""
 
@@ -12405,6 +12408,9 @@ msgid_plural "Show %s more changes"
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Show All/Invert buttons in legend"
+msgstr ""
+
 msgid "Show Bubbles"
 msgstr ""
 
@@ -15151,6 +15157,9 @@ msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
+msgstr ""
 
 msgid "Token Request URI"
 msgstr ""

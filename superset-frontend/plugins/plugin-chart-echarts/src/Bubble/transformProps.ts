@@ -140,6 +140,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     tooltipSizeFormat,
     opacity,
     showLegend,
+    showSelectorLegend,
     legendOrientation,
     legendMargin,
     legendType,
@@ -202,6 +203,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendMargin,
     orientation: legendOrientation,
     show: showLegend,
+    showSelectors: showSelectorLegend !== false,
     theme,
     type: legendType,
   });
@@ -269,6 +271,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         legendOrientation,
         showLegend,
         theme,
+        showSelectorLegend,
         false,
         legendState,
       ),

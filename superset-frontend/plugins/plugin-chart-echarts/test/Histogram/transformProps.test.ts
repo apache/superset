@@ -36,6 +36,7 @@ const formData: HistogramFormData = {
   normalize: false,
   sliceId: 1,
   showLegend: true,
+  showSelectorLegend: true,
   showValue: false,
   xAxisFormat: '',
   xAxisTitle: '',
