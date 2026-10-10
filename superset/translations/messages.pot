@@ -13575,6 +13575,14 @@ msgstr ""
 msgid "The X-axis is not on the filters list which will prevent it from being used in time range filters in dashboards. Would you like to add it to the filters list?"
 msgstr ""
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid "The `%(operation)s` post-processing operation references a column or level that is not in the query result: %(name)s"
+msgstr ""
+
 msgid "The affected charts or dashboards changed. Review the updated impact and type DELETE again to continue."
 msgstr ""
 

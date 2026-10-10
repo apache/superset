@@ -1213,6 +1213,50 @@ def test_semantic_view_get_query_result_wraps_post_processing_type_error(
         view.get_query_result(query_object)
 
 
+def test_semantic_view_get_query_result_leaves_a_custom_operation_fault_unwrapped(
+    mock_implementation: MagicMock,
+) -> None:
+    """
+    A fault inside a custom operation must not be reported as a bad request.
+
+    An operation registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` is the
+    operator's own code. ``exec_post_processing`` leaves its exceptions alone,
+    and this path must not convert them either, or a bug in that operation
+    answers 400 and tells the caller their request was malformed.
+    """
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationError
+
+    def _raise_type_error(df: pd.DataFrame, **options: Any) -> pd.DataFrame:
+        raise TypeError("a fault inside the operator's own code")
+
+    view = SemanticView()
+    mock_result = MagicMock()
+    mock_result.df = pd.DataFrame({"metric": [1.0, 2.0]})
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "_raise_type_error"}],
+    )
+
+    with (
+        patch(
+            "superset.semantic_layers.models.get_results",
+            return_value=mock_result,
+        ),
+        patch.dict(
+            "superset.common.query_object.current_app.config",
+            {"EXTRA_PANDAS_POSTPROCESSING_OPS": [_raise_type_error]},
+        ),
+        pytest.raises(TypeError, match="operator's own code") as excinfo,
+    ):
+        view.get_query_result(query_object)
+
+    assert not isinstance(excinfo.value, QueryObjectValidationError)
+
+
 def test_semantic_view_get_query_result_skips_post_processing_on_empty_df(
     mock_implementation: MagicMock,
 ) -> None:
