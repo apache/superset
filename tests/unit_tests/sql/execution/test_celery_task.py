@@ -1285,6 +1285,53 @@ def test_execute_sql_task_unhandled_exception(
     assert result["status"] == QueryStatusEnum.FAILED
 
 
+def test_execute_sql_task_overwrites_stopped_status_with_failed(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+) -> None:
+    """
+    CHARACTERIZATION TEST, not a desired behavior: documents a pre-existing
+    gap, not introduced by any ClickHouse-specific change. `_handle_query_error`
+    only special-cases TIMED_OUT ("Preserve TIMED_OUT status if already set");
+    it has no equivalent STOPPED check, unlike the sync path's
+    `execute_query()` in `sql_lab.py`, which explicitly refreshes and checks
+    for STOPPED before converting to `SqlLabException`. So on this async/
+    Celery path, ANY exception that reaches `execute_sql_task`'s outer
+    handler while `query.status` is already STOPPED gets overwritten to
+    FAILED here -- regardless of engine, and regardless of why the exception
+    was raised (a real cancel-induced driver error for any engine whose
+    cancellation mechanism can make a subsequent/concurrent `cursor.execute()`
+    fail, not something specific to a new check).
+
+    This is deliberately not fixed here: doing so would mean changing
+    `_handle_query_error`/`execute_sql_task` (shared code well outside
+    `db_engine_specs/clickhouse.py`) to special-case STOPPED the way the
+    sync path already does -- out of scope for this ticket, and a decision
+    that affects every engine, not just ClickHouse. See RCA.md for the full
+    reasoning and why this isn't something introduced by this ticket's fix.
+    """
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    mock_query.status = QueryStatusEnum.STOPPED
+
+    mocker.patch(
+        "superset.sql.execution.celery_task._get_query", return_value=mock_query
+    )
+    mocker.patch(
+        "superset.sql.execution.celery_task._execute_sql_statements",
+        side_effect=Exception("driver raised during dispatch"),
+    )
+    mocker.patch("superset.sql.execution.celery_task.db.session")
+    mocker.patch("superset.sql.execution.celery_task.security_manager")
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    result = execute_sql_task(123, "SELECT * FROM users")
+
+    assert result["status"] == QueryStatusEnum.FAILED
+    assert mock_query.status == QueryStatusEnum.FAILED
+
+
 def test_execute_sql_task_success_final_commit(
     mocker: MockerFixture,
     app_context: None,
