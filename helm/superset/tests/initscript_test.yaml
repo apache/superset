@@ -61,3 +61,35 @@ tests:
       - notMatchRegex:
           path: 'stringData["superset_init.sh"]'
           pattern: 'create-admin.*\|\| true'
+  - it: bootstrap script installs psycopg2 when the image lacks it for postgres metadata DBs
+    asserts:
+      - matchRegex:
+          path: 'stringData["superset_bootstrap.sh"]'
+          pattern: 'import psycopg2'
+      - matchRegex:
+          path: 'stringData["superset_bootstrap.sh"]'
+          pattern: 'uv pip install psycopg2-binary'
+  - it: bootstrap script skips psycopg2 install for non-postgres metadata DB drivers
+    set:
+      database:
+        driver: "mysql+mysqldb"
+    asserts:
+      - notMatchRegex:
+          path: 'stringData["superset_bootstrap.sh"]'
+          pattern: 'psycopg2'
+  - it: bootstrap script installs psycopg2 for postgres database.uri overrides
+    set:
+      database:
+        uri: "postgresql+psycopg2://superset:superset@pg.example.com:5432/superset"
+    asserts:
+      - matchRegex:
+          path: 'stringData["superset_bootstrap.sh"]'
+          pattern: 'uv pip install psycopg2-binary'
+  - it: bootstrap script skips psycopg2 install for non-postgres database.uri overrides
+    set:
+      database:
+        uri: "mysql://superset:superset@mysql.example.com:3306/superset"
+    asserts:
+      - notMatchRegex:
+          path: 'stringData["superset_bootstrap.sh"]'
+          pattern: 'psycopg2'

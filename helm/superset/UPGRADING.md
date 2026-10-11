@@ -19,6 +19,21 @@
 
 # Upgrading the Superset Helm Chart
 
+## Upgrading to chart 0.22.9
+
+The default `bootstrapScript` now installs `psycopg2-binary` (via `uv`, falling back to `pip`)
+when the metadata database URI/driver is PostgreSQL and `psycopg2` is not already importable in
+the image. This repairs out-of-the-box installs on Superset images that ship no database drivers
+(all plain tags before the batteries-included image, i.e. `apache/superset:<=6.1.0` and any
+`-lean` tag).
+
+- On images that already bundle `psycopg2` (e.g. `apache/superset` releases after the
+  batteries-included split, or `-dev` images) nothing is installed and no network access is needed.
+- If you run a non-PostgreSQL metadata database, nothing changes.
+- If you override `bootstrapScript`, your script is used verbatim and this logic is skipped.
+- Air-gapped deployments on driver-less images should build a custom image with the driver baked
+  in instead of relying on the runtime install.
+
 ## Upgrading to chart 0.20.0
 
 Chart 0.20.0 introduces a structured connection schema. The old keys listed below are **DEPRECATED** — they still work (auto-mapped to the new keys at render time) and a deprecation warning is printed in `helm install`/`helm upgrade` NOTES, but they will be removed in a future release. Migrate as soon as possible.
