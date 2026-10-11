@@ -22,33 +22,43 @@
  * @author Apache
  */
 
-import type { Rule } from 'eslint';
-import type { Node } from 'estree';
-
 //------------------------------------------------------------------------------
 // Rule Definition
 //------------------------------------------------------------------------------
 
-interface JSXAttribute {
-  name?: { name: string };
-  value?: { type: string; value?: string; expression?: { value: string } };
-}
+/**
+ * @typedef {Object} JSXAttribute
+ * @property {Object} [name]
+ * @property {string} [name.name]
+ * @property {Object} [value]
+ * @property {string} [value.type]
+ * @property {string} [value.value]
+ * @property {Object} [value.expression]
+ * @property {string} [value.expression.value]
+ */
 
-interface JSXOpeningElement {
-  name: { name: string };
-  attributes: JSXAttribute[];
-}
+/**
+ * @typedef {Object} JSXOpeningElement
+ * @property {Object} name
+ * @property {string} name.name
+ * @property {JSXAttribute[]} attributes
+ */
 
-interface JSXElementNode {
-  type: string;
-  openingElement: JSXOpeningElement;
-}
+/**
+ * @typedef {Object} JSXElementNode
+ * @property {string} type
+ * @property {JSXOpeningElement} openingElement
+ */
 
+/** @type {{ rules: Record<string, import('oxlint').Rule.RuleModule> }} */
 const plugin = {
+  meta: {
+    name: 'icons',
+  },
   rules: {
     'no-fa-icons-usage': {
       meta: {
-        type: 'problem' as const,
+        type: 'problem',
         docs: {
           description:
             'Disallow the usage of FontAwesome icons in the codebase',
@@ -56,16 +66,25 @@ const plugin = {
         },
         schema: [],
       },
-      create(context: Rule.RuleContext): Rule.RuleListener {
+      /**
+       * @param {import('oxlint').Rule.RuleContext} context
+       * @returns {import('oxlint').Rule.RuleListener}
+       */
+      createOnce(context) {
         return {
-          // Check for JSX elements with class names containing "fa"
-          JSXElement(node: Node): void {
-            const jsxNode = node as unknown as JSXElementNode;
+          /**
+           * Check for JSX elements with class names containing "fa"
+           * @param {import('estree').Node} node
+           * @returns {void}
+           */
+          JSXElement(node) {
+            /** @type {JSXElementNode} */
+            const jsxNode = node;
             if (
               jsxNode.openingElement &&
               jsxNode.openingElement.name.name === 'i' &&
               jsxNode.openingElement.attributes &&
-              jsxNode.openingElement.attributes.some((attr: JSXAttribute) => {
+              jsxNode.openingElement.attributes.some(attr => {
                 if (attr.name?.name !== 'className') return false;
                 // Handle className="fa fa-home"
                 if (attr.value?.type === 'Literal') {
