@@ -119,7 +119,7 @@ async def generate_chart(  # noqa: C901
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
       'sunburst', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', 'mixed_timeseries',
       'handlebars', 'big_number', 'histogram', 'box_plot', 'waterfall',
-      'gantt', plus host-gated
+      'gantt', 'country_map', 'world_map', 'deck_scatter', plus host-gated
       types returned by get_chart_type_schema such as 'interactive_pivot')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines

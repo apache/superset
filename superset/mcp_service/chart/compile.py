@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Literal
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
+from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
 from superset.mcp_service.chart.query_result import (
     first_query_data,
@@ -228,7 +229,12 @@ def _compile_chart(  # noqa: C901
             tier="compile",
             error_obj=_build_compile_error(str(exc)),
         )
-    except (CommandException, ValueError, KeyError) as exc:
+    except (
+        CommandException,
+        QueryObjectValidationError,
+        ValueError,
+        KeyError,
+    ) as exc:
         return CompileResult(
             success=False,
             error=str(exc),

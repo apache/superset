@@ -107,6 +107,7 @@ FLAGS = (
     "allows_empty_result",
     "resizes_saved_preview",
     "supports_column_append",
+    "supports_vega_lite_preview",
 )
 
 MALFORMED_RESULTS: list[Any] = [
@@ -156,6 +157,11 @@ def test_plugin_implements_lifecycle_contract(plugin: ChartTypePlugin) -> None:
     assert plugin.preview_note is None or isinstance(plugin.preview_note, str)
     assert plugin.invalid_result_error_code
     assert plugin.invalid_result_message
+    assert isinstance(plugin.dataset_rebind_roles, str)
+    assert plugin.dataset_rebind_roles
+    assert isinstance(plugin.invalid_result_suggestions, tuple)
+    assert plugin.invalid_result_suggestions
+    assert all(isinstance(s, str) and s for s in plugin.invalid_result_suggestions)
     if plugin.normalize_data_results:
         # Exposing rows through get_chart_data under a contract requires one.
         assert (
@@ -164,6 +170,17 @@ def test_plugin_implements_lifecycle_contract(plugin: ChartTypePlugin) -> None:
         )
     if plugin.requires_config_for_dataset_rebind:
         assert plugin.requires_compile_check
+
+
+@pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
+def test_vega_lite_support_matches_preview_hook(
+    plugin: ChartTypePlugin, example: dict[str, Any]
+) -> None:
+    """A plugin that opts out of Vega-Lite rejects Vega-Lite previews."""
+    if plugin.supports_vega_lite_preview:
+        return
+    form_data = _form_data(plugin, example)
+    assert isinstance(plugin.vega_lite_preview([], deepcopy(form_data)), ChartError)
 
 
 @pytest.mark.parametrize("plugin", PLUGINS, ids=PLUGIN_IDS)
@@ -534,6 +551,10 @@ def _branches_on_registered_type(tree: ast.AST, names: set[str]) -> list[str]:
 # preview-format selection ("table" also names a chart). Keep whole files scanned:
 # unlike a function allowlist, this multiset rejects added or duplicated branches.
 _LEGACY_TYPE_BRANCHES = (
+    # The shared Deck.gl adapter mirrors every native layer builder, including
+    # Scatter's dimension column and radius-metric ordering.
+    "superset.mcp_service.chart.chart_helpers: viz_type == 'deck_scatter'",
+    "superset.mcp_service.chart.chart_helpers: viz_type == 'deck_scatter'",
     (
         "superset.mcp_service.chart.query_result: form_data.get('viz_type') "
         "!= 'gauge_chart'"
@@ -586,7 +607,11 @@ _LEGACY_TYPE_BRANCHES = (
         "'Compares values across categories or time periods', 'table': "
         "'Displays detailed data in tabular format', 'ag-grid-table': "
         "'Interactive table with advanced features like column resizing, "
-        "sorting, filtering, and server-side pagination', 'pie': 'Shows "
+        "sorting, filtering, and server-side pagination', "
+        "'country_map': 'Colors regional boundaries by an aggregated metric', "
+        "'world_map': 'Colors countries by a metric with optional metric-sized "
+        "bubbles', 'deck_scatter': 'Plots numeric latitude/longitude locations "
+        "with optional sized points', 'pie': 'Shows "
         "proportional relationships within a dataset', 'echarts_area': "
         "'Emphasizes cumulative totals and part-to-whole relationships', "
         "'pivot_table_v2': 'Cross-tabulates data with rows, columns, and "
@@ -652,8 +677,9 @@ _LEGACY_TYPE_BRANCHES = (
         "'sunburst_v2': 'sunburst', 'heatmap_v2': 'heatmap', 'gauge_chart': "
         "'gauge', 'funnel': 'funnel', 'histogram': 'histogram', "
         "'histogram_v2': 'histogram', 'box_plot': 'box_plot', 'world_map': "
-        "'map', 'pivot_table_v2': 'table', 'ag-grid-pivot-table': 'table', "
-        "'waterfall': 'waterfall', 'gantt_chart': 'gantt'}"
+        "'world_map', 'country_map': 'country_map', 'deck_scatter': "
+        "'deck_scatter', 'pivot_table_v2': 'table', 'ag-grid-pivot-table': "
+        "'table', 'waterfall': 'waterfall', 'gantt_chart': 'gantt'}"
     ),
     (
         "superset/mcp_service/chart/tool/get_chart_data.py {'line chart': "
@@ -661,7 +687,9 @@ _LEGACY_TYPE_BRANCHES = (
         "chart': 'bar', 'scatter plot': 'scatter', 'bubble chart': 'bubble', "
         "'pie chart': 'pie', 'treemap': 'treemap', 'sunburst chart': "
         "'sunburst', 'heatmap': 'heatmap', 'big number / KPI': 'kpi', 'gauge "
-        "chart': 'gauge', 'histogram': 'histogram', 'table': 'table'}"
+        "chart': 'gauge', 'histogram': 'histogram', 'table': 'table', "
+        "'geographic points': 'deck_scatter', 'country map': 'country_map', "
+        "'world map': 'world_map'}"
     ),
 )
 
@@ -686,6 +714,21 @@ def test_dispatchers_do_not_branch_on_registered_chart_types() -> None:
     stale = Counter(_LEGACY_TYPE_BRANCHES) - Counter(violations)
     assert not unexpected, "\n".join(unexpected)
     assert not stale, "Remove obsolete baseline entries: " + "\n".join(stale)
+
+
+def test_capped_compile_row_limit_default_and_override() -> None:
+    """The named compile cap preserves the default and explicit overrides."""
+    from superset.mcp_service.chart.plugin import (
+        capped_compile_row_limit,
+        DEFAULT_COMPILE_ROW_LIMIT,
+    )
+
+    assert DEFAULT_COMPILE_ROW_LIMIT == 10
+    assert capped_compile_row_limit({}) == DEFAULT_COMPILE_ROW_LIMIT
+    assert capped_compile_row_limit({"row_limit": 100}) == DEFAULT_COMPILE_ROW_LIMIT
+    assert capped_compile_row_limit({}, cap=5) == 5
+    assert capped_compile_row_limit({"row_limit": 100}, cap=5) == 5
+    assert capped_compile_row_limit({"row_limit": 3}, cap=5) == 3
 
 
 @pytest.mark.parametrize("chart_type", ["gauge", "treemap_v2"])
@@ -744,6 +787,52 @@ def test_saved_scalar_groupby_histogram_preview(groupby: str | list[str]) -> Non
     assert histogram.specification["data"]["values"] == [
         {"bin": "0-10", "value": 5, "series": "Qualified"}
     ]
+
+
+@pytest.mark.parametrize(("plugin", "example"), EXAMPLES, ids=EXAMPLE_IDS)
+@pytest.mark.parametrize("params_viz_type", [True, False])
+def test_disabled_chart_update_requires_existing_plugin(
+    plugin: ChartTypePlugin, example: dict[str, Any], params_viz_type: bool
+) -> None:
+    """Disabled types allow same-plugin updates, never type conversions."""
+    from types import SimpleNamespace
+
+    from superset.mcp_service.chart import registry
+    from superset.mcp_service.chart.tool.update_chart import (
+        _get_existing_form_data,
+        _map_replacement_config,
+    )
+
+    config = _config(example)
+    existing = _form_data(plugin, example)
+    if not params_viz_type:
+        from superset.utils import json
+
+        saved_viz_type = existing.pop("viz_type")
+        existing = _get_existing_form_data(
+            SimpleNamespace(id=1, viz_type=saved_viz_type, params=json.dumps(existing))
+        )
+    with (
+        patch.object(
+            registry,
+            "_filter_config",
+            registry._PluginFilterConfig(enabled_func=lambda chart_type: False),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="sqlite",
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=None,
+        ),
+    ):
+        assert get_registry().get(plugin.chart_type) is None
+        updated = _map_replacement_config(existing, config, 1)
+        assert updated["viz_type"] == existing["viz_type"]
+        other = "table" if plugin.chart_type != "table" else "world_map"
+        with pytest.raises(ValueError, match="Unsupported config type"):
+            _map_replacement_config({"viz_type": other}, config, 1)
 
 
 @pytest.mark.parametrize(

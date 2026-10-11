@@ -84,8 +84,12 @@ REGISTERED_PLUGIN_QUERY_ROLE_KEYS = (
 )
 QUERY_ROLE_KEYS = SHARED_FORM_DATA_QUERY_ROLE_KEYS | REGISTERED_PLUGIN_QUERY_ROLE_KEYS
 
+DEFAULT_COMPILE_ROW_LIMIT = 10
 
-def capped_compile_row_limit(form_data: Mapping[str, Any], cap: int = 10) -> int:
+
+def capped_compile_row_limit(
+    form_data: Mapping[str, Any], cap: int = DEFAULT_COMPILE_ROW_LIMIT
+) -> int:
     """Cap compile samples, falling back to the cap for invalid saved limits."""
     value = form_data.get("row_limit")
     if isinstance(value, bool):
@@ -272,6 +276,9 @@ class ChartTypePlugin(Protocol):
     #: saved query roles cannot be trusted on another dataset.
     requires_config_for_dataset_rebind: ClassVar[bool]
 
+    #: Roles named in the guidance returned when such a rebind is rejected.
+    dataset_rebind_roles: ClassVar[str]
+
     #: Whether a replacement config on another dataset is merged by the
     #: plugin's own rebind contract (``merge_update_form_data`` with
     #: ``dataset_rebind=True``) instead of the shared inherited-state pruning.
@@ -300,6 +307,10 @@ class ChartTypePlugin(Protocol):
     #: Whether update_chart may append columns to the saved chart
     #: (``add_columns``) instead of requiring a complete replacement config.
     supports_column_append: ClassVar[bool]
+
+    #: Whether a Vega-Lite preview can represent this chart, so capability
+    #: metadata may advertise the ``vega_lite`` format.
+    supports_vega_lite_preview: ClassVar[bool]
 
     #: Caveat appended to saved-chart preview descriptions, if any.
     preview_note: ClassVar[str | None]
@@ -487,6 +498,7 @@ class BaseChartPlugin:
     additional_viz_types: ClassVar[frozenset[str]] = frozenset()
     requires_compile_check: ClassVar[bool] = False
     requires_config_for_dataset_rebind: ClassVar[bool] = False
+    dataset_rebind_roles: ClassVar[str] = "roles"
     strict_dataset_rebind: ClassVar[bool] = False
     owns_update_merge: ClassVar[bool] = False
     unbound_form_data_is_rebind: ClassVar[bool] = False
@@ -494,6 +506,7 @@ class BaseChartPlugin:
     allows_empty_result: ClassVar[bool] = False
     resizes_saved_preview: ClassVar[bool] = False
     supports_column_append: ClassVar[bool] = False
+    supports_vega_lite_preview: ClassVar[bool] = True
     preview_note: ClassVar[str | None] = None
     null_data_is_empty: ClassVar[bool] = True
     invalid_result_error_code: ClassVar[str] = "INVALID_CHART_RESULT"

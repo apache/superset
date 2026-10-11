@@ -1997,6 +1997,12 @@ msgstr ""
 msgid "Always filter main datetime column"
 msgstr "Filtrar siempre la columna principal de fecha y hora"
 
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "An Error Occurred"
 msgstr "Se ha producido un error"
 
@@ -3171,6 +3177,9 @@ msgstr "Tamaño de las burbujas"
 
 msgid "Bubble size number format"
 msgstr "Formato numérico del tamaño de las burbujas"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "Puntos de ruptura del «bucket»"
@@ -7575,6 +7584,9 @@ msgstr "Expandir fila"
 msgid "Expand settings"
 msgstr "Expandir ajustes"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7591,6 +7603,12 @@ msgstr "Experimental"
 
 msgid "Expired"
 msgstr "Caducado"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Explorar"
@@ -8545,6 +8563,13 @@ msgstr "Columna GeoJson"
 msgid "GeoJson Settings"
 msgstr "Ajustes GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8813,11 +8838,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Enorme"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Códigos ISO-3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 #, fuzzy
 msgid "Icon URL"
@@ -9714,6 +9745,9 @@ msgstr "Valor izquierdo"
 msgid "Legacy"
 msgstr "Heredado"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 msgid "Legend"
 msgstr "Leyenda"
 
@@ -10204,6 +10238,11 @@ msgstr "Tamaño del marcador"
 
 msgid "Markers"
 msgstr "Marcadores"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Tipo de marcado"
@@ -10728,6 +10767,12 @@ msgid ""
 msgstr ""
 "Se aceptan varios formatos; consulta la biblioteca geopy.points de Python"
 " para obtener más detalles"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "Multiplicador"
@@ -12764,6 +12809,12 @@ msgstr "Actualizando gráficos"
 
 msgid "Refreshing columns"
 msgstr "Actualizando columnas"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 #, fuzzy
 msgid "Register"
@@ -19196,6 +19247,17 @@ msgstr "Desanclar en el panel de resultados"
 msgid "Unpin from top"
 msgstr "Desanclar de la parte superior"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -19215,6 +19277,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Tipo de cláusula no admitido: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
