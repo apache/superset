@@ -56,6 +56,11 @@ POST /ai-insights/chart/<chart_id>/
     Responses are cached in-process keyed on (chart id + payload hash) so
     re-renders after a data refresh do not re-pay the LLM cost.
 
+    The caller must be able to see the chart (directly, or through a dashboard
+    that contains it). Chart name and type come from the database, not the
+    request. LLM calls per user are capped; above the cap the template
+    generator answers instead.
+
 Registered with Flask via the BLUEPRINTS list in superset_config.py — no
 edits to upstream Superset init code.
 """
@@ -68,24 +73,32 @@ import logging
 import os
 import re
 import time
+from collections import deque, OrderedDict
 from typing import Any
 
 import requests
-from flask import Blueprint, current_app, has_app_context, jsonify, request
+from flask import Blueprint, current_app, g, has_app_context, jsonify, request
 from flask_login import login_required
 
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import db, security_manager
 from superset.superset_typing import FlaskResponse
 
 logger = logging.getLogger(__name__)
 
 ai_insights_bp = Blueprint("moh_ai_insights", __name__)
 
-# In-process cache: cache_key -> (expiry_ts, payload). Small enough for a
-# single-instance deploy; swap for Redis if the app is scaled horizontally.
-_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+# In-process cache: cache_key -> (expiry_ts, payload), oldest entries evicted
+# first once MOH_AI_INSIGHTS_CACHE_MAX_ENTRIES is reached. Per Gunicorn worker;
+# swap for Redis if the app is scaled horizontally.
+_CACHE: OrderedDict[str, tuple[float, dict[str, Any]]] = OrderedDict()
+# user id -> timestamps of that user's LLM calls in the last hour (per worker)
+_LLM_CALLS: dict[int, deque[float]] = {}
 
 _MAX_SAMPLE_ROWS = 40
 _MAX_LLM_TEXT_CHARS = 6000
+_MAX_CELL_CHARS = 200
+_MAX_REQUEST_BYTES = 64 * 1024
 _DEFAULT_MODELS = {
     "openai": "gpt-4o-mini",
     "gemini": "gemini-1.5-flash",
@@ -137,6 +150,14 @@ def _cache_ttl() -> int:
     # Keep generated chart insights warm for at least 2 weeks so dashboard
     # re-renders and repeated visits do not trigger repeated LLM calls.
     return _int_config("MOH_AI_INSIGHTS_CACHE_TTL", 14 * 24 * 60 * 60)
+
+
+def _cache_max_entries() -> int:
+    return _int_config("MOH_AI_INSIGHTS_CACHE_MAX_ENTRIES", 2000)
+
+
+def _user_llm_calls_per_hour() -> int:
+    return _int_config("MOH_AI_INSIGHTS_USER_LLM_PER_HOUR", 60)
 
 
 def _insights_enabled() -> bool:
@@ -334,7 +355,7 @@ def _ask_gemini(prompt: str, api_key: str, model: str, timeout: int) -> str:
     url = _PROVIDER_ENDPOINTS["gemini"].format(model=model)
     resp = requests.post(
         url,
-        params={"key": api_key},
+        headers={"x-goog-api-key": api_key},
         json={
             "contents": [
                 {
@@ -439,19 +460,34 @@ def _cache_key(chart_id: int, payload: dict[str, Any]) -> str:
     return f"moh_ai_insights:{chart_id}:{digest}"
 
 
+def _llm_budget_ok(user_id: int | None) -> bool:
+    """Record one LLM call for the user; False once the hourly cap is reached."""
+    if user_id is None:
+        return False
+    now = time.time()
+    calls = _LLM_CALLS.setdefault(user_id, deque())
+    while calls and calls[0] < now - 3600:
+        calls.popleft()
+    if len(calls) >= _user_llm_calls_per_hour():
+        return False
+    calls.append(now)
+    return True
+
+
 def _generate_insight(
     chart_id: int,
     chart_name: str,
     viz_type: str,
     summary: dict[str, Any],
     sample_rows: list[Any],
+    user_id: int | None = None,
 ) -> dict[str, Any]:
     """Return {summary, recommendation, bullets, provider} — LLM when configured, else demo."""
     demo = _generate_demo_insight(summary, sample_rows)
     provider = _provider()
     api_key = _api_key()
 
-    if provider in _PROVIDER_ENDPOINTS and api_key:
+    if provider in _PROVIDER_ENDPOINTS and api_key and _llm_budget_ok(user_id):
         prompt = _build_llm_prompt(chart_name, viz_type, summary, sample_rows)
         try:
             raw = _ask_llm(
@@ -464,16 +500,54 @@ def _generate_insight(
             structured = _parse_llm_insight(raw) if raw else None
             if structured:
                 return {**structured, "provider": provider}
-        except Exception:  # noqa: BLE001 - fall back to demo on any LLM failure
+        except Exception as ex:  # noqa: BLE001 - fall back to demo on any LLM failure
+            # no traceback or exception text: they can contain the request URL
+            status = getattr(getattr(ex, "response", None), "status_code", "")
             logger.warning(
-                "AI insights LLM call failed for chart %s (%s); using demo "
+                "AI insights LLM call failed for chart %s (%s): %s %s; using demo "
                 "fallback",
                 chart_id,
                 provider,
-                exc_info=True,
+                type(ex).__name__,
+                status,
             )
 
     return {**demo, "provider": "demo"}
+
+
+def _cap_cell(value: Any) -> Any:
+    if isinstance(value, str):
+        return value[:_MAX_CELL_CHARS]
+    if isinstance(value, (int, float, bool)) or value is None:
+        return value
+    return str(value)[:_MAX_CELL_CHARS]
+
+
+def _accessible_chart(chart_id: int, dashboard_id: Any) -> Any:
+    """Return the chart if the current user may see it, else None.
+
+    Allowed when the user can access the chart's dataset, or can access a
+    dashboard that contains the chart (dashboard-only viewers).
+    """
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    chart = db.session.get(Slice, chart_id)
+    if chart is None:
+        return None
+    if security_manager.can_access_chart(chart):
+        return chart
+    try:
+        dashboard = db.session.get(Dashboard, int(dashboard_id))
+    except (TypeError, ValueError):
+        return None
+    if dashboard is None or chart not in dashboard.slices:
+        return None
+    try:
+        security_manager.raise_for_access(dashboard=dashboard)
+    except SupersetSecurityException:
+        return None
+    return chart
 
 
 @ai_insights_bp.route("/ai-insights/chart/<int:chart_id>/", methods=["POST"])
@@ -524,13 +598,19 @@ def generate_chart_insight(chart_id: int) -> FlaskResponse:
     if not _insights_enabled():
         return jsonify({"error": "AI insights are disabled"}), 404
 
+    if (request.content_length or 0) > _MAX_REQUEST_BYTES:
+        return jsonify({"error": "Payload too large"}), 413
+
     payload = request.get_json(silent=True) or {}
     if not isinstance(payload, dict):
         return jsonify({"error": "Invalid JSON payload"}), 400
 
-    chart_name = str(payload.get("chart_name") or "Chart").strip()
-    viz_type = str(payload.get("viz_type") or "chart").strip()
     dashboard_id = payload.get("dashboard_id")
+    chart = _accessible_chart(chart_id, dashboard_id)
+    if chart is None:
+        return jsonify({"error": "Chart not found"}), 404
+    chart_name = str(chart.slice_name or "Chart").strip()
+    viz_type = str(chart.viz_type or "chart").strip()
     summary = payload.get("summary")
     sample_rows = payload.get("sample_rows")
 
@@ -539,8 +619,14 @@ def generate_chart_insight(chart_id: int) -> FlaskResponse:
 
     if sample_rows is None:
         sample_rows = []
+    if not isinstance(sample_rows, list):
+        return jsonify({"error": "Invalid sample rows"}), 400
     try:
-        sample_rows = sample_rows[:_MAX_SAMPLE_ROWS]
+        sample_rows = [
+            {str(k)[:_MAX_CELL_CHARS]: _cap_cell(v) for k, v in row.items()}
+            for row in sample_rows[:_MAX_SAMPLE_ROWS]
+            if isinstance(row, dict)
+        ]
         summary = json.loads(
             json.dumps(summary, default=str)[:_MAX_LLM_TEXT_CHARS]
         )
@@ -558,6 +644,7 @@ def generate_chart_insight(chart_id: int) -> FlaskResponse:
 
     cached = _CACHE.get(cache_key)
     if cached and cached[0] > now:
+        _CACHE.move_to_end(cache_key)
         return jsonify({**cached[1], "cached": True})
 
     result = _generate_insight(
@@ -566,6 +653,7 @@ def generate_chart_insight(chart_id: int) -> FlaskResponse:
         viz_type,
         summary,
         sample_rows,
+        user_id=getattr(getattr(g, "user", None), "id", None),
     )
     generated_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     response_payload = {
@@ -580,4 +668,6 @@ def generate_chart_insight(chart_id: int) -> FlaskResponse:
         "cached": False,
     }
     _CACHE[cache_key] = (now + _cache_ttl(), response_payload)
+    while len(_CACHE) > _cache_max_entries():
+        _CACHE.popitem(last=False)
     return jsonify(response_payload)
