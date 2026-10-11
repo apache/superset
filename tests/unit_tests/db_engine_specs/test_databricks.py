@@ -74,7 +74,23 @@ def test_dialect_supports_installed_sqlalchemy(mocker: MockerFixture) -> None:
         assert str(text("SELECT :value").compile(engine)) == "SELECT :value"
     finally:
         engine.dispose()
+
+    connector_engine = create_engine(
+        "databricks+connector://token:test-token@localhost"
+        "?http_path=/sql/1.0/warehouses/test&catalog=main&schema=default"
+    )
+    try:
+        assert isinstance(connector_engine.dialect, dialect.DatabricksDialect)
+    finally:
+        connector_engine.dispose()
     socket.assert_not_called()
+
+
+def test_databricks_connector_dialect_registration() -> None:
+    """Test that databricks.connector dialect is registered in SQLAlchemy registry."""
+    from sqlalchemy.dialects import registry
+
+    assert "databricks.connector" in registry.impls
 
 
 def test_get_parameters_from_uri() -> None:

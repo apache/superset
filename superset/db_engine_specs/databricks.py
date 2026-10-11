@@ -29,6 +29,7 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import text, types
+from sqlalchemy.dialects import registry
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -60,6 +61,13 @@ logger = logging.getLogger(__name__)
 
 INSUFFICIENT_PERMISSIONS_REGEX: Pattern[str] = re.compile(
     r"\[INSUFFICIENT_PERMISSIONS\]|\bSQLSTATE:\s*42501\b"
+)
+
+# Alias databricks+connector dialect to DatabricksDialect for backwards compatibility
+registry.register(
+    "databricks.connector",
+    "databricks.sqlalchemy",
+    "DatabricksDialect",
 )
 
 
@@ -799,7 +807,7 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             },
             {
                 "name": "databricks-dbapi (Legacy)",
-                "pypi_package": "databricks-dbapi[sqlalchemy]",
+                "pypi_package": "apache-superset[databricks]",
                 "connection_string": (
                     "databricks+connector://token:{access_token}@{host}:{port}/{database}"
                 ),
@@ -943,7 +951,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
-        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
+        "pypi_packages": ["apache-superset[databricks]"],
         "connection_string": (
             "databricks+connector://token:{access_token}@{host}:{port}/{database_name}?http_path={http_path}"
         ),
