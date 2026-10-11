@@ -49,6 +49,7 @@ from superset.utils.core import (
     ExtraFiltersTimeColumnType,
     GenericDataType,
 )
+from superset.utils.dates import datetime_to_epoch, EPOCH
 
 FAILED_QUERY_STATUSES = frozenset(
     {"error", "failed", "stopped", "timed_out", "cancelled", "canceled"}
@@ -174,6 +175,10 @@ class _ResultBudget:
     json_bytes: int = 0
     metadata_items: int = 0
     metadata_bytes: int = 0
+    # Charts whose frontend ``transformProps`` reads temporal values with
+    # ``Number()`` (for example Bullet) receive the Chart Data API's epoch-ms
+    # numbers and duration text instead of ISO-8601 strings.
+    temporal_json_numbers: bool = False
 
 
 @dataclass(frozen=True)
@@ -782,6 +787,19 @@ def _timestamp_offset_without_hooks(value: pd.Timestamp) -> timezone | None:
 
 def _canonical_datetime(value: datetime) -> tuple[str | None, str | None]:
     """Serialize an exact datetime through trusted timezone state only."""
+    canonical_value, reason = _canonical_datetime_value(value)
+    if canonical_value is None:
+        return None, reason
+    try:
+        return datetime.isoformat(canonical_value), None
+    except (OverflowError, TypeError, ValueError):
+        return None, "an invalid datetime"
+
+
+def _canonical_datetime_value(
+    value: datetime,
+) -> tuple[datetime | None, str | None]:
+    """Rebuild an exact datetime on a trusted timezone without its hooks."""
     tzinfo = value.tzinfo
     canonical_value = value
     if tzinfo is not None and not any(
@@ -806,10 +824,7 @@ def _canonical_datetime(value: datetime) -> tuple[str | None, str | None]:
             tzinfo=canonical_tz,
             fold=value.fold,
         )
-    try:
-        return datetime.isoformat(canonical_value), None
-    except (OverflowError, TypeError, ValueError):
-        return None, "an invalid datetime"
+    return canonical_value, None
 
 
 def _canonical_time(value: time) -> tuple[str | None, str | None]:
@@ -856,6 +871,19 @@ def _canonical_time(value: time) -> tuple[str | None, str | None]:
 
 def _canonical_timestamp(value: pd.Timestamp) -> tuple[str | None, str | None]:
     """Preserve a trusted timestamp's instant, offset, nanoseconds, and fold."""
+    canonical_value, reason = _canonical_timestamp_value(value)
+    if canonical_value is None:
+        return None, reason
+    try:
+        return pd.Timestamp.isoformat(canonical_value), None
+    except (KeyError, OverflowError, TypeError, ValueError):
+        return None, "an invalid timestamp"
+
+
+def _canonical_timestamp_value(
+    value: pd.Timestamp,
+) -> tuple[pd.Timestamp | None, str | None]:
+    """Rebuild an exact timestamp on a trusted timezone without its hooks."""
     try:
         tzinfo = value.tzinfo
         if tzinfo is not None and not any(
@@ -876,9 +904,150 @@ def _canonical_timestamp(value: pd.Timestamp) -> tuple[str | None, str | None]:
             value = pd.Timestamp(raw_value, unit=value.unit, tz="UTC").tz_convert(
                 canonical_tz
             )
-        return pd.Timestamp.isoformat(value), None
+        return value, None
     except (KeyError, OverflowError, TypeError, ValueError):
         return None, "an invalid timestamp"
+
+
+def _is_chart_data_temporal_scalar(value: Any) -> bool:
+    """Return whether an exact scalar has Chart Data temporal wire semantics."""
+    return type(value) in {
+        date,
+        datetime,
+        pd.Timestamp,
+        np.datetime64,
+        _PANDAS_NAT_TYPE,
+    }
+
+
+def _is_chart_data_duration_scalar(value: Any) -> bool:
+    """Return whether an exact scalar has Chart Data duration semantics."""
+    return type(value) in {timedelta, pd.Timedelta, np.timedelta64}
+
+
+def _chart_data_builtin_timedelta_text(value: timedelta) -> str:
+    """Reproduce ``format_timedelta`` without comparison or string hooks."""
+    total_microseconds = (
+        value.days * 86_400 + value.seconds
+    ) * 1_000_000 + value.microseconds
+    sign = "-" if total_microseconds < 0 else ""
+    remaining = abs(total_microseconds)
+    days, remaining = divmod(remaining, 86_400 * 1_000_000)
+    hours, remaining = divmod(remaining, 3_600 * 1_000_000)
+    minutes, remaining = divmod(remaining, 60 * 1_000_000)
+    seconds, microseconds = divmod(remaining, 1_000_000)
+    day_text = f"{days} {'day' if days == 1 else 'days'}, " if days else ""
+    fraction = f".{microseconds:06d}" if microseconds else ""
+    return f"{sign}{day_text}{hours}:{minutes:02d}:{seconds:02d}{fraction}"
+
+
+def _chart_data_pandas_timedelta_text(value: pd.Timedelta) -> str:
+    """Reproduce Chart Data ``format_timedelta`` output from exact fields."""
+    total_nanoseconds = (
+        (
+            object.__getattribute__(value, "days") * 86_400
+            + object.__getattribute__(value, "seconds")
+        )
+        * 1_000_000
+        + object.__getattribute__(value, "microseconds")
+    ) * 1_000 + object.__getattribute__(value, "nanoseconds")
+    sign = "-" if total_nanoseconds < 0 else ""
+    remaining = abs(total_nanoseconds)
+    days, remaining = divmod(remaining, 86_400 * 1_000_000_000)
+    hours, remaining = divmod(remaining, 3_600 * 1_000_000_000)
+    minutes, remaining = divmod(remaining, 60 * 1_000_000_000)
+    seconds, nanoseconds = divmod(remaining, 1_000_000_000)
+    if nanoseconds % 1_000:
+        fraction = f".{nanoseconds:09d}"
+    elif nanoseconds:
+        fraction = f".{nanoseconds // 1_000:06d}"
+    else:
+        fraction = ""
+    return f"{sign}{days} days {hours:02d}:{minutes:02d}:{seconds:02d}{fraction}"
+
+
+def _chart_data_duration_text(value: Any) -> tuple[str | None, str | None]:
+    """Project an exact duration through Chart Data's public JSON spelling.
+
+    Builtin and pandas durations are ``timedelta`` instances consumed by
+    ``format_timedelta``. Exact NumPy durations model the real DataFrame
+    producer boundary: unambiguous units are promoted to a pandas Timedelta,
+    NaT becomes JSON null, and ambiguous or overflowing units fail closed.
+    """
+    value_type = type(value)
+    if value_type is timedelta:
+        text = _chart_data_builtin_timedelta_text(value)
+    elif value_type is pd.Timedelta:
+        text = _chart_data_pandas_timedelta_text(value)
+    elif value_type is np.timedelta64:
+        if np.isnat(value):
+            return None, None
+        try:
+            pandas_value = pd.Timedelta(value)
+        except (OverflowError, TypeError, ValueError):
+            return None, "contains an invalid NumPy duration"
+        text = _chart_data_pandas_timedelta_text(pandas_value)
+    else:
+        return None, "contains an unsupported duration value"
+    if _bounded_utf8_length(text, MAX_RESULT_STRING_LENGTH) is None:
+        return None, "contains an oversized duration"
+    return text, None
+
+
+def _chart_data_temporal_number(  # noqa: C901
+    value: Any,
+) -> tuple[float | None, str | None]:
+    """Project an exact date/datetime through Chart Data's epoch-ms wire form.
+
+    The public Chart Data API uses ``json_int_dttm_ser`` before the browser
+    parses the payload. Trusted canonicalizers first validate or replace
+    timezone implementations without arbitrary hooks, then the production
+    ``datetime_to_epoch`` helper preserves its exact float behavior.
+    """
+    value_type = type(value)
+    if value_type is _PANDAS_NAT_TYPE:
+        # json_int_dttm_ser produces NaN and the Chart Data response's
+        # ``ignore_nan=True`` projects it to JSON null.
+        return None, None
+    if value_type is np.datetime64:
+        if np.isnat(value):
+            return None, None
+        try:
+            value = pd.Timestamp(value)
+        except (OverflowError, TypeError, ValueError):
+            return None, "contains an invalid NumPy datetime"
+        value_type = type(value)
+    if value_type is pd.Timestamp:
+        canonical_timestamp, reason = _canonical_timestamp_value(value)
+        if reason is not None or canonical_timestamp is None:
+            return None, reason or "contains an invalid pandas timestamp"
+        try:
+            return datetime_to_epoch(canonical_timestamp), None
+        except (OverflowError, TypeError, ValueError):
+            return None, "contains an invalid pandas timestamp"
+    if value_type is datetime:
+        canonical_datetime, reason = _canonical_datetime_value(value)
+        if reason is not None or canonical_datetime is None:
+            return None, reason or "contains an invalid datetime"
+        try:
+            return datetime_to_epoch(canonical_datetime), None
+        except (OverflowError, TypeError, ValueError):
+            return None, "contains an invalid datetime"
+    if value_type is date:
+        return (value - EPOCH.date()).total_seconds() * 1000, None
+    return None, "contains an unsupported temporal value"
+
+
+def _normalize_chart_data_scalar(
+    value: Any, *, temporal_json_numbers: bool
+) -> tuple[Any, str | None]:
+    """Normalize a row scalar, optionally with Chart Data temporal numbers."""
+    if temporal_json_numbers:
+        if _is_chart_data_temporal_scalar(value):
+            return _chart_data_temporal_number(value)
+        if _is_chart_data_duration_scalar(value):
+            return _chart_data_duration_text(value)
+    return _normalize_scalar(value)
 
 
 def _canonical_binary(
@@ -1176,7 +1345,10 @@ def _normalize_value(  # noqa: C901
             number = float(item)
             if not math.isfinite(number) and not math.isnan(number):
                 return None, "a non-finite metadata number"
-        normalized, reason = _normalize_scalar(item)
+        normalized, reason = _normalize_chart_data_scalar(
+            item,
+            temporal_json_numbers=budget.temporal_json_numbers and not metadata,
+        )
         if reason is not None:
             return None, reason
         max_string_bytes = (
@@ -1430,7 +1602,10 @@ def _validate_query_metadata(query: dict[str, Any], index: int) -> ChartError | 
 
 
 def validate_query_result_envelope(  # noqa: C901
-    result: Any, *, none_as_empty: bool = False
+    result: Any,
+    *,
+    none_as_empty: bool = False,
+    temporal_json_numbers: bool = False,
 ) -> ChartError | None:
     """Canonicalize and strictly validate one real command result in place.
 
@@ -1443,7 +1618,7 @@ def validate_query_result_envelope(  # noqa: C901
     if type(result) is not dict:
         return _invalid_result("a malformed result envelope")
 
-    budget = _ResultBudget()
+    budget = _ResultBudget(temporal_json_numbers=temporal_json_numbers)
     if reason := _charge_value(budget, metadata=True):
         return _invalid_result(reason)
     top_level_keys = list(dict.keys(result))
@@ -1640,7 +1815,9 @@ def _normalize_index_names(
     return None
 
 
-def query_result_failure(result: Any) -> ChartError | None:
+def query_result_failure(
+    result: Any, *, temporal_json_numbers: bool = False
+) -> ChartError | None:
     """Return a structured failure embedded in a ChartDataCommand payload.
 
     ChartDataCommand can return an HTTP-successful envelope whose top level or
@@ -1653,11 +1830,16 @@ def query_result_failure(result: Any) -> ChartError | None:
     reported as failure-free, because every caller reads data from at least one
     query.
     """
-    return validate_query_result_envelope(result)
+    return validate_query_result_envelope(
+        result, temporal_json_numbers=temporal_json_numbers
+    )
 
 
 def first_query_data(
-    result: Any, *, none_as_empty: bool = False
+    result: Any,
+    *,
+    none_as_empty: bool = False,
+    temporal_json_numbers: bool = False,
 ) -> tuple[list[Any] | None, ChartError | None]:
     """Validate the full result and return its first canonical data array.
 
@@ -1665,7 +1847,11 @@ def first_query_data(
     this with the strict default so hierarchy input can never silently become an
     empty visualization.
     """
-    if failure := validate_query_result_envelope(result, none_as_empty=none_as_empty):
+    if failure := validate_query_result_envelope(
+        result,
+        none_as_empty=none_as_empty,
+        temporal_json_numbers=temporal_json_numbers,
+    ):
         return None, failure
     queries = dict.__getitem__(result, "queries")
     first_query = list.__getitem__(queries, 0)
@@ -1946,6 +2132,14 @@ def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> A
     if plugin is None:
         return result
     return plugin.normalize_query_result(result, form_data)
+
+
+def temporal_json_numbers(viz_type: str | None) -> bool:
+    """Return whether the owning plugin reads temporals as Chart Data numbers."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(viz_type)
+    return plugin.temporal_json_numbers if plugin is not None else False
 
 
 def null_data_is_empty(viz_type: str | None) -> bool:

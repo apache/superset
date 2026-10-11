@@ -93,6 +93,11 @@ def _get_existing_form_data(chart: Any) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         logger.warning("Failed to parse existing chart.params for chart %s", chart.id)
         return {}
+    # Like Slice.form_data, the saved viz_type column is authoritative when
+    # params omit it, so every merge sees the same visualization boundary.
+    viz_type = getattr(chart, "viz_type", None)
+    if not parsed.get("viz_type") and isinstance(viz_type, str) and viz_type:
+        parsed["viz_type"] = viz_type
     return parsed
 
 
@@ -540,7 +545,9 @@ def _validate_update_against_dataset(  # noqa: C901
     try:
         merged_plugin = plugin_for_viz_type(form_data.get("viz_type"))
         merged_config = (
-            merged_plugin.validate_merged_form_data(form_data, dataset.id)
+            merged_plugin.validate_merged_form_data(
+                form_data, dataset.id, update_config=parsed_config
+            )
             if merged_plugin is not None
             else None
         )

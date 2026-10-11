@@ -32,6 +32,7 @@ import DeckGLGeoJson, {
   getPoints,
   getLayer,
 } from './Geojson';
+import buildQuery, { type DeckGeoJsonFormData } from './buildQuery';
 import controlPanel from './controlPanel';
 
 const mockDeckGLContainerProps: Array<Record<string, unknown>> = [];
@@ -58,6 +59,27 @@ jest.mock('react-map-gl/maplibre', () => ({
   Map: () => null,
   useControl: () => null,
 }));
+
+test('buildQuery includes geometry, cross-filter, and tooltip fields', () => {
+  const formData: DeckGeoJsonFormData = {
+    datasource: '1__table',
+    viz_type: 'deck_geojson',
+    geojson: 'geom',
+    cross_filter_column: 'region',
+    tooltip_contents: ['name', 'region'],
+  };
+
+  const [query] = buildQuery(formData).queries;
+
+  expect(query.columns).toEqual(['geom', 'region', 'name']);
+  expect(query.metrics).toEqual([]);
+  expect(query.groupby).toEqual([]);
+  expect(query.filters).toContainEqual({
+    col: 'geom',
+    op: 'IS NOT NULL',
+  });
+  expect(query.is_timeseries).toBe(false);
+});
 
 test('computeGeoJsonTextOptionsFromFormData computes text options based on form data', () => {
   const formData: SqlaFormData = {

@@ -139,6 +139,10 @@ def df_to_records(
             # converting it to float can overflow or lose precision.
             if type(value) in _NUMPY_NATIVE_TYPES:
                 value = value.item()
+            elif type(value) is np.timedelta64:
+                value = pd.Timedelta(value)
+            elif type(value) is np.datetime64:
+                value = pd.Timestamp(value)
             if _is_trusted_missing_or_nonfinite(value):
                 value = None
             else:

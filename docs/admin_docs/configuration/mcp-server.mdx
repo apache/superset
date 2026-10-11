@@ -1470,7 +1470,7 @@ Specifying a tool name that does not exist logs a warning at startup and is othe
 
 ## Disabling chart type plugins
 
-The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`, `bullet`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
 
 Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
 specification instead of `NoDataError`, matching their unsaved previews.
@@ -1532,6 +1532,69 @@ including an explicit clear.
 - **[MCP Integration](/developer-docs/extensions/mcp)** -- Build custom MCP tools and prompts via Superset extensions
 - **[Security](/developer-docs/extensions/security)** -- Security best practices for extensions
 - **[Deployment](/developer-docs/extensions/deployment)** -- Package and deploy Superset extensions
+
+## Bullet chart compatibility
+
+The MCP Bullet plugin uses `chart_type: "bullet"` and the native ECharts
+`viz_type: "bullet"`. Its optional `dimensions` hierarchy maps to `groupby`.
+Omit `dimensions` (or use `null`) to create a single-metric Bullet without a
+breakdown. On updates, omission or `null` preserves the saved hierarchy; use
+`dimensions: []` to clear it explicitly. An `order_by` update can reference the
+saved dimensions without resending them; unknown targets are rejected after
+resolving the saved hierarchy. Replacing the dataset follows the shared rebind
+contract: saved query roles are not inherited, so resend the hierarchy.
+
+Inherited native SQL dimensions remain query expressions when updating metrics
+or `order_by`; reference their output labels to sort by them. Caller-supplied
+`dimensions` must still be physical columns, not SQL expressions.
+
+Dimension and metric output names are case-sensitive: quoted physical columns
+such as `Region` and `region` remain distinct. Reference lookup prefers exact
+names and uses case-insensitive matching only when there is a single candidate;
+ambiguous references require the exact spelling. Bullet metric strings use
+JavaScript numeric spellings: underscore separators and non-ASCII digits are
+rejected rather than interpreted as numbers. Bounded array-valued dimensions
+retain their raw values in data reads and exports; preview category labels use
+JavaScript string conversion (for example, `[1, 2]` displays as `1,2`). Native
+SQL metrics without a label use their SQL expression as the output label.
+
+Presentation-only updates preserve saved predicates, including legacy top-level
+`where`, `having`, and `filters`, and normalize the native `order_by_cols` alias.
+When both `orderby` and `order_by_cols` are saved, their sort entries are
+concatenated in form-data key order, including when `orderby` is empty.
+Explicit `filters: []` and `order_by: []` clear those inherited controls.
+
+Range, marker, and marker-line label lists may be shorter than their value lists.
+Labels that become empty after sanitization retain their slots so later labels
+remain aligned with their corresponding values.
+As in Explore, missing or empty range labels are not displayed, and missing or
+empty marker labels use the formatted numeric value. Extra labels have no value
+to annotate and are ignored. These rules also apply to saved-chart previews and
+updates. Omitted label controls preserve the saved state only when their
+corresponding value controls (`ranges`, `markers`, or `marker_lines`) are also
+omitted. Replacing a value control without its labels clears the saved labels;
+resend the labels to retain annotations with the replacement values.
+
+Saved native `ranges`, `markers`, and `marker_lines` controls ignore empty,
+non-numeric, and NaN tokens, matching Explore. If no numeric range remains, the
+preview uses the default band up to 110% of the largest measure. Unrelated
+updates preserve these saved controls. Newly authored typed lists must contain
+finite numbers; infinite native values and oversized controls remain errors.
+
+On same-dataset chart updates, `filters: []` clears both user filters and the
+generated dashboard-time binding. `temporal_column: null` clears only that
+generated binding, preserving user filters. Omitting those controls preserves
+the saved binding. Bullet Vega previews keep separate indexed rows even when
+dimension display labels are identical, and support both `SMART_NUMBER` and
+`SMART_NUMBER_SIGNED` number formats. Bullet preview numeric format
+precision is limited to 20 digits before formatting; raw data reads do not
+validate presentation formats.
+
+Native Bullet temporal filters retain the active filter's subject and range as a
+pair; `No filter` placeholders do not supply the subject of another active range.
+Typed configs support one such pair. Multiple active native temporal filters, or
+conflicts with explicit `temporal_column`/`time_range`, are rejected rather than
+silently dropping or moving a predicate.
 
 ### Reporting query dates
 

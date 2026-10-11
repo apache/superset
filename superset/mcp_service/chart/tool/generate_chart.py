@@ -116,7 +116,7 @@ async def generate_chart(  # noqa: C901
     - Set save_chart=True to permanently save the chart
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
-    - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
+    - MUST include chart_type in config (one of: 'xy', 'table', 'pie', 'bullet',
       'sunburst', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', 'mixed_timeseries',
       'handlebars', 'big_number', 'histogram', 'box_plot', 'waterfall',
       'gantt', plus host-gated
@@ -134,6 +134,7 @@ async def generate_chart(  # noqa: C901
     - "bar chart" / "line chart" / "area chart" / "scatter plot"
       -> chart_type='xy', kind='bar'/'line'/'area'/'scatter'
     - "pie chart" / "donut chart" -> chart_type='pie'
+    - "bullet chart" / "progress against target" -> chart_type='bullet'
     - "sunburst" / "hierarchical rings" -> chart_type='sunburst'
     - "table" / "data grid" -> chart_type='table'
     - "pivot table" / "cross-tab" -> chart_type='pivot_table'
@@ -208,8 +209,13 @@ async def generate_chart(  # noqa: C901
         with event_logger.log_context(action="mcp.generate_chart.validation"):
             from superset.mcp_service.chart.validation import ValidationPipeline
 
+            # Preserve omissions, including nested optional controls. A full dump
+            # turns defaults into explicit values before schema revalidation.
+            request_data = request.model_dump(exclude_unset=True)
+            # Typed callers may rely on the model's default discriminator.
+            request_data["config"]["chart_type"] = request.config.chart_type
             validation_result = ValidationPipeline.validate_request_with_warnings(
-                request.model_dump()
+                request_data
             )
 
             if validation_result.is_valid and validation_result.request is not None:

@@ -60,6 +60,8 @@ assists people when migrating to a new version.
   the response size guard does not raise these fixed limits. Oversized results,
   including saved Table exports, return `InvalidQueryResult`; lower row limits,
   filter, select fewer/narrower columns, or aggregate before exporting.
+  Bullet preview numeric format precision is limited to 20 digits; raw data
+  reads do not validate presentation formats.
 
 - MCP `update_chart` requires a complete `config` when changing `dataset_id`
   to a different dataset, for both preview and immediate-save requests. Re-sending

@@ -64,6 +64,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
     BubbleChartConfig,
+    BulletChartConfig,
     ChartConfig,
     ChartError,
     ColumnRef,
@@ -378,6 +379,10 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
         for query_mode in ("raw", "aggregate")
     ] + [
         PieChartConfig(dimension=ColumnRef(name="region"), metric=metric),
+        # Bullet inherits omitted ordering; a replacement states it explicitly.
+        BulletChartConfig(
+            metric=metric, dimensions=[ColumnRef(name="region")], order_by=[]
+        ),
         GaugeChartConfig(metric=metric, groupby=[ColumnRef(name="region")]),
         TreemapChartConfig(
             groupby=[ColumnRef(name="region")],

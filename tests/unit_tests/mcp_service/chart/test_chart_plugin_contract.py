@@ -640,26 +640,52 @@ _LEGACY_TYPE_BRANCHES = (
         "['mixed_timeseries'], 'table': ['table']}"
     ),
     (
-        "superset/mcp_service/chart/tool/get_chart_data.py "
-        "{'echarts_timeseries_line': 'line', 'echarts_timeseries_smooth': "
-        "'line', 'echarts_timeseries_step': 'line', 'echarts_timeseries': "
-        "'line', 'echarts_timeseries_bar': 'bar', 'echarts_area': 'area', "
-        "'echarts_timeseries_scatter': 'scatter', 'mixed_timeseries': 'line',"
-        " 'table': 'table', 'pie': 'pie', 'big_number': 'kpi', "
-        "'big_number_total': 'kpi', 'pop_kpi': 'kpi', 'dist_bar': 'bar', "
-        "'line': 'line', 'area': 'area', 'scatter': 'scatter', 'bubble': "
-        "'bubble', 'bubble_v2': 'bubble', 'treemap_v2': 'treemap', "
-        "'sunburst_v2': 'sunburst', 'heatmap_v2': 'heatmap', 'gauge_chart': "
-        "'gauge', 'funnel': 'funnel', 'histogram': 'histogram', "
-        "'histogram_v2': 'histogram', 'box_plot': 'box_plot', 'world_map': "
-        "'map', 'pivot_table_v2': 'table', 'ag-grid-pivot-table': 'table', "
-        "'waterfall': 'waterfall', 'gantt_chart': 'gantt'}"
+        "superset.mcp_service.chart.preview_utils: {'bullet': {'metric': "
+        "model.metric_field, 'dimensions': model.dimensions, 'ranges': "
+        "model.ranges, 'range_labels': model.range_labels, 'markers': "
+        "model.markers, 'marker_labels': model.marker_labels, 'marker_lines': "
+        "model.marker_lines, 'marker_line_labels': model.marker_line_labels, "
+        "'y_axis_format': model.y_axis_format, 'show_labels': model.show_labels, "
+        "'show_legend': model.show_legend}}"
+    ),
+    "superset.mcp_service.chart.chart_utils: form_data.get('viz_type') != 'bullet'",
+    "superset.mcp_service.chart.chart_utils: viz_type == 'bullet'",
+    "superset.mcp_service.chart.chart_utils: viz_type == 'bullet'",
+    "superset.mcp_service.chart.chart_utils: viz_type == 'bullet'",
+    "superset.mcp_service.chart.chart_utils: viz_type == 'bullet'",
+    (
+        "superset.mcp_service.chart.chart_utils: existing_form_data.get('viz_type') "
+        "!= 'bullet'"
     ),
     (
-        "superset/mcp_service/chart/tool/get_chart_data.py {'line chart': "
-        "'line', 'multi-line chart': 'line', 'area chart': 'area', 'bar "
-        "chart': 'bar', 'scatter plot': 'scatter', 'bubble chart': 'bubble', "
-        "'pie chart': 'pie', 'treemap': 'treemap', 'sunburst chart': "
+        "superset.mcp_service.chart.chart_utils: new_form_data.get('viz_type') "
+        "!= 'bullet'"
+    ),
+    (
+        "superset.mcp_service.chart.chart_utils: isinstance(update_config, "
+        "BulletChartConfig)"
+    ),
+    (
+        "superset/mcp_service/chart/tool/get_chart_data.py {'echarts_timeseries_line': "
+        "'line', 'echarts_timeseries_smooth': 'line', 'echarts_timeseries_step': "
+        "'line', 'echarts_timeseries': 'line', 'echarts_timeseries_bar': "
+        "'bar', 'echarts_area': 'area', 'echarts_timeseries_scatter': "
+        "'scatter', 'mixed_timeseries': 'line', 'table': 'table', 'pie': "
+        "'pie', 'big_number': 'kpi', 'big_number_total': 'kpi', 'pop_kpi': "
+        "'kpi', 'dist_bar': 'bar', 'line': 'line', 'area': 'area', 'scatter': "
+        "'scatter', 'bubble': 'bubble', 'bubble_v2': 'bubble', 'bullet': "
+        "'bullet', 'treemap_v2': 'treemap', 'sunburst_v2': 'sunburst', "
+        "'heatmap_v2': 'heatmap', 'gauge_chart': 'gauge', 'funnel': 'funnel', "
+        "'histogram': 'histogram', 'histogram_v2': 'histogram', 'box_plot': "
+        "'box_plot', 'world_map': 'map', 'pivot_table_v2': 'table', "
+        "'ag-grid-pivot-table': "
+        "'table', 'waterfall': 'waterfall', 'gantt_chart': 'gantt'}"
+    ),
+    (
+        "superset/mcp_service/chart/tool/get_chart_data.py {'line chart': 'line', "
+        "'multi-line chart': 'line', 'area chart': 'area', 'bar chart': 'bar', "
+        "'scatter plot': 'scatter', 'bubble chart': 'bubble', 'bullet chart': "
+        "'bullet', 'pie chart': 'pie', 'treemap': 'treemap', 'sunburst chart': "
         "'sunburst', 'heatmap': 'heatmap', 'big number / KPI': 'kpi', 'gauge "
         "chart': 'gauge', 'histogram': 'histogram', 'table': 'table'}"
     ),
@@ -865,3 +891,26 @@ def test_update_tool_merge_keeps_mapped_state_and_drops_stale_filters(
             assert merged.get(key) == form_data[key], key
     if dataset_rebind:
         assert stale_filter not in merged.get("adhoc_filters", [])
+
+
+def test_every_declared_plugin_class_flag_is_read() -> None:
+    """A contract flag nothing reads would silently ignore plugin overrides."""
+    import superset.mcp_service as mcp_service
+
+    declared = {
+        name
+        for name, annotation in BaseChartPlugin.__annotations__.items()
+        if str(annotation).startswith("ClassVar[")
+    }
+    read: set[str] = set()
+    for source in Path(mcp_service.__file__).parent.rglob("*.py"):
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        read.update(
+            node.attr
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load)
+        )
+    # Declared upstream and consumed by tests and plugin metadata only.
+    unread_upstream = {"requires_compile_check", "requires_config_for_dataset_rebind"}
+    assert declared
+    assert sorted(declared - read - unread_upstream) == []

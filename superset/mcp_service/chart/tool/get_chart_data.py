@@ -66,6 +66,7 @@ from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
     null_data_is_empty,
     query_result_failure,
+    temporal_json_numbers,
     validate_query_result_envelope,
 )
 from superset.mcp_service.chart.response_preflight import (
@@ -127,6 +128,13 @@ _GENERIC_TYPE_MAP: dict[int, str] = {
 }
 
 
+def _data_plugin(viz_type: str | None) -> Any:
+    """Return the plugin that owns chart-data rows for ``viz_type``."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    return plugin_for_viz_type(viz_type)
+
+
 def _normalizes_data_results(form_data: dict[str, Any]) -> bool:
     """Return whether the owning plugin validates get_chart_data rows/exports."""
     from superset.mcp_service.chart.registry import plugin_for_viz_type
@@ -158,6 +166,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "scatter": "scatter",
     "bubble": "bubble",
     "bubble_v2": "bubble",
+    "bullet": "bullet",
     "treemap_v2": "treemap",
     "sunburst_v2": "sunburst",
     "heatmap_v2": "heatmap",
@@ -287,7 +296,7 @@ def _candidates_categorical_numeric(
 
 
 def _candidates_single_numeric(col: DataColumn, row_count: int) -> list[str]:
-    candidates = ["big number / KPI", "gauge chart"]
+    candidates = ["big number / KPI", "bullet chart", "gauge chart"]
     if row_count > 20 and col.unique_count > 10:
         candidates.insert(0, "histogram")
     return candidates
@@ -314,6 +323,7 @@ _CANDIDATE_CATEGORY: dict[str, str] = {
     "bar chart": "bar",
     "scatter plot": "scatter",
     "bubble chart": "bubble",
+    "bullet chart": "bullet",
     "pie chart": "pie",
     "treemap": "treemap",
     "sunburst chart": "sunburst",
@@ -909,6 +919,9 @@ async def _get_chart_data(  # noqa: C901
             if result_error := validate_query_result_envelope(
                 result,
                 none_as_empty=null_data_is_empty(effective_form_data.get("viz_type")),
+                temporal_json_numbers=temporal_json_numbers(
+                    effective_form_data.get("viz_type")
+                ),
             ):
                 return result_error
             if _normalizes_data_results(effective_form_data):
@@ -953,6 +966,13 @@ async def _get_chart_data(  # noqa: C901
             query_result = result["queries"][0]
             data = query_result.get("data", [])
             raw_columns = query_result.get("colnames", [])
+            data_plugin = _data_plugin(effective_form_data.get("viz_type"))
+            if data_plugin is not None:
+                data, rows_error = data_plugin.sanitize_data_rows(
+                    data, effective_form_data
+                )
+                if rows_error is not None:
+                    return rows_error
 
             await ctx.debug(
                 "Query results received: row_count=%s, column_count=%s, "
@@ -965,7 +985,9 @@ async def _get_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if not any(query.get("data") for query in result["queries"]):
+            if not (data_plugin and data_plugin.allows_empty_data_result) and not any(
+                query.get("data") for query in result["queries"]
+            ):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart_id,))
                 logger.warning(
                     "get_chart_data: no data in query results for chart_id=%s",
@@ -1264,7 +1286,9 @@ async def _query_from_form_data(  # noqa: C901
             result = command.run()
 
         if result_error := validate_query_result_envelope(
-            result, none_as_empty=null_data_is_empty(viz_type)
+            result,
+            none_as_empty=null_data_is_empty(viz_type),
+            temporal_json_numbers=temporal_json_numbers(viz_type),
         ):
             return result_error
         if _normalizes_data_results(form_data):
@@ -1301,8 +1325,15 @@ async def _query_from_form_data(  # noqa: C901
         query_result = result["queries"][0]
         data = query_result.get("data", [])
         raw_columns = query_result.get("colnames", [])
+        data_plugin = _data_plugin(viz_type)
+        if data_plugin is not None:
+            data, rows_error = data_plugin.sanitize_data_rows(data, form_data)
+            if rows_error is not None:
+                return rows_error
 
-        if not any(query.get("data") for query in result["queries"]):
+        if not (data_plugin and data_plugin.allows_empty_data_result) and not any(
+            query.get("data") for query in result["queries"]
+        ):
             logger.warning(
                 "get_chart_data: no data for unsaved chart (form_data_key=%s)",
                 request.form_data_key,
@@ -1400,7 +1431,9 @@ def _export_data_as_csv(
     # Create CSV content
     output = io.StringIO()
 
-    if data and columns:
+    # An empty result still exports its header row (for example a Bullet
+    # chart, whose empty result is valid).
+    if columns:
         writer = csv.DictWriter(output, fieldnames=columns)
         writer.writeheader()
 
@@ -1479,7 +1512,9 @@ def _create_excel_with_openpyxl(
     ws = wb.active
     ws.title = chart.slice_name[:31] if chart.slice_name else "Chart Data"
 
-    if data and columns:
+    # An empty result still exports its header row (for example a Bullet
+    # chart, whose empty result is valid).
+    if columns:
         _write_excel_headers(ws, columns)
         _write_excel_data(ws, data, columns, temporal_columns)
 
@@ -1512,6 +1547,7 @@ _EXCEL_MIN_DATETIME = dt.datetime.combine(_EXCEL_MIN_DATE, dt.time.min)
 # supported day or time cannot roll over past Excel's range.
 _EXCEL_MAX_TIME = dt.time(23, 59, 59, 999000)
 _EXCEL_MAX_DATETIME = dt.datetime.combine(dt.date.max, _EXCEL_MAX_TIME)
+_EXCEL_EPOCH = dt.datetime(1970, 1, 1)
 
 
 def _temporal_result_columns(query_result: Any) -> frozenset[str]:
@@ -1532,10 +1568,14 @@ def _excel_temporal_value(value: Any) -> Any:
     projection. Excel stores dates as typed serial values, so temporal columns
     are restored here. Excel cannot store offsets; like the Superset Excel
     export, aware values keep their wall-clock time and drop the offset.
-    Unparseable text, and values outside Excel's 1900 date system (before
-    1900-01-01, or rounding past its final supported day or time), are
+    Plugins that read temporals as Chart Data numbers (for example Bullet)
+    carry epoch milliseconds instead; those are restored as naive UTC
+    datetimes. Unparseable text, and values outside Excel's 1900 date system
+    (before 1900-01-01, or rounding past its final supported day or time), are
     written unchanged.
     """
+    if type(value) is int or type(value) is float:
+        return _excel_epoch_ms_value(value)
     if type(value) is not str:
         return value
     try:
@@ -1553,6 +1593,19 @@ def _excel_temporal_value(value: Any) -> Any:
     if timestamp.tzinfo is not None:
         timestamp = timestamp.tz_localize(None)
     moment = timestamp.to_pydatetime(warn=False)
+    if not _EXCEL_MIN_DATETIME <= moment <= _EXCEL_MAX_DATETIME:
+        return value
+    return moment
+
+
+def _excel_epoch_ms_value(value: int | float) -> Any:
+    """Restore an epoch-millisecond temporal cell as an Excel datetime."""
+    if not math.isfinite(value):
+        return value
+    try:
+        moment = _EXCEL_EPOCH + dt.timedelta(milliseconds=value)
+    except OverflowError:
+        return value
     if not _EXCEL_MIN_DATETIME <= moment <= _EXCEL_MAX_DATETIME:
         return value
     return moment
@@ -1627,7 +1680,9 @@ def _create_excel_with_xlsxwriter(
     sheet_name = chart.slice_name[:31] if chart.slice_name else "Chart Data"
     worksheet = workbook.add_worksheet(sheet_name)
 
-    if data and columns:
+    # An empty result still exports its header row (for example a Bullet
+    # chart, whose empty result is valid).
+    if columns:
         # xlsxwriter writes unformatted serial numbers for temporal values, so
         # give each Python temporal type the date format openpyxl applies.
         temporal_formats = {

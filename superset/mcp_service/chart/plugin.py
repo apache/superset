@@ -293,6 +293,9 @@ class ChartTypePlugin(Protocol):
     #: Whether an empty result is a valid, renderable preview.
     allows_empty_result: ClassVar[bool]
 
+    #: Whether get_chart_data returns a successful response for zero rows.
+    allows_empty_data_result: ClassVar[bool]
+
     #: Whether saved-chart Vega-Lite previews take the requested width,
     #: height and chart description instead of the spec's own frame.
     resizes_saved_preview: ClassVar[bool]
@@ -314,6 +317,20 @@ class ChartTypePlugin(Protocol):
     invalid_result_error_code: ClassVar[str]
     invalid_result_message: ClassVar[str]
     invalid_result_suggestions: ClassVar[tuple[str, ...]]
+
+    #: Whether chart-data consumers convert temporal and duration result
+    #: values to the JSON numbers and text the frontend ``transformProps``
+    #: receives, instead of the generic scalar serialization.
+    temporal_json_numbers: ClassVar[bool]
+
+    #: Whether an explicit ``time_range`` sets the comparator of the generated
+    #: dashboard temporal filter instead of being ignored by the binding.
+    binds_time_range_to_temporal_filter: ClassVar[bool]
+
+    #: Whether the compile check's validation tier also resolves every column
+    #: and saved-metric reference of the canonical native QueryObjects (saved
+    #: native roles the typed config does not model) against the dataset.
+    validates_native_references: ClassVar[bool]
 
     def resolve_query_fields(
         self, form_data: Mapping[str, Any], viz_type: str
@@ -457,13 +474,22 @@ class ChartTypePlugin(Protocol):
         form_data: Mapping[str, Any],
         dataset_id: int | str | None,
         dataset_context: Callable[[], Any] | None = None,
+        update_config: Any = None,
     ) -> Any | None:
         """Validate the final merged update state.
 
-        Return the config the merged state implies (replacing the request
+        ``update_config`` is the request config (None for a dataset-only
+        update), so a plugin can tell explicitly supplied controls from saved
+        ones. Return the config the merged state implies (replacing the request
         config for compile and persistence), or None to keep the request
         config. Raise ``ValueError`` when the merged state is invalid.
         """
+        ...
+
+    def sanitize_data_rows(
+        self, data: list[Any], form_data: Mapping[str, Any]
+    ) -> tuple[list[Any], ChartError | None]:
+        """Return the rows get_chart_data (JSON, CSV, XLSX) exposes, or an error."""
         ...
 
 
@@ -492,12 +518,16 @@ class BaseChartPlugin:
     unbound_form_data_is_rebind: ClassVar[bool] = False
     normalize_data_results: ClassVar[bool] = False
     allows_empty_result: ClassVar[bool] = False
+    allows_empty_data_result: ClassVar[bool] = False
     resizes_saved_preview: ClassVar[bool] = False
     supports_column_append: ClassVar[bool] = False
     preview_note: ClassVar[str | None] = None
     null_data_is_empty: ClassVar[bool] = True
     invalid_result_error_code: ClassVar[str] = "INVALID_CHART_RESULT"
     invalid_result_message: ClassVar[str] = "Chart query returned invalid values"
+    temporal_json_numbers: ClassVar[bool] = False
+    binds_time_range_to_temporal_filter: ClassVar[bool] = False
+    validates_native_references: ClassVar[bool] = False
     invalid_result_suggestions: ClassVar[tuple[str, ...]] = (
         "Use a numeric-producing metric",
         "Check the metric alias and SQL expression",
@@ -665,8 +695,14 @@ class BaseChartPlugin:
         form_data: Mapping[str, Any],
         dataset_id: int | str | None,
         dataset_context: Callable[[], Any] | None = None,
+        update_config: Any = None,
     ) -> Any | None:
         return None
+
+    def sanitize_data_rows(
+        self, data: list[Any], form_data: Mapping[str, Any]
+    ) -> tuple[list[Any], ChartError | None]:
+        return data, None
 
     @staticmethod
     def _with_context(what: str, context: str | None) -> str:
