@@ -125,6 +125,7 @@ class ValidatedQueryObject(QueryObject):
     filter: list[ValidatedQueryObjectFilterClause]  # type: ignore[assignment]
     series_columns: Sequence[str]  # type: ignore[assignment]
     series_limit_metric: str | None
+    metrics: list[str] | None  # type: ignore[assignment]
 
 
 @dataclass(frozen=True)
