@@ -69,3 +69,32 @@ def test_cockroachdb_properties() -> None:
     assert issubclass(CockroachDbEngineSpec, PostgresEngineSpec)
     assert CockroachDbEngineSpec._extended_aggregations == {}
 
+
+def test_cockroachdb_metadata() -> None:
+    from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
+
+    metadata = CockroachDbEngineSpec.metadata
+    assert "CockroachDB is a distributed SQL database" in metadata["description"]
+    assert metadata["logo"] == "cockroachdb.png"
+    assert "sqlalchemy-cockroachdb" in metadata["pypi_packages"]
+    assert metadata["default_port"] == 26257
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "'2019-01-02'"),
+        ("DateTime", "'2019-01-02 03:04:05'"),
+        ("UnknownType", None),
+    ],
+)
+def test_cockroachdb_convert_dttm(
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,  # noqa: F811
+) -> None:
+    from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
+
+    assert CockroachDbEngineSpec.convert_dttm(target_type, dttm) == expected_result
+
+
