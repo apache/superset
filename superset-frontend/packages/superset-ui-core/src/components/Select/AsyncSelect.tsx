@@ -375,6 +375,14 @@ const AsyncSelect = forwardRef(
 
     fullSelectOptionsRef.current = fullSelectOptions;
 
+    const isRedundantNewOption = (
+  opt: AntdLabeledValue,
+  incomingData: SelectOptionsType,
+) =>
+  isNewOption(opt) &&
+  (hasOption(opt.label as V, incomingData, true) ||
+    hasOption(opt.value as V, incomingData, true));
+
     const mergeData = useCallback(
       (data: SelectOptionsType) => {
         let mergedData: SelectOptionsType = [];
@@ -388,11 +396,7 @@ const AsyncSelect = forwardRef(
                 if (dataValues.has(previousOption.value)) {
                   return false;
                 }
-                if (
-                  isNewOption(previousOption) &&
-                  (hasOption(previousOption.label as V, data, true) ||
-                    hasOption(previousOption.value as V, data, true))
-                ) {
+                if (isRedundantNewOption(previousOption, data)) {
                   return false;
                 }
                 return true;
@@ -496,8 +500,7 @@ const AsyncSelect = forwardRef(
                   opt =>
                     isNewOption(opt) &&
                     !dataValues.has(opt.value) &&
-                    !hasOption(opt.label as V, data, true) &&
-                    !hasOption(opt.value as V, data, true),
+                    !isRedundantNewOption(opt, data),
                 );
                 return preservedNew
                   .concat(data)
