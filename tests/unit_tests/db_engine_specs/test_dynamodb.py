@@ -124,3 +124,20 @@ def test_convert_dttm_preserves_timezone_offset() -> None:
         )
         == "'2019-01-02T04:00:00+00:00'"
     )
+
+
+def test_dynamodb_properties() -> None:
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+
+    assert DynamoDBEngineSpec.engine == "dynamodb"
+    assert DynamoDBEngineSpec.engine_name == "Amazon DynamoDB"
+
+
+def test_dynamodb_metadata() -> None:
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+
+    metadata = DynamoDBEngineSpec.metadata
+    assert "Amazon DynamoDB is a serverless NoSQL database" in metadata["description"]
+    assert metadata["logo"] == "aws.png"
+    assert "pydynamodb" in metadata["pypi_packages"]
+
