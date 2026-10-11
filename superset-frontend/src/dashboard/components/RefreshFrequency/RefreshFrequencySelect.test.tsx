@@ -17,7 +17,8 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { render, screen } from 'spec/helpers/testing-library';
+import { useState } from 'react';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import {
   CUSTOM_REFRESH_FREQUENCY,
   getRefreshFrequencyOptions,
@@ -212,4 +213,89 @@ test('the hydrated dashboard config wins over the bootstrapped one', () => {
   expect(
     screen.queryByRole('radio', { name: '1 hour' }),
   ).not.toBeInTheDocument();
+});
+
+// A parent that feeds every emitted value straight back, the way
+// PropertiesModal and RefreshIntervalModal hold the selection in their own
+// state.
+function ControlledSelect({ initialValue }: { initialValue: number }) {
+  const [value, setValue] = useState(initialValue);
+  return <RefreshFrequencySelect value={value} onChange={setValue} />;
+}
+
+test('Custom stays selected when the emitted value collides with a preset', async () => {
+  // Regression: an interval list containing 1 (e.g. [1, '1 second']) made the
+  // first Custom click emit onChange(1), the parent echo that back as value=1,
+  // and the sync effect re-derive the selection from preset membership --
+  // landing on the 1 second preset with a cleared, disabled input.
+  render(<ControlledSelect initialValue={0} />, {
+    useRedux: true,
+    initialState: {
+      common: {
+        conf: {
+          DASHBOARD_AUTO_REFRESH_INTERVALS: [
+            [0, "Don't refresh"],
+            [1, '1 second'],
+            [600, '10 minutes'],
+          ],
+        },
+      },
+    },
+  });
+
+  await userEvent.click(screen.getByRole('radio', { name: /Custom/i }));
+
+  expect(screen.getByRole('radio', { name: '1 second' })).not.toBeChecked();
+  expect(screen.getByRole('radio', { name: /Custom/i })).toBeChecked();
+
+  const customInput = screen.getByRole('spinbutton');
+  expect(customInput).toBeEnabled();
+  expect(customInput).toHaveValue(1);
+});
+
+test('typing a preset-colliding value into the Custom input keeps Custom selected', async () => {
+  render(<ControlledSelect initialValue={0} />, {
+    useRedux: true,
+    initialState: {
+      common: {
+        conf: {
+          DASHBOARD_AUTO_REFRESH_INTERVALS: [
+            [0, "Don't refresh"],
+            [600, '10 minutes'],
+          ],
+        },
+      },
+    },
+  });
+
+  await userEvent.click(screen.getByRole('radio', { name: /Custom/i }));
+  await userEvent.type(screen.getByRole('spinbutton'), '{backspace}600');
+
+  expect(screen.getByRole('radio', { name: /Custom/i })).toBeChecked();
+  expect(screen.getByRole('radio', { name: '10 minutes' })).not.toBeChecked();
+  expect(screen.getByRole('spinbutton')).toHaveValue(600);
+});
+
+test('selecting a preset still snaps selection to that preset', async () => {
+  render(<ControlledSelect initialValue={0} />, {
+    useRedux: true,
+    initialState: {
+      common: {
+        conf: {
+          DASHBOARD_AUTO_REFRESH_INTERVALS: [
+            [0, "Don't refresh"],
+            [1, '1 second'],
+            [600, '10 minutes'],
+          ],
+        },
+      },
+    },
+  });
+
+  await userEvent.click(screen.getByRole('radio', { name: /Custom/i }));
+  await userEvent.click(screen.getByRole('radio', { name: '1 second' }));
+
+  expect(screen.getByRole('radio', { name: '1 second' })).toBeChecked();
+  expect(screen.getByRole('radio', { name: /Custom/i })).not.toBeChecked();
+  expect(screen.getByRole('spinbutton')).toBeDisabled();
 });

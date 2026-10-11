@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -191,16 +191,34 @@ export const RefreshFrequencySelect = ({
     getCustomValue(value, options),
   );
 
+  // Last value emitted by the Custom controls themselves. When the parent
+  // echoes such a value back, the change originated from Custom even if the
+  // value coincides with a configured preset (e.g. an interval list that
+  // includes 1), so Custom must stay selected instead of snapping to the
+  // colliding preset.
+  const lastCustomEmittedValue = useRef<number | null>(null);
+
   useEffect(() => {
-    const selection = isPresetValue(value, options)
-      ? value
-      : CUSTOM_REFRESH_FREQUENCY;
+    const cameFromCustomControls =
+      lastCustomEmittedValue.current !== null &&
+      lastCustomEmittedValue.current === value;
+    const selection =
+      !cameFromCustomControls && isPresetValue(value, options)
+        ? value
+        : CUSTOM_REFRESH_FREQUENCY;
     setRadioSelection(selection);
     setCustomValue(
       selection === CUSTOM_REFRESH_FREQUENCY
-        ? getCustomValue(value, options)
+        ? // getCustomValue would blank a value that collides with a preset;
+          // a custom-originated value is the input's own text.
+          cameFromCustomControls
+          ? value.toString()
+          : getCustomValue(value, options)
         : '',
     );
+    if (!cameFromCustomControls) {
+      lastCustomEmittedValue.current = null;
+    }
   }, [value, options]);
 
   const handleRadioChange = (event: RadioChangeEvent) => {
@@ -210,11 +228,13 @@ export const RefreshFrequencySelect = ({
     if (selectedValue === CUSTOM_REFRESH_FREQUENCY) {
       // Custom selected - use current custom value or minimum
       const numValue = parseInt(customValue, 10) || MINIMUM_REFRESH_INTERVAL;
+      lastCustomEmittedValue.current = numValue;
       onChange(numValue);
       if (!customValue) {
         setCustomValue(MINIMUM_REFRESH_INTERVAL.toString());
       }
     } else {
+      lastCustomEmittedValue.current = null;
       onChange(selectedValue);
     }
   };
@@ -225,6 +245,7 @@ export const RefreshFrequencySelect = ({
 
     const numValue = parseInt(inputValue, 10);
     if (numValue >= MINIMUM_REFRESH_INTERVAL) {
+      lastCustomEmittedValue.current = numValue;
       onChange(numValue);
     }
   };
