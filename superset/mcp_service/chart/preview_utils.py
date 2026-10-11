@@ -275,11 +275,18 @@ def _generate_ascii_preview_from_data(
         renderer = _GENERIC_ASCII_RENDERERS.get(viz_type, _generate_safe_ascii_table)
         content = renderer(data)
 
-    content = "\n".join(
-        _truncate_display_line(line, width) for line in content.splitlines()[:height]
-    )
     return ASCIIPreview(
-        ascii_content=content, width=width, height=height, supports_color=False
+        ascii_content=fit_ascii_frame(content, width, height),
+        width=width,
+        height=height,
+        supports_color=False,
+    )
+
+
+def fit_ascii_frame(content: str, width: int, height: int) -> str:
+    """Clip rendered ASCII text to the reported ``width`` x ``height`` frame."""
+    return "\n".join(
+        _truncate_display_line(line, width) for line in content.splitlines()[:height]
     )
 
 

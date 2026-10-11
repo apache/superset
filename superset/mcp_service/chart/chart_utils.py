@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
 from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
+    _get_known_fields,
     BigNumberChartConfig,
     BoxPlotChartConfig,
     BubbleChartConfig,
@@ -4118,6 +4119,16 @@ def merge_update_form_data(  # noqa: C901
         new_form_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
 
 
+# The shared preservation registry may carry envelope, presentation, and time
+# keys over from another visualization. Bullet does not model them, so they are
+# opaque persisted state rather than misspelled typed fields.
+_BULLET_UNMODELED_PRESERVED_KEYS = (
+    FORM_DATA_UPDATE_PRESERVE_KEYS["envelope"]
+    | FORM_DATA_UPDATE_PRESERVE_KEYS["presentation"]
+    | FORM_DATA_UPDATE_PRESERVE_KEYS["time"]
+) - _get_known_fields(BulletChartConfig)
+
+
 def validate_merged_bullet_form_data(
     form_data: Mapping[str, Any],
     update_config: ChartConfig | None = None,
@@ -4136,6 +4147,8 @@ def validate_merged_bullet_form_data(
     validation_data = dict(form_data)
     for native_query_key in ("url_params", "extra_form_data", "extra_filters"):
         validation_data.pop(native_query_key, None)
+    for preserved_key in _BULLET_UNMODELED_PRESERVED_KEYS:
+        validation_data.pop(preserved_key, None)
     if not validation_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
         # A null marker records an explicit subject clear with no binding to
         # validate; it is not an authored physical column.

@@ -1296,6 +1296,86 @@ async def test_saved_bullet_native_formatter_does_not_block_data_or_export(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("excel_engine", ["openpyxl", "xlsxwriter"])
+async def test_saved_bullet_excel_restores_epoch_temporal_cells_as_dates(
+    mcp_server: Any,
+    mock_auth: Any,
+    excel_engine: str,
+) -> None:
+    """Bullet temporals arrive as epoch milliseconds; Excel needs typed dates."""
+    import base64
+    import io
+
+    from openpyxl import load_workbook
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["order_date"],
+    }
+    chart = SimpleNamespace(
+        id=24,
+        slice_name="Dated Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+    rows = [
+        {"order_date": pd.Timestamp("2024-01-02"), "Revenue": 7},
+        {"order_date": pd.Timestamp("2024-01-03 04:05:06.789"), "Revenue": 8},
+        {"order_date": None, "Revenue": 9},
+    ]
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch.object(
+            module,
+            "_create_excel_with_openpyxl",
+            side_effect=ImportError if excel_engine == "xlsxwriter" else None,
+            wraps=module._create_excel_with_openpyxl,
+        ),
+    ):
+        command.return_value.run.return_value = {
+            "queries": [
+                {
+                    "data": rows,
+                    "colnames": ["order_date", "Revenue"],
+                    "coltypes": [GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+                    "rowcount": len(rows),
+                }
+            ]
+        }
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 24, "format": "excel"}},
+            )
+    payload = json.loads(result.content[0].text)
+    assert "error_type" not in payload, payload
+    workbook = load_workbook(io.BytesIO(base64.b64decode(payload["excel_data"])))
+    assert list(workbook.active.values) == [
+        ("order_date", "Revenue"),
+        (datetime(2024, 1, 2), 7),
+        (datetime(2024, 1, 3, 4, 5, 6, 789000), 8),
+        (None, 9),
+    ]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
 async def test_bullet_numeric_and_temporal_categories_reach_real_mcp_entrypoint(
     format_: str,
@@ -2160,3 +2240,98 @@ def test_build_query_dicts_preserves_native_orderby_for_single_query(monkeypatch
     assert query["columns"] == ["region"]
     assert query["metrics"] == ["SUM(revenue)"]
     assert query["orderby"] == orderby
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_ascii_preview_fits_requested_frame() -> None:
+    """The saved preview clips plugin output to the width/height it reports."""
+    from contextlib import nullcontext
+
+    from superset.mcp_service.app import mcp
+
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {"viz_type": "bullet", "metric": "Revenue", "groupby": ["Region"]}
+    chart = SimpleNamespace(
+        id=123,
+        slice_name="Framed Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(form_data),
+    )
+    rows = [{"Region": f"Region {index}", "Revenue": index} for index in range(8)]
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Region", "Revenue"],
+                        "coltypes": [GenericDataType.STRING, GenericDataType.NUMERIC],
+                    }
+                ]
+            }
+
+    query_context = SimpleNamespace(
+        form_data={},
+        queries=[SimpleNamespace(metrics=["Revenue"], columns=["Region"])],
+    )
+    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch.object(preview_module, "find_chart_by_identifier", return_value=chart),
+        patch.object(preview_module.db.session, "refresh", return_value=None),
+        patch.object(
+            preview_module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(
+            preview_module.event_logger,
+            "log_context",
+            side_effect=lambda **_kwargs: nullcontext(),
+        ),
+        patch.object(
+            preview_module,
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch(
+            "superset.charts.data.form_data.set_query_context_form_data",
+            return_value=None,
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+        patch.object(
+            preview_module, "get_superset_base_url", return_value="http://localhost"
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_preview",
+                {
+                    "request": {
+                        "id": 123,
+                        "format": "ascii",
+                        "ascii_width": 40,
+                        "ascii_height": 5,
+                    }
+                },
+            )
+
+    payload = utils_json.loads(result.content[0].text)
+    content = payload["content"]
+    assert (content["width"], content["height"]) == (40, 5)
+    lines = content["ascii_content"].splitlines()
+    assert 0 < len(lines) <= 5
+    assert all(len(line) <= 40 for line in lines)

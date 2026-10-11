@@ -1540,6 +1540,7 @@ _EXCEL_MIN_DATETIME = dt.datetime.combine(_EXCEL_MIN_DATE, dt.time.min)
 # supported day or time cannot roll over past Excel's range.
 _EXCEL_MAX_TIME = dt.time(23, 59, 59, 999000)
 _EXCEL_MAX_DATETIME = dt.datetime.combine(dt.date.max, _EXCEL_MAX_TIME)
+_EXCEL_EPOCH = dt.datetime(1970, 1, 1)
 
 
 def _temporal_result_columns(query_result: Any) -> frozenset[str]:
@@ -1560,10 +1561,14 @@ def _excel_temporal_value(value: Any) -> Any:
     projection. Excel stores dates as typed serial values, so temporal columns
     are restored here. Excel cannot store offsets; like the Superset Excel
     export, aware values keep their wall-clock time and drop the offset.
-    Unparseable text, and values outside Excel's 1900 date system (before
-    1900-01-01, or rounding past its final supported day or time), are
+    Plugins that read temporals as Chart Data numbers (for example Bullet)
+    carry epoch milliseconds instead; those are restored as naive UTC
+    datetimes. Unparseable text, and values outside Excel's 1900 date system
+    (before 1900-01-01, or rounding past its final supported day or time), are
     written unchanged.
     """
+    if type(value) is int or type(value) is float:
+        return _excel_epoch_ms_value(value)
     if type(value) is not str:
         return value
     try:
@@ -1581,6 +1586,19 @@ def _excel_temporal_value(value: Any) -> Any:
     if timestamp.tzinfo is not None:
         timestamp = timestamp.tz_localize(None)
     moment = timestamp.to_pydatetime(warn=False)
+    if not _EXCEL_MIN_DATETIME <= moment <= _EXCEL_MAX_DATETIME:
+        return value
+    return moment
+
+
+def _excel_epoch_ms_value(value: int | float) -> Any:
+    """Restore an epoch-millisecond temporal cell as an Excel datetime."""
+    if not math.isfinite(value):
+        return value
+    try:
+        moment = _EXCEL_EPOCH + dt.timedelta(milliseconds=value)
+    except OverflowError:
+        return value
     if not _EXCEL_MIN_DATETIME <= moment <= _EXCEL_MAX_DATETIME:
         return value
     return moment

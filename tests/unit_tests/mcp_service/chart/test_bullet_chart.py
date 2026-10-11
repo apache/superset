@@ -3092,6 +3092,56 @@ def test_bullet_update_paths_preserve_opaque_filters_byte_for_byte(
     assert validate_merged_bullet_form_data(merged, config) is not None
 
 
+@pytest.mark.parametrize("preview_first", [False, True])
+def test_bullet_update_from_other_viz_ignores_preserved_unmodeled_keys(
+    preview_first: bool,
+) -> None:
+    """Registry-preserved presentation/time keys are not typed Bullet input."""
+    existing = {
+        "viz_type": "pie",
+        "datasource": "7__table",
+        "metric": "count",
+        "groupby": ["region"],
+        "color_scheme": "bnbColors",
+        "number_format": ",d",
+        "legendOrientation": "top",
+        "date_format": "smart_date",
+        "currency_format": {"symbol": "USD", "symbolPosition": "prefix"},
+        "linear_color_scheme": "blue_white_yellow",
+        "time_grain_sqla": "P1D",
+        "url_params": {},
+        "slice_id": 9,
+    }
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Pie",
+        params=__import__("json").dumps(existing),
+    )
+    config = BulletChartConfig(metric=_simple_metric("Revenue"))
+    request = UpdateChartRequest(identifier=9, config=config)
+    with patch(
+        "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+        return_value=_orm_dataset(),
+    ):
+        if preview_first:
+            merged = _build_preview_form_data(request, chart, config)
+            assert isinstance(merged, dict)
+        else:
+            payload = _build_update_payload(request, chart, config)
+            assert isinstance(payload, dict)
+            merged = __import__("json").loads(payload["params"])
+
+    assert merged["color_scheme"] == "bnbColors"
+    assert merged["legendOrientation"] == "top"
+    validated = validate_merged_bullet_form_data(merged, config)
+    assert validated is not None
+    assert validated.metric.name == "Revenue"
+    # Unrelated typos remain rejected rather than silently dropped.
+    with pytest.raises(ValidationError, match="Unknown field 'colour_scheme'"):
+        validate_merged_bullet_form_data({**merged, "colour_scheme": "x"}, config)
+
+
 def test_bullet_filter_provenance_keeps_strict_replacement_validation() -> None:
     existing = _saved_bullet_with_opaque_filters()
     config = BulletChartConfig(metric=_simple_metric(), filters=[])

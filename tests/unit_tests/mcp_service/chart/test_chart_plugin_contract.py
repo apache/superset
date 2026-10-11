@@ -891,3 +891,26 @@ def test_update_tool_merge_keeps_mapped_state_and_drops_stale_filters(
             assert merged.get(key) == form_data[key], key
     if dataset_rebind:
         assert stale_filter not in merged.get("adhoc_filters", [])
+
+
+def test_every_declared_plugin_class_flag_is_read() -> None:
+    """A contract flag nothing reads would silently ignore plugin overrides."""
+    import superset.mcp_service as mcp_service
+
+    declared = {
+        name
+        for name, annotation in BaseChartPlugin.__annotations__.items()
+        if str(annotation).startswith("ClassVar[")
+    }
+    read: set[str] = set()
+    for source in Path(mcp_service.__file__).parent.rglob("*.py"):
+        tree = ast.parse(source.read_text(encoding="utf-8"))
+        read.update(
+            node.attr
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load)
+        )
+    # Declared upstream and consumed by tests and plugin metadata only.
+    unread_upstream = {"requires_compile_check", "requires_config_for_dataset_rebind"}
+    assert declared
+    assert sorted(declared - read - unread_upstream) == []

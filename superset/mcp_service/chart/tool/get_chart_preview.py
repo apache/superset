@@ -42,6 +42,7 @@ from superset.mcp_service.chart.chart_helpers import (
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.preview_utils import (
     fallback_vega_lite_preview,
+    fit_ascii_frame,
     plugin_ascii_preview,
     plugin_table_preview,
     plugin_unsupported_preview,
@@ -335,6 +336,14 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 self.request.ascii_width or 80,
                 self.request.ascii_height or 20,
             )
+            if isinstance(ascii_chart, str):
+                # Plugin renderers may ignore the frame; clip like the unsaved
+                # path so the reported width/height describe the content.
+                ascii_chart = fit_ascii_frame(
+                    ascii_chart,
+                    self.request.ascii_width or 80,
+                    self.request.ascii_height or 20,
+                )
             if ascii_chart is None:
                 ascii_chart = generate_ascii_chart(
                     data,

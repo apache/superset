@@ -323,10 +323,6 @@ class ChartTypePlugin(Protocol):
     #: receives, instead of the generic scalar serialization.
     temporal_json_numbers: ClassVar[bool]
 
-    #: Whether raw get_chart_data rows and CSV/XLSX exports keep exact
-    #: non-finite floats (JSON responses still sanitize them to null).
-    preserve_nonfinite_floats: ClassVar[bool]
-
     #: Whether an explicit ``time_range`` sets the comparator of the generated
     #: dashboard temporal filter instead of being ignored by the binding.
     binds_time_range_to_temporal_filter: ClassVar[bool]
@@ -530,7 +526,6 @@ class BaseChartPlugin:
     invalid_result_error_code: ClassVar[str] = "INVALID_CHART_RESULT"
     invalid_result_message: ClassVar[str] = "Chart query returned invalid values"
     temporal_json_numbers: ClassVar[bool] = False
-    preserve_nonfinite_floats: ClassVar[bool] = False
     binds_time_range_to_temporal_filter: ClassVar[bool] = False
     validates_native_references: ClassVar[bool] = False
     invalid_result_suggestions: ClassVar[tuple[str, ...]] = (
