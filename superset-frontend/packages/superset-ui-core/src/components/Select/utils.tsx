@@ -75,12 +75,26 @@ export function getOption(
   const optionsArray = ensureIsArray(options);
   const targetValue = isObject(value) ? value.value : value;
   const targetLabel = isObject(value) ? value.label : value;
-  return optionsArray.find(
-    x =>
+  for (const x of optionsArray) {
+    if (
       isEqual(x, targetValue, 'value') ||
       (checkLabel &&
-        (isEqual(x, targetLabel, 'label') || isEqual(x, targetValue, 'label'))),
-  );
+        (isEqual(x, targetLabel, 'label') || isEqual(x, targetValue, 'label')))
+    ) {
+      return x;
+    }
+    if (isObject(x) && Array.isArray((x as any).options)) {
+      const child = getOption(
+        value,
+        (x as any).options as (V | CustomLabeledValue)[],
+        checkLabel,
+      );
+      if (child !== undefined) {
+        return child;
+      }
+    }
+  }
+  return undefined;
 }
 
 export function hasOption(
