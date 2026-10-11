@@ -263,6 +263,14 @@ CAP_ATTR_TO_OUTPUT_FIELD = {
     'supports_file_upload': 'supports_file_upload',
 }
 
+# Extended aggregate functions (MEDIAN/STDDEV_SAMP/VAR_SAMP) that engines opt
+# into individually via \`_extended_aggregations\` (see
+# \`BaseEngineSpec.get_extended_aggregation_func\`). Mirrors
+# \`superset.utils.core.EXTENDED_METRIC_AGGREGATES\`; the fallback generator
+# can't import Superset code without its dependencies, so keep this in sync
+# by hand.
+EXTENDED_AGGREGATES = ('MEDIAN', 'STDDEV_SAMP', 'VAR_SAMP')
+
 # Methods that indicate a capability when overridden by a non-BaseEngineSpec class.
 # Mirrors the has_custom_method checks in superset/db_engine_specs/lib.py.
 # cancel_query / has_implicit_cancel -> query_cancelation
@@ -356,6 +364,11 @@ for filename in sorted(os.listdir(specs_dir)):
             # rather than inherit a parent default that would be wrong.
             unresolved_cap_attrs = set()
             direct_methods = set()  # capability methods defined directly in this class
+            # Aggregate names from this class's own \`_extended_aggregations\`
+            # dict, or None if this class doesn't define one itself (falls
+            # back to whatever the nearest ancestor defines, same as a plain
+            # Python class-attribute lookup).
+            ext_agg_keys = None
 
             for item in node.body:
                 if isinstance(item, ast.Assign):
@@ -379,6 +392,22 @@ for filename in sorted(os.listdir(specs_dir)):
                             else:
                                 # Unevaluable expression — defer to JS fallback.
                                 unresolved_cap_attrs.add(target.id)
+                elif isinstance(item, ast.AnnAssign):
+                    # \`_extended_aggregations\` is declared with a type
+                    # annotation (\`dict[str, Callable[...]] = {...}\`), so it's
+                    # an AnnAssign, not a plain Assign. Only the dict's keys
+                    # are needed (whether an aggregate is opted into at all),
+                    # not the callable values, which the AST can't evaluate.
+                    if (
+                        isinstance(item.target, ast.Name)
+                        and item.target.id == '_extended_aggregations'
+                        and isinstance(item.value, ast.Dict)
+                    ):
+                        ext_agg_keys = {
+                            k.value
+                            for k in item.value.keys
+                            if isinstance(k, ast.Constant) and isinstance(k.value, str)
+                        }
                 elif isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     if item.name in CAP_METHODS:
                         # has_implicit_cancel is special: diagnose() uses the
@@ -413,6 +442,7 @@ for filename in sorted(os.listdir(specs_dir)):
                 'cap_attrs': cap_attrs,
                 'unresolved_cap_attrs': unresolved_cap_attrs,
                 'direct_methods': direct_methods,
+                'ext_agg_keys': ext_agg_keys,
             }
     except Exception as e:
         errors.append(f"{filename}: {str(e)}")
@@ -502,6 +532,35 @@ def get_resolved_caps(class_name, visited=None):
 
     return attr_values, unresolved, resolved_methods
 
+def resolve_extended_aggregations(class_name, visited=None):
+    """
+    Resolve the set of extended aggregates (MEDIAN/STDDEV_SAMP/VAR_SAMP) a
+    class supports via \`_extended_aggregations\`.
+
+    Unlike the cap flags above, this is a single dict class attribute:
+    Python attribute lookup takes the nearest ancestor (including the class
+    itself) that defines it whole; it does not merge dicts across ancestors.
+    """
+    if visited is None:
+        visited = set()
+    if class_name in visited:
+        return set()
+    visited.add(class_name)
+
+    info = class_info.get(class_name)
+    if not info:
+        return set()
+
+    if info['ext_agg_keys'] is not None:
+        return set(info['ext_agg_keys'])
+
+    for base_name in info['bases']:
+        result = resolve_extended_aggregations(base_name, visited.copy())
+        if result:
+            return result
+
+    return set()
+
 for class_name, info in class_info.items():
     # Skip base classes and mixins
     if info['is_base_or_mixin']:
@@ -532,6 +591,7 @@ for class_name, info in class_info.items():
         cap_attrs = dict(CAP_ATTR_DEFAULTS)
         cap_attrs.update(attr_values)
         engine_attr = info.get('engine') or ''
+        ext_aggs = resolve_extended_aggregations(class_name)
 
         entry = {
             'engine': display_name.lower().replace(' ', '_'),
@@ -563,6 +623,12 @@ for class_name, info in class_info.items():
             'user_impersonation': bool(
                 {'impersonate_user', 'update_impersonation_config', 'get_url_for_impersonation'} & cap_methods
             ),
+            # MEDIAN/STDDEV_SAMP/VAR_SAMP: engines opt in individually via
+            # \`_extended_aggregations\`. Matches the \`extended_aggregations\`
+            # block in \`diagnose()\` (superset/db_engine_specs/lib.py).
+            'extended_aggregations': {
+                aggregate: aggregate in ext_aggs for aggregate in EXTENDED_AGGREGATES
+            },
         }
 
         # Tell the JS layer which output fields were populated from the

@@ -3695,7 +3695,12 @@
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
       "supports_catalog": true,
-      "supports_dynamic_catalog": true
+      "supports_dynamic_catalog": true,
+      "extended_aggregations": {
+        "MEDIAN": true,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      }
     },
     "Databricks (legacy)": {
       "time_grains": {
@@ -3768,7 +3773,12 @@
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
       "supports_catalog": true,
-      "supports_dynamic_catalog": true
+      "supports_dynamic_catalog": true,
+      "extended_aggregations": {
+        "MEDIAN": true,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      }
     },
     "Databricks Interactive Cluster": {
       "time_grains": {
@@ -3846,7 +3856,12 @@
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
       "supports_catalog": true,
-      "supports_dynamic_catalog": true
+      "supports_dynamic_catalog": true,
+      "extended_aggregations": {
+        "MEDIAN": true,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      }
     },
     "Databricks SQL Endpoint": {
       "time_grains": {
@@ -3919,7 +3934,12 @@
       "supports_file_upload": true,
       "supports_dynamic_schema": false,
       "supports_catalog": false,
-      "supports_dynamic_catalog": false
+      "supports_dynamic_catalog": false,
+      "extended_aggregations": {
+        "MEDIAN": true,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      }
     },
     "Denodo": {
       "time_grains": {
@@ -7857,7 +7877,12 @@
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
       "supports_catalog": true,
-      "supports_dynamic_catalog": true
+      "supports_dynamic_catalog": true,
+      "extended_aggregations": {
+        "MEDIAN": true,
+        "STDDEV_SAMP": true,
+        "VAR_SAMP": true
+      }
     },
     "StarRocks": {
       "time_grains": {

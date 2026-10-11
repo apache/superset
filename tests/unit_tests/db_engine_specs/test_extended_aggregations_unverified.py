@@ -23,6 +23,12 @@ materially different query engine (a proprietary appliance, a distributed
 SQL engine, or an OLAP engine) must not silently inherit that dict: each
 verified engine spec opts in explicitly, everything else stays unsupported
 until someone verifies it against a live instance.
+
+`SnowflakeEngineSpec` is deliberately absent from this list: it now opts in
+explicitly (see `tests/unit_tests/db_engine_specs/test_snowflake.py`'s
+`test_extended_aggregation_func_median_uses_native_snowflake_syntax`), its
+own documented SQL function reference confirmed for MEDIAN/STDDEV_SAMP/
+VAR_SAMP, though not yet against a live Snowflake instance.
 """
 
 from typing import Type
@@ -38,7 +44,6 @@ from superset.db_engine_specs.hologres import HologresEngineSpec
 from superset.db_engine_specs.netezza import NetezzaEngineSpec
 from superset.db_engine_specs.oceanbase import OceanBaseEngineSpec
 from superset.db_engine_specs.risingwave import RisingWaveDbEngineSpec
-from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.db_engine_specs.starrocks import StarRocksEngineSpec
 from superset.db_engine_specs.vertica import VerticaEngineSpec
 from superset.db_engine_specs.yugabytedb import YugabyteDBEngineSpec
@@ -50,7 +55,6 @@ from superset.db_engine_specs.yugabytedb import YugabyteDBEngineSpec
         VerticaEngineSpec,
         NetezzaEngineSpec,
         HanaEngineSpec,
-        SnowflakeEngineSpec,
         CockroachDbEngineSpec,
         GreenplumEngineSpec,
         RisingWaveDbEngineSpec,
