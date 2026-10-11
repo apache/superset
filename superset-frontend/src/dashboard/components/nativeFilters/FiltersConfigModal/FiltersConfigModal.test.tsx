@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Preset, DatasourceType, Filter } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import fetchMock from 'fetch-mock';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -115,12 +116,15 @@ const datasetResult = (id: number) => ({
   },
   result: {
     metrics: [],
-    columns: [
-      {
-        column_name: 'Column A',
-        id: 1,
-      },
-    ],
+    columns: ['Column A', 'state', 'country', 'product'].map(
+      (column_name, index) => ({
+        column_name,
+        id: index + 1,
+        type_generic: GenericDataType.String,
+        filterable: true,
+      }),
+    ),
+    datasource_type: DatasourceType.Table,
     table_name: 'birth_names',
     id,
   },
@@ -128,9 +132,9 @@ const datasetResult = (id: number) => ({
 });
 
 function setupFetchMocks() {
-  fetchMock.get(`glob:*/api/v1/dataset/${id}`, datasetResult(id));
+  fetchMock.get(`path:/api/v1/dataset/${id}`, datasetResult(id));
   // Mock dataset 1 for buildNativeFilter fixtures which use datasetId: 1
-  fetchMock.get('glob:*/api/v1/dataset/1', datasetResult(1));
+  fetchMock.get('path:/api/v1/dataset/1', datasetResult(1));
   // Mock the dataset list endpoint for the dataset selector dropdown
   // Uses `id` constant (matches mockDatasource.id) for fixture data consistency
   fetchMock.get('glob:*/api/v1/dataset/?*', {
@@ -652,16 +656,22 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
     firstSortable.focus();
 
     fireEvent.keyDown(firstSortable, { code: 'Space' });
-    await sleep(1);
+    await waitFor(() =>
+      expect(firstSortable).toHaveAttribute('aria-pressed', 'true'),
+    );
+    // The keyboard sensor attaches its document listener on the next timer tick.
+    await sleep(0);
     fireEvent.keyDown(document.activeElement ?? firstSortable, {
       code: 'ArrowDown',
     });
-    await sleep(1);
+    await sleep(0);
     fireEvent.keyDown(document.activeElement ?? firstSortable, {
       code: 'Space',
     });
 
-    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    const saveButton = screen.getByRole('button', { name: SAVE_REGEX });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+    await userEvent.click(saveButton);
 
     await waitFor(
       () =>
