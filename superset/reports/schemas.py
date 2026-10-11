@@ -19,7 +19,7 @@ from typing import Any, Optional, Union
 
 from croniter import croniter
 from flask import current_app
-from flask_babel import gettext as _
+from flask_babel import gettext as _, lazy_gettext
 from marshmallow import (
     EXCLUDE,
     fields,
@@ -40,6 +40,8 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportScheduleValidatorType,
 )
+from superset.reports.utils import EMAIL_DOMAIN_REGEX
+from superset.tasks.types import ExecutorType
 
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a report schedule"}},
@@ -125,6 +127,46 @@ creation_method_description = (
     "Creation method is used to inform the frontend whether the report/alert was "
     "created in the dashboard, chart, or alerts and reports UI."
 )
+run_as_description = (
+    "ID of the user whose credentials (RBAC permissions, database OAuth2 tokens) "
+    "are used when rendering the content (screenshot, PDF, CSV, XLSX or text). "
+    "Admins can set any active user; non-admins can only set themselves. Only"
+    "honored when the ALERT_REPORT_DYNAMIC_EXECUTOR feature flag is enabled. "
+    "Admins can set this and run_as_type to null to use ALERT_REPORTS_EXECUTORS."
+)
+run_alert_query_as_description = (
+    "ID of the user whose credentials are used when running the alert condition "
+    "SQL query, useful when the audience of the alert does not have access to the "
+    "database. Null inherits the content executor at execution time."
+)
+
+
+_RUN_AS_FIELD_KEYS = (
+    "run_as",
+    "run_alert_query_as",
+    "run_as_type",
+    "run_alert_query_as_type",
+)
+_REPORT_EXECUTOR_TYPES = [
+    ExecutorType.FIXED_USER,
+]
+
+
+class RunAsFieldStripMixin:
+    """Drop the "Run As" fields from the raw payload when the dynamic executor
+    feature (``ALERT_REPORT_DYNAMIC_EXECUTOR``) is disabled, so callers on the
+    legacy path never store an executor by accident."""
+
+    @pre_load
+    def strip_run_as_fields_if_disabled(
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        if not is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR"):
+            for key in _RUN_AS_FIELD_KEYS:
+                data.pop(key, None)
+        return data
 
 
 def validate_crontab(value: Union[bytes, bytearray, str]) -> None:
@@ -257,7 +299,7 @@ class RetryFieldStripMixin:
         return data
 
 
-class ReportSchedulePostSchema(RetryFieldStripMixin, Schema):
+class ReportSchedulePostSchema(RetryFieldStripMixin, RunAsFieldStripMixin, Schema):
     type = fields.String(
         metadata={"description": type_description},
         allow_none=False,
@@ -319,6 +361,28 @@ class ReportSchedulePostSchema(RetryFieldStripMixin, Schema):
     dashboard = fields.Integer(required=False, allow_none=True)
     database = fields.Integer(required=False)
     editors = fields.List(fields.Integer(metadata={"description": editors_description}))
+    run_as_type = fields.String(
+        required=False,
+        allow_none=True,
+        validate=validate.OneOf(_REPORT_EXECUTOR_TYPES),
+        metadata={"description": "Explicit executor type; fixed_user requires run_as."},
+    )
+    run_alert_query_as_type = fields.String(
+        required=False,
+        allow_none=True,
+        validate=validate.OneOf(_REPORT_EXECUTOR_TYPES),
+        metadata={"description": "Alert query executor type; null inherits run_as."},
+    )
+    run_as = fields.Integer(
+        metadata={"description": run_as_description},
+        required=False,
+        allow_none=True,
+    )
+    run_alert_query_as = fields.Integer(
+        metadata={"description": run_alert_query_as_description},
+        required=False,
+        allow_none=True,
+    )
     validator_type = fields.String(
         metadata={"description": validator_type_description},
         validate=validate.OneOf(
@@ -343,6 +407,13 @@ class ReportSchedulePostSchema(RetryFieldStripMixin, Schema):
 
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
     report_format = fields.String(
+        metadata={
+            "description": (
+                "Attachment format. NONE disables attachments for alerts and makes "
+                "chart/dashboard optional. Omitted attachment settings are "
+                "preserved on update."
+            )
+        },
         dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
@@ -425,6 +496,10 @@ class ReportSchedulePostSchema(RetryFieldStripMixin, Schema):
                 raise ValidationError(
                     {"database": ["Database reference is not allowed on a report"]}
                 )
+            if data.get("report_format") == ReportDataFormat.NONE:
+                raise ValidationError(
+                    {"report_format": [_("Reports require a content format")]}
+                )
 
     @validates_schema
     def validate_retry_config(  # pylint: disable=unused-argument
@@ -454,6 +529,9 @@ class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
 
     ``type`` is restricted to ``Report`` — alert schedules cannot be
     created through the subscribe endpoint.
+
+    The "Run As" fields are excluded as well: a subscription always executes
+    as the subscribing user.
     """
 
     type = fields.String(
@@ -464,11 +542,19 @@ class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
     )
 
     class Meta:
-        exclude = ("recipients", "creation_method", "editors")
+        exclude = (
+            "recipients",
+            "creation_method",
+            "editors",
+            "run_as",
+            "run_alert_query_as",
+            "run_as_type",
+            "run_alert_query_as_type",
+        )
         unknown = EXCLUDE
 
 
-class ReportSchedulePutSchema(RetryFieldStripMixin, Schema):
+class ReportSchedulePutSchema(RetryFieldStripMixin, RunAsFieldStripMixin, Schema):
     type = fields.String(
         metadata={"description": type_description},
         required=False,
@@ -531,6 +617,28 @@ class ReportSchedulePutSchema(RetryFieldStripMixin, Schema):
     editors = fields.List(
         fields.Integer(metadata={"description": editors_description}), required=False
     )
+    run_as_type = fields.String(
+        required=False,
+        allow_none=True,
+        validate=validate.OneOf(_REPORT_EXECUTOR_TYPES),
+        metadata={"description": "Explicit executor type; fixed_user requires run_as."},
+    )
+    run_alert_query_as_type = fields.String(
+        required=False,
+        allow_none=True,
+        validate=validate.OneOf(_REPORT_EXECUTOR_TYPES),
+        metadata={"description": "Alert query executor type; null inherits run_as."},
+    )
+    run_as = fields.Integer(
+        metadata={"description": run_as_description},
+        required=False,
+        allow_none=True,
+    )
+    run_alert_query_as = fields.Integer(
+        metadata={"description": run_alert_query_as_description},
+        required=False,
+        allow_none=True,
+    )
     validator_type = fields.String(
         metadata={"description": validator_type_description},
         validate=validate.OneOf(
@@ -558,6 +666,13 @@ class ReportSchedulePutSchema(RetryFieldStripMixin, Schema):
     )
     recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
     report_format = fields.String(
+        metadata={
+            "description": (
+                "Attachment format. NONE disables attachments for alerts and makes "
+                "chart/dashboard optional. Omitted attachment settings are "
+                "preserved on update."
+            )
+        },
         dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),
     )
@@ -626,6 +741,108 @@ class ReportSchedulePutSchema(RetryFieldStripMixin, Schema):
                     max=max_width,
                 )
             )
+
+
+def validate_email_domain(value: str) -> None:
+    if not EMAIL_DOMAIN_REGEX.match(value.strip()):
+        raise ValidationError(_("Invalid e-mail domain: %(domain)s", domain=value))
+
+
+class ReportConfigurationSchema(Schema):
+    """
+    Global Alerts & Reports configuration (SIP-209).
+
+    Every field is optional on update: absent fields keep their stored value and
+    ``null`` clears a setting without restoring its legacy fallback.
+    """
+
+    alerts_attach_reports = fields.Boolean(
+        metadata={
+            "description": "Whether alerts deliver their attachment (screenshot, "
+            "PDF, CSV or XLSX). When disabled, alerts only send the message and "
+            "link. Falls back to the FF until a row has first been saved."
+        },
+        required=False,
+        allow_none=True,
+    )
+    date_format_in_email_subject = fields.Boolean(
+        metadata={
+            "description": "Render strftime date placeholders in email subjects. "
+            "Falls back to the DATE_FORMAT_IN_EMAIL_SUBJECT FF until first saved."
+        },
+        required=False,
+        allow_none=True,
+    )
+    alert_minimum_interval = fields.Integer(
+        metadata={
+            "description": "Minimum interval between alert executions, in seconds. "
+            "Values below 120 do not restrict schedules. Falls back to "
+            "ALERT_MINIMUM_INTERVAL only before this setting has been saved.",
+            "example": 3600,
+        },
+        required=False,
+        allow_none=True,
+        validate=[Range(min=0, error=lazy_gettext("Value must be 0 or greater"))],
+    )
+    report_minimum_interval = fields.Integer(
+        metadata={
+            "description": "Minimum interval between report executions, in seconds. "
+            "Values below 120 do not restrict schedules. Falls back to "
+            "REPORT_MINIMUM_INTERVAL only before this setting has been saved.",
+            "example": 3600,
+        },
+        required=False,
+        allow_none=True,
+        validate=[Range(min=0, error=lazy_gettext("Value must be 0 or greater"))],
+    )
+    limit_recipients_to_users = fields.Boolean(
+        metadata={
+            "description": "When enabled, only e-mail addresses of existing active "
+            "users are accepted as recipients."
+        },
+        required=False,
+        allow_none=True,
+    )
+    allowed_email_domains = fields.List(
+        fields.String(validate=validate_email_domain),
+        metadata={
+            "description": "E-mail domains accepted as recipients. An empty list "
+            "allows any domain.",
+            "example": ["example.com", "superset.com"],
+        },
+        required=False,
+        allow_none=True,
+    )
+
+    @pre_load
+    def normalize_domains(self, data: Any, **kwargs: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        domains = data.get("allowed_email_domains")
+        if isinstance(domains, list):
+            normalized: list[str] = []
+            for domain in domains:
+                if isinstance(domain, str):
+                    domain = domain.strip().lower().lstrip("@")
+                    if not domain or domain in normalized:
+                        continue
+                normalized.append(domain)
+            data["allowed_email_domains"] = normalized
+        return data
+
+
+class ReportConfigImpactedSchema(Schema):
+    """A schedule conflicting with a proposed Alerts & Reports configuration."""
+
+    id = fields.Integer()
+    name = fields.String()
+    type = fields.String()
+    reason = fields.String(
+        metadata={"description": "Either 'recipient' or 'frequency'"},
+    )
+    detail = fields.String(
+        metadata={"description": "The offending e-mail address or crontab"},
+    )
 
 
 class SlackChannelSchema(Schema):

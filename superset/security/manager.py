@@ -76,6 +76,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
 
 from superset.common.chart_data import ChartDataResultType
@@ -854,6 +855,21 @@ def _payload_value_identity(value: Any, *, is_metric: bool) -> str:
     return freeze_value(_denormalize_base_axis_column(value))
 
 
+def _datasource_matches(
+    datasource: "BaseDatasource | Explorable | None",
+    datasource_id: object,
+    datasource_type: object,
+) -> bool:
+    """Match a stored reference without loading provider metadata."""
+    return (
+        datasource is not None
+        and isinstance(datasource_id, int)
+        and not isinstance(datasource_id, bool)
+        and datasource_id == datasource.id
+        and datasource_type == datasource.type
+    )
+
+
 def _native_filter_allowed_targets(
     query_context: "QueryContext", form_data: dict[str, Any]
 ) -> Optional[tuple[set[str], set[str]]]:
@@ -886,21 +902,28 @@ def _native_filter_allowed_targets(
     except (TypeError, ValueError):
         return None
 
-    datasource = getattr(query_context, "datasource", None)
-    datasource_id = datasource.data.get("id") if datasource else None
+    datasource: BaseDatasource | Explorable | None = query_context.datasource
 
     allowed_columns: set[str] = set()
     allowed_metrics: set[str] = set()
     for fltr in metadata.get("native_filter_configuration", []):
         if fltr.get("id") != native_filter_id:
             continue
-        for target in fltr.get("targets", []):
-            column = target.get("column")
-            if (
-                target.get("datasetId") == datasource_id
-                and isinstance(column, dict)
-                and column.get("name")
-            ):
+        matching_targets: list[dict[str, Any]] = [
+            target
+            for target in fltr.get("targets", [])
+            if _datasource_matches(
+                datasource,
+                target.get("datasetId"),
+                # A missing or null type is a legacy SQL dataset target.
+                target.get("datasourceType") or DatasourceType.TABLE,
+            )
+        ]
+        if not matching_targets:
+            return None
+        for target in matching_targets:
+            column: object = target.get("column")
+            if isinstance(column, dict) and column.get("name"):
                 allowed_columns.add(column["name"])
         # The filter may be configured to sort its values by a saved metric; a
         # legitimate value lookup then sends that metric name.
@@ -1033,8 +1056,7 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     # Fail closed when the request cannot be tied to a native filter.
     if targets is None:
         return True
-    # Empty allowed sets (filter resolved but no matching column/metric target)
-    # intentionally deny every value-returning term below.
+    # Empty allowed sets intentionally deny every value-returning term below.
     allowed_columns, allowed_metrics = targets
 
     # The samples/drill_detail preparers replace a query's columns with every
@@ -2702,7 +2724,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .one_or_none()
             )
             and slc in dashboard.slices
-            and slc.datasource == datasource
+            and _datasource_matches(datasource, slc.datasource_id, slc.datasource_type)
             and (dimensions := form_data.get("groupby"))
             and datasource.has_drill_by_columns(dimensions)
         )
@@ -3998,7 +4020,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Handles permissions update when a dataset is deleted.
         Triggered by a SQLAlchemy after_delete event.
 
-        Retain the datasource_access PVM if a semantic view still owns the
+        Retain the datasource_access PVM if another datasource still owns the
         same permission name.
 
         :param mapper: The SQLA mapper
@@ -4006,17 +4028,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The changed dataset object
         :return:
         """
-        dataset_vm_name = self.get_dataset_perm(
+        dataset_vm_name: str | None = target.perm or self.get_dataset_perm(
             target.id, target.table_name, target.database.database_name
         )
-        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
-            SemanticView,
-        )
-
-        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
-        if connection.execute(
-            select(sv_table.c.id).where(sv_table.c.perm == dataset_vm_name).limit(1)
-        ).first():
+        if dataset_vm_name and self._datasource_perm_owned_elsewhere(
+            connection, dataset_vm_name, None
+        ):
             return
         self._delete_pvm_on_sqla_event(
             mapper, connection, "datasource_access", dataset_vm_name
@@ -4400,14 +4417,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         view_perms: set[str] = {
             perm
             for perm in connection.execute(
-                select(sv_table.c.perm).where(
-                    sv_table.c.semantic_layer_uuid == target.uuid
-                )
+                select(sv_table.c.perm)
+                .where(sv_table.c.semantic_layer_uuid == target.uuid)
+                .order_by(sv_table.c.id)
+                .with_for_update()
             ).scalars()
             if perm
         }
         if not view_perms:
             return
+        if self._retain_shared_datasource_perm_for_isolation(connection):
+            return
+
+        # Lock child views before permission rows, matching direct view deletion.
+        # Otherwise its after_delete hook can wait on us while our cascade waits
+        # on its view row. Unloaded views have no ORM after_delete hook.
+        self._lock_datasource_perms(connection, view_perms)
 
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
@@ -4443,18 +4468,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 mapper, connection, "datasource_access", view_perm
             )
 
-    def _semantic_view_perm_owned_elsewhere(
+    def _datasource_perm_owned_elsewhere(
         self,
         connection: Connection,
         perm: str,
-        deleted_view_id: int,
+        deleted_view_id: int | None,
     ) -> bool:
         """
-        Whether a live resource other than the deleted view owns *perm*.
+        Whether cleanup must retain *perm* for another owner or unsafe isolation.
 
-        A deleted view's permission is removed only when no dataset and no
-        other semantic view still uses the same permission name; removing it
-        would otherwise revoke that resource's grants.
+        Pass the deleted view's ID when checking its delete event. Pass None
+        after dataset deletion, when every remaining view is a possible owner.
+        The dataset query includes soft-deleted rows by using the Core table.
+
+        Lock the shared permission row before checking either owner table. Two
+        transactions deleting the final owners of one permission then make
+        their decisions in commit order rather than both retaining the PVM
+        because each still sees the other's uncommitted owner row.
+        Treat an untrusted MySQL snapshot as possibly owned rather than revoking
+        a permission that another datasource may still use.
         """
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
@@ -4463,20 +4495,61 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             SemanticView,
         )
 
+        if self._retain_shared_datasource_perm_for_isolation(connection):
+            return True
+
+        self._lock_datasource_perms(connection, {perm})
+
+        # These unindexed probes run per delete. LIMIT 1 bounds returned rows,
+        # not scan work; a large purge backlog can require repeated catalog scans.
         table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
         if connection.execute(
             table.select().where(table.c.perm == perm).limit(1)
         ).first():
             return True
         sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        view_predicate: ColumnElement[bool] = sv_table.c.perm == perm
+        if deleted_view_id is not None:
+            view_predicate = and_(view_predicate, sv_table.c.id != deleted_view_id)
         return (
-            connection.execute(
-                sv_table.select()
-                .where(sv_table.c.perm == perm, sv_table.c.id != deleted_view_id)
-                .limit(1)
-            ).first()
+            connection.execute(sv_table.select().where(view_predicate).limit(1)).first()
             is not None
         )
+
+    def _retain_shared_datasource_perm_for_isolation(
+        self, connection: Connection
+    ) -> bool:
+        """Fail safe when a MySQL owner probe cannot use a fresh snapshot."""
+        if connection.dialect.name not in ("mysql", "mariadb"):
+            return False
+        try:
+            isolation_level: str | None = connection.get_isolation_level()
+        except Exception as ex:  # pylint: disable=broad-exception-caught
+            logger.warning(
+                "Retaining shared datasource permission: MySQL isolation "
+                "could not be verified (%s)",
+                type(ex).__name__,
+            )
+            return True
+        if isolation_level != "READ COMMITTED":
+            logger.warning(
+                "Retaining shared datasource permission: MySQL isolation is %s",
+                isolation_level,
+            )
+            return True
+        return False
+
+    def _lock_datasource_perms(
+        self, connection: Connection, perms: AbstractSet[str]
+    ) -> None:
+        """Serialize owner checks sharing datasource permission names."""
+        view_menu_table: SQLATable = self.viewmenu_model.__table__  # pylint: disable=no-member
+        connection.execute(
+            select(view_menu_table.c.id)
+            .where(view_menu_table.c.name.in_(perms))
+            .order_by(view_menu_table.c.name)
+            .with_for_update()
+        ).all()
 
     def semantic_layer_after_delete(
         self,
@@ -4608,7 +4681,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Removes the datasource_access PVM unless another live resource still
         owns the same permission name.
         """
-        if target.perm and not self._semantic_view_perm_owned_elsewhere(
+        if target.perm and not self._datasource_perm_owned_elsewhere(
             connection, target.perm, target.id
         ):
             self._delete_pvm_on_sqla_event(
@@ -5345,16 +5418,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 ):
                     return False
 
-                viewer_datasource_id = getattr(viewer_slc, "datasource_id", None)
-                datasource_id = getattr(datasource, "id", None)
-                same_datasource = (
-                    isinstance(viewer_datasource_id, int)
-                    and isinstance(datasource_id, int)
-                    and viewer_datasource_id == datasource_id
-                )
-                if (
-                    not same_datasource
-                    and getattr(viewer_slc, "datasource", None) is not datasource
+                if not _datasource_matches(
+                    datasource, viewer_slc.datasource_id, viewer_slc.datasource_type
                 ):
                     return False
 
@@ -5398,7 +5463,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and dashboard_.json_metadata
                             and (json_metadata := json.loads(dashboard_.json_metadata))
                             and any(
-                                target.get("datasetId") == datasource.data["id"]
+                                _datasource_matches(
+                                    datasource,
+                                    target.get("datasetId"),
+                                    target.get("datasourceType")
+                                    or DatasourceType.TABLE,
+                                )
                                 for fltr in json_metadata.get(
                                     "native_filter_configuration",
                                     [],
@@ -5423,7 +5493,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                                                 .one_or_none()
                                             )
                                             and slc in dashboard_.slices
-                                            and slc.datasource == datasource
+                                            and _datasource_matches(
+                                                datasource,
+                                                slc.datasource_id,
+                                                slc.datasource_type,
+                                            )
                                         )
                                         or
                                         # Multi-layer chart child access (has parent)
@@ -5452,7 +5526,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                                                 .filter(Slice.id == slice_id)
                                                 .one_or_none()
                                             )
-                                            and child_slc.datasource == datasource
+                                            and _datasource_matches(
+                                                datasource,
+                                                child_slc.datasource_id,
+                                                child_slc.datasource_type,
+                                            )
                                         )
                                     )
                                 )
@@ -5483,7 +5561,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     "datasets"
                 )
                 if allowed_datasets is not None and (
-                    not isinstance(allowed_datasets, list)
+                    datasource.type != DatasourceType.TABLE
+                    or not isinstance(allowed_datasets, list)
                     or not all(isinstance(d, int) for d in allowed_datasets)
                     or datasource.id not in allowed_datasets
                 ):
@@ -5535,13 +5614,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 member_slices = dashboard.slices
 
                 def member_datasource_accessible() -> bool:
-                    seen: set[tuple[str | None, int | None]] = set()
-                    for slc in member_slices:
-                        key = (slc.datasource_type, slc.datasource_id)
-                        if key in seen:
-                            continue
-                        seen.add(key)
-                        resolved = slc.resolved_datasource
+                    resolved: BaseDatasource | Explorable | None
+                    for resolved in Slice.iter_resolved_datasources(member_slices):
                         if resolved is not None and self.can_access_datasource(
                             resolved
                         ):
@@ -6006,8 +6080,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise SupersetSecurityException(
                     self.get_dashboard_access_error_object(dashboard)
                 )
-            if datasets is not None and resolved.id not in datasets:
-                continue  # the token will not grant this datasource
+            if datasets is not None and (
+                resolved.type != DatasourceType.TABLE or resolved.id not in datasets
+            ):
+                continue  # the allowlist grants only the SQL datasets it lists
             if not self.can_access_datasource(resolved):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(resolved)
@@ -6710,3 +6786,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     "User Registrations",
                 ]:
                     security_menu.childs.remove(item)
+
+
+# Keep the original function identity before operator configuration can replace it.
+STOCK_RAISE_FOR_ACCESS: Callable[..., None] = SupersetSecurityManager.raise_for_access

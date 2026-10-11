@@ -25,6 +25,7 @@ import pandas as pd
 import pyarrow as pa
 import pytest
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
@@ -42,6 +43,11 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
+from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.query_context import QueryContext
+from superset.exceptions import QueryObjectValidationError
+from superset.models.helpers import QueryResult
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -60,6 +66,7 @@ from superset.semantic_layers.mapper import (
     _validate_granularity,
     _validate_group_limit,
     _validate_metrics,
+    _ViewMetadata,
     get_results,
     map_query_object,
     validate_query_object,
@@ -1556,7 +1563,7 @@ def test_validate_query_object_unsupported_time_grain_error(
     )
 
     with pytest.raises(
-        ValueError,
+        QueryObjectValidationError,
         match=(
             "The time grain is not supported for the time column in the Semantic View."
         ),
@@ -1593,6 +1600,88 @@ def test_validate_query_object_group_limit_not_supported_error(
 
     with pytest.raises(ValueError, match="Group limit is not supported"):
         validate_query_object(query_object)
+
+
+def test_get_results_ignores_limit_without_series_columns(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Keep stored Pivot results unlimited without changing the cache input."""
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        series_columns=[],
+        series_limit=2,
+        series_limit_metric="total_sales",
+    )
+    rows: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books", "Clothing"], "total_sales": [500.0, 750.0]}
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(
+        return_value=SemanticResult(requests=[], results=pa.Table.from_pandas(rows))
+    )
+
+    with caplog.at_level("DEBUG", logger="superset.semantic_layers.mapper"):
+        result: QueryResult = get_results(query_object)
+
+    pd.testing.assert_frame_equal(result.df, rows)
+    assert (
+        mock_datasource.implementation.get_table.call_args.args[0].group_limit is None
+    )
+    assert query_object.series_limit == 2
+    assert "Treating semantic series_limit=2 as 0" in caplog.text
+
+
+def test_chart_data_command_replays_stored_limit_without_series_columns(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """A chart-data command can run the old stored context unchanged."""
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        series_columns=[],
+        series_limit=2,
+        series_limit_metric="total_sales",
+    )
+    rows: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books", "Clothing"], "total_sales": [500.0, 750.0]}
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(
+        return_value=SemanticResult(requests=[], results=pa.Table.from_pandas(rows))
+    )
+    mock_datasource.get_query_result.side_effect = get_results
+    mock_datasource.column_names = ["category", "total_sales"]
+    mock_datasource.columns = []
+    mock_datasource.type = "semantic_view"
+    mock_datasource.cache_timeout = 0
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.uid = "semantic-test"
+    mock_datasource.changed_on = None
+    mock_datasource.database = None
+    query_context: QueryContext = QueryContext(
+        datasource=mock_datasource,
+        queries=[query_object],
+        slice_=None,
+        form_data=None,
+        result_type=ChartDataResultType.FULL,
+        result_format=ChartDataResultFormat.JSON,
+        force=True,
+        cache_values={"queries": [query_object.to_dict()]},
+    )
+    cache_key_before: str | None = query_context.query_cache_key(query_object)
+
+    payload: dict[str, Any] = ChartDataCommand(query_context).run()
+
+    assert payload["queries"][0]["data"] == [
+        {"category": "Books", "total_sales": 500.0},
+        {"category": "Clothing", "total_sales": 750.0},
+    ]
+    assert query_object.series_limit == 2
+    assert query_context.query_cache_key(query_object) == cache_key_before
 
 
 def test_validate_query_object_undefined_series_column_error(
@@ -2900,7 +2989,13 @@ def test_validate_metrics_adhoc_error(
     query_object.metrics = [{"label": "adhoc", "sqlExpression": "SUM(x)"}]
 
     with pytest.raises(ValueError, match="Adhoc metrics are not supported"):
-        _validate_metrics(query_object)
+        _validate_metrics(
+            query_object,
+            _ViewMetadata(
+                tuple(mock_datasource.implementation.get_metrics()),
+                tuple(mock_datasource.implementation.get_dimensions()),
+            ),
+        )
 
 
 def test_validate_filters_adhoc_column_error(
@@ -3068,6 +3163,32 @@ def test_validate_query_object_adhoc_orderby_not_supported_error(
     with pytest.raises(
         ValueError, match="Adhoc expressions in order by are not supported"
     ):
+        validate_query_object(query_object)
+
+
+@pytest.mark.parametrize("include_unknown_name", [False, True])
+def test_validate_query_object_supported_adhoc_orderby(
+    mock_datasource: MagicMock,
+    include_unknown_name: bool,
+) -> None:
+    """Accept supported expressions while still rejecting unknown named elements."""
+    mock_datasource.implementation.features |= frozenset(
+        {SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY}
+    )
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        orderby=[
+            ({"label": "custom_order", "sqlExpression": "RAND()"}, True),
+            ("undefined_column" if include_unknown_name else "category", False),
+        ],
+    )
+
+    if include_unknown_name:
+        with pytest.raises(ValueError, match="All order by elements must be defined"):
+            validate_query_object(query_object)
+    else:
         validate_query_object(query_object)
 
 
@@ -3281,7 +3402,13 @@ def test_validate_granularity_valid(mocker: MockerFixture) -> None:
     query_object.extras = {"time_grain_sqla": "P1D"}
 
     # Should not raise any error - valid granularity with supported time grain
-    _validate_granularity(query_object)
+    _validate_granularity(
+        query_object,
+        _ViewMetadata(
+            tuple(mock_datasource.implementation.get_metrics()),
+            tuple(mock_datasource.implementation.get_dimensions()),
+        ),
+    )
 
 
 def test_validate_group_limit_valid(mocker: MockerFixture) -> None:
@@ -3311,7 +3438,13 @@ def test_validate_group_limit_valid(mocker: MockerFixture) -> None:
     query_object.group_others_when_limit_reached = True
 
     # Should not raise any error - all settings are valid
-    _validate_group_limit(query_object)
+    _validate_group_limit(
+        query_object,
+        _ViewMetadata(
+            tuple(mock_datasource.implementation.get_metrics()),
+            tuple(mock_datasource.implementation.get_dimensions()),
+        ),
+    )
 
 
 def test_get_filters_from_query_object_filter_returns_none(
@@ -4145,3 +4278,170 @@ def test_abc_only_provider_validates_and_maps(mocker: MockerFixture) -> None:
 
     assert {metric.name for metric in queries[0].metrics} == {"total_sales"}
     assert {dim.name for dim in queries[0].dimensions} == {"category"}
+
+
+@pytest.mark.parametrize("entrypoint", ["results", "validate", "map"])
+def test_mapper_fetches_metadata_once(
+    mock_datasource: MagicMock, mocker: MockerFixture, entrypoint: str
+) -> None:
+    """Validation and execution use one observation of each metadata collection."""
+    provider: MockSemanticView = mock_datasource.implementation
+    metrics: MagicMock = mocker.spy(provider, "get_metrics")
+    dimensions: MagicMock = mocker.spy(provider, "get_dimensions")
+    mocker.patch.object(
+        provider,
+        "get_table",
+        create=True,
+        return_value=SemanticResult(
+            requests=[],
+            results=pa.table({"category": ["Books"], "total_sales": [10.0]}),
+        ),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        series_columns=["category"],
+        series_limit=2,
+        series_limit_metric="total_sales",
+        orderby=[("total_sales", False)],
+        row_limit=10,
+    )
+    if entrypoint == "results":
+        result: QueryResult = get_results(query)
+        assert result.df.to_dict("records") == [
+            {"category": "Books", "total_sales": 10.0}
+        ]
+    elif entrypoint == "validate":
+        assert validate_query_object(query)
+    else:
+        mapped: list[SemanticQuery] = map_query_object(query)
+        assert [metric.name for metric in mapped[0].metrics] == ["total_sales"]
+    assert (metrics.call_count, dimensions.call_count) == (1, 1)
+
+
+def test_execution_reuses_members_but_next_query_fetches_fresh_metadata(
+    mock_datasource: MagicMock, mocker: MockerFixture
+) -> None:
+    """A second observation cannot change mapping midway or leak to another query."""
+    provider: MockSemanticView = mock_datasource.implementation
+    original_metrics: set[Metric] = provider.get_metrics()
+    original_dimensions: set[Dimension] = provider.get_dimensions()
+    metrics: MagicMock = mocker.patch.object(
+        provider, "get_metrics", side_effect=[original_metrics, set()]
+    )
+    dimensions: MagicMock = mocker.patch.object(
+        provider, "get_dimensions", side_effect=[original_dimensions, set()]
+    )
+    execute: MagicMock = mocker.patch.object(
+        provider,
+        "get_table",
+        create=True,
+        return_value=SemanticResult(
+            requests=[],
+            results=pa.table({"category": ["Books"], "total_sales": [10.0]}),
+        ),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource, metrics=["total_sales"], columns=["category"]
+    )
+    result: QueryResult = get_results(query)
+    assert result.df.to_dict("records") == [{"category": "Books", "total_sales": 10.0}]
+    with pytest.raises(ValueError, match="All metrics must be defined"):
+        get_results(query)
+    assert (metrics.call_count, dimensions.call_count) == (2, 2)
+    execute.assert_called_once()
+
+
+def test_execution_rejects_stale_selection_before_metadata_fetch(
+    mock_datasource: MagicMock, mocker: MockerFixture
+) -> None:
+    provider: MockSemanticView = mock_datasource.implementation
+    metrics: MagicMock = mocker.spy(provider, "get_metrics")
+    dimensions: MagicMock = mocker.spy(provider, "get_dimensions")
+    mocker.patch.object(
+        provider,
+        "validate_selection_version",
+        side_effect=ValueError("stale selection"),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource, metrics=["total_sales"], columns=["category"]
+    )
+    with pytest.raises(ValueError, match="stale selection"):
+        get_results(query)
+    metrics.assert_not_called()
+    dimensions.assert_not_called()
+
+
+def test_required_comparison_completeness_failure_rejects_main_result(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    """A complete main query cannot hide an incomplete required comparison."""
+    from superset.exceptions import SemanticResultCompletenessError
+
+    main: SemanticResult = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="fixture")],
+        results=pa.table({"category": ["Books"], "total_sales": [10.0]}),
+    )
+    mock_datasource.implementation.get_table = mocker.Mock(
+        side_effect=[main, SemanticResultCompletenessError("incomplete")]
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=["1 week ago"],
+    )
+    with pytest.raises(SemanticResultCompletenessError):
+        get_results(query)
+    assert mock_datasource.implementation.get_table.call_count == 2
+
+
+@pytest.mark.parametrize(
+    "dispatch, offsets",
+    [("get_table", []), ("get_table", ["1 week ago"]), ("get_row_count", [])],
+    ids=["table", "comparison", "row-count"],
+)
+@pytest.mark.parametrize("reason", ["incomplete", "unverified"])
+def test_public_provider_completeness_error_becomes_host_error(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+    dispatch: str,
+    offsets: list[str],
+    reason: SemanticResultCompletenessReason,
+) -> None:
+    """A provider following the public contract gets the host's client error."""
+    from superset_core.semantic_layers import errors as core_errors
+
+    from superset.exceptions import SemanticResultCompletenessError
+
+    main: SemanticResult = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="fixture")],
+        results=pa.table({"category": ["Books"], "total_sales": [10.0]}),
+    )
+    failure: core_errors.SemanticResultCompletenessError = (
+        core_errors.SemanticResultCompletenessError(reason)
+    )
+    setattr(
+        mock_datasource.implementation,
+        dispatch,
+        mocker.Mock(side_effect=[main, failure] if offsets else [failure]),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=offsets,
+        is_rowcount=dispatch == "get_row_count",
+    )
+    with pytest.raises(SemanticResultCompletenessError) as excinfo:
+        get_results(query)
+    assert excinfo.value.reason == reason
+    assert excinfo.value.__cause__ is failure

@@ -21,22 +21,23 @@ that ages out version rows while keeping the live entity, this removes
 entities that are already soft-deleted. For each
 ``SoftDeleteMixin`` model with a purge policy it selects rows whose
 ``deleted_at`` is older than the per-workspace window and runs the shared
-cascade per entity, in bounded id-ordered batches. Convergent, not strictly
-idempotent: a re-run with the same clock and data removes nothing, but rows
-that have since crossed the cutoff are purged on a later run.
+cascade per entity, in bounded id-ordered batches. Safe to repeat: each capped
+run purges at most the configured number of root entities. Successive runs
+converge by draining the purgeable backlog; blocked roots can remain, and
+newly eligible rows can add to that backlog.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Iterator
-from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any, cast, NamedTuple
 from uuid import UUID
 
 import sqlalchemy as sa
 from flask import current_app
+from sqlalchemy.exc import DBAPIError
 
 from superset import db
 from superset.commands.deletion_retention import audit, prune_audit
@@ -57,6 +58,7 @@ from superset.models.helpers import (
     skip_visibility_filter,
     SoftDeleteMixin,
 )
+from superset.tasks.retention_cap import validate_retention_cap
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -69,6 +71,15 @@ _BATCH: int = 500
 def _soft_delete_models() -> list[type[SoftDeleteMixin]]:
     """Return all registered soft-delete models in a stable order."""
     return list(SoftDeleteMixin._registered_subclasses)  # noqa: SLF001
+
+
+def _ordered_purge_models(cutoff: datetime) -> list[type[SoftDeleteMixin]]:
+    """Rotate daily priority so one busy model cannot starve later models."""
+    models: list[type[SoftDeleteMixin]] = _soft_delete_models()
+    if not models:
+        return models
+    start: int = cutoff.toordinal() % len(models)
+    return models[start:] + models[:start]
 
 
 def _model_table(model: type[SoftDeleteMixin]) -> sa.Table:
@@ -133,35 +144,73 @@ def _report_model_counts(outcome: str, counts: dict[str, int]) -> None:
         )
 
 
-@dataclass
-class _PassTotals:
-    """What one pass over the soft-delete roots produced."""
+def _count_eligible(model: type[SoftDeleteMixin], cutoff: datetime) -> int:
+    """Count aged roots, including roots that a later cascade may block."""
+    table: sa.Table = _model_table(model)
+    with skip_visibility_filter(db.session, model):
+        return int(
+            db.session.scalar(
+                sa.select(sa.func.count())
+                .select_from(table)
+                .where(table.c.deleted_at.is_not(None), table.c.deleted_at < cutoff)
+            )
+            or 0
+        )
 
-    purged: dict[str, int] = field(default_factory=dict)
-    would_purge: dict[str, int] = field(default_factory=dict)
-    unsupported: dict[str, int] = field(default_factory=dict)
-    cascade_failures: int = 0
+
+class _PurgeScan(NamedTuple):
+    """Counts and supported models collected across one purge invocation."""
+
+    purged: dict[str, int]
+    would_purge: dict[str, int]
+    unsupported_models: dict[str, int]
+    failures: int
+    blocked: int
+    remaining_budget: int | None
+    supported_models: list[type[SoftDeleteMixin]]
+    scan_failures: int = 0
+    attempted: int = 0
+    commit_uncertain: bool = False
+
+
+class _PurgeModelResult(NamedTuple):
+    """Named per-root counts, including an indeterminate commit attempt."""
+
+    purged: int
+    would_purge: int
+    failures: int
+    blocked: int
+    scan_failures: int
+    commit_uncertain: bool = False
+
+
+class _PurgeCommitUncertainError(RuntimeError):
+    """The database did not acknowledge whether a root purge committed."""
+
+
+def _scan_purge_models(
+    cutoff: datetime, dry_run: bool, max_per_run: int | None
+) -> _PurgeScan:
+    """Apply one shared root budget across every supported model."""
+    purged: dict[str, int] = {}
+    would_purge: dict[str, int] = {}
+    unsupported_models: dict[str, int] = {}
+    failures: int = 0
     blocked: int = 0
     scan_failures: int = 0
-    #: Roots this pass actually reached, so a run where every one of them
-    #: failed can be told apart from a run where one did.
     attempted: int = 0
+    commit_uncertain: bool = False
+    remaining_budget: int | None = max_per_run
+    supported_models: list[type[SoftDeleteMixin]] = []
 
-
-def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
-    """Process each registered root, isolating one root's failure from the rest."""
-    totals = _PassTotals()
-    for model in _soft_delete_models():
-        totals.attempted += 1
-        # The table name is itself read off the model, so resolving it belongs
-        # inside the guard: a root that cannot supply one would otherwise end
-        # the pass here, above the isolation meant to contain it. The class
-        # name stands in until it is known, for the failure log.
-        entity_type = model.__name__
+    for model in _ordered_purge_models(cutoff):
+        attempted += 1
+        entity_type: str = model.__name__
         try:
             entity_type = _model_table_name(model)
             if model not in purge_policy_registry():
-                totals.unsupported[entity_type] = 1
+                attempted -= 1
+                unsupported_models[entity_type] = 1
                 logger.warning(
                     "deletion_retention: skipping %s: no purge policy", entity_type
                 )
@@ -169,16 +218,19 @@ def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
                     f"{_METRIC_PREFIX}.unsupported_models.{entity_type}"
                 )
                 continue
-            purged_n, would_n, failed_n, blocked_n, scan_failed_n = _purge_model(
-                model, cutoff, dry_run
+            supported_models.append(model)
+            if remaining_budget == 0 and not dry_run:
+                attempted -= 1
+                continue
+            counts: _PurgeModelResult = _purge_model(
+                model,
+                cutoff,
+                dry_run,
+                max_per_run=None if dry_run else remaining_budget,
             )
         except Exception:  # pylint: disable=broad-except
-            # One root must not cost the others their run. _purge_model keeps
-            # its own counts when a scan fails part-way; this guards what is
-            # left -- resolving the registry, and anything else before the
-            # first page.
             db.session.rollback()  # pylint: disable=consider-using-transaction
-            totals.scan_failures += 1
+            scan_failures += 1
             stats_logger_manager.instance.incr(
                 f"{_METRIC_PREFIX}.scan_failures.{entity_type}"
             )
@@ -186,18 +238,87 @@ def _purge_roots(cutoff: datetime, dry_run: bool) -> _PassTotals:
                 "deletion_retention: %s could not be processed", entity_type
             )
             continue
-        if would_n:
-            totals.would_purge[entity_type] = would_n
-        if purged_n:
-            totals.purged[entity_type] = purged_n
-        totals.cascade_failures += failed_n
-        totals.blocked += blocked_n
-        totals.scan_failures += scan_failed_n
-        if scan_failed_n:
+        if remaining_budget is not None and not dry_run:
+            # Reserve the possible commit even though it is not confirmed.
+            remaining_budget -= counts.purged + int(counts.commit_uncertain)
+        if counts.would_purge:
+            would_purge[entity_type] = counts.would_purge
+        if counts.purged:
+            purged[entity_type] = counts.purged
+        failures += counts.failures
+        blocked += counts.blocked
+        scan_failures += counts.scan_failures
+        if counts.scan_failures:
             stats_logger_manager.instance.incr(
                 f"{_METRIC_PREFIX}.scan_failures.{entity_type}"
             )
-    return totals
+        if counts.commit_uncertain:
+            commit_uncertain = True
+            break
+
+    return _PurgeScan(
+        purged=purged,
+        would_purge=would_purge,
+        unsupported_models=unsupported_models,
+        failures=failures,
+        blocked=blocked,
+        remaining_budget=remaining_budget,
+        supported_models=supported_models,
+        scan_failures=scan_failures,
+        attempted=attempted,
+        commit_uncertain=commit_uncertain,
+    )
+
+
+def _add_purge_cap_stats(
+    stats: dict[str, Any],
+    cutoff: datetime,
+    scan: _PurgeScan,
+    max_per_run: int | None,
+) -> None:
+    """Count remaining roots without masking a committed purge on failure."""
+    if max_per_run is None:
+        return
+    remaining_eligible: int | None
+    count_complete: bool = scan.scan_failures == 0 and not scan.commit_uncertain
+    if count_complete:
+        try:
+            remaining_eligible = sum(
+                _count_eligible(model, cutoff) for model in scan.supported_models
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "deletion_retention: remainder count failed after purge",
+                exc_info=True,
+            )
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except Exception:  # pylint: disable=broad-except
+                logger.exception("deletion_retention: remainder count rollback failed")
+            stats_logger_manager.instance.incr(
+                f"{_METRIC_PREFIX}.remainder_count_failed"
+            )
+            remaining_eligible = None
+            count_complete = False
+    else:
+        remaining_eligible = None
+    cap_reached: bool = scan.remaining_budget == 0
+    stats.update(
+        max_per_run=max_per_run,
+        cap_reached=cap_reached,
+        remaining_eligible=remaining_eligible,
+        remaining_count_complete=count_complete,
+    )
+    if remaining_eligible is not None:
+        stats_logger_manager.instance.gauge(
+            f"{_METRIC_PREFIX}.remaining_eligible", remaining_eligible
+        )
+    stats_logger_manager.instance.gauge(
+        f"{_METRIC_PREFIX}.remaining_count_complete", int(count_complete)
+    )
+    stats_logger_manager.instance.gauge(
+        f"{_METRIC_PREFIX}.cap_reached", int(cap_reached)
+    )
 
 
 def _report_total_outage(every_root_failed: bool) -> None:
@@ -217,8 +338,11 @@ def _report_total_outage(every_root_failed: bool) -> None:
     stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.failed")
 
 
-def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
+def _purge_impl(
+    window_days: int, dry_run: bool, max_per_run: int | None = None
+) -> dict[str, Any]:
     """Run one purge pass across all soft-delete models."""
+    max_per_run = validate_retention_cap(max_per_run, "SOFT_DELETE_PURGE_MAX_PER_RUN")
     if window_days == 0 or window_days < -1:
         logger.info("deletion_retention: window is disabled or invalid; skipping")
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
@@ -236,62 +360,76 @@ def _purge_impl(window_days: int, dry_run: bool) -> dict[str, Any]:
         else datetime.now() - timedelta(days=window_days)
     )
     _reconcile_unless_dry_run(dry_run)
-    totals: _PassTotals = _purge_roots(cutoff, dry_run)
-    purged = totals.purged
-    would_purge = totals.would_purge
-    unsupported_models = totals.unsupported
-    failures = totals.cascade_failures
-    blocked = totals.blocked
-    scan_failures = totals.scan_failures
-    # A root with no policy was never scanned, so it is not a failure and
-    # does not count toward "every root failed" -- which is what tells a
-    # metadata-database outage apart from one root misbehaving.
-    scannable: int = totals.attempted - len(unsupported_models)
-    every_root_failed: bool = scannable > 0 and scan_failures == scannable
+    scan: _PurgeScan = _scan_purge_models(cutoff, dry_run, max_per_run)
+    every_root_failed: bool = (
+        scan.attempted > 0 and scan.scan_failures == scan.attempted
+    )
 
     if dry_run:
-        _report_model_counts("would_purge", would_purge)
-        logger.info("deletion_retention: DRY RUN would_purge=%s", would_purge)
-        if scan_failures:
+        _report_model_counts("would_purge", scan.would_purge)
+        logger.info("deletion_retention: DRY RUN would_purge=%s", scan.would_purge)
+        backlog: int | None = (
+            sum(scan.would_purge.values()) if scan.scan_failures == 0 else None
+        )
+        estimated_runs: int | None = None
+        if backlog is not None:
+            estimated_runs = (
+                (backlog + max_per_run - 1) // max_per_run
+                if max_per_run is not None
+                else int(backlog > 0)
+            )
+        dry_stats: dict[str, Any] = {
+            "dry_run": 1,
+            "would_purge": scan.would_purge,
+            "unsupported_models": scan.unsupported_models,
+            "scan_failures": scan.scan_failures,
+            "eligible_backlog": backlog,
+            "backlog_count_complete": backlog is not None,
+            "max_per_run": max_per_run,
+            "estimated_capped_runs": estimated_runs,
+        }
+        if scan.scan_failures:
             stats_logger_manager.instance.gauge(
-                f"{_METRIC_PREFIX}.scan_failures", scan_failures
+                f"{_METRIC_PREFIX}.scan_failures", scan.scan_failures
             )
         _report_total_outage(every_root_failed)
-        return {
-            "dry_run": 1,
-            "would_purge": would_purge,
-            "unsupported_models": unsupported_models,
-            "scan_failures": scan_failures,
-        }
+        return dry_stats
 
-    _report_model_counts("purged", purged)
-    if failures:
+    _report_model_counts("purged", scan.purged)
+    if scan.failures:
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.cascade_failures")
-    if blocked:
+    if scan.blocked:
         stats_logger_manager.instance.gauge(
-            f"{_METRIC_PREFIX}.blocked_by_reference", blocked
+            f"{_METRIC_PREFIX}.blocked_by_reference", scan.blocked
         )
-    if scan_failures:
+    if scan.scan_failures:
         stats_logger_manager.instance.gauge(
-            f"{_METRIC_PREFIX}.scan_failures", scan_failures
+            f"{_METRIC_PREFIX}.scan_failures", scan.scan_failures
         )
+    if scan.commit_uncertain:
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.commit_uncertain")
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.failed")
     _report_total_outage(every_root_failed)
-    stats = {
-        "purged": purged,
-        "cascade_failures": failures,
-        "blocked_by_reference": blocked,
-        "unsupported_models": unsupported_models,
-        "scan_failures": scan_failures,
+    stats: dict[str, Any] = {
+        "purged": scan.purged,
+        "cascade_failures": scan.failures,
+        "blocked_by_reference": scan.blocked,
+        "unsupported_models": scan.unsupported_models,
+        "scan_failures": scan.scan_failures,
+        "commit_uncertain": scan.commit_uncertain,
     }
+    _add_purge_cap_stats(stats, cutoff, scan, max_per_run)
     logger.info("deletion_retention: %s", stats)
     return stats
 
 
-def _purge_model(
-    model: type[SoftDeleteMixin], cutoff: datetime, dry_run: bool
-) -> tuple[int, int, int, int, int]:
-    """Process one model's eligible rows. Returns ``(purged, would_purge,
-    failures, blocked, scan_failures)``. A single entity's blocked/failed
+def _purge_model(  # noqa: C901
+    model: type[SoftDeleteMixin],
+    cutoff: datetime,
+    dry_run: bool,
+    max_per_run: int | None = None,
+) -> _PurgeModelResult:
+    """Process one model's eligible rows. A single entity's blocked/failed
     cascade never aborts the batch.
 
     A failure in the eligible-id scan itself -- a column it cannot read, a
@@ -302,18 +440,30 @@ def _purge_model(
     """
     entity_type = _model_table_name(model)
     purged = would = failures = blocked = scan_failures = 0
+    commit_uncertain: bool = False
     try:
         for id_batch in _iter_eligible_ids(model, cutoff, _BATCH):
             if dry_run:
                 would += len(id_batch)
                 continue
             for entity_id in id_batch:
+                if max_per_run is not None and purged >= max_per_run:
+                    break
                 try:
                     result = _purge_one(model, entity_id, cutoff)
                     if result is not None and result.purged:
                         purged += 1
                     elif result is not None and result.blocked_reason is not None:
                         blocked += 1
+                except _PurgeCommitUncertainError:
+                    commit_uncertain = True
+                    logger.exception(
+                        "deletion_retention: commit outcome unknown for %s id=%s; "
+                        "deferring remaining roots",
+                        entity_type,
+                        entity_id,
+                    )
+                    break
                 except Exception:  # pylint: disable=broad-except
                     db.session.rollback()  # pylint: disable=consider-using-transaction
                     failures += 1
@@ -322,11 +472,21 @@ def _purge_model(
                         entity_type,
                         entity_id,
                     )
+            if commit_uncertain or (max_per_run is not None and purged >= max_per_run):
+                break
     except Exception:  # pylint: disable=broad-except
-        db.session.rollback()  # pylint: disable=consider-using-transaction
         scan_failures = 1
         logger.exception("deletion_retention: scan failed for %s", entity_type)
-    return purged, would, failures, blocked, scan_failures
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except Exception:  # pylint: disable=broad-except
+            # Earlier roots already committed; preserve their budget accounting.
+            logger.exception(
+                "deletion_retention: scan rollback failed for %s", entity_type
+            )
+    return _PurgeModelResult(
+        purged, would, failures, blocked, scan_failures, commit_uncertain
+    )
 
 
 def _finalize_blocked(record_id: UUID | None, blocker: BlockerReason) -> None:
@@ -340,6 +500,48 @@ def _finalize_blocked(record_id: UUID | None, blocker: BlockerReason) -> None:
         stats_logger_manager.instance.incr(
             f"{_METRIC_PREFIX}.blocked_audit_dedupe_fallback"
         )
+
+
+def _confirm_committed_purge(record_id: UUID | None, result: CascadeResult) -> None:
+    """Keep a committed root counted even if audit finalization fails."""
+    try:
+        audit.confirm(
+            record_id,
+            affected_referrers=result.dangling_chart_uuids,
+            removed_dashboard_slices=result.removed_dashboard_slices,
+        )
+    except Exception:  # pylint: disable=broad-except
+        # The audit remains pending for its normal reconciliation path.
+        logger.exception(
+            "deletion_retention: audit finalization failed after committed purge"
+        )
+
+
+def _commit_purge_root(record_id: UUID | None) -> None:
+    """Commit a purge, keeping uncertain outcomes pending for reconciliation."""
+    try:
+        db.session.commit()  # pylint: disable=consider-using-transaction
+    except Exception as exc:
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("deletion_retention: rollback after commit error failed")
+            raise _PurgeCommitUncertainError(
+                "root purge rollback outcome unknown"
+            ) from exc
+        if isinstance(exc, DBAPIError) and not exc.connection_invalidated:
+            # The valid connection rejected the commit; the root can be
+            # recorded as failed without consuming the confirmed purge cap.
+            logger.warning(
+                "deletion_retention: definitive root purge commit failure (%s): %s",
+                type(exc).__name__,
+                exc.orig,
+            )
+            audit.fail(record_id)
+            raise
+        # A lost acknowledgement can follow a successful commit. Keep the
+        # audit pending and defer remaining roots for reconciliation.
+        raise _PurgeCommitUncertainError("root purge commit outcome unknown") from exc
 
 
 def _purge_one(
@@ -403,19 +605,16 @@ def _purge_one(
         # pending association statements during flush/commit, so the
         # block's exit-time trim must run first or a session carrying
         # versioned state would write the purge-queued shadows anyway.
-        # Commit/rollback are managed manually so audit.fail() can
-        # record the outcome after the purge transaction resolves.
-        db.session.commit()  # pylint: disable=consider-using-transaction
+        # Commit/rollback are managed manually so audit.fail() can record a
+        # definitive pre-commit failure after the purge transaction resolves.
+        db.session.flush()
     except Exception:
         db.session.rollback()  # pylint: disable=consider-using-transaction
         audit.fail(record_id)
         raise
+    _commit_purge_root(record_id)
     if result.purged:
-        audit.confirm(
-            record_id,
-            affected_referrers=result.dangling_chart_uuids,
-            removed_dashboard_slices=result.removed_dashboard_slices,
-        )
+        _confirm_committed_purge(record_id, result)
     elif result.blocker is not None:
         _finalize_blocked(record_id, result.blocker)
     else:
@@ -498,7 +697,8 @@ def prune_purge_audit() -> dict[str, Any]:
 def purge_soft_deleted() -> dict[str, Any]:
     """Beat entry point. Resolves the window live, honors the SOFT_DELETE
     rollout gate and dry-run flag, and isolates failures so one bad run does
-    not poison the schedule."""
+    not poison the schedule. The cap bounds committed root deletions, not
+    candidate evaluations; blocked roots are re-evaluated on every run."""
     # While the temporary SOFT_DELETE rollout gate is off the delete path
     # writes no ``deleted_at`` rows, so the task already no-ops; check the gate
     # explicitly for clarity (the check is removed when the gate is).
@@ -508,7 +708,16 @@ def purge_soft_deleted() -> dict[str, Any]:
     window_days = resolve_retention_window()
     dry_run = bool(current_app.config.get("SOFT_DELETE_PURGE_DRY_RUN", True))
     try:
-        return _purge_impl(window_days, dry_run)
+        max_per_run: int | None = validate_retention_cap(
+            current_app.config.get("SOFT_DELETE_PURGE_MAX_PER_RUN", 1000),
+            "SOFT_DELETE_PURGE_MAX_PER_RUN",
+        )
+    except ValueError:
+        logger.warning("deletion_retention: invalid purge cap; skipping")
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped_invalid_cap")
+        return {"skipped_invalid_cap": 1}
+    try:
+        return _purge_impl(window_days, dry_run, max_per_run=max_per_run)
     except Exception:  # pylint: disable=broad-except
         logger.exception("deletion_retention.purge_soft_deleted: task failed")
         stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.failed")

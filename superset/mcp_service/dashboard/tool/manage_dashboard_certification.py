@@ -38,6 +38,7 @@ from superset.mcp_service.dashboard.schemas import (
 from superset.mcp_service.dashboard.tool.governance_utils import (
     dashboard_url,
     find_and_authorize_dashboard,
+    managed_dashboard_refusal,
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -107,14 +108,11 @@ def manage_dashboard_certification(
     # protect it — the refusal must live in the tool itself, after the
     # editorship check, where a caller with no edit rights keeps getting
     # the plain editorship denial.
-    if dashboard.is_managed_externally:
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is not None:
         return ManageDashboardCertificationResponse(
             managed_externally=True,
-            error=(
-                f"Dashboard '{dashboard.dashboard_title}' (ID: {dashboard.id}) "
-                "is managed externally; its certification is owned by the "
-                "external system and cannot be changed here."
-            ),
+            error=refusal,
         )
 
     changed_fields: list[str] = []

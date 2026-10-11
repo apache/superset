@@ -22,12 +22,27 @@ from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.key_value.models import KeyValueEntry
+from superset.key_value.types import FIXED_RESOURCE_KEYS, KeyValueResource
 from superset.models.core import Database, FavStar, Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.subjects.models import Subject
 
 logger = logging.getLogger(__name__)
+
+
+def _clear_preserved_config_audit_fields() -> None:
+    """Detach the retained configuration row from user audit references."""
+    db.session.query(KeyValueEntry).filter(
+        KeyValueEntry.resource == KeyValueResource.ALERT_REPORT_CONFIG.value,
+        KeyValueEntry.uuid == FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
+    ).update(
+        {
+            KeyValueEntry.created_by_fk: None,
+            KeyValueEntry.changed_by_fk: None,
+        },
+        synchronize_session=False,
+    )
 
 
 class ResetSupersetCommand(BaseCommand):
@@ -62,7 +77,12 @@ class ResetSupersetCommand(BaseCommand):
             db.session.delete(database)
         db.session.query(Dashboard).delete()
         db.session.query(Slice).delete()
-        db.session.query(KeyValueEntry).delete()
+        config_uuid = FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG]
+        db.session.query(KeyValueEntry).filter(
+            KeyValueEntry.uuid.is_(None) | (KeyValueEntry.uuid != config_uuid)
+        ).delete()
+        # Non-admins will be deleted, so clean up ``created_by_fk`` and ``changed_by_fk`
+        _clear_preserved_config_audit_fields()
         db.session.query(Log).delete()
         db.session.query(FavStar).delete()
 

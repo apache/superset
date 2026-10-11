@@ -173,12 +173,7 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
 
 
 class DashboardFilter(ColumnOperator):
-    """
-    Filter object for dashboard listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
+    """Filter object for dashboard listing."""
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "dashboard_title",
@@ -248,12 +243,9 @@ class ListDashboardsRequest(
                 "just trashed dashboards, 'include' returns live and trashed "
                 "together. Omit for live dashboards only (default). Trashed "
                 "rows carry a non-null deleted_at and are limited to "
-                "dashboards the caller can edit (the same audience that can "
-                "restore them, not merely the ones they own; admins see "
-                "all). This omits EXTRA_EDITORS_RESOLVER-granted and guest "
-                "role-derived editorship, so some restorable dashboards may "
-                "be under-enumerated. Requires the SOFT_DELETE feature flag "
-                "to have produced trashed rows."
+                "dashboards the caller can edit (admins see all); some "
+                "restorable dashboards may be missing. Requires the "
+                "SOFT_DELETE feature flag to have produced trashed rows."
             ),
         ),
     ]
@@ -682,7 +674,28 @@ class AddChartToDashboardRequest(BaseModel):
     )
 
 
-class AddChartToDashboardResponse(BaseModel):
+class DashboardMutationErrorFields(BaseModel):
+    """Shared error and permission fields for governance mutations."""
+
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the user lacks edit rights on the target dashboard. "
+            "Remediation: ask the user to grant access; do not retry as-is."
+        ),
+    )
+    managed_externally: bool = Field(
+        default=False,
+        description=(
+            "True when the mutation was refused because the dashboard is "
+            "managed externally. This is not an access denial: permissions "
+            "and retries cannot change it; its source of truth is external."
+        ),
+    )
+
+
+class AddChartToDashboardResponse(DashboardMutationErrorFields):
     """Response schema for adding chart to dashboard."""
 
     dashboard: DashboardInfo | None = Field(
@@ -694,7 +707,6 @@ class AddChartToDashboardResponse(BaseModel):
     position: dict[str, Any] | None = Field(
         None, description="Position information for the added chart"
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -717,7 +729,7 @@ class RemoveChartFromDashboardRequest(BaseModel):
     )
 
 
-class RemoveChartFromDashboardResponse(BaseModel):
+class RemoveChartFromDashboardResponse(DashboardMutationErrorFields):
     """Response schema for removing a chart from a dashboard."""
 
     dashboard: DashboardInfo | None = Field(
@@ -734,7 +746,6 @@ class RemoveChartFromDashboardResponse(BaseModel):
             "became empty as a result)."
         ),
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -1066,7 +1077,7 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
         return normalized
 
 
-class UpdateDashboardResponse(BaseModel):
+class UpdateDashboardResponse(DashboardMutationErrorFields):
     """Response schema for ``update_dashboard``.
 
     Distinct from ``GenerateDashboardResponse`` because the semantics
@@ -1078,7 +1089,6 @@ class UpdateDashboardResponse(BaseModel):
         None, description="The updated dashboard info, if successful"
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
-    error: str | None = Field(None, description="Error message, if update failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -1172,28 +1182,6 @@ class ManageDashboardOwnersRequest(BaseModel):
                 f"remove_owner_ids: {overlap}."
             )
         return self
-
-
-class DashboardMutationErrorFields(BaseModel):
-    """Shared error and permission fields for governance mutations."""
-
-    error: str | None = Field(None, description="Error message, if operation failed")
-    permission_denied: bool = Field(
-        default=False,
-        description=(
-            "True when the user lacks edit rights on the target dashboard. "
-            "Remediation: ask the user to grant access; do not retry as-is."
-        ),
-    )
-    managed_externally: bool = Field(
-        default=False,
-        description=(
-            "True when the mutation was refused because the dashboard is "
-            "managed externally. Structural, not an access denial: granting "
-            "permissions cannot resolve it and the call should not be "
-            "retried — the entity's source of truth lives outside Superset."
-        ),
-    )
 
 
 class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
@@ -2273,7 +2261,7 @@ class DeleteDashboardRequest(BaseModel):
         return value
 
 
-class DeleteDashboardResponse(BaseModel):
+class DeleteDashboardResponse(DashboardMutationErrorFields):
     """Result of a delete_dashboard operation."""
 
     success: bool = Field(description="Whether the dashboard was deleted")
@@ -2288,7 +2276,6 @@ class DeleteDashboardResponse(BaseModel):
         ),
     )
     message: str | None = Field(None, description="Human-readable outcome message")
-    error: str | None = Field(None, description="Error message if the delete failed")
     error_type: str | None = Field(None, description="Type of error if failed")
     permission_denied: bool = Field(
         False,
@@ -2324,9 +2311,8 @@ class BaseNewFilterSpec(BaseModel):
     scope_chart_ids: List[int] | None = Field(
         None,
         description=(
-            "Chart IDs this filter should apply to. When omitted the filter "
-            "applies to all charts on the dashboard. All IDs must belong to "
-            "charts that are on the dashboard."
+            "IDs of charts on the dashboard this filter applies to. Omit to "
+            "apply it to all charts on the dashboard."
         ),
     )
 
@@ -2605,7 +2591,7 @@ class ManageNativeFiltersRequest(BaseModel):
         return self
 
 
-class ManageNativeFiltersResponse(BaseModel):
+class ManageNativeFiltersResponse(DashboardMutationErrorFields):
     """Response schema for the manage_native_filters tool."""
 
     dashboard_id: int | None = Field(None, description="ID of the dashboard")
@@ -2628,7 +2614,6 @@ class ManageNativeFiltersResponse(BaseModel):
         default_factory=list,
         description="Final native filter configuration after the operation, in order",
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -2651,22 +2636,15 @@ class BaseNewDashboardComponentSpec(BaseModel):
     target_tab: str | None = Field(
         None,
         description=(
-            "Tab to add the component to, matched by display name or "
-            "component ID (see get_dashboard_layout for available tabs). "
-            "Omit to use the first tab, or the grid if there are no tabs; "
-            "specify a target when the component should land in a "
-            "specific one rather than the first tab."
+            "Tab to add the component to, by display name or component ID "
+            "(see get_dashboard_layout). Omit for the first tab, or the grid "
+            "if there are no tabs."
         ),
     )
 
 
 class MarkdownComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new markdown/text tile.
-
-    Placed in its own new row (a MARKDOWN component sits alongside charts,
-    not as a full-width band), so it composes with existing rows/charts on
-    the target grid or tab.
-    """
+    """Spec for a new markdown/text tile, placed in its own new row."""
 
     component_type: Literal["markdown"] = Field(
         ..., description="Discriminator - must be 'markdown'"
@@ -2718,12 +2696,7 @@ def _sanitize_header_text(value: str) -> str:
 
 
 class HeaderComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new section header band.
-
-    Placed directly on the target grid/tab (not inside a row) so it spans
-    the full dashboard width, matching how the dashboard builder places
-    dragged header components.
-    """
+    """Spec for a new full-width section header band."""
 
     component_type: Literal["header"] = Field(
         ..., description="Discriminator - must be 'header'"
@@ -2744,11 +2717,7 @@ class HeaderComponentSpec(BaseNewDashboardComponentSpec):
 
 
 class DividerComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new horizontal divider.
-
-    Placed directly on the target grid/tab (not inside a row), same as
-    ``HeaderComponentSpec``. Carries no content — only placement.
-    """
+    """Spec for a new full-width horizontal divider; it has no content."""
 
     component_type: Literal["divider"] = Field(
         ..., description="Discriminator - must be 'divider'"
@@ -3456,7 +3425,7 @@ class RestoreDashboardRequest(BaseModel):
         return value
 
 
-class RestoreDashboardResponse(BaseModel):
+class RestoreDashboardResponse(DashboardMutationErrorFields):
     """Result of a restore_dashboard operation."""
 
     success: bool = Field(description="Whether the dashboard was restored from trash")
@@ -3465,7 +3434,6 @@ class RestoreDashboardResponse(BaseModel):
         None, description="Title of the restored dashboard"
     )
     message: str | None = Field(None, description="Human-readable outcome message")
-    error: str | None = Field(None, description="Error message if the restore failed")
     error_type: str | None = Field(None, description="Type of error if failed")
     permission_denied: bool = Field(
         False,

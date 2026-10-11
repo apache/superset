@@ -1138,6 +1138,7 @@ export const useExploreAdditionalActionsMenu = (
           modalTitle={t('View query')}
           modalBody={
             <ViewQueryModal
+              chartId={slice?.slice_id}
               latestQueryFormData={latestQueryFormData as QueryFormData}
               ownState={ownState}
             />
