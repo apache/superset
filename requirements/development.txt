@@ -870,7 +870,7 @@ pyopenssl==26.4.0
     #   -c requirements/base-constraint.txt
     #   google-auth
     #   shillelagh
-pyparsing==3.3.2
+pyparsing==3.3.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
