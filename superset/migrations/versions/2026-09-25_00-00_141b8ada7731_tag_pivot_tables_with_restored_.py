@@ -60,7 +60,7 @@ until a human manually opens and re-saves it. A stale result is exactly what
 the tag/notice already exist to prompt a human to fix; an outage isn't.
 
 Revision ID: 141b8ada7731
-Revises: 00fab727cd0a
+Revises: c179af013f48
 Create Date: 2026-09-25 00:00:00.000000
 
 """
@@ -78,7 +78,7 @@ from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "141b8ada7731"
-down_revision = "00fab727cd0a"
+down_revision = "c179af013f48"
 
 Base = declarative_base()
 
