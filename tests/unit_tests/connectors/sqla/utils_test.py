@@ -70,6 +70,41 @@ def test_get_columns_description_caps_complex_tsql_limits(
     result_set.assert_called_once_with([(1,)], cursor.description, MssqlEngineSpec)
 
 
+def test_get_columns_description_expands_nested_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Column discovery lets the engine spec expand nested fields from the cursor."""
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.superset_typing import ResultSetColumnType
+
+    database = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(database, "get_db_engine_spec", return_value=SqliteEngineSpec)
+    connection = mocker.patch.object(database, "get_raw_connection")
+    cursor = connection.return_value.__enter__.return_value.cursor.return_value
+    cursor.description = [("calendar", "RECORD", None, None, None, None, None)]
+    cursor.fetchall.return_value = [(None,)]
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql: sql
+    )
+    mocker.patch.object(SqliteEngineSpec, "execute")
+    expanded = ResultSetColumnType(
+        name="calendar.day",
+        column_name="calendar.day",
+        type="STRING",
+        is_dttm=False,
+    )
+    hook = mocker.patch.object(
+        SqliteEngineSpec, "expand_nested_columns", return_value=[expanded]
+    )
+
+    result = get_columns_description(database, None, None, "SELECT calendar FROM t")
+
+    assert result == [expanded]
+    hook.assert_called_once()
+    assert hook.call_args.args[0] is cursor
+    assert hook.call_args.args[1][0]["column_name"] == "calendar"
+
+
 # Returns column descriptions when given valid database, catalog, schema, and query
 def test_returns_column_descriptions(mocker: MockerFixture) -> None:
     database = mocker.MagicMock()
@@ -89,6 +124,7 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
 
     database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
     database.db_engine_spec = db_engine_spec
+    db_engine_spec.expand_nested_columns.side_effect = lambda _, columns: columns
     database.apply_limit_to_sql.return_value = "SELECT * FROM table LIMIT 1"
     database.mutate_sql_based_on_config.return_value = "SELECT * FROM table LIMIT 1"
     db_engine_spec.fetch_data.return_value = [("col1", "col1", "STRING", None, False)]
@@ -278,6 +314,7 @@ def test_get_columns_description_retries_with_comment_safe_sql_when_empty(
 
     database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
     database.db_engine_spec = db_engine_spec
+    db_engine_spec.expand_nested_columns.side_effect = lambda _, columns: columns
     database.apply_limit_to_sql.return_value = "SELECT 1 WHERE false"
     database.mutate_sql_based_on_config.return_value = (
         "-- comment\nSELECT 1 WHERE false"
@@ -332,6 +369,7 @@ def test_get_columns_description_no_retry_when_engine_has_no_hook(
 
     database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
     database.db_engine_spec = db_engine_spec
+    db_engine_spec.expand_nested_columns.side_effect = lambda _, columns: columns
     database.apply_limit_to_sql.return_value = "SELECT * FROM table"
     database.mutate_sql_based_on_config.return_value = "SELECT * FROM table"
 

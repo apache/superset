@@ -19,10 +19,12 @@
 
 from datetime import datetime
 from itertools import islice
+from types import SimpleNamespace
 from typing import Any, Optional
 from unittest import mock
 
 import pytest
+from google.cloud.bigquery import SchemaField
 from pytest_mock import MockerFixture
 from sqlalchemy import select
 from sqlalchemy.engine.url import make_url
@@ -32,6 +34,7 @@ from sqlalchemy_bigquery import BigQueryDialect
 from superset.sql.parse import Table
 from superset.superset_typing import FetchedRows, ResultSetColumnType
 from superset.utils import json
+from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -1219,3 +1222,225 @@ def test_identifier_quote_uses_backticks() -> None:
         "end": "`",
         "escape_by_doubling": False,
     }
+
+
+def _struct_schema() -> list[SchemaField]:
+    return [
+        SchemaField("date", "DATE"),
+        SchemaField(
+            "calendar",
+            "RECORD",
+            fields=[
+                SchemaField("day_num_of_month", "INTEGER"),
+                SchemaField("day", "STRING"),
+                SchemaField("client_year", "INTEGER"),
+                SchemaField(
+                    "client",
+                    "RECORD",
+                    fields=[
+                        SchemaField("week_number", "INTEGER"),
+                        SchemaField("week_start_date", "DATE"),
+                    ],
+                ),
+            ],
+        ),
+        SchemaField("currency", "STRING"),
+        SchemaField("event_count", "INTEGER"),
+    ]
+
+
+def _top_level_columns(schema: list[SchemaField]) -> list[ResultSetColumnType]:
+    return [
+        ResultSetColumnType(
+            name=field.name,
+            column_name=field.name,
+            type=field.field_type,
+            is_dttm=field.field_type == "DATE",
+        )
+        for field in schema
+    ]
+
+
+EXPANDED_STRUCT_NAMES = [
+    "date",
+    "calendar",
+    "calendar.day_num_of_month",
+    "calendar.day",
+    "calendar.client_year",
+    "calendar.client",
+    "calendar.client.week_number",
+    "calendar.client.week_start_date",
+    "currency",
+    "event_count",
+]
+
+
+def test_expand_nested_columns_adds_struct_fields() -> None:
+    """
+    STRUCT members dropped by ``cursor.description`` are added as dotted columns.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = _struct_schema()
+    columns = _top_level_columns(schema)
+    cursor = SimpleNamespace(_query_rows=SimpleNamespace(schema=schema))
+
+    result = BigQueryEngineSpec.expand_nested_columns(cursor, columns)
+
+    assert [col["column_name"] for col in result] == EXPANDED_STRUCT_NAMES
+    assert result[0] is columns[0]
+    assert result[1] is columns[1]
+    assert result[8] is columns[2]
+    assert result[9] is columns[3]
+    by_name = {col["column_name"]: col for col in result}
+    assert by_name["calendar.day"]["type"] == "STRING"
+    assert by_name["calendar.day"]["type_generic"] == GenericDataType.STRING
+    assert by_name["calendar.day"]["is_dttm"] is False
+    assert by_name["calendar.day"]["nested_field"] is True
+    assert "nested_field" not in by_name["calendar"]
+    assert by_name["calendar.day_num_of_month"]["type_generic"] == (
+        GenericDataType.NUMERIC
+    )
+    assert by_name["calendar.client"]["type"] == "RECORD"
+    assert by_name["calendar.client"]["type_generic"] is None
+    week_start = by_name["calendar.client.week_start_date"]
+    assert week_start["type"] == "DATE"
+    assert week_start["is_dttm"] is True
+    assert week_start["type_generic"] == GenericDataType.TEMPORAL
+
+
+def test_expand_nested_columns_skips_repeated_record_children() -> None:
+    """
+    Children of an ARRAY<STRUCT> are not selectable as ``a.b`` and are skipped;
+    REPEATED members are typed as arrays, like the inspector does.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = [
+        SchemaField(
+            "calendar",
+            "RECORD",
+            fields=[
+                SchemaField("tags", "STRING", mode="REPEATED"),
+                SchemaField("dates", "DATE", mode="REPEATED"),
+                SchemaField(
+                    "items",
+                    "RECORD",
+                    mode="REPEATED",
+                    fields=[SchemaField("sku", "STRING")],
+                ),
+            ],
+        ),
+        SchemaField(
+            "trailer",
+            "RECORD",
+            mode="REPEATED",
+            fields=[SchemaField("key", "STRING"), SchemaField("value", "STRING")],
+        ),
+    ]
+    cursor = SimpleNamespace(_query_rows=SimpleNamespace(schema=schema))
+
+    result = BigQueryEngineSpec.expand_nested_columns(
+        cursor, _top_level_columns(schema)
+    )
+
+    assert [col["column_name"] for col in result] == [
+        "calendar",
+        "calendar.tags",
+        "calendar.dates",
+        "calendar.items",
+        "trailer",
+    ]
+    for col in result[1:4]:
+        assert col["type"] == "ARRAY"
+        assert col["type_generic"] is None
+        assert col["is_dttm"] is False
+        assert col["nested_field"] is True
+
+
+@pytest.mark.parametrize(
+    "cursor",
+    [
+        SimpleNamespace(_query_rows=None, query_job=None),
+        SimpleNamespace(),
+        SimpleNamespace(
+            _query_rows=None,
+            query_job=SimpleNamespace(result=mock.Mock(side_effect=AssertionError)),
+        ),
+    ],
+)
+def test_expand_nested_columns_without_schema_is_noop(cursor: Any) -> None:
+    """
+    Without a result schema on the cursor the columns are returned unchanged.
+
+    ``query_job`` is never read, since it costs an API call.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    columns = _top_level_columns(_struct_schema())
+
+    assert BigQueryEngineSpec.expand_nested_columns(cursor, columns) is columns
+
+
+def test_expand_nested_columns_schema_length_mismatch_is_noop() -> None:
+    """
+    A schema that does not line up with the columns is ignored.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = _struct_schema()
+    columns = _top_level_columns(schema)
+    cursor = SimpleNamespace(_query_rows=SimpleNamespace(schema=schema[:2]))
+
+    assert BigQueryEngineSpec.expand_nested_columns(cursor, columns) == columns
+
+
+def test_expand_nested_columns_reads_real_dbapi_cursor(mocker: MockerFixture) -> None:
+    """
+    The nested schema is read from the DB-API cursor without an extra API call.
+    """
+    from google.cloud.bigquery.dbapi import Connection
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = _struct_schema()
+    client = mocker.MagicMock()
+    client.query_and_wait.return_value = SimpleNamespace(
+        schema=schema, total_rows=0, num_dml_affected_rows=None, job_id=None
+    )
+    cursor = Connection(client=client).cursor()
+    cursor.execute("SELECT * FROM t")
+
+    result = BigQueryEngineSpec.expand_nested_columns(
+        cursor, _top_level_columns(schema)
+    )
+
+    assert [col["column_name"] for col in result] == EXPANDED_STRUCT_NAMES
+    client.get_job.assert_not_called()
+
+
+def test_expand_nested_columns_keeps_user_alias() -> None:
+    """
+    A selected column already named like a STRUCT member is not duplicated.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = [
+        SchemaField(
+            "calendar",
+            "RECORD",
+            fields=[SchemaField("day", "STRING"), SchemaField("year", "INTEGER")],
+        ),
+        SchemaField("calendar.day", "STRING"),
+    ]
+    columns = _top_level_columns(schema)
+    cursor = SimpleNamespace(_query_rows=SimpleNamespace(schema=schema))
+
+    result = BigQueryEngineSpec.expand_nested_columns(cursor, columns)
+
+    assert [col["column_name"] for col in result] == [
+        "calendar",
+        "calendar.year",
+        "calendar.day",
+    ]
+    assert result[2] is columns[1]
