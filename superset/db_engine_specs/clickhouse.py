@@ -424,6 +424,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         ),
         "logo": "clickhouse.png",
         "homepage_url": "https://clickhouse.com/",
+        "sqlalchemy_docs_url": "https://clickhouse.com/docs/en/integrations/sql-clients/superset",
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.OPEN_SOURCE,
