@@ -59,3 +59,21 @@ def test_epoch_to_dttm() -> None:
         FireboltEngineSpec.epoch_to_dttm().format(col="timestamp_column")
         == "from_unixtime(timestamp_column)"
     )
+
+
+def test_firebolt_properties() -> None:
+    from superset.db_engine_specs.firebolt import FireboltEngineSpec
+
+    assert FireboltEngineSpec.engine == "firebolt"
+    assert FireboltEngineSpec.engine_name == "Firebolt"
+    assert FireboltEngineSpec.default_driver == "firebolt"
+
+
+def test_firebolt_metadata() -> None:
+    from superset.db_engine_specs.firebolt import FireboltEngineSpec
+
+    metadata = FireboltEngineSpec.metadata
+    assert "Firebolt is a cloud data warehouse" in metadata["description"]
+    assert metadata["logo"] == "firebolt.png"
+    assert "firebolt-sqlalchemy" in metadata["pypi_packages"]
+
