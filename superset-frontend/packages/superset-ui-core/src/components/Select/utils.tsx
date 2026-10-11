@@ -63,10 +63,28 @@ export function getOption(
   checkLabel = false,
 ): V | CustomLabeledValue {
   const optionsArray = ensureIsArray(options);
-  return optionsArray.find(
-    x =>
-      isEqual(x, value, 'value') || (checkLabel && isEqual(x, value, 'label')),
-  );
+  const targetValue = isObject(value) ? value.value : value;
+  const targetLabel = isObject(value) ? value.label : value;
+  for (const x of optionsArray) {
+    if (
+      isEqual(x, targetValue, 'value') ||
+      (checkLabel &&
+        (isEqual(x, targetLabel, 'label') || isEqual(x, targetValue, 'label')))
+    ) {
+      return x;
+    }
+    if (isObject(x) && Array.isArray((x as any).options)) {
+      const child = getOption(
+        value,
+        (x as any).options as (V | CustomLabeledValue)[],
+        checkLabel,
+      );
+      if (child !== undefined) {
+        return child;
+      }
+    }
+  }
+  return undefined;
 }
 
 export function hasOption(
