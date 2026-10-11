@@ -136,7 +136,10 @@ class ExtensionsLoader {
     // Attached separately (not reassigning this.initializationPromise) so
     // ready-tracking is purely a side effect and every caller still sees the
     // original promise's own resolve/reject value.
-    this.initializationPromise.finally(() => this.markReady());
+    this.initializationPromise.then(
+      () => this.markReady(),
+      () => this.markReady(),
+    );
     return this.initializationPromise;
   }
 
