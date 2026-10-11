@@ -563,7 +563,7 @@ lz4==4.4.5
     # via
     #   clickhouse-connect
     #   trino
-mako==1.4.1
+mako==1.4.3
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
