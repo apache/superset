@@ -367,6 +367,9 @@ to, and where a translation would plausibly go wrong. A note only guides the
 translation; to keep a string untranslated, add it to the do-not-translate
 registry described below.
 
+For terms that apply to a whole language, see the
+[Translation Guide](./translation-guide.md).
+
 `scripts/translations/backfill_po.py` also sends the comment to the model as a
 developer note. In a live run, the note did not change the model's choice when
 every reference translation used another sense, so review machine translations
