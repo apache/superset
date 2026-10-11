@@ -19,7 +19,7 @@
 import { AppSection, type ChartProps } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import RangeFilterPlugin, { calculateStep } from './RangeFilterPlugin';
 import { RangeDisplayMode, type PluginFilterRangeProps } from './types';
 import { SingleValueType } from './SingleValueType';
@@ -288,6 +288,26 @@ describe('RangeFilterPlugin', () => {
       expect(screen.queryAllByRole('slider')).toHaveLength(0);
     });
 
+    test('dataset input mode emits an exact filter for a typed exact value', () => {
+      getWrapper({
+        formData: {
+          rangeDisplayMode: RangeDisplayMode.Input,
+          enableSingleValue: SingleValueType.Exact,
+        },
+        filterState: { value: [10, 10] },
+      });
+      fireEvent.change(screen.getByRole('spinbutton'), {
+        target: { value: '42' },
+      });
+      expect(setDataMask).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          extraFormData: {
+            filters: [{ col: 'SP_POP_TOTL', op: '==', val: 42 }],
+          },
+        }),
+      );
+    });
+
     test('should render both slider and inputs in slider-and-input mode', () => {
       getWrapper({
         formData: {
@@ -503,7 +523,311 @@ test('calculateStep never returns 0 for tiny ranges', () => {
   expect(calculateStep(0, 0.0000001)).toBeGreaterThan(0);
 });
 
+test('semantic range renders labelled manual bounds without query results or a slider', async () => {
+  const setDataMask = jest.fn();
+  render(
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        queriesData: [],
+        formData: {
+          ...rangeProps.formData,
+          datasource: '3__semantic_view',
+          defaultValue: undefined,
+          rangeDisplayMode: RangeDisplayMode.Slider,
+        },
+        filterState: { value: [null, null] },
+      } as unknown as ChartProps) as PluginFilterRangeProps)}
+      setDataMask={setDataMask}
+    />,
+  );
+  const lower = screen.getByRole('spinbutton', { name: 'Minimum value' });
+  const upper = screen.getByRole('spinbutton', { name: 'Maximum value' });
+  expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+  expect(
+    screen.getByText('Leave a bound empty for an unbounded range.'),
+  ).toBeInTheDocument();
+  expect(lower).toHaveValue('');
+  expect(upper).toHaveValue('');
+  fireEvent.change(lower, { target: { value: '-1.5' } });
+  fireEvent.blur(lower);
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: { filters: [{ col: 'SP_POP_TOTL', op: '>=', val: -1.5 }] },
+      filterState: expect.objectContaining({
+        value: [-1.5, null],
+        validateStatus: undefined,
+      }),
+    }),
+  );
+  fireEvent.change(upper, { target: { value: '2000000.25' } });
+  fireEvent.blur(upper);
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: {
+        filters: [
+          { col: 'SP_POP_TOTL', op: '>=', val: -1.5 },
+          { col: 'SP_POP_TOTL', op: '<=', val: 2000000.25 },
+        ],
+      },
+    }),
+  );
+  await userEvent.clear(lower);
+  await userEvent.clear(upper);
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: {},
+      filterState: expect.objectContaining({
+        value: [null, null],
+        validateStatus: undefined,
+      }),
+    }),
+  );
+});
+
 test('calculateStep falls back for non-positive ranges', () => {
   expect(calculateStep(5, 5)).toBe(0.01);
   expect(calculateStep(10, 5)).toBe(0.01);
+});
+
+function semanticRangeProps(
+  overrides: Partial<PluginFilterRangeProps> = {},
+): PluginFilterRangeProps {
+  return {
+    ...(transformProps({
+      ...rangeProps,
+      queriesData: [],
+      formData: {
+        ...rangeProps.formData,
+        datasource: '3__semantic_view',
+        defaultValue: undefined,
+      },
+      filterState: { value: [null, null] },
+    } as unknown as ChartProps) as PluginFilterRangeProps),
+    ...overrides,
+  };
+}
+
+test('semantic range rejects reversed bounds and recovers when corrected', () => {
+  const setDataMask = jest.fn();
+  render(
+    <RangeFilterPlugin {...semanticRangeProps()} setDataMask={setDataMask} />,
+  );
+  const [lower, upper] = screen.getAllByRole('spinbutton');
+  fireEvent.change(lower, { target: { value: '20' } });
+  fireEvent.change(upper, { target: { value: '10' } });
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: {},
+      filterState: expect.objectContaining({ validateStatus: 'error' }),
+    }),
+  );
+  expect(
+    screen.getByText('Min value cannot be greater than max value'),
+  ).toBeInTheDocument();
+  fireEvent.change(upper, { target: { value: '30' } });
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({
+        value: [20, 30],
+        validateStatus: undefined,
+      }),
+    }),
+  );
+});
+
+test('semantic range validates required empty saved state without discovered bounds', () => {
+  const props = semanticRangeProps();
+  const setDataMask = jest.fn();
+  render(
+    <RangeFilterPlugin
+      {...props}
+      formData={{ ...props.formData, enableEmptyFilter: true }}
+      setDataMask={setDataMask}
+    />,
+  );
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: {},
+      filterState: expect.objectContaining({ validateStatus: 'error' }),
+    }),
+  );
+});
+
+test.each([
+  [SingleValueType.Minimum, [5, null], '>='],
+  [SingleValueType.Maximum, [null, 5], '<='],
+  [SingleValueType.Exact, [5, 5], '=='],
+] as const)(
+  'semantic single-value mode %s preserves saved defaults and emits the right operator',
+  (mode, value, op) => {
+    const props = semanticRangeProps();
+    const setDataMask = jest.fn();
+    render(
+      <RangeFilterPlugin
+        {...props}
+        formData={{
+          ...props.formData,
+          enableSingleValue: mode,
+          defaultValue: [...value],
+        }}
+        filterState={{ value: [...value] }}
+        setDataMask={setDataMask}
+      />,
+    );
+    expect(screen.getAllByRole('spinbutton')).toHaveLength(1);
+    expect(screen.getByRole('spinbutton')).toHaveValue('5');
+    expect(setDataMask).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        extraFormData: { filters: [{ col: 'SP_POP_TOTL', op, val: 5 }] },
+      }),
+    );
+    fireEvent.change(screen.getByRole('spinbutton'), {
+      target: { value: '-2.5' },
+    });
+    expect(setDataMask).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        extraFormData: { filters: [{ col: 'SP_POP_TOTL', op, val: -2.5 }] },
+      }),
+    );
+  },
+);
+
+test('semantic range restores external values and clears a saved default', () => {
+  const props = semanticRangeProps();
+  const setDataMask = jest.fn();
+  const element = (value: [number | null, number | null]) => (
+    <RangeFilterPlugin
+      {...props}
+      formData={{ ...props.formData, defaultValue: [10, 70] }}
+      filterState={{ value }}
+      setDataMask={setDataMask}
+    />
+  );
+  const { rerender } = render(element([10, 70]));
+  rerender(element([null, null]));
+  expect(
+    screen
+      .getAllByRole('spinbutton')
+      .map(input => (input as HTMLInputElement).value),
+  ).toEqual(['', '']);
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({ extraFormData: {} }),
+  );
+  rerender(element([0, 0]));
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: { filters: [{ col: 'SP_POP_TOTL', op: '==', val: 0 }] },
+    }),
+  );
+});
+
+test('semantic range clears a required-value error when made optional', () => {
+  const props = semanticRangeProps();
+  const setDataMask = jest.fn();
+  const element = (required: boolean, invalid: boolean) => (
+    <RangeFilterPlugin
+      {...props}
+      formData={{ ...props.formData, enableEmptyFilter: required }}
+      filterState={{
+        value: [null, null],
+        validateStatus: invalid ? 'error' : undefined,
+        validateMessage: invalid
+          ? 'Please provide a valid min or max value'
+          : '',
+      }}
+      setDataMask={setDataMask}
+    />
+  );
+  const { rerender } = render(element(true, false));
+  rerender(element(true, true));
+  setDataMask.mockClear();
+  rerender(element(false, true));
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: {},
+      filterState: expect.objectContaining({
+        value: [null, null],
+        validateStatus: undefined,
+      }),
+    }),
+  );
+  expect(
+    screen.queryByText('Please provide a valid min or max value'),
+  ).not.toBeInTheDocument();
+});
+
+test.each([undefined, SingleValueType.Exact])(
+  'semantic range rejects non-finite manual input in mode %s',
+  mode => {
+    const props = semanticRangeProps();
+    const setDataMask = jest.fn();
+    render(
+      <RangeFilterPlugin
+        {...props}
+        formData={{ ...props.formData, enableSingleValue: mode }}
+        setDataMask={setDataMask}
+      />,
+    );
+    fireEvent.change(
+      screen.getAllByRole('spinbutton')[mode === undefined ? 1 : 0],
+      { target: { value: '9'.repeat(309) } },
+    );
+    expect(setDataMask).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        extraFormData: {},
+        filterState: expect.objectContaining({ validateStatus: 'error' }),
+      }),
+    );
+  },
+);
+
+test.each([
+  ['an all-null numeric column', [{ min: null, max: null }]],
+  ['an empty result', []],
+])('keeps unbounded inputs usable for %s', (_label, data) => {
+  const setDataMask = jest.fn();
+  render(
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        queriesData: [{ ...rangeProps.queriesData[0], rowcount: 0, data }],
+        formData: { ...rangeProps.formData, defaultValue: undefined },
+        filterState: { value: [null, null] },
+      } as unknown as ChartProps) as PluginFilterRangeProps)}
+      setDataMask={setDataMask}
+    />,
+  );
+  expect(
+    screen.queryByText('Chosen non-numeric column'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+  const [lower, upper] = screen.getAllByRole('spinbutton');
+  expect(lower).toHaveAttribute('placeholder', '');
+  expect(upper).toHaveAttribute('placeholder', '');
+  expect(
+    screen.getByText('Leave a bound empty for an unbounded range.'),
+  ).toBeInTheDocument();
+  fireEvent.change(lower, { target: { value: '-3' } });
+  fireEvent.blur(lower);
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: { filters: [{ col: 'SP_POP_TOTL', op: '>=', val: -3 }] },
+    }),
+  );
+});
+
+test('flags a column whose aggregates are not numeric', () => {
+  render(
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        queriesData: [
+          { ...rangeProps.queriesData[0], data: [{ min: 'a', max: 'z' }] },
+        ],
+      } as unknown as ChartProps) as PluginFilterRangeProps)}
+      setDataMask={jest.fn()}
+    />,
+  );
+  expect(screen.getByText('Chosen non-numeric column')).toBeInTheDocument();
 });

@@ -36,6 +36,7 @@ import { PluginFilterRangeProps, RangeDisplayMode } from './types';
 import { StatusMessage, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
+import isSemanticRange from './isSemanticRange';
 
 type InputValue = number | null;
 type RangeValue = [InputValue, InputValue];
@@ -163,8 +164,8 @@ export const calculateStep = (minValue: number, maxValue: number): number => {
 
 const validateRange = (
   values: RangeValue,
-  min: number,
-  max: number,
+  min: number | undefined,
+  max: number | undefined,
   enableEmptyFilter: boolean,
   enableSingleValue?: SingleValueType,
 ): { isValid: boolean; errorMessage: string | null } => {
@@ -175,6 +176,10 @@ const validateRange = (
     min,
     max,
   });
+
+  if (values.some(value => value !== null && !Number.isFinite(value))) {
+    return { isValid: false, errorMessage: requiredError };
+  }
 
   // Single value validation
   if (enableSingleValue !== undefined) {
@@ -187,7 +192,10 @@ const validateRange = (
       return { isValid: false, errorMessage: requiredError };
     }
 
-    if (isNumber(value) && (value < min || value > max)) {
+    if (
+      (min !== undefined && value < min) ||
+      (max !== undefined && value > max)
+    ) {
       return { isValid: false, errorMessage: rangeError };
     }
 
@@ -218,8 +226,8 @@ const validateRange = (
 
   //   Check individual value bounds if provided
   if (
-    (inputMin !== null && inputMin < min) ||
-    (inputMax !== null && inputMax > max)
+    (inputMin !== null && min !== undefined && inputMin < min) ||
+    (inputMax !== null && max !== undefined && inputMax > max)
   ) {
     return {
       isValid: false,
@@ -249,9 +257,19 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     isOverflowingFilterBar,
   } = props;
 
+  const manualBounds = isSemanticRange(formData);
   const [row] = data;
-  // @ts-expect-error
-  const { min, max }: { min: number; max: number } = row;
+  const min =
+    !manualBounds && typeof row?.min === 'number' ? row.min : undefined;
+  const max =
+    !manualBounds && typeof row?.max === 'number' ? row.max : undefined;
+  // Null aggregates (empty or all-null column) leave the range unbounded;
+  // only a present, non-numeric aggregate marks the column unusable.
+  const isNonNumericBound = (value: unknown) =>
+    value !== null && value !== undefined && typeof value !== 'number';
+  const nonNumericColumn =
+    !manualBounds &&
+    (isNonNumericBound(row?.min) || isNonNumericBound(row?.max));
 
   const sliderStep = useMemo(
     () =>
@@ -262,8 +280,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     formData;
 
   // Get the display mode from formData
-  const rangeDisplayMode =
-    formData?.rangeDisplayMode || RangeDisplayMode.SliderAndInput;
+  const rangeDisplayMode = manualBounds
+    ? RangeDisplayMode.Input
+    : formData?.rangeDisplayMode || RangeDisplayMode.SliderAndInput;
 
   const minIndex = 0;
   const maxIndex = 1;
@@ -279,6 +298,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   // Prepare slider value from input value, converting nulls to min/max
   const sliderValue = useMemo(() => {
+    if (min === undefined || max === undefined) return [];
     const [inputMin, inputMax] = inputValue;
 
     // For single value filters
@@ -320,7 +340,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     (value: RangeValue) => {
       const [inputMin, inputMax] = value;
       setDataMask({
-        extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
+        extraFormData: getRangeExtraFormData(
+          col,
+          inputMin,
+          enableSingleExactValue ? inputMin : inputMax,
+        ),
         filterState: {
           value: enableSingleExactValue
             ? [inputMin, inputMin]
@@ -331,11 +355,32 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         },
       });
     },
-    [setDataMask],
+    [setDataMask, col, enableSingleExactValue],
   );
 
   useEffect(() => {
-    if (row?.min === undefined && row?.max === undefined) {
+    if (nonNumericColumn) {
+      return;
+    }
+
+    if (manualBounds) {
+      // Invalid edits keep their draft in the inputs; external saved values
+      // and Clear All are validated without requiring a discovered domain.
+      const value: RangeValue =
+        filterState.validateStatus === 'error'
+          ? inputValue
+          : (filterState.value ?? [null, null]);
+      setInputValue(value);
+      const { isValid, errorMessage } = validateRange(
+        value,
+        undefined,
+        undefined,
+        enableEmptyFilter,
+        enableSingleValue,
+      );
+      setError(errorMessage);
+      if (isValid) updateDataMaskValue(value);
+      else updateDataMaskError(errorMessage);
       return;
     }
 
@@ -386,7 +431,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       setInputValue(filterState.value);
       updateDataMaskValue(filterState.value);
     }
-  }, [JSON.stringify(filterState.value)]);
+  }, [
+    JSON.stringify(filterState.value),
+    manualBounds,
+    enableEmptyFilter,
+    enableSingleValue,
+    col,
+  ]);
 
   // Get just the filter behavior text without the range information (which is shown in the tooltip)
   const metadataText = useMemo(() => {
@@ -410,14 +461,19 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const handleChange = useCallback(
     (newValue: number | null, index: 0 | 1) => {
-      if (row?.min === undefined && row?.max === undefined) {
+      if (nonNumericColumn) {
         return;
       }
 
       // When using increment/decrement buttons on an empty input,
       // use the dataset min/max as the base value
       let adjustedValue = newValue;
-      if (newValue !== null && inputValue[index] === null) {
+      if (
+        min !== undefined &&
+        max !== undefined &&
+        newValue !== null &&
+        inputValue[index] === null
+      ) {
         if (keyPressed.current) {
           adjustedValue = newValue;
           keyPressed.current = false;
@@ -459,6 +515,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     [
       min,
       max,
+      manualBounds,
+      nonNumericColumn,
       enableEmptyFilter,
       enableSingleValue,
       updateDataMaskError,
@@ -470,6 +528,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   // Handler for slider change
   const handleSliderChange = useCallback(
     (value: number | number[]) => {
+      if (min === undefined || max === undefined) return;
       let newInputValue: RangeValue;
 
       if (enableSingleValue !== undefined) {
@@ -502,10 +561,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   );
 
   const getMessageAndStatus = useCallback(() => {
-    const defaultMessage = t('Choose numbers between %(min)s and %(max)s', {
-      min,
-      max,
-    });
+    const defaultMessage =
+      manualBounds || min === undefined || max === undefined
+        ? t('Leave a bound empty for an unbounded range.')
+        : t('Choose numbers between %(min)s and %(max)s', {
+            min,
+            max,
+          });
 
     if (error) {
       return { message: error, status: 'error' as const };
@@ -516,7 +578,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
 
     return { message: defaultMessage, status: 'help' as const };
-  }, [error, min, max, enableSingleValue, metadataText]);
+  }, [error, min, max, manualBounds, enableSingleValue, metadataText]);
 
   const MessageDisplay = useCallback(() => {
     const { message, status } = getMessageAndStatus();
@@ -542,7 +604,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     );
   }, [getMessageAndStatus]);
 
+  const previousSingleValue = useRef(enableSingleValue);
   useEffect(() => {
+    if (manualBounds && previousSingleValue.current === enableSingleValue)
+      return;
+    previousSingleValue.current = enableSingleValue;
     if (enableSingleValue !== undefined) {
       switch (enableSingleValue) {
         case SingleValueType.Minimum:
@@ -572,6 +638,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   }, [enableSingleValue]);
 
   const renderSlider = () => {
+    if (min === undefined || max === undefined) return null;
     if (enableSingleValue !== undefined) {
       return (
         <SliderWrapper>
@@ -605,6 +672,37 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     );
   };
 
+  const renderInput = (
+    index: 0 | 1,
+    label: string,
+    bound: number | undefined,
+  ) => {
+    const input = (
+      <InputNumber
+        value={inputValue[index]}
+        onChange={val => handleChange(val, index)}
+        onKeyDown={handleKeyDown}
+        aria-label={manualBounds ? label : undefined}
+        placeholder={manualBounds || bound === undefined ? '' : `${bound}`}
+        style={{ width: '100%' }}
+        status={filterState.validateStatus}
+        data-test={
+          index === minIndex
+            ? 'range-filter-from-input'
+            : 'range-filter-to-input'
+        }
+      />
+    );
+    return manualBounds ? (
+      <label>
+        {label}
+        {input}
+      </label>
+    ) : (
+      input
+    );
+  };
+
   const renderInputs = () => (
     <Wrapper
       tabIndex={-1}
@@ -618,38 +716,24 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       {/* Conditionally render based on enableSingleValue */}
       {(enableSingleValue === undefined ||
         enableSingleValue === SingleValueType.Minimum ||
-        enableSingleValue === SingleValueType.Exact) && (
-        <InputNumber
-          value={inputValue[minIndex]}
-          onChange={val => handleChange(val, minIndex)}
-          onKeyDown={handleKeyDown}
-          placeholder={`${min}`}
-          style={{ width: '100%' }}
-          status={filterState.validateStatus}
-          data-test="range-filter-from-input"
-        />
-      )}
+        enableSingleValue === SingleValueType.Exact) &&
+        renderInput(
+          minIndex,
+          enableSingleExactValue ? t('Value') : t('Minimum value'),
+          min,
+        )}
 
       {enableSingleValue === undefined && <StyledDivider>-</StyledDivider>}
 
       {(enableSingleValue === undefined ||
-        enableSingleValue === SingleValueType.Maximum) && (
-        <InputNumber
-          value={inputValue[maxIndex]}
-          onChange={val => handleChange(val, maxIndex)}
-          onKeyDown={handleKeyDown}
-          placeholder={`${max}`}
-          style={{ width: '100%' }}
-          data-test="range-filter-to-input"
-          status={filterState.validateStatus}
-        />
-      )}
+        enableSingleValue === SingleValueType.Maximum) &&
+        renderInput(maxIndex, t('Maximum value'), max)}
     </Wrapper>
   );
 
   return (
     <FilterPluginStyle height={height} width={width}>
-      {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
+      {nonNumericColumn ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
         <FormItem aria-labelledby={`filter-name-${formData.nativeFilterId}`}>

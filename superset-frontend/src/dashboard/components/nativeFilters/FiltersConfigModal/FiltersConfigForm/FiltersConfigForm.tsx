@@ -63,6 +63,7 @@ import {
 } from 'src/filters/components/Select/types';
 import { useSelector } from 'react-redux';
 import { requestChartDataResolved } from 'src/components/Chart/chartAction';
+import isSemanticRange from 'src/filters/components/Range/isSemanticRange';
 import {
   Constants,
   Button,
@@ -540,6 +541,7 @@ const FiltersConfigForm = (
         dashboardId,
         groupby: formFilter?.column,
         ...formFilter,
+        filterType: itemTypeField,
       });
       formData.extra_form_data = dependenciesDefaultValues;
 
@@ -547,11 +549,15 @@ const FiltersConfigForm = (
         defaultValueQueriesData: null,
         isDataDirty: false,
       });
-      requestChartDataResolved({
-        formData,
-        force,
-        requestParams: { async_mode_override: asyncModeOverride },
-      })
+      // Manual semantic ranges need no provider bounds, including defaults.
+      const query = isSemanticRange(formData)
+        ? Promise.resolve([{ data: [{}] }])
+        : requestChartDataResolved({
+            formData,
+            force,
+            requestParams: { async_mode_override: asyncModeOverride },
+          });
+      query
         .then(queriesResponse => {
           setNativeFilterFieldValuesWrapper({
             defaultValueQueriesData:
@@ -566,6 +572,8 @@ const FiltersConfigForm = (
     },
     [
       datasetId,
+      datasourceType,
+      itemTypeField,
       dashboardId,
       filterId,
       forceUpdate,
@@ -1892,6 +1900,10 @@ const FiltersConfigForm = (
 
                                     <FormItem
                                       name={['filters', filterId, 'rangeType']}
+                                      hidden={
+                                        datasourceType ===
+                                        DatasourceType.SemanticView
+                                      }
                                     >
                                       <StyledRowFormItem
                                         expanded={expanded}

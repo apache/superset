@@ -8084,6 +8084,9 @@ msgstr ""
 msgid "Least recently modified"
 msgstr ""
 
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
+
 msgid "Leave blank to keep the current password"
 msgstr ""
 

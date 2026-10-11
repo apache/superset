@@ -1162,6 +1162,46 @@ test('toggles "Filter has default value" to show and hide the Default Value cont
   });
 });
 
+test('semantic range defaults use manual inputs without a chart-data bounds request', async () => {
+  fetchMock.clearHistory();
+  fetchMock.get('glob:*/api/v1/semantic_view/988/structure', {
+    result: {
+      name: 'Orders',
+      dimensions: [{ name: 'Orders.age', type: 'number' }],
+      metrics: [],
+    },
+  });
+  const filter = {
+    ...buildNativeFilter('NATIVE_FILTER-range', 'Age', []),
+    filterType: 'filter_range',
+    targets: [
+      {
+        datasetId: 988,
+        datasourceType: DatasourceType.SemanticView,
+        column: { name: 'Orders.age' },
+      },
+    ],
+    controlValues: { enableSingleValue: undefined },
+    defaultDataMask: { filterState: { value: [18, 65] }, extraFormData: {} },
+  };
+  const state = {
+    ...defaultState(),
+    dashboardInfo: { metadata: { native_filter_configuration: [filter] } },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+  expect(
+    await screen.findByRole('spinbutton', { name: 'Minimum value' }),
+  ).toHaveValue('18');
+  expect(screen.getByRole('spinbutton', { name: 'Maximum value' })).toHaveValue(
+    '65',
+  );
+  expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/data')).toHaveLength(
+    0,
+  );
+}, 30000);
+
 test('semantic filter reset requires reselection and survives save and reopen', async () => {
   fetchMock.get('glob:*/api/v1/semantic_view/987/structure', {
     result: {
