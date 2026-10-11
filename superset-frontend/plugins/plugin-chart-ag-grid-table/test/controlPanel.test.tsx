@@ -306,8 +306,42 @@ test('column_config mapStateToProps expands comparison columns for metrics', () 
   expect(result.columnsPropsObject.colnames).toEqual(
     expect.arrayContaining(['Main col1', '# col1', '△ col1', '% col1']),
   );
+  expect(result.columnsPropsObject.knownKeys).toEqual(
+    expect.arrayContaining(['col1', 'col2']),
+  );
   expect(result.columnsPropsObject.childColumnMap['Main col1']).toBe(false);
   expect(result.columnsPropsObject.childColumnMap['# col1']).toBe(true);
+});
+
+test('column_config knownKeys keep original Time metric after comparison expansion', () => {
+  const controlConfig = findNamedControl('column_config');
+  const explore = {
+    ...createMockExplore(['1 year ago']),
+    form_data: {
+      ...createMockExplore(['1 year ago']).form_data,
+      metrics: ['Time'],
+    },
+  };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    {
+      chartStatus: 'success' as const,
+      queriesResponse: [
+        {
+          colnames: ['__timestamp', 'Time'],
+          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        },
+      ],
+    },
+  );
+
+  expect(result.columnsPropsObject.colnames).toEqual(
+    expect.arrayContaining(['__timestamp', 'Main Time', '# Time']),
+  );
+  expect(result.columnsPropsObject.knownKeys).toEqual(
+    expect.arrayContaining(['__timestamp', 'Time']),
+  );
 });
 
 test('metrics control includes non-filterable columns', () => {

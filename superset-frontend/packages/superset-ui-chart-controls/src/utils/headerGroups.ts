@@ -20,6 +20,7 @@
 import { t } from '@apache-superset/core/translation';
 import {
   ComparisonType,
+  DTTM_ALIAS,
   ensureIsArray,
   getColumnLabel,
   getMetricLabel,
@@ -29,6 +30,7 @@ import {
   SqlaFormData,
 } from '@superset-ui/core';
 import { isEmpty, last } from 'lodash-es';
+import { COLUMN_NAME_ALIASES } from '../constants';
 import {
   isPercentMetric,
   isRegularMetric,
@@ -60,6 +62,33 @@ export type HeaderGroupCell = {
 };
 
 export const TIME_COMPARE_MAIN_KEY = 'Main';
+
+/** English msgid for `__timestamp`; `COLUMN_NAME_ALIASES` holds `t('Time')`. */
+const DTTM_ALIAS_SOURCE_LABEL = 'Time';
+
+function getColumnNameAliasLabels(col: string): string[] {
+  const translated = COLUMN_NAME_ALIASES[col];
+  const source = col === DTTM_ALIAS ? DTTM_ALIAS_SOURCE_LABEL : undefined;
+  return [
+    ...new Set(
+      [source, translated].filter((label): label is string => Boolean(label)),
+    ),
+  ];
+}
+
+export function getKnownColumnConfigKeys(
+  colnames: string[] = [],
+  datasource?: {
+    columns?: { column_name?: string }[] | null;
+    metrics?: { metric_name?: string }[] | null;
+  } | null,
+): string[] {
+  return [
+    ...colnames,
+    ...(datasource?.columns ?? []).map(col => col.column_name ?? ''),
+    ...(datasource?.metrics ?? []).map(metric => metric.metric_name ?? ''),
+  ].filter(Boolean);
+}
 
 const TIME_COMPARE_SYMBOL_PREFIXES = ['#', '△', '%'] as const;
 
@@ -329,22 +358,50 @@ export function syncTimeComparisonGroups(
  * Remap saved comparison-column config onto locale-independent keys.
  *
  * Charts created before comparison slots were stored as `Main …` may still
- * keep `t('Main') …` entries (for example `Principale revenue`). The column
- * editor lists the stored keys, so those legacy entries must be rewritten
- * before it filters `column_config` down to `colnames`.
+ * keep `t('Main') …` entries (for example `Principale revenue`). A buggy
+ * column editor also wrote `COLUMN_NAME_ALIASES` display names (for example
+ * `Time` for `__timestamp`). The column editor lists the stored keys, so
+ * those legacy entries must be rewritten before it filters `column_config`
+ * down to `colnames`.
  */
 export function normalizeColumnConfigKeys<T>(
   value: Record<string, T> | null | undefined,
   colnames: string[],
+  knownKeys: string[] = colnames,
 ): Record<string, T> {
   if (!value) {
     return {};
   }
   const colnamesSet = new Set(colnames);
-  const next: Record<string, T> = {};
+  const knownKeySet = new Set(knownKeys);
+  const aliasToKey = new Map<string, string>();
+  const ambiguousAliases = new Set<string>();
+  colnames.forEach(col => {
+    getColumnNameAliasLabels(col).forEach(alias => {
+      // A saved key that names a real column or metric is not a legacy alias.
+      if (!alias || knownKeySet.has(alias) || ambiguousAliases.has(alias)) {
+        return;
+      }
+      const existing = aliasToKey.get(alias);
+      if (existing && existing !== col) {
+        aliasToKey.delete(alias);
+        ambiguousAliases.add(alias);
+        return;
+      }
+      aliasToKey.set(alias, col);
+    });
+  });
+  const next: Record<string, T> = Object.create(null);
   Object.entries(value).forEach(([key, config]) => {
+    if (colnamesSet.has(key)) {
+      next[key] = config;
+      return;
+    }
     const stored = toStoredTimeComparisonColumnKey(key, colnames);
-    const target = colnamesSet.has(stored) ? stored : key;
+    let target = colnamesSet.has(stored) ? stored : key;
+    if (!colnamesSet.has(target) && aliasToKey.has(key)) {
+      target = aliasToKey.get(key) as string;
+    }
     if (key === target || !(target in next)) {
       next[target] = config;
     }

@@ -390,6 +390,90 @@ describe('plugin-chart-table', () => {
       expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
+
+    test('does not remap a real Previous revenue column onto Main revenue', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Main revenue', 'Previous revenue', '# revenue'],
+            coltypes: [
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+            ],
+            data: [
+              {
+                'Main revenue': 10,
+                'Previous revenue': 8,
+                '# revenue': 2,
+              },
+            ],
+          },
+        ],
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            'Previous revenue': { customColumnName: 'Prior' },
+          },
+        },
+      });
+
+      expect(
+        columns.find(col => col.key === 'Previous revenue')?.config,
+      ).toEqual(expect.objectContaining({ customColumnName: 'Prior' }));
+      expect(columns.find(col => col.key === 'Main revenue')?.config).toEqual(
+        {},
+      );
+    });
+
+    test('applies legacy Time column_config to the __timestamp column', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            Time: { customColumnName: 'Date', d3TimeFormat: '%Y' },
+          },
+        },
+      });
+      const timestampColumn = columns.find(col => col.key === '__timestamp');
+
+      expect(timestampColumn?.config).toEqual(
+        expect.objectContaining({
+          customColumnName: 'Date',
+          d3TimeFormat: '%Y',
+        }),
+      );
+    });
+
+    test('does not apply a dropped Time dataset column config to __timestamp', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        datasource: {
+          ...testData.basic.datasource,
+          columns: [
+            {
+              column_name: 'Time',
+              type: 'TIMESTAMP',
+              type_generic: GenericDataType.Temporal,
+            },
+          ],
+        },
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            Time: { customColumnName: 'Date', d3TimeFormat: '%Y' },
+          },
+        },
+      });
+
+      expect(columns.find(col => col.key === '__timestamp')?.config).toEqual(
+        {},
+      );
+    });
+
     test('should process comparison columns when time_compare and comparison_type are set', () => {
       const transformedProps = transformProps(testData.comparison);
       const comparisonColumns = transformedProps.columns.filter(

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ComparisonType, QueryMode } from '@superset-ui/core';
+import { ComparisonType, DTTM_ALIAS, QueryMode } from '@superset-ui/core';
+import { COLUMN_NAME_ALIASES } from '../constants';
 import {
   buildHeaderGroupRows,
   buildTimeComparisonHeaderGroups,
@@ -29,6 +30,7 @@ import {
   isHeaderGroupsTimeComparisonEnabled,
   nestColDefsInHeaderGroups,
   normalizeColumnConfigKeys,
+  getKnownColumnConfigKeys,
   resolveHeaderGroups,
   syncTimeComparisonGroups,
   toStoredTimeComparisonColumnKey,
@@ -377,6 +379,17 @@ test('toStoredTimeComparisonColumnKey leaves unmatched comparison-like keys unch
   ).toBe('# profit');
 });
 
+test('normalizeColumnConfigKeys leaves real result columns alone when a sibling looks like a comparison slot', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      { 'Previous revenue': { customColumnName: 'Prior' } },
+      ['Main revenue', 'Previous revenue', '# revenue'],
+    ),
+  ).toEqual({
+    'Previous revenue': { customColumnName: 'Prior' },
+  });
+});
+
 test('normalizeColumnConfigKeys remaps localized Main keys onto stored colnames', () => {
   expect(
     normalizeColumnConfigKeys(
@@ -393,6 +406,9 @@ test('normalizeColumnConfigKeys remaps localized Main keys onto stored colnames'
 });
 
 test('normalizeColumnConfigKeys prefers an existing stored Main entry over a localized duplicate', () => {
+  const expected = {
+    'Main revenue': { columnWidth: 120 },
+  };
   expect(
     normalizeColumnConfigKeys(
       {
@@ -401,9 +417,16 @@ test('normalizeColumnConfigKeys prefers an existing stored Main entry over a loc
       },
       comparisonRevenueColumns,
     ),
-  ).toEqual({
-    'Main revenue': { columnWidth: 120 },
-  });
+  ).toEqual(expected);
+  expect(
+    normalizeColumnConfigKeys(
+      {
+        'Principale revenue': { columnWidth: 300 },
+        'Main revenue': { columnWidth: 120 },
+      },
+      comparisonRevenueColumns,
+    ),
+  ).toEqual(expected);
 });
 
 test('normalizeColumnConfigKeys returns an empty object without saved config', () => {
@@ -420,6 +443,128 @@ test('normalizeColumnConfigKeys keeps keys that do not match colnames', () => {
       comparisonRevenueColumns,
     ),
   ).toEqual({ leftover: { columnWidth: 10 } });
+});
+
+test('getKnownColumnConfigKeys includes colnames, dataset columns, and metrics', () => {
+  expect(
+    getKnownColumnConfigKeys(['__timestamp'], {
+      columns: [{ column_name: 'Time' }, { column_name: 'region' }],
+      metrics: [{ metric_name: 'count' }],
+    }),
+  ).toEqual(['__timestamp', 'Time', 'region', 'count']);
+});
+
+test('normalizeColumnConfigKeys remaps display aliases onto real column keys', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      {
+        Time: { customColumnName: 'Date' },
+        region: { columnWidth: 50 },
+      },
+      ['__timestamp', 'region'],
+    ),
+  ).toEqual({
+    __timestamp: { customColumnName: 'Date' },
+    region: { columnWidth: 50 },
+  });
+});
+
+test('normalizeColumnConfigKeys prefers an existing stored key over a display alias', () => {
+  const expected = {
+    __timestamp: { customColumnName: 'Stored' },
+  };
+  expect(
+    normalizeColumnConfigKeys(
+      {
+        __timestamp: { customColumnName: 'Stored' },
+        Time: { customColumnName: 'Alias' },
+      },
+      ['__timestamp'],
+    ),
+  ).toEqual(expected);
+  expect(
+    normalizeColumnConfigKeys(
+      {
+        Time: { customColumnName: 'Alias' },
+        __timestamp: { customColumnName: 'Stored' },
+      },
+      ['__timestamp'],
+    ),
+  ).toEqual(expected);
+});
+
+test('normalizeColumnConfigKeys keeps a real Time column when it is not in colnames but __timestamp is', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      { Time: { customColumnName: 'Keep me' } },
+      ['__timestamp'],
+      ['Time', '__timestamp'],
+    ),
+  ).toEqual({
+    Time: { customColumnName: 'Keep me' },
+  });
+});
+
+test('normalizeColumnConfigKeys keeps a current Time column when __timestamp is also present', () => {
+  expect(
+    normalizeColumnConfigKeys({ Time: { customColumnName: 'Keep me' } }, [
+      'Time',
+      '__timestamp',
+    ]),
+  ).toEqual({
+    Time: { customColumnName: 'Keep me' },
+  });
+});
+
+test('normalizeColumnConfigKeys remaps English and translated Time aliases', () => {
+  const originalAlias = COLUMN_NAME_ALIASES[DTTM_ALIAS];
+  COLUMN_NAME_ALIASES[DTTM_ALIAS] = 'Tiempo';
+
+  try {
+    expect(
+      normalizeColumnConfigKeys({ Tiempo: { customColumnName: 'Fecha' } }, [
+        '__timestamp',
+      ]),
+    ).toEqual({
+      __timestamp: { customColumnName: 'Fecha' },
+    });
+    expect(
+      normalizeColumnConfigKeys({ Time: { customColumnName: 'Date' } }, [
+        '__timestamp',
+      ]),
+    ).toEqual({
+      __timestamp: { customColumnName: 'Date' },
+    });
+  } finally {
+    COLUMN_NAME_ALIASES[DTTM_ALIAS] = originalAlias;
+  }
+});
+
+test('normalizeColumnConfigKeys skips remapping when a display alias is ambiguous', () => {
+  const originalAliases = { ...COLUMN_NAME_ALIASES };
+  Object.keys(COLUMN_NAME_ALIASES).forEach(key => {
+    delete COLUMN_NAME_ALIASES[key];
+  });
+  Object.assign(COLUMN_NAME_ALIASES, {
+    __timestamp: 'Time',
+    other_time: 'Time',
+  });
+
+  try {
+    expect(
+      normalizeColumnConfigKeys({ Time: { customColumnName: 'Date' } }, [
+        '__timestamp',
+        'other_time',
+      ]),
+    ).toEqual({
+      Time: { customColumnName: 'Date' },
+    });
+  } finally {
+    Object.keys(COLUMN_NAME_ALIASES).forEach(key => {
+      delete COLUMN_NAME_ALIASES[key];
+    });
+    Object.assign(COLUMN_NAME_ALIASES, originalAliases);
+  }
 });
 
 test('buildHeaderGroupRows fills empty cells for ungrouped columns', () => {
