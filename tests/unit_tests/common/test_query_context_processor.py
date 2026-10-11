@@ -3621,24 +3621,26 @@ def test_semantic_annotation_generation_versions_sql_parent(
             "superset.common.query_context_processor.ChartDAO.find_by_id",
             return_value=chart,
         ),
-        patch("superset.common.query_context_processor.get_user_id", return_value=42),
         patch(
             "superset.common.query_context_processor.security_manager.get_rls_cache_key",
             return_value=["scope"],
         ),
+        patch(
+            "superset.common.query_context_processor.security_manager"
+            ".can_access_datasource",
+            return_value=True,
+        ),
     ):
-        old: dict[str, Any] = processor._annotation_cache_context(query)
+        old: dict[str, Any] | None = processor._annotation_cache_context(query)
         provider.result_cache_version = "guarded-v1"
-        new: dict[str, Any] = processor._annotation_cache_context(query)
-    assert old == {
-        "user_id": 42,
-        "source_rls": {"7": ["scope"]},
-        "semantic_filter_protocol": "semantic-null-filters-v1",
-        "source_versions": {"7": view.metadata_generation},
-    }
+        new: dict[str, Any] | None = processor._annotation_cache_context(query)
+    assert old is not None
+    assert new is not None
+    assert old["source_scope"][0]["metadata_version"] == view.metadata_generation
+    assert "result_version" not in old["source_scope"][0]
     assert new != old
-    assert new["user_id"] == old["user_id"]
-    assert new["source_rls"] == old["source_rls"]
+    assert new["source_scope"][0]["access"] == old["source_scope"][0]["access"]
+    assert new["source_scope"][0]["data_key"] == old["source_scope"][0]["data_key"]
     provider.assert_not_called()
 
 
