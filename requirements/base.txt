@@ -128,7 +128,7 @@ flask-babel==4.0.0
     # via flask-appbuilder
 flask-caching==2.5.1
     # via apache-superset (pyproject.toml)
-flask-compress==1.24
+flask-compress==1.25
     # via apache-superset (pyproject.toml)
 flask-cors==6.0.5
     # via apache-superset (pyproject.toml)
