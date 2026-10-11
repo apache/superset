@@ -735,6 +735,15 @@ describe('SupersetClientClass', () => {
       },
     );
 
+    test('makes postForm request to an absolute url without adding the app root', async () => {
+      client = new SupersetClientClass({ protocol, host, appRoot: '/prefix' });
+      await client.init();
+      await client.postForm({ url: 'http://localhost/explore/' }, {});
+
+      const hiddenForm = createElement.mock.results[0].value;
+      expect(hiddenForm.action).toBe('http://localhost/explore/');
+    });
+
     test('makes postForm request with guest token', async () => {
       client = new SupersetClientClass({ protocol, host, guestToken });
       await client.init();
