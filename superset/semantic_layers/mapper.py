@@ -63,7 +63,7 @@ from superset.constants import NO_TIME_RANGE
 from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
-from superset.semantic_layers.completeness import provider_completeness
+from superset.semantic_layers.exceptions import execute_semantic_query
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     FilterOperator,
@@ -168,8 +168,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
-    with provider_completeness():
-        main_result = dispatcher(main_query)
+    main_result: SemanticResult = execute_semantic_query(dispatcher, main_query)
     main_result = _coerce_empty_result(main_result, main_query)
 
     main_df = stringify_extension_columns(main_result.results).to_pandas(
@@ -203,8 +202,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         strict=False,
     ):
         # Execute the offset query
-        with provider_completeness():
-            result = dispatcher(offset_query)
+        result: SemanticResult = execute_semantic_query(dispatcher, offset_query)
         result = _coerce_empty_result(result, offset_query)
 
         # Add this query's requests to the collection

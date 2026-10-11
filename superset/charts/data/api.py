@@ -56,6 +56,7 @@ from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
+from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
 from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils import json
@@ -679,7 +680,11 @@ class ChartDataRestApi(ChartRestApi):
             result = command.execute(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=sanitize_error_message(exc.message))
-        except ChartDataQueryFailedError as exc:
+        except (
+            ChartDataQueryFailedError,
+            SemanticLayerQueryRejectedError,
+            QueryObjectValidationError,
+        ) as exc:
             return self.response_400(message=sanitize_error_message(exc.message))
 
             # Log is_cached if extra payload callback is provided
