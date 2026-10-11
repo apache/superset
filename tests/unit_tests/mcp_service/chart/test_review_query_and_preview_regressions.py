@@ -301,10 +301,33 @@ def test_wide_preview_unstacked_bars_are_offset_side_by_side(
     if offset:
         assert encoding["xOffset"] == {"field": series_field, "type": "nominal"}
         assert encoding["x"]["type"] == "ordinal"
-        assert encoding["x"]["timeUnit"] == "yearmonthdatehoursminutesseconds"
+        assert (
+            encoding["x"]["timeUnit"] == "yearmonthdatehoursminutessecondsmilliseconds"
+        )
     else:
         assert "xOffset" not in encoding
         assert encoding["x"]["type"] == "temporal"
+
+
+def test_wide_preview_unstacked_bars_keep_sub_second_timestamps_distinct() -> None:
+    """Sub-second timestamps must not share an x band and hide a bar."""
+    result = _generate_vega_lite_preview_from_data(
+        [
+            {"ds": "2026-01-01T12:00:00.100", "revenue, East": 10},
+            {"ds": "2026-01-01T12:00:00.900", "revenue, East": 20},
+        ],
+        {
+            "viz_type": "echarts_timeseries_bar",
+            "x_axis": "ds",
+            "metrics": ["revenue"],
+            "groupby": ["region"],
+        },
+    )
+    assert isinstance(result, VegaLitePreview)
+    time_unit = result.specification["encoding"]["x"]["timeUnit"]
+    # Vega-Lite only keeps milliseconds when the unit includes them; any
+    # coarser unit puts both rows in the same band.
+    assert time_unit.endswith("milliseconds")
 
 
 @pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])

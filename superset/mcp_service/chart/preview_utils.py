@@ -1830,10 +1830,13 @@ def generate_xy_vega_lite_preview(
             ):
                 # Unstacked bars sit side by side like Explore's grouped bars.
                 # Offset channels need a discrete band x scale, so temporal
-                # values stay date-formatted through a full-precision time unit.
+                # values stay date-formatted through a millisecond time unit so
+                # sub-second timestamps keep distinct bands as in Explore.
                 x_encoding = encoding["x"]
                 if x_encoding.get("type") == "temporal":
-                    x_encoding["timeUnit"] = "yearmonthdatehoursminutesseconds"
+                    x_encoding["timeUnit"] = (
+                        "yearmonthdatehoursminutessecondsmilliseconds"
+                    )
                 x_encoding["type"] = "ordinal"
                 encoding["xOffset"] = {"field": series_field, "type": "nominal"}
 
