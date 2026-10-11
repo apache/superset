@@ -222,6 +222,42 @@ test('DynamicFieldControl handles a 500-option enum via search (FR-006 sibling)'
   expect(handleChange).toHaveBeenLastCalledWith('mode', 'metric_042');
 });
 
+test.each([true, false])(
+  'DynamicFieldControl closes stale options without losing the value (loading=%s)',
+  async refreshingSchema => {
+    const props = baseProps({
+      label: 'Schema',
+      path: 'schema',
+      schema: {
+        type: 'string',
+        enum: ['shared', 'old_only'],
+        'x-dynamic': true,
+        'x-dependsOn': ['database'],
+      } as ControlProps['schema'],
+      data: 'shared',
+      config: { formData: { database: 'first' } },
+    });
+    const { rerender } = render(<DynamicFieldControl {...props} />);
+    const box = screen.getByRole('combobox');
+    await userEvent.click(box);
+    await waitFor(() => expect(screen.getByText('old_only')).toBeVisible());
+    rerender(
+      <DynamicFieldControl
+        {...props}
+        config={{
+          formData: { database: 'second' },
+          refreshingSchema,
+          staleSchemaOptions: true,
+        }}
+      />,
+    );
+    expect(box).toBeDisabled();
+    await waitFor(() => expect(box).toHaveAttribute('aria-expanded', 'false'));
+    expect(box.closest('.ant-select')).toHaveTextContent('shared');
+    expect(props.handleChange).not.toHaveBeenCalled();
+  },
+);
+
 test('renders options alphabetically for an unsorted backend enum', async () => {
   // The renderers dropped their manual sort because the wrapped Select
   // alphabetises by label; pin that inherited behaviour here so a future
