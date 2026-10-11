@@ -99,7 +99,7 @@ jobs:
         run: |
           docker buildx build \
             -t $TAG \
-            --cache-from=type=registry,ref=apache/superset-cache:3.11-slim-trixie \
+            --cache-from=type=registry,ref=apache/superset-cache:3.12-slim-trixie \
             --target superset-node-ci \
             .
 
