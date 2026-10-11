@@ -4087,6 +4087,11 @@ def merge_update_form_data(  # noqa: C901
             elif range_explicit and existing_binding is not None:
                 chosen_binding = dict(existing_binding)
                 chosen_subject = existing_subject
+            elif range_explicit:
+                # With no saved binding to rewrite, an explicit range uses the
+                # mapper's generated binding rather than being dropped.
+                chosen_binding = incoming_binding
+                chosen_subject = incoming_subject
             else:
                 # A filter-only replacement keeps the saved provenance binding.
                 # The mapper's incoming binding may merely be a dataset fallback

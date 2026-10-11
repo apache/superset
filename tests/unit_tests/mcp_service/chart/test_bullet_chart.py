@@ -1237,11 +1237,15 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
         config: dict[str, Any],
         *,
         validate_format: bool = True,
+        bound_labels: bool = True,
     ) -> Any:
         """Capture the projected data while preserving render-model options."""
         captured.append(data)
         return resolve_bullet_render_model(
-            data, config, validate_format=validate_format
+            data,
+            config,
+            validate_format=validate_format,
+            bound_labels=bound_labels,
         )
 
     with (
@@ -1324,11 +1328,15 @@ def test_bullet_compile_projects_real_dataframe_durations_to_chart_data_wire() -
         config: dict[str, Any],
         *,
         validate_format: bool = True,
+        bound_labels: bool = True,
     ) -> Any:
         """Capture the projected data while preserving render-model options."""
         captured.append(data)
         return resolve_bullet_render_model(
-            data, config, validate_format=validate_format
+            data,
+            config,
+            validate_format=validate_format,
+            bound_labels=bound_labels,
         )
 
     with (
@@ -1421,11 +1429,15 @@ def test_bullet_compile_accepts_transitionless_dateutil_dataframe_producer() -> 
         config: dict[str, Any],
         *,
         validate_format: bool = True,
+        bound_labels: bool = True,
     ) -> Any:
         """Capture the projected data while preserving render-model options."""
         captured.append(data)
         return resolve_bullet_render_model(
-            data, config, validate_format=validate_format
+            data,
+            config,
+            validate_format=validate_format,
+            bound_labels=bound_labels,
         )
 
     with (
@@ -5117,3 +5129,53 @@ def test_bullet_saved_update_filter_clear_drops_time_binding_marker(
     assert merged.get("adhoc_filters", []) == []
     assert MCP_DASHBOARD_TIME_FILTER_SUBJECT not in merged
     assert validate_merged_bullet_form_data(merged, config) is not None
+
+
+def test_bullet_explicit_filters_and_range_without_saved_binding_keep_range() -> None:
+    """A range sent with filters is not dropped when no saved binding exists."""
+    existing = {
+        "viz_type": "bullet",
+        "metric": "SavedRevenue",
+        "adhoc_filters": [],
+    }
+    config = BulletChartConfig(
+        metric=_simple_metric(),
+        filters=[{"column": "region", "op": "=", "value": "North"}],
+        time_range="Last month",
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=_orm_dataset(),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+            return_value=True,
+        ),
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=7)
+    merge_update_form_data(existing, mapped, config)
+
+    filters = mapped["adhoc_filters"]
+    assert [f["subject"] for f in filters] == ["region", "OrderDate"]
+    assert filters[1]["operator"] == "TEMPORAL_RANGE"
+    assert filters[1]["comparator"] == "Last month"
+    assert mapped[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == "OrderDate"
+
+
+def test_bullet_raw_rows_keep_shared_limit_for_long_dimension_text() -> None:
+    """The preview label bound does not reject raw get-data/export rows."""
+    form_data = {"viz_type": "bullet", "metric": "SavedRevenue", "groupby": ["Region"]}
+    long_value = "x" * 2001
+    rows = [{"Region": long_value, "SavedRevenue": 75}]
+    result = {"queries": [{"data": rows}]}
+
+    plugin = BulletChartPlugin()
+    assert plugin.normalize_query_result(result, form_data) is result
+    exposed, error = plugin.sanitize_data_rows(rows, form_data)
+    assert error is None
+    assert exposed == [{"Region": long_value, "SavedRevenue": 75}]
+    # Rendered labels keep the bound.
+    assert isinstance(plugin.ascii_preview(rows, form_data, 80), ChartError)
+    with pytest.raises(BulletOutputError, match="exceeds the size limit"):
+        resolve_bullet_render_model(rows, form_data)

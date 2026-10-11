@@ -81,7 +81,11 @@ def _render_model_error(rows: Any, form_data: Mapping[str, Any]) -> ChartError |
     )
 
     try:
-        resolve_bullet_render_model(rows, dict(form_data), validate_format=False)
+        # Every consumer passes through here; preview renderers re-resolve with
+        # the label bound, so raw-data fetches keep the shared result limits.
+        resolve_bullet_render_model(
+            rows, dict(form_data), validate_format=False, bound_labels=False
+        )
     except BulletOutputError as ex:
         return ChartError(error=bounded_exception_message(ex), error_type=ex.error_type)
     return None
@@ -404,7 +408,7 @@ class BulletChartPlugin(BaseChartPlugin):
 
         try:
             model = resolve_bullet_render_model(
-                data, dict(form_data), validate_format=False
+                data, dict(form_data), validate_format=False, bound_labels=False
             )
         except BulletOutputError as ex:
             return [], ChartError(
@@ -427,7 +431,10 @@ class BulletChartPlugin(BaseChartPlugin):
                 for source in data[len(model_rows) :]:
                     model_rows.extend(
                         resolve_bullet_render_model(
-                            [source], dict(form_data), validate_format=False
+                            [source],
+                            dict(form_data),
+                            validate_format=False,
+                            bound_labels=False,
                         ).rows
                     )
             except BulletOutputError as ex:

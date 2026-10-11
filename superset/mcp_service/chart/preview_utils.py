@@ -2073,7 +2073,7 @@ def _javascript_number_string(value: int | float | Decimal) -> str:
 
 
 def _bullet_category_value(  # noqa: C901
-    value: Any, dimension: str, row_index: int
+    value: Any, dimension: str, row_index: int, *, bound_labels: bool = True
 ) -> tuple[Any, str]:
     """Return a JSON-safe value and bounded frontend ``String(value)`` text.
 
@@ -2081,6 +2081,9 @@ def _bullet_category_value(  # noqa: C901
     application hooks.  Vega data retains the normalized Chart Data wire value
     (including epoch-ms temporal numbers); only the derived category key and
     ASCII label use the JavaScript-compatible text.
+
+    With ``bound_labels=False`` (raw row export) no label text is derived, so
+    string values keep the shared result-cell limit instead of the label bound.
     """
     from superset.mcp_service.chart.query_result import (
         _bounded_utf8_length,
@@ -2089,7 +2092,10 @@ def _bullet_category_value(  # noqa: C901
         _is_chart_data_duration_scalar,
         _is_chart_data_temporal_scalar,
         _normalize_scalar,
+        MAX_RESULT_STRING_LENGTH,
     )
+
+    text_limit = _MAX_BULLET_TEXT_BYTES if bound_labels else MAX_RESULT_STRING_LENGTH
 
     normalized: Any
     reason: str | None
@@ -2123,7 +2129,7 @@ def _bullet_category_value(  # noqa: C901
         if (
             reason is None
             and type(normalized) is str
-            and _bounded_utf8_length(normalized, _MAX_BULLET_TEXT_BYTES) is None
+            and _bounded_utf8_length(normalized, text_limit) is None
         ):
             reason = "exceeds the size limit"
     if reason is not None:
@@ -2134,6 +2140,8 @@ def _bullet_category_value(  # noqa: C901
         raise BulletOutputError(
             f"Bullet dimension {dimension!r} row {row_index} {reason}"
         )
+    if not bound_labels:
+        return normalized, ""
 
     value_type = type(normalized)
     if value_type in {list, dict}:
@@ -2353,8 +2361,14 @@ def resolve_bullet_render_model(  # noqa: C901
     form_data: Dict[str, Any],
     *,
     validate_format: bool = True,
+    bound_labels: bool = True,
 ) -> BulletRenderModel:
-    """Resolve Bullet rows; check preview formatter support only when rendering."""
+    """Resolve Bullet rows; check preview formatter support only when rendering.
+
+    ``bound_labels=False`` serves raw-data consumers (get_chart_data and its
+    exports): dimension values keep the shared result limits, and the preview
+    label bound applies only where category text is rendered.
+    """
     if type(data) is not list:
         raise BulletOutputError("Bullet query output must be an array of objects")
     for row_index in range(list.__len__(data)):
@@ -2423,7 +2437,10 @@ def resolve_bullet_render_model(  # noqa: C901
         for label, dimension in zip(dimension_labels, dimensions, strict=True):
             row_dimension = _require_result_field(label, row, f"dimension row {index}")
             dimension_value, _ = _bullet_category_value(
-                dict.__getitem__(row, row_dimension), dimension, index
+                dict.__getitem__(row, row_dimension),
+                dimension,
+                index,
+                bound_labels=bound_labels,
             )
             copied[dimension] = dimension_value
         copied_rows.append(copied)
