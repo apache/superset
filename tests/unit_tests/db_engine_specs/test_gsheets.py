@@ -1602,3 +1602,16 @@ def test_impersonate_user_service_account_delegation_needs_an_email(
             },
             email=None,
         )
+
+
+def test_gsheets_properties() -> None:
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+    from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
+
+    assert GSheetsEngineSpec.engine == "gsheets"
+    assert GSheetsEngineSpec.engine_name == "Google Sheets"
+    assert GSheetsEngineSpec.default_driver == "apsw"
+    assert GSheetsEngineSpec.allows_joins is True
+    assert GSheetsEngineSpec.allows_subqueries is True
+    assert issubclass(GSheetsEngineSpec, ShillelaghEngineSpec)
+
