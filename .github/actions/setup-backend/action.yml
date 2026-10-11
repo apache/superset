@@ -24,7 +24,7 @@ runs:
         INPUT_PYTHON_VERSION: ${{ inputs.python-version }}
       run: |
         if [ "$INPUT_PYTHON_VERSION" = "current" ]; then
-          RESOLVED_VERSION="3.11"
+          RESOLVED_VERSION="3.12"
         elif [ "$INPUT_PYTHON_VERSION" = "next" ]; then
           # tracks the next Python minor we're evaluating for support; exercised
           # by the nightly canary (python-nightly-canary.yml), not PR/push CI
