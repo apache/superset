@@ -310,7 +310,7 @@ development = [
     "docker>=7.2.0",
     "flask-testing",
     "freezegun",
-    "grpcio>=1.83.1",
+    "grpcio>=1.84.0",
     "openapi-spec-validator",
     "parameterized",
     "pip",
