@@ -318,7 +318,7 @@ flask-caching==2.5.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-flask-compress==1.24
+flask-compress==1.25
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
