@@ -1907,6 +1907,13 @@ exists or is accessible. Numeric IDs can overlap across source types; do not
 reuse a semantic-view ID as a SQL-dataset ID or substitute another source.
 All tool permissions, feature flags, and datasource access checks still apply.
 
+`get_compatible_metrics` and `get_compatible_dimensions` reject unknown selected
+metric or dimension names with a `ValidationError` naming the invalid fields,
+rather than returning suggestions for a reduced selection. This applies to both
+SQL datasets and external semantic views. Use names returned by discovery,
+not display labels or provider IDs. `get_table` also validates filter names
+before running a query.
+
 `list_datasets` searches table name, **description**, schema, and SQL using
 escaped, case-insensitive substring matching. Write descriptions with business
 terminology to make differently named datasets discoverable. A complete UUID

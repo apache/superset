@@ -37,7 +37,10 @@ from superset.mcp_service.semantic_layer.schemas import (
     MetricInfo,
     SemanticLayerError,
 )
-from superset.mcp_service.utils.query_utils import validate_names
+from superset.mcp_service.utils.query_utils import (
+    validate_names,
+    validate_selection_names,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +74,8 @@ async def get_compatible_metrics(
     with a ValidationError.
 
     For external semantic views, delegates to the view's
-    ``get_compatible_metrics`` implementation.
+    ``get_compatible_metrics`` implementation after rejecting unknown
+    selected metric and dimension names with a ValidationError.
 
     Example:
     ```json
@@ -99,14 +103,13 @@ async def get_compatible_metrics(
             error_type=DATA_MODEL_METADATA_ERROR_TYPE,
         )
 
-    if request.dataset_id is None and request.view_id is None:
+    if (request.dataset_id is None) == (request.view_id is None):
         return SemanticLayerError.create(
-            error="Provide either dataset_id (built-in) or view_id (external).",
-            error_type="ValidationError",
-        )
-    if request.dataset_id is not None and request.view_id is not None:
-        return SemanticLayerError.create(
-            error="Provide only one of dataset_id or view_id, not both.",
+            error=(
+                "Provide either dataset_id (built-in) or view_id (external)."
+                if request.dataset_id is None
+                else "Provide only one of dataset_id or view_id, not both."
+            ),
             error_type="ValidationError",
         )
 
@@ -202,6 +205,17 @@ async def get_compatible_metrics(
             return SemanticLayerError.create(
                 error=str(ex.error.message),
                 error_type="AccessDenied",
+            )
+
+        selection_errors: list[str] = validate_selection_names(
+            request.selected_metrics,
+            request.selected_dimensions,
+            {m.metric_name for m in view.metrics},
+            {col.column_name for col in view.columns},
+        )
+        if selection_errors:
+            return SemanticLayerError.create(
+                error="; ".join(selection_errors), error_type="ValidationError"
             )
 
         compatible_names: list[str] = view.get_compatible_metrics(
