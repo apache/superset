@@ -1480,8 +1480,8 @@ class PivotData {
   }
 
   /*
-   * Push a record into the grand-total slot, (re)building that slot's aggregator
-   * whenever the record resolves to a different formatter.
+   * Push a record into the grand-total slot, building that slot's aggregator
+   * from the first record that reaches it.
    *
    * The grand total has no key of its own, so -- exactly like rowTotals and
    * colTotals -- its aggregator is derived from the records that reach it rather
@@ -1490,12 +1490,9 @@ class PivotData {
    * with a currency or custom d3 format had its total render as a bare number
    * while its body cells rendered as money.
    *
-   * Rebuilding on a formatter change is what keeps that honest when several
-   * metrics share the grand total: `push` overwrites the stored value, so a slot
-   * built once from the first metric would go on to render the *last* metric's
-   * value in the *first* metric's format. `getFormattedAggregator` returns a
-   * stable function per metric, so an identity check is enough to spot the
-   * switch, and records that resolve to the same formatter still accumulate.
+   * The slot is never rebuilt: every later record, from any metric, pushes into
+   * the same aggregator so `cellValue`'s `push()` can detect a cross-metric
+   * mismatch and blank the total rather than render the last metric's value.
    */
   pushAllTotal(record: PivotRecord): void {
     // Only the first record's formatter builds the slot. Every later record,

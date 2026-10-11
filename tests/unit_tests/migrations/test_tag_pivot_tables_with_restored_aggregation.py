@@ -185,6 +185,30 @@ def test_upgrade_tags_and_invalidates_only_affected_pivot_tables(
         assert tagged_object_ids == {1}
 
 
+def test_upgrade_leaves_query_context_untouched(engine: Engine) -> None:
+    query_context = json.dumps(
+        {"form_data": {"viz_type": _VIZ_TYPE, _FIELD: "Median"}, "queries": []}
+    )
+    with Session(engine) as seed:
+        seed.add(
+            Slice(
+                id=1,
+                viz_type=_VIZ_TYPE,
+                params=json.dumps({"viz_type": _VIZ_TYPE, _FIELD: "Median"}),
+                query_context=query_context,
+            )
+        )
+        seed.commit()
+
+    _run_upgrade(engine)
+
+    with Session(engine) as verify:
+        assert verify.query(Slice).filter_by(id=1).one().query_context == (
+            query_context
+        )
+        assert verify.query(TaggedObject).filter_by(object_id=1).count() == 1
+
+
 def test_upgrade_is_idempotent_across_repeated_runs(engine: Engine) -> None:
     """A re-run (or a slice matching an already-created tag) must not violate
     the (tag_id, object_id, object_type) unique constraint, and must not
