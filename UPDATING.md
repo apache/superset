@@ -38,6 +38,12 @@ assists people when migrating to a new version.
   or rotate the workspace namespace to avoid reusing generations from the backup.
   See the [cache invalidation contract](docs/developer_docs/semantic-layer-cache-clear.md).
 
+- `GET /api/v1/datasource/` now applies the `editors` (`rel_m_m`), `changed_by`
+  (`rel_o_m`) and certification (`id` with `dataset_is_certified`) filters that the
+  Datasets page sends, and answers HTTP 400 for a filter column it cannot apply,
+  as `GET /api/v1/dataset/` does, instead of ignoring it. API callers that send other
+  columns to this endpoint must stop sending them.
+
 - Malformed explicit `time_range` values are rejected with a validation error
   (HTTP 400 on chart-data requests) instead of silently producing an upper-bound-only
   scan. Update saved charts, dashboard filters, imports, and API callers to use
