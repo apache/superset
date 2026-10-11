@@ -1120,7 +1120,7 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
-        "pypi_packages": ["pyodbc"],
+        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
         "connection_string": (
             "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
         ),
@@ -1164,7 +1164,7 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
-        "pypi_packages": ["pyhive"],
+        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
         "connection_string": (
             "databricks+pyhive://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
         ),
