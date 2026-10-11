@@ -378,3 +378,23 @@ test('new tab button opens the dropdown on keyboard activation', async () => {
 
   expect(await screen.findByText('Contributed Tab')).toBeInTheDocument();
 });
+
+test('empty state add control opens the dropdown instead of creating a plain tab', async () => {
+  contributeNewTabItem('ext.newTab');
+  newTabDisposables.push(
+    commands.registerCommand(
+      { id: 'ext.newTab', title: 'Contributed Tab' },
+      jest.fn(),
+    ),
+  );
+
+  setup(undefined, {
+    ...initialState,
+    sqlLab: { ...initialState.sqlLab, queryEditors: [], tabHistory: [] },
+  } as RootState);
+
+  fireEvent.click(await screen.findByTestId('add-tab-icon'));
+
+  expect(await screen.findByText('SQL Editor')).toBeInTheDocument();
+  expect(screen.getByText('Contributed Tab')).toBeInTheDocument();
+});
