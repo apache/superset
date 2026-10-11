@@ -407,3 +407,16 @@ def test_motherduck_properties() -> None:
     assert MotherDuckEngineSpec.supports_dynamic_catalog is True
     assert MotherDuckEngineSpec._is_motherduck("my_db") is True
 
+
+def test_motherduck_metadata() -> None:
+    from superset.db_engine_specs.duckdb import MotherDuckEngineSpec
+
+    metadata = MotherDuckEngineSpec.metadata
+    assert (
+        "MotherDuck is a serverless cloud analytics platform" in metadata["description"]
+    )
+    assert metadata["logo"] == "motherduck.png"
+    assert "duckdb-engine" in metadata["pypi_packages"]
+    assert metadata["homepage_url"] == "https://motherduck.com/"
+
+
