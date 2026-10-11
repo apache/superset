@@ -508,3 +508,98 @@ def test_serialize_rows_injects_rls_filters_for_datasets() -> None:
     # semantic view entry should not have rls_filters injected
     sv_item = next(x for x in result if x["id"] == 2)
     assert "rls_filters" not in sv_item
+
+
+@pytest.mark.parametrize("sql_value", [True, False])
+def test_run_semantic_layer_connection_with_sql_filter_returns_empty(
+    sql_value: bool,
+) -> None:
+    """A semantic-layer connection + physical/virtual toggle is empty.
+
+    The toggle is a dataset concept, so it cannot match the views a semantic
+    layer connection selects. Without the guard the connection stage resolved to
+    ``semantic_layer`` and the toggle was dropped, listing every view of the
+    layer.
+    """
+    command = GetCombinedDatasourceListCommand(
+        args={
+            "filters": [
+                {"col": "semantic_layer_uuid", "opr": "eq", "value": "uuid-123"},
+                {
+                    "col": "sql",
+                    "opr": "dataset_is_null_or_empty",
+                    "value": sql_value,
+                },
+            ]
+        },
+        can_read_datasets=True,
+        can_read_semantic_views=True,
+    )
+
+    with patch(
+        "superset.commands.datasource.list.DatasourceDAO.paginate_combined_query"
+    ) as paginate_mock:
+        result = command.run()
+
+    assert result == {"count": 0, "result": []}
+    paginate_mock.assert_not_called()
+
+
+def test_run_semantic_layer_connection_without_dataset_filter_lists_views() -> None:
+    """The guard above must not turn a plain connection selection into empty."""
+    command = GetCombinedDatasourceListCommand(
+        args={
+            "filters": [
+                {"col": "semantic_layer_uuid", "opr": "eq", "value": "uuid-123"},
+            ]
+        },
+        can_read_datasets=True,
+        can_read_semantic_views=True,
+    )
+
+    with (
+        patch("superset.commands.datasource.list.DatasourceDAO.build_dataset_query"),
+        patch(
+            "superset.commands.datasource.list.DatasourceDAO.build_semantic_view_query"
+        ),
+        patch(
+            "superset.commands.datasource.list.DatasourceDAO.paginate_combined_query",
+            return_value=(0, []),
+        ) as paginate_mock,
+        patch.object(
+            GetCombinedDatasourceListCommand,
+            "_build_combined_query",
+            return_value="combined",
+        ) as build_mock,
+    ):
+        result = command.run()
+
+    assert result == {"count": 0, "result": []}
+    build_mock.assert_called_once()
+    assert build_mock.call_args.args[0] == "semantic_layer"
+    paginate_mock.assert_called_once()
+
+
+def test_parse_filters_rejects_boolean_relation_id() -> None:
+    # ``True`` is an ``int`` in Python; it must not be read as subject id 1.
+    with pytest.raises(ValueError, match="editors"):
+        GetCombinedDatasourceListCommand._parse_filters(
+            [{"col": "editors", "opr": "rel_m_m", "value": True}]
+        )
+
+
+@pytest.mark.parametrize(
+    "unset_filter",
+    [
+        {"col": "editors", "opr": "rel_m_m", "value": None},
+        {"col": "changed_by", "opr": "rel_o_m", "value": None},
+        {"col": "id", "opr": "dataset_is_certified", "value": None},
+        {"col": "database", "opr": "rel_o_m", "value": "not-an-id"},
+        {"col": "database", "opr": "rel_o_m", "value": None},
+        {"col": "semantic_layer_uuid", "opr": "eq", "value": None},
+    ],
+)
+def test_parse_filters_ignores_unset_values(unset_filter: dict[str, Any]) -> None:
+    filters = GetCombinedDatasourceListCommand._parse_filters([unset_filter])
+
+    assert filters == _Filters()

@@ -134,7 +134,9 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             parsed.source_type,
             parsed.database_id,
             parsed.semantic_layer_uuid,
-            parsed.dataset_only,
+            # The physical/virtual toggle is a dataset concept too, so a
+            # semantic-layer connection cannot match it either.
+            parsed.dataset_only or parsed.sql_filter is not None,
         )
         # A connection filter can already resolve to "empty" (e.g. a semantic-layer
         # connection combined with a dataset-only schema filter); don't let the
@@ -175,8 +177,9 @@ class GetCombinedDatasourceListCommand(BaseCommand):
                 return "database"
             elif semantic_layer_uuid is not None:
                 # A semantic-layer connection selects only that layer's views,
-                # so a dataset-only filter (schema, editors, certified) matches
-                # nothing: the honest result is empty. Unlike an explicit
+                # so a dataset-only filter (schema, editors, certified, or the
+                # physical/virtual toggle) matches nothing: the honest result is
+                # empty. Unlike an explicit
                 # Source="Semantic layer" selection (handled in
                 # _resolve_source_type), the user never picked a source type
                 # here, so the "explicit selection wins" rule does not apply.
