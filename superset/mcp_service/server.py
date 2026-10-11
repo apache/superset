@@ -39,6 +39,7 @@ from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
+    MCP_NATIVE_TOOL_LIST_CONFIG,
     MCP_STATELESS_HTTP,
     MCP_STORE_CONFIG,
     MCP_STRUCTURED_OUTPUT_ENABLED,
@@ -346,7 +347,7 @@ def _truncate_description(text: str, max_length: int) -> str:
         kept, rest = text[: match.start()].strip(), text[match.end() :]
     kept = _drop_trailing_lead_in(kept)
     following = _PARAGRAPH_BREAK.split(rest, maxsplit=1)[0]
-    # Do not leave a heading, IMPORTANT block or list workflow partly advertised.
+    # After a whole paragraph fits, do not partly advertise a structured block.
     if kept and _STRUCTURED_PARAGRAPH.search(following):
         return kept
     separator = "\n\n" if kept else ""
@@ -360,7 +361,7 @@ def _request_instructions(tool: Any) -> str:
     Only ``Field(description=...)`` on the parameter itself counts. Schema
     dereferencing also copies the request model's docstring onto the served
     ``request`` property; that is model documentation, not calling instructions,
-    and must not be advertised or deducted from the prose budget.
+    and must not be advertised as calling instructions.
     """
     try:
         signature = inspect.signature(tool.fn)
@@ -420,7 +421,7 @@ def _build_summary_serializer(max_desc: int) -> Any:
     Returns a callable that serializes each tool to ``name``,
     ``description`` (optionally truncated), and a ``parameters_hint``
     string listing top-level parameter names and unabridged request instructions.
-    Instruction length is reserved from the prose budget. ``inputSchema`` and
+    Instructions do not consume the prose budget. ``inputSchema`` and
     ``outputSchema`` are stripped entirely.
     """
 
@@ -439,9 +440,7 @@ def _build_summary_serializer(max_desc: int) -> Any:
                         f"{hint}: {instructions}" if instructions else hint
                     )
             if max_desc and (desc := data.get("description")):
-                data["description"] = _truncate_description(
-                    desc, max(0, max_desc - len(instructions))
-                )
+                data["description"] = _truncate_description(desc, max_desc)
             results.append(data)
         return results
 
@@ -528,8 +527,8 @@ def _create_search_result_serializer(
 
     Titles and output schemas are stripped by the base serializer. The legacy
     ``compact_schemas`` setting only selects the default description limit;
-    ``max_description_length`` budgets prose plus request-wrapper instructions.
-    Instructions stay in the schema even when they exceed a small prose limit.
+    ``max_description_length`` budgets prose alone. Request-wrapper instructions
+    stay in the schema even when they exceed a small prose limit.
     """
     include_schemas = config.get("include_schemas", False)
 
@@ -547,12 +546,9 @@ def _create_search_result_serializer(
 
     def _serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
         results = _serialize_tools_without_output_schema(tools)
-        for tool, data in zip(tools, results, strict=True):
+        for data in results:
             if desc := data.get("description"):
-                instructions = _request_instructions(tool)
-                data["description"] = _truncate_description(
-                    desc, max(0, max_desc - len(instructions))
-                )
+                data["description"] = _truncate_description(desc, max_desc)
         return results
 
     return _serializer
@@ -827,6 +823,50 @@ def _create_search_transform(  # noqa: C901
     return _FixedBM25SearchTransform(**kwargs)
 
 
+def _apply_compact_tool_list_transform(
+    mcp_instance: Any, config: dict[str, Any]
+) -> None:
+    """Bound tool descriptions in the native ``tools/list`` when configured.
+
+    Opt-in via ``MCP_NATIVE_TOOL_LIST_CONFIG["compact"]``. Listed descriptions
+    are bounded with :func:`_truncate_description`. Request instructions ship
+    in the unchanged input schema and never consume the prose budget. Only the
+    listing changes: names, input and output schemas,
+    and annotations are served unchanged, and ``tools/call`` resolves the
+    registered tool, so validation and execution do not depend on this setting.
+    """
+    if not config.get("compact", False):
+        return
+    max_desc = config.get("max_description_length", 300)
+    if not max_desc:
+        return
+
+    from fastmcp.server.transforms import Transform
+
+    class _CompactToolListTransform(Transform):
+        """List tools with bounded descriptions; lookups pass through unchanged."""
+
+        def __repr__(self) -> str:
+            return f"{self.__class__.__name__}(max_description_length={max_desc})"
+
+        async def list_tools(self, tools: Sequence[Any]) -> Sequence[Any]:
+            return [
+                tool.model_copy(
+                    update={
+                        "description": _truncate_description(tool.description, max_desc)
+                    }
+                )
+                if tool.description
+                else tool
+                for tool in tools
+            ]
+
+    mcp_instance.add_transform(_CompactToolListTransform())
+    logger.info(
+        "Compact native tool list enabled (max_description_length=%d)", max_desc
+    )
+
+
 def _create_auth_provider(flask_app: Any) -> Any | None:
     """Create an auth provider from Flask app config.
 
@@ -1072,9 +1112,18 @@ def run_server(
         flask_app = None
 
         # Apply tool search transform if configured
-        tool_search_config = MCP_TOOL_SEARCH_CONFIG
+        tool_search_config = factory_flask_app.config.get(
+            "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+        )
         if tool_search_config.get("enabled", False):
             _apply_tool_search_transform(mcp_instance, tool_search_config)
+        else:
+            _apply_compact_tool_list_transform(
+                mcp_instance,
+                factory_flask_app.config.get(
+                    "MCP_NATIVE_TOOL_LIST_CONFIG", MCP_NATIVE_TOOL_LIST_CONFIG
+                ),
+            )
     else:
         # Use default initialization with auth from Flask config
         logging.info("Creating MCP app with default configuration...")
@@ -1112,6 +1161,13 @@ def run_server(
             if size_guard_middleware:
                 search_name = tool_search_config.get("search_tool_name", "search_tools")
                 size_guard_middleware.excluded_tools.add(search_name)
+        else:
+            _apply_compact_tool_list_transform(
+                mcp_instance,
+                flask_app.config.get(
+                    "MCP_NATIVE_TOOL_LIST_CONFIG", MCP_NATIVE_TOOL_LIST_CONFIG
+                ),
+            )
 
     _register_health_endpoint(mcp_instance)
 

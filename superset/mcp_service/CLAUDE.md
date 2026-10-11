@@ -421,7 +421,7 @@ result = validate_and_compile(
 )
 if not result.success:
     # ``result.error_obj`` is a ``ChartGenerationError`` with fuzzy-match
-    # suggestions ("did you mean sum_boys?") so the LLM can self-correct.
+    # suggestions ("did you mean revenue?") so the LLM can self-correct.
     ...
 ```
 

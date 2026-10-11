@@ -9,6 +9,9 @@ updates:
       security:
         applies-to: "security-updates"
         patterns: ["*"]
+      codeql:
+        patterns:
+          - github/codeql-action/*
     cooldown:
       default-days: 7
 
@@ -49,7 +52,11 @@ updates:
       # hold comments). Remove this once the proxy code is updated to await
       # the async decompress() API.
       - dependency-name: "simple-zstd"
-    directory: "/superset-frontend/"
+    directories:
+      - "/superset-frontend"
+      - "/superset-embedded-sdk"
+      - "/superset-websocket"
+      - "/docs"
     schedule:
       interval: "daily"
     labels:
@@ -66,6 +73,11 @@ updates:
         patterns:
           - "@typescript-eslint/*"
           - "typescript-eslint"
+      jest:
+        patterns:
+          - "jest"
+          - "babel-jest"
+          - "jest-environment-jsdom"
       babel:
         patterns:
           - "@babel/*"
@@ -95,7 +107,22 @@ updates:
       fontsource:
         patterns:
           - "@fontsource/*"
-    open-pull-requests-limit: 30
+      docusaurus:
+        patterns:
+          - "@docusaurus/*"
+      docusaurus-openapi:
+        patterns:
+          - "docusaurus-plugin-openapi-docs"
+          - "docusaurus-theme-openapi-docs"
+      monorepo-dependencies:
+        group-by: dependency-name
+        patterns:
+          - "webpack"
+          - "@types/node"
+          - "oxfmt"
+          - "oxlint"
+          - "oxlint-tsgolint"
+    open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
       default-days: 7
@@ -134,49 +161,6 @@ updates:
       default-days: 7
 
   - package-ecosystem: "npm"
-    directory: "/docs/"
-    schedule:
-      interval: "daily"
-    groups:
-      security:
-        applies-to: "security-updates"
-        patterns: ["*"]
-      storybook:
-        patterns:
-          - "@storybook/*"
-          - "storybook"
-      docusaurus:
-        patterns:
-          - "@docusaurus/*"
-      docusaurus-openapi:
-        patterns:
-          - "docusaurus-plugin-openapi-docs"
-          - "docusaurus-theme-openapi-docs"
-      typescript-eslint:
-        patterns:
-          - "@typescript-eslint/*"
-          - "typescript-eslint"
-    open-pull-requests-limit: 10
-    versioning-strategy: increase
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "npm"
-    directory: "/superset-websocket/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    groups:
-      security:
-        applies-to: "security-updates"
-        patterns: ["*"]
-    versioning-strategy: increase
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "npm"
     directory: "/superset-websocket/utils/client-ws-app/"
     schedule:
       interval: "daily"
@@ -188,24 +172,6 @@ updates:
         applies-to: "security-updates"
         patterns: ["*"]
     open-pull-requests-limit: 10
-    versioning-strategy: increase
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "npm"
-    directory: "/superset-embedded-sdk/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    groups:
-      security:
-        applies-to: "security-updates"
-        patterns: ["*"]
-      babel:
-        patterns:
-          - "@babel/*"
     versioning-strategy: increase
     cooldown:
       default-days: 7

@@ -226,6 +226,11 @@ def _append_columns(
     assign method, which overwrites the original column in `base_df` if the column
     already exists, and appends the column if the name is not defined.
 
+    A mapping may do both at once, so the two halves are handled separately: an
+    entry whose source and target names match overwrites in place, and one that
+    renames is appended. Treating a mixed mapping as a whole would append the
+    column that was meant to be overwritten, leaving a duplicate label behind.
+
     Note that! this is a memory-intensive operation.
 
     :param base_df: DataFrame which to use as the base
@@ -238,13 +243,25 @@ def _append_columns(
            in `base_df` unchanged.
     :return: new DataFrame with combined data from `base_df` and `append_df`
     """
-    if all(key == value for key, value in columns.items()):
+    if not columns:
+        # Nothing to combine, but still hand back a new DataFrame so that a
+        # caller which mutates the result does not reach `base_df`.
+        return base_df.copy()
+
+    overwritten = {key: value for key, value in columns.items() if key == value}
+    appended = {key: value for key, value in columns.items() if key != value}
+
+    _base_df = base_df
+    if overwritten:
         # make sure to return a new DataFrame instead of changing the `base_df`.
         _base_df = base_df.copy()
-        _base_df.loc[:, columns.keys()] = append_df
+        _base_df.loc[:, overwritten.keys()] = append_df
+    if not appended:
         return _base_df
-    append_df = append_df.rename(columns=columns)
-    return pd.concat([base_df, append_df], axis="columns")
+    # Select before renaming: `append_df` may carry columns the mapping does not
+    # ask for, and those must not reach the result.
+    appended_df = append_df.loc[:, appended.keys()].rename(columns=appended)
+    return pd.concat([_base_df, appended_df], axis="columns")
 
 
 def escape_separator(plain_str: str, sep: str = FLAT_COLUMN_SEPARATOR) -> str:

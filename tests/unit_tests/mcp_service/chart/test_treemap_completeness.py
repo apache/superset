@@ -28,6 +28,7 @@ from unittest.mock import Mock, patch
 import pytest
 from pydantic import ValidationError
 
+from superset.common.form_data_query_context import build_query_objects_from_form_data
 from superset.mcp_service.chart.chart_utils import (
     map_treemap_config,
     merge_chart_form_data,
@@ -96,10 +97,10 @@ ROWS = [
 def test_hierarchy_query_order_matches_frontend(sort: bool, limit: int | None) -> None:
     """Metric order has precedence, with hierarchy tie-breakers only when bounded."""
     form = {**FORM_DATA, "sort_by_metric": sort, "row_limit": limit}
-    query = _treemap_query(form)
-    expected = ([("revenue", False)] if sort else []) + [
-        ("region", True),
-        ("product", True),
+    query = build_query_objects_from_form_data(form)[0]
+    expected = ([["revenue", False]] if sort else []) + [
+        ["region", True],
+        ["product", True],
     ]
     assert query.get("orderby", []) == (expected if limit else [])
 
@@ -329,7 +330,16 @@ def test_saved_and_unsaved_preview_dispatch_match(format_name: str) -> None:
         params=json.dumps(form),
     )
     context = SimpleNamespace(
-        queries=[SimpleNamespace(metrics=["revenue"], columns=form["groupby"])]
+        form_data={},
+        queries=[
+            SimpleNamespace(
+                metrics=["revenue"],
+                columns=form["groupby"],
+                filter=[],
+                time_range=None,
+                to_dict=lambda: {"metrics": ["revenue"], "columns": form["groupby"]},
+            )
+        ],
     )
     with (
         patch(
@@ -624,7 +634,16 @@ async def test_registered_cached_preview_is_treemap(
     if row_limit == 7:
         rows[0]["region"], rows[1]["region"] = 1, "1"
     context = SimpleNamespace(
-        queries=[SimpleNamespace(metrics=["revenue"], columns=form["groupby"])]
+        form_data={},
+        queries=[
+            SimpleNamespace(
+                metrics=["revenue"],
+                columns=form["groupby"],
+                filter=[],
+                time_range=None,
+                to_dict=lambda: {"metrics": ["revenue"], "columns": form["groupby"]},
+            )
+        ],
     )
     with (
         patch(
@@ -709,16 +728,14 @@ async def test_registered_update_preview_preserves_cached_controls(
     module = importlib.import_module(
         "superset.mcp_service.chart.tool.update_chart_preview"
     )
-    from superset.mcp_service.chart import registry
-
-    monkeypatch.setattr(
-        registry,
-        "_filter_config",
-        registry._PluginFilterConfig(
-            disabled_plugins=frozenset({"treemap_v2"}) if disabled else frozenset()
-        ),
+    dataset = Mock(
+        id=7,
+        table_name="sales",
+        schema=None,
+        columns=[],
+        metrics=[],
+        database=Mock(database_name="database"),
     )
-    dataset = Mock(id=7, table_name="sales", schema=None, columns=[], metrics=[])
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
@@ -778,7 +795,7 @@ async def test_registered_update_preview_preserves_cached_controls(
         cache_write.assert_not_called()
         return
     assert data["success"] is True, data
-    merged = data["form_data"]
+    merged = cache_write.call_args.args[1]
     assert merged["row_limit"] == 7
     assert merged["sort_by_metric"] is False
     assert merged["metric"] == "revenue"
@@ -899,8 +916,10 @@ def test_treemap_query_ignores_stale_cross_chart_roles() -> None:
 @pytest.mark.parametrize("limit", ["0", "0.0", "", "1"])
 def test_native_string_row_limits_match_frontend(limit: str) -> None:
     """Frontend applyOrderBy numerically parses string row limits."""
-    query = _treemap_query({**FORM_DATA, "groupby": ["region"], "row_limit": limit})
-    assert query.get("orderby", []) == ([("region", True)] if limit == "1" else [])
+    query = build_query_objects_from_form_data(
+        {**FORM_DATA, "row_limit": limit, "groupby": ["region"]}
+    )[0]
+    assert query.get("orderby", []) == ([["region", True]] if limit == "1" else [])
 
 
 def test_explicit_temporal_clear_keeps_user_filters_and_template_state() -> None:
@@ -1077,6 +1096,7 @@ async def test_registered_filter_update_keeps_saved_temporal_binding(
         columns=[],
         metrics=[],
         main_dttm_col="default_time",
+        database=Mock(database_name="database"),
     )
     existing = {
         **FORM_DATA,

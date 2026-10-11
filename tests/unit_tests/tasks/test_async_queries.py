@@ -17,7 +17,7 @@
 """Unit tests for the GTF chart-data fan-out orchestrator."""
 
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import Literal, TYPE_CHECKING
 from unittest import mock
 from uuid import uuid4
 
@@ -527,3 +527,38 @@ def test_inject_contribution_totals_includes_decimal_metrics(
     totals = query_obj.post_processing[0]["options"]["contribution_totals"]
     assert totals == {"decimal_metric": Decimal("40.0"), "float_metric": 10.0}
     assert "label" not in totals
+
+
+@pytest.mark.parametrize("reason", ["incomplete", "unverified", None])
+def test_completeness_failure_does_not_publish_task_success(
+    mocker: MockerFixture,
+    reason: Literal["incomplete", "unverified"] | None,
+) -> None:
+    from superset.exceptions import SemanticResultCompletenessError
+    from superset.tasks.async_queries import execute_chart_query
+
+    query_context: mock.MagicMock = mocker.MagicMock()
+    query_context.queries = [mocker.MagicMock()]
+    error: Exception = (
+        SemanticResultCompletenessError(reason)
+        if reason is not None
+        else RuntimeError("PRIVATE provider error")
+    )
+    query_context.get_df_payload_result.side_effect = error
+    task_context: mock.MagicMock = mocker.MagicMock()
+    mocker.patch(
+        "superset.tasks.async_queries._resolve_user", return_value=mocker.MagicMock()
+    )
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query", return_value=query_context
+    )
+    mocker.patch("superset.tasks.async_queries.get_context", return_value=task_context)
+    with pytest.raises(type(error)):
+        execute_chart_query.func(_serialized_query(), user_id=7)
+    if reason is None:
+        task_context.update_task.assert_not_called()
+    else:
+        task_context.update_task.assert_called_once_with(
+            payload={"semantic_result_error": reason}, immediate=True
+        )
