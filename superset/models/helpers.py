@@ -4395,17 +4395,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         dataset_timezone = self.get_dataset_timezone()
 
         if dataset_timezone and (start_dttm or end_dttm):
+            # A DATE column holds calendar days with no time of day, so its bounds
+            # are kept as they are; the timezone still overrides Hour Offset.
+            date_only = is_date_column_type(
+                self.db_engine_spec, time_col.type, db_extra=self.db_extra
+            )
             try:
                 tz = ZoneInfo(dataset_timezone)
 
                 # The datetimes from the UI are naive (no timezone info). We
                 # interpret them as being in the dataset's configured timezone and
-                # convert them to UTC for comparison with UTC-stored data. A DATE
-                # column holds calendar days with no time of day, so its bounds
-                # are kept as they are; the timezone still overrides Hour Offset.
-                if not is_date_column_type(
-                    self.db_engine_spec, time_col.type, db_extra=self.db_extra
-                ):
+                # convert them to UTC for comparison with UTC-stored data.
+                if not date_only:
                     if start_dttm is not None:
                         start_dttm = (
                             start_dttm.replace(tzinfo=tz)

@@ -18,8 +18,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone as dt_timezone
+from typing import Any
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -27,6 +29,7 @@ import pytest
 from flask import Flask
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.pool import StaticPool
 
 from superset.common.query_object import QueryObject
@@ -220,6 +223,7 @@ def _date_table(
     sqlalchemy_uri: str = "sqlite://",
     offset: int = 0,
 ) -> tuple[SqlaTable, TableColumn]:
+    """A dataset with one ``DATE`` column ``day``, for compiling time filters."""
     database = Database(database_name="test_db", sqlalchemy_uri=sqlalchemy_uri)
     time_col = TableColumn(column_name="day", is_dttm=1, type="DATE")
     table = SqlaTable(
@@ -315,17 +319,20 @@ def test_get_time_filter_date_column_invalid_timezone_falls_back_to_offset(
 
 def _sqlite_dataset(
     mocker: MockerFixture,
+    request: pytest.FixtureRequest,
     column_type: str,
     rows: list[str],
     dataset_timezone: str,
 ) -> SqlaTable:
-    """An in-memory SQLite dataset with one temporal column ``day``."""
+    """An in-memory SQLite dataset with one temporal column ``day``. The engine
+    is disposed when the test ends."""
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
         future=True,
     )
+    request.addfinalizer(engine.dispose)
     database = Database(database_name="db", sqlalchemy_uri="sqlite://")
     connection = engine.raw_connection()
     connection.execute(f"CREATE TABLE events (day {column_type}, val INTEGER)")
@@ -334,9 +341,15 @@ def _sqlite_dataset(
         [(row,) for row in rows],
     )
     connection.commit()
+    connection.close()
 
     @contextmanager
-    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
+    def mock_get_sqla_engine(
+        catalog: str | None = None,
+        schema: str | None = None,
+        **kwargs: Any,
+    ) -> Iterator[Engine]:
+        """Hand out the in-memory engine instead of connecting."""
         yield engine
 
     mocker.patch.object(database, "get_sqla_engine", new=mock_get_sqla_engine)
@@ -389,6 +402,7 @@ def test_date_column_query_returns_and_shows_selected_days(
     dataset_timezone: str,
     time_grain: str | None,
     mocker: MockerFixture,
+    request: pytest.FixtureRequest,
 ) -> None:
     """
     A chart query on a ``DATE`` axis returns the selected days and shows them
@@ -397,6 +411,7 @@ def test_date_column_query_returns_and_shows_selected_days(
     """
     table = _sqlite_dataset(
         mocker,
+        request,
         "DATE",
         ["2026-09-19", "2026-09-20", "2026-09-21", "2026-09-22"],
         dataset_timezone,
@@ -412,10 +427,12 @@ def test_date_column_query_returns_and_shows_selected_days(
 
 def test_date_column_legacy_time_column_shows_selected_days(
     mocker: MockerFixture,
+    request: pytest.FixtureRequest,
 ) -> None:
     """The legacy ``__timestamp`` column of a ``DATE`` granularity is not moved."""
     table = _sqlite_dataset(
         mocker,
+        request,
         "DATE",
         ["2026-09-19", "2026-09-20", "2026-09-21", "2026-09-22"],
         "America/New_York",
@@ -442,6 +459,7 @@ def test_date_column_legacy_time_column_shows_selected_days(
 
 def test_timestamp_column_query_still_uses_dataset_timezone(
     mocker: MockerFixture,
+    request: pytest.FixtureRequest,
 ) -> None:
     """
     A ``TIMESTAMP`` column keeps the conversion: the bounds move to UTC and the
@@ -449,6 +467,7 @@ def test_timestamp_column_query_still_uses_dataset_timezone(
     """
     table = _sqlite_dataset(
         mocker,
+        request,
         "TIMESTAMP",
         [
             "2026-09-20 02:00:00",
