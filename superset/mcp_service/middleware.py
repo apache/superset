@@ -478,6 +478,19 @@ def _is_user_error(error: Exception) -> bool:
     return False
 
 
+def _is_user_error_for_reporting(error: Exception) -> bool:
+    """:func:`_is_user_error`, refined by :func:`_datasource_error_is_user_error`.
+
+    The single classification every ``MCP_ERROR_HOOK`` call site gates on, so
+    a failure is paged (or not) the same way whichever handler catches it.
+    """
+    # A datasource failure's severity follows what actually broke, not the
+    # 500 status a bare SupersetErrorException inherits.
+    if (datasource_is_user := _datasource_error_is_user_error(error)) is not None:
+        return datasource_is_user
+    return _is_user_error(error)
+
+
 _SENSITIVE_PARAM_KEYS = frozenset(
     {
         "password",
@@ -536,8 +549,29 @@ class LoggingMiddleware(Middleware):
     payload).
     """
 
-    #: Proxy name used by FastMCP tool-search transforms.
-    _CALL_TOOL_PROXY = "call_tool"
+    @staticmethod
+    def _call_tool_proxy_name() -> str:
+        """Return the configured name of the tool-search call proxy.
+
+        Read from the same ``MCP_TOOL_SEARCH_CONFIG["call_tool_name"]`` setting
+        the proxy is registered under, so a renamed proxy is still recognised.
+        Falls back to the packaged default when no Flask app is reachable.
+        """
+        from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+
+        config: Any = MCP_TOOL_SEARCH_CONFIG
+        try:
+            from superset.mcp_service.flask_singleton import get_flask_app
+
+            config = get_flask_app().config.get(
+                "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+            )
+        except Exception:  # noqa: BLE001
+            logger.debug("Flask app unavailable; using default call proxy name")
+        name = config.get("call_tool_name") if isinstance(config, dict) else None
+        if isinstance(name, str) and name:
+            return name
+        return MCP_TOOL_SEARCH_CONFIG["call_tool_name"]
 
     def _is_error_response(self, result: ToolResult) -> bool:
         """Check if a tool result contains an error schema response.
@@ -648,17 +682,17 @@ class LoggingMiddleware(Middleware):
     def _resolve_tool_name(tool_name: str | None, params: Any) -> str | None:
         """Resolve the underlying tool name from call_tool proxy arguments.
 
-        When tool search is enabled, the MCP client uses the ``call_tool``
-        proxy and passes the real tool name as the ``name`` argument.  This
-        helper extracts that value so we can log which tool was actually
-        executed rather than just ``"call_tool"``.
+        When tool search is enabled, the MCP client uses the configured call
+        proxy (``call_tool`` by default) and passes the real tool name as the
+        ``name`` argument.  This helper extracts that value so we can log which
+        tool was actually executed rather than just ``"call_tool"``.
 
         Returns:
             The resolved tool name if *tool_name* is the call_tool proxy and
             ``params["name"]`` is a non-empty string, otherwise ``None``.
         """
         if (
-            tool_name == LoggingMiddleware._CALL_TOOL_PROXY
+            tool_name == LoggingMiddleware._call_tool_proxy_name()
             and isinstance(params, dict)
             and isinstance(params.get("name"), str)
             and params["name"]
@@ -829,7 +863,7 @@ class LoggingMiddleware(Middleware):
             registered = None
         if registered is not None:
             return candidate
-        return "call_tool" if mcp_tool else "unknown"
+        return LoggingMiddleware._call_tool_proxy_name() if mcp_tool else "unknown"
 
     async def _emit_call_metrics(
         self,
@@ -843,6 +877,12 @@ class LoggingMiddleware(Middleware):
     ) -> None:
         """Emit the per-tool outcome counter and timing for one call.
 
+        An outcome the ``call_tool`` proxy merely forwards (``mcp_tool`` set,
+        nothing raised) was already counted and timed, with its own
+        user/system classification, when the proxied tool ran through this
+        middleware. Skip the redundant proxy emission for both successes
+        and failures, but still count exceptions raised by the proxy itself.
+
         Single emission point for the per-tool outcome counters —
         GlobalErrorHandlerMiddleware (inner) re-raises every failure as
         ToolError, so counting there as well would double-count raised
@@ -852,6 +892,8 @@ class LoggingMiddleware(Middleware):
         free-form error_type that cannot be reliably classified, so they
         count as error (the parsed error_type is in the curated payload).
         """
+        if mcp_tool is not None and raised_is_user_error is None:
+            return
         metric_tool = await self._resolve_metric_tool_name(context, tool_name, mcp_tool)
         if success:
             outcome = "success"
@@ -885,7 +927,13 @@ class LoggingMiddleware(Middleware):
         raised_is_user_error: bool | None = None
         try:
             result = await call_next(context)
-            success = not self._is_error_response(result)
+            # An error result returned rather than raised (e.g. a call
+            # forwarded by the tool-search call_tool proxy, whose inner call
+            # already converted its exception) is still a failure.
+            success = not (
+                (isinstance(result, ToolResult) and result.is_error)
+                or self._is_error_response(result)
+            )
             if not success and isinstance(result, ToolResult):
                 error_type = self._extract_error_type_from_response(result)
             if isinstance(result, ToolResult):
@@ -894,6 +942,7 @@ class LoggingMiddleware(Middleware):
                     content=result.content,
                     meta={**existing_meta, "mcp_call_id": mcp_call_id},
                     structured_content=result.structured_content,
+                    is_error=result.is_error,
                 )
             return result
         except Exception as exc:
@@ -1116,15 +1165,29 @@ class ToolResultCompatibilityMiddleware(Middleware):
             except Exception:  # noqa: BLE001
                 sanitized_message = type(e).__name__
             error_text = f"Error: {sanitized_message}"
-            if not isinstance(e, ToolError):
+            # Classification inspects attributes of an arbitrary exception
+            # (e.g. an unhashable ``error_type`` or a non-int ``status``) and
+            # can itself raise. Treat a classification failure as
+            # system-class so the hook still fires and this catch never
+            # propagates.
+            try:
+                is_user_error = _is_user_error_for_reporting(e)
+            except Exception:  # noqa: BLE001
+                is_user_error = False
+            if not isinstance(e, ToolError) and not is_user_error:
                 # GlobalErrorHandlerMiddleware converts every exception it
                 # sees into ToolError (and already invokes MCP_ERROR_HOOK
                 # for system-class errors there). A non-ToolError reaching
                 # this final catch means it slipped past that handler
-                # entirely — invoke the hook here as the true last-resort
-                # capture point. All contract keys are populated so hooks
-                # can index them unconditionally; user_id and duration_ms
-                # are unknown at this layer and passed as None.
+                # entirely — e.g. when this middleware is registered inside
+                # it — so invoke the hook here as the true last-resort
+                # capture point. Only system-class errors are reported,
+                # matching GlobalErrorHandlerMiddleware: user errors (bad
+                # arguments, permission denials) are expected MCP traffic
+                # and would otherwise flood an error tracker. All contract
+                # keys are populated so hooks can index them
+                # unconditionally; user_id and duration_ms are unknown at
+                # this layer and passed as None.
                 await _invoke_error_hook_off_loop(
                     e,
                     {
@@ -1305,13 +1368,7 @@ class GlobalErrorHandlerMiddleware(Middleware):
         # Log with appropriate level: user errors (expected) → WARNING,
         # system errors (unexpected) → ERROR
         sanitized_error = _sanitize_error_for_logging(error)
-        is_user = _is_user_error(error)
-        # A datasource failure's severity follows what actually broke, not the
-        # 500 status a bare SupersetErrorException inherits. See
-        # _datasource_error_is_user_error.
-        datasource_is_user = _datasource_error_is_user_error(error)
-        if datasource_is_user is not None:
-            is_user = datasource_is_user
+        is_user = _is_user_error_for_reporting(error)
         log_fn = logger.warning if is_user else logger.error
         log_fn(
             "MCP tool call failed: tool=%s, user_id=%s, "

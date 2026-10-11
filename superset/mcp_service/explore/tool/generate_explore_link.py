@@ -274,7 +274,7 @@ async def generate_explore_link(
 
         # Tier-1 schema validation against the dataset (no DB roundtrip).
         # Catches references to non-existent columns/metrics with fuzzy
-        # suggestions so the LLM can self-correct ("did you mean sum_boys?").
+        # suggestions so the LLM can self-correct ("did you mean revenue?").
         with event_logger.log_context(action="mcp.generate_explore_link.validation"):
             compile_result = validate_and_compile(
                 normalized_config,

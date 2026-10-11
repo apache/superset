@@ -27,12 +27,26 @@ from superset.common.query_object_factory import QueryObjectFactory
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.explorables.base import Explorable
+from superset.extensions import security_manager
 from superset.models.slice import Slice
+from superset.security.manager import STOCK_RAISE_FOR_ACCESS
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
+
+
+def _uses_stock_raise_for_access() -> bool:
+    """Check the resolved method against the original stock function.
+
+    The semantic preflight passes empty queries. Instance wrappers and operator
+    reassignment of the base-class method must keep the completed-context path.
+    """
+    return (
+        getattr(security_manager.raise_for_access, "__func__", None)
+        is STOCK_RAISE_FOR_ACCESS
+    )
 
 
 def create_query_object_factory() -> QueryObjectFactory:
@@ -41,9 +55,11 @@ def create_query_object_factory() -> QueryObjectFactory:
 
 class QueryContextFactory:  # pylint: disable=too-few-public-methods
     _query_object_factory: QueryObjectFactory
+    _authorize_semantic_before_metadata: bool
 
-    def __init__(self) -> None:
+    def __init__(self, authorize_semantic_before_metadata: bool = False) -> None:
         self._query_object_factory = create_query_object_factory()
+        self._authorize_semantic_before_metadata = authorize_semantic_before_metadata
 
     def create(  # pylint: disable=too-many-arguments
         self,
@@ -71,6 +87,30 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
+
+        if (
+            self._authorize_semantic_before_metadata
+            and datasource_model_instance is not None
+            and DatasourceType(datasource["type"]) == DatasourceType.SEMANTIC_VIEW
+        ):
+            # Guest dashboard and payload checks need the completed query context,
+            # and an operator EXTRA_RAISE_FOR_ACCESS_BYPASS hook or a custom
+            # security manager's raise_for_access may read the request's queries;
+            # keep their authorization path and timing unchanged.
+            if (
+                not security_manager.is_guest_user()
+                and not current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
+                and _uses_stock_raise_for_access()
+            ):
+                QueryContext(
+                    datasource=datasource_model_instance,
+                    queries=[],
+                    slice_=slice_,
+                    form_data=form_data,
+                    result_type=result_type,
+                    result_format=result_format,
+                    cache_values={},
+                ).raise_for_access()
 
         # The server pagination var is extracted from form data as the
         # row limit for server pagination is more
@@ -293,17 +333,25 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # then the dataset's main datetime column, to match those consumers.
             # Candidates are matched against the dataset's
             # temporal columns so one that has since been dropped, or is no
-            # longer temporal, is ignored.
+            # longer temporal, is ignored. ``granularity_sqla`` can also hold an
+            # adhoc column (the viz migrations in ``migrate_viz/base.py`` handle
+            # that shape). It is matched by its ``sqlExpression``, since a dict
+            # cannot be looked up in the ``temporal_columns`` set.
             candidates = (
-                (form_data or {}).get("granularity"),
-                (form_data or {}).get("granularity_sqla"),
-                getattr(datasource, "main_dttm_col", None),
+                candidate.get("sqlExpression")
+                if isinstance(candidate, dict)
+                else candidate
+                for candidate in (
+                    (form_data or {}).get("granularity"),
+                    (form_data or {}).get("granularity_sqla"),
+                    getattr(datasource, "main_dttm_col", None),
+                )
             )
             query_object.granularity = next(
                 (
                     candidate
                     for candidate in candidates
-                    if candidate in temporal_columns
+                    if isinstance(candidate, str) and candidate in temporal_columns
                 ),
                 None,
             )

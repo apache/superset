@@ -83,6 +83,35 @@ async def test_registered_tool_calling_constraints(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("include_schemas", [True, False])
+@pytest.mark.parametrize("max_desc", [150, 250, 300])
+async def test_search_list_datasets_keeps_semantic_view_steer(
+    include_schemas: bool, max_desc: int
+) -> None:
+    """Schema and hint instructions do not consume the search prose budget."""
+    tool = await mcp.get_tool("list_datasets")
+    assert tool is not None
+    entry = _create_search_result_serializer(
+        {"include_schemas": include_schemas, "max_description_length": max_desc}
+    )([tool])[0]
+    assert (
+        "For semantic views, use list_metrics for discovery and get_table"
+        in (entry["description"])
+    )
+    assert entry["description"] == _truncate_description(
+        tool.description or "", max_desc
+    )
+    instructions = _request_instructions(tool)
+    assert instructions
+    if include_schemas:
+        assert entry["inputSchema"]["properties"]["request"]["description"] == (
+            instructions
+        )
+    else:
+        assert entry["parameters_hint"] == f"request: {instructions}"
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("name", CONSTRAINTS)
 async def test_registered_constraints_have_bounded_size(name: str) -> None:
     """Critical metadata has its own fixed ceiling, not an unbounded IMPORTANT block."""
@@ -91,7 +120,7 @@ async def test_registered_constraints_have_bounded_size(name: str) -> None:
     instructions = tool.parameters["properties"]["request"]["description"]
     assert len(instructions) <= 300
     entry = _create_search_result_serializer({"include_schemas": True})([tool])[0]
-    assert len(instructions) + len(entry["description"]) <= 300
+    assert len(entry["description"]) <= 300
 
 
 @pytest.mark.asyncio
@@ -104,7 +133,9 @@ async def test_oversized_registered_description_keeps_calling_constraints(
     tool = await mcp.get_tool(name)
     assert tool is not None
     oversized = tool.model_copy(
-        update={"description": "Long introduction. " * 10_000 + tool.description}
+        update={
+            "description": "Long introduction. " * 10_000 + (tool.description or "")
+        }
     )
     entry = _create_search_result_serializer({"include_schemas": include_schemas})(
         [oversized]
@@ -119,7 +150,7 @@ async def test_oversized_registered_description_keeps_calling_constraints(
             assert all(phrase in schema_text for phrase in phrases), (name, phrases)
     else:
         assert instructions in entry["parameters_hint"]
-    assert len(entry["description"]) + len(instructions) <= 300
+    assert len(entry["description"]) <= 300
 
 
 @pytest.mark.asyncio
@@ -128,7 +159,7 @@ async def test_direct_inventory_keeps_bounded_calling_metadata() -> None:
 
     The list_tools middleware inlines each request model, copying its docstring
     onto ``properties.request``. Only authored request-parameter instructions
-    count toward the 300-character cap and the prose deduction.
+    count toward the independent 300-character instruction cap.
     """
     for tool in await mcp.list_tools(run_middleware=True):
         schema = tool.to_mcp_tool().inputSchema
@@ -550,11 +581,10 @@ async def test_direct_no_query_catalog_preserves_priority_guidance(
     assert len(catalog) == len(tools)
     entry = next(item for item in catalog if item["name"] == name)
     tool = next(item for item in tools if item.name == name)
-    instructions = tool.parameters["properties"]["request"]["description"]
     text = _discovery_text(entry, include_schemas)
     assert 'Wrap as {"request": {...}}.' in text
     assert all(phrase in text for phrase in DIRECT_CATALOG_CONSTRAINTS[name]), text
-    assert len(entry["description"]) + len(instructions) <= 300
+    assert len(entry["description"]) <= 300
     # A purpose paragraph survives; any subsequent paragraphs are whole, never
     # an incomplete bullet or the misleading numbered-list fragment "Workflow: 1."
     description = inspect.cleandoc(tool.description or "")
@@ -576,7 +606,7 @@ async def test_direct_catalog_oversized_prose_keeps_bounded_guidance(name: str) 
     entry = _create_search_result_serializer({"include_schemas": True})([oversized])[0]
     instructions = entry["inputSchema"]["properties"]["request"]["description"]
     assert all(phrase in instructions for phrase in DIRECT_CATALOG_CONSTRAINTS[name])
-    assert len(entry["description"]) + len(instructions) <= 300
+    assert len(entry["description"]) <= 300
 
 
 @pytest.mark.asyncio
@@ -653,3 +683,18 @@ async def test_served_discovery_regressions_keep_prose(
     assert UNTOUCHED_DESCRIPTION_PHRASES[name] in re.sub(
         r"\s+", " ", entry["description"]
     ), (name, entry["description"])
+
+
+@pytest.mark.asyncio
+async def test_dashboard_datasets_served_request_describes_lookup_and_caps() -> None:
+    """Served request metadata describes lookup and preserves cap constraints."""
+    tools = await mcp.list_tools(run_middleware=True)
+    tool = next(item for item in tools if item.name == "get_dashboard_datasets")
+    request = tool.to_mcp_tool().inputSchema["properties"]["request"]
+    assert request["description"] == "Dashboard lookup plus per-dataset detail caps."
+    assert request["required"] == ["identifier"]
+    for field, maximum in (("max_columns", 100), ("max_metrics", 50)):
+        cap = request["properties"][field]
+        assert cap["minimum"] == 0
+        assert cap["maximum"] == maximum
+        assert cap["default"] == maximum

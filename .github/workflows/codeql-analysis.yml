@@ -19,14 +19,13 @@ permissions:
 
 jobs:
   changes:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
     outputs:
-      python: ${{ steps.check.outputs.python }}
-      frontend: ${{ steps.check.outputs.frontend }}
+      languages: ${{ steps.check.outputs.languages }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -44,9 +43,9 @@ jobs:
     # Skip on PRs that touch neither code group (e.g. docs-only) so the
     # analysis runners don't spin up. push/schedule runs always proceed:
     # the change-detector returns "all changed" for non-PR events.
-    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
+    if: ${{ contains(fromJSON(needs.changes.outputs.languages), 'python') || contains(fromJSON(needs.changes.outputs.languages), 'javascript') }}
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
@@ -56,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ["python", "javascript"]
+        language: ${{ fromJson(needs.changes.outputs.languages) }}
         # Learn more about CodeQL language support at https://aka.ms/codeql-docs/language-support
 
     steps:

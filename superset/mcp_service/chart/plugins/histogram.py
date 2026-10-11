@@ -44,6 +44,7 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class HistogramChartPlugin(BaseChartPlugin):
     """Plugin for histogram chart type."""
 
+    query_role_keys = BaseChartPlugin.query_role_keys | {"column"}
     chart_type = "histogram"
     allows_empty_result = True
     display_name = "Histogram"
@@ -113,13 +114,8 @@ class HistogramChartPlugin(BaseChartPlugin):
         if dataset_context is None:
             return None
 
-        col_info = next(
-            (
-                col
-                for col in dataset_context.available_columns
-                if col["name"].lower() == (config.column.name or "").lower()
-            ),
-            None,
+        col_info, _ambiguity = DatasetValidator._resolve_metadata_entry(
+            config.column.name or "", dataset_context.available_columns
         )
         if col_info is None:
             # Column existence is validated separately; don't double-report.

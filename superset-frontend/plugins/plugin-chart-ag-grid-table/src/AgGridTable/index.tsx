@@ -69,6 +69,7 @@ import {
   type FilterState,
 } from '../utils/filterStateManager';
 import { copyCellValueOnKeyDown } from '../utils/copyCellValue';
+import { openJsonDialogOnEnter } from '../utils/isJsonCellActionTarget';
 import type { ClientViewSnapshot } from '../utils/externalAPIs';
 
 export interface AgGridState extends Partial<GridState> {
@@ -357,6 +358,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     // Enterprise clipboard module is not registered (#106389).
     const handleCellKeyDown = useCallback((event: CellKeyDownEvent) => {
       copyCellValueOnKeyDown(event);
+      openJsonDialogOnEnter(event.event);
     }, []);
 
     const onFilterTextBoxChanged = useCallback(

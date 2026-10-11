@@ -88,3 +88,44 @@ def test_geodetic_parse():
         lonlat_df["longitude"]
     )
     assert series_to_list(post_df["latitude"]), series_to_list(lonlat_df["latitude"])
+
+
+def test_geodetic_parse_without_altitude_drops_unasked_column():
+    """
+    An altitude is always parsed, but may only reach the result when asked for.
+
+    The parsed frame always carries latitude, longitude and altitude, so a
+    mapping that renames and leaves altitude out must drop it rather than carry
+    it through under its source name.
+    """
+    post_df = geodetic_parse(
+        df=lonlat_df[["city", "geodetic"]],
+        geodetic="geodetic",
+        latitude="lat",
+        longitude="lon",
+    )
+
+    assert post_df.columns.tolist() == ["city", "geodetic", "lat", "lon"]
+    assert series_to_list(post_df["lon"]) == series_to_list(lonlat_df["longitude"])
+    assert series_to_list(post_df["lat"]) == series_to_list(lonlat_df["latitude"])
+
+
+def test_geohash_encode_drops_working_columns():
+    """
+    Encoding works on columns it names `latitude` and `longitude` internally.
+
+    Naming the geohash column something other than `geohash` makes the mapping
+    a renaming one, and those working columns must not reach the result: the
+    source frame already has a latitude and a longitude, so carrying them
+    through leaves two columns under each label.
+    """
+    post_df = geohash_encode(
+        df=lonlat_df[["city", "latitude", "longitude"]],
+        latitude="latitude",
+        longitude="longitude",
+        geohash="hash",
+    )
+
+    assert post_df.columns.tolist() == ["city", "latitude", "longitude", "hash"]
+    assert not post_df.columns.duplicated().any()
+    assert series_to_list(post_df["hash"]) == series_to_list(lonlat_df["geohash"])

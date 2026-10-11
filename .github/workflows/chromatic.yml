@@ -120,7 +120,7 @@ jobs:
 
       - name: Publish to Chromatic
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
-        uses: chromaui/action@6b31c4307e3f5a150ab5345b051bb40a62923a5f # v18.7.3
+        uses: chromaui/action@a18e9f57b71eb05f941848c0b927aab2ee644e3e # v18.10.2
         with:
           projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}

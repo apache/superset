@@ -56,6 +56,10 @@ MCP `list_metrics`). The server never adds a missing marker from metadata.
 Explore query controls remain unavailable until explicit field initialization,
 so legacy filter subjects cannot trigger value suggestions before reselection.
 
+Custom SQL `WHERE` and `HAVING` clauses are not supported on semantic views.
+Remove those clauses or use semantic dimension filters instead. Chart-data API
+requests with these clauses return HTTP 400 before querying the provider.
+
 For versioned semantic views, Matrixify **All** mode with **A to Z** or **Z to A**
 sorting cannot populate or refresh dimension values from suggestions. Existing
 saved values are preserved. For a new selection, switch to **Members** and enter
