@@ -26,7 +26,10 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { updateFormDataByDatasource } from './exploreActions';
+import {
+  DatasourceChangeOptions,
+  updateFormDataByDatasource,
+} from './exploreActions';
 import { ExplorePageState } from '../types';
 
 interface SaveDatasetRequest {
@@ -49,7 +52,10 @@ export function setDatasource(datasource: Dataset) {
   return { type: SET_DATASOURCE, datasource };
 }
 
-export function changeDatasource(newDatasource: Dataset) {
+export function changeDatasource(
+  newDatasource: Dataset,
+  options: DatasourceChangeOptions = {},
+) {
   return function (dispatch: Dispatch, getState: () => ExplorePageState) {
     const {
       explore: { datasource: prevDatasource },
@@ -71,7 +77,11 @@ export function changeDatasource(newDatasource: Dataset) {
     };
     dispatch(setDatasource(datasourceWithCurrencyFormats));
     dispatch(
-      updateFormDataByDatasource(prevDatasource, datasourceWithCurrencyFormats),
+      updateFormDataByDatasource(
+        prevDatasource,
+        datasourceWithCurrencyFormats,
+        options,
+      ),
     );
   };
 }

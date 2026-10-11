@@ -60,6 +60,8 @@ export interface ExploreState {
   slice?: Slice | null;
   sliceName?: string;
   controlsTransferred?: string[];
+  // Whether the most recent dataset change skips opening a settings alert.
+  skipDatasetChangeAlert?: boolean;
   standalone?: number | null;
   force?: boolean;
   common?: {
@@ -107,6 +109,7 @@ interface UpdateFormDataByDatasourceAction {
   type: typeof actions.UPDATE_FORM_DATA_BY_DATASOURCE;
   prevDatasource: Dataset;
   newDatasource: Dataset & { uid: string };
+  skipDatasetChangeAlert?: boolean;
 }
 
 interface FetchDatasourcesStartedAction {
@@ -356,6 +359,7 @@ export default function exploreReducer(
           newFormData as QueryFormData,
         ) as ControlStateMapping,
         controlsTransferred,
+        skipDatasetChangeAlert: !!typedAction.skipDatasetChangeAlert,
       };
     },
     [actions.FETCH_DATASOURCES_STARTED]() {
