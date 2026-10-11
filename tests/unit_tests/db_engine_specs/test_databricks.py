@@ -26,18 +26,30 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from packaging.requirements import Requirement
 from pytest_mock import MockerFixture
-from sqlalchemy import __version__ as sqlalchemy_version, create_engine, text
+from sqlalchemy import (
+    __version__ as sqlalchemy_version,
+    Boolean,
+    Column,
+    create_engine,
+    literal_column,
+    text,
+)
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.db_engine_specs.base import BaseEngineSpec, OAuth2State
 from superset.db_engine_specs.databricks import (
+    DatabricksBaseEngineSpec,
+    DatabricksHiveEngineSpec,
     DatabricksNativeEngineSpec,
     DatabricksPythonConnectorEngineSpec,
 )
+from superset.db_engine_specs.spark import SparkEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
+from superset.utils.core import FilterOperator
 from superset.utils.oauth2 import decode_oauth2_state
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -1468,3 +1480,122 @@ def test_monkeypatch_dialect_preserves_hive_databricks_escaping(
         )
         == r"'O\'Hara'"
     )
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that Databricks engine specs enable use_equality_for_boolean_filters.
+    Databricks SQL applies strict type checking: comparing a boolean column
+    against an integer or a driver-rendered boolean bind fails with
+    DATATYPE_MISMATCH (see #36765), so boolean filters use equality against
+    explicit boolean keywords.
+    """
+    assert DatabricksBaseEngineSpec.use_equality_for_boolean_filters is True
+    assert DatabricksNativeEngineSpec.use_equality_for_boolean_filters is True
+    assert DatabricksPythonConnectorEngineSpec.use_equality_for_boolean_filters is True
+    assert DatabricksHiveEngineSpec.use_equality_for_boolean_filters is True
+    assert SparkEngineSpec.use_equality_for_boolean_filters is True
+
+
+@pytest.mark.parametrize(
+    "engine_spec",
+    [
+        DatabricksBaseEngineSpec,
+        DatabricksNativeEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+        DatabricksHiveEngineSpec,
+        SparkEngineSpec,
+    ],
+    ids=[
+        "databricks_base",
+        "databricks_native",
+        "databricks_python_connector",
+        "databricks_hive",
+        "spark",
+    ],
+)
+def test_coerce_boolean_for_sql_emits_boolean_keywords(
+    engine_spec: type[BaseEngineSpec],
+) -> None:
+    """
+    Test that boolean filter values are coerced to SQLAlchemy true()/false()
+    expressions on every Databricks and Spark spec, so the compiled SQL always
+    contains the TRUE/FALSE keywords and the values never reach the driver as
+    bind parameters (which pyhive renders as 0/1, see #36765).
+    """
+    true_value = engine_spec.coerce_boolean_for_sql(True)
+    assert isinstance(true_value, ColumnElement)
+    assert str(true_value.compile(compile_kwargs={"literal_binds": True})) == "true"
+
+    false_value = engine_spec.coerce_boolean_for_sql(False)
+    assert isinstance(false_value, ColumnElement)
+    assert str(false_value.compile(compile_kwargs={"literal_binds": True})) == "false"
+
+    assert engine_spec.coerce_boolean_for_sql(None) is None
+
+
+@pytest.mark.parametrize(
+    "engine_spec",
+    [
+        DatabricksBaseEngineSpec,
+        DatabricksNativeEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+        DatabricksHiveEngineSpec,
+        SparkEngineSpec,
+    ],
+    ids=[
+        "databricks_base",
+        "databricks_native",
+        "databricks_python_connector",
+        "databricks_hive",
+        "spark",
+    ],
+)
+@pytest.mark.parametrize(
+    "filter_operator,expected",
+    [
+        (FilterOperator.IS_TRUE, "is_test_user = true"),
+        (FilterOperator.IS_FALSE, "is_test_user = false"),
+    ],
+)
+def test_handle_boolean_filter_compiles_boolean_keywords(
+    engine_spec: type[BaseEngineSpec],
+    filter_operator: FilterOperator,
+    expected: str,
+) -> None:
+    """
+    Test that handle_boolean_filter produces an equality comparison against an
+    explicit boolean keyword, with no bind parameters left for the driver to
+    render as integers.
+    """
+    bool_col = Column("is_test_user", Boolean)
+    result = engine_spec.handle_boolean_filter(
+        bool_col,
+        filter_operator,
+        filter_operator == FilterOperator.IS_TRUE,
+    )
+    compiled = result.compile()
+    assert str(compiled) == expected
+    assert compiled.params == {}
+
+
+def test_handle_boolean_filter_computed_column_compilation() -> None:
+    """
+    Test that handle_boolean_filter compiles properly on computed boolean
+    expressions.
+    """
+    computed_col = literal_column("(total_amount > 100)")
+    for engine_spec in (
+        DatabricksBaseEngineSpec,
+        DatabricksNativeEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+        DatabricksHiveEngineSpec,
+        SparkEngineSpec,
+    ):
+        result = engine_spec.handle_boolean_filter(
+            computed_col, FilterOperator.IS_TRUE, True
+        )
+        assert (
+            str(result.compile(compile_kwargs={"literal_binds": True}))
+            == "(total_amount > 100) = true"
+        )
