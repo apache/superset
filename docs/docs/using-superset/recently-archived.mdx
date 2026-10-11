@@ -292,6 +292,43 @@ destructive when it runs. Set it to `True` in `superset_config.py` and restart
 the relevant processes to log what the task *would* purge without deleting
 anything. Validate the eligible backlog before enabling live purging or
 shortening a window; the first live run can process accumulated old archives.
+`SOFT_DELETE_PURGE_MAX_PER_RUN` defaults to `1000` root charts, dashboards, or
+datasets per scheduled run. One root's complete cascade counts as one and is
+never split to fit the cap. Set `0` or `None` in `superset_config.py` to remove
+the cap. It bounds committed deletions, not candidate evaluations: blocked roots
+are re-evaluated every run, so a blocked-heavy backlog can still require
+substantial work. A negative, boolean, string, or fractional value stops the
+scheduled task without purging. With a positive cap configured, a live run
+reports `cap_reached` and `remaining_eligible` for aged roots remaining across
+all supported models. In unlimited mode, the cap and remainder fields and
+their gauges are not emitted. The capped remainder includes
+roots that a reference blocker may prevent from purging. A remainder-count failure,
+a model scan failure, or an uncertain commit sets `remaining_eligible` to `None`
+and `remaining_count_complete` to `False`; this can happen even when no purge has
+been confirmed. Confirmed purge totals are retained. Inspect `scan_failures`,
+`commit_uncertain`, and the `deletion_retention.remainder_count_failed` counter
+and task logs to distinguish those cases. Dry-run scans the full
+eligible backlog regardless of the cap, writes nothing, and reports
+`eligible_backlog` plus `estimated_capped_runs`; the estimate assumes all
+eligible roots can be purged. If a model scan fails, `would_purge` contains only
+the counts collected before that failure; `backlog_count_complete` is `False`
+and both backlog estimates are `None`. If the database does not acknowledge a
+root purge commit, the task stops without processing another root and reports
+`commit_uncertain`. The possible deletion reserves a cap slot, its audit row
+remains pending for reconciliation, and the remainder count is incomplete.
+A commit the database rejects on a live connection is instead recorded as a
+failed attempt for that root, counted in `cascade_failures`, and the task
+continues with other eligible roots under the same cap.
+The operator's `force-purge` CLI remains uncapped.
+
+With the default daily schedule and cap, scheduled capacity is 1,000 root
+entities per day, not 1,000 physical rows. A backlog drains only when successful
+purges exceed newly eligible roots: at that throughput, 1,500 newly eligible
+roots per day add 500 to the backlog per day. Size `SOFT_DELETE_PURGE_MAX_PER_RUN` in
+`superset_config.py`, or increase the task's beat frequency, above eligible inflow
+with catch-up headroom. Repeated `cap_reached=True` results warrant checking the
+backlog trend and capacity. Blocked roots and failures can reduce actual throughput;
+increasing the cap alone does not remove reference blockers.
 
 ### Running retention tasks
 

@@ -165,6 +165,19 @@ You can also certify metrics if you'd like for your team in this view.
 - [Blog: Unlocking the Power of Virtual Datasets](https://preset.io/blog/unlocking-the-power-of-virtual-datasets-in-apache-superset/)
   :::
 
+### Integer precision in semantic views
+
+Semantic-view chart-data responses preserve signed 64-bit integer values even when the same
+column contains nulls, including time-comparison results. Integers outside
+JavaScript's safe integer range are returned as exact strings; nulls remain null.
+This applies to values supplied as integers by the semantic provider, not values
+already rounded to floating point.
+
+Chart calculations such as contribution, rolling windows or differences convert
+metric columns to floating-point numbers first, as they do for SQL datasets, so
+their results follow normal floating-point rounding. Previously cached chart
+results can retain rounded values until the query is refreshed.
+
 ### Native filters on semantic views
 
 When the `SEMANTIC_LAYERS` feature flag is enabled, Superset can connect to external semantic layers
