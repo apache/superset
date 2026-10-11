@@ -1615,3 +1615,14 @@ def test_gsheets_properties() -> None:
     assert GSheetsEngineSpec.allows_subqueries is True
     assert issubclass(GSheetsEngineSpec, ShillelaghEngineSpec)
 
+
+def test_gsheets_metadata() -> None:
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    metadata = GSheetsEngineSpec.metadata
+    assert "Google Sheets" in metadata["description"]
+    assert metadata["logo"] == "google-sheets.svg"
+    assert "shillelagh[gsheetsapi]" in metadata["pypi_packages"]
+    assert 'pip install "apache-superset[gsheets]"' in metadata["install_instructions"]
+
+
