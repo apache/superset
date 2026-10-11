@@ -44,7 +44,7 @@ class IBMiEngineSpec(Db2EngineSpec):
             "username": "IBM i user profile",
             "password": "User password",
             "host": "Hostname or IP address",
-            "database": "Library/schema name",
+            "database": "RDB name",
         },
         "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
         "sqlalchemy_docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
