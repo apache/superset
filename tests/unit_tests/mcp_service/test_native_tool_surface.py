@@ -50,6 +50,7 @@ import math
 import os
 from collections import Counter
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -131,6 +132,7 @@ async def build_server(
     compatibility: bool,
     compact: bool = False,
     max_description_length: int = COMPACT_MAX_DESCRIPTION,
+    search_config: dict[str, Any] | None = None,
 ) -> FastMCP:
     """Assemble a server from the registered tools as ``run_server`` does."""
     server = FastMCP(
@@ -142,7 +144,9 @@ async def build_server(
     for tool in await canonical_tools():
         server.add_tool(tool)
     if compatibility:
-        _apply_tool_search_transform(server, dict(MCP_TOOL_SEARCH_CONFIG))
+        _apply_tool_search_transform(
+            server, dict(search_config or MCP_TOOL_SEARCH_CONFIG)
+        )
     else:
         native_config = COMPACT_CONFIG if compact else MCP_NATIVE_TOOL_LIST_CONFIG
         _apply_compact_tool_list_transform(
@@ -289,6 +293,20 @@ async def test_largest_native_entry_fits_one_gateway_page(mode: str) -> None:
     sizes = {tool.name: compact_bytes(wire_entry(tool)) for tool in listing.tools}
     largest = max(sizes, key=sizes.__getitem__)
     assert sizes[largest] <= GATEWAY_PAGE_BYTE_LIMIT, (largest, sizes[largest])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", OUTPUT_MODES)
+async def test_compatibility_listing_fits_one_gateway_page(mode: str) -> None:
+    """The default compatibility ``tools/list`` is one page under the gateway cap."""
+    server = await build_server(
+        structured_output_enabled=OUTPUT_MODES[mode], compatibility=True
+    )
+    async with Client(server) as client:
+        listing = await client.list_tools_mcp()
+    assert listing.nextCursor is None
+    page_bytes = compact_bytes([wire_entry(tool) for tool in listing.tools])
+    assert page_bytes <= GATEWAY_PAGE_BYTE_LIMIT, page_bytes
 
 
 @pytest.mark.asyncio
@@ -934,3 +952,193 @@ async def test_compact_listing_keeps_chart_guidance_reachable() -> None:
                 assert all(
                     example["distribute_across"] for example in payload["examples"]
                 )
+
+
+@contextmanager
+def recorded_outcome_metrics() -> Iterator[MagicMock]:
+    """Capture the per-tool stats emitted by the logging middleware."""
+    with patch("superset.mcp_service.middleware.stats_logger_manager") as stats:
+        yield stats.instance
+
+
+def outcome_keys(stats: MagicMock) -> list[str]:
+    return [call.args[0] for call in stats.incr.call_args_list]
+
+
+def timing_keys(stats: MagicMock) -> list[str]:
+    return [call.args[0] for call in stats.timing.call_args_list]
+
+
+async def call_and_count(
+    server: FastMCP,
+    name: str,
+    arguments: dict[str, Any],
+    *,
+    proxied: bool,
+    proxy_name: str = CALL_TOOL,
+) -> tuple[CallToolResult, list[str], list[str]]:
+    """Call a tool and return its result with the outcome and timing metrics."""
+    with recorded_outcome_metrics() as stats:
+        async with Client(server) as client:
+            if proxied:
+                result = await client.call_tool(
+                    proxy_name,
+                    {"name": name, "arguments": arguments},
+                    raise_on_error=False,
+                )
+            else:
+                result = await client.call_tool(name, arguments, raise_on_error=False)
+    return result, outcome_keys(stats), timing_keys(stats)
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("unprivileged_user")
+async def test_proxied_validation_failure_is_one_failure_and_an_error_result() -> None:
+    """A validation failure through call_tool is reported as an error result
+    and counted once, with the same outcome as the direct call."""
+    _, compatibility = await build_both()
+    arguments = {"include_examples": "x"}
+
+    direct, direct_keys, direct_timing = await call_and_count(
+        compatibility, "get_chart_type_schema", arguments, proxied=False
+    )
+    proxied, proxied_keys, proxied_timing = await call_and_count(
+        compatibility, "get_chart_type_schema", arguments, proxied=True
+    )
+
+    assert direct.is_error is True
+    assert proxied.is_error is True
+    assert direct_keys == ["mcp.tool.get_chart_type_schema.warning"]
+    assert proxied_keys == direct_keys
+    assert direct_timing == ["mcp.tool.get_chart_type_schema.time"]
+    assert proxied_timing == direct_timing
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("unprivileged_user")
+@pytest.mark.parametrize("proxy_name", [CALL_TOOL, "invoke_tool"])
+async def test_proxied_failure_is_counted_once_under_any_configured_proxy_name(
+    proxy_name: str,
+) -> None:
+    """The proxy name is configurable; a failure forwarded through it must
+    still be counted once, as the inner tool's warning, never also as an
+    error on the proxy itself."""
+    search_config = {**MCP_TOOL_SEARCH_CONFIG, "call_tool_name": proxy_name}
+    flask_app = MagicMock()
+    flask_app.config = {"MCP_TOOL_SEARCH_CONFIG": search_config}
+    with patch("superset.mcp_service.flask_singleton.get_flask_app") as get_app:
+        get_app.return_value = flask_app
+        compatibility = await build_server(
+            structured_output_enabled=False,
+            compatibility=True,
+            search_config=search_config,
+        )
+        proxied, keys, timings = await call_and_count(
+            compatibility,
+            "get_chart_type_schema",
+            {"include_examples": "x"},
+            proxied=True,
+            proxy_name=proxy_name,
+        )
+
+    assert proxied.is_error is True
+    assert keys == ["mcp.tool.get_chart_type_schema.warning"]
+    assert timings == ["mcp.tool.get_chart_type_schema.time"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("unprivileged_user", "rbac_enabled")
+async def test_proxied_permission_failure_is_one_failure_and_an_error_result() -> None:
+    """A permission denial through call_tool is reported as an error result
+    and counted once, with the same outcome as the direct call."""
+    security_manager = MagicMock()
+    security_manager.can_access.return_value = True
+    with (
+        patch("superset.mcp_service.auth.security_manager", security_manager),
+        patch(
+            "superset.mcp_service.auth._get_token_scopes",
+            return_value={"superset:read"},
+        ),
+    ):
+        _, compatibility = await build_both()
+        direct, direct_keys, direct_timing = await call_and_count(
+            compatibility, "create_theme", THEME_REQUEST, proxied=False
+        )
+        proxied, proxied_keys, proxied_timing = await call_and_count(
+            compatibility, "create_theme", THEME_REQUEST, proxied=True
+        )
+
+    assert direct.is_error is True
+    assert proxied.is_error is True
+    assert len(direct_keys) == 1
+    assert direct_keys[0].startswith("mcp.tool.create_theme.")
+    assert not direct_keys[0].endswith(".success")
+    assert proxied_keys == direct_keys
+    assert proxied_timing == direct_timing
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("unprivileged_user")
+async def test_direct_failure_metrics_are_unchanged_in_both_modes() -> None:
+    """Direct calls count one failure whether or not the proxy is installed."""
+    native, compatibility = await build_both()
+    arguments = {"include_examples": "x"}
+    for server in (native, compatibility):
+        result, keys, timings = await call_and_count(
+            server, "get_chart_type_schema", arguments, proxied=False
+        )
+        assert result.is_error is True
+        assert keys == ["mcp.tool.get_chart_type_schema.warning"]
+        assert timings == ["mcp.tool.get_chart_type_schema.time"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("unprivileged_user")
+async def test_proxied_success_metrics_are_unchanged() -> None:
+    """A successful proxied call is still an ordinary success."""
+    _, compatibility = await build_both()
+    arguments = {"chart_type": "table", "include_examples": False}
+
+    direct, direct_keys, direct_timing = await call_and_count(
+        compatibility, "get_chart_type_schema", arguments, proxied=False
+    )
+    proxied, proxied_keys, proxied_timing = await call_and_count(
+        compatibility, "get_chart_type_schema", arguments, proxied=True
+    )
+
+    assert direct.is_error is False
+    assert proxied.is_error is False
+    assert direct_keys == ["mcp.tool.get_chart_type_schema.success"]
+    assert proxied_keys == direct_keys
+    assert direct_timing == ["mcp.tool.get_chart_type_schema.time"]
+    assert proxied_timing == direct_timing
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("unprivileged_user")
+@pytest.mark.parametrize("proxy_name", [CALL_TOOL, "invoke_tool"])
+async def test_proxied_success_is_counted_once_under_any_configured_proxy_name(
+    proxy_name: str,
+) -> None:
+    """A forwarded success emits one counter and timing, even with a renamed proxy."""
+    search_config = {**MCP_TOOL_SEARCH_CONFIG, "call_tool_name": proxy_name}
+    flask_app = MagicMock()
+    flask_app.config = {"MCP_TOOL_SEARCH_CONFIG": search_config}
+    with patch("superset.mcp_service.flask_singleton.get_flask_app") as get_app:
+        get_app.return_value = flask_app
+        compatibility = await build_server(
+            structured_output_enabled=False,
+            compatibility=True,
+            search_config=search_config,
+        )
+        proxied, keys, timings = await call_and_count(
+            compatibility,
+            "get_chart_type_schema",
+            {"chart_type": "table", "include_examples": False},
+            proxied=True,
+            proxy_name=proxy_name,
+        )
+
+    assert proxied.is_error is False
+    assert keys == ["mcp.tool.get_chart_type_schema.success"]
+    assert timings == ["mcp.tool.get_chart_type_schema.time"]

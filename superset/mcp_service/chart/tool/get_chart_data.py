@@ -57,7 +57,11 @@ from superset.mcp_service.chart.chart_helpers import (
     rejected_requested_filter_columns,
     resolve_form_data_datasource,
 )
-from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.chart_utils import (
+    DatasetValidationResult,
+    validate_chart_dataset,
+    validate_chart_semantic_view,
+)
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
     null_data_is_empty,
@@ -87,7 +91,7 @@ from superset.mcp_service.utils.response_utils import (
     format_data_columns,
     format_data_quality,
 )
-from superset.utils.core import GenericDataType
+from superset.utils.core import DatasourceType, GenericDataType
 from superset.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -171,7 +175,9 @@ _VIZ_CATEGORY: dict[str, str] = {
     "histogram": "histogram",
     "histogram_v2": "histogram",
     "box_plot": "box_plot",
-    "world_map": "map",
+    "world_map": "world_map",
+    "country_map": "country_map",
+    "deck_scatter": "deck_scatter",
     "pivot_table_v2": "table",
     "ag-grid-pivot-table": "table",
     # Own category: cumulative-flow semantics differ from a plain bar, like
@@ -250,8 +256,30 @@ def _build_candidates(
     numeric = [c for c in columns if c.data_type == "numeric"]
     categorical = [c for c in columns if c.data_type in ("string", "boolean")]
 
+    numeric_names = {c.name.lower() for c in numeric}
+    categorical_names = {
+        c.name.lower()
+        for c in categorical
+        if c.data_type == "string" and 1 < c.unique_count <= 250
+    }
+    has_coordinates = {"latitude", "longitude"} <= numeric_names
     if temporal and numeric:
-        return _candidates_temporal_numeric(numeric, row_count)
+        candidates = _candidates_temporal_numeric(numeric, row_count)
+        # Time-spatial data plots on a map as readily as on a time series,
+        # so the coordinates stay on offer instead of being shadowed. When the
+        # row count is high enough to offer lines and the chart is not already
+        # a line chart, the recommendation cap pays for the map by dropping the
+        # trailing "multi-line chart", the closest variant of the "line chart"
+        # that survives, so the suggestions still span every distinct shape the
+        # dataset supports. Below that row threshold, and on a chart whose line
+        # category is already filtered out, nothing is displaced.
+        return ["geographic points", *candidates] if has_coordinates else candidates
+    if has_coordinates:
+        return ["geographic points", "table"]
+    if numeric and categorical_names & {"country", "country_code"}:
+        return ["world map", "bar chart", "table"]
+    if numeric and categorical_names & {"state", "province"}:
+        return ["country map", "bar chart", "table"]
     if categorical and numeric:
         return _candidates_categorical_numeric(numeric, categorical)
     if len(numeric) >= 2:
@@ -328,6 +356,9 @@ _CANDIDATE_CATEGORY: dict[str, str] = {
     "gauge chart": "gauge",
     "histogram": "histogram",
     "table": "table",
+    "geographic points": "deck_scatter",
+    "country map": "country_map",
+    "world map": "world_map",
 }
 
 
@@ -562,10 +593,13 @@ async def _get_chart_data(  # noqa: C901
         logger.info("Getting data for chart %s: %s", chart_id, chart_name)
 
         # Guests skip the RBAC check (authorize_query covers it) but keep the
-        # existence check, so a deleted dataset still returns
+        # existence check, so a deleted dataset or semantic view still returns
         # DatasetNotAccessible.
-        validation_result = validate_chart_dataset(
-            chart_datasource_id, check_access=not guest_scope.is_guest_read()
+        check_access: bool = not guest_scope.is_guest_read()
+        validation_result: DatasetValidationResult = (
+            validate_chart_semantic_view(chart_datasource_id, check_access=check_access)
+            if chart_datasource_type == DatasourceType.SEMANTIC_VIEW.value
+            else validate_chart_dataset(chart_datasource_id, check_access=check_access)
         )
         if not validation_result.is_valid:
             await ctx.warning(

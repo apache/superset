@@ -33,6 +33,11 @@ from superset.mcp_service.chart.plugins.bubble import BubbleChartPlugin
 from superset.mcp_service.chart.plugins.bullet import BulletChartPlugin
 from superset.mcp_service.chart.plugins.gantt import GanttChartPlugin
 from superset.mcp_service.chart.plugins.gauge import GaugeChartPlugin
+from superset.mcp_service.chart.plugins.geographic import (
+    CountryMapChartPlugin,
+    DeckScatterChartPlugin,
+    WorldMapChartPlugin,
+)
 from superset.mcp_service.chart.plugins.handlebars import HandlebarsChartPlugin
 from superset.mcp_service.chart.plugins.histogram import HistogramChartPlugin
 from superset.mcp_service.chart.plugins.interactive_pivot import (
@@ -76,6 +81,9 @@ __all__ = [
     "BulletChartPlugin",
     "GanttChartPlugin",
     "GaugeChartPlugin",
+    "CountryMapChartPlugin",
+    "WorldMapChartPlugin",
+    "DeckScatterChartPlugin",
     "HandlebarsChartPlugin",
     "HistogramChartPlugin",
     "InteractivePivotChartPlugin",
@@ -88,3 +96,7 @@ __all__ = [
     "WaterfallChartPlugin",
     "XYChartPlugin",
 ]
+
+register(CountryMapChartPlugin())
+register(WorldMapChartPlugin())
+register(DeckScatterChartPlugin())
