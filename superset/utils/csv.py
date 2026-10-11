@@ -144,20 +144,26 @@ def get_chart_dataframe(
     auth_cookies: Optional[dict[str, str]] = None,
     timeout: Optional[float] = None,
 ) -> Optional[pd.DataFrame]:
-    # Disable all the unnecessary-lambda violations in this function
+    """Fetch chart JSON over GET and convert it to a notification table."""
+    return chart_data_to_dataframe(get_chart_csv_data(chart_url, auth_cookies, timeout))
+
+
+def chart_data_to_dataframe(content: bytes | None) -> pd.DataFrame | None:
+    """Convert chart-data JSON into the existing notification table representation."""
     # pylint: disable=unnecessary-lambda
-    content = get_chart_csv_data(chart_url, auth_cookies, timeout)
     if content is None:
         return None
 
-    result = json.loads(content.decode("utf-8"))
+    result: dict[str, Any] = json.loads(content.decode("utf-8"))
     # need to convert float value to string to show full long number
     pd.set_option("display.float_format", lambda x: str(x))
-    df = pd.DataFrame.from_dict(result["result"][0]["data"])
+    df: pd.DataFrame = pd.DataFrame.from_dict(result["result"][0]["data"])
 
     if df.empty:
         return None
 
+    i: int
+    err: BaseException
     try:
         # if any column type is equal to 2, need to convert data into
         # datetime timestamp for that column.

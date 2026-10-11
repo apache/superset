@@ -28,6 +28,16 @@ Dashboard reports and alerts are limited to the PDF and PNG formats; the CSV, XL
 
 For alerts (not scheduled reports), PNG/PDF screenshots, chart CSV/XLSX data, and embedded Text tables are only generated when **Enable attachments for alerts** is on in the [Alerts & Reports configuration](#alerts--reports-configuration) (it defaults to the `ALERTS_ATTACH_REPORTS` [feature flag](/admin-docs/configuration/configuring-superset#feature-flags), which is enabled by default). With it off, an alert notification is still sent, but without rendered chart or dashboard content. Individual alerts also have an **Include attachment** toggle at the top of their Content section.
 
+Embedded text tables use the chart's configured row limit, rather than its saved
+server-pagination page size. The export resets the page offset and omits the
+row-count query. Embedded tables cap that limit at `SQL_MAX_ROW`, including when
+the configured limit is zero or unset; CSV/Excel attachments retain their export
+limit. Embedded tables use current chart parameters when available and otherwise
+fall back to saved query-context settings. Attachments use saved query-context
+settings, so stale saved settings can produce different rows. Non-paginated charts
+keep their saved query limits. A row cap is not a byte-size limit: wide tables can
+still exceed email delivery limits, so use an attachment for large reports.
+
 ## Requirements
 
 ### Commons

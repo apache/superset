@@ -174,7 +174,7 @@ Error: %(text)s
             truncated_df = pd.concat(
                 [truncated_df, truncated_row.to_frame().T], ignore_index=True
             )
-            tabulated = df.to_markdown()
+            tabulated = truncated_df.to_markdown()
             table = f"```\n{tabulated}\n```\n\n(table was truncated)"
             message = self._message_template(table=table, content=content)
             if len(message) > MAXIMUM_MESSAGE_SIZE:
@@ -184,7 +184,7 @@ Error: %(text)s
                 truncated_df = pd.concat(
                     [truncated_df, truncated_row.to_frame().T], ignore_index=True
                 )
-                tabulated = df.to_markdown()
+                tabulated = truncated_df.to_markdown()
                 table = (
                     f"```\n{tabulated}\n```\n\n(table was truncated)"
                     if len(truncated_df) > 0
