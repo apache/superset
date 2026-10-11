@@ -39,6 +39,8 @@ import {
 import { toChartStateHistoryState } from 'src/explore/exploreUtils/exploreHistory';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import ExploreHeader, { ExploreChartHeaderProps } from '.';
+import * as bootstrapData from 'src/utils/getBootstrapData';
+import { UserRoles } from 'src/types/bootstrapTypes';
 import fs from 'fs';
 import path from 'path';
 
@@ -179,6 +181,164 @@ describe('ExploreChartHeader', () => {
       triggerManualSave: jest.fn(),
     });
   });
+
+  test.each<{
+    name: string;
+    roles: UserRoles;
+    editors: number[];
+    extraEditors: number[];
+    granted: boolean;
+    canOverwrite?: boolean;
+    managed?: boolean;
+    preview?: boolean;
+    newChart?: boolean;
+    canWrite?: boolean;
+  }>([
+    {
+      name: 'admin',
+      roles: { Admin: [] },
+      editors: [],
+      extraEditors: [],
+      granted: true,
+    },
+    {
+      name: 'extra editor',
+      roles: { Gamma: [] },
+      editors: [],
+      extraEditors: [7],
+      granted: true,
+    },
+    {
+      name: 'read-only extra editor',
+      roles: { Gamma: [] },
+      editors: [],
+      extraEditors: [7],
+      canWrite: false,
+      granted: false,
+    },
+    {
+      name: 'malformed editors after properties save',
+      roles: { Gamma: [] },
+      editors: JSON.parse('[null]'),
+      extraEditors: [],
+      granted: false,
+    },
+    {
+      name: 'valid extra editor with malformed editors',
+      roles: { Gamma: [] },
+      editors: JSON.parse('[null, "invalid", {}]'),
+      extraEditors: [7],
+      granted: true,
+    },
+    {
+      name: 'owner subject',
+      roles: { Gamma: [] },
+      editors: [8],
+      extraEditors: [],
+      granted: true,
+    },
+    {
+      name: 'unrelated viewer',
+      roles: { Gamma: [] },
+      editors: [99],
+      extraEditors: [98],
+      granted: false,
+    },
+    {
+      name: 'store grant',
+      roles: { Gamma: [] },
+      editors: [],
+      extraEditors: [],
+      canOverwrite: true,
+      granted: true,
+    },
+    {
+      name: 'managed admin',
+      roles: { Admin: [] },
+      editors: [],
+      extraEditors: [],
+      managed: true,
+      canOverwrite: true,
+      granted: false,
+    },
+    {
+      name: 'admin preview',
+      roles: { Admin: [] },
+      editors: [],
+      extraEditors: [],
+      preview: true,
+      granted: false,
+    },
+    {
+      name: 'new chart',
+      roles: { Gamma: [] },
+      editors: [],
+      extraEditors: [],
+      newChart: true,
+      canWrite: false,
+      granted: true,
+    },
+  ])(
+    'chart title editability for $name',
+    async ({
+      roles,
+      editors,
+      extraEditors,
+      granted,
+      canOverwrite = false,
+      managed = false,
+      preview = false,
+      newChart = false,
+      canWrite = true,
+    }) => {
+      const bootstrap = bootstrapData.default();
+      const bootstrapSpy = jest
+        .spyOn(bootstrapData, 'default')
+        .mockReturnValue({
+          ...bootstrap,
+          common: { ...bootstrap.common, user_subjects: [7, 8] },
+        });
+      const props = createProps({
+        canOverwrite,
+        user: { userId: 1, username: 'viewer', permissions: {}, roles },
+      });
+      props.slice = newChart
+        ? null
+        : {
+            ...props.slice!,
+            editors,
+            extra_editors: extraEditors,
+            is_managed_externally: managed,
+          };
+      try {
+        render(<ExploreHeader {...props} />, {
+          useRedux: true,
+          initialState: {
+            explore: { can_add: canWrite },
+            versionHistory: {
+              entityType: 'chart',
+              preview: preview ? { versionUuid: 'old-version' } : null,
+            },
+          },
+        });
+        const title = screen.getByRole('textbox', { name: 'Chart title' });
+        if (granted) {
+          expect(title).toBeEnabled();
+          await userEvent.clear(title);
+          await userEvent.type(title, 'Renamed chart');
+          await userEvent.tab();
+          expect(props.actions.updateChartTitle).toHaveBeenCalledWith(
+            'Renamed chart',
+          );
+        } else {
+          expect(title).toBeDisabled();
+          expect(props.actions.updateChartTitle).not.toHaveBeenCalled();
+        }
+      } finally {
+        bootstrapSpy.mockRestore();
+      }
+    },
+  );
 
   test('Cancelling changes to the properties should reset previous properties', async () => {
     const props = createProps();

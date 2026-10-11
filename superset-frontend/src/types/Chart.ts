@@ -87,6 +87,7 @@ export type Slice = {
   query_context?: object;
   is_managed_externally: boolean;
   editors?: number[];
+  extra_editors?: number[];
   viewers?: number[];
   datasource?: string;
   datasource_id?: number;
