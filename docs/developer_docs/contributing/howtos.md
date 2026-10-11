@@ -349,9 +349,12 @@ Where the comment goes decides whether it is extracted:
 
 - A blank line between the comment and the call drops the comment.
 - A comment inside the call's parentheses is dropped.
-- In Python, the string must start on the same line as `_(`. When the string is
-  on the line after `_(`, the comment is dropped. A wrapped `t(` call in
-  TypeScript keeps it.
+- In Python, the comment is dropped when the string starts on the line after
+  `_(` and only a comment, such as `# noqa: E501`, or nothing follows the
+  string. Put the string on the same line as `_(`, or follow it with a comma.
+  A wrapped `t(` call in TypeScript keeps the comment.
+- When two calls are on one line, only the first call gets the comment. Put
+  each call on its own line.
 - Every comment line between the `i18n:` line and the call is published with
   the note. Put lint directives and other comments above the `i18n:` line.
 
@@ -363,6 +366,9 @@ Write the comment for someone who cannot see the code: say what the term refers
 to, and where a translation would plausibly go wrong. A note only guides the
 translation; to keep a string untranslated, add it to the do-not-translate
 registry described below.
+
+For terms that apply to a whole language, see the
+[Translation Guide](./translation-guide.md).
 
 `scripts/translations/backfill_po.py` also sends the comment to the model as a
 developer note. In a live run, the note did not change the model's choice when
