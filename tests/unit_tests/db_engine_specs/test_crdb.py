@@ -58,3 +58,14 @@ def test_dialect_loads_under_installed_sqlalchemy() -> None:
     from sqlalchemy import create_engine
 
     create_engine("cockroachdb://root@localhost:26257/defaultdb?sslmode=disable")
+
+
+def test_cockroachdb_properties() -> None:
+    from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    assert CockroachDbEngineSpec.engine == "cockroachdb"
+    assert CockroachDbEngineSpec.engine_name == "CockroachDB"
+    assert issubclass(CockroachDbEngineSpec, PostgresEngineSpec)
+    assert CockroachDbEngineSpec._extended_aggregations == {}
+
