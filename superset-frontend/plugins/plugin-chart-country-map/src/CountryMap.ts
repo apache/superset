@@ -244,13 +244,11 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   };
 
   const updatePopupPosition = (): void => {
-    const svgHeight = svg.node().getBoundingClientRect().height;
     const [x, y] = d3.mouse(svg.node());
     hoverPopup
       .style('display', 'block')
       .style('top', `${y + 30}px`)
-      .style('left', `${x}px`)
-      .classed('popup-at-bottom', y > (svgHeight * 2) / 3);
+      .style('left', `${x}px`);
   };
 
   const mouseenter = function mouseenter(
@@ -269,8 +267,11 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     const regionName = escapeHtml(getNameOfRegion(d));
     const metricValue =
       result.length > 0 ? escapeHtml(String(formatter(result[0].metric))) : '';
+    // Pick above/below once per region, so the popup doesn't jump while the
+    // cursor moves within a region that straddles the threshold.
     hoverPopup
       .style('display', 'block')
+      .classed('popup-at-bottom', d3.mouse(svg.node())[1] > (height * 2) / 3)
       .html(`<div><strong>${regionName}</strong><br>${metricValue}</div>`);
     updatePopupPosition();
   };
