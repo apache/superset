@@ -338,7 +338,7 @@
     "speed-measure-webpack-plugin": "^1.6.0",
     "storybook": "10.6.1",
     "style-loader": "^4.0.0",
-    "stylelint": "^17.15.0",
+    "stylelint": "^17.16.0",
     "swc-loader": "^0.2.7",
     "tscw-config": "^1.1.2",
     "tsx": "^4.23.15",
