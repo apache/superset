@@ -283,6 +283,7 @@ class CompatibleDatabase(TypedDict, total=False):
     name: str
     description: str
     logo: str
+    logo_dark: str
     homepage_url: str
     pypi_packages: list[str]
     connection_string: str
@@ -342,6 +343,7 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     # Basic information
     description: str
     logo: str  # Filename in docs/static/img/databases/ or full URL
+    logo_dark: str  # Optional dark-theme variant; falls back to logo
     homepage_url: str
     docs_url: str
     sqlalchemy_docs_url: str
