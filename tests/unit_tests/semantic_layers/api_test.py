@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
+    SemanticDeleteDependentsError,
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
     SemanticLayerForbiddenError,
@@ -1004,6 +1005,89 @@ def test_delete_semantic_layer_failed(
     response = client.delete(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
 
     assert response.status_code == 422
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize(
+    ("path", "command"),
+    [
+        ("/api/v1/semantic_view/1", "DeleteSemanticViewCommand"),
+        ("/api/v1/semantic_view/?q=(1,2)", "BulkDeleteSemanticViewCommand"),
+        (
+            "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001",
+            "DeleteSemanticLayerCommand",
+        ),
+    ],
+)
+def test_semantic_delete_reports_dependents_as_conflict(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    path: str,
+    command: str,
+) -> None:
+    """Every REST delete entry point returns the bounded conflict details."""
+    import prison as rison_lib
+
+    dependent: dict[str, str | int] = {
+        "type": "chart",
+        "id": 7,
+        "name": "Revenue",
+    }
+    mock_command: MagicMock = mocker.patch(f"superset.semantic_layers.api.{command}")
+    mock_command.return_value.run.side_effect = SemanticDeleteDependentsError(
+        25, [dependent], 24
+    )
+
+    request_path: str = (
+        f"/api/v1/semantic_view/?q={rison_lib.dumps([1, 2])}"
+        if command == "BulkDeleteSemanticViewCommand"
+        else path
+    )
+    response: TestResponse = client.delete(request_path)
+
+    assert response.status_code == 409
+    assert response.json["total"] == 25
+    assert response.json["dependents"] == [dependent]
+    assert response.json["inaccessible_count"] == 24
+    assert response.json["message"] == (
+        "Semantic source is used by 25 dependent assets and cannot be deleted."
+    )
+
+
+@pytest.mark.parametrize(
+    ("api_class", "method"),
+    [
+        (SemanticViewRestApi, "delete"),
+        (SemanticViewRestApi, "bulk_delete"),
+        (SemanticLayerRestApi, "delete"),
+    ],
+)
+def test_semantic_delete_openapi_conflict_schema(
+    api_class: type[SemanticViewRestApi] | type[SemanticLayerRestApi], method: str
+) -> None:
+    """The generated operation documents every field in the 409 response."""
+    api: SemanticViewRestApi | SemanticLayerRestApi = object.__new__(api_class)
+    operations: dict[str, Any] = {}
+    api.operation_helper(
+        path="/api/v1/semantic_source/delete",
+        operations=operations,
+        methods=["DELETE"],
+        func=getattr(api, method),
+    )
+    schema: dict[str, Any] = operations["delete"]["responses"][409]["content"][
+        "application/json"
+    ]["schema"]
+    assert set(schema["required"]) == {
+        "message",
+        "total",
+        "dependents",
+        "inaccessible_count",
+    }
+    assert schema["properties"]["dependents"]["maxItems"] == 20
+    assert schema["properties"]["dependents"]["items"]["properties"]["type"][
+        "enum"
+    ] == ["chart", "dashboard", "alert", "report"]
 
 
 @SEMANTIC_LAYERS_APP

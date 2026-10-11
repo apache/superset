@@ -1455,7 +1455,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       );
     }
 
-    Promise.allSettled(promises).then(results => {
+    Promise.allSettled(promises).then(async results => {
       const failures = results.filter(r => r.status === 'rejected');
       // Always refresh so the list reflects whatever actually got deleted.
       refreshData();
@@ -1478,17 +1478,33 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           );
         }
       } else {
-        addDangerToast(
-          softDelete
-            ? t(
-                'There was an issue archiving the selected %s',
-                datasetsLabelLower(),
-              )
-            : t(
-                'There was an issue deleting the selected %s',
-                datasetsLabelLower(),
+        const semanticResult = semanticViews.length
+          ? results[results.length - 1]
+          : undefined;
+        if (semanticResult?.status === 'rejected') {
+          await createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'Could not delete semantic views %s: %s',
+                semanticViews.map(view => view.table_name).join(', '),
+                errMsg,
               ),
-        );
+            ),
+          )(semanticResult.reason);
+        }
+        if (datasets.length && results[0].status === 'rejected') {
+          addDangerToast(
+            softDelete
+              ? t(
+                  'There was an issue archiving the selected %s',
+                  datasetsLabelLower(),
+                )
+              : t(
+                  'There was an issue deleting the selected %s',
+                  datasetsLabelLower(),
+                ),
+          );
+        }
       }
     });
   };
