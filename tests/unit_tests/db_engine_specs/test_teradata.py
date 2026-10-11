@@ -35,7 +35,10 @@ def test_teradata_metadata() -> None:
 
 
 def test_teradata_epoch_to_dttm() -> None:
-    assert "DATE '1970-01-01'" in TeradataEngineSpec.epoch_to_dttm().format(col="ts")
+    assert (
+        TeradataEngineSpec.epoch_to_dttm().format(col="ts")
+        == "CAST(((CAST(DATE '1970-01-01' + (ts / 86400) AS TIMESTAMP(0) AT 0)) AT 0) + ((ts MOD 86400) * INTERVAL '00:00:01' HOUR TO SECOND) AS TIMESTAMP(0))"
+    )
 
 
 @pytest.mark.parametrize(

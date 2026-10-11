@@ -238,7 +238,6 @@ class OcientEngineSpec(BaseEngineSpec):
 
     metadata = {
         "description": "Ocient is a hyperscale data analytics database.",
-        "logo": "ocient.png",
         "homepage_url": "https://www.ocient.com/",
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,

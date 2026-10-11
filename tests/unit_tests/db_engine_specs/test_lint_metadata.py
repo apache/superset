@@ -113,3 +113,47 @@ def test_get_all_engine_specs_ast_declaration_then_assignment(
     assert spec["metadata"] == {
         "description": "Engine with declaration-then-assignment"
     }
+
+
+def test_get_all_engine_specs_ast_set_and_unary_minus(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Regression: ast.Set and unary-minus in metadata values are correctly
+    evaluated and preserved in the AST scan.
+    """
+    _write_spec(
+        tmp_path,
+        "_tmp_complex_values.py",
+        """\
+        from typing import Any
+        from superset.db_engine_specs.base import BaseEngineSpec
+
+        class ComplexValuesBaseEngineSpec(BaseEngineSpec):
+            engine: str = "complex_engine"
+            engine_name: str = "Complex Engine"
+            metadata: dict[str, Any] = {
+                "tags": {"analytics", "warehouse"},
+                "default_port": -1,
+                "negative_float": -3.14,
+            }
+        """,
+    )
+
+    monkeypatch.setattr(
+        "superset.db_engine_specs.lint_metadata.SPECS_DIR",
+        str(tmp_path),
+    )
+
+    specs = get_all_engine_specs_ast()
+    matching = [s for s in specs if s["class_name"] == "ComplexValuesBaseEngineSpec"]
+    assert len(matching) == 1
+    spec = matching[0]
+    assert spec["engine_name"] == "Complex Engine"
+    assert spec["metadata"] == {
+        "tags": {"analytics", "warehouse"},
+        "default_port": -1,
+        "negative_float": -3.14,
+    }
+
