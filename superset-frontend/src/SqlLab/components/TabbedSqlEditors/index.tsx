@@ -133,7 +133,7 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
   // Resolved at render time rather than module load so `t()` runs after the
   // translator has been configured.
   const newTabTooltip = !extensionsReady
-    ? t('Loading…')
+    ? t('Loading...')
     : userOS === 'Windows'
       ? t('New tab (Ctrl + q)')
       : t('New tab (Ctrl + t)');
@@ -247,7 +247,10 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
     // a single capture-phase click listener keeps keyboard and mouse behavior in
     // sync — a handler on the inner span only fires when the span is the event
     // target and is bypassed when the button is activated via the keyboard.
-    const button = anchorRef.current?.closest('button');
+    // In the empty state there is no antd add button around the anchor (the
+    // Tabs are not editable-card), so fall back to the anchor itself and stop
+    // the click before it bubbles to the tab's own plain-create handler.
+    const button = anchorRef.current?.closest('button') ?? anchorRef.current;
     if (!button) {
       return undefined;
     }
