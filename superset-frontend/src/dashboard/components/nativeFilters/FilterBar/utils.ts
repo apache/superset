@@ -169,6 +169,9 @@ export const useChartsVerboseMaps = () =>
     chartsVerboseMapSelector,
   );
 
+const hasFilterValue = (value: unknown): boolean =>
+  value !== undefined && value !== null;
+
 /**
  * Determines which filters should be applied when the Apply button is clicked.
  */
@@ -181,9 +184,7 @@ export const getFiltersToApply = (
       if (!dataMask) return false;
 
       const isInScope = inScopeFilterIds.has(filterId);
-      const hasValue =
-        dataMask.filterState?.value !== undefined &&
-        dataMask.filterState?.value !== null;
+      const hasValue = hasFilterValue(dataMask.filterState?.value);
 
       // Apply if in-scope OR if out-of-scope with a value
       return isInScope || hasValue;
@@ -218,7 +219,7 @@ export const getAppliedFilterLogPayload = (
       {
         id: filterId,
         name: filter.name,
-        hasValue: value !== undefined && value !== null,
+        hasValue: hasFilterValue(value),
       },
     ];
   });
