@@ -208,8 +208,45 @@ class BigNumberChartPlugin(BaseChartPlugin):
             return self.TRENDLINE_VIZ_TYPE
         return "big_number_total"
 
+    def resolve_update_config(
+        self,
+        config: Any,
+        existing_form_data: dict[str, Any],
+        *,
+        dataset_rebind: bool,
+    ) -> Any:
+        """Keep a saved trendline when the update does not name the setting."""
+        if (
+            not isinstance(config, BigNumberChartConfig)
+            or "show_trendline" in config.model_fields_set
+            or existing_form_data.get("viz_type") != self.TRENDLINE_VIZ_TYPE
+        ):
+            return config
+        if "temporal_column" in config.model_fields_set:
+            return config.model_copy(update={"show_trendline": True})
+        saved_column = existing_form_data.get("granularity_sqla")
+        # The saved trendline column belongs to the previous dataset on a rebind.
+        if dataset_rebind or not isinstance(saved_column, str) or not saved_column:
+            return config
+        resolved = config.model_copy(
+            update={"show_trendline": True, "temporal_column": saved_column}
+        )
+        # The caller did not name the column, so the merge must keep treating
+        # it as omitted; a named temporal column replaces saved time filters.
+        resolved.__pydantic_fields_set__.discard("temporal_column")
+        return resolved
+
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         config_dict = config.model_dump(exclude_unset=True)
+        # resolve_update_config inherits the saved trendline column without
+        # marking it as set, so carry it through the rebuild the same way.
+        inherited_temporal_column = (
+            config.temporal_column
+            if "temporal_column" not in config.model_fields_set
+            else None
+        )
+        if inherited_temporal_column:
+            config_dict["temporal_column"] = inherited_temporal_column
 
         if config_dict.get("metric"):
             if config_dict["metric"].get("sql_expression"):
@@ -231,7 +268,10 @@ class BigNumberChartPlugin(BaseChartPlugin):
                 config_dict["temporal_column"], dataset_context
             )
         DatasetValidator.normalize_filters(config_dict, dataset_context)
-        return BigNumberChartConfig.model_validate(config_dict)
+        normalized = BigNumberChartConfig.model_validate(config_dict)
+        if inherited_temporal_column:
+            normalized.__pydantic_fields_set__.discard("temporal_column")
+        return normalized
 
     def schema_error_hint(self) -> ChartGenerationError | None:
         return ChartGenerationError(
