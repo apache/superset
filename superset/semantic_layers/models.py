@@ -562,6 +562,9 @@ class SemanticView(AuditMixinNullable, Model):
         if column_name not in dimensions:
             raise KeyError(column_name)
         dimension: Dimension = dimensions[column_name]
+        dimension_type: pa.DataType = dimension.type
+        if pa.types.is_dictionary(dimension_type):
+            dimension_type = dimension_type.value_type
         narrowing: Filter | None = (
             Filter(
                 type=PredicateType.WHERE,
@@ -571,8 +574,9 @@ class SemanticView(AuditMixinNullable, Model):
             )
             if search
             and (
-                pa.types.is_string(dimension.type)
-                or pa.types.is_large_string(dimension.type)
+                pa.types.is_string(dimension_type)
+                or pa.types.is_large_string(dimension_type)
+                or pa.types.is_string_view(dimension_type)
             )
             else None
         )

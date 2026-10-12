@@ -157,9 +157,10 @@ class DatasourceRestApi(BaseSupersetApi):
               type: string
             name: q
             description: >-
-              Optional case-insensitive substring; only values containing it are
-              returned. Lets the client search the full column rather than the
-              truncated first page.
+              Optional substring search for SQL dataset columns and text semantic
+              dimensions. Semantic non-text dimensions return the bounded page
+              without server-side search. Case sensitivity follows the datasource
+              or semantic provider.
           responses:
             200:
               description: A List of distinct values for the column

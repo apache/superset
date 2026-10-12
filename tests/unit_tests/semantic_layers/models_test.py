@@ -3030,7 +3030,18 @@ def test_public_completeness_error_in_values_is_host_error_without_retry(
 
 
 @pytest.mark.parametrize(
-    "data_type", [pa.int64(), pa.date32(), pa.string(), pa.large_string()]
+    "data_type",
+    [
+        pa.int64(),
+        pa.date32(),
+        pa.string(),
+        pa.large_string(),
+        pa.string_view(),
+        pa.dictionary(pa.int32(), pa.string()),
+        pa.dictionary(pa.int32(), pa.large_string()),
+        pa.dictionary(pa.int32(), pa.string_view()),
+        pa.dictionary(pa.int32(), pa.int64()),
+    ],
 )
 def test_values_search_only_narrows_text_dimensions(
     mock_implementation: MagicMock,
@@ -3040,15 +3051,25 @@ def test_values_search_only_narrows_text_dimensions(
     dimension: Dimension = Dimension("category", "category", data_type)
     view: SemanticView = SemanticView()
     mock_implementation.get_dimensions.return_value = {dimension}
+    value_type: pa.DataType = (
+        data_type.value_type if pa.types.is_dictionary(data_type) else data_type
+    )
     values: list[Any] = (
         [date(2026, 1, 12), date(2026, 1, 2), date(2026, 1, 1)]
-        if pa.types.is_date(data_type)
+        if pa.types.is_date(value_type)
         else [12, 2, 1]
-        if pa.types.is_integer(data_type)
+        if pa.types.is_integer(value_type)
         else ["12", "212", "112"]
     )
     mock_implementation.get_values.return_value = SemanticResult(
-        requests=[], results=pa.table({"category": pa.array(values, type=data_type)})
+        requests=[],
+        results=pa.table(
+            {
+                "category": pa.array(values, type=value_type).dictionary_encode()
+                if pa.types.is_dictionary(data_type)
+                else pa.array(values, type=data_type)
+            }
+        ),
     )
     with patch.object(
         SemanticView,
@@ -3061,7 +3082,11 @@ def test_values_search_only_narrows_text_dimensions(
         )
     mock_implementation.get_values.assert_called_once()
     filters: set[Filter] | None = mock_implementation.get_values.call_args.args[1]
-    if pa.types.is_string(data_type) or pa.types.is_large_string(data_type):
+    if (
+        pa.types.is_string(value_type)
+        or pa.types.is_large_string(value_type)
+        or pa.types.is_string_view(value_type)
+    ):
         assert filters is not None
         assert len(filters) == 1
         assert next(iter(filters)).value == "%12%"
