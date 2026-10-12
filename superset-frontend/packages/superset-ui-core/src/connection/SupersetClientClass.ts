@@ -167,9 +167,22 @@ export default class SupersetClientClass {
         ? { endpoint: endpointOrConfig, url: undefined }
         : endpointOrConfig;
     if (endpoint || url) {
+      const actionUrl = sanitizeUrl(this.getUrl({ endpoint, url }));
+      if (url) {
+        // The form carries the CSRF and guest tokens, so never post them to
+        // another origin.
+        const target = new URL(actionUrl, window.location.origin);
+        const allowedOrigins = [
+          window.location.origin,
+          `${this.protocol}//${this.host}`,
+        ];
+        if (!allowedOrigins.includes(target.origin)) {
+          throw new Error('postForm url must be same-origin');
+        }
+      }
       await this.ensureAuth();
       const hiddenForm = document.createElement('form');
-      hiddenForm.action = sanitizeUrl(this.getUrl({ endpoint, url }));
+      hiddenForm.action = actionUrl;
       hiddenForm.method = 'POST';
       hiddenForm.target = target;
       const payloadWithToken: Record<string, any> = {

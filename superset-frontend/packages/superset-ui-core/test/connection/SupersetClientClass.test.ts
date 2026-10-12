@@ -744,6 +744,15 @@ describe('SupersetClientClass', () => {
       expect(hiddenForm.action).toBe('http://localhost/explore/');
     });
 
+    test('rejects postForm to a cross-origin url', async () => {
+      client = new SupersetClientClass({ protocol, host });
+      await client.init();
+      await expect(
+        client.postForm({ url: 'https://evil.example.com/steal' }, {}),
+      ).rejects.toThrow('same-origin');
+      expect(createElement).not.toHaveBeenCalled();
+    });
+
     test('makes postForm request with guest token', async () => {
       client = new SupersetClientClass({ protocol, host, guestToken });
       await client.init();
