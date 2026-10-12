@@ -29,6 +29,7 @@ import {
 import { BubbleChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import { formatSeriesName } from '../utils/series';
 import {
   BubbleDatum,
@@ -37,6 +38,7 @@ import {
   getSelectedBubbleKeys,
   isBubbleDatum,
   SERIES_INDEX,
+  toJsonSafeFilterValue,
 } from './crossFilter';
 
 const noop = () => {};
@@ -71,10 +73,14 @@ function buildDrillFilters(
     if (value == null) {
       return { col, op: 'IS NULL' as const, formattedVal };
     }
-    return { col, op: '==' as const, val: value, formattedVal };
+    return {
+      col,
+      op: '==' as const,
+      val: toJsonSafeFilterValue(value),
+      formattedVal,
+    };
   });
 }
-import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 
 export default function EchartsBubble(props: BubbleChartTransformedProps) {
   const {
@@ -93,7 +99,7 @@ export default function EchartsBubble(props: BubbleChartTransformedProps) {
   } = props;
   const { entity, series, dateFormat } = formData;
 
-  const eventHandlers: EventHandlers = useMemo(() => {
+  const crossFilterHandlers: EventHandlers = useMemo(() => {
     const selectedKeys = getSelectedBubbleKeys(filterState?.selectedValues);
     const seriesColumn = series || undefined;
 
@@ -152,10 +158,15 @@ export default function EchartsBubble(props: BubbleChartTransformedProps) {
     setDataMask,
   ]);
 
-  const eventHandlers = useLegendEventHandlers(
+  const legendEventHandlers = useLegendEventHandlers(
     onLegendStateChanged,
     onLegendScroll,
   );
+  const eventHandlers = {
+    ...legendEventHandlers,
+    ...crossFilterHandlers,
+  };
+
   return (
     <Echart
       height={height}
@@ -163,7 +174,6 @@ export default function EchartsBubble(props: BubbleChartTransformedProps) {
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       refs={refs}
-      eventHandlers={eventHandlers}
       vizType={formData.vizType}
     />
   );

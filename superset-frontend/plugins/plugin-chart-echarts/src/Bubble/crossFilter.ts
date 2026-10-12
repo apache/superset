@@ -110,6 +110,16 @@ export function getSelectedBubbleKeys(selectedValues: unknown): string[] {
   return [];
 }
 
+/**
+ * `bigint` throws in `JSON.stringify`, and the data mask is serialized into
+ * dashboard state and the chart-data request.
+ */
+export function toJsonSafeFilterValue(
+  value: Exclude<DataRecordValue, null>,
+): Exclude<DataRecordValue, null | bigint> {
+  return typeof value === 'bigint' ? value.toString() : value;
+}
+
 function dimensionFilter(
   col: QueryFormColumn,
   value: DataRecordValue,
@@ -120,7 +130,7 @@ function dimensionFilter(
   return {
     col,
     op: 'IN',
-    val: [value],
+    val: [toJsonSafeFilterValue(value)],
   };
 }
 

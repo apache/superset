@@ -147,6 +147,14 @@ test('click clears the cross-filter when the same bubble is already selected', (
   });
 });
 
+test('keeps legend handlers next to the cross-filter handlers', () => {
+  const { eventHandlers } = setup();
+
+  expect(eventHandlers.click).toEqual(expect.any(Function));
+  expect(eventHandlers.contextmenu).toEqual(expect.any(Function));
+  expect(eventHandlers.legendselectchanged).toEqual(expect.any(Function));
+});
+
 test('click does not emit a cross-filter when cross-filtering is disabled', () => {
   const { eventHandlers, setDataMask } = setup({ emitCrossFilters: false });
 
@@ -282,6 +290,25 @@ test('context menu exposes cross-filter, drill to detail, and drill by', () => {
     { col: 'status', op: 'IN', val: ['open'] },
   ]);
   expect(payload.crossFilter.isCurrentValueSelected).toBe(false);
+});
+
+test('context menu stores a bigint dimension as a string', () => {
+  const { eventHandlers, onContextMenu } = setup();
+
+  eventHandlers.contextmenu({
+    data: [10, 20, 30, BigInt(10), null],
+    event: { stop: jest.fn(), event: { clientX: 1, clientY: 2 } },
+  });
+
+  const [[, , payload]] = onContextMenu.mock.calls;
+  expect(payload.drillToDetail).toEqual([
+    expect.objectContaining({
+      col: 'customer_name',
+      op: '==',
+      val: '10',
+    }),
+  ]);
+  expect(JSON.stringify(payload.crossFilter.dataMask)).toContain('"10"');
 });
 
 test('context menu uses IS NULL for an empty bubble dimension', () => {

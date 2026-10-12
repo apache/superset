@@ -18,6 +18,7 @@
  */
 import {
   formatBubbleValue,
+  getBubbleCrossFilterDataMask,
   getBubbleCrossFilterKey,
   getSelectedBubbleKeys,
 } from '../../src/Bubble/crossFilter';
@@ -68,6 +69,21 @@ test('getBubbleCrossFilterKey serializes bigint and Date values', () => {
       false,
     ),
   ).toBe('["2024-01-02T03:04:05.000Z"]');
+});
+
+test('getBubbleCrossFilterDataMask stores bigint as a JSON-safe string', () => {
+  const { dataMask } = getBubbleCrossFilterDataMask({
+    entity: 'customer_name',
+    series: 'status',
+    datum: [1, 2, 3, BigInt(10), BigInt(20)],
+    selectedKeys: [],
+  });
+
+  expect(dataMask.extraFormData.filters).toEqual([
+    { col: 'customer_name', op: 'IN', val: ['10'] },
+    { col: 'status', op: 'IN', val: ['20'] },
+  ]);
+  expect(JSON.stringify(dataMask)).toContain('"10"');
 });
 
 test('formatBubbleValue formats null and empty string distinctly', () => {
