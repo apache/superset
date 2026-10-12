@@ -191,6 +191,7 @@
     },
     "schemas": {
       "ActivityChangedBy": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "type": "string"
@@ -205,6 +206,7 @@
         "type": "object"
       },
       "ActivityImpact": {
+        "additionalProperties": false,
         "properties": {
           "affected_charts": {
             "description": "The affected sibling charts (id + name), sorted by name \u2014 the detail behind the ``charts`` count, rendered as the rollup entry's hover tooltip. Capped at 50 entries per record; ``charts`` always carries the full count.",
@@ -221,6 +223,7 @@
         "type": "object"
       },
       "ActivityImpactChart": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "description": "Chart id.",
@@ -234,6 +237,7 @@
         "type": "object"
       },
       "ActivityRecord": {
+        "additionalProperties": false,
         "properties": {
           "action_kind": {
             "description": "Transaction-level avenue that produced this record's batch: ``restore`` / ``import`` / ``clone``. ``null`` for ordinary saves. All records sharing a ``transaction_id`` share the same action_kind. The schema's third ``*_kind`` column (entity_kind / kind / action_kind), at transaction scope.",
@@ -247,13 +251,16 @@
             "type": "string"
           },
           "changed_by": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/ActivityChangedBy"
+              },
+              {
+                "nullable": true,
+                "type": "object"
               }
             ],
-            "description": "User who produced the change, or ``null`` when the saving user no longer exists in ``ab_user``.",
-            "nullable": true
+            "description": "User who produced the change, or ``null`` when the saving user no longer exists in ``ab_user``."
           },
           "creation_kind": {
             "description": "Set only on the synthetic starting-version record (``kind == \"__creation__\"``): how the entity came to exist. ``\"pre_tracking\"`` \u2014 a retroactive baseline for an entity that predates versioning; ``\"created\"`` \u2014 a creation with tracking on; ``\"imported\"`` \u2014 an import, attributed to the importing user; ``\"unknown\"`` \u2014 an unstamped starting version whose creation provenance cannot be established. Machine values: display copy is owned by the client.",
@@ -307,13 +314,16 @@
             "nullable": true
           },
           "impact": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/ActivityImpact"
+              },
+              {
+                "nullable": true,
+                "type": "object"
               }
             ],
-            "description": "Optional dependent-count for ``source: \"related\"`` records \u2014 e.g., ``{\"charts\": 4}`` for a dataset edit that affected 4 charts on the path dashboard at the change's transaction. Absent for ``source: \"self\"`` records and for related records without dependents.",
-            "nullable": true
+            "description": "Optional dependent-count for ``source: \"related\"`` records \u2014 e.g., ``{\"charts\": 4}`` for a dataset edit that affected 4 charts on the path dashboard at the change's transaction. Absent for ``source: \"self\"`` records and for related records without dependents."
           },
           "issued_at": {
             "description": "UTC timestamp; primary ordering key (DESC).",
@@ -390,6 +400,7 @@
         "type": "object"
       },
       "ActivityResponse": {
+        "additionalProperties": false,
         "properties": {
           "count": {
             "description": "Total record count across all pages (the filtered + denormalized stream), not just the current page. When ``truncated`` is true this is a floor (the count within the fetched window), not the absolute total.",
@@ -409,6 +420,7 @@
         "type": "object"
       },
       "AdvancedDataTypeSchema": {
+        "additionalProperties": false,
         "properties": {
           "display_value": {
             "description": "The string representation of the parsed values",
@@ -434,6 +446,7 @@
         "type": "object"
       },
       "AnnotationLayer": {
+        "additionalProperties": false,
         "properties": {
           "annotationType": {
             "description": "Type of annotation layer",
@@ -552,6 +565,7 @@
         "type": "object"
       },
       "AnnotationLayerRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "descr": {
             "nullable": true,
@@ -569,6 +583,7 @@
         "type": "object"
       },
       "AnnotationLayerRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "changed_by": {
             "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
@@ -605,6 +620,7 @@
         "type": "object"
       },
       "AnnotationLayerRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -622,6 +638,7 @@
         "type": "object"
       },
       "AnnotationLayerRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -639,6 +656,7 @@
         "type": "object"
       },
       "AnnotationLayerRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "descr": {
             "description": "Give a description for this annotation layer",
@@ -658,6 +676,7 @@
         "type": "object"
       },
       "AnnotationLayerRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "descr": {
             "description": "Give a description for this annotation layer",
@@ -673,6 +692,7 @@
         "type": "object"
       },
       "AnnotationRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "end_dttm": {
             "format": "date-time",
@@ -710,6 +730,7 @@
         "type": "object"
       },
       "AnnotationRestApi.get.AnnotationLayer": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -723,6 +744,7 @@
         "type": "object"
       },
       "AnnotationRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "changed_by": {
             "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
@@ -759,6 +781,7 @@
         "type": "object"
       },
       "AnnotationRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -774,6 +797,7 @@
         "type": "object"
       },
       "AnnotationRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -789,6 +813,7 @@
         "type": "object"
       },
       "AnnotationRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "end_dttm": {
             "description": "The annotation end date time",
@@ -825,6 +850,7 @@
         "type": "object"
       },
       "AnnotationRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "end_dttm": {
             "description": "The annotation end date time",
@@ -856,6 +882,7 @@
         "type": "object"
       },
       "AvailableDomainsSchema": {
+        "additionalProperties": false,
         "properties": {
           "domains": {
             "items": {
@@ -867,6 +894,7 @@
         "type": "object"
       },
       "CacheInvalidationRequestSchema": {
+        "additionalProperties": false,
         "properties": {
           "datasource_uids": {
             "description": "The uid of the dataset/datasource this new chart will use. A complete datasource identification needs `datasource_uid` ",
@@ -886,6 +914,7 @@
         "type": "object"
       },
       "CacheRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -894,6 +923,7 @@
         "type": "object"
       },
       "CacheRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -902,6 +932,7 @@
         "type": "object"
       },
       "CacheRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -910,6 +941,7 @@
         "type": "object"
       },
       "CacheRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -918,6 +950,7 @@
         "type": "object"
       },
       "CatalogsResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "result": {
             "items": {
@@ -930,6 +963,7 @@
         "type": "object"
       },
       "ChartCacheScreenshotResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "cache_key": {
             "description": "The cache key",
@@ -955,6 +989,7 @@
         "type": "object"
       },
       "ChartCacheWarmUpRequestSchema": {
+        "additionalProperties": false,
         "properties": {
           "chart_id": {
             "description": "The ID of the chart to warm up cache for",
@@ -975,6 +1010,7 @@
         "type": "object"
       },
       "ChartCacheWarmUpResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "result": {
             "description": "A list of each chart's warmup status and errors if any",
@@ -987,6 +1023,7 @@
         "type": "object"
       },
       "ChartCacheWarmUpResponseSingle": {
+        "additionalProperties": false,
         "properties": {
           "chart_id": {
             "description": "The ID of the chart the status belongs to",
@@ -1004,6 +1041,7 @@
         "type": "object"
       },
       "ChartDataAdhocMetricSchema": {
+        "additionalProperties": false,
         "properties": {
           "aggregate": {
             "description": "Aggregation operator.Only required for simple expression types.",
@@ -1068,8 +1106,10 @@
         "type": "object"
       },
       "ChartDataAggregateOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "aggregates": {
+            "additionalProperties": {},
             "description": "The keys are the name of the aggregate column to be created, and the values specify the details of how to apply the aggregation. If an operator requires additional options, these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average, argmin, argmax, cumsum, cumprod, max, mean, median, nansum, nanmin, nanmax, nanmean, nanmedian, min, percentile, prod, product, std, sum, var. Any options required by the operator can be passed to the `options` object.\n\nIn the example, a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
             "example": {
               "first_quantile": {
@@ -1096,6 +1136,7 @@
         "type": "object"
       },
       "ChartDataAsyncResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "cursor": {
             "description": "Status-changes recovery cursor captured before any task was created. The client polls `/api/v1/task/status_changes` from it and is guaranteed to observe each task's completion.",
@@ -1117,6 +1158,7 @@
         "type": "object"
       },
       "ChartDataBoxplotOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "groupby": {
             "items": {
@@ -1156,6 +1198,7 @@
         "type": "object"
       },
       "ChartDataColumn": {
+        "additionalProperties": false,
         "properties": {
           "column_name": {
             "description": "The name of the target column",
@@ -1171,6 +1214,7 @@
         "type": "object"
       },
       "ChartDataContributionOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "orientation": {
             "description": "Should cell values be calculated across the row or column.",
@@ -1188,6 +1232,7 @@
         "type": "object"
       },
       "ChartDataDatasource": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "description": "Datasource id or uuid"
@@ -1211,6 +1256,7 @@
         "type": "object"
       },
       "ChartDataExtras": {
+        "additionalProperties": false,
         "properties": {
           "column_order": {
             "description": "Ordered list of column names for result ordering. Used to preserve user's column reordering (including mixed dimension columns and metrics)",
@@ -1269,6 +1315,7 @@
         "type": "object"
       },
       "ChartDataFilter": {
+        "additionalProperties": false,
         "properties": {
           "col": {
             "description": "The column to filter by. Can be either a string (physical or saved expression) or an object (adhoc column)",
@@ -1333,6 +1380,7 @@
         "type": "object"
       },
       "ChartDataGeodeticParseOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "altitude": {
             "description": "Name of target column for decoded altitude. If omitted, altitude information in geodetic string is ignored.",
@@ -1359,6 +1407,7 @@
         "type": "object"
       },
       "ChartDataGeohashDecodeOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "geohash": {
             "description": "Name of source column containing geohash string",
@@ -1381,6 +1430,7 @@
         "type": "object"
       },
       "ChartDataGeohashEncodeOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "geohash": {
             "description": "Name of target column for encoded geohash string",
@@ -1403,8 +1453,10 @@
         "type": "object"
       },
       "ChartDataPivotOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "aggregates": {
+            "additionalProperties": {},
             "description": "The keys are the name of the aggregate column to be created, and the values specify the details of how to apply the aggregation. If an operator requires additional options, these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average, argmin, argmax, cumsum, cumprod, max, mean, median, nansum, nanmin, nanmax, nanmean, nanmedian, min, percentile, prod, product, std, sum, var. Any options required by the operator can be passed to the `options` object.\n\nIn the example, a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
             "example": {
               "first_quantile": {
@@ -1459,6 +1511,7 @@
         "type": "object"
       },
       "ChartDataPostProcessingOperation": {
+        "additionalProperties": false,
         "properties": {
           "operation": {
             "description": "Post processing operation type",
@@ -1466,6 +1519,7 @@
             "type": "string"
           },
           "options": {
+            "additionalProperties": {},
             "description": "Options specifying how to perform the operation. Please refer to the respective post processing operation option schemas. For example, `ChartDataPostProcessingOperationOptions` specifies the required options for the pivot operation.",
             "example": {
               "aggregates": {
@@ -1495,6 +1549,7 @@
         "type": "object"
       },
       "ChartDataProphetOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "confidence_interval": {
             "description": "Width of predicted confidence interval",
@@ -1562,6 +1617,7 @@
         "type": "object"
       },
       "ChartDataQueryContextSchema": {
+        "additionalProperties": false,
         "properties": {
           "async_mode": {
             "description": "Opt this request into asynchronous execution on the Global Task Framework (requires the GLOBAL_ASYNC_QUERIES feature flag). When true the response is HTTP 202 with the query task ids to poll; when absent or false the query runs synchronously (HTTP 200). Default: `false`.",
@@ -1634,6 +1690,7 @@
             "type": "array"
           },
           "applied_time_extras": {
+            "additionalProperties": {},
             "description": "A mapping of temporal extras that have been applied to the query",
             "example": {
               "__time_range": "1 year ago : now"
@@ -1653,21 +1710,27 @@
             "type": "array"
           },
           "datasource": {
-            "allOf": [
+            "anyOf": [
+              {
+                "nullable": true,
+                "type": "object"
+              },
               {
                 "$ref": "#/components/schemas/ChartDataDatasource"
               }
-            ],
-            "nullable": true
+            ]
           },
           "extras": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/ChartDataExtras"
+              },
+              {
+                "nullable": true,
+                "type": "object"
               }
             ],
-            "description": "Extra parameters to add to the query.",
-            "nullable": true
+            "description": "Extra parameters to add to the query."
           },
           "filters": {
             "items": {
@@ -1762,12 +1825,15 @@
           "post_processing": {
             "description": "Post processing operations to be applied to the result set. Operations are applied to the result set in sequential order.",
             "items": {
-              "allOf": [
+              "anyOf": [
+                {
+                  "nullable": true,
+                  "type": "object"
+                },
                 {
                   "$ref": "#/components/schemas/ChartDataPostProcessingOperation"
                 }
-              ],
-              "nullable": true
+              ]
             },
             "nullable": true,
             "type": "array"
@@ -1864,6 +1930,7 @@
         "type": "object"
       },
       "ChartDataQueryTiming": {
+        "additionalProperties": false,
         "properties": {
           "cache_resolution_ms": {
             "nullable": true,
@@ -1895,6 +1962,7 @@
         "type": "object"
       },
       "ChartDataResponseResult": {
+        "additionalProperties": false,
         "properties": {
           "annotation_data": {
             "description": "All requested annotation data",
@@ -1910,6 +1978,7 @@
           "applied_filters": {
             "description": "A list with applied filters",
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
@@ -1946,6 +2015,7 @@
           "data": {
             "description": "A list with results",
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
@@ -1983,6 +2053,7 @@
           "rejected_filters": {
             "description": "A list with rejected filters",
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
@@ -2049,6 +2120,7 @@
         "type": "object"
       },
       "ChartDataResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "dashboard_filters": {
             "allOf": [
@@ -2069,6 +2141,7 @@
         "type": "object"
       },
       "ChartDataRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -2077,6 +2150,7 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "nullable": true,
@@ -2215,6 +2289,7 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.Dashboard": {
+        "additionalProperties": false,
         "properties": {
           "dashboard_title": {
             "maxLength": 500,
@@ -2228,6 +2303,7 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.SqlaTable": {
+        "additionalProperties": false,
         "properties": {
           "default_endpoint": {
             "nullable": true,
@@ -2244,6 +2320,7 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.Subject": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -2263,6 +2340,7 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.Subject1": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -2282,6 +2360,7 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.Tag": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -2303,6 +2382,7 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -2323,6 +2403,7 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -2343,6 +2424,7 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.User2": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -2363,6 +2445,7 @@
         "type": "object"
       },
       "ChartDataRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "description": "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.",
@@ -2480,6 +2563,7 @@
         "type": "object"
       },
       "ChartDataRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "description": "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.",
@@ -2628,6 +2712,7 @@
         "type": "object"
       },
       "ChartDataRollingOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "center": {
             "description": "Should the label be at the center of the window.Default: `false`",
@@ -2635,6 +2720,7 @@
             "type": "boolean"
           },
           "columns": {
+            "additionalProperties": {},
             "description": "columns on which to perform rolling, mapping source column to target column. For instance, `{'y': 'y'}` will replace the column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add a column `y2` based on rolling values calculated from `y`, leaving the original column `y` unchanged.",
             "example": {
               "sales": "weekly_rolling_sales"
@@ -2675,6 +2761,7 @@
             "type": "string"
           },
           "rolling_type_options": {
+            "additionalProperties": {},
             "description": "Optional options to pass to rolling method. Needed for e.g. quantile operation.",
             "example": {},
             "type": "object"
@@ -2716,6 +2803,7 @@
         "type": "object"
       },
       "ChartDataSelectOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "columns": {
             "description": "Columns which to select from the input data, in the desired order. If columns are renamed, the original column name should be referenced here.",
@@ -2747,6 +2835,7 @@
               }
             ],
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
@@ -2755,6 +2844,7 @@
         "type": "object"
       },
       "ChartDataSortOptionsSchema": {
+        "additionalProperties": false,
         "properties": {
           "ascending": {
             "description": "Sort ascending (the default) or descending. A list of booleans may be given to set the direction per entry in `by`.",
@@ -2773,6 +2863,7 @@
         "type": "object"
       },
       "ChartDataTiming": {
+        "additionalProperties": false,
         "properties": {
           "query": {
             "$ref": "#/components/schemas/ChartDataQueryTiming"
@@ -2791,6 +2882,7 @@
         "type": "object"
       },
       "ChartEntityResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "description": "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.",
@@ -2818,6 +2910,7 @@
             "type": "string"
           },
           "form_data": {
+            "additionalProperties": {},
             "description": "Form data from the Explore controls used to form the chart's data query.",
             "type": "object"
           },
@@ -2837,6 +2930,7 @@
         "type": "object"
       },
       "ChartFavStarResponseResult": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "description": "The Chart id",
@@ -2850,6 +2944,7 @@
         "type": "object"
       },
       "ChartGetDatasourceObjectDataResponse": {
+        "additionalProperties": false,
         "properties": {
           "datasource_id": {
             "description": "The datasource identifier",
@@ -2863,6 +2958,7 @@
         "type": "object"
       },
       "ChartGetDatasourceObjectResponse": {
+        "additionalProperties": false,
         "properties": {
           "label": {
             "description": "The name of the datasource",
@@ -2875,6 +2971,7 @@
         "type": "object"
       },
       "ChartGetDatasourceResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "count": {
             "description": "The total number of datasources",
@@ -2887,6 +2984,7 @@
         "type": "object"
       },
       "ChartGetResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "type": "string"
@@ -2976,6 +3074,7 @@
         "type": "object"
       },
       "ChartRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -2984,6 +3083,7 @@
         "type": "object"
       },
       "ChartRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "nullable": true,
@@ -3122,6 +3222,7 @@
         "type": "object"
       },
       "ChartRestApi.get_list.Dashboard": {
+        "additionalProperties": false,
         "properties": {
           "dashboard_title": {
             "maxLength": 500,
@@ -3135,6 +3236,7 @@
         "type": "object"
       },
       "ChartRestApi.get_list.SqlaTable": {
+        "additionalProperties": false,
         "properties": {
           "default_endpoint": {
             "nullable": true,
@@ -3151,6 +3253,7 @@
         "type": "object"
       },
       "ChartRestApi.get_list.Subject": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -3170,6 +3273,7 @@
         "type": "object"
       },
       "ChartRestApi.get_list.Subject1": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -3189,6 +3293,7 @@
         "type": "object"
       },
       "ChartRestApi.get_list.Tag": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -3210,6 +3315,7 @@
         "type": "object"
       },
       "ChartRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3230,6 +3336,7 @@
         "type": "object"
       },
       "ChartRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3250,6 +3357,7 @@
         "type": "object"
       },
       "ChartRestApi.get_list.User2": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3270,6 +3378,7 @@
         "type": "object"
       },
       "ChartRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "description": "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.",
@@ -3387,6 +3496,7 @@
         "type": "object"
       },
       "ChartRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "description": "Duration (in seconds) of the caching timeout for this chart. Note this defaults to the datasource/table timeout if undefined.",
@@ -3535,6 +3645,7 @@
         "type": "object"
       },
       "CssTemplateRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "changed_by": {
             "$ref": "#/components/schemas/CssTemplateRestApi.get.User"
@@ -3561,6 +3672,7 @@
         "type": "object"
       },
       "CssTemplateRestApi.get.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3581,6 +3693,7 @@
         "type": "object"
       },
       "CssTemplateRestApi.get.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3601,6 +3714,7 @@
         "type": "object"
       },
       "CssTemplateRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "changed_by": {
             "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
@@ -3632,6 +3746,7 @@
         "type": "object"
       },
       "CssTemplateRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3652,6 +3767,7 @@
         "type": "object"
       },
       "CssTemplateRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -3672,6 +3788,7 @@
         "type": "object"
       },
       "CssTemplateRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "css": {
             "nullable": true,
@@ -3686,6 +3803,7 @@
         "type": "object"
       },
       "CssTemplateRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "css": {
             "nullable": true,
@@ -3700,6 +3818,7 @@
         "type": "object"
       },
       "CurrentUserPutSchema": {
+        "additionalProperties": false,
         "properties": {
           "current_password": {
             "description": "The current user's existing password; required when the account has one",
@@ -3726,6 +3845,7 @@
         "type": "object"
       },
       "Dashboard": {
+        "additionalProperties": false,
         "properties": {
           "dashboard_title": {
             "type": "string"
@@ -3740,6 +3860,7 @@
         "type": "object"
       },
       "DashboardCacheScreenshotResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "cache_key": {
             "description": "The cache key",
@@ -3769,6 +3890,7 @@
         "type": "object"
       },
       "DashboardChartCustomizationsConfigUpdateSchema": {
+        "additionalProperties": false,
         "properties": {
           "deleted": {
             "items": {
@@ -3790,6 +3912,7 @@
         "type": "object"
       },
       "DashboardColorsConfigUpdateSchema": {
+        "additionalProperties": false,
         "properties": {
           "color_namespace": {
             "nullable": true,
@@ -3806,9 +3929,11 @@
             "type": "array"
           },
           "label_colors": {
+            "additionalProperties": {},
             "type": "object"
           },
           "map_label_colors": {
+            "additionalProperties": {},
             "type": "object"
           },
           "shared_label_colors": {
@@ -3821,6 +3946,7 @@
         "type": "object"
       },
       "DashboardCopySchema": {
+        "additionalProperties": false,
         "properties": {
           "css": {
             "description": "Override CSS for the dashboard.",
@@ -3848,6 +3974,7 @@
         "type": "object"
       },
       "DashboardDatasetSchema": {
+        "additionalProperties": false,
         "properties": {
           "always_filter_main_dttm": {
             "type": "boolean"
@@ -3856,6 +3983,7 @@
             "type": "integer"
           },
           "column_formats": {
+            "additionalProperties": {},
             "type": "object"
           },
           "column_names": {
@@ -3872,6 +4000,7 @@
           },
           "columns": {
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
@@ -3929,6 +4058,7 @@
           },
           "metrics": {
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
@@ -3955,12 +4085,14 @@
             "type": "string"
           },
           "parent": {
+            "additionalProperties": {},
             "type": "object"
           },
           "partition_column": {
             "type": "string"
           },
           "partition_filter_mapping": {
+            "additionalProperties": {},
             "nullable": true,
             "type": "object"
           },
@@ -4022,9 +4154,11 @@
         "type": "object"
       },
       "DashboardExportXlsxPostSchema": {
+        "additionalProperties": false,
         "properties": {
           "active_data_mask": {
             "additionalProperties": {
+              "additionalProperties": {},
               "type": "object"
             },
             "description": "Live dashboard filter state keyed by native filter id, each carrying an extraFormData object.",
@@ -4043,6 +4177,7 @@
         "type": "object"
       },
       "DashboardExportXlsxResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "job_id": {
             "description": "Correlation id for the async export task",
@@ -4052,6 +4187,7 @@
         "type": "object"
       },
       "DashboardFilterInfo": {
+        "additionalProperties": false,
         "properties": {
           "column": {
             "description": "Target column name for the filter",
@@ -4079,6 +4215,7 @@
         "type": "object"
       },
       "DashboardFiltersResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "filters": {
             "description": "Metadata about each in-scope dashboard native filter and whether its default value was applied to the query",
@@ -4091,6 +4228,7 @@
         "type": "object"
       },
       "DashboardGetResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "certification_details": {
             "description": "Details of the certification",
@@ -4178,12 +4316,15 @@
             "type": "array"
           },
           "theme": {
-            "allOf": [
+            "anyOf": [
+              {
+                "nullable": true,
+                "type": "object"
+              },
               {
                 "$ref": "#/components/schemas/Theme"
               }
-            ],
-            "nullable": true
+            ]
           },
           "thumbnail_url": {
             "nullable": true,
@@ -4207,6 +4348,7 @@
         "type": "object"
       },
       "DashboardNativeFiltersConfigUpdateSchema": {
+        "additionalProperties": false,
         "properties": {
           "deleted": {
             "items": {
@@ -4228,6 +4370,7 @@
         "type": "object"
       },
       "DashboardPermalinkStateSchema": {
+        "additionalProperties": false,
         "properties": {
           "activeTabs": {
             "description": "Current active dashboard tabs",
@@ -4244,11 +4387,13 @@
             "type": "string"
           },
           "chartStates": {
+            "additionalProperties": {},
             "description": "Chart-level state for stateful tables (column order, sorting, filtering)",
             "nullable": true,
             "type": "object"
           },
           "dataMask": {
+            "additionalProperties": {},
             "description": "Data mask used for native filter state",
             "nullable": true,
             "type": "object"
@@ -4266,6 +4411,7 @@
         "type": "object"
       },
       "DashboardRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4274,6 +4420,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "certification_details": {
             "nullable": true,
@@ -4358,6 +4505,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.Subject": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4377,6 +4525,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.Subject1": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4396,6 +4545,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.Tag": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4417,6 +4567,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -4437,6 +4588,7 @@
         "type": "object"
       },
       "DashboardRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -4457,6 +4609,7 @@
         "type": "object"
       },
       "DashboardRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "certification_details": {
             "description": "Details of the certification",
@@ -4539,6 +4692,7 @@
         "type": "object"
       },
       "DashboardRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "certification_details": {
             "description": "Details of the certification",
@@ -4635,6 +4789,7 @@
         "type": "object"
       },
       "DashboardScreenshotPostSchema": {
+        "additionalProperties": false,
         "properties": {
           "activeTabs": {
             "description": "A list representing active tabs.",
@@ -4661,6 +4816,7 @@
         "type": "object"
       },
       "Database": {
+        "additionalProperties": false,
         "properties": {
           "allow_multi_catalog": {
             "type": "boolean"
@@ -4696,6 +4852,7 @@
         "type": "object"
       },
       "Database1": {
+        "additionalProperties": false,
         "properties": {
           "database_name": {
             "type": "string"
@@ -4704,6 +4861,7 @@
         "type": "object"
       },
       "DatabaseConnectionSchema": {
+        "additionalProperties": false,
         "properties": {
           "allow_ctas": {
             "description": "Allow CREATE TABLE AS option in SQL Lab",
@@ -4809,12 +4967,15 @@
             "type": "string"
           },
           "ssh_tunnel": {
-            "allOf": [
+            "anyOf": [
+              {
+                "nullable": true,
+                "type": "object"
+              },
               {
                 "$ref": "#/components/schemas/DatabaseSSHTunnel"
               }
-            ],
-            "nullable": true
+            ]
           },
           "uuid": {
             "type": "string"
@@ -4823,6 +4984,7 @@
         "type": "object"
       },
       "DatabaseFunctionNamesResponse": {
+        "additionalProperties": false,
         "properties": {
           "function_names": {
             "items": {
@@ -4834,6 +4996,7 @@
         "type": "object"
       },
       "DatabaseRelatedChart": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4848,6 +5011,7 @@
         "type": "object"
       },
       "DatabaseRelatedCharts": {
+        "additionalProperties": false,
         "properties": {
           "count": {
             "description": "Chart count",
@@ -4864,11 +5028,13 @@
         "type": "object"
       },
       "DatabaseRelatedDashboard": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
           },
           "json_metadata": {
+            "additionalProperties": {},
             "type": "object"
           },
           "slug": {
@@ -4881,6 +5047,7 @@
         "type": "object"
       },
       "DatabaseRelatedDashboards": {
+        "additionalProperties": false,
         "properties": {
           "count": {
             "description": "Dashboard count",
@@ -4897,6 +5064,7 @@
         "type": "object"
       },
       "DatabaseRelatedDataset": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -4911,6 +5079,7 @@
         "type": "object"
       },
       "DatabaseRelatedDatasets": {
+        "additionalProperties": false,
         "properties": {
           "count": {
             "description": "Dataset count",
@@ -4927,6 +5096,7 @@
         "type": "object"
       },
       "DatabaseRelatedObjectsResponse": {
+        "additionalProperties": false,
         "properties": {
           "charts": {
             "$ref": "#/components/schemas/DatabaseRelatedCharts"
@@ -4941,6 +5111,7 @@
         "type": "object"
       },
       "DatabaseRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "allow_ctas": {
             "nullable": true,
@@ -5015,6 +5186,7 @@
         "type": "object"
       },
       "DatabaseRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "allow_ctas": {
             "nullable": true,
@@ -5114,6 +5286,7 @@
         "type": "object"
       },
       "DatabaseRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -5131,6 +5304,7 @@
         "type": "object"
       },
       "DatabaseRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -5248,12 +5422,15 @@
             "type": "string"
           },
           "ssh_tunnel": {
-            "allOf": [
+            "anyOf": [
+              {
+                "nullable": true,
+                "type": "object"
+              },
               {
                 "$ref": "#/components/schemas/DatabaseSSHTunnel"
               }
-            ],
-            "nullable": true
+            ]
           },
           "uuid": {
             "type": "string"
@@ -5366,12 +5543,15 @@
             "type": "string"
           },
           "ssh_tunnel": {
-            "allOf": [
+            "anyOf": [
+              {
+                "nullable": true,
+                "type": "object"
+              },
               {
                 "$ref": "#/components/schemas/DatabaseSSHTunnel"
               }
-            ],
-            "nullable": true
+            ]
           },
           "uuid": {
             "type": "string"
@@ -5380,6 +5560,7 @@
         "type": "object"
       },
       "DatabaseSSHTunnel": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "description": "SSH Tunnel ID (for updates)",
@@ -5419,6 +5600,7 @@
         "type": "object"
       },
       "DatabaseSSHTunnelValidation": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "description": "SSH Tunnel ID (for updates)",
@@ -5457,6 +5639,7 @@
         "type": "object"
       },
       "DatabaseSchemaAccessForFileUploadResponse": {
+        "additionalProperties": false,
         "properties": {
           "schemas": {
             "description": "The list of schemas allowed for the database to upload information",
@@ -5469,8 +5652,10 @@
         "type": "object"
       },
       "DatabaseTablesResponse": {
+        "additionalProperties": false,
         "properties": {
           "extra": {
+            "additionalProperties": {},
             "description": "Extra data used to specify column metadata",
             "type": "object"
           },
@@ -5486,6 +5671,7 @@
         "type": "object"
       },
       "DatabaseTestConnectionSchema": {
+        "additionalProperties": false,
         "properties": {
           "configuration_method": {
             "default": "sqlalchemy_form",
@@ -5542,12 +5728,15 @@
             "type": "string"
           },
           "ssh_tunnel": {
-            "allOf": [
+            "anyOf": [
+              {
+                "nullable": true,
+                "type": "object"
+              },
               {
                 "$ref": "#/components/schemas/DatabaseSSHTunnel"
               }
-            ],
-            "nullable": true
+            ]
           }
         },
         "type": "object"
@@ -5615,12 +5804,15 @@
             "type": "string"
           },
           "ssh_tunnel": {
-            "allOf": [
+            "anyOf": [
+              {
+                "nullable": true,
+                "type": "object"
+              },
               {
                 "$ref": "#/components/schemas/DatabaseSSHTunnelValidation"
               }
-            ],
-            "nullable": true
+            ]
           }
         },
         "required": [
@@ -5630,23 +5822,27 @@
         "type": "object"
       },
       "Dataset": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "description": "Duration (in seconds) of the caching timeout for this dataset.",
             "type": "integer"
           },
           "column_formats": {
+            "additionalProperties": {},
             "description": "Column formats.",
             "type": "object"
           },
           "columns": {
             "description": "Columns metadata.",
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
           },
           "database": {
+            "additionalProperties": {},
             "description": "Database associated with the dataset.",
             "type": "object"
           },
@@ -5674,6 +5870,7 @@
             "type": "array"
           },
           "extra": {
+            "additionalProperties": {},
             "description": "JSON string containing extra configuration elements.",
             "type": "object"
           },
@@ -5693,6 +5890,7 @@
             "description": "Name of temporal column used for time filtering for SQL datasources. This field is deprecated, use `granularity` instead.",
             "items": {
               "items": {
+                "additionalProperties": {},
                 "type": "object"
               },
               "type": "array"
@@ -5718,6 +5916,7 @@
           "metrics": {
             "description": "Dataset metrics.",
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
@@ -5741,6 +5940,7 @@
             "type": "array"
           },
           "params": {
+            "additionalProperties": {},
             "description": "Extra params for the dataset.",
             "type": "object"
           },
@@ -5773,6 +5973,7 @@
             "type": "string"
           },
           "template_params": {
+            "additionalProperties": {},
             "description": "Table template params.",
             "type": "object"
           },
@@ -5795,6 +5996,7 @@
             "type": "string"
           },
           "verbose_map": {
+            "additionalProperties": {},
             "description": "Mapping from raw name to verbose name.",
             "type": "object"
           }
@@ -5802,6 +6004,7 @@
         "type": "object"
       },
       "DatasetCacheWarmUpRequestSchema": {
+        "additionalProperties": false,
         "properties": {
           "dashboard_id": {
             "description": "The ID of the dashboard to get filters for when warming cache",
@@ -5827,6 +6030,7 @@
         "type": "object"
       },
       "DatasetCacheWarmUpResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "result": {
             "description": "A list of each chart's warmup status and errors if any",
@@ -5839,6 +6043,7 @@
         "type": "object"
       },
       "DatasetCacheWarmUpResponseSingle": {
+        "additionalProperties": false,
         "properties": {
           "chart_id": {
             "description": "The ID of the chart the status belongs to",
@@ -5856,6 +6061,7 @@
         "type": "object"
       },
       "DatasetColumnsPut": {
+        "additionalProperties": false,
         "properties": {
           "advanced_data_type": {
             "maxLength": 255,
@@ -5956,6 +6162,7 @@
         "type": "object"
       },
       "DatasetColumnsRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -5964,6 +6171,7 @@
         "type": "object"
       },
       "DatasetColumnsRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -5972,6 +6180,7 @@
         "type": "object"
       },
       "DatasetColumnsRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -5980,6 +6189,7 @@
         "type": "object"
       },
       "DatasetColumnsRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -5988,6 +6198,7 @@
         "type": "object"
       },
       "DatasetDuplicateSchema": {
+        "additionalProperties": false,
         "properties": {
           "base_model_id": {
             "type": "integer"
@@ -6005,6 +6216,7 @@
         "type": "object"
       },
       "DatasetMetricCurrencyPut": {
+        "additionalProperties": false,
         "properties": {
           "symbol": {
             "maxLength": 128,
@@ -6020,6 +6232,7 @@
         "type": "object"
       },
       "DatasetMetricRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -6028,6 +6241,7 @@
         "type": "object"
       },
       "DatasetMetricRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -6036,6 +6250,7 @@
         "type": "object"
       },
       "DatasetMetricRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -6044,6 +6259,7 @@
         "type": "object"
       },
       "DatasetMetricRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -6052,6 +6268,7 @@
         "type": "object"
       },
       "DatasetMetricsPut": {
+        "additionalProperties": false,
         "properties": {
           "certification_details": {
             "nullable": true,
@@ -6062,12 +6279,15 @@
             "type": "string"
           },
           "currency": {
-            "allOf": [
+            "anyOf": [
+              {
+                "nullable": true,
+                "type": "object"
+              },
               {
                 "$ref": "#/components/schemas/DatasetMetricCurrencyPut"
               }
-            ],
-            "nullable": true
+            ]
           },
           "d3format": {
             "maxLength": 128,
@@ -6129,6 +6349,7 @@
         "type": "object"
       },
       "DatasetPurgeImpactCollection": {
+        "additionalProperties": false,
         "properties": {
           "count": {
             "minimum": 0,
@@ -6153,6 +6374,7 @@
         "type": "object"
       },
       "DatasetPurgeImpactObject": {
+        "additionalProperties": false,
         "properties": {
           "archived": {
             "type": "boolean"
@@ -6178,6 +6400,7 @@
         "type": "object"
       },
       "DatasetPurgeImpactSchema": {
+        "additionalProperties": false,
         "properties": {
           "charts": {
             "$ref": "#/components/schemas/DatasetPurgeImpactCollection"
@@ -6197,6 +6420,7 @@
         "type": "object"
       },
       "DatasetPurgeRequestSchema": {
+        "additionalProperties": false,
         "properties": {
           "confirmed_impact_token": {
             "minLength": 1,
@@ -6209,6 +6433,7 @@
         "type": "object"
       },
       "DatasetRelatedChart": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -6223,6 +6448,7 @@
         "type": "object"
       },
       "DatasetRelatedCharts": {
+        "additionalProperties": false,
         "properties": {
           "count": {
             "description": "Chart count",
@@ -6243,11 +6469,13 @@
         "type": "object"
       },
       "DatasetRelatedDashboard": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
           },
           "json_metadata": {
+            "additionalProperties": {},
             "type": "object"
           },
           "slug": {
@@ -6260,6 +6488,7 @@
         "type": "object"
       },
       "DatasetRelatedDashboards": {
+        "additionalProperties": false,
         "properties": {
           "count": {
             "description": "Dashboard count",
@@ -6280,6 +6509,7 @@
         "type": "object"
       },
       "DatasetRelatedObjectsResponse": {
+        "additionalProperties": false,
         "properties": {
           "charts": {
             "$ref": "#/components/schemas/DatasetRelatedCharts"
@@ -6291,6 +6521,7 @@
         "type": "object"
       },
       "DatasetRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "always_filter_main_dttm": {
             "nullable": true,
@@ -6482,6 +6713,7 @@
         "type": "object"
       },
       "DatasetRestApi.get.Database": {
+        "additionalProperties": false,
         "properties": {
           "allow_multi_catalog": {
             "readOnly": true
@@ -6508,6 +6740,7 @@
         "type": "object"
       },
       "DatasetRestApi.get.SqlMetric": {
+        "additionalProperties": false,
         "properties": {
           "certification_details": {
             "readOnly": true
@@ -6584,6 +6817,7 @@
         "type": "object"
       },
       "DatasetRestApi.get.Subject": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -6603,6 +6837,7 @@
         "type": "object"
       },
       "DatasetRestApi.get.TableColumn": {
+        "additionalProperties": false,
         "properties": {
           "advanced_data_type": {
             "maxLength": 255,
@@ -6703,6 +6938,7 @@
         "type": "object"
       },
       "DatasetRestApi.get.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -6720,6 +6956,7 @@
         "type": "object"
       },
       "DatasetRestApi.get.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -6737,6 +6974,7 @@
         "type": "object"
       },
       "DatasetRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "catalog": {
             "maxLength": 256,
@@ -6814,6 +7052,7 @@
         "type": "object"
       },
       "DatasetRestApi.get_list.Database": {
+        "additionalProperties": false,
         "properties": {
           "database_name": {
             "maxLength": 250,
@@ -6834,6 +7073,7 @@
         "type": "object"
       },
       "DatasetRestApi.get_list.Subject": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -6853,6 +7093,7 @@
         "type": "object"
       },
       "DatasetRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -6873,6 +7114,7 @@
         "type": "object"
       },
       "DatasetRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "always_filter_main_dttm": {
             "default": false,
@@ -6955,6 +7197,7 @@
         "type": "object"
       },
       "DatasetRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "always_filter_main_dttm": {
             "default": false,
@@ -7090,6 +7333,7 @@
         "type": "object"
       },
       "Datasource": {
+        "additionalProperties": false,
         "properties": {
           "catalog": {
             "description": "Datasource catalog",
@@ -7127,6 +7371,7 @@
         "type": "object"
       },
       "DatasourceQueryOrder": {
+        "additionalProperties": false,
         "properties": {
           "column": {
             "description": "Metric or dimension name to sort by.",
@@ -7144,6 +7389,7 @@
         "type": "object"
       },
       "DatasourceQuerySchema": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "default": null,
@@ -7236,6 +7482,7 @@
         "type": "object"
       },
       "DistincResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "count": {
             "description": "The total number of distinct values",
@@ -7251,6 +7498,7 @@
         "type": "object"
       },
       "DistinctResultResponse": {
+        "additionalProperties": false,
         "properties": {
           "text": {
             "description": "The distinct item",
@@ -7260,6 +7508,7 @@
         "type": "object"
       },
       "EmbeddedDashboardConfig": {
+        "additionalProperties": false,
         "properties": {
           "allowed_domains": {
             "items": {
@@ -7274,6 +7523,7 @@
         "type": "object"
       },
       "EmbeddedDashboardResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "allowed_domains": {
             "items": {
@@ -7298,6 +7548,7 @@
         "type": "object"
       },
       "EmbeddedDashboardRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "uuid": {
             "format": "uuid",
@@ -7307,6 +7558,7 @@
         "type": "object"
       },
       "EmbeddedDashboardRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "uuid": {
             "format": "uuid",
@@ -7316,6 +7568,7 @@
         "type": "object"
       },
       "EmbeddedDashboardRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "uuid": {
             "format": "uuid",
@@ -7325,6 +7578,7 @@
         "type": "object"
       },
       "EmbeddedDashboardRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "uuid": {
             "format": "uuid",
@@ -7334,6 +7588,7 @@
         "type": "object"
       },
       "EngineInformation": {
+        "additionalProperties": false,
         "properties": {
           "disable_ssh_tunneling": {
             "description": "SSH tunnel is not available to the database",
@@ -7371,6 +7626,7 @@
         "type": "object"
       },
       "EstimateQueryCostSchema": {
+        "additionalProperties": false,
         "properties": {
           "catalog": {
             "description": "The database catalog",
@@ -7391,6 +7647,7 @@
             "type": "string"
           },
           "template_params": {
+            "additionalProperties": {},
             "description": "The SQL query template params",
             "type": "object"
           }
@@ -7402,6 +7659,7 @@
         "type": "object"
       },
       "ExecutePayloadSchema": {
+        "additionalProperties": false,
         "properties": {
           "catalog": {
             "nullable": true,
@@ -7466,11 +7724,13 @@
         "type": "object"
       },
       "ExploreContextSchema": {
+        "additionalProperties": false,
         "properties": {
           "dataset": {
             "$ref": "#/components/schemas/Dataset"
           },
           "form_data": {
+            "additionalProperties": {},
             "description": "Form data from the Explore controls used to form the chart's data query.",
             "type": "object"
           },
@@ -7485,13 +7745,16 @@
         "type": "object"
       },
       "ExplorePermalinkStateSchema": {
+        "additionalProperties": false,
         "properties": {
           "chartState": {
+            "additionalProperties": {},
             "description": "Chart-level state for stateful tables (column filters, sorting, column order)",
             "nullable": true,
             "type": "object"
           },
           "formData": {
+            "additionalProperties": {},
             "description": "Chart form data",
             "type": "object"
           },
@@ -7511,6 +7774,7 @@
         "type": "object"
       },
       "Folder": {
+        "additionalProperties": false,
         "properties": {
           "children": {
             "items": {
@@ -7549,6 +7813,7 @@
         "type": "object"
       },
       "FormDataPostSchema": {
+        "additionalProperties": false,
         "properties": {
           "chart_id": {
             "description": "The chart ID",
@@ -7583,6 +7848,7 @@
         "type": "object"
       },
       "FormDataPutSchema": {
+        "additionalProperties": false,
         "properties": {
           "chart_id": {
             "description": "The chart ID",
@@ -7617,6 +7883,7 @@
         "type": "object"
       },
       "FormatQueryPayloadSchema": {
+        "additionalProperties": false,
         "properties": {
           "database_id": {
             "description": "The database id",
@@ -7642,6 +7909,7 @@
         "type": "object"
       },
       "GetFavStarIdsSchema": {
+        "additionalProperties": false,
         "properties": {
           "result": {
             "description": "A list of results for each corresponding chart in the request",
@@ -7654,6 +7922,7 @@
         "type": "object"
       },
       "GetOrCreateDatasetSchema": {
+        "additionalProperties": false,
         "properties": {
           "always_filter_main_dttm": {
             "default": false,
@@ -7697,6 +7966,7 @@
         "type": "object"
       },
       "GroupPostSchema": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "description": "Group description",
@@ -7739,6 +8009,7 @@
         "type": "object"
       },
       "GroupPutSchema": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "description": "Group description",
@@ -7811,6 +8082,7 @@
         "type": "object"
       },
       "IdentifierQuote": {
+        "additionalProperties": false,
         "properties": {
           "end": {
             "description": "Character that closes a quoted identifier",
@@ -7828,6 +8100,7 @@
         "type": "object"
       },
       "LogRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "action": {
             "maxLength": 512,
@@ -7871,6 +8144,7 @@
         "type": "object"
       },
       "LogRestApi.get.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -7893,6 +8167,7 @@
         "type": "object"
       },
       "LogRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "action": {
             "maxLength": 512,
@@ -7936,6 +8211,7 @@
         "type": "object"
       },
       "LogRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -7958,6 +8234,7 @@
         "type": "object"
       },
       "LogRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -7966,6 +8243,7 @@
         "type": "object"
       },
       "LogRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "action": {
             "maxLength": 512,
@@ -7988,6 +8266,7 @@
         "type": "object"
       },
       "PartitionMappingPreviewSchema": {
+        "additionalProperties": false,
         "properties": {
           "is_monotonic": {
             "default": false,
@@ -8048,6 +8327,7 @@
         "type": "object"
       },
       "PermissionApi.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -8063,6 +8343,7 @@
         "type": "object"
       },
       "PermissionApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -8078,6 +8359,7 @@
         "type": "object"
       },
       "PermissionApi.post": {
+        "additionalProperties": false,
         "properties": {
           "name": {
             "maxLength": 100,
@@ -8090,6 +8372,7 @@
         "type": "object"
       },
       "PermissionApi.put": {
+        "additionalProperties": false,
         "properties": {
           "name": {
             "maxLength": 100,
@@ -8102,21 +8385,25 @@
         "type": "object"
       },
       "QueryExecutionResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "columns": {
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
           },
           "data": {
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
           },
           "expanded_columns": {
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
@@ -8129,6 +8416,7 @@
           },
           "selected_columns": {
             "items": {
+              "additionalProperties": {},
               "type": "object"
             },
             "type": "array"
@@ -8140,6 +8428,7 @@
         "type": "object"
       },
       "QueryRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "changed_on": {
             "format": "date-time",
@@ -8254,6 +8543,7 @@
         "type": "object"
       },
       "QueryRestApi.get.Database": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -8262,6 +8552,7 @@
         "type": "object"
       },
       "QueryRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "changed_on": {
             "format": "date-time",
@@ -8316,6 +8607,7 @@
         "type": "object"
       },
       "QueryRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -8324,6 +8616,7 @@
         "type": "object"
       },
       "QueryRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -8332,6 +8625,7 @@
         "type": "object"
       },
       "QueryResult": {
+        "additionalProperties": false,
         "properties": {
           "changed_on": {
             "format": "date-time",
@@ -8357,6 +8651,7 @@
             "type": "string"
           },
           "extra": {
+            "additionalProperties": {},
             "type": "object"
           },
           "id": {
@@ -8423,6 +8718,7 @@
         "type": "object"
       },
       "RLSRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "clause": {
             "description": "clause_description",
@@ -8468,6 +8764,7 @@
         "type": "object"
       },
       "RLSRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "changed_by": {
             "$ref": "#/components/schemas/User"
@@ -8519,6 +8816,7 @@
         "type": "object"
       },
       "RLSRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "clause": {
             "description": "clause_description",
@@ -8573,6 +8871,7 @@
         "type": "object"
       },
       "RLSRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "clause": {
             "description": "clause_description",
@@ -8621,6 +8920,7 @@
         "type": "object"
       },
       "RecentActivity": {
+        "additionalProperties": false,
         "properties": {
           "action": {
             "description": "Action taken describing type of activity",
@@ -8650,6 +8950,7 @@
         "type": "object"
       },
       "RecentActivityResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "result": {
             "description": "A list of recent activity objects",
@@ -8662,6 +8963,7 @@
         "type": "object"
       },
       "RecentActivitySchema": {
+        "additionalProperties": false,
         "properties": {
           "action": {
             "description": "Action taken describing type of activity",
@@ -8691,6 +8993,7 @@
         "type": "object"
       },
       "RelatedResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "count": {
             "description": "The total number of related values",
@@ -8706,8 +9009,10 @@
         "type": "object"
       },
       "RelatedResultResponse": {
+        "additionalProperties": false,
         "properties": {
           "extra": {
+            "additionalProperties": {},
             "description": "The extra metadata for related item",
             "type": "object"
           },
@@ -8723,6 +9028,7 @@
         "type": "object"
       },
       "ReportConfigImpactedSchema": {
+        "additionalProperties": false,
         "properties": {
           "detail": {
             "description": "The offending e-mail address or crontab",
@@ -8745,6 +9051,7 @@
         "type": "object"
       },
       "ReportConfigurationSchema": {
+        "additionalProperties": false,
         "properties": {
           "alert_minimum_interval": {
             "description": "Minimum interval between alert executions, in seconds. Values below 120 do not restrict schedules. Falls back to ALERT_MINIMUM_INTERVAL only before this setting has been saved.",
@@ -8791,6 +9098,7 @@
         "type": "object"
       },
       "ReportExecutionLogRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "end_dttm": {
             "format": "date-time",
@@ -8838,6 +9146,7 @@
         "type": "object"
       },
       "ReportExecutionLogRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "end_dttm": {
             "format": "date-time",
@@ -8885,6 +9194,7 @@
         "type": "object"
       },
       "ReportExecutionLogRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -8893,6 +9203,7 @@
         "type": "object"
       },
       "ReportExecutionLogRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -8901,6 +9212,7 @@
         "type": "object"
       },
       "ReportRecipient": {
+        "additionalProperties": false,
         "properties": {
           "recipient_config_json": {
             "$ref": "#/components/schemas/ReportRecipientConfigJSON"
@@ -8922,6 +9234,7 @@
         "type": "object"
       },
       "ReportRecipientConfigJSON": {
+        "additionalProperties": false,
         "properties": {
           "bccTarget": {
             "type": "string"
@@ -8936,6 +9249,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "nullable": true,
@@ -9103,6 +9417,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get.Dashboard": {
+        "additionalProperties": false,
         "properties": {
           "dashboard_title": {
             "maxLength": 500,
@@ -9116,6 +9431,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get.Database": {
+        "additionalProperties": false,
         "properties": {
           "database_name": {
             "maxLength": 250,
@@ -9131,6 +9447,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get.ReportRecipients": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -9150,6 +9467,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get.Slice": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -9168,6 +9486,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get.Subject": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -9187,6 +9506,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -9207,6 +9527,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -9227,6 +9548,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "nullable": true,
@@ -9353,6 +9675,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get_list.ReportRecipients": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -9368,6 +9691,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get_list.Subject": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -9387,6 +9711,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -9404,6 +9729,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -9421,6 +9747,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.get_list.User2": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -9429,6 +9756,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "type": "boolean"
@@ -9490,6 +9818,7 @@
             "type": "string"
           },
           "extra": {
+            "additionalProperties": {},
             "type": "object"
           },
           "force_screenshot": {
@@ -10235,6 +10564,7 @@
         "type": "object"
       },
       "ReportScheduleRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "type": "boolean"
@@ -10298,6 +10628,7 @@
             "type": "string"
           },
           "extra": {
+            "additionalProperties": {},
             "type": "object"
           },
           "force_screenshot": {
@@ -11053,6 +11384,7 @@
         "type": "object"
       },
       "RlsFilter": {
+        "additionalProperties": false,
         "properties": {
           "clause": {
             "description": "RLS filter clause.",
@@ -11094,6 +11426,7 @@
         "type": "object"
       },
       "RlsRole": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "description": "Role ID.",
@@ -11123,6 +11456,7 @@
         "type": "object"
       },
       "RoleGroupPutSchema": {
+        "additionalProperties": false,
         "properties": {
           "group_ids": {
             "description": "List of group ids",
@@ -11138,6 +11472,7 @@
         "type": "object"
       },
       "RolePermissionListSchema": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -11152,6 +11487,7 @@
         "type": "object"
       },
       "RolePermissionPostSchema": {
+        "additionalProperties": false,
         "properties": {
           "permission_view_menu_ids": {
             "description": "List of permission view menu id",
@@ -11190,6 +11526,7 @@
         "type": "object"
       },
       "RoleUserPutSchema": {
+        "additionalProperties": false,
         "properties": {
           "user_ids": {
             "description": "List of user ids",
@@ -11225,6 +11562,7 @@
         "type": "object"
       },
       "SQLLabBootstrapDatabase": {
+        "additionalProperties": false,
         "properties": {
           "allow_ctas": {
             "type": "boolean"
@@ -11291,6 +11629,7 @@
         "type": "object"
       },
       "SQLLabBootstrapSchema": {
+        "additionalProperties": false,
         "properties": {
           "active_tab": {
             "$ref": "#/components/schemas/TabState"
@@ -11317,6 +11656,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "catalog": {
             "maxLength": 256,
@@ -11372,6 +11712,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.get.Database": {
+        "additionalProperties": false,
         "properties": {
           "database_name": {
             "maxLength": 250,
@@ -11387,6 +11728,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.get.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -11407,6 +11749,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.get.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -11427,6 +11770,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "catalog": {
             "maxLength": 256,
@@ -11503,6 +11847,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.get_list.Database": {
+        "additionalProperties": false,
         "properties": {
           "database_name": {
             "maxLength": 250,
@@ -11518,6 +11863,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.get_list.Tag": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -11539,6 +11885,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -11559,6 +11906,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -11579,6 +11927,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "catalog": {
             "maxLength": 256,
@@ -11619,6 +11968,7 @@
         "type": "object"
       },
       "SavedQueryRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "catalog": {
             "maxLength": 256,
@@ -11659,6 +12009,7 @@
         "type": "object"
       },
       "SchemasResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "result": {
             "items": {
@@ -11671,6 +12022,7 @@
         "type": "object"
       },
       "SelectStarResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "result": {
             "description": "SQL select star",
@@ -11717,6 +12069,7 @@
         "type": "object"
       },
       "Slice": {
+        "additionalProperties": false,
         "properties": {
           "cache_timeout": {
             "description": "Duration (in seconds) of the caching timeout for this chart.",
@@ -11763,6 +12116,7 @@
             "type": "array"
           },
           "form_data": {
+            "additionalProperties": {},
             "description": "Form data associated with the slice.",
             "type": "object"
           },
@@ -11775,6 +12129,7 @@
             "type": "string"
           },
           "query_context": {
+            "additionalProperties": {},
             "description": "The context associated with the query.",
             "type": "object"
           },
@@ -11794,6 +12149,7 @@
         "type": "object"
       },
       "SqlLabPermalinkSchema": {
+        "additionalProperties": false,
         "properties": {
           "autorun": {
             "type": "boolean"
@@ -11834,6 +12190,7 @@
         "type": "object"
       },
       "StopQuerySchema": {
+        "additionalProperties": false,
         "properties": {
           "client_id": {
             "type": "string"
@@ -11842,6 +12199,7 @@
         "type": "object"
       },
       "SubjectResponse": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -11862,6 +12220,7 @@
         "type": "object"
       },
       "SubjectRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "nullable": true,
@@ -11937,6 +12296,7 @@
         "type": "object"
       },
       "SubjectRestApi.get.Group": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "maxLength": 512,
@@ -11962,6 +12322,7 @@
         "type": "object"
       },
       "SubjectRestApi.get.Role": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -11977,6 +12338,7 @@
         "type": "object"
       },
       "SubjectRestApi.get.User": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "nullable": true,
@@ -12011,6 +12373,7 @@
         "type": "object"
       },
       "SubjectRestApi.get.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -12028,6 +12391,7 @@
         "type": "object"
       },
       "SubjectRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "nullable": true,
@@ -12094,6 +12458,7 @@
         "type": "object"
       },
       "SubjectRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -12111,6 +12476,7 @@
         "type": "object"
       },
       "SubjectRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12119,6 +12485,7 @@
         "type": "object"
       },
       "SubjectRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12127,6 +12494,7 @@
         "type": "object"
       },
       "SupersetGroupApi.get": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "maxLength": 512,
@@ -12164,6 +12532,7 @@
         "type": "object"
       },
       "SupersetGroupApi.get.Role": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12179,6 +12548,7 @@
         "type": "object"
       },
       "SupersetGroupApi.get.User": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12194,6 +12564,7 @@
         "type": "object"
       },
       "SupersetGroupApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "maxLength": 512,
@@ -12231,6 +12602,7 @@
         "type": "object"
       },
       "SupersetGroupApi.get_list.Role": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12246,6 +12618,7 @@
         "type": "object"
       },
       "SupersetGroupApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12261,6 +12634,7 @@
         "type": "object"
       },
       "SupersetGroupApi.post": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "description": "Group description",
@@ -12303,6 +12677,7 @@
         "type": "object"
       },
       "SupersetGroupApi.put": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "description": "Group description",
@@ -12342,6 +12717,7 @@
         "type": "object"
       },
       "SupersetPermissionViewMenuApi.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12360,6 +12736,7 @@
         "type": "object"
       },
       "SupersetPermissionViewMenuApi.get.Permission": {
+        "additionalProperties": false,
         "properties": {
           "name": {
             "maxLength": 100,
@@ -12372,6 +12749,7 @@
         "type": "object"
       },
       "SupersetPermissionViewMenuApi.get.ViewMenu": {
+        "additionalProperties": false,
         "properties": {
           "name": {
             "maxLength": 250,
@@ -12384,6 +12762,7 @@
         "type": "object"
       },
       "SupersetPermissionViewMenuApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12402,6 +12781,7 @@
         "type": "object"
       },
       "SupersetPermissionViewMenuApi.get_list.Permission": {
+        "additionalProperties": false,
         "properties": {
           "name": {
             "maxLength": 100,
@@ -12414,6 +12794,7 @@
         "type": "object"
       },
       "SupersetPermissionViewMenuApi.get_list.ViewMenu": {
+        "additionalProperties": false,
         "properties": {
           "name": {
             "maxLength": 250,
@@ -12426,6 +12807,7 @@
         "type": "object"
       },
       "SupersetPermissionViewMenuApi.post": {
+        "additionalProperties": false,
         "properties": {
           "permission_id": {
             "default": null,
@@ -12439,6 +12821,7 @@
         "type": "object"
       },
       "SupersetPermissionViewMenuApi.put": {
+        "additionalProperties": false,
         "properties": {
           "permission_id": {
             "default": null,
@@ -12452,6 +12835,7 @@
         "type": "object"
       },
       "SupersetRoleApi.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12467,6 +12851,7 @@
         "type": "object"
       },
       "SupersetRoleApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12482,6 +12867,7 @@
         "type": "object"
       },
       "SupersetRoleApi.post": {
+        "additionalProperties": false,
         "properties": {
           "name": {
             "maxLength": 64,
@@ -12494,6 +12880,7 @@
         "type": "object"
       },
       "SupersetRoleApi.put": {
+        "additionalProperties": false,
         "properties": {
           "name": {
             "maxLength": 64,
@@ -12506,6 +12893,7 @@
         "type": "object"
       },
       "SupersetUserApi.get": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "nullable": true,
@@ -12581,6 +12969,7 @@
         "type": "object"
       },
       "SupersetUserApi.get.Group": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "maxLength": 512,
@@ -12606,6 +12995,7 @@
         "type": "object"
       },
       "SupersetUserApi.get.Role": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12621,6 +13011,7 @@
         "type": "object"
       },
       "SupersetUserApi.get.User": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12629,6 +13020,7 @@
         "type": "object"
       },
       "SupersetUserApi.get.User1": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12637,6 +13029,7 @@
         "type": "object"
       },
       "SupersetUserApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "nullable": true,
@@ -12712,6 +13105,7 @@
         "type": "object"
       },
       "SupersetUserApi.get_list.Group": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "maxLength": 512,
@@ -12737,6 +13131,7 @@
         "type": "object"
       },
       "SupersetUserApi.get_list.Role": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12752,6 +13147,7 @@
         "type": "object"
       },
       "SupersetUserApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12760,6 +13156,7 @@
         "type": "object"
       },
       "SupersetUserApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -12768,6 +13165,7 @@
         "type": "object"
       },
       "SupersetUserApi.post": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "description": "Is user active?It's not a good policy to remove a user, just make it inactive",
@@ -12820,6 +13218,7 @@
         "type": "object"
       },
       "SupersetUserApi.put": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "description": "Is user active?It's not a good policy to remove a user, just make it inactive",
@@ -12865,6 +13264,7 @@
         "type": "object"
       },
       "Tab": {
+        "additionalProperties": false,
         "properties": {
           "children": {
             "items": {
@@ -12888,6 +13288,7 @@
         "type": "object"
       },
       "TabState": {
+        "additionalProperties": false,
         "properties": {
           "active": {
             "type": "boolean"
@@ -12899,6 +13300,7 @@
             "type": "integer"
           },
           "extra_json": {
+            "additionalProperties": {},
             "type": "object"
           },
           "hide_left_bar": {
@@ -12917,6 +13319,7 @@
             "type": "integer"
           },
           "saved_query": {
+            "additionalProperties": {},
             "nullable": true,
             "type": "object"
           },
@@ -12939,6 +13342,7 @@
         "type": "object"
       },
       "Table": {
+        "additionalProperties": false,
         "properties": {
           "database_id": {
             "type": "integer"
@@ -12965,20 +13369,25 @@
         "type": "object"
       },
       "TableExtraMetadataResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "clustering": {
+            "additionalProperties": {},
             "type": "object"
           },
           "metadata": {
+            "additionalProperties": {},
             "type": "object"
           },
           "partitions": {
+            "additionalProperties": {},
             "type": "object"
           }
         },
         "type": "object"
       },
       "TableMetadataColumnsResponse": {
+        "additionalProperties": false,
         "properties": {
           "duplicates_constraint": {
             "type": "string"
@@ -13006,6 +13415,7 @@
         "type": "object"
       },
       "TableMetadataForeignKeysIndexesResponse": {
+        "additionalProperties": false,
         "properties": {
           "column_names": {
             "items": {
@@ -13040,6 +13450,7 @@
         "type": "object"
       },
       "TableMetadataOptionsResponse": {
+        "additionalProperties": false,
         "properties": {
           "deferrable": {
             "type": "boolean"
@@ -13060,6 +13471,7 @@
         "type": "object"
       },
       "TableMetadataPrimaryKeyResponse": {
+        "additionalProperties": false,
         "properties": {
           "column_names": {
             "items": {
@@ -13079,6 +13491,7 @@
         "type": "object"
       },
       "TableMetadataResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "columns": {
             "description": "A list of columns and their metadata",
@@ -13121,6 +13534,7 @@
         "type": "object"
       },
       "Tables": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -13135,6 +13549,7 @@
         "type": "object"
       },
       "TabsPayloadSchema": {
+        "additionalProperties": false,
         "properties": {
           "all_tabs": {
             "additionalProperties": {
@@ -13152,6 +13567,7 @@
         "type": "object"
       },
       "Tag": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -13171,6 +13587,7 @@
         "type": "object"
       },
       "Tag1": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -13190,6 +13607,7 @@
         "type": "object"
       },
       "TagGetResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -13204,6 +13622,7 @@
         "type": "object"
       },
       "TagObject": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "nullable": true,
@@ -13222,6 +13641,7 @@
         "type": "object"
       },
       "TagPostBulkResponseObject": {
+        "additionalProperties": false,
         "properties": {
           "objects_skipped": {
             "description": "Objects to tag",
@@ -13237,6 +13657,7 @@
         "type": "object"
       },
       "TagPostBulkResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "result": {
             "$ref": "#/components/schemas/TagPostBulkResponseObject"
@@ -13245,6 +13666,7 @@
         "type": "object"
       },
       "TagPostBulkSchema": {
+        "additionalProperties": false,
         "properties": {
           "tags": {
             "items": {
@@ -13256,6 +13678,7 @@
         "type": "object"
       },
       "TagRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "changed_by": {
             "$ref": "#/components/schemas/TagRestApi.get.User"
@@ -13293,6 +13716,7 @@
         "type": "object"
       },
       "TagRestApi.get.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -13310,6 +13734,7 @@
         "type": "object"
       },
       "TagRestApi.get.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -13327,6 +13752,7 @@
         "type": "object"
       },
       "TagRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "changed_by": {
             "$ref": "#/components/schemas/TagRestApi.get_list.User"
@@ -13364,6 +13790,7 @@
         "type": "object"
       },
       "TagRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -13381,6 +13808,7 @@
         "type": "object"
       },
       "TagRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -13398,6 +13826,7 @@
         "type": "object"
       },
       "TagRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "nullable": true,
@@ -13416,6 +13845,7 @@
         "type": "object"
       },
       "TagRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "nullable": true,
@@ -13434,6 +13864,7 @@
         "type": "object"
       },
       "TaggedObjectEntityResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "changed_on": {
             "format": "date-time",
@@ -13473,6 +13904,7 @@
         "type": "object"
       },
       "TemporaryCachePostSchema": {
+        "additionalProperties": false,
         "properties": {
           "value": {
             "description": "Any type of JSON supported text.",
@@ -13485,6 +13917,7 @@
         "type": "object"
       },
       "TemporaryCachePutSchema": {
+        "additionalProperties": false,
         "properties": {
           "value": {
             "description": "Any type of JSON supported text.",
@@ -13497,6 +13930,7 @@
         "type": "object"
       },
       "Theme": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -13511,6 +13945,7 @@
         "type": "object"
       },
       "ThemeRestApi.get": {
+        "additionalProperties": false,
         "properties": {
           "changed_by": {
             "$ref": "#/components/schemas/ThemeRestApi.get.User"
@@ -13557,6 +13992,7 @@
         "type": "object"
       },
       "ThemeRestApi.get.Subject": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -13576,6 +14012,7 @@
         "type": "object"
       },
       "ThemeRestApi.get.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -13596,6 +14033,7 @@
         "type": "object"
       },
       "ThemeRestApi.get.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -13616,6 +14054,7 @@
         "type": "object"
       },
       "ThemeRestApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "changed_by": {
             "$ref": "#/components/schemas/ThemeRestApi.get_list.User"
@@ -13670,6 +14109,7 @@
         "type": "object"
       },
       "ThemeRestApi.get_list.Subject": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -13689,6 +14129,7 @@
         "type": "object"
       },
       "ThemeRestApi.get_list.User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -13709,6 +14150,7 @@
         "type": "object"
       },
       "ThemeRestApi.get_list.User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -13729,6 +14171,7 @@
         "type": "object"
       },
       "ThemeRestApi.post": {
+        "additionalProperties": false,
         "properties": {
           "editors": {
             "items": {
@@ -13751,6 +14194,7 @@
         "type": "object"
       },
       "ThemeRestApi.put": {
+        "additionalProperties": false,
         "properties": {
           "editors": {
             "items": {
@@ -13773,6 +14217,7 @@
         "type": "object"
       },
       "UploadFileMetadata": {
+        "additionalProperties": false,
         "properties": {
           "items": {
             "items": {
@@ -13784,6 +14229,7 @@
         "type": "object"
       },
       "UploadFileMetadataItem": {
+        "additionalProperties": false,
         "properties": {
           "column_names": {
             "description": "A list of columns names in the sheet",
@@ -13800,6 +14246,7 @@
         "type": "object"
       },
       "UploadFileMetadataPostSchema": {
+        "additionalProperties": false,
         "properties": {
           "delimiter": {
             "description": "The character used to separate values in the CSV file (e.g., a comma, semicolon, or tab).",
@@ -13830,6 +14277,7 @@
         "type": "object"
       },
       "UploadPostSchema": {
+        "additionalProperties": false,
         "properties": {
           "already_exists": {
             "default": "fail",
@@ -13948,6 +14396,7 @@
         "type": "object"
       },
       "User": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "type": "string"
@@ -13962,6 +14411,7 @@
         "type": "object"
       },
       "User1": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "type": "string"
@@ -14000,6 +14450,7 @@
         "type": "object"
       },
       "UserGroup": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -14011,6 +14462,7 @@
         "type": "object"
       },
       "UserRegistrationsRestAPI.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -14019,6 +14471,7 @@
         "type": "object"
       },
       "UserRegistrationsRestAPI.get_list": {
+        "additionalProperties": false,
         "properties": {
           "email": {
             "maxLength": 320,
@@ -14054,6 +14507,7 @@
         "type": "object"
       },
       "UserRegistrationsRestAPI.post": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -14062,6 +14516,7 @@
         "type": "object"
       },
       "UserRegistrationsRestAPI.put": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -14070,6 +14525,7 @@
         "type": "object"
       },
       "UserResponseSchema": {
+        "additionalProperties": false,
         "properties": {
           "email": {
             "type": "string"
@@ -14105,6 +14561,7 @@
         "type": "object"
       },
       "ValidateSQLRequest": {
+        "additionalProperties": false,
         "properties": {
           "catalog": {
             "nullable": true,
@@ -14119,6 +14576,7 @@
             "type": "string"
           },
           "template_params": {
+            "additionalProperties": {},
             "nullable": true,
             "type": "object"
           }
@@ -14129,6 +14587,7 @@
         "type": "object"
       },
       "ValidateSQLResponse": {
+        "additionalProperties": false,
         "properties": {
           "end_column": {
             "type": "integer"
@@ -14146,6 +14605,7 @@
         "type": "object"
       },
       "ValidatorConfigJSON": {
+        "additionalProperties": false,
         "properties": {
           "op": {
             "description": "The operation to compare with a threshold to apply to the SQL output\n",
@@ -14166,6 +14626,7 @@
         "type": "object"
       },
       "VersionChangeRecord": {
+        "additionalProperties": false,
         "properties": {
           "from_value": {
             "description": "Value at path before the save; null when the field did not exist.",
@@ -14190,6 +14651,7 @@
         "type": "object"
       },
       "VersionChangedBy": {
+        "additionalProperties": false,
         "properties": {
           "first_name": {
             "type": "string"
@@ -14204,15 +14666,19 @@
         "type": "object"
       },
       "VersionListItemSchema": {
+        "additionalProperties": false,
         "properties": {
           "changed_by": {
-            "allOf": [
+            "anyOf": [
               {
                 "$ref": "#/components/schemas/VersionChangedBy"
+              },
+              {
+                "nullable": true,
+                "type": "object"
               }
             ],
-            "description": "User who produced the version, or null when the commit had no authenticated Flask user (CLI, Celery, import).",
-            "nullable": true
+            "description": "User who produced the version, or null when the commit had no authenticated Flask user (CLI, Celery, import)."
           },
           "changes": {
             "description": "Structured diff records describing the atomic field-level changes at this version, ordered by emission sequence. Empty for baseline (op=0) transactions per spec M4.",
@@ -14247,6 +14713,7 @@
         "type": "object"
       },
       "ViewMenuApi.get": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -14262,6 +14729,7 @@
         "type": "object"
       },
       "ViewMenuApi.get_list": {
+        "additionalProperties": false,
         "properties": {
           "id": {
             "type": "integer"
@@ -14277,6 +14745,7 @@
         "type": "object"
       },
       "ViewMenuApi.post": {
+        "additionalProperties": false,
         "properties": {
           "name": {
             "maxLength": 250,
@@ -14289,6 +14758,7 @@
         "type": "object"
       },
       "ViewMenuApi.put": {
+        "additionalProperties": false,
         "properties": {
           "name": {
             "maxLength": 250,
@@ -25038,6 +25508,7 @@
                             "parse",
                             "operator",
                             "resolution",
+                            "offset",
                             "engine",
                             "type"
                           ],
