@@ -109,6 +109,17 @@ test('does not call onChange when clicking the already selected option', () => {
   expect(onChange).not.toHaveBeenCalled();
 });
 
+test('calls onChange when clicking the displayed default option if value is unpersisted', () => {
+  const onChange = jest.fn();
+  setup({ value: undefined, onChange });
+
+  const firstOption = screen.getByText('Option 1');
+  fireEvent.click(firstOption);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith('option1');
+});
+
 test('handles multiple clicks correctly', () => {
   const onChange = jest.fn();
   const { rerender } = setup({ value: 'option1', onChange });
