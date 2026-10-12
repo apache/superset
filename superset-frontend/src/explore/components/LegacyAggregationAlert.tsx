@@ -98,7 +98,7 @@ export const LegacyAggregationAlert = ({
     <ExploreAlert
       title={t('This chart was updated to use the restored aggregation')}
       bodyText={t(
-        'This pivot table used a legacy per-table aggregation setting that Superset previously ignored. It now computes correctly, so totals and subtotals may look different than before. Please validate them, then accept this notice or save the chart.',
+        'This pivot table used a legacy per-table aggregation setting that could be stale or incorrect, depending on which version you upgraded from. It now computes correctly, so totals and subtotals may look different than before. Please validate them, then accept this notice or save the chart.',
       )}
       type="warning"
       primaryButtonText={t('Accept')}
