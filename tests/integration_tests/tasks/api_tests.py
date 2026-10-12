@@ -18,14 +18,21 @@
 
 from contextlib import contextmanager
 from typing import Generator
+from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 import rison
+from flask import current_app, g, request, Response
+from flask_appbuilder.security.sqla.models import PermissionView, Role
 from superset_core.tasks.types import TaskStatus
 
-from superset import db
+from superset import db, security_manager
 from superset.models.tasks import Task
+from superset.security.guest_token import GuestTokenResourceType
+from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     GAMMA_USERNAME,
@@ -405,6 +412,125 @@ class TestTaskApi(SupersetTestCase):
             data = json.loads(rv.data.decode("utf-8"))
             assert "status" in data
             assert data["status"] == task.status
+
+    def test_chart_task_status_includes_sanitized_failure_message(self) -> None:
+        """Terminal chart tasks expose only the request-sanitized public message."""
+        from superset.tasks.async_queries import CHART_QUERY_TASK
+
+        terminal_status: TaskStatus
+        tasks: list[Task]
+        sanitize: MagicMock
+        response: Response
+        for terminal_status in (
+            TaskStatus.FAILURE,
+            TaskStatus.ABORTED,
+            TaskStatus.TIMED_OUT,
+        ):
+            with self._create_tasks() as tasks:
+                self.login(ADMIN_USERNAME)
+                task: Task = tasks[0]
+                task.task_type = CHART_QUERY_TASK
+                task.set_status(TaskStatus.IN_PROGRESS)
+                task.set_status(terminal_status)
+                task.update_properties(
+                    {
+                        "error_message": "A time column must be specified.",
+                        "private": {"framework": {"stack_trace": "private trace"}},
+                    }
+                )
+                db.session.commit()
+
+                with patch(
+                    "superset.tasks.api.sanitize_error_message",
+                    return_value="Safe chart failure",
+                ) as sanitize:
+                    response = self.client.get(
+                        f"{self.TASK_API_BASE}/{task.uuid}/status"
+                    )
+
+                assert response.status_code == 200
+                assert json.loads(response.data) == {
+                    "status": terminal_status.value,
+                    "error_message": "Safe chart failure",
+                }
+                sanitize.assert_called_once_with("A time column must be specified.")
+
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_guest_chart_task_status_redacts_failure_message(self) -> None:
+        """A subscribed guest receives the generic error through the public route."""
+        from superset.daos.tasks import TaskDAO
+        from superset.tasks.async_queries import CHART_QUERY_TASK
+
+        guest_role: Role | None = security_manager.find_role(
+            current_app.config["GUEST_ROLE_NAME"]
+        )
+        read_permission: PermissionView | None = (
+            security_manager.find_permission_view_menu("can_read", "Task")
+        )
+        assert guest_role is not None
+        assert read_permission is not None
+        permission_added: bool = read_permission not in guest_role.permissions
+        if permission_added:
+            security_manager.add_permission_role(guest_role, read_permission)
+
+        try:
+            with self._create_tasks() as tasks:
+                task: Task = tasks[0]
+                task.task_type = CHART_QUERY_TASK
+                task.set_status(TaskStatus.IN_PROGRESS)
+                task.set_status(TaskStatus.FAILURE)
+                task.update_properties({"error_message": "private engine detail"})
+                db.session.commit()
+
+                token: bytes = security_manager.create_guest_access_token(
+                    user={"username": "task_guest"},
+                    resources=[
+                        {
+                            "type": GuestTokenResourceType.DASHBOARD,
+                            "id": str(uuid4()),
+                        }
+                    ],
+                    rls=[],
+                )
+                headers: dict[str, bytes] = {
+                    current_app.config["GUEST_TOKEN_HEADER_NAME"]: token
+                }
+                with self.app.test_request_context(headers=headers):
+                    g.user = security_manager.get_guest_user_from_request(request)
+                    guest_key: str | None = get_current_guest_subscriber_key()
+                assert guest_key is not None
+                assert TaskDAO.add_guest_subscriber(task.id, guest_key)
+                db.session.commit()
+
+                response: Response = self.client.get(
+                    f"{self.TASK_API_BASE}/{task.uuid}/status", headers=headers
+                )
+
+                assert response.status_code == 200, response.json
+                assert json.loads(response.data) == {
+                    "status": TaskStatus.FAILURE.value,
+                    "error_message": "An error occurred while fetching the data.",
+                }
+                assert b"private engine detail" not in response.data
+        finally:
+            if permission_added:
+                security_manager.del_permission_role(guest_role, read_permission)
+
+    def test_non_chart_task_status_omits_failure_detail(self) -> None:
+        """The additive detail field is limited to chart-query tasks."""
+        tasks: list[Task]
+        response: Response
+        with self._create_tasks() as tasks:
+            self.login(ADMIN_USERNAME)
+            task: Task = tasks[0]
+            task.set_status(TaskStatus.FAILURE)
+            task.update_properties({"error_message": "private task detail"})
+            db.session.commit()
+
+            response = self.client.get(f"{self.TASK_API_BASE}/{task.uuid}/status")
+
+            assert response.status_code == 200
+            assert json.loads(response.data) == {"status": TaskStatus.FAILURE.value}
 
     def test_get_task_status_not_found(self):
         """

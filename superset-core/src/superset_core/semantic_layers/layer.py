@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar
 
 from pydantic import BaseModel
 
@@ -34,6 +34,22 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     """
 
     configuration_class: type[BaseModel]
+    # Opt in only when all result methods enforce the advertised guarantee.
+    # None preserves legacy result-cache keys without constructing the provider.
+    result_cache_version: ClassVar[str | None] = None
+
+    @classmethod
+    def from_configuration_with_cache_token(
+        cls, configuration: dict[str, Any], *, cache_token: str
+    ) -> SemanticLayer[ConfigT, SemanticViewT]:
+        """Construct with the host's metadata generation before any discovery.
+
+        ``cache_token`` is an opaque generation that changes when the layer's
+        metadata is reloaded. Providers with local metadata caches override this
+        factory to include it in their keys before construction or lookup. Legacy
+        providers retain their ordinary construction behavior.
+        """
+        return cls.from_configuration(configuration)
 
     @classmethod
     @abstractmethod

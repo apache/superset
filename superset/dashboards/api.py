@@ -61,6 +61,7 @@ from werkzeug.wsgi import ClosingIterator, FileWrapper
 
 from superset import db, is_feature_enabled
 from superset.charts.schemas import ChartEntityResponseSchema
+from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
 from superset.commands.dashboard.delete import (
@@ -100,6 +101,7 @@ from superset.commands.dashboard.update import (
     UpdateDashboardNativeFiltersCommand,
 )
 from superset.commands.database.exceptions import DatasetValidationError
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.distributed_lock.acquire import AcquireDistributedLock
 from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
@@ -1727,7 +1729,9 @@ class DashboardRestApi(
                     write_zip_entry(
                         bundle, f"{root}/{file_name}", file_content().encode()
                     )
-            except DashboardNotFoundError:
+            except (DashboardNotFoundError, ChartNotFoundError, DatasetNotFoundError):
+                # The nested chart and dataset exports hide rows the caller
+                # cannot access, so mirror their bare 404 without naming them.
                 return self.response_404()
             except SemanticReferenceError as ex:
                 return self.response(ex.status, message=ex.message)

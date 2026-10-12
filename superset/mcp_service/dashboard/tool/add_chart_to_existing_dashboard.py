@@ -48,6 +48,9 @@ from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     serialize_chart_summary,
 )
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
+)
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -225,6 +228,8 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
     """
     Add chart to existing dashboard. Auto-positions in 2-column grid.
     Returns updated dashboard info.
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
     """
     try:
         from superset.commands.dashboard.update import UpdateDashboardCommand
@@ -234,6 +239,12 @@ def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural 
             dashboard, auth_error = _find_and_authorize_dashboard(request.dashboard_id)
             if auth_error is not None:
                 return auth_error
+
+            refusal: str | None = managed_dashboard_refusal(dashboard)
+            if refusal is not None:
+                return AddChartToDashboardResponse(
+                    managed_externally=True, error=refusal
+                )
 
             # Get chart object for SQLAlchemy relationships and validation
             from superset import db

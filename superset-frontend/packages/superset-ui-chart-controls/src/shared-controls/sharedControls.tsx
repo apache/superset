@@ -419,6 +419,25 @@ const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
     ),
 };
 
+const mcp_geographic: SharedControlConfig<'HiddenControl'> = {
+  type: 'HiddenControl',
+  hidden: true,
+  renderTrigger: false,
+  description: t(
+    'Marks charts created through the MCP geographic contract so Explore keeps their validation guards.',
+  ),
+};
+
+const _mcp_dashboard_time_filter_subject: SharedControlConfig<'HiddenControl'> =
+  {
+    type: 'HiddenControl',
+    hidden: true,
+    renderTrigger: false,
+    description: t(
+      'Preserves the generated dashboard-time predicate subject through Explore saves.',
+    ),
+  };
+
 const zoomable: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Data Zoom'),
@@ -510,6 +529,8 @@ const controlConfigs = {
   zoomable,
   show_empty_columns,
   temporal_columns_lookup,
+  mcp_geographic,
+  _mcp_dashboard_time_filter_subject,
   currency_format,
   sort_by_metric,
   order_by_cols,
