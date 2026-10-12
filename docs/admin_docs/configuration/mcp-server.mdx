@@ -1472,71 +1472,6 @@ MCP_DISABLED_TOOLS = {"extensions.myorg.myextension.some_tool"}
 Specifying a tool name that does not exist logs a warning at startup and is otherwise ignored — it will not prevent the server from starting.
 :::
 
-## Disabling chart type plugins
-
-The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`, `bullet`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
-
-Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
-specification instead of `NoDataError`, matching their unsaved previews.
-
-Gauge data inspection and JSON/CSV/XLSX exports preserve source groups using the same row-count and completeness semantics as other chart types. Shared result normalization converts non-finite floats to null before export: JSON returns null, and CSV and both XLSX writers produce blank cells. These values are indistinguishable from SQL NULL; exports do not retain `nan`, `inf`, or `-inf` text. An overflowing aggregate can therefore appear as a missing value. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
-
-Gauge previews retain data-derived automatic bounds even when configured interval thresholds extend beyond the visible range; Vega previews clip those thresholds into adjacent, non-overlapping bands. Explicit min/max bounds still constrain intervals. All-zero data with both bounds omitted uses a nondegenerate preview range of 0–1. On same-dataset Gauge updates, clearing or changing the dashboard temporal binding preserves user-authored temporal ranges; dataset rebinds discard old query roles and filters. The native `"No filter"` sentinel is a neutral dashboard temporal binding, not a conflicting restriction. Duplicate generated neutral bindings self-heal on updates without removing user-authored ranges. Restating the existing dataset ID without a config is allowed; changing the Gauge dataset still requires a complete config. Native restrictive temporal filters that conflict with the top-level range or another restrictive temporal filter are rejected rather than silently dropped. Unsupported native filter operators are rejected with an indexed error. Native `TEMPORAL_RANGE` adhoc filters require an explicit string comparator; `"No filter"`, empty strings, and whitespace represent an unrestricted range.
-
-### Static deny-list
-
-Set `MCP_DISABLED_CHART_PLUGINS` in your `superset_config.py` to a set of chart type names:
-
-```python
-# superset_config.py
-
-# Emergency kill switch: hide "handlebars" from all callers
-MCP_DISABLED_CHART_PLUGINS = {"handlebars"}
-```
-
-Disabled chart types stay registered but are filtered out at lookup time: they're never listed in `generate_chart`'s supported chart types, and `generate_chart` calls for them are rejected. `get_chart_type_schema` consults its own static schema/example map rather than the registry filter, so a disabled chart type's schema remains queryable through that tool even though `generate_chart` will reject it.
-
-### Dynamic predicate
-
-For per-request control (A/B tests, gradual rollout, entitlement checks), set `MCP_CHART_PLUGIN_ENABLED_FUNC` to a callable. It's evaluated as `enabled_func(chart_type: str) -> bool` on every registry lookup, and it takes precedence over `MCP_DISABLED_CHART_PLUGINS` when set:
-
-```python
-# superset_config.py
-from flask import g
-
-
-def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
-    flags = getattr(g, "feature_flags", {})
-    return flags.get(f"mcp_chart_{chart_type}", True)
-```
-
-The callable must be cheap and in-process (consult already-loaded feature flags or request-local context) -- do not perform network I/O per call. If it raises, the registry fails closed (the plugin is hidden) and logs a warning.
-
-Disabling a plugin only stops new charts of that type from being created. Existing saved charts of that type keep their plugin's query, result-validation and preview behavior in `get_chart_data`, `get_chart_preview` and `get_chart_sql`. Updates through `update_chart` and `update_chart_preview` also retain the plugin's configuration completion, column validation, merge rules, and compile checks. Gauge and Treemap compile checks use a safe 10-row fallback for malformed (including boolean) or nonpositive saved row limits. Malformed Gantt query fields return a validation error rather than a generic data-retrieval error. Funnel Vega-Lite previews return `InvalidFormData` when a stage reference has no resolvable result label. Mixed timeseries queries keep each axis's series grouping separate from the time-axis column. Saved charts with a scalar `groupby` retain the full column name in Waterfall queries and Funnel/Histogram Vega-Lite previews.
-
-Saved Histogram and Gantt charts apply `time_range` to the date column selected
-by `granularity_sqla`. A normalized `granularity` override takes precedence,
-including an explicit clear.
-
-## Security Best Practices
-
-- **Use TLS** for all production MCP endpoints -- place the server behind a reverse proxy with HTTPS
-- **Enable JWT authentication** for any internet-facing deployment
-- **RBAC enforcement** -- The MCP server respects Superset's role-based access control. Users can only access data their roles permit
-- **Secrets management** -- Store `MCP_JWT_SECRET`, database credentials, and API keys in environment variables or a secrets manager, never in config files committed to version control
-- **Scoped tokens** -- Use `MCP_REQUIRED_SCOPES` to limit what operations a token can perform
-- **Network isolation** -- In Kubernetes, restrict MCP pod network policies to only allow traffic from your AI client endpoints
-- Review the **[Security documentation](/developer-docs/extensions/security)** for additional extension security guidance
-
----
-
-## Next Steps
-
-- **[Using AI with Superset](/user-docs/using-superset/using-ai-with-superset)** -- What AI can do with Superset and how to get started
-- **[MCP Integration](/developer-docs/extensions/mcp)** -- Build custom MCP tools and prompts via Superset extensions
-- **[Security](/developer-docs/extensions/security)** -- Security best practices for extensions
-- **[Deployment](/developer-docs/extensions/deployment)** -- Package and deploy Superset extensions
-
 ## Bullet chart compatibility
 
 The MCP Bullet plugin uses `chart_type: "bullet"` and the native ECharts
@@ -1601,6 +1536,71 @@ pair; `No filter` placeholders do not supply the subject of another active range
 Typed configs support one such pair. Multiple active native temporal filters, or
 conflicts with explicit `temporal_column`/`time_range`, are rejected rather than
 silently dropping or moving a predicate.
+
+## Disabling chart type plugins
+
+The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `treemap_v2`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`, `bullet`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+
+Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
+specification instead of `NoDataError`, matching their unsaved previews.
+
+Gauge data inspection and JSON/CSV/XLSX exports preserve source groups using the same row-count and completeness semantics as other chart types. Shared result normalization converts non-finite floats to null before export: JSON returns null, and CSV and both XLSX writers produce blank cells. These values are indistinguishable from SQL NULL; exports do not retain `nan`, `inf`, or `-inf` text. An overflowing aggregate can therefore appear as a missing value. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
+
+Gauge previews retain data-derived automatic bounds even when configured interval thresholds extend beyond the visible range; Vega previews clip those thresholds into adjacent, non-overlapping bands. Explicit min/max bounds still constrain intervals. All-zero data with both bounds omitted uses a nondegenerate preview range of 0–1. On same-dataset Gauge updates, clearing or changing the dashboard temporal binding preserves user-authored temporal ranges; dataset rebinds discard old query roles and filters. The native `"No filter"` sentinel is a neutral dashboard temporal binding, not a conflicting restriction. Duplicate generated neutral bindings self-heal on updates without removing user-authored ranges. Restating the existing dataset ID without a config is allowed; changing the Gauge dataset still requires a complete config. Native restrictive temporal filters that conflict with the top-level range or another restrictive temporal filter are rejected rather than silently dropped. Unsupported native filter operators are rejected with an indexed error. Native `TEMPORAL_RANGE` adhoc filters require an explicit string comparator; `"No filter"`, empty strings, and whitespace represent an unrestricted range.
+
+### Static deny-list
+
+Set `MCP_DISABLED_CHART_PLUGINS` in your `superset_config.py` to a set of chart type names:
+
+```python
+# superset_config.py
+
+# Emergency kill switch: hide "handlebars" from all callers
+MCP_DISABLED_CHART_PLUGINS = {"handlebars"}
+```
+
+Disabled chart types stay registered but are filtered out at lookup time: they're never listed in `generate_chart`'s supported chart types, and `generate_chart` calls for them are rejected. `get_chart_type_schema` consults its own static schema/example map rather than the registry filter, so a disabled chart type's schema remains queryable through that tool even though `generate_chart` will reject it.
+
+### Dynamic predicate
+
+For per-request control (A/B tests, gradual rollout, entitlement checks), set `MCP_CHART_PLUGIN_ENABLED_FUNC` to a callable. It's evaluated as `enabled_func(chart_type: str) -> bool` on every registry lookup, and it takes precedence over `MCP_DISABLED_CHART_PLUGINS` when set:
+
+```python
+# superset_config.py
+from flask import g
+
+
+def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
+    flags = getattr(g, "feature_flags", {})
+    return flags.get(f"mcp_chart_{chart_type}", True)
+```
+
+The callable must be cheap and in-process (consult already-loaded feature flags or request-local context) -- do not perform network I/O per call. If it raises, the registry fails closed (the plugin is hidden) and logs a warning.
+
+Disabling a plugin only stops new charts of that type from being created. Existing saved charts of that type keep their plugin's query, result-validation and preview behavior in `get_chart_data`, `get_chart_preview` and `get_chart_sql`. Updates through `update_chart` and `update_chart_preview` also retain the plugin's configuration completion, column validation, merge rules, and compile checks. Gauge and Treemap compile checks use a safe 10-row fallback for malformed (including boolean) or nonpositive saved row limits. Malformed Gantt query fields return a validation error rather than a generic data-retrieval error. Funnel Vega-Lite previews return `InvalidFormData` when a stage reference has no resolvable result label. Mixed timeseries queries keep each axis's series grouping separate from the time-axis column. Saved charts with a scalar `groupby` retain the full column name in Waterfall queries and Funnel/Histogram Vega-Lite previews.
+
+Saved Histogram and Gantt charts apply `time_range` to the date column selected
+by `granularity_sqla`. A normalized `granularity` override takes precedence,
+including an explicit clear.
+
+## Security Best Practices
+
+- **Use TLS** for all production MCP endpoints -- place the server behind a reverse proxy with HTTPS
+- **Enable JWT authentication** for any internet-facing deployment
+- **RBAC enforcement** -- The MCP server respects Superset's role-based access control. Users can only access data their roles permit
+- **Secrets management** -- Store `MCP_JWT_SECRET`, database credentials, and API keys in environment variables or a secrets manager, never in config files committed to version control
+- **Scoped tokens** -- Use `MCP_REQUIRED_SCOPES` to limit what operations a token can perform
+- **Network isolation** -- In Kubernetes, restrict MCP pod network policies to only allow traffic from your AI client endpoints
+- Review the **[Security documentation](/developer-docs/extensions/security)** for additional extension security guidance
+
+---
+
+## Next Steps
+
+- **[Using AI with Superset](/user-docs/using-superset/using-ai-with-superset)** -- What AI can do with Superset and how to get started
+- **[MCP Integration](/developer-docs/extensions/mcp)** -- Build custom MCP tools and prompts via Superset extensions
+- **[Security](/developer-docs/extensions/security)** -- Security best practices for extensions
+- **[Deployment](/developer-docs/extensions/deployment)** -- Package and deploy Superset extensions
 
 ### Reporting query dates
 
