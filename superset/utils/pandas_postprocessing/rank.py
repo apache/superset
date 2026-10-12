@@ -32,7 +32,7 @@ def rank(
     :param group_by: The column to group by.
     :return: a flat DataFrame
     """
-    if group_by:
+    if group_by is not None:
         df["rank"] = df.groupby(group_by)[metric].rank(pct=True)
     else:
         df["rank"] = df[metric].rank(pct=True)
