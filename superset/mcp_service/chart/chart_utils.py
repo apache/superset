@@ -810,6 +810,7 @@ _GAUGE_PRESENTATION_FORM_DATA_KEYS = frozenset(
         "round_cap",
         "intervals",
         "interval_color_indices",
+        "interval_colors",
     }
 )
 
@@ -1226,6 +1227,12 @@ def merge_gauge_update_form_data(  # noqa: C901
             patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
 
     merged.update(patch)
+    if (
+        "interval_color_indices" in fields_set
+        and "interval_colors" in existing_form_data
+    ):
+        # Explicit palette indices supersede saved literal interval colors.
+        merged.pop("interval_colors", None)
     if filters_explicit:
         if config.filters == [] and not (temporal_explicit and config.temporal_column):
             merged.pop("adhoc_filters", None)
