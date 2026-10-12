@@ -69,6 +69,11 @@ class UpdateRLSRuleCommand(BaseCommand):
         # Datasource access is validated before revealing whether the
         # requested name is already in use, so an unauthorized caller can't
         # use the duplicate-name response to enumerate rule names.
+        # Any update mutates the rule, including one that rebinds it to other
+        # tables, which lifts the filter from the tables it leaves. The caller
+        # must therefore access the rule's current tables, and the new ones
+        # when ``tables`` is present.
+        raise_for_datasource_access(self._model.tables)
         if "tables" in self._properties:
             tables = (
                 db.session.query(SqlaTable)
@@ -79,12 +84,6 @@ class UpdateRLSRuleCommand(BaseCommand):
                 raise DatasourceNotFoundValidationError()
             raise_for_datasource_access(tables)
             self._properties["tables"] = tables
-        else:
-            # A partial update that omits ``tables`` still mutates the rule, so
-            # enforce datasource access against the rule's existing tables to
-            # avoid letting a caller edit a rule bound to datasources they
-            # cannot access.
-            raise_for_datasource_access(self._model.tables)
 
         name = self._properties.get("name")
         if name and not RLSDAO.validate_uniqueness(name, self._model.id):
