@@ -594,7 +594,9 @@ const baseAggregatorTemplates = {
             }
           },
           value() {
-            return this.sum;
+            // An all-NULL scope has no measured value; keep it blank rather
+            // than rendering the 0 the running sum starts from.
+            return isAllNullScope(this) ? null : this.sum;
           },
           getCurrencies() {
             return Array.from(this.currencySet);
@@ -823,9 +825,13 @@ const baseAggregatorTemplates = {
 
             if (mode === 'mean') {
               if (this.n === 0) {
-                return 0 / 0;
+                return null;
               }
               return this.m;
+            }
+            // Every input was NULL (or the scope is empty): blank, not 0.
+            if (this.n === 0) {
+              return null;
             }
             if (this.n <= ddof) {
               return 0;

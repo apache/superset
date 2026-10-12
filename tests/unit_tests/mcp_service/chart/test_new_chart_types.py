@@ -279,7 +279,7 @@ class TestPivotTableChartConfigSchema:
         assert config.chart_type == "pivot_table"
         assert len(config.rows) == 1
         assert len(config.metrics) == 1
-        assert config.aggregate_function == "Sum"
+        assert config.aggregate_function == "Metric"
         assert config.show_row_totals is True
         assert config.show_column_totals is True
 
@@ -350,7 +350,15 @@ class TestPivotTableChartConfigSchema:
             )
 
     def test_pivot_table_valid_aggregate_functions(self) -> None:
-        for agg in ["Sum", "Average", "Median", "Count", "Minimum", "Maximum"]:
+        for agg in [
+            "Metric",
+            "Sum",
+            "Average",
+            "Median",
+            "Count",
+            "Minimum",
+            "Maximum",
+        ]:
             config = PivotTableChartConfig(
                 chart_type="pivot_table",
                 rows=[ColumnRef(name="product")],
@@ -381,7 +389,7 @@ class TestMapPivotTableConfig:
         assert result["groupbyColumns"] == []
         assert len(result["metrics"]) == 1
         assert result["metrics"][0]["aggregate"] == "SUM"
-        assert result["aggregateFunction"] == "Sum"
+        assert result["aggregateFunction"] == "Metric"
         assert result["rowTotals"] is True
         assert result["colTotals"] is True
         assert result["metricsLayout"] == "COLUMNS"
