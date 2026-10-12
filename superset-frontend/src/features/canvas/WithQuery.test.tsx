@@ -19,14 +19,20 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import WithQuery from './WithQuery';
 
-test('shows the query that ran, with a copy button', async () => {
+test('shows the query that ran from the chart menu', async () => {
   render(
-    <WithQuery query="SELECT country FROM sales" language="sql">
+    <WithQuery
+      query="SELECT country FROM sales"
+      language="sql"
+      datasource="13__table"
+    >
       <div>chart</div>
     </WithQuery>,
+    { useRedux: true, useRouter: true },
   );
 
-  await userEvent.click(screen.getByRole('button', { name: 'View query' }));
+  await userEvent.click(screen.getByRole('button', { name: 'More Options' }));
+  await userEvent.click(await screen.findByText('View query'));
 
   expect(await screen.findByRole('dialog')).toHaveTextContent(
     'SELECT country FROM sales',
@@ -42,5 +48,5 @@ test('offers nothing when the user may not see the query', () => {
   );
 
   expect(screen.getByText('chart')).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'View query' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'More Options' })).toBeNull();
 });

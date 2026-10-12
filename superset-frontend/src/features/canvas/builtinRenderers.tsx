@@ -96,7 +96,7 @@ const Markdown = styled.div`
 const MarkdownRenderer = (widget: Props) => {
   const { props, filters, refreshKey } = widget;
   const binding = props?.dataBinding as DataBinding | undefined;
-  const { rows, error, query, language } = useWidgetRows(
+  const { rows, error, query, language, datasource } = useWidgetRows(
     widget,
     filters,
     refreshKey,
@@ -104,7 +104,7 @@ const MarkdownRenderer = (widget: Props) => {
 
   const content = text(props?.content);
   return (
-    <WithQuery query={query} language={language}>
+    <WithQuery query={query} language={language} datasource={datasource}>
       <Markdown>
         <SafeMarkdown
           source={

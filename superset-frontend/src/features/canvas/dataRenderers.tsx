@@ -57,7 +57,7 @@ const text = (value: unknown): string =>
 /** The first row's value of the tile's metric, as a big number. */
 export function MetricTileRenderer(widget: Props) {
   const { props, filters, refreshKey } = widget;
-  const { rows, loading, error, query, language } = useWidgetRows(
+  const { rows, loading, error, query, language, datasource } = useWidgetRows(
     widget,
     filters,
     refreshKey,
@@ -69,7 +69,7 @@ export function MetricTileRenderer(widget: Props) {
   const value = column ? (row[column] as number) : undefined;
   const decimals = typeof props?.decimals === 'number' ? props.decimals : 0;
   return (
-    <WithQuery query={query} language={language}>
+    <WithQuery query={query} language={language} datasource={datasource}>
       <Tile>
         <BigNumber>
           {value === undefined
@@ -95,7 +95,7 @@ interface ColumnDef {
 /** The query's rows as a table; `columnDefs` picks and names the columns. */
 export function TableRenderer(widget: Props) {
   const { props, filters, refreshKey } = widget;
-  const { rows, loading, error, query, language } = useWidgetRows(
+  const { rows, loading, error, query, language, datasource } = useWidgetRows(
     widget,
     filters,
     refreshKey,
@@ -118,13 +118,13 @@ export function TableRenderer(widget: Props) {
   if (error) return <Typography.Text type="danger">{error}</Typography.Text>;
   if (!loading && rows.length === 0) {
     return (
-      <WithQuery query={query} language={language}>
+      <WithQuery query={query} language={language} datasource={datasource}>
         <Empty description={t('No data')} />
       </WithQuery>
     );
   }
   return (
-    <WithQuery query={query} language={language}>
+    <WithQuery query={query} language={language} datasource={datasource}>
       <Table
         data={rows.map((row, index) => ({ key: index, ...row }))}
         columns={columns}

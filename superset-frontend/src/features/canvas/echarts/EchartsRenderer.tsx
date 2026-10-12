@@ -121,7 +121,11 @@ export default function EchartsRenderer(widget: canvasApi.CanvasWidgetProps) {
 
   const message = data.error ?? error;
   return (
-    <WithQuery query={data.query} language={data.language}>
+    <WithQuery
+      query={data.query}
+      language={data.language}
+      datasource={data.datasource}
+    >
       {message ? (
         <Message>{t('This chart could not be drawn: %s', message)}</Message>
       ) : (

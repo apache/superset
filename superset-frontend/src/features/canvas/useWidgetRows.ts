@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
 import { getClientErrorObject } from '@superset-ui/core';
 import {
@@ -32,6 +32,8 @@ export const CanvasDraftContext = createContext<string | undefined>(undefined);
 export interface WidgetRows extends PlacementData {
   loading: boolean;
   error?: string;
+  /** The binding's dataset as `<id>__table`, for opening it elsewhere. */
+  datasource?: string;
 }
 
 /**
@@ -90,5 +92,7 @@ export function useWidgetRows(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvasId, nodeId, key, refreshKey]);
 
-  return state;
+  const datasource = bound ? `${binding?.datasetId}__table` : undefined;
+  // Stable between renders, so callers can depend on it in effects.
+  return useMemo(() => ({ ...state, datasource }), [state, datasource]);
 }

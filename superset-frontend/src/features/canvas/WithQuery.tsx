@@ -16,20 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useState } from 'react';
+import { ReactNode, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
-import { Button, Icons, Modal } from '@superset-ui/core/components';
-import CodeSyntaxHighlighter, {
-  SupportedLanguage,
-} from '@superset-ui/core/components/CodeSyntaxHighlighter';
-import { CopyToClipboard } from 'src/components';
+import {
+  Button,
+  ModalTrigger,
+  NoAnimationDropdown,
+} from '@superset-ui/core/components';
+import type { ModalTriggerRef } from '@superset-ui/core/components/ModalTrigger';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
+import type { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
+import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
 const Frame = styled.div`
   position: relative;
   height: 100%;
 
-  .canvas-view-query {
+  .canvas-widget-controls {
     position: absolute;
     top: 0;
     right: 0;
@@ -37,85 +42,108 @@ const Frame = styled.div`
     opacity: 0;
   }
 
-  &:hover .canvas-view-query,
-  &:focus-within .canvas-view-query {
+  &:hover .canvas-widget-controls,
+  &:focus-within .canvas-widget-controls,
+  .canvas-widget-controls.ant-dropdown-open {
     opacity: 1;
   }
 `;
 
-const Footer = styled.div`
-  ${({ theme }) => css`
-    margin-top: ${theme.sizeUnit * 3}px;
-  `}
-`;
-
+const VIEW_QUERY = 'view_query';
 const LANGUAGES: SupportedLanguage[] = ['sql', 'htmlbars', 'markdown', 'json'];
 
 export interface WithQueryProps {
   /** The query that produced the widget's data, when the user may see it. */
   query?: string;
   language?: string;
+  /** The widget's dataset, `<id>__table`, for opening the query in SQL Lab. */
+  datasource?: string;
   children: ReactNode;
 }
 
 /**
- * A data widget with a "View query" action showing the query its data came
- * from, as the server ran it for this user: current filters and row level
- * security included.
+ * A data widget with the dashboard chart menu, holding "View query": the
+ * query its data came from, as the server ran it for this user, current
+ * filters and row level security included.
  */
 export default function WithQuery({
   query,
   language,
+  datasource = '',
   children,
 }: WithQueryProps) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
+  const queryModal = useRef<ModalTriggerRef['current']>(null);
   if (!query) return <>{children}</>;
-  const highlight = LANGUAGES.find(supported => supported === language);
+
+  const items: MenuItem[] = [
+    {
+      key: VIEW_QUERY,
+      label: (
+        <ModalTrigger
+          ref={queryModal}
+          triggerNode={
+            <div data-test="view-query-menu-item">{t('View query')}</div>
+          }
+          modalTitle={t('View query')}
+          modalBody={
+            <ViewQuery
+              sql={query}
+              datasource={datasource}
+              language={
+                LANGUAGES.find(supported => supported === language) ?? 'sql'
+              }
+            />
+          }
+          draggable
+          resizable
+          responsive
+        />
+      ),
+    },
+  ];
+
   return (
     <Frame>
       {children}
-      <Button
-        className="canvas-view-query"
-        buttonStyle="link"
-        buttonSize="small"
-        aria-label={t('View query')}
-        icon={<Icons.ConsoleSqlOutlined iconSize="m" />}
-        onClick={() => setOpen(true)}
-      />
-      <Modal
-        show={open}
-        onHide={() => setOpen(false)}
-        title={t('View query')}
-        footer={null}
-        responsive
-      >
-        {highlight ? (
-          <CodeSyntaxHighlighter
-            language={highlight}
-            customStyle={{ fontSize: theme.fontSizeSM }}
-          >
-            {query}
-          </CodeSyntaxHighlighter>
-        ) : (
-          <pre>{query}</pre>
-        )}
-        <Footer>
-          <CopyToClipboard
-            text={query}
-            shouldShowText={false}
-            copyNode={
-              <Button
-                buttonStyle="secondary"
-                buttonSize="small"
-                icon={<Icons.CopyOutlined />}
-              >
-                {t('Copy')}
-              </Button>
-            }
+      <NoAnimationDropdown
+        popupRender={() => (
+          <Menu
+            selectable={false}
+            items={items}
+            onClick={({ key, domEvent }) => {
+              if (key === VIEW_QUERY && !queryModal.current?.showModal) {
+                queryModal.current?.open(domEvent);
+              }
+              setOpen(false);
+            }}
           />
-        </Footer>
-      </Modal>
+        )}
+        trigger={['click']}
+        placement="bottomRight"
+        open={open}
+        onOpenChange={setOpen}
+      >
+        <Button
+          className="canvas-widget-controls"
+          buttonStyle="link"
+          aria-label={t('More Options')}
+          aria-haspopup="true"
+          css={css`
+            width: ${theme.sizeUnit * 8}px;
+            height: ${theme.sizeUnit * 8}px;
+            padding: 0;
+          `}
+        >
+          <Icons.EllipsisOutlined
+            iconSize="xl"
+            css={css`
+              transform: rotate(90deg);
+            `}
+          />
+        </Button>
+      </NoAnimationDropdown>
     </Frame>
   );
 }
