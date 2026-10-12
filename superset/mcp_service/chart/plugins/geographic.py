@@ -590,6 +590,7 @@ class WorldMapChartPlugin(GeographicChartPlugin):
         form_data: Mapping[str, Any],
         dataset_id: int | str | None,
         dataset_context: Any = None,
+        update_config: Any = None,
     ) -> Any | None:
         """Reject merged color and bubble metrics that share a label.
 
@@ -689,6 +690,7 @@ class DeckScatterChartPlugin(GeographicChartPlugin):
         form_data: Mapping[str, Any],
         dataset_id: int | str | None,
         dataset_context: Any = None,
+        update_config: Any = None,
     ) -> Any | None:
         """Reject effective roles that conflict with native spatial features.
 

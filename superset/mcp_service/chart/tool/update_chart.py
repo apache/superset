@@ -569,7 +569,9 @@ def _validate_update_against_dataset(  # noqa: C901
     try:
         merged_plugin = plugin_for_viz_type(form_data.get("viz_type"))
         merged_config = (
-            merged_plugin.validate_merged_form_data(form_data, dataset.id)
+            merged_plugin.validate_merged_form_data(
+                form_data, dataset.id, update_config=parsed_config
+            )
             if merged_plugin is not None
             else None
         )
