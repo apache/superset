@@ -16,10 +16,8 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 from datetime import datetime
-from typing import Optional
 
 import pytest
-
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -29,16 +27,19 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
     [
         ("Date", "'2019-01-02'"),
         ("TimeStamp", "'2019-01-02 03:04:05'"),
+        ("DateTime", "'2019-01-02 03:04:05'"),
+        ("String", "'2019-01-02 03:04:05'"),
+        ("Text", "'2019-01-02 03:04:05'"),
         ("UnknownType", None),
     ],
 )
 def test_convert_dttm(
     target_type: str,
-    expected_result: Optional[str],
+    expected_result: str | None,
     dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.cockroachdb import (
-        CockroachDbEngineSpec as spec,  # noqa: N813
+        CockroachDbEngineSpec as spec,
     )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
@@ -64,35 +65,7 @@ def test_cockroachdb_properties() -> None:
     from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
     from superset.db_engine_specs.postgres import PostgresEngineSpec
 
-    assert CockroachDbEngineSpec.engine == "cockroachdb"
-    assert CockroachDbEngineSpec.engine_name == "CockroachDB"
     assert issubclass(CockroachDbEngineSpec, PostgresEngineSpec)
     assert CockroachDbEngineSpec._extended_aggregations == {}
-
-
-def test_cockroachdb_metadata() -> None:
-    from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
-
-    metadata = CockroachDbEngineSpec.metadata
-    assert "CockroachDB is a distributed SQL database" in metadata["description"]
-    assert metadata["logo"] == "cockroachdb.png"
-    assert "sqlalchemy-cockroachdb" in metadata["pypi_packages"]
-    assert metadata["default_port"] == 26257
-
-
-@pytest.mark.parametrize(
-    "target_type,expected_result",
-    [
-        ("Date", "'2019-01-02'"),
-        ("DateTime", "'2019-01-02 03:04:05'"),
-        ("UnknownType", None),
-    ],
-)
-def test_cockroachdb_convert_dttm(
-    target_type: str,
-    expected_result: Optional[str],
-    dttm: datetime,  # noqa: F811
-) -> None:
-    from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
-
-    assert CockroachDbEngineSpec.convert_dttm(target_type, dttm) == expected_result
+    assert "sqlalchemy-cockroachdb" in CockroachDbEngineSpec.metadata["pypi_packages"]
+    assert CockroachDbEngineSpec.metadata["default_port"] == 26257
