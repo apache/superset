@@ -45,6 +45,7 @@ from superset.mcp_service.chart.datasource_resolver import (
     validate_semantic_view_form_data,
     view_not_found_error,
 )
+from superset.mcp_service.chart.registry import get_registry
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
 )
@@ -312,8 +313,10 @@ async def generate_explore_link(  # noqa: C901
                 normalized_config,
                 form_data,
                 dataset,
-                run_compile_check=normalized_config.chart_type
-                in ("gauge", "treemap_v2"),
+                run_compile_check=bool(
+                    (plugin := get_registry().get(normalized_config.chart_type))
+                    and plugin.requires_compile_check
+                ),
             )
         if not compile_result.success:
             await ctx.warning(

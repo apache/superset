@@ -69,6 +69,7 @@ def _mock_view(view_id: int = 7, name: str = "Jaffle Shop") -> Mock:
 class TestResolveSemanticView:
     def test_resolves_through_the_explorable_registry(self) -> None:
         view: Mock = _mock_view()
+        get_datasource: Mock
         with patch(GET_DATASOURCE, return_value=view) as get_datasource:
             target: ChartDatasource | None = resolve_semantic_view(7)
 
@@ -153,6 +154,9 @@ def test_denied_view_does_not_read_metadata_or_fall_back_to_table() -> None:
             error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
         )
     )
+    table_lookup: Mock
+    columns: PropertyMock
+    metrics: PropertyMock
     with (
         patch(GET_DATASOURCE, return_value=view),
         patch("superset.daos.dataset.DatasetDAO.find_by_id") as table_lookup,
@@ -174,6 +178,7 @@ def test_denied_view_does_not_read_metadata_or_fall_back_to_table() -> None:
 def test_uuid_view_uses_only_semantic_registry_lookup() -> None:
     """Resolve UUIDs within the explicitly selected family."""
     identity: UUID = UUID("60bbdebe-f30c-4699-88dc-cbe7355fb4c1")
+    lookup: Mock
     with patch(GET_DATASOURCE, return_value=_mock_view(1)) as lookup:
         target: ChartDatasource | None = resolve_semantic_view(identity)
     assert target is not None

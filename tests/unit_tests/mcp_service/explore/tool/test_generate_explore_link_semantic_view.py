@@ -37,6 +37,7 @@ FORM_DATA_KEY: str = (
 
 @pytest.fixture(autouse=True)
 def _mock_auth() -> Iterator[None]:
+    mock_get_user: Mock
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         user: Mock = Mock()
         user.id = 1
@@ -87,6 +88,7 @@ LINE_CONFIG: dict[str, Any] = {
 
 
 async def _call(request: dict[str, Any]) -> dict[str, Any]:
+    client: Client
     async with Client(mcp) as client:
         result: CallToolResult = await client.call_tool(
             "generate_explore_link", {"request": request}
@@ -97,6 +99,8 @@ async def _call(request: dict[str, Any]) -> dict[str, Any]:
 
 @pytest.mark.asyncio
 async def test_view_id_builds_a_semantic_view_explore_link() -> None:
+    get_datasource: Mock
+    find_dataset: Mock
     with (
         patch(GET_DATASOURCE, return_value=_mock_view()) as get_datasource,
         patch("superset.daos.dataset.DatasetDAO.find_by_id") as find_dataset,
@@ -180,6 +184,8 @@ async def test_implicit_aggregate_cannot_bypass_semantic_validation() -> None:
         **LINE_CONFIG,
         "y": [{"name": "metric_time", "label": "Implicit metric"}],
     }
+    permalink: Mock
+    cache: Mock
     with (
         patch(GET_DATASOURCE, return_value=_mock_view()),
         patch(PERMALINK) as permalink,
@@ -205,6 +211,8 @@ async def test_sunburst_rejects_non_temporal_view_column_before_cache() -> None:
         "temporal_column": "metric_time",
         "time_grain": "P1M",
     }
+    permalink: Mock
+    cache: Mock
     with (
         patch(GET_DATASOURCE, return_value=view),
         patch(PERMALINK, return_value="bad-link") as permalink,
@@ -223,6 +231,7 @@ async def test_permalink_failure_falls_back_to_a_semantic_view_form_data_key() -
         ExplorePermalinkCreateFailedError,
     )
 
+    create_form_data: Mock
     with (
         patch(GET_DATASOURCE, return_value=_mock_view()),
         patch(PERMALINK, side_effect=ExplorePermalinkCreateFailedError("no")),

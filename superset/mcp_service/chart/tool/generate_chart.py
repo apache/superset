@@ -136,10 +136,10 @@ async def generate_chart(  # noqa: C901
     - For semantic views pass view_id (UUID or legacy ID), not dataset_id.
       The two ID spaces are unrelated. Use saved metrics and named dimensions;
       ad-hoc aggregation and SQL metrics are not supported on semantic views.
-    - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
+    - MUST include chart_type in config (one of: 'xy', 'table', 'pie', 'bullet',
       'sunburst', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', 'mixed_timeseries',
       'handlebars', 'big_number', 'histogram', 'box_plot', 'waterfall',
-      'gantt', plus host-gated
+      'gantt', 'country_map', 'world_map', 'deck_scatter', plus host-gated
       types returned by get_chart_type_schema such as 'interactive_pivot')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
@@ -154,6 +154,7 @@ async def generate_chart(  # noqa: C901
     - "bar chart" / "line chart" / "area chart" / "scatter plot"
       -> chart_type='xy', kind='bar'/'line'/'area'/'scatter'
     - "pie chart" / "donut chart" -> chart_type='pie'
+    - "bullet chart" / "progress against target" -> chart_type='bullet'
     - "sunburst" / "hierarchical rings" -> chart_type='sunburst'
     - "table" / "data grid" -> chart_type='table'
     - "pivot table" / "cross-tab" -> chart_type='pivot_table'
@@ -250,8 +251,11 @@ async def generate_chart(  # noqa: C901
                     is_valid=valid, request=request, error=semantic_error
                 )
             else:
+                # Preserve omitted controls through schema revalidation.
+                request_data: dict[str, Any] = request.model_dump(exclude_unset=True)
+                request_data["config"]["chart_type"] = request.config.chart_type
                 validation_result = ValidationPipeline.validate_request_with_warnings(
-                    request.model_dump()
+                    request_data
                 )
 
             if validation_result.is_valid and validation_result.request is not None:

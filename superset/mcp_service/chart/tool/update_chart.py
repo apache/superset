@@ -60,6 +60,7 @@ from superset.mcp_service.chart.compile import (
     validate_and_compile,
 )
 from superset.mcp_service.chart.datasource_resolver import (
+    build_context_from_explorable,
     ChartDatasource,
     normalize_semantic_gantt_form_data,
     resolve_semantic_view,
@@ -109,16 +110,23 @@ def _finalize_response(payload: object) -> GenerateChartResponse:
 
 
 def _get_existing_form_data(chart: Any) -> dict[str, Any]:
-    """Return a chart's saved form data, treating malformed params as empty."""
-    if not getattr(chart, "params", None):
-        return {}
-    try:
-        parsed = json.loads(chart.params)
-    except (ValueError, TypeError):
-        parsed = None
-    if not isinstance(parsed, dict):
-        logger.warning("Failed to parse existing chart.params for chart %s", chart.id)
-        return {}
+    """Return saved form data with a chart-level visualization fallback."""
+    parsed: dict[str, Any] = {}
+    if getattr(chart, "params", None):
+        try:
+            value = json.loads(chart.params)
+        except (ValueError, TypeError):
+            value = None
+        if isinstance(value, dict):
+            parsed = value
+        else:
+            logger.warning(
+                "Failed to parse existing chart.params for chart %s", chart.id
+            )
+    if not parsed.get("viz_type") and isinstance(
+        viz_type := getattr(chart, "viz_type", None), str
+    ):
+        parsed["viz_type"] = viz_type
     return parsed
 
 
@@ -303,6 +311,33 @@ def _rebind_target(
     )
 
 
+def _map_replacement_config(
+    existing_form_data: dict[str, Any],
+    parsed_config: Any,
+    effective_dataset_id: int | None,
+    temporal_columns: set[str] | None = None,
+) -> dict[str, Any]:
+    """Map a replacement config, allowing a disabled type only in place.
+
+    Disabled chart types remain editable when the saved chart already uses
+    them, but a different chart may not be converted into one.
+    """
+    saved_plugin: ChartTypePlugin | None = plugin_for_viz_type(
+        existing_form_data.get("viz_type")
+    )
+    new_form_data: dict[str, Any] = map_config_to_form_data(
+        parsed_config,
+        dataset_id=effective_dataset_id,
+        include_disabled=(
+            saved_plugin is not None
+            and saved_plugin.chart_type == parsed_config.chart_type
+        ),
+        temporal_columns=temporal_columns,
+    )
+    new_form_data.pop("_mcp_warnings", None)
+    return new_form_data
+
+
 def _source_rebind_payload(
     chart: Slice, rebind_id: int, rebind_type: str
 ) -> dict[str, Any]:
@@ -343,12 +378,13 @@ def _dataset_rebind_config_error(chart: Any) -> GenerateChartResponse:
     """Require complete target roles rather than returning an empty query."""
     plugin = plugin_for_viz_type(getattr(chart, "viz_type", None))
     display_name = plugin.display_name if plugin is not None else "Chart"
+    roles = plugin.dataset_rebind_roles if plugin is not None else "roles"
     return _validation_error_response(
         message=(
             f"{display_name} dataset rebind requires a complete {display_name} config."
         ),
         details=(
-            "Provide the chart type and complete roles valid on the target "
+            f"Provide the chart type and complete {roles} valid on the target "
             "dataset. This prevents stale metric, groupby, and filter roles "
             "from the previous dataset from being retained."
         ),
@@ -378,16 +414,13 @@ def _build_update_payload(  # noqa: C901
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
+        existing_form_data = _get_existing_form_data(chart)
+        new_form_data = _map_replacement_config(
+            existing_form_data,
             parsed_config,
-            dataset_id=effective_dataset_id
-            if rebind_type == DatasourceType.TABLE.value
-            else None,
-            include_disabled=True,
+            effective_dataset_id if rebind_type == DatasourceType.TABLE.value else None,
             temporal_columns=temporal_columns,
         )
-        new_form_data.pop("_mcp_warnings", None)
-        existing_form_data = _get_existing_form_data(chart)
         dataset_rebind = is_rebind
         if not dataset_rebind:
             merge_table_column_config(existing_form_data, new_form_data)
@@ -500,15 +533,12 @@ def _build_preview_form_data(  # noqa: C901
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
+        new_form_data = _map_replacement_config(
+            existing_form_data,
             parsed_config,
-            dataset_id=effective_dataset_id
-            if rebind_type == DatasourceType.TABLE.value
-            else None,
-            include_disabled=True,
+            effective_dataset_id if rebind_type == DatasourceType.TABLE.value else None,
             temporal_columns=temporal_columns,
         )
-        new_form_data.pop("_mcp_warnings", None)
         dataset_rebind = is_rebind
         if not dataset_rebind:
             merge_table_column_config(existing_form_data, new_form_data)
@@ -631,7 +661,9 @@ def _validate_update_against_dataset(  # noqa: C901
     try:
         merged_plugin = plugin_for_viz_type(form_data.get("viz_type"))
         merged_config = (
-            merged_plugin.validate_merged_form_data(form_data, dataset.id)
+            merged_plugin.validate_merged_form_data(
+                form_data, dataset.id, update_config=parsed_config
+            )
             if merged_plugin is not None
             else None
         )
@@ -701,6 +733,26 @@ def _validate_update_against_semantic_view(
                 "api_version": "v1",
             }
         )
+    plugin: ChartTypePlugin | None = plugin_for_viz_type(form_data.get("viz_type"))
+    try:
+        # Config updates can inherit omitted roles; source-only rebinds retain
+        # native saved shapes validated by validate_semantic_view_form_data.
+        merged_config: ChartConfig | None = (
+            plugin.validate_merged_form_data(
+                form_data,
+                target.id,
+                dataset_context=lambda: build_context_from_explorable(target),
+                update_config=parsed_config,
+            )
+            if plugin is not None and parsed_config is not None
+            else None
+        )
+    except ValueError as ex:
+        return _validation_error_response(
+            message="Chart configuration is invalid", details=str(ex)
+        )
+    if merged_config is not None:
+        parsed_config = merged_config
     error: ChartGenerationError | None = None
     if parsed_config is not None:
         is_valid: bool
@@ -971,17 +1023,7 @@ async def update_chart(  # noqa: C901
             and saved_plugin is not None
             and saved_plugin.requires_config_for_dataset_rebind
         ):
-            return _validation_error_response(
-                message=(
-                    f"{saved_plugin.display_name} dataset rebind requires a "
-                    f"complete {saved_plugin.display_name} config."
-                ),
-                details=(
-                    "Provide the chart type and complete roles valid on the target "
-                    "dataset. This prevents stale metric, groupby, and filter roles "
-                    "from the previous dataset from being retained."
-                ),
-            )
+            return _dataset_rebind_config_error(chart)
         if _is_dataset_rebind(request, chart) and request.config is None:
             if request.add_columns is not None:
                 return _add_columns_rebind_error()

@@ -83,6 +83,85 @@ def _view_config() -> XYChartConfig:
     )
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("preview_mode", [False, True])
+@pytest.mark.parametrize("conflicting", [False, True])
+async def test_semantic_update_validates_retained_coordinate_dimension(
+    mocker: MockerFixture, preview_mode: bool, conflicting: bool
+) -> None:
+    """A retained category cannot become the coordinate of the updated chart."""
+    chart: Mock = _chart(7, "semantic_view")
+    chart.uuid = None
+    chart.viz_type = "deck_scatter"
+    chart.params = json.dumps(
+        {
+            "viz_type": "deck_scatter",
+            "datasource": "7__semantic_view",
+            "spatial": {"type": "latlong", "latCol": "lat", "lonCol": "lon"},
+            "dimension": "region",
+        }
+    )
+    view: Mock = Mock(
+        columns=[
+            Mock(column_name=name, type="DOUBLE", is_dttm=False)
+            for name in ("lat", "lon", "region")
+        ],
+        metrics=[],
+    )
+    target: ChartDatasource = ChartDatasource(
+        view, DatasourceType.SEMANTIC_VIEW, 7, "Locations"
+    )
+    mocker.patch.object(
+        update_chart_module, "find_chart_by_identifier", return_value=chart
+    )
+    mocker.patch.object(
+        update_chart_module, "resolve_semantic_view", return_value=target
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="owner", roles=[], groups=[]),
+    )
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    compile_query: MagicMock = mocker.patch.object(
+        update_chart_module, "_compile_chart", return_value=CompileResult(success=True)
+    )
+    preview: MagicMock = mocker.patch.object(
+        update_chart_module,
+        "_create_preview_url",
+        return_value=("http://localhost/explore/?form_data_key=key", "key", []),
+    )
+    write: MagicMock = mocker.patch("superset.commands.chart.update.UpdateChartCommand")
+    write.return_value.run.return_value = chart
+    request: UpdateChartRequest = UpdateChartRequest.model_validate(
+        {
+            "identifier": 12,
+            "config": {
+                "chart_type": "deck_scatter",
+                "latitude": {"name": "region" if conflicting else "lat"},
+                "longitude": {"name": "lon"},
+            },
+            "generate_preview": preview_mode,
+            "preview_formats": [],
+        }
+    )
+    response: GenerateChartResponse = await update_chart_module.update_chart(
+        request,
+        ctx=MagicMock(info=AsyncMock(), debug=AsyncMock(), report_progress=AsyncMock()),
+    )
+    if not conflicting:
+        assert response.success, response.error
+        compile_query.assert_called_once()
+        assert preview.called is preview_mode
+        assert write.called is (not preview_mode)
+        return
+    assert not response.success
+    assert response.error is not None
+    assert "reuses a coordinate column" in response.error.details
+    compile_query.assert_not_called()
+    preview.assert_not_called()
+    write.assert_not_called()
+
+
 class TestRebindTarget:
     def test_view_id_targets_a_semantic_view(self) -> None:
         request: UpdateChartRequest = UpdateChartRequest(identifier=12, view_id=5)
@@ -194,6 +273,8 @@ class TestValidateUpdateAgainstTarget:
             id=5,
             name="Jaffle Shop",
         )
+        resolve: Mock
+        find_dataset: Mock
         with (
             patch.object(
                 update_chart_module, "resolve_semantic_view", return_value=target
@@ -265,6 +346,8 @@ def test_semantic_to_table_rebind_compiles_retained_state() -> None:
     assert isinstance(payload, dict)
     form_data: dict[str, Any] = json.loads(payload["params"])
     assert form_data["datasource"] == "3__table"
+    validate: Mock
+    access: Mock
     with (
         patch.object(
             update_chart_module, "_validate_update_against_dataset", return_value=None
