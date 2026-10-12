@@ -41,6 +41,7 @@ from werkzeug.exceptions import NotFound
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
@@ -352,13 +353,15 @@ def test_raise_for_access_guest_user_deck_multi_child_requires_child_datasource(
         return_value=False,
     )
 
-    child_datasource = mocker.MagicMock()
-    other_datasource = mocker.MagicMock()
+    child_datasource: MagicMock = mocker.MagicMock(id=7, type="table")
+    other_datasource: MagicMock = mocker.MagicMock(id=8, type="table")
 
     parent_slc = mocker.MagicMock()
     parent_slc.params = json.dumps({"viz_type": "deck_multi", "deck_slices": [42]})
     child_slc = mocker.MagicMock()
     child_slc.datasource = child_datasource
+    child_slc.datasource_id = 7
+    child_slc.datasource_type = "table"
 
     dashboard = mocker.MagicMock()
     dashboard.slices = [parent_slc]
@@ -1958,7 +1961,8 @@ def _native_filter_ctx(
         "native_filter_id": native_filter_id,
         "dashboardId": dashboard_id,
     }
-    qc.datasource.data = {"id": dataset_id}
+    qc.datasource.id = dataset_id
+    qc.datasource.type = "table"
     qc.queries = queries
     dash = mocker.MagicMock()
     dash.json_metadata = json.dumps(
@@ -5622,3 +5626,486 @@ def test_reset_password_self_service_commits_cleared_flag(
     mock_clear.assert_called_once_with(5)
     # One commit for the session-invalidation stamp, one for the cleared flag.
     assert mock_commit.call_count == 2
+
+
+@pytest.mark.parametrize("granted", [True, False])
+def test_raise_for_access_never_reads_queries_for_non_guest(
+    mocker: MockerFixture,
+    app_context: None,
+    granted: bool,
+) -> None:
+    """
+    Pin the invariant the chart-data semantic preflight relies on: for a
+    non-guest caller, ``raise_for_access`` decides from the datasource and form
+    data alone and never reads ``query_context.queries``.
+    """
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=granted)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+
+    query_context: MagicMock = mocker.MagicMock()
+    # A consistent saved chart, so a payload comparison would reach the queries
+    # rather than stopping at a slice mismatch.
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {}
+    query_context.form_data = {"slice_id": 42}
+    type(query_context).queries = mocker.PropertyMock(
+        side_effect=AssertionError("raise_for_access read query_context.queries")
+    )
+
+    if granted:
+        sm.raise_for_access(query_context=query_context)
+    else:
+        with pytest.raises(SupersetSecurityException):
+            sm.raise_for_access(query_context=query_context)
+
+
+_DASHBOARD_ID: int = 7
+_VIEW_ID: int = 1
+_OTHER_VIEW_ID: int = 2
+
+
+def _chart(mocker: MockerFixture, chart_id: int, datasource_id: int) -> MagicMock:
+    """A saved chart on the given semantic view."""
+    chart: MagicMock = mocker.MagicMock(
+        id=chart_id, datasource_id=datasource_id, datasource_type="semantic_view"
+    )
+    return chart
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["native-filter", "chart", "multilayer-child", "drill-to-detail", "drill-by"],
+)
+def test_raise_for_access_dashboard_paths_never_read_queries_for_non_guest(
+    mocker: MockerFixture,
+    app_context: None,
+    path: str,
+) -> None:
+    """
+    Extend the non-guest invariant to the dashboard, viewer and drill branches.
+
+    Each case passes every earlier check on its branch and is refused only by
+    that branch's last check, which a spy proves was reached, so a read of
+    ``query_context.queries`` anywhere along the branch would fail the test.
+    """
+    from superset.models.dashboard import Dashboard
+    from superset.security import manager as manager_module
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=True)
+    mocker.patch.object(sm, "can_access_dashboard", return_value=True)
+    mocker.patch.object(sm, "_validate_child_in_parent_multilayer", return_value=True)
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    mocker.patch.dict(current_app.config, {"VIEWER_PROMISCUOUS_MODE": True})
+    matches: MagicMock = mocker.patch.object(
+        manager_module,
+        "_datasource_matches",
+        wraps=manager_module._datasource_matches,
+    )
+
+    datasource: MagicMock = mocker.MagicMock(
+        id=_VIEW_ID, type="semantic_view", perm="[view](id:1)"
+    )
+    datasource.has_drill_by_columns.return_value = False
+    own_chart: MagicMock = _chart(mocker, 42, _VIEW_ID)
+    foreign_chart: MagicMock = _chart(mocker, 42, _OTHER_VIEW_ID)
+    parent_chart: MagicMock = _chart(mocker, 43, _OTHER_VIEW_ID)
+    native_filters: list[dict[str, Any]] = [
+        {
+            "id": "f",
+            "targets": [
+                {"datasetId": _OTHER_VIEW_ID, "datasourceType": "semantic_view"}
+            ],
+        }
+    ]
+
+    form_data: dict[str, Any]
+    charts: dict[int, MagicMock]
+    if path == "native-filter":
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "type": "NATIVE_FILTER",
+            "native_filter_id": "f",
+        }
+        charts = {}
+    elif path == "chart":
+        form_data = {"dashboardId": _DASHBOARD_ID, "slice_id": 42}
+        charts = {42: foreign_chart}
+    elif path == "multilayer-child":
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "slice_id": 42,
+            "parent_slice_id": 43,
+        }
+        charts = {42: foreign_chart, 43: parent_chart}
+    elif path == "drill-to-detail":
+        form_data = {"dashboardId": _DASHBOARD_ID}
+        charts = {}
+    else:
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "slice_id": 0,
+            "chart_id": 42,
+            "groupby": ["a"],
+        }
+        charts = {42: own_chart}
+
+    dashboard: MagicMock = mocker.MagicMock(
+        id=_DASHBOARD_ID,
+        json_metadata=json.dumps({"native_filter_configuration": native_filters}),
+        slices=list(charts.values()),
+    )
+    dashboard.has_member_datasource.return_value = False
+
+    def query(model: Any) -> MagicMock:
+        """Resolve ``Model.id == <value>`` lookups against the fixtures."""
+        rows: dict[int, MagicMock] = (
+            {_DASHBOARD_ID: dashboard} if model is Dashboard else charts
+        )
+        chain: MagicMock = mocker.MagicMock()
+        chain.filter.side_effect = lambda clause: mocker.MagicMock(
+            one_or_none=lambda: rows.get(clause.right.value)
+        )
+        return chain
+
+    mocker.patch.object(
+        SupersetSecurityManager,
+        "session",
+        new_callable=mocker.PropertyMock,
+        return_value=mocker.MagicMock(query=query),
+    )
+
+    query_context: MagicMock = mocker.MagicMock()
+    query_context.datasource = datasource
+    query_context.form_data = form_data
+    type(query_context).queries = mocker.PropertyMock(
+        side_effect=AssertionError("raise_for_access read query_context.queries")
+    )
+
+    excinfo: pytest.ExceptionInfo[SupersetSecurityException]
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query_context=query_context)
+
+    assert (
+        excinfo.value.error.error_type
+        == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
+    )
+    # Prove each case reached its branch's final check.
+    if path == "drill-by":
+        datasource.has_drill_by_columns.assert_called_once_with(["a"])
+    elif path == "drill-to-detail":
+        dashboard.has_member_datasource.assert_called_once_with(datasource)
+    else:
+        matches.assert_any_call(datasource, _OTHER_VIEW_ID, "semantic_view")
+
+
+@pytest.mark.parametrize("dashboard_granted", [True, False])
+@pytest.mark.parametrize("path", ["drill-to-detail", "drill-by"])
+def test_raise_for_access_dashboard_final_check_never_reads_queries_for_non_guest(
+    mocker: MockerFixture,
+    app_context: None,
+    path: str,
+    dashboard_granted: bool,
+) -> None:
+    """
+    Carry the non-guest invariant through a successful drill to the shared final
+    ``can_access_dashboard`` check.
+
+    The drill's membership or dimension check passes, so the final dashboard
+    check alone decides the outcome; a spy proves it was reached, and a read of
+    ``query_context.queries`` on the way there or around it fails the test.
+    """
+    from superset.models.dashboard import Dashboard
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=True)
+    final_check: MagicMock = mocker.patch.object(
+        sm, "can_access_dashboard", return_value=dashboard_granted
+    )
+    mocker.patch("superset.is_feature_enabled", return_value=True)
+    mocker.patch.dict(current_app.config, {"VIEWER_PROMISCUOUS_MODE": True})
+
+    datasource: MagicMock = mocker.MagicMock(
+        id=_VIEW_ID, type="semantic_view", perm="[view](id:1)"
+    )
+    datasource.has_drill_by_columns.return_value = True
+
+    form_data: dict[str, Any]
+    charts: dict[int, MagicMock]
+    if path == "drill-to-detail":
+        form_data = {"dashboardId": _DASHBOARD_ID}
+        charts = {}
+    else:
+        form_data = {
+            "dashboardId": _DASHBOARD_ID,
+            "slice_id": 0,
+            "chart_id": 42,
+            "groupby": ["a"],
+        }
+        charts = {42: _chart(mocker, 42, _VIEW_ID)}
+
+    dashboard: MagicMock = mocker.MagicMock(
+        id=_DASHBOARD_ID, json_metadata=None, slices=list(charts.values())
+    )
+    dashboard.has_member_datasource.return_value = True
+
+    def query(model: Any) -> MagicMock:
+        """Resolve ``Model.id == <value>`` lookups against the fixtures."""
+        rows: dict[int, MagicMock] = (
+            {_DASHBOARD_ID: dashboard} if model is Dashboard else charts
+        )
+        chain: MagicMock = mocker.MagicMock()
+        chain.filter.side_effect = lambda clause: mocker.MagicMock(
+            one_or_none=lambda: rows.get(clause.right.value)
+        )
+        return chain
+
+    mocker.patch.object(
+        SupersetSecurityManager,
+        "session",
+        new_callable=mocker.PropertyMock,
+        return_value=mocker.MagicMock(query=query),
+    )
+
+    query_context: MagicMock = mocker.MagicMock()
+    query_context.datasource = datasource
+    query_context.form_data = form_data
+    type(query_context).queries = mocker.PropertyMock(
+        side_effect=AssertionError("raise_for_access read query_context.queries")
+    )
+
+    if dashboard_granted:
+        sm.raise_for_access(query_context=query_context)
+    else:
+        excinfo: pytest.ExceptionInfo[SupersetSecurityException]
+        with pytest.raises(SupersetSecurityException) as excinfo:
+            sm.raise_for_access(query_context=query_context)
+        assert (
+            excinfo.value.error.error_type
+            == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
+        )
+
+    # The drill succeeded, so the final dashboard check made the decision.
+    if path == "drill-by":
+        datasource.has_drill_by_columns.assert_called_once_with(["a"])
+    else:
+        dashboard.has_member_datasource.assert_called_once_with(datasource)
+    final_check.assert_called_once_with(dashboard)
+
+
+def test_dataset_delete_uses_stored_permission_identity(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """The delete hook must retire the PVM actually stored on the dataset."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    target: MagicMock = MagicMock()
+    target.perm = "[stored](id:42)"
+    mapper: MagicMock = MagicMock()
+    connection: MagicMock = MagicMock()
+    mocker.patch.object(sm, "get_dataset_perm", return_value="[derived](id:42)")
+    owned_elsewhere: MagicMock = mocker.patch.object(
+        sm, "_datasource_perm_owned_elsewhere", return_value=False
+    )
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.dataset_after_delete(mapper, connection, target)
+
+    owned_elsewhere.assert_called_once_with(connection, "[stored](id:42)", None)
+    delete_pvm.assert_called_once_with(
+        mapper, connection, "datasource_access", "[stored](id:42)"
+    )
+
+
+def test_dataset_delete_derives_missing_stored_permission(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Legacy rows without a stored permission still clean up their grant."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    target: MagicMock = MagicMock()
+    target.perm = None
+    mapper: MagicMock = MagicMock()
+    connection: MagicMock = MagicMock()
+    mocker.patch.object(sm, "get_dataset_perm", return_value="[derived](id:42)")
+    mocker.patch.object(sm, "_datasource_perm_owned_elsewhere", return_value=False)
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.dataset_after_delete(mapper, connection, target)
+
+    delete_pvm.assert_called_once_with(
+        mapper, connection, "datasource_access", "[derived](id:42)"
+    )
+
+
+def test_shared_permission_owner_probe_locks_permission_first(
+    app_context: None,
+) -> None:
+    """Competing final-owner deletes must serialize before checking owners."""
+    from sqlalchemy.dialects import postgresql
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.execute.return_value.scalar_one_or_none.return_value = 1
+    connection.execute.return_value.first.return_value = None
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is False
+    )
+
+    first_statement: Any = connection.execute.call_args_list[0].args[0]
+    sql: str = str(first_statement.compile(dialect=postgresql.dialect()))
+    assert "ab_view_menu" in sql
+    assert "FOR UPDATE" in sql
+
+
+def test_semantic_layer_delete_locks_child_permission_before_owner_probe(
+    app_context: None,
+) -> None:
+    """A cascading child delete must use the shared owner-deletion lock."""
+    from sqlalchemy.dialects import postgresql
+
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.execute.side_effect = [
+        MagicMock(scalars=MagicMock(return_value=["[shared](id:42)"])),
+        MagicMock(all=MagicMock(return_value=[1])),
+        MagicMock(scalars=MagicMock(return_value=[])),
+        MagicMock(scalars=MagicMock(return_value=[])),
+    ]
+    target: MagicMock = MagicMock()
+    target.uuid = "layer-uuid"
+
+    sm.semantic_layer_before_delete(MagicMock(), connection, target)
+
+    child_statement: Any = connection.execute.call_args_list[0].args[0]
+    child_sql: str = str(child_statement.compile(dialect=postgresql.dialect()))
+    assert "semantic_views" in child_sql
+    assert "ORDER BY semantic_views.id" in child_sql
+    assert "FOR UPDATE" in child_sql
+
+    lock_statement: Any = connection.execute.call_args_list[1].args[0]
+    sql: str = str(lock_statement.compile(dialect=postgresql.dialect()))
+    assert "ab_view_menu" in sql
+    assert "ORDER BY" in sql
+    assert "FOR UPDATE" in sql
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
+@pytest.mark.parametrize("isolation", ["REPEATABLE READ", "SERIALIZABLE", None])
+def test_shared_permission_cleanup_retains_on_unsafe_mysql_isolation(
+    dialect_name: str, isolation: str | None, mocker: MockerFixture, app_context: None
+) -> None:
+    """An untrusted MySQL snapshot must not retire a shared grant."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = dialect_name
+    connection.get_isolation_level.return_value = isolation
+    warning: MagicMock = mocker.patch("superset.security.manager.logger.warning")
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is True
+    )
+    connection.execute.assert_not_called()
+    warning.assert_called_once()
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
+def test_shared_permission_cleanup_retains_when_mysql_isolation_cannot_be_read(
+    dialect_name: str, mocker: MockerFixture, app_context: None
+) -> None:
+    """Isolation lookup failure must leave the grant in place."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = dialect_name
+    connection.get_isolation_level.side_effect = RuntimeError("unavailable")
+    warning: MagicMock = mocker.patch("superset.security.manager.logger.warning")
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is True
+    )
+    connection.execute.assert_not_called()
+    warning.assert_called_once()
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
+def test_dataset_delete_retains_grant_on_mysql_repeatable_read(
+    dialect_name: str, mocker: MockerFixture, app_context: None
+) -> None:
+    """The ORM delete hook must not revoke a possibly shared grant."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = dialect_name
+    connection.get_isolation_level.return_value = "REPEATABLE READ"
+    target: MagicMock = MagicMock()
+    target.perm = "[shared](id:42)"
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.dataset_after_delete(MagicMock(), connection, target)
+
+    connection.execute.assert_not_called()
+    delete_pvm.assert_not_called()
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
+def test_shared_permission_cleanup_proceeds_on_mysql_read_committed(
+    dialect_name: str,
+    app_context: None,
+) -> None:
+    """The configured safe isolation still permits final-owner cleanup."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = dialect_name
+    connection.get_isolation_level.return_value = "READ COMMITTED"
+    connection.execute.return_value.first.return_value = None
+
+    assert (
+        sm._datasource_perm_owned_elsewhere(  # pylint: disable=protected-access
+            connection, "[shared](id:42)", None
+        )
+        is False
+    )
+    connection.get_isolation_level.assert_called_once_with()
+    assert connection.execute.call_count == 3
+
+
+@pytest.mark.parametrize("dialect_name", ["mysql", "mariadb"])
+def test_semantic_layer_delete_retains_child_grant_on_mysql_repeatable_read(
+    dialect_name: str, mocker: MockerFixture, app_context: None
+) -> None:
+    """The unloaded-child cascade uses the same fail-safe isolation gate."""
+    sm: SupersetSecurityManager = SupersetSecurityManager(appbuilder)
+    connection: MagicMock = MagicMock()
+    connection.dialect.name = dialect_name
+    connection.get_isolation_level.return_value = "REPEATABLE READ"
+    connection.execute.return_value.scalars.return_value = ["[shared](id:42)"]
+    target: MagicMock = MagicMock()
+    target.uuid = "layer-uuid"
+    delete_pvm: MagicMock = mocker.patch.object(sm, "_delete_pvm_on_sqla_event")
+
+    sm.semantic_layer_before_delete(MagicMock(), connection, target)
+
+    connection.execute.assert_called_once()
+    delete_pvm.assert_not_called()

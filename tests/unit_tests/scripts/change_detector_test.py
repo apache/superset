@@ -263,3 +263,14 @@ def test_main_languages_respects_the_99_file_cap(tmp_path, monkeypatch) -> None:
 
     output = output_file.read_text()
     assert 'languages=["javascript", "python"]' in output
+
+
+@pytest.mark.parametrize("group", ["frontend", "python"])
+def test_composite_action_changes_trigger_tests(group: str) -> None:
+    """Composite actions are shared setup matched by nothing else, so a change
+    to one can break a job while touching neither superset-frontend/ nor
+    superset/. setup-backend is a backend action, so "python" needs it too."""
+    assert change_detector.detect_changes(
+        [".github/actions/setup-backend/action.yml"],
+        change_detector.PATTERNS[group],
+    )

@@ -19,12 +19,14 @@
 Unit tests for MCP service middleware.
 """
 
-from typing import Any
+from typing import Any, Callable
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastmcp import FastMCP
+from fastmcp.client import Client
 from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.exc import OperationalError
 
 from superset.commands.exceptions import (
@@ -33,12 +35,17 @@ from superset.commands.exceptions import (
     ObjectNotFoundError,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.exceptions import (
+    SupersetErrorException,
+    SupersetException,
+    SupersetSecurityException,
+)
 from superset.mcp_service.auth import MCPNoAuthSourceError, MCPPermissionDeniedError
 from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
 from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
 from superset.mcp_service.middleware import (
     _is_user_error,
+    _sanitize_error_for_logging,
     _sanitize_params,
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
@@ -51,6 +58,7 @@ from superset.mcp_service.utils.response_size_utils import (
     get_response_size_bytes,
     UNMEASURABLE_RESPONSE_BYTES,
 )
+from superset.mcp_service.utils.validation import validation_message
 from superset.utils import json as utils_json
 from superset.utils.log import DBEventLogger
 
@@ -2763,6 +2771,19 @@ class TestGlobalErrorHandlerErrorIdUsesCallId:
             _mcp_call_id_var.reset(token)
 
 
+def _pydantic_validation_error() -> ValidationError:
+    """A real pydantic ValidationError for a missing required field."""
+
+    class Request(BaseModel):
+        dataset_id: int
+
+    try:
+        Request.model_validate({})
+    except ValidationError as exc:
+        return exc
+    raise AssertionError("expected a ValidationError")
+
+
 class TestToolResultCompatibilityErrorHook:
     """Test the last-resort MCP_ERROR_HOOK capture point in
     ToolResultCompatibilityMiddleware.on_call_tool's except block."""
@@ -2854,6 +2875,40 @@ class TestToolResultCompatibilityErrorHook:
         assert result.content[0].text == "Error: HostileStrError"
 
     @pytest.mark.asyncio
+    async def test_classification_failure_does_not_escape_last_resort_handler(
+        self,
+    ) -> None:
+        """Classifying the error for reporting inspects attributes of an
+        arbitrary exception and can itself raise (an unhashable
+        ``error_type`` makes the datasource membership check throw
+        TypeError). The last-resort handler must still return an is_error
+        result rather than propagate, and treat the error as system-class
+        so the hook fires."""
+
+        class UnhashableErrorTypeError(Exception):
+            error_type: dict[str, str] = {}
+
+        middleware = ToolResultCompatibilityMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        error = UnhashableErrorTypeError("boom")
+        call_next = AsyncMock(side_effect=error)
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is True
+        assert result.content[0].text.startswith("Error:")
+        mock_hook.assert_called_once()
+        assert mock_hook.call_args[0][0] is error
+
+    @pytest.mark.asyncio
     async def test_client_facing_text_is_sanitized(self) -> None:
         """An exception bypassing GlobalErrorHandlerMiddleware must not
         leak raw internals to the client — the last-resort response text
@@ -2881,6 +2936,139 @@ class TestToolResultCompatibilityErrorHook:
         assert "s3cret" not in text
         assert "db.internal" not in text
         assert "[REDACTED]" in text
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "make_error",
+        [
+            pytest.param(
+                _pydantic_validation_error,
+                id="pydantic-ValidationError",
+            ),
+            pytest.param(
+                lambda: FastMCPValidationError("request: Field required"),
+                id="fastmcp-ValidationError",
+            ),
+            pytest.param(lambda: ValueError("page must be >= 1"), id="ValueError"),
+            pytest.param(lambda: PermissionError("denied"), id="PermissionError"),
+            pytest.param(
+                lambda: SupersetErrorException(
+                    SupersetError(
+                        message="gone",
+                        error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                ),
+                id="missing-table-datasource-error",
+            ),
+        ],
+    )
+    async def test_does_not_invoke_hook_for_user_error(
+        self, make_error: Callable[[], Exception]
+    ) -> None:
+        """User-class errors (bad arguments, denials, missing objects) are
+        expected MCP traffic. GlobalErrorHandlerMiddleware deliberately keeps
+        them out of MCP_ERROR_HOOK; the last-resort catch must apply the same
+        classification instead of paging on every one that reaches it — which
+        is every one when this middleware is registered inside that handler.
+        The client-facing response is unchanged."""
+        error = make_error()
+        middleware = ToolResultCompatibilityMiddleware()
+        context = MagicMock()
+        context.message.name = "get_dataset_info"
+        context.fastmcp_context = None
+        call_next = AsyncMock(side_effect=error)
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        mock_hook.assert_not_called()
+        assert result.is_error is True
+        if isinstance(error, (ValidationError, FastMCPValidationError)):
+            expected = await validation_message(error, context)
+        else:
+            expected = _sanitize_error_for_logging(error)
+        assert result.content[0].text == f"Error: {expected}"
+
+    @pytest.mark.asyncio
+    async def test_invokes_hook_for_datasource_connection_failure(self) -> None:
+        """A datasource failure is classified as GlobalErrorHandlerMiddleware
+        classifies it: an unreachable database is still paged."""
+        error = SupersetErrorException(
+            SupersetError(
+                message="could not connect to host",
+                error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+        middleware = ToolResultCompatibilityMiddleware()
+        context = MagicMock()
+        context.message.name = "get_chart_data"
+        call_next = AsyncMock(side_effect=error)
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = mock_hook
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is True
+        mock_hook.assert_called_once()
+        assert mock_hook.call_args[0][0] is error
+
+    @pytest.mark.asyncio
+    async def test_invalid_arguments_do_not_page_when_registered_inside_handler(
+        self,
+    ) -> None:
+        """End to end, with the compatibility middleware registered *after*
+        (i.e. inside) GlobalErrorHandlerMiddleware: FastMCP's argument
+        validation error reaches the last-resort catch first. It must come
+        back as an is_error result without invoking MCP_ERROR_HOOK."""
+        mcp: FastMCP = FastMCP("compat-innermost")
+
+        class Request(BaseModel):
+            dataset_id: int
+
+        @mcp.tool
+        def get_dataset_info(request: Request) -> dict[str, int]:
+            return {"id": request.dataset_id}
+
+        mcp.add_middleware(GlobalErrorHandlerMiddleware())
+        mcp.add_middleware(ToolResultCompatibilityMiddleware())
+
+        mock_hook = MagicMock()
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.side_effect = lambda key, default=None: (
+            mock_hook if key == "MCP_ERROR_HOOK" else default
+        )
+
+        with (
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=mock_flask_app,
+            ),
+            patch("superset.mcp_service.middleware.get_user_id", return_value=None),
+            patch("superset.mcp_service.middleware.event_logger"),
+        ):
+            async with Client(mcp) as client:
+                result = await client.call_tool(
+                    "get_dataset_info", {}, raise_on_error=False
+                )
+
+        assert result.is_error is True
+        assert result.content[0].text == (
+            "Error: Validation error in get_dataset_info: request: Field required"
+        )
+        mock_hook.assert_not_called()
 
 
 class TestToolResultCompatibilityIsErrorFlag:

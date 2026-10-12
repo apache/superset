@@ -65,8 +65,7 @@ class PaginatedListRequest(BaseModel, Generic[FilterT]):
         List[FilterT],
         Field(
             default_factory=list,
-            description="List of filter objects (column, operator, value). Each "
-            "filter is an object with 'col', 'opr', and 'value' properties. "
+            description="Filter objects with 'col', 'opr', and 'value'. "
             "Cannot be used together with 'search'.",
         ),
     ]

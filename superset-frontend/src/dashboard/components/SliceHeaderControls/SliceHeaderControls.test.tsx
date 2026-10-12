@@ -29,6 +29,7 @@ import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
+import { chart } from 'src/components/Chart/chartReducer';
 
 jest.mock('src/utils/cachedSupersetGet');
 jest.mock('src/explore/components/DataTablesPane', () => ({
@@ -58,6 +59,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
+    addWarningToast: jest.fn(),
     exploreChart: jest.fn(),
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
@@ -145,6 +147,42 @@ const renderWrapper = (
 const openMenu = async () => {
   await userEvent.click(screen.getByRole('button', { name: 'More Options' }));
 };
+
+test('View query uses the dashboard slice when form data omits slice_id', async () => {
+  const props = createProps();
+  const request = '-- SQL\nSELECT saved_dashboard_chart';
+  render(
+    <SliceHeaderControls
+      {...props}
+      formData={{ datasource: '12__semantic_view', viz_type: 'table' }}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        ...mockState,
+        charts: {
+          0: {
+            ...chart,
+            queriesResponse: [{ query: '-- SQL\nSELECT unrelated' }],
+          },
+          [SLICE_ID]: {
+            ...chart,
+            id: SLICE_ID,
+            queriesResponse: [{ query: request }],
+          },
+        },
+      },
+    },
+  );
+  await openMenu();
+  await userEvent.click(await screen.findByText('View query'));
+  await waitFor(() =>
+    expect(screen.getByRole('dialog').querySelector('pre')?.textContent).toBe(
+      request,
+    ),
+  );
+});
 
 const mockDownloadAsImage = downloadAsImage as jest.MockedFunction<
   typeof downloadAsImage
@@ -954,6 +992,8 @@ test('Clicking "Export screenshot (jpeg)" calls downloadAsImage and logEvent', a
     props.slice.slice_name,
     true,
     expect.anything(),
+    undefined,
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),
@@ -984,6 +1024,7 @@ test('Clicking "Transparent background" calls downloadAsImage with transparent o
     true,
     expect.anything(),
     { format: 'png', backgroundType: 'transparent' },
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),
@@ -1007,6 +1048,7 @@ test('Clicking "Solid background" calls downloadAsImage with solid option and lo
     true,
     expect.anything(),
     { format: 'png', backgroundType: 'solid' },
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),
@@ -1027,6 +1069,7 @@ test('Clicking "Export as PDF" calls downloadAsPdf and logEvent', async () => {
     `.dashboard-chart-id-${SLICE_ID}`,
     props.slice.slice_name,
     true,
+    props.addWarningToast,
   );
   expect(props.logEvent).toHaveBeenCalledWith(
     expect.anything(),

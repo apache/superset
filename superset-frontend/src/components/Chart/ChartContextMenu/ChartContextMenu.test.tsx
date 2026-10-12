@@ -349,7 +349,7 @@ test('semantic-view datasource resolves via the structure endpoint and renders t
     },
   });
 
-  userEvent.click(screen.getByTestId('open-semantic-context-menu'));
+  await userEvent.click(screen.getByTestId('open-semantic-context-menu'));
   // The menu opens without crashing on the dimension-derived shape.
   expect(await screen.findByRole('menu')).toBeInTheDocument();
 

@@ -49,6 +49,7 @@ from superset.commands.chart.exceptions import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
+from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
@@ -750,7 +751,11 @@ class ChartDataRestApi(ChartRestApi):
         """
 
         try:
-            return ChartDataQueryContextSchema().load(form_data)
+            schema: ChartDataQueryContextSchema = ChartDataQueryContextSchema()
+            schema.query_context_factory = QueryContextFactory(
+                authorize_semantic_before_metadata=True
+            )
+            return schema.load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
         except ValueError as ex:
