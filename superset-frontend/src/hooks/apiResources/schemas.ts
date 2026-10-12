@@ -46,7 +46,7 @@ const schemaApi = api.injectEndpoints({
         // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
         urlParams: {
           force: forceRefresh,
-          ...(catalog !== undefined && { catalog }),
+          ...(catalog !== undefined && { catalog: encodeURIComponent(catalog) }),
         },
         transformResponse: ({ json }: JsonResponse) =>
           json.result.sort().map((value: string) => ({
