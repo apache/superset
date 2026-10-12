@@ -29,6 +29,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime, time
 from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol, Tuple
+from uuid import UUID
 
 from pydantic import (
     AliasChoices,
@@ -48,6 +49,7 @@ from pydantic import (
     WithJsonSchema,
 )
 from pydantic.json_schema import SkipJsonSchema
+from pydantic_core import PydanticCustomError
 from typing_extensions import Self, TypedDict
 
 from superset.constants import NO_TIME_RANGE, TimeGrain
@@ -695,14 +697,16 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
+        "datasource_id",
         "editor",
         "created_by_fk",
         "changed_by_fk",
         "dashboards",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='chart') for "
-        "available filter columns. To filter by a person, first call find_users "
+        description="Filter column; see get_schema(model_type='chart'). "
+        "For charts on dataset X, use datasource_id (SQL datasets only; eq/ne/in/nin). "
+        "To filter by a person, first call find_users "
         "to resolve a name to a user ID, then filter by created_by_fk or "
         "changed_by_fk with that integer ID. To find charts attached to a "
         "specific dashboard, filter by 'dashboards' with an integer "
@@ -718,6 +722,33 @@ class ChartFilter(ColumnOperator):
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
+
+    @model_validator(mode="after")
+    def validate_datasource_id_filter(self) -> Self:
+        """Restrict dataset ID filters to integer equality and membership."""
+        if self.col != "datasource_id":
+            return self
+        if self.opr not in (
+            ColumnOperatorEnum.eq,
+            ColumnOperatorEnum.ne,
+            ColumnOperatorEnum.in_,
+            ColumnOperatorEnum.nin,
+        ):
+            raise ValueError("datasource_id supports only eq, ne, in, nin operators")
+        if self.opr in (ColumnOperatorEnum.in_, ColumnOperatorEnum.nin):
+            if not isinstance(self.value, list):
+                raise PydanticCustomError(
+                    "list_type", "datasource_id in/nin requires a list of integer IDs"
+                )
+            if not all(type(value) is int for value in self.value):
+                raise PydanticCustomError(
+                    "int_type", "datasource_id in/nin requires a list of integer IDs"
+                )
+        elif type(self.value) is not int:
+            raise PydanticCustomError(
+                "int_type", "datasource_id eq/ne requires a single integer ID"
+            )
+        return self
 
 
 class ChartList(PaginatedResponse[ChartFilter]):
@@ -5916,6 +5947,37 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
 }
 
 
+def _normalize_chart_target_alias(data: dict[str, Any]) -> dict[str, Any]:
+    """Copy legacy target vocabulary without changing its datasource family."""
+    data = dict(data)
+    if "datasource_type" in data and (
+        (data.get("dataset_id") is not None and data["datasource_type"] != "table")
+        or (
+            data.get("view_id") is not None
+            and data["datasource_type"] != "semantic_view"
+        )
+    ):
+        raise ValueError("datasource_type conflicts with the explicit chart target")
+    if "datasource_id" in data:
+        source_type: object = data.get("datasource_type", "table")
+        if source_type not in ("table", "semantic_view"):
+            raise ValueError("datasource_type must be table or semantic_view")
+        target_key: str = "view_id" if source_type == "semantic_view" else "dataset_id"
+        other_key: str = "dataset_id" if target_key == "view_id" else "view_id"
+        source_id: object = data.pop("datasource_id")
+        if data.get(other_key) is not None or (
+            source_type == "semantic_view"
+            and data.get(target_key) is not None
+            and data[target_key] != source_id
+        ):
+            raise ValueError("datasource_id conflicts with the explicit chart target")
+        # Keep explicit dataset_id precedence for backward compatibility with
+        # legacy table requests; semantic targets have no such legacy contract.
+        if data.get(target_key) is None:
+            data[target_key] = source_id
+    return data
+
+
 def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
     """Accept common Superset REST/form_data vocabulary in chart requests.
 
@@ -5927,9 +5989,7 @@ def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
     """
     if not isinstance(data, dict):
         return data
-    data = dict(data)
-    if "dataset_id" not in data and "datasource_id" in data:
-        data["dataset_id"] = data.pop("datasource_id")
+    data = _normalize_chart_target_alias(data)
     config = data.get("config")
     if isinstance(config, dict):
         config = dict(config)
@@ -6158,10 +6218,48 @@ class ListChartsRequest(
 
 
 # The tool input models
-class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
+class ChartTargetMixin(BaseModel):
+    """Shared ``dataset_id`` / ``view_id`` target for the chart-building tools.
+
+    Table datasets and semantic views live in unrelated id spaces (both can
+    have id 1), so a bare integer cannot say which one is meant. Callers name
+    the target explicitly and exactly one of the two must be present.
+    """
+
+    dataset_id: int | str | None = Field(
+        None,
+        description=(
+            "Table dataset ID or UUID. For a semantic view use view_id "
+            "(separate ID space)."
+        ),
+    )
+    view_id: Annotated[int, Field(strict=True, gt=0)] | UUID | None = Field(
+        None,
+        description=(
+            "Semantic view UUID or legacy numeric ID (the view_id from list_metrics / "
+            "get_compatible_dimensions / get_compatible_metrics for "
+            "source='external'). Charts on a semantic view may only use the "
+            "view's saved metrics and dimension names; ad-hoc aggregates "
+            "and custom SQL are rejected."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _exactly_one_chart_target(self) -> "ChartTargetMixin":
+        """Require an unambiguous source family for generation."""
+        if (self.dataset_id is None) == (self.view_id is None):
+            raise ValueError(
+                "Provide exactly one of dataset_id (table dataset) or view_id "
+                "(semantic view)."
+            )
+        return self
+
+
+class GenerateChartRequest(
+    ChartRequestNormalizerMixin, ChartTargetMixin, QueryCacheControl
+):
     model_config = ConfigDict(populate_by_name=True)
 
-    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: Annotated[ChartConfig, chart_config_reference_schema()] = Field(
         ..., description=CHART_CONFIG_DESCRIPTION
     )
@@ -6260,10 +6358,11 @@ class GenerateChartRequest(ChartRequestNormalizerMixin, QueryCacheControl):
         return self
 
 
-class GenerateExploreLinkRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
+class GenerateExploreLinkRequest(
+    ChartRequestNormalizerMixin, ChartTargetMixin, FormDataCacheControl
+):
     model_config = ConfigDict(populate_by_name=True)
 
-    dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: Annotated[
         ChartConfig | None, chart_config_reference_schema(nullable=True)
     ] = Field(
@@ -6319,6 +6418,25 @@ class UpdateChartRequest(
             "roles valid on the target dataset; dataset-only rebinds are rejected."
         ),
     )
+    view_id: Annotated[int, Field(strict=True, gt=0)] | UUID | None = Field(
+        None,
+        description=(
+            "Target semantic view UUID or legacy numeric ID for a rebind. "
+            "Mutually exclusive with dataset_id. When both are omitted the chart "
+            "keeps its existing datasource (table dataset or semantic view)."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _at_most_one_rebind_target(self) -> "UpdateChartRequest":
+        """Reject conflicting replacement source families."""
+        if self.dataset_id is not None and self.view_id is not None:
+            raise ValueError(
+                "Provide at most one of dataset_id (table dataset) or view_id "
+                "(semantic view) to rebind a chart."
+            )
+        return self
+
     generate_preview: bool = Field(
         default=True,
         description=(
