@@ -496,6 +496,49 @@ describe('dashboardState actions', () => {
       );
     });
 
+    test('Save As sends the cross-filter config with the copy and leaves the source dashboard alone', async () => {
+      const sourceDashboardId = 1;
+      const state = {
+        ...mockState,
+        dashboardInfo: {
+          id: sourceDashboardId,
+          metadata: { color_scheme: 'supersetColors' },
+        },
+      };
+      const getState = jest.fn(() => state) as unknown as () => any;
+      const dispatch: jest.Mock = jest.fn(action =>
+        typeof action === 'function' ? action(dispatch, getState) : action,
+      );
+      const requestStub = jest
+        .spyOn(SupersetClient, 'request')
+        .mockResolvedValue({ json: { result: {} } } as any);
+      postStub.mockRestore();
+      postStub = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+        json: { result: { id: 999, last_modified_time: 0 } },
+      } as any);
+
+      await saveDashboardRequest(
+        { ...newDashboardData, duplicate_slices: true },
+        sourceDashboardId,
+        SAVE_TYPE_NEWDASHBOARD,
+      )(dispatch, getState);
+
+      await waitFor(() => expect(mockNavigateTo).toHaveBeenCalled());
+      expect(
+        dispatch.mock.calls.some(
+          ([action]) => action?.type === 'SAVE_CHART_CONFIG_BEGIN',
+        ),
+      ).toBe(false);
+      expect(requestStub).not.toHaveBeenCalled();
+      expect(putStub).not.toHaveBeenCalled();
+      const { endpoint, jsonPayload } = postStub.mock.calls[0][0];
+      expect(endpoint).toBe(`/api/v1/dashboard/${sourceDashboardId}/copy/`);
+      const metadata = JSON.parse(jsonPayload.json_metadata);
+      expect(metadata).toHaveProperty('chart_configuration');
+      expect(metadata).toHaveProperty('global_chart_configuration');
+      requestStub.mockRestore();
+    });
+
     // `navigateWithState` regression for the
     // dashboard-properties-changed save path. Two assertions in one shape:
     //   (a) the emitted path is router-relative (`/dashboard/<id>/`), not
