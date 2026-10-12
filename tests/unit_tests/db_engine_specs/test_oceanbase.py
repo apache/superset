@@ -80,4 +80,3 @@ def test_oceanbase_metadata() -> None:
     assert "OceanBase is a distributed relational database" in metadata["description"]
     assert metadata["logo"] == "oceanbase.svg"
     assert metadata["homepage_url"] == "https://www.oceanbase.com/"
-

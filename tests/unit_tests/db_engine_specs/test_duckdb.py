@@ -418,5 +418,3 @@ def test_motherduck_metadata() -> None:
     assert metadata["logo"] == "motherduck.png"
     assert "duckdb-engine" in metadata["pypi_packages"]
     assert metadata["homepage_url"] == "https://motherduck.com/"
-
-
