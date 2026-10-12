@@ -344,7 +344,9 @@ describe('Bubble cross-filter selection', () => {
       filterState: { selectedValues: ['["Alpha Cognac"]'] },
       emitCrossFilters: true,
     });
-    const result = transformProps(chartProps as EchartsBubbleChartProps);
+    const result = transformProps(
+      chartProps as unknown as EchartsBubbleChartProps,
+    );
     const series = result.echartOptions.series as {
       name: string;
       cursor: string;
@@ -392,7 +394,9 @@ describe('Bubble cross-filter selection', () => {
         selectedValues: ['["AV Stores, Co.","open"]'],
       },
     });
-    const result = transformProps(chartProps as EchartsBubbleChartProps);
+    const result = transformProps(
+      chartProps as unknown as EchartsBubbleChartProps,
+    );
     const series = result.echartOptions.series as {
       data: unknown[][];
       itemStyle: { opacity: number };
@@ -411,7 +415,9 @@ describe('Bubble cross-filter selection', () => {
       filterState: { selectedValues: ['["Alpha Cognac"]'] },
       emitCrossFilters: false,
     });
-    const result = transformProps(chartProps as EchartsBubbleChartProps);
+    const result = transformProps(
+      chartProps as unknown as EchartsBubbleChartProps,
+    );
     const series = result.echartOptions.series as { cursor: string }[];
 
     expect(series.every(item => item.cursor === 'default')).toBe(true);
@@ -439,7 +445,9 @@ describe('Bubble cross-filter selection', () => {
         },
       ],
     });
-    const result = transformProps(chartProps as EchartsBubbleChartProps);
+    const result = transformProps(
+      chartProps as unknown as EchartsBubbleChartProps,
+    );
     const names = (result.echartOptions.series as { name: string }[]).map(
       item => item.name,
     );
