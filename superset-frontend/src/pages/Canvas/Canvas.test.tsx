@@ -97,13 +97,18 @@ test('reloads the definition when this canvas changes', async () => {
     notify = handler;
     return jest.fn();
   });
-  fetchMock.get(definitionEndpoint, definition([]));
+  // fetch-mock removes routes by name, not by matcher.
+  fetchMock.get(definitionEndpoint, definition([]), {
+    name: definitionEndpoint,
+  });
 
   render(<CanvasPage />, { useRedux: true, useRouter: true });
   expect(await screen.findByText('This canvas is empty')).toBeInTheDocument();
 
   fetchMock.removeRoute(definitionEndpoint);
-  fetchMock.get(definitionEndpoint, definition(['a'], 2));
+  fetchMock.get(definitionEndpoint, definition(['a'], 2), {
+    name: definitionEndpoint,
+  });
   // Another canvas changing is ignored; this one reloads.
   notify({ entity_type: 'canvas', id: 8 });
   notify({ entity_type: 'canvas', id: 7 });
