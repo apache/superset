@@ -83,9 +83,14 @@ def _apply_canvas_ops_impl(
 def apply_canvas_ops(
     canvas_id: int | str, base_revision: int, ops: list[dict[str, Any]]
 ) -> ApplyCanvasOpsResponse:
-    """Apply operations to a canvas (by id or UUID), in order and atomically:
-    on any error nothing changes and the error names the operation and the
-    path at fault.
+    """Write operations straight to the published canvas (by id or UUID):
+    every viewer sees them at once. When editing for a person, work in a
+    draft instead (``create_canvas_draft``, then ``apply_canvas_draft_ops``,
+    and ``commit_canvas_draft`` only when they ask to publish); use this tool
+    only when asked to change the canvas directly.
+
+    Operations apply in order and atomically: on any error nothing changes
+    and the error names the operation and the path at fault.
 
     Operations (placement ids are readable slugs; ``parent`` defaults to
     ``"root"``):
