@@ -48,10 +48,22 @@ Sanitization notices are returned in tool response `warnings`. The internal
 `sanitization_warnings` request attribute is not advertised in input schemas;
 caller-supplied values are discarded rather than echoed in responses.
 
-### Finding charts by dataset
+### MCP Prompts
+
+Prompts provide interactive guidance and context to AI agents. They help agents understand how to better assist users with specific workflows or domain knowledge.
+
+**Examples of MCP prompts:**
+
+- Step-by-step workflow guidance
+- Domain-specific context and knowledge
+- Interactive troubleshooting assistance
+- Template generation helpers
+- Best practices recommendations
+
+## Finding charts by dataset
 
 Use `list_charts` with a `datasource_id` filter to find charts on a specific
-dataset, rather than matching a potentially non-unique dataset name:
+SQL dataset, rather than matching a potentially non-unique dataset name:
 
 ```json
 {
@@ -66,18 +78,6 @@ of integer IDs. Other operators are rejected for this column. Existing chart
 access and data-model metadata permissions still apply. Use
 `get_schema(request={"model_type": "chart"})` to discover filter columns and
 supported operators.
-
-### MCP Prompts
-
-Prompts provide interactive guidance and context to AI agents. They help agents understand how to better assist users with specific workflows or domain knowledge.
-
-**Examples of MCP prompts:**
-
-- Step-by-step workflow guidance
-- Domain-specific context and knowledge
-- Interactive troubleshooting assistance
-- Template generation helpers
-- Best practices recommendations
 
 ## Getting Started
 

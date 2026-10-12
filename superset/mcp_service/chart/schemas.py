@@ -44,6 +44,7 @@ from pydantic import (
     WithJsonSchema,
 )
 from pydantic.json_schema import SkipJsonSchema
+from pydantic_core import PydanticCustomError
 from typing_extensions import Self, TypedDict
 
 from superset.constants import NO_TIME_RANGE, TimeGrain
@@ -703,7 +704,7 @@ class ChartFilter(ColumnOperator):
     ] = Field(
         ...,
         description="Filter column; see get_schema(model_type='chart'). "
-        "For charts on dataset X, use datasource_id (eq/ne/in/nin). "
+        "For charts on dataset X, use datasource_id (SQL datasets only; eq/ne/in/nin). "
         "To filter by a person, first call find_users "
         "to resolve a name to a user ID, then filter by created_by_fk or "
         "changed_by_fk with that integer ID. To find charts attached to a "
@@ -734,12 +735,18 @@ class ChartFilter(ColumnOperator):
         ):
             raise ValueError("datasource_id supports only eq, ne, in, nin operators")
         if self.opr in (ColumnOperatorEnum.in_, ColumnOperatorEnum.nin):
-            if not isinstance(self.value, list) or not all(
-                type(value) is int for value in self.value
-            ):
-                raise ValueError("datasource_id in/nin requires a list of integer IDs")
+            if not isinstance(self.value, list):
+                raise PydanticCustomError(
+                    "list_type", "datasource_id in/nin requires a list of integer IDs"
+                )
+            if not all(type(value) is int for value in self.value):
+                raise PydanticCustomError(
+                    "int_type", "datasource_id in/nin requires a list of integer IDs"
+                )
         elif type(self.value) is not int:
-            raise ValueError("datasource_id eq/ne requires a single integer ID")
+            raise PydanticCustomError(
+                "int_type", "datasource_id eq/ne requires a single integer ID"
+            )
         return self
 
 

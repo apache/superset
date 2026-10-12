@@ -581,6 +581,7 @@ def test_datasource_id_filter_description() -> None:
     col = ChartFilter.model_json_schema()["properties"]["col"]
     assert "datasource_id" in col["enum"]
     assert "charts on dataset X" in col["description"]
+    assert "SQL datasets only" in col["description"]
 
 
 @pytest.mark.asyncio
