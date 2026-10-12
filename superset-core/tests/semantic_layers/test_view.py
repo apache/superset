@@ -89,3 +89,8 @@ def test_row_offset_is_optional_for_minimal_provider() -> None:
     assert SemanticViewFeature.ROW_OFFSET in offset_view.features
     assert SemanticViewFeature.ROW_OFFSET.value == "ROW_OFFSET"
     assert SemanticViewFeature.ROW_OFFSET not in view.features
+
+
+def test_view_metadata_defaults_are_conservative() -> None:
+    assert SemanticView.features == frozenset()
+    assert SemanticView.name == ""

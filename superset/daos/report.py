@@ -31,6 +31,7 @@ from superset.key_value.types import (
     FIXED_RESOURCE_KEYS,
     JsonKeyValueCodec,
     KeyValueResource,
+    RowLock,
 )
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
@@ -450,7 +451,7 @@ class ReportConfigDAO:
         KeyValueDAO.get_entry(
             KeyValueResource.ALERT_REPORT_CONFIG,
             FIXED_RESOURCE_KEYS[KeyValueResource.ALERT_REPORT_CONFIG],
-            for_update=True,
+            lock=RowLock(),
         )
 
     @staticmethod
