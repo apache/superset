@@ -114,6 +114,36 @@ class TestLoggingMiddlewareOnCallTool:
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
     @pytest.mark.asyncio
+    async def test_on_call_tool_preserves_returned_error_result(
+        self, mock_get_user_id, mock_event_logger
+    ) -> None:
+        """An error returned as a result keeps isError and is logged as failed.
+
+        The tool-search call_tool proxy forwards a call whose inner middleware
+        chain has already converted the exception into an error result, so
+        the outer chain receives a returned result rather than an exception.
+        """
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="call_tool", params={"name": "create_theme"})
+        error_result = ToolResult(
+            content=[mt.TextContent(type="text", text="Error: Permission denied")],
+            is_error=True,
+        )
+        call_next = AsyncMock(return_value=error_result)
+
+        result = await middleware.on_call_tool(ctx, call_next)
+
+        assert result.is_error is True
+        assert result.content == error_result.content
+        assert result.meta is not None
+        assert "mcp_call_id" in result.meta
+        call_kwargs = mock_event_logger.log.call_args[1]
+        assert call_kwargs["curated_payload"]["success"] is False
+        assert call_kwargs["curated_payload"]["tool"] == "call_tool"
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
     async def test_on_call_tool_logs_failure_on_tool_error(
         self, mock_get_user_id, mock_event_logger
     ) -> None:
@@ -1064,11 +1094,13 @@ class TestOnCallToolStatsMetrics:
     @patch("superset.mcp_service.middleware.event_logger")
     @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
     @pytest.mark.asyncio
-    async def test_metric_uses_resolved_tool_name_for_call_tool_proxy(
-        self, mock_get_user_id, mock_event_logger, mock_stats
+    async def test_forwarded_success_is_not_recounted_by_call_tool_proxy(
+        self,
+        mock_get_user_id: MagicMock,
+        mock_event_logger: MagicMock,
+        mock_stats: MagicMock,
     ) -> None:
-        """When invoked via the call_tool search proxy, the metric key
-        must use the real tool name, not the literal 'call_tool'."""
+        """The outer proxy must not repeat the inner tool's success metrics."""
         middleware = LoggingMiddleware()
         ctx = _make_context(
             name="call_tool",
@@ -1078,8 +1110,43 @@ class TestOnCallToolStatsMetrics:
 
         await middleware.on_call_tool(ctx, call_next)
 
+        mock_stats.instance.incr.assert_not_called()
+        mock_stats.instance.timing.assert_not_called()
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("error", "outcome"),
+        [(ValueError("bad arguments"), "warning"), (RuntimeError("boom"), "error")],
+    )
+    async def test_proxy_level_exception_is_still_counted(
+        self,
+        mock_get_user_id: MagicMock,
+        mock_event_logger: MagicMock,
+        mock_stats: MagicMock,
+        error: Exception,
+        outcome: str,
+    ) -> None:
+        """De-duplication must not suppress an exception raised by the proxy."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(
+            name="call_tool",
+            params={"name": "list_datasets", "arguments": {}},
+        )
+        call_next = AsyncMock(side_effect=error)
+
+        with pytest.raises(type(error), match=str(error)):
+            await middleware.on_call_tool(ctx, call_next)
+
         mock_stats.instance.incr.assert_called_once_with(
-            "mcp.tool.list_datasets.success"
+            f"mcp.tool.list_datasets.{outcome}"
+        )
+        mock_stats.instance.timing.assert_called_once()
+        assert (
+            mock_stats.instance.timing.call_args.args[0]
+            == "mcp.tool.list_datasets.time"
         )
 
     @patch("superset.mcp_service.middleware.logger")
@@ -1124,6 +1191,67 @@ class TestOnCallToolStatsMetrics:
 
         warning_messages = [c.args[0] for c in mock_logger.warning.call_args_list]
         assert any("Failed to emit MCP tool metrics" in m for m in warning_messages)
+
+
+class TestConfiguredCallToolProxyName:
+    """The call proxy name comes from MCP_TOOL_SEARCH_CONFIG, not a literal."""
+
+    @staticmethod
+    def _app_with_proxy(name: str) -> MagicMock:
+        app = MagicMock()
+        app.config = {"MCP_TOOL_SEARCH_CONFIG": {"call_tool_name": name}}
+        return app
+
+    def test_resolves_configured_proxy_name(self) -> None:
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=self._app_with_proxy("invoke_tool"),
+        ):
+            assert (
+                LoggingMiddleware._resolve_tool_name(
+                    "invoke_tool", {"name": "list_datasets"}
+                )
+                == "list_datasets"
+            )
+            # The default literal is no longer the proxy once renamed.
+            assert (
+                LoggingMiddleware._resolve_tool_name(
+                    "call_tool", {"name": "list_datasets"}
+                )
+                is None
+            )
+
+    def test_falls_back_to_default_without_a_flask_app(self) -> None:
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            side_effect=RuntimeError("no app"),
+        ):
+            assert LoggingMiddleware._call_tool_proxy_name() == "call_tool"
+
+    @patch("superset.mcp_service.middleware.stats_logger_manager")
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_forwarded_failure_through_renamed_proxy_is_not_recounted(
+        self, mock_get_user_id, mock_event_logger, mock_stats
+    ) -> None:
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="invoke_tool", params={"name": "list_datasets"})
+        call_next = AsyncMock(
+            return_value=ToolResult(
+                content=[mt.TextContent(type="text", text="bad arguments")],
+                is_error=True,
+            )
+        )
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=self._app_with_proxy("invoke_tool"),
+        ):
+            await middleware.on_call_tool(ctx, call_next)
+
+        mock_stats.instance.incr.assert_not_called()
+        mock_stats.instance.timing.assert_not_called()
 
 
 class TestResolveMetricToolName:

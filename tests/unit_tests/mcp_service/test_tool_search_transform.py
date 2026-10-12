@@ -405,7 +405,7 @@ def test_truncate_description_empty():
 
 
 def test_truncate_description_zero_max() -> None:
-    """No prose remains when schema instructions consume the entire budget."""
+    """A zero prose budget omits the description."""
     text = "Some text"
     result = _truncate_description(text, 0)
     assert result == ""
@@ -475,6 +475,14 @@ def test_truncate_description_long_first_paragraph_keeps_sentences() -> None:
     """An overlong first paragraph still yields its complete leading sentences."""
     text = "Purpose line. " + "More detail here. " * 20 + "\n\nSecond paragraph."
     assert _truncate_description(text, 40) == "Purpose line. More detail here."
+
+
+def test_truncate_description_structured_first_paragraph_keeps_sentences() -> None:
+    """Without a kept paragraph, a structured first paragraph can be cut."""
+    text = "USAGE NOTES:\n- do a. do b. do c. do d. do e."
+    assert _truncate_description(text, 40) == (
+        "USAGE NOTES:\n- do a. do b. do c. do d."
+    )
 
 
 # -- _create_search_result_serializer tests --

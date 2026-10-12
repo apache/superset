@@ -167,7 +167,7 @@ class WidgetControlsRestApi(BaseSupersetApi):
                         drill-in subtrees instead of the whole schema.
           responses:
             200:
-              description: Control JSON Schema, or a `{path: schema}` map
+              description: Control JSON Schema, or a map of path to schema
               content:
                 application/json:
                   schema:

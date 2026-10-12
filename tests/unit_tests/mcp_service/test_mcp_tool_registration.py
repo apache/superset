@@ -38,7 +38,6 @@ _FFM_PATH = "superset.extensions.feature_flag_manager"
 EXPECTED_TOOL_OUTPUT_FIELDS = {
     "add_chart_to_existing_dashboard": "dashboard_url",
     "apply_canvas_draft_ops": "revision",
-    "apply_canvas_ops": "revision",
     "commit_canvas_draft": "canvas_revision",
     "create_canvas_draft": "token",
     "delete_canvas_draft": "error",
@@ -112,6 +111,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "list_themes": "themes",
     "list_users": "users",
     "manage_dashboard_certification": "changed_fields",
+    "manage_dashboard_markdown": "components",
     "manage_dashboard_owners": "owners",
     "manage_dashboard_roles": "roles",
     "manage_native_filters": "filters",
@@ -142,7 +142,6 @@ EXPECTED_TOP_LEVEL_OUTPUT_FIELDS = {
 MUTATING_TOOLS = {
     "add_chart_to_existing_dashboard",
     "apply_canvas_draft_ops",
-    "apply_canvas_ops",
     "apply_dashboard_filters",
     "commit_canvas_draft",
     "create_canvas",
@@ -162,6 +161,7 @@ MUTATING_TOOLS = {
     "generate_dashboard",
     "generate_explore_link",
     "manage_dashboard_certification",
+    "manage_dashboard_markdown",
     "manage_dashboard_owners",
     "manage_dashboard_roles",
     "manage_native_filters",
@@ -192,7 +192,6 @@ NON_COMMITTING_MUTATING_TOOLS = {
 
 
 DESTRUCTIVE_TOOLS = {
-    "apply_canvas_ops",
     "commit_canvas_draft",
     "delete_canvas_draft",
     "delete_chart",
@@ -200,6 +199,7 @@ DESTRUCTIVE_TOOLS = {
     "delete_dataset",
     "delete_dataset_metric",
     "execute_sql",
+    "manage_dashboard_markdown",
     "manage_dashboard_owners",
     "manage_dashboard_roles",
     "manage_native_filters",
@@ -758,7 +758,6 @@ def test_canvas_tools_removed_when_canvas_disabled(gtf_ffm: MagicMock) -> None:
         "get_canvas",
         "create_canvas",
         "update_canvas",
-        "apply_canvas_ops",
         "create_canvas_draft",
         "get_canvas_draft",
         "apply_canvas_draft_ops",

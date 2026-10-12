@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 
 const read = (): string | undefined =>
   new URLSearchParams(window.location.hash.slice(1)).get('draft') ?? undefined;
@@ -26,6 +27,7 @@ const read = (): string | undefined =>
  * never send the fragment to the server, so the token stays out of logs.
  */
 export function useDraftToken() {
+  const history = useHistory();
   const [token, setToken] = useState(read);
 
   useEffect(() => {
@@ -46,13 +48,9 @@ export function useDraftToken() {
   }, []);
 
   const clear = useCallback(() => {
-    window.history.replaceState(
-      null,
-      '',
-      window.location.pathname + window.location.search,
-    );
+    history.replace({ ...history.location, hash: '' });
     setToken(undefined);
-  }, []);
+  }, [history]);
 
   return { token, open, clear };
 }

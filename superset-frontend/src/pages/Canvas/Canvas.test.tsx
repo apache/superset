@@ -27,8 +27,10 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ idOrSlug: '7' }),
 }));
 jest.mock('src/middleware/realtime', () => ({
+  connectRealtime: jest.fn(),
   subscribeRealtime: jest.fn(() => jest.fn()),
   subscribeRealtimeOpen: jest.fn(() => jest.fn()),
+  subscribeRealtimeState: jest.fn(() => jest.fn()),
 }));
 
 const metadataEndpoint = 'glob:*/api/v1/canvas/7';
@@ -75,7 +77,7 @@ beforeEach(() => {
 test('shows the canvas title and an empty state', async () => {
   fetchMock.get(definitionEndpoint, definition([]));
 
-  render(<CanvasPage />, { useRedux: true });
+  render(<CanvasPage />, { useRedux: true, useRouter: true });
 
   expect(await screen.findByText('Exec overview')).toBeInTheDocument();
   expect(screen.getByText('KPIs and trend')).toBeInTheDocument();
@@ -95,13 +97,18 @@ test('reloads the definition when this canvas changes', async () => {
     notify = handler;
     return jest.fn();
   });
-  fetchMock.get(definitionEndpoint, definition([]));
+  // fetch-mock removes routes by name, not by matcher.
+  fetchMock.get(definitionEndpoint, definition([]), {
+    name: definitionEndpoint,
+  });
 
-  render(<CanvasPage />, { useRedux: true });
+  render(<CanvasPage />, { useRedux: true, useRouter: true });
   expect(await screen.findByText('This canvas is empty')).toBeInTheDocument();
 
   fetchMock.removeRoute(definitionEndpoint);
-  fetchMock.get(definitionEndpoint, definition(['a'], 2));
+  fetchMock.get(definitionEndpoint, definition(['a'], 2), {
+    name: definitionEndpoint,
+  });
   // Another canvas changing is ignored; this one reloads.
   notify({ entity_type: 'canvas', id: 8 });
   notify({ entity_type: 'canvas', id: 7 });
@@ -115,7 +122,7 @@ test('reloads the definition when this canvas changes', async () => {
 test('explains when the canvas cannot be opened', async () => {
   fetchMock.get(definitionEndpoint, 404);
 
-  render(<CanvasPage />, { useRedux: true });
+  render(<CanvasPage />, { useRedux: true, useRouter: true });
 
   expect(
     await screen.findByText(

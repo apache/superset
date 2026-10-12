@@ -24,11 +24,11 @@ from unittest.mock import MagicMock, patch
 
 from superset.commands.canvas.apply_ops import ApplyResult
 from superset.commands.canvas.exceptions import DefinitionConflictError
-from superset.mcp_service.canvas.tool.apply_canvas_ops import _apply_canvas_ops_impl
+from superset.mcp_service.canvas.tool.canvas_ops_common import _apply_canvas_ops_impl
 from superset.mcp_service.canvas.tool.get_canvas import _get_canvas_impl
 
 COMMAND = (
-    "superset.mcp_service.canvas.tool.apply_canvas_ops.ApplyCanvasOperationsCommand"
+    "superset.mcp_service.canvas.tool.canvas_ops_common.ApplyCanvasOperationsCommand"
 )
 DAO = "superset.mcp_service.canvas.tool.get_canvas.CanvasDAO"
 

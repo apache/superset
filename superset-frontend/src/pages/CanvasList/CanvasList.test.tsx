@@ -31,11 +31,17 @@ import CanvasList from '.';
 const mockPush = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({ push: mockPush }),
+  // Keep the real history (use-query-params reads its location); stub push.
+  useHistory: () => ({
+    ...jest.requireActual('react-router-dom').useHistory(),
+    push: mockPush,
+  }),
 }));
 jest.mock('src/middleware/realtime', () => ({
+  connectRealtime: jest.fn(),
   subscribeRealtime: jest.fn(() => jest.fn()),
   subscribeRealtimeOpen: jest.fn(() => jest.fn()),
+  subscribeRealtimeState: jest.fn(() => jest.fn()),
 }));
 
 const canvases = [0, 1].map(id => ({

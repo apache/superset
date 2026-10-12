@@ -16,7 +16,6 @@
 # under the License.
 
 from .apply_canvas_draft_ops import apply_canvas_draft_ops
-from .apply_canvas_ops import apply_canvas_ops
 from .commit_canvas_draft import commit_canvas_draft
 from .create_canvas import create_canvas
 from .create_canvas_draft import create_canvas_draft
@@ -29,7 +28,6 @@ from .update_canvas import update_canvas
 
 __all__ = [
     "apply_canvas_draft_ops",
-    "apply_canvas_ops",
     "commit_canvas_draft",
     "create_canvas",
     "create_canvas_draft",

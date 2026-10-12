@@ -134,12 +134,13 @@ Dashboard Management:
 - duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
-- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select, filter_time, filter_range, and filter_timegrain)
+- manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select, filter_time, filter_range, filter_timegrain, and filter-bar divider)
+- manage_dashboard_markdown: Add, update, or remove markdown/header/divider layout components on a dashboard (requires write access)
 - apply_dashboard_filters: Apply values to a dashboard's existing native filters for the calling user and return a shareable permalink (read access; does NOT change the saved dashboard)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 - restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
 - manage_dashboard_owners: Add/remove dashboard owners by explicit operation (requires write access; rejects changes that would leave zero owners)
-- manage_dashboard_roles: Add/remove dashboard access roles by explicit operation (requires write access; only affects access when ENABLE_VIEWERS is enabled)
+- manage_dashboard_roles: Add/remove dashboard access roles by explicit operation (requires write access; applies regardless of the ENABLE_VIEWERS flag)
 - manage_dashboard_certification: Set or clear a dashboard's certified_by/certification_details badge (requires write access)
 
 Annotation Layers:
@@ -415,8 +416,10 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
-- chart_type="gauge": Gauge/dial for one numeric metric, optionally grouped
-  into up to 10 dials (native viz_type is "gauge_chart")
+- chart_type="gauge": Dial display for a metric (optional grouping creates multiple dials)
+- chart_type="sunburst": Hierarchical part-to-whole chart (hierarchy + metric
+  required; optional secondary_metric makes its ratio to the primary drive a
+  sequential color scale; omitting it uses categorical colors)
 - chart_type="pivot_table": OSS Pivot Table for cross-tabulation
 - chart_type="interactive_pivot": Extension-provided AG Grid Interactive Pivot Table.
   This type is distinct from pivot_table/pivot_table_v2 and is available only
@@ -449,7 +452,7 @@ Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
 This field is populated for chart types known to the MCP registry
-(xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
+(xy, pie, sunburst, table, pivot_table, big_number, mixed_timeseries, handlebars,
 histogram, box_plot, waterfall, gantt, bubble_v2, and interactive_pivot).
 Availability gates creation and schema discovery, not display names for
 existing charts.
@@ -531,7 +534,8 @@ Input format:
   create_dataset_metric, delete_dataset_metric, update_dataset_metric,
   save_sql_query, add_chart_to_existing_dashboard, manage_native_filters,
   remove_chart_from_dashboard, update_chart_preview, manage_dashboard_owners,
-  manage_dashboard_roles, manage_dashboard_certification) require write
+  manage_dashboard_roles, manage_dashboard_certification,
+  manage_dashboard_markdown) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
@@ -809,7 +813,6 @@ from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.canvas.tool import (  # noqa: F401, E402
     apply_canvas_draft_ops,
-    apply_canvas_ops,
     commit_canvas_draft,
     create_canvas,
     create_canvas_draft,
@@ -852,6 +855,7 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     get_dashboard_layout,
     list_dashboards,
     manage_dashboard_certification,
+    manage_dashboard_markdown,
     manage_dashboard_owners,
     manage_dashboard_roles,
     manage_native_filters,
@@ -1041,7 +1045,6 @@ CANVAS_TOOLS = (
     "get_canvas",
     "create_canvas",
     "update_canvas",
-    "apply_canvas_ops",
     "create_canvas_draft",
     "get_canvas_draft",
     "apply_canvas_draft_ops",

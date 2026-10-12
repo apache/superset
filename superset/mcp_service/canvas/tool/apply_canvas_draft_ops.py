@@ -71,10 +71,38 @@ def _apply_canvas_draft_ops_impl(
 def apply_canvas_draft_ops(
     token: str, revision: int, ops: list[dict[str, Any]]
 ) -> CanvasDraftResponse:
-    """Apply operations to a canvas draft, atomically: the same operations
-    ``apply_canvas_ops`` takes, validated the same way, but only the draft
-    changes. ``revision`` is the draft revision you last saw; the response
-    carries the next one.
+    """Apply operations to a canvas draft, in order and atomically: on any
+    error nothing changes and the error names the operation and the path at
+    fault. Only the draft changes; ``commit_canvas_draft`` publishes it.
+    ``revision`` is the draft revision you last saw; the response carries
+    the next one.
+
+    Operations (placement ids are readable slugs; ``parent`` defaults to
+    ``"root"``):
+
+    - ``{"op": "add", "widgetType": "<widget type>", "props": {...},
+      "layout": {...}, "parent": "<id>", "index": n, "id": "<optional id>"}``
+      adds an inline widget; get its props schema with
+      ``get_widget_control_schema``. Use ``"widgetId": "<uuid>"`` instead of
+      ``widgetType``/``props`` to place a saved widget.
+    - ``{"op": "set_props", "id": "<id>", "props": {...}}`` replaces an inline
+      widget's props.
+    - ``{"op": "place", "id": "<id>", "layout": {"col", "row", "colSpan",
+      "rowSpan"}}`` moves or resizes within the parent's grid.
+
+    - ``{"op": "move", "id": "<id>", "parent": "<id>", "index": n}``
+      reparents or reorders.
+    - ``{"op": "remove", "id": "<id>"}`` removes a placement and its children.
+    - ``{"op": "set_scope", "kind": "filter" | "crossFilter" |
+      "customization", "id": "<id>", "scope": {"mode": "auto" | "global" |
+      "custom", "targets": [...], "exclude": [...]}}``; ``scope: null``
+      restores auto (the filter's nearest scoping container).
+    - ``{"op": "set_settings", "key": "refresh" | "colors" | "display" |
+      "crossFilters", "value": {...}}``.
+
+    Grid layouts are 1-based: ``col`` runs from 1 to the grid's columns (24
+    on the root) and ``row`` starts at 1. Leave ``col``/``row`` out to
+    auto-place, and leave spans out to use the widget's default size.
     """
     return CanvasDraftResponse.model_validate(
         _apply_canvas_draft_ops_impl(token, revision, ops)

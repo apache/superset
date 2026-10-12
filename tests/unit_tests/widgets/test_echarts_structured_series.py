@@ -22,6 +22,8 @@ stable metric label, not position)."""
 
 from __future__ import annotations
 
+import pytest
+
 from superset.utils import json
 from superset.widgets.builtin import _metric_key, Echarts
 from superset.widgets.registry import registry
@@ -165,6 +167,7 @@ def test_raw_only_widget_without_chart_type_still_validates() -> None:
     assert errors == []
 
 
+@pytest.mark.parametrize("app", [{"FEATURE_FLAGS": {"CANVAS": True}}], indirect=True)
 def test_control_schema_rest_endpoint_exposes_chart_type_and_customize(
     client, full_api_access
 ) -> None:
@@ -187,6 +190,7 @@ def test_control_schema_rest_endpoint_exposes_chart_type_and_customize(
     assert schema["properties"]["echartsOptions"]["x-hidden-in-form"] is True
 
 
+@pytest.mark.parametrize("app", [{"FEATURE_FLAGS": {"CANVAS": True}}], indirect=True)
 def test_validate_rest_endpoint_accepts_structured_fields(
     client, full_api_access
 ) -> None:

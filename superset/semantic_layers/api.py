@@ -53,6 +53,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewUpdateFailedError,
 )
 from superset.commands.semantic_layer.update import (
+    ClearSemanticLayerCacheCommand,
     UpdateSemanticLayerCommand,
     UpdateSemanticViewCommand,
 )
@@ -577,6 +578,7 @@ class SemanticLayerRestApi(BaseSupersetApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "types": "read",
+        "clear_cache": "write",
         "configuration_schema": "read",
         "runtime_schema": "read",
         # ``read`` (not the default ``can_views`` / ``can_connections``) so
@@ -648,8 +650,14 @@ class SemanticLayerRestApi(BaseSupersetApi):
         if not cls:
             return self.response_400(message=f"Unknown type: {sl_type}")
 
+        # Enriching the schema hands the submitted configuration to the
+        # provider, which may contact the hosts it names. That is part of
+        # configuring a layer, so it requires write access; read-only callers
+        # get the static schema.
         parsed_config = None
-        if config := body.get("configuration"):
+        if (config := body.get("configuration")) and security_manager.can_access(
+            "can_write", "SemanticLayer"
+        ):
             parsed_config = _parse_partial_config(cls, config)
 
         warning: str | None = None
@@ -941,6 +949,57 @@ class SemanticLayerRestApi(BaseSupersetApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+
+    @expose("/<uuid>/clear_cache", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @requires_json
+    def clear_cache(self, uuid: str) -> FlaskResponse:
+        """Invalidate saved semantic-layer metadata without provider discovery.
+        ---
+        post:
+          summary: Clear a semantic layer's cache
+          parameters:
+          - in: path
+            name: uuid
+            required: true
+            schema:
+              type: string
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  additionalProperties: false
+          responses:
+            200:
+              description: Cache cleared; reload to fetch metadata
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+        if request.get_json(silent=True) != {}:
+            return self.response_400(message="Expected an empty JSON object")
+        try:
+            ClearSemanticLayerCacheCommand(uuid).run()
+        except SemanticLayerNotFoundError:
+            return self.response_404()
+        except SemanticLayerForbiddenError as ex:
+            return self.response(403, message=str(ex))
+        except SemanticLayerUpdateFailedError as ex:
+            return self.response_422(message=str(ex))
+        return self.response(200, message="Cache cleared; reload to fetch metadata")
 
     @expose("/<uuid>", methods=("DELETE",))
     @protect()

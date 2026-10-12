@@ -1259,7 +1259,6 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
         # Canvases are separate from the scoped dashboard, and their widgets
         # query as the viewer when rendered; these tools return no rows.
         "apply_canvas_draft_ops",
-        "apply_canvas_ops",
         "commit_canvas_draft",
         "create_canvas",
         "create_canvas_draft",
@@ -1321,6 +1320,7 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
         "list_themes",
         "list_users",
         "manage_dashboard_certification",
+        "manage_dashboard_markdown",
         "manage_dashboard_owners",
         "manage_dashboard_roles",
         "manage_native_filters",

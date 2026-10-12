@@ -47,26 +47,6 @@ class GetCanvasResponse(BaseModel):
     error: str | None = None
 
 
-class ApplyCanvasOpsResponse(BaseModel):
-    revision: int | None = Field(
-        default=None, description="The canvas revision after the write."
-    )
-    ops: list[dict[str, Any]] | None = Field(
-        default=None, description="The applied operations; adds carry their ids."
-    )
-    error: str | None = None
-    errors: list[dict[str, Any]] | None = None
-    operation: int | None = Field(
-        default=None, description="Index of the operation that failed."
-    )
-    conflicts: list[str] | None = Field(
-        default=None, description="Placements changed by others since base_revision."
-    )
-    stale: bool | None = Field(
-        default=None, description="Reload the canvas: base_revision is too old."
-    )
-
-
 class CanvasSummary(BaseModel):
     id: int
     title: str

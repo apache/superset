@@ -67,7 +67,7 @@ const result: CanvasDefinitionResult = {
   canEdit: false,
 };
 
-test('renders core containers and markdown without extensions', () => {
+test('renders core containers and markdown without extensions', async () => {
   registerBuiltinRenderers();
   render(
     <CanvasGrid
@@ -88,6 +88,7 @@ test('renders core containers and markdown without extensions', () => {
 
   expect(screen.getByRole('tab', { name: 'EMEA' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Untitled tab' })).toBeInTheDocument();
-  expect(screen.getByText('Quarterly')).toBeInTheDocument();
+  // react-markdown is stubbed in tests (spec/helpers/shim.tsx) to echo its source.
+  expect(await screen.findByText(/Quarterly/)).toBeInTheDocument();
   expect(screen.getByText('Key numbers')).toBeInTheDocument();
 });

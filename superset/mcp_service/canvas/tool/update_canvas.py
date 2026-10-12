@@ -75,7 +75,7 @@ def update_canvas(
     description: str | None = None,
 ) -> CanvasWriteResponse:
     """Change a canvas' title, slug or description (by id or UUID). Its
-    contents change only through ``apply_canvas_ops``.
+    contents change only through a draft (``create_canvas_draft``).
     """
     changes = {
         key: value
