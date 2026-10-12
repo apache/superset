@@ -1200,9 +1200,20 @@ def _prepare_gauge_preview(  # noqa: C901
             }
         )
 
+    explicit_colors = form_data.get("interval_colors")
     colors = [
         _GAUGE_COLORS[(int(index) - 1) % len(_GAUGE_COLORS)] for index in color_indices
     ] or list(_GAUGE_COLORS[: max(1, len(interval_bounds))])
+    if isinstance(explicit_colors, list):
+        # Explicit per-interval colors win; blanks keep the palette fallback.
+        colors = [
+            custom if isinstance(custom, str) and custom else fallback
+            for custom, fallback in zip(
+                explicit_colors + [None] * (len(colors) - len(explicit_colors)),
+                colors,
+                strict=False,
+            )
+        ]
     return decorated, {
         "metric_label": metric_label,
         "group_labels": group_labels,
