@@ -33,7 +33,6 @@ import {
 import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, formatNumber, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
-import { Space } from '../Space';
 import {
   BaseOptionType,
   DefaultOptionType,
@@ -524,10 +523,9 @@ const Select = forwardRef(
 
         // removes new option
         if (isNewOption(option)) {
+          const targetVal = getValue(value);
           const updatedOptions = fullSelectOptions.filter(
-            opt =>
-              getValue(opt.value) !== getValue(value) &&
-              getValue(opt.label) !== getValue(value),
+            opt => getValue(opt.value) !== targetVal && opt.label !== targetVal,
           );
           setSelectOptions(updatedOptions);
           setVisibleOptions(updatedOptions);
@@ -1071,16 +1069,18 @@ const Select = forwardRef(
             )
           }
           options={visibleOptions}
-          optionRender={option => (
-            <Space>
-              {option.label || option.value}
-              {(isNewOption(option.data) || isNewOption(option)) && (
+          optionRender={option =>
+            isNewOption(option.data) || isNewOption(option) ? (
+              <>
+                {option.label || option.value}
                 <StyledNewOptionBadge data-test="new-option-badge">
-                  {t('new')}
+                  {t('New')}
                 </StyledNewOptionBadge>
-              )}
-            </Space>
-          )}
+              </>
+            ) : (
+              option.label || option.value
+            )
+          }
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}

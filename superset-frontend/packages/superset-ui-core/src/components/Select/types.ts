@@ -29,7 +29,9 @@ export type RawValue = string | number;
 
 export type V = string | number | null | undefined;
 
-export type LabeledValue = AntdLabeledValue;
+export type LabeledValue = AntdLabeledValue & {
+  isNewOption?: boolean;
+};
 
 export type CustomLabeledValue = {
   label?: ReactNode;

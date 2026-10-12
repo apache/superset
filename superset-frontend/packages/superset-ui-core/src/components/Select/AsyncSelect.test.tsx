@@ -523,6 +523,7 @@ test('cleans up temporary new option when clearAll is called in allowNewOptions 
 
 test('deduplicates pasted values against loaded options when allowNewOptions is enabled', async () => {
   render(<AsyncSelect {...defaultProps} mode="multiple" allowNewOptions />);
+  await open();
   const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
@@ -530,10 +531,12 @@ test('deduplicates pasted values against loaded options when allowNewOptions is 
     },
   });
   fireEvent(input, paste);
-  const values = await findAllSelectValues();
-  expect(values.length).toBe(2);
-  expect(values[0]).toHaveTextContent(OPTIONS[0].label);
-  expect(values[1]).toHaveTextContent('BrandNewItem');
+  await waitFor(async () => {
+    const values = await findAllSelectValues();
+    expect(values.length).toBe(2);
+    expect(values[0]).toHaveTextContent(OPTIONS[0].label);
+    expect(values[1]).toHaveTextContent('BrandNewItem');
+  });
 });
 
 test('does not add a new option if allowNewOptions is false', async () => {
@@ -1277,9 +1280,9 @@ test('drops optimistic new option when paginated mergeData contains matching lab
   // Type a term that will match next page's label
   await type('Created Later');
   const options = await findAllSelectOptions();
-  expect(options.some(opt => opt.textContent?.includes('Created Later'))).toBe(
-    true,
-  );
+  expect(
+    Array.from(options).some(opt => opt.textContent?.includes('Created Later')),
+  ).toBe(true);
 
   // When next page loads and mergeData fires, duplicate optimistic option is dropped
   rerender(

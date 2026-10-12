@@ -46,7 +46,6 @@ import {
 } from 'antd/es/select';
 import { debounce, isEqual, uniq } from 'lodash-es';
 import { Constants, Icons } from '@superset-ui/core/components';
-import { Space } from '../Space';
 import {
   getValue,
   hasOption,
@@ -347,11 +346,11 @@ const AsyncSelect = forwardRef(
         }
         // removes new option
         if (isNewOption(option)) {
+          const targetVal = getValue(value);
           setSelectOptions(
             fullSelectOptions.filter(
               opt =>
-                getValue(opt.value) !== getValue(value) &&
-                getValue(opt.label) !== getValue(value),
+                getValue(opt.value) !== targetVal && opt.label !== targetVal,
             ),
           );
         }
@@ -376,12 +375,14 @@ const AsyncSelect = forwardRef(
     fullSelectOptionsRef.current = fullSelectOptions;
 
     const isRedundantNewOption = (
-  opt: AntdLabeledValue,
-  incomingData: SelectOptionsType,
-) =>
-  isNewOption(opt) &&
-  (hasOption(opt.label as V, incomingData, true) ||
-    hasOption(opt.value as V, incomingData, true));
+      opt: DefaultOptionType | AntdLabeledValue,
+      incomingData: SelectOptionsType,
+    ) =>
+      isNewOption(opt) &&
+      ((typeof opt.label === 'string' || typeof opt.label === 'number'
+        ? hasOption(opt.label, incomingData, true)
+        : false) ||
+        hasOption(opt.value as RawValue | undefined, incomingData, true));
 
     const mergeData = useCallback(
       (data: SelectOptionsType) => {
@@ -932,16 +933,18 @@ const AsyncSelect = forwardRef(
           }
           onClear={handleClear}
           options={fullSelectOptions}
-          optionRender={option => (
-            <Space>
-              {option.label || option.value}
-              {(isNewOption(option.data) || isNewOption(option)) && (
+          optionRender={option =>
+            isNewOption(option.data) || isNewOption(option) ? (
+              <>
+                {option.label || option.value}
                 <StyledNewOptionBadge data-test="new-option-badge">
-                  {t('new')}
+                  {t('New')}
                 </StyledNewOptionBadge>
-              )}
-            </Space>
-          )}
+              </>
+            ) : (
+              option.label || option.value
+            )
+          }
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           tokenSeparators={quoteAwareTokenSeparators}

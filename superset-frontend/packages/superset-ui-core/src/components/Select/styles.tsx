@@ -169,5 +169,6 @@ export const StyledNewOptionBadge = styled.span`
     border-radius: ${theme.borderRadiusSM}px;
     margin-left: ${theme.sizeUnit}px;
     vertical-align: middle;
+    text-transform: lowercase;
   `}
 `;
