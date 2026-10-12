@@ -184,6 +184,16 @@ testWithAssets(
     await dashboardPage.waitForLoad();
     await dashboardPage.waitForChartsToLoad();
 
+    const filterBar = await dashboardPage.waitForFilterBar();
+    await expect(filterBar.getValueLocator()).toContainText('West');
+    const regionSelect = filterBar.getFilterSelect();
+    await regionSelect.open();
+    // The saved default filters the chart even if the control cannot fetch options.
+    expect(await regionSelect.getVisibleOptionTexts()).toEqual(
+      expect.arrayContaining(['East', 'West']),
+    );
+    await regionSelect.close();
+
     // West only: Books 5 and Music 3; Games has no West orders.
     const chart = dashboardPage.getChart(chartId);
     await expect(rowFor(chart, 'Books')).toContainText('5');
