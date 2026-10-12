@@ -65,6 +65,7 @@ def _mock_dashboard(
     dashboard = Mock()
     dashboard.id = dashboard_id
     dashboard.dashboard_title = title
+    dashboard.is_managed_externally = False
     dashboard.uuid = _UUID
     dashboard.deleted_at = datetime(2026, 7, 1) if deleted else None
     return dashboard

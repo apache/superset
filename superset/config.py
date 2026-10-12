@@ -106,6 +106,11 @@ if "SUPERSET_HOME" in os.environ:
 else:
     DATA_DIR = os.path.expanduser("~/.superset")
 
+# Optional globally unique workspace identity, overriding database address scope.
+# Web, Celery and MCP must resolve the same value for the same workspace.
+# A callable may return the active tenant's stable namespace per session.
+SEMANTIC_LAYER_CACHE_NAMESPACE: str | Callable[[], str] = ""
+
 # ---------------------------------------------------------
 # Superset specific config
 # ---------------------------------------------------------
@@ -243,6 +248,9 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS: int = 0
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
+# A manager that overrides raise_for_access receives the complete query context,
+# so it turns off the semantic-view chart-data check that otherwise denies before
+# provider metadata is loaded.
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -690,6 +698,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables Table V2 (AG Grid) viz plugin
     # @lifecycle: development
     "AG_GRID_TABLE_ENABLED": False,
+    # Enables the per-schedule "Run As" fields in Alerts & Reports (SIP-209).
+    # When enabled, each alert/report records which user's credentials (RBAC,
+    # database OAuth2 tokens) are used at execution time, and alerts can specify
+    # a distinct user for the alert condition query. Admins can pick any user;
+    # non-admins are restricted to their own account. Schedules without a value
+    # keep using the ALERT_REPORTS_EXECUTORS resolution.
+    # @lifecycle: development
+    "ALERT_REPORT_DYNAMIC_EXECUTOR": False,
     # Enables experimental tabs UI for Alerts and Reports
     # @lifecycle: development
     "ALERT_REPORT_TABS": False,
@@ -866,6 +882,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # -----------------------------------------------------------------
     # When enabled, alerts send email/slack with screenshot AND link.
     # When disabled, alerts send only link; reports still send screenshot.
+    # Deprecation notice: this flag is superseded by the "Enable attachments for
+    # alerts" setting in the Alerts & Reports configuration UI (SIP-209). The
+    # flag is only used as a fallback while that setting is not saved.
     # @lifecycle: stable
     # @category: runtime_config
     "ALERTS_ATTACH_REPORTS": True,
@@ -1069,6 +1088,9 @@ SOFT_DELETE_RETENTION_DAYS_FUNC: Callable[[], int] | None = None
 # built-in chart, dashboard and dataset roots are never affected.
 PURGE_POLICIES_FUNC: Callable[[], Any] | None = None
 SOFT_DELETE_PURGE_DRY_RUN: bool = False
+# Maximum committed root purges per scheduled run; 0 or None is unlimited.
+# Set an int in superset_config.py; this key has no automatic environment parsing.
+SOFT_DELETE_PURGE_MAX_PER_RUN: int | None = 1000
 
 # Retention policy for the purge audit log itself (the durable evidence the
 # purge task writes). Pruning is deletion-only and scheduled
@@ -1897,6 +1919,11 @@ def _normalize_version_history_retention_days(value: object, *, legacy: bool) ->
 
 
 VERSION_HISTORY_RETENTION_DAYS: int = _parse_version_history_retention_days()
+# Maximum committed transactions pruned per scheduled run; 0 or None is unlimited.
+# Set an int in superset_config.py; this key has no automatic environment parsing.
+VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN: int | None = 1000
+# Set a bool in superset_config.py; this key has no automatic environment parsing.
+VERSION_HISTORY_PRUNE_DRY_RUN: bool = False
 _version_history_retention_seed: int = VERSION_HISTORY_RETENTION_DAYS
 
 # Sentinel for "key not configured at all", distinct from any configured value
@@ -2691,7 +2718,14 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 #     ExecutorType.EDITOR,
 #     FixedExecutor("admin"),
 # ]
+#
+# Deprecation notice: ALERT_REPORTS_EXECUTORS is superseded by the per-schedule
+# "Run As" fields introduced by SIP-209 (feature flag ALERT_REPORT_DYNAMIC_EXECUTOR).
+# When the flag is enabled, an explicit user or executor type takes precedence.
+# Schedules with neither configured use this resolution.
 ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.EDITOR]
+# Optional override text for the the Run as tooltip
+ALERT_REPORTS_RUN_AS_TOOLTIP: str | None = None
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -2760,6 +2794,10 @@ ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
 # You can also assign a function to the config that returns the expected integer
+#
+# Deprecation notice: these values are superseded by the "Alert minimum interval"
+# and "Report minimum interval" settings in the Alerts & Reports configuration UI
+# (SIP-209). They are only used as a fallback while those settings are not saved.
 ALERT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
@@ -3438,6 +3476,9 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
 # Additional query filters for chart/dashboard list views.
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
+# The hook receives the complete query context, so setting it turns off the
+# semantic-view chart-data check that otherwise denies before provider metadata
+# is loaded.
 EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 # Resolve additional editor subjects for a resource. Also used for editorship
 # checks and lockout-prevention logic.

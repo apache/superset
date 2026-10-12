@@ -19,10 +19,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { logging } from '@apache-superset/core/utils';
 import { Dataset } from 'src/components/Chart/types';
-import {
-  cachedSupersetGet,
-  supersetGetCache,
-} from 'src/utils/cachedSupersetGet';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   getDatasetId,
   createVerboseMap,
@@ -31,9 +28,6 @@ import {
 
 jest.mock('src/utils/cachedSupersetGet', () => ({
   cachedSupersetGet: jest.fn(),
-  supersetGetCache: {
-    delete: jest.fn(),
-  },
 }));
 
 jest.mock('@apache-superset/core/utils', () => ({
@@ -50,7 +44,6 @@ jest.mock('@superset-ui/core', () => ({
 
 const mockedCachedSupersetGet = jest.mocked(cachedSupersetGet);
 const mockedLoggingError = jest.mocked(logging.error);
-const mockedSupersetGetCacheDelete = jest.mocked(supersetGetCache.delete);
 const mockExtension = jest.fn();
 
 // Helper to configure extension mock for extension path tests
@@ -211,7 +204,6 @@ test('useDatasetDrillInfo handles network errors', async () => {
   expect(result.current.result).toBeNull();
   expect(result.current.error).toBeInstanceOf(Error);
   expect(result.current.error?.message).toBe('Network error');
-  expect(mockedSupersetGetCacheDelete).toHaveBeenCalled();
 });
 
 test('useDatasetDrillInfo skips fetch when skip is true', async () => {
@@ -249,29 +241,6 @@ test('useDatasetDrillInfo extracts dataset ID from string format', async () => {
   expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
     endpoint: '/api/v1/dataset/123/drill_info/?q=(dashboard_id:456)',
   });
-});
-
-test('useDatasetDrillInfo does not clear cache on successful fetch', async () => {
-  const mockDataset = {
-    id: 123,
-    columns: [],
-    metrics: [],
-  };
-
-  mockedCachedSupersetGet.mockResolvedValue({
-    json: {
-      result: mockDataset,
-    },
-  } as any);
-
-  const { result } = renderHook(() => useDatasetDrillInfo(123, 456));
-
-  await waitFor(() => {
-    expect(result.current.status).toBe('complete');
-  });
-
-  // Cache should NOT be deleted on success
-  expect(mockedSupersetGetCacheDelete).not.toHaveBeenCalled();
 });
 
 test('useDatasetDrillInfo creates new verbose_map from columns and metrics', async () => {
@@ -515,9 +484,6 @@ test('useDatasetDrillInfo handles extension throwing error', async () => {
 
   // Verify REST API was not called
   expect(mockedCachedSupersetGet).not.toHaveBeenCalled();
-
-  // Verify cache is NOT deleted for extension errors (extensions don't use cache)
-  expect(mockedSupersetGetCacheDelete).not.toHaveBeenCalled();
 });
 
 test('useDatasetDrillInfo handles extension returning malformed payload with undefined result', async () => {

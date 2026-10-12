@@ -593,3 +593,46 @@ test('trigger-now action does not duplicate in-flight requests', async () => {
     expect(fetchMock.callHistory.calls('execute-report-slow')).toHaveLength(1);
   });
 });
+
+test('configuration button is only shown to admins and opens the modal', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/report/configuration/',
+    {
+      result: {
+        alerts_attach_reports: true,
+        alert_minimum_interval: 0,
+        report_minimum_interval: 0,
+        limit_recipients_to_users: false,
+        allowed_email_domains: [],
+      },
+    },
+    { name: 'configuration' },
+  );
+
+  const { unmount } = renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+  expect(
+    screen.queryByTestId('report-configuration-button'),
+  ).not.toBeInTheDocument();
+  unmount();
+
+  renderAlertList({
+    user: {
+      ...mockUser,
+      username: 'admin',
+      isActive: true,
+      isAnonymous: false,
+      roles: { Admin: [] },
+      permissions: {},
+    },
+  });
+  await screen.findByText('Weekly Sales Alert');
+  fireEvent.click(screen.getByTestId('report-configuration-button'));
+
+  expect(
+    await screen.findByText('Alerts & Reports configuration'),
+  ).toBeInTheDocument();
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls('configuration')).toHaveLength(1);
+  });
+});

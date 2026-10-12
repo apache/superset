@@ -143,6 +143,7 @@ def _mock_dashboard(filters: list[dict[str, Any]] | None = None, id: int = 1) ->
     """Build a mock dashboard carrying the given native filter config."""
     dashboard = Mock()
     dashboard.id = id
+    dashboard.is_managed_externally = False
     dashboard.uuid = "8f2ab3c4-0000-4000-8000-000000000001"
     dashboard.dashboard_title = "Test Dashboard"
     dashboard.json_metadata = json.dumps({"native_filter_configuration": filters or []})
@@ -1043,6 +1044,7 @@ async def test_timegrain_filter_created_by_manage_native_filters_accepts_a_grain
 
     create_dashboard = Mock()
     create_dashboard.id = 1
+    create_dashboard.is_managed_externally = False
     create_dashboard.dashboard_title = "Test Dashboard"
     create_dashboard.json_metadata = json.dumps({"native_filter_configuration": []})
     create_dashboard.slices = []
