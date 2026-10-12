@@ -917,6 +917,49 @@ test('single-metric "% of Columns" and "% of Rows" still fill the Total column a
   expect(byRow.getAggregator([], ['red']).value()).toBeCloseTo(0.75, 5);
 });
 
+test('"Metric" aggregation with "% of Columns" fills the Total cells from the database totals', () => {
+  // Leaf values 10/30 with a database-computed total of 40. The Total cells
+  // exercise the empty-selector metric substitution (`selRow`/`selCol` length
+  // 0), so they must stay 25%/75% rather than going blank.
+  const fixture = [
+    {
+      color: 'blue',
+      Metric: 'm1',
+      value: 10,
+      __rows: ['color'],
+      __columns: ['Metric'],
+      __metricKey: 'Metric',
+    },
+    {
+      color: 'red',
+      Metric: 'm1',
+      value: 30,
+      __rows: ['color'],
+      __columns: ['Metric'],
+      __metricKey: 'Metric',
+    },
+    {
+      Metric: 'm1',
+      value: 40,
+      __rows: [],
+      __columns: ['Metric'],
+      __metricKey: 'Metric',
+    },
+    { Metric: 'm1', value: 40, __rows: [], __columns: [] },
+  ] as unknown as PivotRecord[];
+
+  const byColumn = new PivotData({
+    data: fixture,
+    rows: ['color'],
+    cols: ['Metric'],
+    vals: ['value'],
+    aggregateFunction: 'Metric',
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_COLUMN,
+  });
+  expect(byColumn.getAggregator(['blue'], []).value()).toBeCloseTo(0.25, 5);
+  expect(byColumn.getAggregator(['red'], []).value()).toBeCloseTo(0.75, 5);
+});
+
 test('"Sum as Fraction of Total" keeps an all-null scope blank while other scopes ignore null inputs', () => {
   const leaves = [
     { color: 'blue', Metric: 'm1', value: null, __metricKey: 'Metric' },
@@ -932,4 +975,16 @@ test('"Sum as Fraction of Total" keeps an all-null scope blank while other scope
 
   expect(pivotData.getAggregator(['blue'], ['m1']).value()).toBeNull();
   expect(pivotData.getAggregator(['red'], ['m1']).value()).toBeCloseTo(1, 5);
+});
+
+test('Sum and Average stay blank (null) when every input in the scope is NULL', () => {
+  const run = (name: 'Sum' | 'Average', values: (number | null)[]) => {
+    const aggregator = aggregators[name](['x'])();
+    values.forEach(x => aggregator.push({ x } as unknown as PivotRecord));
+    return aggregator.value();
+  };
+  expect(run('Sum', [null, null])).toBeNull();
+  expect(run('Average', [null, null])).toBeNull();
+  expect(run('Sum', [null, 4])).toBe(4);
+  expect(run('Average', [null, 4])).toBe(4);
 });

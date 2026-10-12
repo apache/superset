@@ -472,6 +472,63 @@ test('updateSlice awaits a delayed legacy-aggregation tag DELETE before dispatch
   ).toBe(true);
 });
 
+test('updateSlice still resolves and dispatches success when the legacy-aggregation tag DELETE returns 404', async () => {
+  // Most pivot tables were never tagged, so a 404 from the tag DELETE is the
+  // common case and must not hang or fail an otherwise successful save.
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const deleteTagEndpoint =
+    'glob:*/api/v1/tag/2/*/legacy-pivot-aggregation-restored';
+  fetchMock.delete(
+    deleteTagEndpoint,
+    { status: 404, body: { message: 'Not found' } },
+    { name: deleteTagEndpoint },
+  );
+
+  const dispatchSpy = jest.fn();
+  const dispatch = (action: any) => dispatchSpy(action);
+  const getState = () => ({
+    ...mockExploreState,
+    explore: {
+      ...mockExploreState.explore,
+      form_data: { ...formData, viz_type: 'pivot_table_v2' },
+    },
+  });
+
+  const result = await updateSlice(
+    {
+      slice_id: sliceId,
+      editors: editors as [],
+      form_data: formData,
+      slice_name: '',
+      description: '',
+      description_markdown: '',
+      slice_url: '',
+      viz_type: '',
+      thumbnail_url: '',
+      changed_on: 0,
+      changed_on_humanized: '',
+      modified: '',
+      datasource_id: 0,
+      datasource_type: datasourceType,
+      datasource_url: '',
+      datasource_name: '',
+      created_by: {
+        id: 0,
+      },
+    },
+    sliceName,
+    [],
+  )(dispatch as Dispatch<any>, getState);
+
+  expect(fetchMock.callHistory.calls(deleteTagEndpoint)).toHaveLength(1);
+  expect(result).toEqual(sliceResponsePayload);
+  const types = dispatchSpy.mock.calls.map(([action]) => action?.type);
+  expect(types.filter(type => type === SAVE_SLICE_SUCCESS)).toHaveLength(1);
+  expect(types).not.toContain(SAVE_SLICE_FAILED);
+});
+
 /**
  * Tests createSlice action
  */
