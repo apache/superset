@@ -3839,10 +3839,10 @@ def test_bullet_exact_case_dimensions_survive_normalization_and_query() -> None:
         ({"temporal_column": "oRdErEd_At"}, "temporal column"),
     ],
 )
-def test_validation_pipeline_fails_closed_on_ambiguous_bullet_reference(
+def test_bullet_normalization_raises_named_ambiguity_error(
     ambiguous_config: dict[str, Any], role: str
 ) -> None:
-    """The pipeline must propagate Bullet ambiguity, not warn and carry on.
+    """Normalization must propagate Bullet ambiguity, not warn and carry on.
 
     ``_normalize_column_names`` re-raises only named normalization errors and
     downgrades every other ``ValueError`` to a warning, returning the original
@@ -5205,3 +5205,104 @@ def test_bullet_native_sql_metric_sort_uses_metric_output_label(
     mapped = map_bullet_config(config)
     assert mapped["metric"]["label"] == output_label
     assert mapped["orderby"] == [[mapped["metric"], False]]
+
+
+@pytest.mark.parametrize(
+    "saved_groupby,collision",
+    [
+        (["year"], "year"),
+        (
+            [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "EXTRACT(YEAR FROM ordered_at)",
+                    "label": "order_year",
+                }
+            ],
+            "order_year",
+        ),
+    ],
+)
+def test_bullet_partial_metric_update_rejects_inherited_dimension_collision(
+    saved_groupby: list[Any], collision: str
+) -> None:
+    """A metric-only update must not alias the metric to an inherited dimension.
+
+    Omitted ``dimensions`` keep the saved hierarchy, so the metric output label
+    is checked against that final hierarchy rather than only authored roles.
+    """
+    existing = {
+        "viz_type": "bullet",
+        "metric": "old_metric",
+        "groupby": saved_groupby,
+    }
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Saved Bullet",
+        params=__import__("json").dumps(existing),
+    )
+    config = BulletChartConfig(
+        metric={"name": "revenue", "aggregate": "SUM", "label": collision}
+    )
+    request = UpdateChartRequest(identifier=9, config=config, generate_preview=False)
+
+    payload = _build_update_payload(request, chart, config)
+    assert isinstance(payload, dict)
+    persisted = __import__("json").loads(payload["params"])
+    preview = _build_preview_form_data(request, chart, config)
+    assert isinstance(preview, dict)
+    for merged in (persisted, preview):
+        # Both update paths keep the saved hierarchy beside the new metric.
+        assert merged["groupby"] == saved_groupby
+        with pytest.raises(ValueError, match="conflicts with a dimension"):
+            BulletChartPlugin().validate_merged_form_data(
+                merged, None, update_config=config
+            )
+
+
+def test_bullet_partial_metric_update_keeps_distinct_inherited_hierarchy() -> None:
+    existing = {"viz_type": "bullet", "metric": "old_metric", "groupby": ["year"]}
+    config = BulletChartConfig(
+        metric={"name": "revenue", "aggregate": "SUM", "label": "Total"}
+    )
+    merged = {**existing, **map_bullet_config(config), "groupby": ["year"]}
+
+    assert validate_merged_bullet_form_data(merged, config) is not None
+
+
+def test_validation_pipeline_reports_ambiguous_bullet_reference_error_code() -> None:
+    """The pipeline itself fails closed with the ambiguity error contract."""
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema=None,
+        database_name="main",
+        available_columns=[
+            {"name": "Revenue", "type": "NUMERIC", "is_numeric": True},
+            {"name": "Region", "type": "VARCHAR"},
+            {"name": "region", "type": "VARCHAR"},
+        ],
+        available_metrics=[],
+    )
+    request_data = {
+        "dataset_id": 7,
+        "config": {
+            "chart_type": "bullet",
+            "metric": {"name": "Revenue", "aggregate": "SUM"},
+            "dimensions": [{"name": "rEgIoN"}],
+        },
+    }
+    with (
+        patch.object(ValidationPipeline, "_get_dataset_context", return_value=context),
+        patch.object(
+            ValidationPipeline, "_validate_runtime", return_value=(True, None)
+        ),
+    ):
+        result = ValidationPipeline.validate_request_with_warnings(request_data)
+
+    assert result.is_valid is False
+    assert result.error is not None
+    assert result.error.error_code == "AMBIGUOUS_COLUMN_REFERENCE"
+    assert result.error.error_type == "ambiguous_column_reference"
+    assert "differ only by case" in result.error.details

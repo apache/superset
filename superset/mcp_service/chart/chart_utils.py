@@ -4183,6 +4183,26 @@ _BULLET_UNMODELED_PRESERVED_KEYS = (
 ) - _get_known_fields(BulletChartConfig)
 
 
+def _strip_inherited_bullet_roles(
+    validation_data: dict[str, Any], update_config: ChartConfig | None
+) -> list[Any] | None:
+    """Drop omitted native query roles; return the inherited hierarchy, if any."""
+    if update_config is not None and not isinstance(update_config, BulletChartConfig):
+        return None
+    inherited_groupby: list[Any] | None = None
+    if update_config is None or update_config.dimensions is None:
+        inherited_groupby = bullet_groupby_list(validation_data.pop("groupby", None))
+    if update_config is None or "filters" not in update_config.model_fields_set:
+        validation_data.pop("adhoc_filters", None)
+        validation_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if update_config is None or "order_by" not in update_config.model_fields_set:
+        # An inherited sort may rank by an independent saved metric; the
+        # native query contract validates it, not the authoring schema.
+        for order_key in ("orderby", "order_by_cols"):
+            validation_data.pop(order_key, None)
+    return inherited_groupby
+
+
 def validate_merged_bullet_form_data(
     form_data: Mapping[str, Any],
     update_config: ChartConfig | None = None,
@@ -4207,18 +4227,14 @@ def validate_merged_bullet_form_data(
         # A null marker records an explicit subject clear with no binding to
         # validate; it is not an authored physical column.
         validation_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
-    if update_config is None or isinstance(update_config, BulletChartConfig):
-        if update_config is None or update_config.dimensions is None:
-            validation_data.pop("groupby", None)
-        if update_config is None or "filters" not in update_config.model_fields_set:
-            validation_data.pop("adhoc_filters", None)
-            validation_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
-        if update_config is None or "order_by" not in update_config.model_fields_set:
-            # An inherited sort may rank by an independent saved metric; the
-            # native query contract validates it, not the authoring schema.
-            for order_key in ("orderby", "order_by_cols"):
-                validation_data.pop(order_key, None)
-    return BulletChartConfig.model_validate(validation_data)
+    inherited_groupby = _strip_inherited_bullet_roles(validation_data, update_config)
+    validated = BulletChartConfig.model_validate(validation_data)
+    if inherited_groupby is not None:
+        # The final query keeps the saved hierarchy, so the metric output label
+        # must not collide with any inherited dimension output.
+        validated._inherited_groupby = inherited_groupby
+        validated.validate_roles_and_outputs()
+    return validated
 
 
 def analyze_chart_capabilities(  # noqa: C901

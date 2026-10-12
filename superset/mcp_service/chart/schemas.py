@@ -4565,6 +4565,16 @@ class BulletChartConfig(BaseChartConfig):
         # a friendly ``ColumnRef.label`` was supplied. Only the metric is emitted
         # with an output alias. Keep validation aligned with those actual result
         # fields instead of treating dimension display labels as SQL aliases.
+        if self.dimensions is None and self._inherited_groupby is not None:
+            # An omitted hierarchy keeps the saved native dimensions, whose
+            # query output labels share the result row with the metric.
+            from superset.mcp_service.chart.chart_helpers import _column_label
+
+            seen_names = {
+                label
+                for dimension in self._inherited_groupby
+                if (label := _column_label(dimension))
+            }
         if (metric_output := _bullet_metric_output_label(self.metric)) in seen_names:
             raise ValueError(
                 f"Bullet metric output label {metric_output!r} conflicts with a "
