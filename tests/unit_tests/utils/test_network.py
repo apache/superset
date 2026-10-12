@@ -241,3 +241,24 @@ def test_get_ssrf_safe_requester_pins_peer_by_default() -> None:
     requester = get_ssrf_safe_requester()
     assert isinstance(requester.get_adapter("http://x/"), PeerValidatingHTTPAdapter)
     assert isinstance(requester.get_adapter("https://x/"), PeerValidatingHTTPAdapter)
+
+
+@pytest.mark.parametrize(
+    ("address", "expected"),
+    [
+        ("0.0.0.1", False),
+        ("255.255.255.255", False),
+        ("64:ff9b::7f00:1", False),
+        ("64:ff9b::a9fe:a9fe", False),
+        ("64:ff9b::808:808", True),
+        ("64:ff9b:1::808:808", False),
+        ("::127.0.0.1", False),
+        ("::8.8.8.8", False),
+        ("2002:7f00:1::1", False),
+        ("2002:0808:0808::1", True),
+        ("2001:0:4136:e378:8000:63bf:3fff:fdd2", False),
+    ],
+)
+def test_address_forms(address: str, expected: bool) -> None:
+    """Pin the policy for each supported address representation."""
+    assert is_safe_ip(ipaddress.ip_address(address)) is expected

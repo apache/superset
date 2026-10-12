@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Address validation refuses additional non-global address forms. Translation and 6to4 addresses are checked using their embedded IPv4 address; local-use translation, IPv4-compatible and Teredo forms are refused. Existing per-feature internal-host settings continue to control OAuth2, webhook, URL dataset import and Impala checks.
+
 - Semantic-view chart-defined metric filters return a client error identifying
   the metric; select a dimension or remove the unsupported predicate. Dashboard
   filters on incompatible columns (including metrics) are skipped and reported
