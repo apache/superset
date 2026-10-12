@@ -677,8 +677,8 @@ def test_authlib_jose_deprecation_warning_suppressed_at_package_init():
     import sys
 
     pytest.importorskip("authlib.jose")
-    result = subprocess.run(  # noqa: S603
-        [
+    result = subprocess.run(
+        [  # noqa: S603
             sys.executable,
             "-c",
             "import superset.mcp_service; import authlib.jose",
