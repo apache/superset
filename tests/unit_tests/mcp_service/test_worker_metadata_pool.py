@@ -17,6 +17,7 @@
 """Tool workers and the transport loop share the metadata connection pool."""
 
 import asyncio
+import contextlib
 import sqlite3
 import threading
 import time
@@ -145,7 +146,10 @@ async def test_saturated_workers_holding_metadata_pool_do_not_freeze_loop(
             try:
                 await asyncio.sleep(0.05)
                 pinged = time.monotonic()
-                await client.ping()
+                # FastMCP 4 answers ``ping`` with "Method not found"; the round
+                # trip still measures loop responsiveness.
+                with contextlib.suppress(Exception):
+                    await client.ping()
                 ping_latency = time.monotonic() - pinged
                 results = await asyncio.gather(*calls)
                 elapsed = time.monotonic() - started
