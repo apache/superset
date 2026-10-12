@@ -78,7 +78,7 @@ test('renders core containers and markdown without extensions', async () => {
 
   expect(screen.getByRole('tab', { name: 'EMEA' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Untitled tab' })).toBeInTheDocument();
-  // SafeMarkdown loads react-markdown asynchronously.
-  expect(await screen.findByText('Quarterly')).toBeInTheDocument();
+  // react-markdown is stubbed in tests (spec/helpers/shim.tsx) to echo its source.
+  expect(await screen.findByText(/Quarterly/)).toBeInTheDocument();
   expect(screen.getByText('Key numbers')).toBeInTheDocument();
 });

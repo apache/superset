@@ -34,6 +34,7 @@ jest.mock('react-router-dom', () => ({
   useHistory: () => ({ push: mockPush }),
 }));
 jest.mock('src/middleware/realtime', () => ({
+  connectRealtime: jest.fn(),
   subscribeRealtime: jest.fn(() => jest.fn()),
   subscribeRealtimeOpen: jest.fn(() => jest.fn()),
   subscribeRealtimeState: jest.fn(() => jest.fn()),

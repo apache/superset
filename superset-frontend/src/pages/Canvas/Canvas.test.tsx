@@ -27,6 +27,7 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ idOrSlug: '7' }),
 }));
 jest.mock('src/middleware/realtime', () => ({
+  connectRealtime: jest.fn(),
   subscribeRealtime: jest.fn(() => jest.fn()),
   subscribeRealtimeOpen: jest.fn(() => jest.fn()),
   subscribeRealtimeState: jest.fn(() => jest.fn()),
