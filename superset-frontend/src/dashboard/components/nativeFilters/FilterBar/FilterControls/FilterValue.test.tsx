@@ -198,12 +198,23 @@ test('does not fetch data when filter has not been in view', () => {
 });
 
 test('fetches data when inView is false if filter has requiredFirst', () => {
+  mockRequestChartData.mockReturnValue(new Promise(() => {}));
   const requiredFirstFilter = createMockFilter({
     requiredFirst: true,
   });
   renderFilterValue({ filter: requiredFirstFilter, inView: false });
 
   expect(mockRequestChartData).toHaveBeenCalled();
+});
+
+test('does not fetch data when inView is false if filter is filter_time even with requiredFirst', () => {
+  const requiredFirstTimeFilter = createMockFilter({
+    requiredFirst: true,
+    filterType: 'filter_time',
+  });
+  renderFilterValue({ filter: requiredFirstTimeFilter, inView: false });
+
+  expect(mockRequestChartData).not.toHaveBeenCalled();
 });
 
 test('does not render loading spinner when filter has no data source', () => {

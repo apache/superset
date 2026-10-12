@@ -160,7 +160,9 @@ const FilterValue: FC<FilterValueProps> = ({
   });
   const [ownState, setOwnState] = useState<JsonObject>({});
   const isRequiredFirst =
-    filter.requiredFirst === true && filter.filterType !== 'filter_time';
+    'requiredFirst' in filter &&
+    filter.requiredFirst === true &&
+    filter.filterType !== 'filter_time';
   const [inViewFirstTime, setInViewFirstTime] = useState(
     inView || isRequiredFirst,
   );
