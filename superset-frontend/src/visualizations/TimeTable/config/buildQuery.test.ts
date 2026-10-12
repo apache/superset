@@ -50,6 +50,20 @@ test('keeps the groupby columns for grouped mode', () => {
   expect(query.columns).toEqual(['gender']);
 });
 
+test('keeps the semantic series limit inferred for grouped timeseries', () => {
+  const [query] = buildQuery({
+    ...formData,
+    datasource: '5__semantic_view',
+    metrics: ['sum__num'],
+    groupby: ['gender'],
+    limit: 25,
+  }).queries;
+  expect(query.is_timeseries).toBe(true);
+  expect(query.columns).toEqual(['gender']);
+  expect(query.series_columns).toBeUndefined();
+  expect(query.series_limit).toBe(25);
+});
+
 test('rejects multiple metrics in grouped mode like the legacy backend', () => {
   expect(() => buildQuery({ ...formData, groupby: ['gender'] })).toThrow(
     'single metric',

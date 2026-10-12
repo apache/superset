@@ -159,7 +159,12 @@ class ImportChartsCommand(ImportModelsCommand):
             {
                 str(chart_uuid)
                 for (chart_uuid,) in db.session.query(Slice.uuid).filter(
-                    Slice.uuid.in_(dependency_chart_uuids)
+                    # Slice.uuid comes only from the ImportExportMixin/UUIDMixin
+                    # chain, so in a full-repo mypy run mypy resolves it through
+                    # CoreChart's plain `uuid: UUID | None` annotation instead of
+                    # the Column descriptor; same false positive already ignored
+                    # in superset/mcp_service/dataset_scope.py.
+                    Slice.uuid.in_(dependency_chart_uuids)  # type: ignore[union-attr]
                 )
             }
             if dependency_chart_uuids

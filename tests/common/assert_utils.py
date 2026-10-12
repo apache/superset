@@ -40,7 +40,7 @@ def assert_called_once_with_text(
     Assert that the mock was called exactly once and that call was with the specified
     arguments.
 
-    Compares by value when an SQLAlchemy text object is passed to the mock.
+    Compare by value when an SQLAlchemy text object is passed to the mock.
     """
     m.assert_called_once()
     assert m.call_args[0][0].text == q

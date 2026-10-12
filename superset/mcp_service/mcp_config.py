@@ -406,6 +406,7 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
         "generate_dashboard",
         "generate_explore_link",
         "manage_dashboard_certification",
+        "manage_dashboard_markdown",
         "manage_dashboard_owners",
         "manage_dashboard_roles",
         "manage_native_filters",
@@ -501,8 +502,8 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 # The legacy compact_schemas setting only selects the default description limit
 # (300 when True, 0 when False) if max_description_length is omitted.
 # Field descriptions on a tool's request parameter carry untruncated calling
-# instructions. Their length is deducted from the prose budget; small limits
-# omit prose instead. Request-model docstrings are not deducted.
+# instructions in inputSchema or parameters_hint. These instructions do not
+# consume the description prose budget.
 #
 # Rollback:
 # ---------
@@ -537,6 +538,30 @@ MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
     "compact_schemas": True,  # Legacy default description limit for full schemas
     "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
     "include_schemas": True,  # full inputSchema in search results
+}
+
+
+# =============================================================================
+# MCP Native Tool List Configuration
+# =============================================================================
+#
+# Applies only when tool search is disabled (MCP_TOOL_SEARCH_CONFIG["enabled"]
+# = False), where tools/list advertises every tool the caller may use.
+#
+# compact=True bounds each listed description to max_description_length with
+# whole paragraphs first, then whole sentences. After a whole paragraph fits,
+# a following heading, IMPORTANT block or list is not partly advertised.
+# Request-parameter instructions stay untruncated in the input schema and are
+# not deducted from the native prose budget. Names and schemas ($defs, nullable
+# unions, constraints), and annotations are served unchanged, and tools/call
+# validates against the same server-side models, so only the listed prose
+# changes. Detailed chart guidance remains available from get_chart_type_schema.
+#
+# Disabled by default: the native listing serves full descriptions.
+# =============================================================================
+MCP_NATIVE_TOOL_LIST_CONFIG: dict[str, Any] = {
+    "compact": False,  # Bound tools/list descriptions (native mode only)
+    "max_description_length": 300,  # Prose budget per tool when compact
 }
 
 

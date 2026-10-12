@@ -20,7 +20,7 @@ import uuid
 from typing import Any, cast, Union
 
 from sqlalchemy import and_, func, literal, or_, select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, Query as ORMQuery
 from sqlalchemy.sql import Select
 
 from superset import db, security_manager
@@ -90,6 +90,25 @@ class DatasourceDAO(BaseDAO[Datasource]):
             raise DatasourceNotFound()
 
         return datasource
+
+    @classmethod
+    def get_datasources_by_ids(
+        cls, datasource_type: str, datasource_ids: set[int]
+    ) -> dict[int, Datasource]:
+        """Fetch typed integer references in one query; omit invalid/missing IDs."""
+        if datasource_type not in cls.sources:
+            raise DatasourceTypeNotSupportedError()
+        ids: set[int] = {
+            value for value in datasource_ids if type(value) is int and value > 0
+        }
+        if not ids:
+            return {}
+        model: type[Datasource] = cls.sources[datasource_type]
+        query: ORMQuery[Datasource] = db.session.query(model)
+        if model is Query:
+            # Query.perm and schema checks read the database for every member.
+            query = query.options(joinedload(Query.database))
+        return {item.id: item for item in query.filter(model.id.in_(ids)).all()}
 
     @staticmethod
     def build_dataset_query(

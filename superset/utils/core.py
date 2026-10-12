@@ -1634,14 +1634,18 @@ def override_user(user: User | None, force: bool = True) -> Iterator[Any]:
         if force or g.user is None:
             current = g.user
             g.user = user
-            yield
-            g.user = current
+            try:
+                yield
+            finally:
+                g.user = current
         else:
             yield
     else:
         g.user = user
-        yield
-        delattr(g, "user")
+        try:
+            yield
+        finally:
+            delattr(g, "user")
 
 
 def parse_ssl_cert(certificate: str) -> Certificate:
