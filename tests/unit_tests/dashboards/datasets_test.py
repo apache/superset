@@ -357,3 +357,114 @@ def test_dashboard_table_serialization_failure_is_not_suppressed() -> None:
         pytest.raises(RuntimeError, match="table error"),
     ):
         dashboard.datasets_trimmed_for_slices()
+
+
+@pytest.mark.parametrize("can_access", [True, False])
+def test_an_inaccessible_dashboard_dataset_hides_its_partition_mapping(
+    can_access: bool,
+) -> None:
+    """
+    The mapping names two of the dataset's columns and carries the raw value
+    transform in `evaluated_transform`, so it belongs with `columns` and
+    `main_dttm_col` in `DASHBOARD_DATASET_INACCESSIBLE_FIELDS`. Without it,
+    `GET /api/v1/dashboard/<id>/datasets` handed all three to a Gamma user with
+    dashboard access and no grant on the dataset.
+    """
+    table: SqlaTable = SqlaTable(id=7, table_name="orders")
+    chart: Slice = Slice(datasource_id=7, datasource_type="table")
+    chart.table = table
+    dashboard: Dashboard = Dashboard(slices=[chart])
+    payload = {
+        "id": 7,
+        "uid": "7__table",
+        "table_name": "orders",
+        "partition_column": "dt_epoch",
+        "partition_mapped_column": "event_time",
+        "partition_filter_mapping": {
+            "partition_column": "dt_epoch",
+            "mapped_column": "event_time",
+            "evaluated_transform": "unix_timestamp(:value)",
+        },
+    }
+    with (
+        patch.object(SqlaTable, "data_for_slices", return_value=payload),
+        patch(
+            "superset.dashboards.api.security_manager.can_access_datasource",
+            return_value=can_access,
+        ),
+        patch(
+            "superset.dashboards.schemas.security_manager.is_guest_user",
+            return_value=False,
+        ),
+    ):
+        serialized: dict[str, Any] = DashboardRestApi()._serialize_dashboard_dataset(
+            *dashboard.datasets_trimmed_for_slices()[0]
+        )
+
+    fields = ("partition_column", "partition_mapped_column", "partition_filter_mapping")
+    if can_access:
+        assert all(field in serialized for field in fields)
+        assert (
+            serialized["partition_filter_mapping"]["evaluated_transform"]
+            == "unix_timestamp(:value)"
+        )
+    else:
+        assert not any(field in serialized for field in fields)
+
+
+def test_a_guest_token_dashboard_dataset_hides_its_partition_mapping() -> None:
+    """
+    Same reasoning as the inaccessible case, through the guest narrowing:
+    `evaluated_transform` is a SQL expression, which is what puts `sql` in that
+    list. Neither the dataset editor nor Explore's pruning indicator is a guest
+    surface, so nothing is lost.
+    """
+    token: GuestToken = {
+        "iat": 0,
+        "exp": 1,
+        "user": {"username": "embedded-guest"},
+        "resources": [],
+        "rls_rules": [],
+    }
+    guest: GuestUser = GuestUser(token, roles=[])
+    with (
+        patch.object(g, "user", guest, create=True),
+        # `is_guest_user` is gated on EMBEDDED_SUPERSET, as the sibling guest
+        # test above does it.
+        patch("superset.is_feature_enabled", return_value=True),
+    ):
+        payload: dict[str, Any] = DashboardDatasetSchema().dump(
+            {
+                "id": 7,
+                "uid": "7__table",
+                "partition_column": "dt_epoch",
+                "partition_mapped_column": "event_time",
+                "partition_filter_mapping": {"evaluated_transform": "lower(:value)"},
+            }
+        )
+
+    assert "partition_column" not in payload
+    assert "partition_mapped_column" not in payload
+    assert "partition_filter_mapping" not in payload
+
+
+def test_a_dataset_without_a_mapping_serializes_its_null_partition_fields() -> None:
+    """
+    `SqlaTable.data` includes all three unconditionally, and the first two are
+    `None` on any dataset without a mapping. Declared non-nullable, the
+    generated spec rejected that ordinary response under strict client
+    validation.
+    """
+    payload: dict[str, Any] = DashboardDatasetSchema().dump(
+        {
+            "id": 7,
+            "uid": "7__table",
+            "partition_column": None,
+            "partition_mapped_column": None,
+            "partition_filter_mapping": None,
+        }
+    )
+
+    assert payload["partition_column"] is None
+    assert payload["partition_mapped_column"] is None
+    assert payload["partition_filter_mapping"] is None

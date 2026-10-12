@@ -4089,6 +4089,7 @@
             "type": "object"
           },
           "partition_column": {
+            "nullable": true,
             "type": "string"
           },
           "partition_filter_mapping": {
@@ -4097,6 +4098,7 @@
             "type": "object"
           },
           "partition_mapped_column": {
+            "nullable": true,
             "type": "string"
           },
           "perm": {
