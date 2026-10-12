@@ -270,9 +270,8 @@ def preview_widget(
     returns the option as rendered, warnings (unbound fields, empty data,
     tooltips or labels that would print raw objects) and a PNG at the
     placement's size; ``dark`` renders it with the dark theme. Fix what it
-    reports with ``apply_canvas_ops`` (or ``apply_canvas_draft_ops``) and
-    preview again. With ``draft_token``, previews the placement as it is in
-    that draft.
+    reports with ``apply_canvas_draft_ops`` and preview again. With
+    ``draft_token``, previews the placement as it is in that draft.
     """
     result, image = _preview_widget_impl(canvas_id, placement_id, dark, draft_token)
     response = PreviewWidgetResponse.model_validate(result)

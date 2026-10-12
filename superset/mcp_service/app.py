@@ -809,7 +809,6 @@ from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.canvas.tool import (  # noqa: F401, E402
     apply_canvas_draft_ops,
-    apply_canvas_ops,
     commit_canvas_draft,
     create_canvas,
     create_canvas_draft,
@@ -1041,7 +1040,6 @@ CANVAS_TOOLS = (
     "get_canvas",
     "create_canvas",
     "update_canvas",
-    "apply_canvas_ops",
     "create_canvas_draft",
     "get_canvas_draft",
     "apply_canvas_draft_ops",

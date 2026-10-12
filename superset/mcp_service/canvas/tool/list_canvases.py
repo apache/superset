@@ -73,8 +73,8 @@ def list_canvases(
     """List the canvases you can view, most recently changed first.
 
     ``search`` matches the title, slug or description. ``page`` is 1-based.
-    Read one with ``get_canvas``; its ``revision`` is the ``base_revision``
-    for ``apply_canvas_ops``.
+    Read one with ``get_canvas``; change one in a draft
+    (``create_canvas_draft``).
     """
     return ListCanvasesResponse.model_validate(
         _list_canvases_impl(search, page, page_size)

@@ -392,7 +392,6 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
     "excluded_tools": [
         "add_chart_to_existing_dashboard",
         "apply_canvas_draft_ops",
-        "apply_canvas_ops",
         "commit_canvas_draft",
         "create_canvas",
         "create_canvas_draft",

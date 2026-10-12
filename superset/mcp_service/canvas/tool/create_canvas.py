@@ -29,7 +29,7 @@ from superset.commands.canvas.create import CreateCanvasCommand
 from superset.commands.canvas.delete import DeleteCanvasCommand
 from superset.commands.canvas.exceptions import CanvasInvalidError
 from superset.mcp_service.canvas.schemas import CanvasWriteResponse
-from superset.mcp_service.canvas.tool.apply_canvas_ops import _apply_canvas_ops_impl
+from superset.mcp_service.canvas.tool.canvas_ops_common import _apply_canvas_ops_impl
 
 
 def _create_canvas_impl(
@@ -91,7 +91,7 @@ def create_canvas(
 
     ``slug`` is the readable URL (``/canvas/<slug>/``); without one the URL
     uses the id. ``ops`` optionally builds the canvas in the same call, with
-    the operations ``apply_canvas_ops`` takes (grid layouts are 1-based; omit
+    the operations ``apply_canvas_draft_ops`` takes (grid layouts are 1-based; omit
     ``col``/``row`` to auto-place): if any fails, nothing is created and the
     error names the operation at fault.
     """
