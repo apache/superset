@@ -25,6 +25,7 @@ single dataframe.
 """
 
 import logging
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
@@ -34,6 +35,7 @@ from zoneinfo import ZoneInfo
 import isodate
 import numpy as np
 import pyarrow as pa
+from flask_babel import gettext as _
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
@@ -64,7 +66,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.exceptions import execute_semantic_query
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, Column
 from superset.utils.core import (
     FilterOperator,
     QueryObjectFilterClause,
@@ -185,6 +187,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
             main_result,
             query_object,
             duration,
+            metadata,
         )
 
     # Get metric names from the main query
@@ -278,6 +281,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         semantic_result,
         query_object,
         duration,
+        metadata,
     )
 
 
@@ -311,6 +315,7 @@ def map_semantic_result_to_query_result(
     semantic_result: SemanticResult,
     query_object: ValidatedQueryObject,
     duration: timedelta,
+    metadata: _ViewMetadata | None = None,
 ) -> QueryResult:
     """
     Convert a SemanticResult to a QueryResult.
@@ -318,6 +323,7 @@ def map_semantic_result_to_query_result(
     :param semantic_result: Result from the semantic layer
     :param query_object: Original QueryObject (for passthrough attributes)
     :param duration: Time taken to execute the query
+    :param metadata: Member snapshot used to validate and execute this query
     :return: QueryResult compatible with Superset's query interface
     """
     # Get the query string from requests (typically one or more SQL queries)
@@ -327,6 +333,16 @@ def map_semantic_result_to_query_result(
         query_str = "\n\n".join(
             f"-- {req.type}\n{req.definition}" for req in semantic_result.requests
         )
+
+    dimension_names: set[str] = {
+        dimension.name
+        for dimension in (
+            metadata.dimensions
+            if metadata is not None
+            else query_object.datasource.implementation.get_dimensions()
+        )
+    }
+    filter_columns: list[Column] = [filter_["col"] for filter_ in query_object.filter]
 
     return QueryResult(
         # Core data
@@ -338,10 +354,17 @@ def map_semantic_result_to_query_result(
         # Template filters - not applicable to semantic layers
         # (semantic layers don't use Jinja templates)
         applied_template_filters=None,
-        # Filter columns - not applicable to semantic layers
-        # (semantic layers handle filter validation internally)
-        applied_filter_columns=None,
-        rejected_filter_columns=None,
+        # Match SQL datasets: unknown columns are rejected, not silently applied.
+        applied_filter_columns=[
+            column
+            for column in filter_columns
+            if isinstance(column, str) and column in dimension_names
+        ],
+        rejected_filter_columns=[
+            column
+            for column in filter_columns
+            if not isinstance(column, str) or column not in dimension_names
+        ],
         # Status - always success if we got here
         # (errors would raise exceptions before reaching this point)
         status=QueryStatus.SUCCESS,
@@ -390,6 +413,8 @@ def _map_query_object(
 
     all_metrics = {metric.name: metric for metric in view_metrics}
     all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
+
+    validate_filter_columns(query_object.filter, all_dimensions, all_metrics)
 
     # Normalize columns (may be dicts with isColumnReference=True for time-series)
     dimension_names = set(all_dimensions.keys())
@@ -730,6 +755,7 @@ def _convert_query_object_filter(
     # Handle simple column filters
     col = filter_.get("col")
     if col not in all_dimensions:
+        # Incompatible columns are included in rejected_filter_columns.
         return None
 
     dimension = all_dimensions[col]
@@ -1177,7 +1203,7 @@ def _validate_query_object(
 ) -> None:
     _validate_metrics(query_object, metadata)
     _validate_dimensions(query_object, metadata)
-    _validate_filters(query_object)
+    _validate_filters(query_object, metadata)
     _validate_granularity(query_object, metadata)
     _validate_group_limit(query_object, metadata)
     _validate_orderby(query_object, metadata)
@@ -1215,7 +1241,32 @@ def _validate_dimensions(
         raise ValueError("All dimensions must be defined in the Semantic View.")
 
 
-def _validate_filters(query_object: ValidatedQueryObject) -> None:
+def validate_filter_columns(
+    filters: Sequence[QueryObjectFilterClause | ValidatedQueryObjectFilterClause],
+    dimension_names: Collection[str],
+    metric_names: Collection[str],
+) -> None:
+    """Refuse chart-defined metric predicates; report incompatible extras later."""
+    for filter_ in filters:
+        column: Column = filter_["col"]
+        if (
+            isinstance(column, str)
+            and column not in dimension_names
+            and column in metric_names
+            and not filter_.get("isExtra")
+        ):
+            raise QueryObjectValidationError(
+                _(
+                    "Filter column '%(column)s' is a metric; semantic views only "
+                    "filter on dimensions",
+                    column=column,
+                )
+            )
+
+
+def _validate_filters(
+    query_object: ValidatedQueryObject, metadata: _ViewMetadata
+) -> None:
     """
     Make sure all filters are valid.
     """
@@ -1226,6 +1277,12 @@ def _validate_filters(query_object: ValidatedQueryObject) -> None:
             )
         if not filter_.get("op"):
             raise ValueError("All filters must have an operator defined.")
+    if query_object.filter:
+        dimension_names: set[str] = {
+            dimension.name for dimension in metadata.dimensions
+        }
+        metric_names: set[str] = {metric.name for metric in metadata.metrics}
+        validate_filter_columns(query_object.filter, dimension_names, metric_names)
 
 
 def _validate_granularity(
