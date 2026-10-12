@@ -69,13 +69,12 @@ from superset.versioning.diff import (
 )
 from superset.versioning.metrics import emit_capture_timing, incr_capture_error
 from superset.versioning.snapshot import reconcile_parent_snapshots
-from superset.versioning.utils import capture_enabled
+from superset.versioning.unit_of_work import capture_for_write, INITIAL_STATES_KEY
 
 logger = logging.getLogger(__name__)
 
 
 # Keys for transaction-scoped state stored on ``session.info``.
-INITIAL_STATES_KEY: str = "_version_changes_initial_states"
 _FINALIZING_KEY = "_version_changes_finalizing"
 
 # Key on ``session.info`` that commands set to declare the high-level
@@ -447,9 +446,9 @@ def finalize_change_records(session: Session) -> None:
     against an isolated session; it depends only on the session and the
     module helpers, never on the registered entity classes.
     """
-    if not capture_enabled(session):
-        return
     if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
+        return
+    if not capture_for_write(session):
         return
 
     session.info[_FINALIZING_KEY] = True
@@ -457,10 +456,8 @@ def finalize_change_records(session: Session) -> None:
     # which excludes the transaction's own write cost but also excludes
     # capture_initial_states' per-entity pre-state SELECTs (those are timed
     # as their own ``capture_initial_states`` stage in before_flush) — and
-    # runs through every capture step and early return. Every commit on the
-    # session emits a sample, including commits touching no versioned
-    # entity, because the whole-listener overhead is exactly what the
-    # kill-switch removes; a flush that raises emits nothing.
+    # runs through every capture step and early return for allowed versioned
+    # work. Unrelated commits and a flush that raises emit nothing.
     start: float | None = None
     try:
         session.flush()
@@ -582,7 +579,7 @@ def register_change_record_listener() -> None:
     def capture_initial_states(
         session: Session, _flush_context: Any, _instances: Any
     ) -> None:
-        if not capture_enabled(session):
+        if not capture_for_write(session):
             return
         _capture_initial_states(session, versioned_classes)
 

@@ -45,7 +45,11 @@ def session_with_tables(session: Session) -> Session:
 def test_config_lock_uses_fixed_row_for_update(mocker: MockerFixture) -> None:
     """The save lock targets the singleton configuration entry."""
     from superset.daos.report import ReportConfigDAO
-    from superset.key_value.types import FIXED_RESOURCE_KEYS, KeyValueResource
+    from superset.key_value.types import (
+        FIXED_RESOURCE_KEYS,
+        KeyValueResource,
+        RowLock,
+    )
 
     get_entry = mocker.patch("superset.daos.report.KeyValueDAO.get_entry")
 
@@ -55,7 +59,7 @@ def test_config_lock_uses_fixed_row_for_update(mocker: MockerFixture) -> None:
     get_entry.assert_called_once_with(
         resource,
         FIXED_RESOURCE_KEYS[resource],
-        for_update=True,
+        lock=RowLock(),
     )
 
 

@@ -80,6 +80,7 @@ def _column_values_cache_key(
     """Bind a value query to its producer guarantee and existing security scope."""
     material: dict[str, Any] = dict(query)
     if isinstance(datasource, SemanticView):
+        material["metadata_version"] = datasource.metadata_generation
         discriminator: tuple[str, str] | None = datasource.result_cache_discriminator
         if discriminator is not None:
             material["semantic_result_version"] = discriminator
@@ -227,8 +228,6 @@ class DatasourceRestApi(BaseSupersetApi):
         # prevents stale-title collisions; authorization is enforced above.
         selection_version: str | None = None
         if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
-            from superset.semantic_layers.models import SemanticView
-
             selection_version = cast(
                 SemanticView, datasource
             ).implementation.selection_identity_version
@@ -623,6 +622,11 @@ class DatasourceRestApi(BaseSupersetApi):
                 json.dumps(
                     {
                         "uid": datasource.uid,
+                        "metadata_version": (
+                            datasource.metadata_generation
+                            if isinstance(datasource, SemanticView)
+                            else None
+                        ),
                         "m": sorted(selected_metrics),
                         "d": sorted(selected_dimensions),
                     },
