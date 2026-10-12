@@ -1,0 +1,1289 @@
+{
+  "tools": {
+    "add_chart_to_existing_dashboard": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 220,
+      "description_chars": 242,
+      "entry_bytes": {
+        "structured": 9658,
+        "text_only": 1421
+      },
+      "input_schema_bytes": 888,
+      "output_schema_bytes": 8221
+    },
+    "apply_dashboard_filters": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 252,
+      "description_chars": 2037,
+      "entry_bytes": {
+        "structured": 7981,
+        "text_only": 5305
+      },
+      "input_schema_bytes": 2911,
+      "output_schema_bytes": 2660
+    },
+    "create_dataset": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 256,
+      "description_chars": 1145,
+      "entry_bytes": {
+        "structured": 8192,
+        "text_only": 2602
+      },
+      "input_schema_bytes": 1114,
+      "output_schema_bytes": 5574
+    },
+    "create_dataset_metric": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 260,
+      "description_chars": 354,
+      "entry_bytes": {
+        "structured": 4812,
+        "text_only": 2445
+      },
+      "input_schema_bytes": 1811,
+      "output_schema_bytes": 2351
+    },
+    "create_theme": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 292,
+      "description_chars": 779,
+      "entry_bytes": {
+        "structured": 2390,
+        "text_only": 1552
+      },
+      "input_schema_bytes": 490,
+      "output_schema_bytes": 822
+    },
+    "create_virtual_dataset": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 210,
+      "description_chars": 483,
+      "entry_bytes": {
+        "structured": 4669,
+        "text_only": 3686
+      },
+      "input_schema_bytes": 2897,
+      "output_schema_bytes": 967
+    },
+    "delete_chart": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 263,
+      "description_chars": 734,
+      "entry_bytes": {
+        "structured": 2541,
+        "text_only": 1350
+      },
+      "input_schema_bytes": 348,
+      "output_schema_bytes": 1175
+    },
+    "delete_dashboard": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 204,
+      "description_chars": 954,
+      "entry_bytes": {
+        "structured": 3054,
+        "text_only": 1581
+      },
+      "input_schema_bytes": 341,
+      "output_schema_bytes": 1457
+    },
+    "delete_dataset": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 263,
+      "description_chars": 903,
+      "entry_bytes": {
+        "structured": 3069,
+        "text_only": 1534
+      },
+      "input_schema_bytes": 351,
+      "output_schema_bytes": 1519
+    },
+    "delete_dataset_metric": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 275,
+      "description_chars": 355,
+      "entry_bytes": {
+        "structured": 3881,
+        "text_only": 1114
+      },
+      "input_schema_bytes": 480,
+      "output_schema_bytes": 2751
+    },
+    "duplicate_dashboard": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 257,
+      "description_chars": 409,
+      "entry_bytes": {
+        "structured": 9337,
+        "text_only": 1432
+      },
+      "input_schema_bytes": 745,
+      "output_schema_bytes": 7889
+    },
+    "execute_sql": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 76,
+      "description_chars": 76,
+      "entry_bytes": {
+        "structured": 6301,
+        "text_only": 2032
+      },
+      "input_schema_bytes": 1701,
+      "output_schema_bytes": 4253
+    },
+    "find_users": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 186,
+      "description_chars": 1199,
+      "entry_bytes": {
+        "structured": 3520,
+        "text_only": 2348
+      },
+      "input_schema_bytes": 904,
+      "output_schema_bytes": 1156
+    },
+    "generate_bug_report": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 158,
+      "description_chars": 1189,
+      "entry_bytes": {
+        "structured": 4207,
+        "text_only": 3391
+      },
+      "input_schema_bytes": 1935,
+      "output_schema_bytes": 800
+    },
+    "generate_chart": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 250,
+      "description_chars": 3219,
+      "entry_bytes": {
+        "structured": 24898,
+        "text_only": 5181
+      },
+      "input_schema_bytes": 1547,
+      "output_schema_bytes": 19701
+    },
+    "generate_dashboard": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 38,
+      "description_chars": 837,
+      "entry_bytes": {
+        "structured": 11423,
+        "text_only": 3748
+      },
+      "input_schema_bytes": 2632,
+      "output_schema_bytes": 7659
+    },
+    "generate_explore_link": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 100,
+      "description_chars": 1361,
+      "entry_bytes": {
+        "structured": 7665,
+        "text_only": 2700
+      },
+      "input_schema_bytes": 986,
+      "output_schema_bytes": 4949
+    },
+    "get_annotation_layer_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 145,
+      "description_chars": 170,
+      "entry_bytes": {
+        "structured": 1745,
+        "text_only": 713
+      },
+      "input_schema_bytes": 268,
+      "output_schema_bytes": 1016
+    },
+    "get_catalog": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 210,
+      "description_chars": 606,
+      "entry_bytes": {
+        "structured": 3420,
+        "text_only": 1743
+      },
+      "input_schema_bytes": 886,
+      "output_schema_bytes": 1661
+    },
+    "get_chart_data": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 111,
+      "description_chars": 1247,
+      "entry_bytes": {
+        "structured": 11345,
+        "text_only": 3601
+      },
+      "input_schema_bytes": 2101,
+      "output_schema_bytes": 7728
+    },
+    "get_chart_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 33,
+      "description_chars": 1568,
+      "entry_bytes": {
+        "structured": 13901,
+        "text_only": 4396
+      },
+      "input_schema_bytes": 2522,
+      "output_schema_bytes": 9489
+    },
+    "get_chart_preview": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 241,
+      "description_chars": 434,
+      "entry_bytes": {
+        "structured": 8610,
+        "text_only": 3359
+      },
+      "input_schema_bytes": 2679,
+      "output_schema_bytes": 5235
+    },
+    "get_chart_sql": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 256,
+      "description_chars": 918,
+      "entry_bytes": {
+        "structured": 4234,
+        "text_only": 2612
+      },
+      "input_schema_bytes": 1439,
+      "output_schema_bytes": 1606
+    },
+    "get_chart_type_schema": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 261,
+      "description_chars": 642,
+      "entry_bytes": {
+        "structured": 1481,
+        "text_only": 1079
+      },
+      "input_schema_bytes": 171,
+      "output_schema_bytes": 386
+    },
+    "get_compatible_dimensions": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 73,
+      "description_chars": 1007,
+      "entry_bytes": {
+        "structured": 3741,
+        "text_only": 2028
+      },
+      "input_schema_bytes": 716,
+      "output_schema_bytes": 1697
+    },
+    "get_compatible_metrics": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 271,
+      "description_chars": 865,
+      "entry_bytes": {
+        "structured": 4618,
+        "text_only": 1872
+      },
+      "input_schema_bytes": 713,
+      "output_schema_bytes": 2730
+    },
+    "get_dashboard_data": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 227,
+      "description_chars": 1167,
+      "entry_bytes": {
+        "structured": 8447,
+        "text_only": 3187
+      },
+      "input_schema_bytes": 1735,
+      "output_schema_bytes": 5244
+    },
+    "get_dashboard_datasets": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 214,
+      "description_chars": 1555,
+      "entry_bytes": {
+        "structured": 7055,
+        "text_only": 2381
+      },
+      "input_schema_bytes": 539,
+      "output_schema_bytes": 4658
+    },
+    "get_dashboard_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 241,
+      "description_chars": 1736,
+      "entry_bytes": {
+        "structured": 11931,
+        "text_only": 4482
+      },
+      "input_schema_bytes": 2447,
+      "output_schema_bytes": 7433
+    },
+    "get_dashboard_layout": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 275,
+      "description_chars": 1256,
+      "entry_bytes": {
+        "structured": 7528,
+        "text_only": 2516
+      },
+      "input_schema_bytes": 978,
+      "output_schema_bytes": 4996
+    },
+    "get_database_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 168,
+      "description_chars": 535,
+      "entry_bytes": {
+        "structured": 4618,
+        "text_only": 1476
+      },
+      "input_schema_bytes": 670,
+      "output_schema_bytes": 3126
+    },
+    "get_dataset_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 175,
+      "description_chars": 1567,
+      "entry_bytes": {
+        "structured": 9034,
+        "text_only": 3444
+      },
+      "input_schema_bytes": 1575,
+      "output_schema_bytes": 5574
+    },
+    "get_instance_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 79,
+      "description_chars": 88,
+      "entry_bytes": {
+        "structured": 3917,
+        "text_only": 618
+      },
+      "input_schema_bytes": 291,
+      "output_schema_bytes": 3283
+    },
+    "get_layer_annotation_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 249,
+      "description_chars": 278,
+      "entry_bytes": {
+        "structured": 2130,
+        "text_only": 906
+      },
+      "input_schema_bytes": 362,
+      "output_schema_bytes": 1208
+    },
+    "get_query_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 251,
+      "description_chars": 354,
+      "entry_bytes": {
+        "structured": 3340,
+        "text_only": 907
+      },
+      "input_schema_bytes": 304,
+      "output_schema_bytes": 2417
+    },
+    "get_report_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 182,
+      "description_chars": 461,
+      "entry_bytes": {
+        "structured": 3763,
+        "text_only": 1329
+      },
+      "input_schema_bytes": 615,
+      "output_schema_bytes": 2418
+    },
+    "get_rls_filter_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 204,
+      "description_chars": 233,
+      "entry_bytes": {
+        "structured": 2786,
+        "text_only": 762
+      },
+      "input_schema_bytes": 271,
+      "output_schema_bytes": 2008
+    },
+    "get_role_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 133,
+      "description_chars": 166,
+      "entry_bytes": {
+        "structured": 1470,
+        "text_only": 676
+      },
+      "input_schema_bytes": 269,
+      "output_schema_bytes": 778
+    },
+    "get_saved_query_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 289,
+      "description_chars": 503,
+      "entry_bytes": {
+        "structured": 2868,
+        "text_only": 1157
+      },
+      "input_schema_bytes": 374,
+      "output_schema_bytes": 1695
+    },
+    "get_schema": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 51,
+      "description_chars": 942,
+      "entry_bytes": {
+        "structured": 4053,
+        "text_only": 1635
+      },
+      "input_schema_bytes": 442,
+      "output_schema_bytes": 2402
+    },
+    "get_table": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 63,
+      "description_chars": 63,
+      "entry_bytes": {
+        "structured": 9170,
+        "text_only": 3613
+      },
+      "input_schema_bytes": 3327,
+      "output_schema_bytes": 5541
+    },
+    "get_tag_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 278,
+      "description_chars": 375,
+      "entry_bytes": {
+        "structured": 2246,
+        "text_only": 914
+      },
+      "input_schema_bytes": 296,
+      "output_schema_bytes": 1316
+    },
+    "get_task_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 283,
+      "description_chars": 414,
+      "entry_bytes": {
+        "structured": 2467,
+        "text_only": 1012
+      },
+      "input_schema_bytes": 347,
+      "output_schema_bytes": 1439
+    },
+    "get_theme_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 253,
+      "description_chars": 350,
+      "entry_bytes": {
+        "structured": 2568,
+        "text_only": 958
+      },
+      "input_schema_bytes": 360,
+      "output_schema_bytes": 1594
+    },
+    "get_user_info": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 253,
+      "description_chars": 294,
+      "entry_bytes": {
+        "structured": 2306,
+        "text_only": 806
+      },
+      "input_schema_bytes": 269,
+      "output_schema_bytes": 1484
+    },
+    "health_check": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 263,
+      "description_chars": 869,
+      "entry_bytes": {
+        "structured": 1691,
+        "text_only": 1179
+      },
+      "input_schema_bytes": 62,
+      "output_schema_bytes": 496
+    },
+    "list_annotation_layers": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 198,
+      "description_chars": 211,
+      "entry_bytes": {
+        "structured": 5388,
+        "text_only": 2259
+      },
+      "input_schema_bytes": 1792,
+      "output_schema_bytes": 3113
+    },
+    "list_charts": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 279,
+      "description_chars": 1536,
+      "entry_bytes": {
+        "structured": 18418,
+        "text_only": 6201
+      },
+      "input_schema_bytes": 4376,
+      "output_schema_bytes": 12201
+    },
+    "list_dashboards": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 171,
+      "description_chars": 1556,
+      "entry_bytes": {
+        "structured": 15246,
+        "text_only": 5769
+      },
+      "input_schema_bytes": 3905,
+      "output_schema_bytes": 9461
+    },
+    "list_databases": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 204,
+      "description_chars": 221,
+      "entry_bytes": {
+        "structured": 8740,
+        "text_only": 3133
+      },
+      "input_schema_bytes": 2679,
+      "output_schema_bytes": 5591
+    },
+    "list_datasets": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 230,
+      "description_chars": 2331,
+      "entry_bytes": {
+        "structured": 14726,
+        "text_only": 6769
+      },
+      "input_schema_bytes": 4117,
+      "output_schema_bytes": 7941
+    },
+    "list_layer_annotations": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 266,
+      "description_chars": 295,
+      "entry_bytes": {
+        "structured": 5533,
+        "text_only": 2467
+      },
+      "input_schema_bytes": 1895,
+      "output_schema_bytes": 3050
+    },
+    "list_metrics": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 279,
+      "description_chars": 712,
+      "entry_bytes": {
+        "structured": 4885,
+        "text_only": 2067
+      },
+      "input_schema_bytes": 1099,
+      "output_schema_bytes": 2802
+    },
+    "list_queries": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 193,
+      "description_chars": 432,
+      "entry_bytes": {
+        "structured": 7470,
+        "text_only": 2702
+      },
+      "input_schema_bytes": 2040,
+      "output_schema_bytes": 4752
+    },
+    "list_reports": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 249,
+      "description_chars": 270,
+      "entry_bytes": {
+        "structured": 8386,
+        "text_only": 3472
+      },
+      "input_schema_bytes": 2974,
+      "output_schema_bytes": 4898
+    },
+    "list_rls_filters": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 213,
+      "description_chars": 226,
+      "entry_bytes": {
+        "structured": 6337,
+        "text_only": 2239
+      },
+      "input_schema_bytes": 1775,
+      "output_schema_bytes": 4082
+    },
+    "list_roles": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 140,
+      "description_chars": 153,
+      "entry_bytes": {
+        "structured": 5423,
+        "text_only": 2354
+      },
+      "input_schema_bytes": 1981,
+      "output_schema_bytes": 3053
+    },
+    "list_saved_queries": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 231,
+      "description_chars": 252,
+      "entry_bytes": {
+        "structured": 6590,
+        "text_only": 2538
+      },
+      "input_schema_bytes": 2040,
+      "output_schema_bytes": 4036
+    },
+    "list_tags": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 235,
+      "description_chars": 325,
+      "entry_bytes": {
+        "structured": 6495,
+        "text_only": 2708
+      },
+      "input_schema_bytes": 2163,
+      "output_schema_bytes": 3771
+    },
+    "list_tasks": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 204,
+      "description_chars": 643,
+      "entry_bytes": {
+        "structured": 6321,
+        "text_only": 2722
+      },
+      "input_schema_bytes": 1851,
+      "output_schema_bytes": 3583
+    },
+    "list_themes": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 220,
+      "description_chars": 237,
+      "entry_bytes": {
+        "structured": 6597,
+        "text_only": 2577
+      },
+      "input_schema_bytes": 2116,
+      "output_schema_bytes": 4004
+    },
+    "list_users": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 263,
+      "description_chars": 284,
+      "entry_bytes": {
+        "structured": 6340,
+        "text_only": 2526
+      },
+      "input_schema_bytes": 2020,
+      "output_schema_bytes": 3798
+    },
+    "manage_dashboard_certification": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 229,
+      "description_chars": 911,
+      "entry_bytes": {
+        "structured": 3694,
+        "text_only": 2383
+      },
+      "input_schema_bytes": 1138,
+      "output_schema_bytes": 1295
+    },
+    "manage_dashboard_markdown": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 190,
+      "description_chars": 1149,
+      "entry_bytes": {
+        "structured": 8021,
+        "text_only": 6060
+      },
+      "input_schema_bytes": 4528,
+      "output_schema_bytes": 1945
+    },
+    "manage_dashboard_owners": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 252,
+      "description_chars": 1751,
+      "entry_bytes": {
+        "structured": 5334,
+        "text_only": 3439
+      },
+      "input_schema_bytes": 1356,
+      "output_schema_bytes": 1879
+    },
+    "manage_dashboard_roles": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 289,
+      "description_chars": 1730,
+      "entry_bytes": {
+        "structured": 5326,
+        "text_only": 3270
+      },
+      "input_schema_bytes": 1196,
+      "output_schema_bytes": 2040
+    },
+    "manage_native_filters": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 146,
+      "description_chars": 1348,
+      "entry_bytes": {
+        "structured": 12912,
+        "text_only": 10786
+      },
+      "input_schema_bytes": 9121,
+      "output_schema_bytes": 2110
+    },
+    "open_sql_lab_with_context": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 248,
+      "description_chars": 265,
+      "entry_bytes": {
+        "structured": 2190,
+        "text_only": 1602
+      },
+      "input_schema_bytes": 1069,
+      "output_schema_bytes": 572
+    },
+    "query_dataset": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 243,
+      "description_chars": 1267,
+      "entry_bytes": {
+        "structured": 10401,
+        "text_only": 4458
+      },
+      "input_schema_bytes": 2914,
+      "output_schema_bytes": 5927
+    },
+    "remove_chart_from_dashboard": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 166,
+      "description_chars": 608,
+      "entry_bytes": {
+        "structured": 9588,
+        "text_only": 1343
+      },
+      "input_schema_bytes": 432,
+      "output_schema_bytes": 8229
+    },
+    "restore_chart": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 273,
+      "description_chars": 598,
+      "entry_bytes": {
+        "structured": 2178,
+        "text_only": 1217
+      },
+      "input_schema_bytes": 349,
+      "output_schema_bytes": 945
+    },
+    "restore_dashboard": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 270,
+      "description_chars": 785,
+      "entry_bytes": {
+        "structured": 2643,
+        "text_only": 1405
+      },
+      "input_schema_bytes": 335,
+      "output_schema_bytes": 1222
+    },
+    "restore_dataset": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 281,
+      "description_chars": 872,
+      "entry_bytes": {
+        "structured": 2482,
+        "text_only": 1505
+      },
+      "input_schema_bytes": 352,
+      "output_schema_bytes": 961
+    },
+    "save_sql_query": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 244,
+      "description_chars": 261,
+      "entry_bytes": {
+        "structured": 2193,
+        "text_only": 1379
+      },
+      "input_schema_bytes": 860,
+      "output_schema_bytes": 798
+    },
+    "update_chart": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 45,
+      "description_chars": 2044,
+      "entry_bytes": {
+        "structured": 25708,
+        "text_only": 5991
+      },
+      "input_schema_bytes": 3592,
+      "output_schema_bytes": 19701
+    },
+    "update_chart_preview": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 244,
+      "description_chars": 932,
+      "entry_bytes": {
+        "structured": 3831,
+        "text_only": 2626
+      },
+      "input_schema_bytes": 1401,
+      "output_schema_bytes": 1189
+    },
+    "update_dashboard": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 271,
+      "description_chars": 1412,
+      "entry_bytes": {
+        "structured": 13746,
+        "text_only": 4803
+      },
+      "input_schema_bytes": 3037,
+      "output_schema_bytes": 8927
+    },
+    "update_dataset": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 290,
+      "description_chars": 1759,
+      "entry_bytes": {
+        "structured": 5001,
+        "text_only": 3595
+      },
+      "input_schema_bytes": 1534,
+      "output_schema_bytes": 1390
+    },
+    "update_dataset_metric": {
+      "annotations": {
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false,
+        "readOnlyHint": false
+      },
+      "compact_description_chars": 278,
+      "description_chars": 903,
+      "entry_bytes": {
+        "structured": 5926,
+        "text_only": 3371
+      },
+      "input_schema_bytes": 2154,
+      "output_schema_bytes": 2539
+    }
+  },
+  "totals": {
+    "catalog_bytes": {
+      "structured": 518230,
+      "text_only": 210599
+    },
+    "compact_catalog_bytes": {
+      "structured": 467910,
+      "text_only": 160279
+    },
+    "largest_entry": {
+      "structured": {
+        "bytes": 25708,
+        "name": "update_chart"
+      },
+      "text_only": {
+        "bytes": 10786,
+        "name": "manage_native_filters"
+      }
+    },
+    "tool_count": 79
+  }
+}
