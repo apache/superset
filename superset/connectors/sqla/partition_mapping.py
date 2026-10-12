@@ -627,6 +627,30 @@ def contains_unicode_escaped_identifier(transform: str | None) -> bool:
     )
 
 
+#: Sequence pseudo-columns, which advance a sequence when they are *read*.
+#:
+#: ``orders_seq.NEXTVAL`` parses as a qualified column reference, not a
+#: function call, so neither `SQLStatement.is_mutating` -- which walks function
+#: names -- nor the function denylist can see it. The probe would then run
+#: ``SELECT orders_seq.NEXTVAL + 1 FROM DUAL`` and advance the sequence, again
+#: on every cache expiry, for a dataset editor holding neither SQL Lab nor a
+#: DML grant. Reading one is a write however the parser classifies it.
+#:
+#: The function spelling (``nextval('s')`` on PostgreSQL) is a different shape
+#: and is caught as a function; this is only about the suffix form.
+SEQUENCE_PSEUDO_COLUMNS = frozenset({"nextval", "currval"})
+
+
+def references_sequence_pseudo_column(statement: SQLStatement) -> bool:
+    """Whether the statement reads a sequence pseudo-column.
+
+    See `SEQUENCE_PSEUDO_COLUMNS`. Answered on the parse rather than on raw
+    text, because the name has to be in column position for this to be the
+    construct: a column or alias merely *called* ``nextval`` is not it.
+    """
+    return bool(statement.get_column_names() & SEQUENCE_PSEUDO_COLUMNS)
+
+
 def contains_jinja(transform: str | None) -> bool:
     """Whether the transform contains a balanced Jinja block."""
     return bool(transform) and JINJA_BLOCK_RE.search(transform or "") is not None
@@ -1120,6 +1144,18 @@ def stored_expression_error(  # noqa: C901
                 "A partition value transform cannot change data. It is "
                 "evaluated against the database to check that it mirrors, so "
                 "it has to be a read."
+            )
+        )
+
+    # Not reached by the walk above, which is why it is its own gate: a
+    # sequence pseudo-column is a *column* to the parser and a write to the
+    # engine. See `SEQUENCE_PSEUDO_COLUMNS`.
+    if references_sequence_pseudo_column(statement):
+        return str(
+            _(
+                "A partition value transform cannot read a sequence. "
+                "NEXTVAL advances the sequence every time it is evaluated, "
+                "and the transform is evaluated on a cache schedule."
             )
         )
 

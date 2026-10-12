@@ -7387,6 +7387,33 @@ def test_count_bare_column_references(
     assert SQLStatement(sql, engine).count_bare_column_references(name) == expected
 
 
+@pytest.mark.parametrize(
+    ("sql", "engine", "expected"),
+    [
+        # Unqualified, and qualified: the qualifier is dropped, which is what a
+        # caller asking about a sequence pseudo-column needs, since there the
+        # qualifier is the sequence's own name.
+        ("SELECT country", "hive", {"country"}),
+        ("SELECT orders_seq.NEXTVAL", "oracle", {"nextval"}),
+        ('SELECT "Schema"."Seq".NEXTVAL', "oracle", {"nextval"}),
+        ("SELECT a.x + b.y", "hive", {"x", "y"}),
+        # Lowercased, since a dialect may normalize the case of an unquoted
+        # identifier.
+        ("SELECT COUNTRY", "hive", {"country"}),
+        # Not a column reference: a string literal holds no parseable node...
+        ("SELECT 'country'", "hive", set()),
+        # ...a comment is not parsed at all...
+        ("SELECT 1 -- country", "hive", set()),
+        # ...and a function name is not a column.
+        ("SELECT lower('x')", "hive", set()),
+        ("SELECT 1", "hive", set()),
+    ],
+)
+def test_get_column_names(sql: str, engine: str, expected: set[str]) -> None:
+    """Check the `get_column_names` method."""
+    assert SQLStatement(sql, engine).get_column_names() == expected
+
+
 @pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])
 @pytest.mark.parametrize(
     "sql, expected",

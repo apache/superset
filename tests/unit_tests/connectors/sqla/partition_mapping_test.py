@@ -1583,7 +1583,9 @@ def test_a_denied_query_running_text_function_is_refused(app: Flask) -> None:
     assert "ts_stat" in reason
 
 
-def test_the_function_denylist_is_keyed_on_the_engine_spec_name(app: Flask) -> None:
+def test_the_function_denylist_is_keyed_on_the_engine_spec_name(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """
     Every other denylist gate in the codebase keys on the engine spec's own
     name, which is also the name the config documentation tells an operator to
@@ -1608,7 +1610,14 @@ def test_the_function_denylist_is_keyed_on_the_engine_spec_name(app: Flask) -> N
 
         # Denied only under the spec's name. Keyed on `database.backend` the
         # gate would find no entry and let the call through.
-        app.config["DISALLOWED_SQL_FUNCTIONS"] = {"postgresql": {"version"}}
+        #
+        # `monkeypatch`, because `app` is module-scoped: assigning to
+        # `app.config` outlived the test and the next one to read the shipped
+        # defaults -- `test_a_package_qualified_denied_function_is_refused` --
+        # then found this stub and failed under any ordering that put it second.
+        monkeypatch.setitem(
+            app.config, "DISALLOWED_SQL_FUNCTIONS", {"postgresql": {"version"}}
+        )
         reason = stored_expression_error(database, None, None, "version() || :value")
 
     assert reason is not None
@@ -1616,7 +1625,7 @@ def test_the_function_denylist_is_keyed_on_the_engine_spec_name(app: Flask) -> N
 
 
 def test_the_denylist_key_falls_back_when_the_engine_spec_cannot_load(
-    app: Flask,
+    app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """
     Resolving the engine spec loads the SQLAlchemy dialect entrypoint, which
@@ -1637,7 +1646,11 @@ def test_the_denylist_key_falls_back_when_the_engine_spec_cannot_load(
             ),
         ),
     ):
-        app.config["DISALLOWED_SQL_FUNCTIONS"] = {"sqlite": {"version"}}
+        # `monkeypatch` for the same reason as the test above: `app` is
+        # module-scoped, so a plain assignment leaks into every later test.
+        monkeypatch.setitem(
+            app.config, "DISALLOWED_SQL_FUNCTIONS", {"sqlite": {"version"}}
+        )
         assert (
             stored_expression_error(database, None, None, "version() || :value")
             is not None
@@ -2674,6 +2687,51 @@ def test_a_transform_that_changes_data_is_refused(app: Flask, transform: str) ->
 
     assert reason is not None
     assert "cannot change data" in reason
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "orders_seq.NEXTVAL + :value",
+        "orders_seq.CURRVAL + :value",
+        "ORDERS_SEQ.nextval + :value",
+        'lower("Schema"."Seq".NEXTVAL || :value)',
+    ],
+)
+def test_a_transform_reading_a_sequence_is_refused(app: Flask, transform: str) -> None:
+    """
+    The gate above walks *function* names, and `orders_seq.NEXTVAL` is a
+    qualified **column** reference to the parser -- so it passed every shape
+    check, the denylist included, while advancing the sequence each time the
+    probe ran. On a cache schedule, from a dataset editor holding neither SQL
+    Lab nor a DML grant.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="oracle://u@h/d")
+
+    with app.app_context():
+        reason = stored_expression_error(database, None, None, transform)
+
+    assert reason is not None
+    assert "cannot read a sequence" in reason
+
+
+def test_a_column_merely_named_like_a_sequence_is_not_refused(app: Flask) -> None:
+    """
+    The premise of asking the parse rather than the raw text: the construct is
+    the name *in column position*, so a string literal holding the word, or a
+    mapped column called `nextval_count`, is ordinary.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="oracle://u@h/d")
+
+    with app.app_context():
+        assert (
+            stored_expression_error(database, None, None, "lower(:value) || 'nextval'")
+            is None
+        )
+        assert (
+            stored_expression_error(database, None, None, "nextval_count + :value")
+            is None
+        )
 
 
 @pytest.mark.parametrize(

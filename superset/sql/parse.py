@@ -1332,6 +1332,25 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             if column.name.lower() == target
         )
 
+    def get_column_names(self) -> set[str]:
+        """
+        The unqualified names of every column reference in this statement.
+
+        Qualified or not: ``orders_seq.NEXTVAL`` answers ``{"nextval"}``, which
+        is what a caller asking about a pseudo-column needs, since the
+        qualifier is the sequence's own name.
+
+        Lowercased, since a dialect may normalize the case of an unquoted
+        identifier.
+
+        :return: the column names referenced, lowercased
+        """
+        return {
+            column.name.lower()
+            for column in self._parsed.find_all(exp.Column)
+            if column.name
+        }
+
     def get_niladic_functions(self) -> set[str]:
         """
         Names of functions called with no arguments.
