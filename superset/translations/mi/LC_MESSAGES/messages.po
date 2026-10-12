@@ -2019,6 +2019,12 @@ msgstr ""
 msgid "Always filter main datetime column"
 msgstr "Tātari i te tīwae wā matua i ngā wā katoa"
 
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "An Error Occurred"
 msgstr "I Puta He Hapa"
 
@@ -3182,6 +3188,9 @@ msgstr "Rahi pōro"
 
 msgid "Bubble size number format"
 msgstr "Hōputu tau rahi pōro"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "Tohu wehe peeke"
@@ -7594,6 +7603,9 @@ msgstr "Whakawhānui rārangi"
 msgid "Expand settings"
 msgstr "Whakawhānui tautuhinga"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7607,6 +7619,12 @@ msgstr "Whakamātautau"
 #, fuzzy
 msgid "Expired"
 msgstr "Tūhura"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Tūhura"
@@ -8579,6 +8597,13 @@ msgstr "Tīwae GeoJson"
 msgid "GeoJson Settings"
 msgstr "Tautuhinga GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8854,11 +8879,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Nui rawa"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Waehere ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 #, fuzzy
 msgid "Icon URL"
@@ -9752,6 +9783,9 @@ msgstr "Uara mauī"
 msgid "Legacy"
 msgstr "Tawhito"
 
+msgid "Legacy ISO values"
+msgstr ""
+
 msgid "Legend"
 msgstr "Kōrero"
 
@@ -10241,6 +10275,11 @@ msgstr "Rahi tohu"
 
 msgid "Markers"
 msgstr "Tohu"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Momo tohu"
@@ -10764,6 +10803,12 @@ msgid ""
 msgstr ""
 "Ka whakaae i ngā hōputu maha, tirohia te whare pukapuka Python "
 "geopy.points mō ētahi taipitopito atu"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "Kaiwhakarea"
@@ -12795,6 +12840,12 @@ msgstr "E whakahou ana i ngā kauwhata"
 
 msgid "Refreshing columns"
 msgstr "E whakahou ana i ngā tīwae"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 #, fuzzy
 msgid "Register"
@@ -19207,6 +19258,17 @@ msgstr "Wetekina mai i te papa hua"
 msgid "Unpin from top"
 msgstr "Wetekina mai i runga"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -19226,6 +19288,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Momo rerenga kāore e tautokona: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
