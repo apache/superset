@@ -43,12 +43,6 @@ from superset.common.utils.time_range_utils import get_since_until_from_time_ran
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
-from superset.daos.datasource import DatasourceDAO
-from superset.daos.exceptions import (
-    DatasourceNotFound,
-    DatasourceTypeNotSupportedError,
-    DatasourceValueIsIncorrect,
-)
 from superset.dataframe import df_to_records
 from superset.errors import SupersetErrorType
 from superset.exceptions import (
@@ -69,7 +63,7 @@ from superset.semantic_layers.exceptions import (
 )
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
-from superset.utils import csv, excel, json
+from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
@@ -88,7 +82,6 @@ from superset.utils.pandas_postprocessing.utils import unescape_separator
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
-    from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
@@ -263,7 +256,7 @@ class QueryContextProcessor:
         except Exception:  # noqa: BLE001  pylint: disable=broad-except
             logger.warning("Force-nonce marker write failed; may recompute once more")
 
-    def get_df_payload_result(
+    def get_df_payload_result(  # noqa: C901
         self, query_obj: QueryObject, force_cached: bool | None = False
     ) -> QueryAcquisitionResult:
         """Acquire a dataframe and return timing as a typed sidecar."""
