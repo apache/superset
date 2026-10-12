@@ -62,6 +62,14 @@ interface Gesture {
   startY: number;
   dx: number;
   dy: number;
+  /**
+   * Where the widget sat when it was grabbed. The gesture resolves against
+   * this, not against the current placement: a write landing mid-gesture (a
+   * sibling's drop pushing this one down, or a draft poll) would otherwise
+   * move the ground under the pointer and persist the drop relative to a row
+   * the user never aimed at.
+   */
+  origin: GridPlacement;
 }
 
 const Grid = styled.div<GridMetrics>`
@@ -248,18 +256,22 @@ export default function CanvasGridSurface({
     setGesture(next);
   }, []);
 
-  /** Where `nodeId` would land given a pointer or keyboard delta. */
+  /** Where `from` would land given a pointer delta, in whole grid units. */
   const targetOf = useCallback(
-    (nodeId: string, kind: GestureKind, dx: number, dy: number) => {
-      const placement = placements[nodeId];
-      if (!placement) return undefined;
+    (
+      nodeId: string,
+      kind: GestureKind,
+      from: GridPlacement,
+      dx: number,
+      dy: number,
+    ) => {
       const metrics: GridMetrics = { columns, gap, rowUnit };
       const delta = width > 0 ? gridDelta(dx, dy, width, metrics) : NO_DELTA;
       return kind === 'move'
-        ? movedPlacement(placement, delta, columns)
-        : resizedPlacement(placement, delta, columns, constraints[nodeId]);
+        ? movedPlacement(from, delta, columns)
+        : resizedPlacement(from, delta, columns, constraints[nodeId]);
     },
-    [placements, width, columns, gap, rowUnit, constraints],
+    [width, columns, gap, rowUnit, constraints],
   );
 
   const commit = useCallback(
@@ -276,6 +288,8 @@ export default function CanvasGridSurface({
     (nodeId: string, kind: GestureKind) =>
     (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (event.button !== 0) return;
+      const origin = placements[nodeId];
+      if (!origin) return;
       event.preventDefault();
       event.stopPropagation();
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -287,6 +301,7 @@ export default function CanvasGridSurface({
         startY: event.clientY,
         dx: 0,
         dy: 0,
+        origin,
       });
     };
 
@@ -312,6 +327,7 @@ export default function CanvasGridSurface({
       targetOf(
         current.nodeId,
         current.kind,
+        current.origin,
         event.clientX - current.startX,
         event.clientY - current.startY,
       ),
@@ -361,7 +377,13 @@ export default function CanvasGridSurface({
   };
 
   const preview = gesture
-    ? targetOf(gesture.nodeId, gesture.kind, gesture.dx, gesture.dy)
+    ? targetOf(
+        gesture.nodeId,
+        gesture.kind,
+        gesture.origin,
+        gesture.dx,
+        gesture.dy,
+      )
     : undefined;
   const covered =
     preview && gesture
@@ -376,25 +398,25 @@ export default function CanvasGridSurface({
       rowUnit={rowUnit}
       data-test="canvas-grid-surface"
     >
-      {preview &&
-        gesture &&
-        !samePlacement(preview, placements[gesture.nodeId]) && (
-          <DropPreview
-            placement={preview}
-            colliding={covered.length > 0}
-            data-test="canvas-drop-preview"
-            data-colliding={covered.length > 0}
-            title={
-              covered.length > 0 ? t('This overlaps another widget') : undefined
-            }
-          />
-        )}
+      {preview && gesture && !samePlacement(preview, gesture.origin) && (
+        <DropPreview
+          placement={preview}
+          colliding={covered.length > 0}
+          data-test="canvas-drop-preview"
+          data-colliding={covered.length > 0}
+          title={
+            covered.length > 0 ? t('This overlaps another widget') : undefined
+          }
+        />
+      )}
       {childIds.map(childId => {
         const dragging = gesture?.nodeId === childId;
         return (
           <GridItem
             key={childId}
-            placement={placements[childId]}
+            placement={
+              dragging && gesture ? gesture.origin : placements[childId]
+            }
             dragging={dragging && gesture?.kind === 'move'}
             offset={dragging ? { x: gesture.dx, y: gesture.dy } : undefined}
             data-test="canvas-node"

@@ -119,6 +119,7 @@ const layoutOf = (
 ): CanvasLayout => ({
   placements: gridResult.placements,
   revision: gridResult.revision,
+  saving: false,
   place,
   dismissError: jest.fn(),
 });

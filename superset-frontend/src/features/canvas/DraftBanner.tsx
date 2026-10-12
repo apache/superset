@@ -28,6 +28,12 @@ interface DraftBannerProps {
   token: string;
   revision: number;
   onClose: () => void;
+  /**
+   * Whether a change to the draft is still being saved. Publishing names a
+   * revision, so committing mid-save would publish the draft as it was before
+   * those changes landed and then delete it, losing them.
+   */
+  saving?: boolean;
 }
 
 /**
@@ -38,6 +44,7 @@ export default function DraftBanner({
   token,
   revision,
   onClose,
+  saving = false,
 }: DraftBannerProps) {
   const { addSuccessToast, addDangerToast } = useToasts();
   const [busy, setBusy] = useState(false);
@@ -85,8 +92,11 @@ export default function DraftBanner({
           <Button
             buttonStyle="primary"
             buttonSize="small"
-            loading={busy}
+            loading={busy || saving}
+            disabled={saving}
             onClick={publish}
+            tooltip={saving ? t('Saving your changes…') : undefined}
+            data-test="canvas-draft-publish"
           >
             {t('Publish')}
           </Button>

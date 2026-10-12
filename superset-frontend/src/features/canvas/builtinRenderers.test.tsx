@@ -78,6 +78,7 @@ test('renders core containers and markdown without extensions', () => {
       layout={{
         placements: result.placements,
         revision: result.revision,
+        saving: false,
         place: jest.fn(),
         dismissError: jest.fn(),
       }}

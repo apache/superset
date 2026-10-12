@@ -165,6 +165,10 @@ function CanvasBody({
           // definition was fetched at: a commit must name the draft's current
           // revision, and dragging moves it on well before the next poll.
           revision={layout.revision}
+          // Held while a drag or resize is still in flight or queued: a
+          // commit then would publish the older revision and delete the
+          // draft, silently dropping the move the user just made.
+          saving={layout.saving}
           onClose={onDraftClosed}
         />
       )}

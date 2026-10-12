@@ -360,3 +360,57 @@ test('the reported revision is never an optimistic guess', () => {
 
   expect(result.current.revision).toBe(4);
 });
+
+test('saving is set while a write is in flight and clears once the queue drains', async () => {
+  // Guards the race a reviewer found: Publish stays clickable during a write,
+  // commits the older revision, deletes the draft, and the move is lost.
+  let releaseFirst: () => void = () => {};
+  const held = new Promise<Response>(resolve => {
+    releaseFirst = () =>
+      resolve(
+        new Response(
+          JSON.stringify({
+            result: { revision: 4, ops: [], placements: { kpi: MOVED } },
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+  });
+  fetchMock
+    .patch(endpoint, () => held, { repeat: 1 })
+    .patch(endpoint, {
+      result: { revision: 5, ops: [], placements: { kpi: MOVED } },
+    });
+
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  expect(result.current.saving).toBe(false);
+
+  act(() => {
+    result.current.place('kpi', MOVED);
+    // Queued behind the first, so saving must stay set across both.
+    result.current.place('trend', QUEUED);
+  });
+  expect(result.current.saving).toBe(true);
+
+  releaseFirst();
+
+  // Only false once the queued follow-up has landed too.
+  await waitFor(() => expect(result.current.saving).toBe(false));
+  expect(fetchMock.callHistory.calls()).toHaveLength(2);
+  expect(result.current.revision).toBe(5);
+});
+
+test('saving clears after a failed write, so publishing is not blocked forever', async () => {
+  fetchMock.patch(endpoint, 422);
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() => expect(result.current.saving).toBe(false));
+  expect(result.current.error).toBeDefined();
+});

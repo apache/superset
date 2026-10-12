@@ -32,25 +32,38 @@ const placements: Record<string, GridPlacement> = {
   trend: { col: 1, row: 5, colSpan: 24, rowSpan: 8 },
 };
 
+const surface = (
+  live: Record<string, GridPlacement>,
+  editable: boolean,
+  onPlace: jest.Mock,
+  constraints: Record<string, SpanConstraints>,
+) => (
+  <CanvasGridSurface
+    childIds={Object.keys(live)}
+    columns={24}
+    gap={16}
+    rowUnit={40}
+    placements={live}
+    constraints={constraints}
+    editable={editable}
+    onPlace={onPlace}
+    renderNode={nodeId => <div>{`widget ${nodeId}`}</div>}
+  />
+);
+
 const renderSurface = ({
   editable = true,
   onPlace = jest.fn(),
   constraints = {} as Record<string, SpanConstraints>,
 } = {}) => {
-  render(
-    <CanvasGridSurface
-      childIds={Object.keys(placements)}
-      columns={24}
-      gap={16}
-      rowUnit={40}
-      placements={placements}
-      constraints={constraints}
-      editable={editable}
-      onPlace={onPlace}
-      renderNode={nodeId => <div>{`widget ${nodeId}`}</div>}
-    />,
+  const { rerender } = render(
+    surface(placements, editable, onPlace, constraints),
   );
-  return onPlace;
+  return Object.assign(onPlace, {
+    /** Simulate a write landing while a gesture is still live. */
+    replace: (next: Record<string, GridPlacement>) =>
+      rerender(surface(next, editable, onPlace, constraints)),
+  });
 };
 
 /**
@@ -305,4 +318,42 @@ test('a cancel from a different pointer leaves the gesture alone', () => {
     colSpan: 6,
     rowSpan: 4,
   });
+});
+
+test('a write landing mid-gesture does not move the ground under the pointer', () => {
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+
+  // Grab 'kpi' at row 1 and drag two rows down: it is heading for row 3.
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 2 });
+
+  // Mid-gesture, the server resolves a sibling's drop and pushes 'kpi' to
+  // row 9 — the kind of thing a draft poll or another drag's response does.
+  onPlace.replace({
+    ...placements,
+    kpi: { col: 1, row: 9, colSpan: 6, rowSpan: 4 },
+  });
+
+  pointer(handle, 'pointerup', { clientX: 0, clientY: ROW_PITCH * 2 });
+
+  // The drop is two rows from where the user grabbed it, not from row 9.
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 1,
+    row: 3,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+});
+
+test('a gesture cannot start on a widget with no placement', () => {
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+
+  onPlace.replace({ trend: placements.trend });
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+  pointer(handle, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(onPlace).not.toHaveBeenCalled();
 });

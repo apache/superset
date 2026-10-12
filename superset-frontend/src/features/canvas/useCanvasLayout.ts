@@ -43,6 +43,13 @@ export interface CanvasLayout {
    * (a draft commit, say, which requires an exact match).
    */
   revision: number;
+  /**
+   * Whether a layout write is in flight or queued, so `revision` is about to
+   * move. A caller that sends `revision` to the server — publishing a draft —
+   * must wait for this to clear, or it names a revision that is already stale
+   * and loses the writes that had not landed.
+   */
+  saving: boolean;
   /** Persist a node's new placement. A no-op when the user can't edit. */
   place: (nodeId: string, placement: GridPlacement) => void;
   /** Why the last write failed, for a dismissable notice. */
@@ -76,6 +83,8 @@ export function useCanvasLayout(
 ): CanvasLayout {
   const [applied, setApplied] = useState<AppliedLayout>();
   const [error, setError] = useState<string>();
+  // Mirrors `writing`/`queued` as state, since callers render against it.
+  const [saving, setSaving] = useState(false);
   const { revision, canEdit } = result;
 
   // Last revision the server acknowledged. Never an optimistic guess, so a
@@ -106,11 +115,13 @@ export function useCanvasLayout(
     queued.current.clear();
     setApplied(undefined);
     setError(undefined);
+    setSaving(false);
   }, [canvasId, draftToken]);
 
   const send = useCallback(
     (ops: Map<string, GridPlacement>) => {
       writing.current = true;
+      setSaving(true);
       const base = Math.max(fetched.current, confirmed.current ?? 0);
       const placeOps = [...ops].map(([id, layout]) => ({
         op: 'place',
@@ -174,7 +185,10 @@ export function useCanvasLayout(
           if (queued.current.size > 0) {
             const next = new Map(queued.current);
             queued.current.clear();
+            // Still saving: the follow-up sets the flag again straight away.
             send(next);
+          } else {
+            setSaving(false);
           }
         });
     },
@@ -217,6 +231,7 @@ export function useCanvasLayout(
   return {
     placements,
     revision: Math.max(revision, confirmed.current ?? 0),
+    saving,
     place,
     error,
     dismissError,
