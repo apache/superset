@@ -2234,22 +2234,35 @@ def test_pivot_table_v2_sample_statistics_with_summaries(aggregate_function: str
     assert not pivoted.empty
 
 
+def _normalize_summary(value: Any) -> Any:
+    """Make ``List Unique Values`` joins order-insensitive (they come from sets)."""
+    if isinstance(value, str):
+        return sorted(value.split(", "))
+    return value
+
+
 @pytest.mark.parametrize(
-    "aggregate_function",
+    ("aggregate_function", "row_totals", "col_totals"),
     [
-        "Count",
-        "Count Unique Values",
-        "List Unique Values",
-        "First",
-        "Last",
+        ("Count", {"US": 2, "FR": 2}, {"boy": 2, "girl": 2}),
+        ("Count Unique Values", {"US": 1, "FR": 1}, {"boy": 1, "girl": 1}),
+        (
+            "List Unique Values",
+            {"US": "20, 10", "FR": "50, 30"},
+            {"boy": "10, 30", "girl": "50, 20"},
+        ),
+        ("First", {"US": 10, "FR": 30}, {"boy": 30, "girl": 50}),
+        ("Last", {"US": 20, "FR": 50}, {"boy": 10, "girl": 20}),
     ],
 )
-@pytest.mark.parametrize("totals", [{"rowTotals": True}, {"colTotals": True}])
 def test_pivot_table_v2_series_only_reducers_with_summaries(
-    aggregate_function: str, totals: dict[str, bool]
+    aggregate_function: str,
+    row_totals: dict[str, Any],
+    col_totals: dict[str, Any],
 ) -> None:
     """Series-only reducers must support each row/column summary axis rather
-    than raising ``TypeError`` on the DataFrame/``axis`` invocation.
+    than raising ``TypeError`` on the DataFrame/``axis`` invocation, and each
+    must select the right element per summary.
     """
     df = pd.DataFrame(
         {
@@ -2263,12 +2276,23 @@ def test_pivot_table_v2_series_only_reducers_with_summaries(
         "groupbyColumns": ["gender"],
         "metrics": ["SUM(num)"],
         "aggregateFunction": aggregate_function,
-        **totals,
     }
+    total_label = f"Total ({aggregate_function})"
 
-    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+    row_pivot = pivot_table_v2(
+        df, {**form_data, "rowTotals": True}, apply_number_format=False
+    )
+    for nation, expected in row_totals.items():
+        assert _normalize_summary(row_pivot.loc[(nation,), (total_label, "")]) == (
+            _normalize_summary(expected)
+        )
 
-    assert not pivoted.empty
+    col_pivot = pivot_table_v2(
+        df, {**form_data, "colTotals": True}, apply_number_format=False
+    )
+    for gender, expected in col_totals.items():
+        actual = col_pivot.loc[(total_label,), ("SUM(num)", gender)]
+        assert _normalize_summary(actual) == _normalize_summary(expected)
 
 
 @pytest.mark.parametrize(
