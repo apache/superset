@@ -1150,9 +1150,9 @@ def pivot_table_v2(
     # "Metric" (the new result-aggregation control's default, meaning "use the
     # metric's own definition, no second aggregation pass") isn't a key in
     # pivot_v2_aggfunc_map -- it never needed to be, since this backend path
-    # has no result-aggregation support yet (see #44625's follow-up scope).
-    # Treat it, and any other value this map doesn't recognize, the same way
-    # an absent field always has been: fall back to "Sum".
+    # has no result-aggregation support yet (see #45215). Treat it, and any
+    # other value this map doesn't recognize, the same way an absent field
+    # always has been: fall back to "Sum".
     aggregate_function = aggregate_function_raw
     if aggregate_function not in pivot_v2_aggfunc_map:
         aggregate_function = "Sum"
