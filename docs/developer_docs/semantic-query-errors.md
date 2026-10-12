@@ -51,7 +51,11 @@ completeness validation error with fixed guidance. These errors remain HTTP 400
 and guest-sanitized regardless of whether the provider raises the core or host
 completeness type. Unclassified provider exceptions remain server faults.
 
-Value suggestions use the same translation and HTTP classification for `get_values`.
+Value suggestions use the same translation and HTTP classification for `get_values`,
+with the route's documented `{"message": string}` error envelope. The host applies
+search `LIKE` filters only to string and large-string dimensions; numeric and temporal
+suggestions use the sorted bounded page without that filter. Typed rejections log
+the view, dimension, and closed rejection code without logging search text.
 A failed search does not retry without its filter: typed rejections return HTTP 400
 with host-owned guidance, and unclassified faults return HTTP 500 with generic text.
 No failed result is cached. Completeness failures retain their existing HTTP 400

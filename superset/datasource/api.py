@@ -62,7 +62,6 @@ from superset.utils.core import (
 )
 from superset.utils.error_sanitization import sanitize_error_message
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
-from superset.views.error_handling import json_error_response
 
 logger = logging.getLogger(__name__)
 
@@ -296,7 +295,7 @@ class DatasourceRestApi(BaseSupersetApi):
                 search=search,
             )
         except (SemanticLayerQueryRejectedError, SemanticLayerExecutionError) as ex:
-            return json_error_response([ex.error], status=ex.status)
+            return self.response(ex.status, message=ex.message)
         except QueryObjectValidationError as ex:
             # Validation errors can quote dataset SQL; embedded guests get the
             # same generic text as the chart-data API.

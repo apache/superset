@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock, patch, PropertyMock
@@ -36,6 +36,7 @@ from sqlalchemy.orm import Session
 from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
     Dimension,
+    Filter,
     Grains,
     Metric,
     Operator,
@@ -3026,3 +3027,70 @@ def test_public_completeness_error_in_values_is_host_error_without_retry(
     assert excinfo.value.reason == reason
     assert excinfo.value.__cause__ is failure
     assert mock_implementation.get_values.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "data_type", [pa.int64(), pa.date32(), pa.string(), pa.large_string()]
+)
+def test_values_search_only_narrows_text_dimensions(
+    mock_implementation: MagicMock,
+    data_type: pa.DataType,
+) -> None:
+    """Non-text pickers receive a bounded page without an invalid LIKE request."""
+    dimension: Dimension = Dimension("category", "category", data_type)
+    view: SemanticView = SemanticView()
+    mock_implementation.get_dimensions.return_value = {dimension}
+    values: list[Any] = (
+        [date(2026, 1, 12), date(2026, 1, 2), date(2026, 1, 1)]
+        if pa.types.is_date(data_type)
+        else [12, 2, 1]
+        if pa.types.is_integer(data_type)
+        else ["12", "212", "112"]
+    )
+    mock_implementation.get_values.return_value = SemanticResult(
+        requests=[], results=pa.table({"category": pa.array(values, type=data_type)})
+    )
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        assert (
+            view.values_for_column("category", search="12", limit=2)
+            == sorted(values)[:2]
+        )
+    mock_implementation.get_values.assert_called_once()
+    filters: set[Filter] | None = mock_implementation.get_values.call_args.args[1]
+    if pa.types.is_string(data_type) or pa.types.is_large_string(data_type):
+        assert filters is not None
+        assert len(filters) == 1
+        assert next(iter(filters)).value == "%12%"
+    else:
+        assert filters is None
+
+
+def test_values_rejection_logs_view_and_dimension(
+    mock_implementation: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Log the host-selected search rejection without provider diagnostics."""
+    from superset_core.semantic_layers.errors import SemanticQueryRejectedError
+
+    from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
+
+    view: SemanticView = SemanticView(uuid=uuid.uuid4())
+    mock_implementation.get_values.side_effect = SemanticQueryRejectedError(
+        "INVALID_FILTER"
+    )
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        with caplog.at_level("WARNING"), pytest.raises(SemanticLayerQueryRejectedError):
+            view.values_for_column("category", search="private-search")
+    assert str(view.uuid) in caplog.text
+    assert "category" in caplog.text
+    assert "INVALID_FILTER" in caplog.text
+    assert "private-search" not in caplog.text
+    mock_implementation.get_values.assert_called_once()

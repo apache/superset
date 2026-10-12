@@ -440,7 +440,7 @@ def test_values_provider_rejection_matches_chart_error(
     )
 
     assert response.status_code == expected.status == 400
-    assert response.json["errors"][0]["message"] == expected.message
+    assert response.json == {"message": expected.message}
     assert "private" not in response.get_data(as_text=True)
     implementation.get_values.assert_called_once()
     cache.set.assert_not_called()
@@ -473,7 +473,7 @@ def test_values_provider_fault_stays_server_error(
     )
 
     assert response.status_code == expected.status == 500
-    assert response.json["errors"][0]["message"] == expected.message
+    assert response.json == {"message": expected.message}
     assert "private" not in response.get_data(as_text=True)
     implementation.get_values.assert_called_once()
     cache.set.assert_not_called()

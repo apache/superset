@@ -64,7 +64,10 @@ from superset.explorables.base import TimeGrainDict
 from superset.extensions import db, encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
-from superset.semantic_layers.exceptions import execute_semantic_query
+from superset.semantic_layers.exceptions import (
+    execute_semantic_query,
+    SemanticLayerQueryRejectedError,
+)
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -531,8 +534,9 @@ class SemanticView(AuditMixinNullable, Model):
         Delegates to the provider ABC's purpose-built ``get_values`` — an
         abstract member every provider implements, consumed here for the
         first time. ``search`` narrows at the provider with a containment
-        ``LIKE`` filter on the dimension, so values beyond the first page are
-        findable. Two documented parity gaps with datasets, both inherent to
+        ``LIKE`` filter on string dimensions, so values beyond the first page are
+        findable. Non-string dimensions use the bounded page without a LIKE filter.
+        Two documented parity gaps with datasets, both inherent to
         the standard filter model: case sensitivity follows the provider's
         collation (no case-folding operator), and ``%``/``_`` in the search
         term act as wildcards (no portable escape declaration; over-matching
@@ -566,13 +570,26 @@ class SemanticView(AuditMixinNullable, Model):
                 value=f"%{search}%",
             )
             if search
+            and (
+                pa.types.is_string(dimension.type)
+                or pa.types.is_large_string(dimension.type)
+            )
             else None
         )
-        result: SemanticResult = execute_semantic_query(
-            self.implementation.get_values,
-            dimension,
-            {narrowing} if narrowing is not None else None,
-        )
+        try:
+            result: SemanticResult = execute_semantic_query(
+                self.implementation.get_values,
+                dimension,
+                {narrowing} if narrowing is not None else None,
+            )
+        except SemanticLayerQueryRejectedError as ex:
+            logger.warning(
+                "Semantic view %s rejected value suggestions for dimension %s (%s)",
+                self.uuid,
+                dimension.name,
+                ex.code.value,
+            )
+            raise
 
         # Some drivers report zero rows as ``results is None``.
         if result.results is None or result.results.num_rows == 0:
