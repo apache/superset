@@ -1329,6 +1329,80 @@ def test_an_executable_comment_stops_the_probe_before_the_engine(app: Flask) -> 
     assert _probe(database).call_count == 0
 
 
+def test_a_unicode_escaped_identifier_is_refused_by_every_gate(app: Flask) -> None:
+    """
+    The second construct that made the gates reason about a name the engine
+    does not use. sqlglot reports `U&"\\0071uery_to_xml"` as an anonymous
+    function literally called `\\0071uery_to_xml`, so the function denylist --
+    which matches on the reported name -- never sees `query_to_xml`, while
+    PostgreSQL decodes the escape and runs it. An owner with dataset write and
+    no SQL Lab could read rows outside their RLS scope back out of
+    `emitted_predicate`.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://u@h/d")
+    transform = "CAST(U&\"\\0071uery_to_xml\"(:value, false, true, '') AS TEXT)"
+
+    # The premise: the denylist is matching the wrong name.
+    statement = SQLStatement(
+        "SELECT CAST(U&\"\\0071uery_to_xml\"('x', false, true, '') AS TEXT) AS v0",
+        "postgresql",
+    )
+    assert statement.get_disallowed_functions({"query_to_xml"}) == set()
+
+    with app.app_context():
+        assert stored_expression_error(database, None, None, transform) is not None
+
+    blocking = [
+        issue for issue in validate_transform(transform, "postgresql") if issue.blocking
+    ]
+    assert len(blocking) == 1
+    assert "escape sequence" in str(blocking[0].message)
+
+
+def test_a_unicode_escaped_identifier_stops_the_probe_before_the_engine(
+    app: Flask,
+) -> None:
+    """The row an earlier release stored, as for the executable comment."""
+    database = _database_returning(["x"])
+    transform = "U&\"\\0071uery_to_xml\"(:value, false, true, '') || ''"
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, transform, ["US"]) is None
+
+    assert _probe(database).call_count == 0
+
+
+def test_an_ordinary_quoted_identifier_is_still_allowed(app: Flask) -> None:
+    """
+    Only the escape prefix is refused. A plainly quoted identifier names what
+    it says, so the denylist sees the real name and rejecting it would cost an
+    owner a transform that works.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://u@h/d")
+
+    with app.app_context():
+        assert (
+            stored_expression_error(database, None, None, 'lower("Mixed Case")') is None
+        )
+
+
+def test_the_escape_gate_reads_raw_text_and_says_so(app: Flask) -> None:
+    """
+    The prefix is refused wherever it appears, including inside a string
+    literal -- the same trade the executable-comment gate makes, and for the
+    same reason: a gate whose whole job is to fire before the parse cannot ask
+    the parse whether the text is quoted. `concat(:value, 'u&"x"')` is refused,
+    which costs an owner nothing anyone writes.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://u@h/d")
+
+    with app.app_context():
+        assert (
+            stored_expression_error(database, None, None, "concat(:value, 'u&\"x\"')")
+            is not None
+        )
+
+
 def test_a_plain_comment_is_still_allowed_through_the_shape_gates(
     app: Flask,
 ) -> None:

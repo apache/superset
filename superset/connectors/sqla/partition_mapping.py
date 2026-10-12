@@ -227,6 +227,34 @@ JINJA_BLOCK_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
 #: at MySQL.
 EXECUTABLE_COMMENT_RE = re.compile(r"/\*M?!")
 
+#: A PostgreSQL Unicode-escaped identifier, ``U&"..."``.
+#:
+#: The second construct that breaks the premise above, and in the same way:
+#: ``U&"\\0071uery_to_xml"(...)`` parses as an anonymous function whose name is
+#: the *literal* ``\\0071uery_to_xml``, so the function denylist is matching a
+#: name the engine never sees -- PostgreSQL decodes the escape and runs
+#: ``query_to_xml``, handing a dataset owner rows from outside their RLS scope
+#: through the preview's ``emitted_predicate``.
+#:
+#: Normalizing the escapes and re-checking would be the other repair, and is
+#: worse: it means reimplementing one engine's identifier decoding well enough
+#: to be a security boundary. Refusing the construct is exact, and costs
+#: nothing real -- a transform is a scalar function of ``:value``, and there is
+#: no reason to name a function or column through an escape sequence.
+#:
+#: Refused on every engine, like the executable comment, so a transform stored
+#: on SQLite cannot detonate when the dataset is re-pointed at PostgreSQL. The
+#: ``&`` may be separated from the ``U`` by nothing at all, but whitespace or a
+#: comment between the prefix and the string is not accepted by PostgreSQL
+#: either, so the strict form is the whole surface.
+#:
+#: Matched in raw text, so the prefix is refused inside a string literal too.
+#: That is the same trade the executable comment makes and has the same
+#: justification: a gate whose contract is to fire *before* the parse cannot
+#: ask the parse whether the text was quoted. ``concat(:value, 'u&"x"')`` is
+#: refused, which costs an owner nothing anyone writes.
+UNICODE_ESCAPED_IDENTIFIER_RE = re.compile(r'\bU&"', re.IGNORECASE)
+
 #: Substituted for ``:value`` before parsing -- sqlglot rejects a bare ``:value``
 #: on most dialects. Mirrors the ``_JINJA_BLOCK_RE`` -> ``NULL`` trick used by
 #: ``validate_stored_expression``.
@@ -584,6 +612,19 @@ def contains_executable_comment(transform: str | None) -> bool:
     parser this module can reach reports the construct at all.
     """
     return bool(transform) and EXECUTABLE_COMMENT_RE.search(transform or "") is not None
+
+
+def contains_unicode_escaped_identifier(transform: str | None) -> bool:
+    """Whether the transform names something through a ``U&"..."`` escape.
+
+    See `UNICODE_ESCAPED_IDENTIFIER_RE`. Answered on raw text for the same
+    reason as the comment above: the parse reports a name the engine does not
+    use, which is exactly what makes the denylist blind to it.
+    """
+    return (
+        bool(transform)
+        and UNICODE_ESCAPED_IDENTIFIER_RE.search(transform or "") is not None
+    )
 
 
 def contains_jinja(transform: str | None) -> bool:
@@ -1006,6 +1047,15 @@ def stored_expression_error(  # noqa: C901
             )
         )
 
+    if contains_unicode_escaped_identifier(transform):
+        return str(
+            _(
+                "A partition value transform cannot name anything through a "
+                'U&"..." escape sequence, which the database decodes and '
+                "every validator reads literally."
+            )
+        )
+
     # Same door, same reason: the name the denylist below would match is not
     # the name the engine resolves. See `UNICODE_ESCAPED_IDENTIFIER_RE`.
     statement = _parse_skeleton(transform, database.backend)
@@ -1315,7 +1365,7 @@ def probe_sql_is_evaluable(
     # refused for carrying one; this covers the compiled statement, so no later
     # change to how values are rendered can reintroduce it behind the gates
     # below.
-    if contains_executable_comment(sql):
+    if contains_executable_comment(sql) or contains_unicode_escaped_identifier(sql):
         return False
 
     try:
@@ -2021,6 +2071,25 @@ def validate_transform(
                     "comment (/*! ... */ or /*M! ... */). Those are comments "
                     "to every validator and statement text to the database, "
                     "so what would run is not what was checked."
+                ),
+                blocking=True,
+            )
+        ]
+
+    if contains_unicode_escaped_identifier(transform):
+        # Beside the comment gate, for the same reason and on raw text: the
+        # parse reports the escape sequence verbatim as the function's name,
+        # so the function denylist compares against a name PostgreSQL never
+        # uses -- it decodes `U&"\0071uery_to_xml"` and runs `query_to_xml`.
+        # See `UNICODE_ESCAPED_IDENTIFIER_RE`.
+        return [
+            MappingValidationIssue(
+                field=field,
+                message=_(
+                    'A value transform cannot name anything through a U&"..." '
+                    "escape sequence. The database decodes it and every "
+                    "validator reads it literally, so what would run is not "
+                    "what was checked."
                 ),
                 blocking=True,
             )
