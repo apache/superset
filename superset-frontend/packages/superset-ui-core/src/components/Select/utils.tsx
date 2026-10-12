@@ -63,8 +63,8 @@ export function getOption(
   checkLabel = false,
 ): V | CustomLabeledValue {
   const optionsArray = ensureIsArray(options);
-  const targetValue = isObject(value) ? value.value : value;
-  const targetLabel = isObject(value) ? value.label : value;
+  const targetValue = (isObject(value) ? value.value : value) as V;
+  const targetLabel = (isObject(value) ? value.label : value) as V;
   for (const x of optionsArray) {
     if (
       isEqual(x, targetValue, 'value') ||
@@ -101,8 +101,12 @@ export function hasOption(
  * */
 export const propertyComparator =
   (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
-    const propertyA = a[property as keyof CustomLabeledValue];
-    const propertyB = b[property as keyof CustomLabeledValue];
+    const propertyA = (a as CustomLabeledValue)[
+      property as keyof CustomLabeledValue
+    ];
+    const propertyB = (b as CustomLabeledValue)[
+      property as keyof CustomLabeledValue
+    ];
     if (typeof propertyA === 'string' && typeof propertyB === 'string') {
       return propertyA.localeCompare(propertyB);
     }
@@ -258,11 +262,10 @@ export const handleFilterOptionHelper = (
     const searchValue = stripSurroundingQuotes(search).toLowerCase();
     if (optionFilterProps?.length) {
       return optionFilterProps.some(prop => {
-        const optionProp = option?.[prop as keyof CustomLabeledValue]
-          ? String(option[prop as keyof CustomLabeledValue])
-              .trim()
-              .toLowerCase()
-          : '';
+        const propVal = (option as CustomLabeledValue)?.[
+          prop as keyof CustomLabeledValue
+        ];
+        const optionProp = propVal ? String(propVal).trim().toLowerCase() : '';
         return optionProp.includes(searchValue);
       });
     }

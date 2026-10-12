@@ -48,7 +48,6 @@ import {
 } from 'antd/es/select';
 import { debounce, isEqual, uniq } from 'lodash-es';
 import { Constants, Icons } from '@superset-ui/core/components';
-import { Space } from '../Space';
 import {
   getValue,
   hasOption,
@@ -360,10 +359,12 @@ const AsyncSelect = forwardRef(
           setSelectValue(array.filter(element => element !== value));
         }
         // removes new option
-        if (option.isNewOption) {
+        if (isNewOption(option)) {
+          const targetVal = getValue(value);
           setSelectOptions(
             fullSelectOptions.filter(
-              option => getValue(option.value) !== getValue(value),
+              opt =>
+                getValue(opt.value) !== targetVal && opt.label !== targetVal,
             ),
           );
         }
@@ -388,12 +389,14 @@ const AsyncSelect = forwardRef(
     fullSelectOptionsRef.current = fullSelectOptions;
 
     const isRedundantNewOption = (
-  opt: AntdLabeledValue,
-  incomingData: SelectOptionsType,
-) =>
-  isNewOption(opt) &&
-  (hasOption(opt.label as V, incomingData, true) ||
-    hasOption(opt.value as V, incomingData, true));
+      opt: DefaultOptionType | AntdLabeledValue,
+      incomingData: SelectOptionsType,
+    ) =>
+      isNewOption(opt) &&
+      ((typeof opt.label === 'string' || typeof opt.label === 'number'
+        ? hasOption(opt.label, incomingData, true)
+        : false) ||
+        hasOption(opt.value as RawValue | undefined, incomingData, true));
 
     const mergeData = useCallback(
       (data: SelectOptionsType) => {
@@ -972,7 +975,18 @@ const AsyncSelect = forwardRef(
           // paste path, that lets an option with a React label match on the
           // plain text its caller put in `title`.
           optionFilterProp="title"
-          optionRender={option => option.label || option.value}
+          optionRender={option =>
+            isNewOption(option.data) || isNewOption(option) ? (
+              <>
+                {option.label || option.value}
+                <StyledNewOptionBadge data-test="new-option-badge">
+                  {t('New')}
+                </StyledNewOptionBadge>
+              </>
+            ) : (
+              option.label || option.value
+            )
+          }
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           tokenSeparators={quoteAwareTokenSeparators}
