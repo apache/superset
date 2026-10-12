@@ -6,6 +6,12 @@ on:
       - "superset-embedded-sdk/**"
     types: [synchronize, opened, reopened, ready_for_review]
 
+env:
+  DEVELOCITY_PROJECT_ID: superset
+  DEVELOCITY_TAG_CI: "true"
+  DEVELOCITY_VALUE_CI_commit_sha: ${{ github.sha }}
+  DEVELOCITY_VALUE_CI_run: ${{ github.run_id }}
+
 permissions:
   contents: read
 
@@ -20,6 +26,8 @@ jobs:
     defaults:
       run:
         working-directory: superset-embedded-sdk
+    env:
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -28,6 +36,11 @@ jobs:
         with:
           node-version-file: "./superset-embedded-sdk/.nvmrc"
           registry-url: "https://registry.npmjs.org"
+      - name: Setup Develocity for npm
+        if: env.DEVELOCITY_ENABLED == 'true'
+        uses: $/.github/actions/setup-develocity-npm
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
       - run: npm ci
       - run: npm test
       - run: npm run build

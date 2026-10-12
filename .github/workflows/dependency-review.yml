@@ -62,6 +62,7 @@ jobs:
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
         with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
           requirements-type: base
 
       - name: "Set up liccheck"

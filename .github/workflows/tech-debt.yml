@@ -6,6 +6,12 @@ on:
       - master
       - "[0-9].[0-9]*"
 
+env:
+  DEVELOCITY_PROJECT_ID: superset
+  DEVELOCITY_TAG_CI: "true"
+  DEVELOCITY_VALUE_CI_commit_sha: ${{ github.sha }}
+  DEVELOCITY_VALUE_CI_run: ${{ github.run_id }}
+
 permissions:
   contents: read
 
@@ -30,6 +36,8 @@ jobs:
     if: needs.config.outputs.has-secrets
     runs-on: ubuntu-slim
     name: Generate Reports
+    env:
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,6 +48,11 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: "./superset-frontend/.nvmrc"
+      - name: Setup Develocity for npm
+        if: env.DEVELOCITY_ENABLED == 'true'
+        uses: $/.github/actions/setup-develocity-npm
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
 
       - name: Install Dependencies
         run: npm ci

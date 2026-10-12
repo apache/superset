@@ -9,6 +9,10 @@ inputs:
     description: 'Type of requirements to install. Options: base, development, default'
     required: false
     default: 'dev'
+  develocity-access-key:
+    description: 'Access key for develocity.apache.org. When set, the Develocity Python agent is installed and pytest publishes Build Scans'
+    required: false
+    default: ''
   install-superset:
     description: 'Whether to install Superset itself. If false, only python is installed'
     required: false
@@ -78,3 +82,9 @@ runs:
           uv pip install --system -e .
         fi
       shell: bash
+    - name: Setup Develocity for Python
+      if: inputs.install-superset == 'true' && inputs.develocity-access-key != ''
+      uses: gradle/develocity-actions/setup-python@9d8792ab22712b19790c2abce53e9ebb2694c312 # v2.5
+      with:
+        develocity-url: https://develocity.apache.org
+        develocity-access-key: ${{ inputs.develocity-access-key }}

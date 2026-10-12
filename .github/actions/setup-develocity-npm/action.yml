@@ -1,0 +1,18 @@
+name: "Setup Develocity for npm"
+description: "Installs the Develocity npm agent so that npm runs publish Build Scans to develocity.apache.org"
+inputs:
+  develocity-access-key:
+    description: "Access key for develocity.apache.org; the action exchanges it for a short-lived token"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Develocity for npm
+      uses: gradle/develocity-actions/setup-npm@9d8792ab22712b19790c2abce53e9ebb2694c312 # v2.5
+      with:
+        develocity-url: https://develocity.apache.org
+        develocity-access-key: ${{ inputs.develocity-access-key }}
+        develocity-injection-enabled: true
+        develocity-npm-agent-version: 4.1.1
+        # Fixed location, so the frontend container jobs can mount the agent
+        develocity-npm-agent-install-location: /tmp/develocity-npm
