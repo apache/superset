@@ -217,7 +217,7 @@ describe('ExploreChartHeader', () => {
       granted: false,
     },
     {
-      name: 'malformed editors after properties save',
+      name: 'unrecoverable malformed editor IDs',
       roles: { Gamma: [] },
       editors: JSON.parse('[null]'),
       extraEditors: [],
