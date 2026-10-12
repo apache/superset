@@ -25,11 +25,13 @@ import type {
 import { SelectFilterPlugin } from 'src/filters/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import { updateDataMask } from 'src/dataMask/actions';
 import {
   act,
   createStore,
   render,
   screen,
+  userEvent,
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
@@ -698,6 +700,35 @@ test('integrates requiredFirst filter with default value without triggering forc
 test('keeps native controls reachable in row or More popover with real DropdownContainer when cross-filter chip is added and popover is closed (#45050)', async () => {
   mockUseRealDropdownContainer = true;
 
+  const rect = (width: number, right: number) =>
+    ({
+      width,
+      right,
+      left: right - width,
+      top: 0,
+      bottom: 40,
+      height: 40,
+      x: right - width,
+      y: 0,
+      toJSON: () => ({}),
+    }) as DOMRect;
+
+  // Force overflow geometry: the horizontal container is 450px wide and each
+  // item is 200px wide, so the first 2 items (0..200, 200..400) fit in the
+  // main row while the 3rd+ items (400..600 > 451) overflow into More filters.
+  const rectSpy = jest
+    .spyOn(Element.prototype, 'getBoundingClientRect')
+    .mockImplementation(function (this: Element) {
+      if (this.getAttribute('data-test') === 'container') {
+        return rect(450, 450);
+      }
+      if (this.parentElement?.getAttribute('data-test') === 'container') {
+        const index = Array.from(this.parentElement.children).indexOf(this);
+        return rect(200, (index + 1) * 200);
+      }
+      return rect(0, 0);
+    });
+
   const accountFilter = {
     ...createSelectNativeFilter('NATIVE_FILTER-ACCOUNT', 'Account'),
     requiredFirst: true,
@@ -709,7 +740,9 @@ test('keeps native controls reachable in row or More popover with real DropdownC
   const flowFilter = createSelectNativeFilter('NATIVE_FILTER-FLOW', 'Flow');
   const filters = [accountFilter, dateFilter, flowFilter];
 
-  const stateWithCrossFilterAndNativeFilters = {
+  // Start without the cross-filter chip in dataMask so only the 3 native
+  // filters exist initially.
+  const initialStateWithoutCrossFilter = {
     ...buildStateWithOneCrossFilter(),
     dashboardInfo: {
       id: 1,
@@ -726,28 +759,78 @@ test('keeps native controls reachable in row or More popover with real DropdownC
       ),
       filtersState: {},
     },
+    dataMask: {},
   };
 
-  render(
-    <FilterControls
-      dataMaskSelected={buildDataMaskSelected(filters)}
-      onFilterSelectionChange={jest.fn()}
-      onPendingCustomizationDataMaskChange={jest.fn()}
-      chartCustomizationValues={[]}
-    />,
-    {
-      useRedux: true,
-      useRouter: true,
-      initialState: stateWithCrossFilterAndNativeFilters,
-    },
-  );
+  const store = createStore(initialStateWithoutCrossFilter, reducerIndex);
 
-  // The cross-filter chip is rendered
-  expect(await screen.findByText(CROSS_FILTER_CHART_NAME)).toBeInTheDocument();
+  try {
+    const { rerender } = render(
+      <FilterControls
+        dataMaskSelected={buildDataMaskSelected(filters)}
+        onFilterSelectionChange={jest.fn()}
+        onPendingCustomizationDataMaskChange={jest.fn()}
+        chartCustomizationValues={[]}
+      />,
+      {
+        store,
+        useRouter: true,
+      },
+    );
 
-  // The native filters remain reachable (Account, Date range, Flow) in the DOM
-  // (either in the horizontal row or inside More filters)
-  expect(screen.getByText('Account')).toBeInTheDocument();
-  expect(screen.getByText('Date range')).toBeInTheDocument();
-  expect(screen.getByText('Flow')).toBeInTheDocument();
+    // Ensure DropdownContainer runs its layout effect with ref.current attached
+    rerender(
+      <FilterControls
+        dataMaskSelected={buildDataMaskSelected(filters)}
+        onFilterSelectionChange={jest.fn()}
+        onPendingCustomizationDataMaskChange={jest.fn()}
+        chartCustomizationValues={[]}
+      />,
+    );
+
+    // Wait for overflow geometry to produce the closed More filters popover button
+    const moreFiltersBtn = await screen.findByTestId('dropdown-container-btn');
+    expect(moreFiltersBtn).toBeInTheDocument();
+
+    // While More filters is closed, its popover content must not be force-rendered
+    // into hidden DOM (re-adding forceRender={hasRequiredFirst} would mount it here).
+    expect(screen.queryByTestId('dropdown-content')).not.toBeInTheDocument();
+    expect(screen.queryByText(CROSS_FILTER_CHART_NAME)).not.toBeInTheDocument();
+
+    const mainRow = screen.getByTestId('container');
+    expect(within(mainRow).getByText('Account')).toBeInTheDocument();
+    expect(within(mainRow).getByText('Date range')).toBeInTheDocument();
+
+    // Add the cross-filter chip while the More filters popover is closed
+    act(() => {
+      store.dispatch(
+        updateDataMask(CROSS_FILTER_CHART_ID, {
+          filterState: {
+            value: 'Classic Cars',
+            filters: { product_line: 'Classic Cars' },
+          },
+          extraFormData: {},
+        }),
+      );
+    });
+
+    // The cross-filter chip and the first native filter stay reachable in the main row
+    expect(
+      await within(mainRow).findByText(CROSS_FILTER_CHART_NAME),
+    ).toBeInTheDocument();
+    expect(within(mainRow).getByText('Account')).toBeInTheDocument();
+
+    // Closed popover still has not force-rendered hidden dropdown content
+    expect(screen.queryByTestId('dropdown-content')).not.toBeInTheDocument();
+
+    // Open More filters and verify the overflowed native filter controls are reachable
+    await userEvent.click(screen.getByTestId('dropdown-container-btn'));
+
+    const popoverContent = await screen.findByTestId('dropdown-content');
+    expect(within(popoverContent).getByText('Date range')).toBeInTheDocument();
+    expect(within(popoverContent).getByText('Flow')).toBeInTheDocument();
+    expect(within(mainRow).getByText('Account')).toBeInTheDocument();
+  } finally {
+    rectSpy.mockRestore();
+  }
 });
