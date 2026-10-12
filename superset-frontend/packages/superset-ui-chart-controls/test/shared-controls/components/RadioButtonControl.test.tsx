@@ -117,13 +117,21 @@ test('handles multiple clicks correctly', () => {
   expect(onChange).toHaveBeenLastCalledWith('option2');
 
   rerender(
-    <RadioButtonControl {...defaultProps} value="option2" onChange={onChange} />,
+    <RadioButtonControl
+      {...defaultProps}
+      value="option2"
+      onChange={onChange}
+    />,
   );
   fireEvent.click(screen.getByText('Option 3'));
   expect(onChange).toHaveBeenLastCalledWith('option3');
 
   rerender(
-    <RadioButtonControl {...defaultProps} value="option3" onChange={onChange} />,
+    <RadioButtonControl
+      {...defaultProps}
+      value="option3"
+      onChange={onChange}
+    />,
   );
   fireEvent.click(screen.getByText('Option 1'));
   expect(onChange).toHaveBeenLastCalledWith('option1');
