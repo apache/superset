@@ -2017,7 +2017,10 @@ the chart). Accepting only removes the tag; it does not rebuild the saved
 alerts/reports built on one of these charts, re-save each affected chart in
 Explore first, then validate its scheduled outputs, since a scheduled report
 render does not pass through that notice and Accept alone leaves the stale
-`query_context` in place.
+`query_context` in place. CSV/XLSX exports and CSV/text reports do not apply
+the restored aggregation yet
+(https://github.com/apache/superset/issues/45215), so their totals can still
+differ from the chart.
 
 ### `thumbnail_url` removed from dashboard list API response
 
