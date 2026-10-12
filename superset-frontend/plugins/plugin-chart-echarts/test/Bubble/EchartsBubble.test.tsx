@@ -121,15 +121,16 @@ test('click emits a cross-filter on the bubble entity', () => {
       filters: [{ col: 'customer_name', op: 'IN', val: ['Alpha Cognac'] }],
     },
     filterState: {
-      value: ['Alpha Cognac'],
-      selectedValues: ['Alpha Cognac'],
+      label: 'Alpha Cognac',
+      value: 'Alpha Cognac',
+      selectedValues: ['["Alpha Cognac"]'],
     },
   });
 });
 
 test('click clears the cross-filter when the same bubble is already selected', () => {
   const { eventHandlers, setDataMask } = setup({
-    filterState: { selectedValues: ['Alpha Cognac'] },
+    filterState: { selectedValues: ['["Alpha Cognac"]'] },
   });
 
   eventHandlers.click({
@@ -139,6 +140,7 @@ test('click clears the cross-filter when the same bubble is already selected', (
   expect(setDataMask).toHaveBeenCalledWith({
     extraFormData: { filters: [] },
     filterState: {
+      label: null,
       value: null,
       selectedValues: null,
     },
@@ -170,8 +172,9 @@ test('click filters by entity and series when a series dimension is set', () => 
       ],
     },
     filterState: {
-      value: ['AV Stores, Co.\0open'],
-      selectedValues: ['AV Stores, Co.\0open'],
+      label: 'AV Stores, Co., open',
+      value: 'AV Stores, Co., open',
+      selectedValues: ['["AV Stores, Co.","open"]'],
     },
   });
 });
@@ -188,10 +191,60 @@ test('click filters null entity values with IS NULL', () => {
       filters: [{ col: 'customer_name', op: 'IS NULL' }],
     },
     filterState: {
-      value: ['<NULL>'],
-      selectedValues: ['<NULL>'],
+      label: '<NULL>',
+      value: '<NULL>',
+      selectedValues: ['[null]'],
     },
   });
+});
+
+test('click filters empty-string entity values with IN and a distinct label', () => {
+  const { eventHandlers, setDataMask } = setup();
+
+  eventHandlers.click({
+    data: [10, 20, 30, '', null],
+  });
+
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [{ col: 'customer_name', op: 'IN', val: [''] }],
+    },
+    filterState: {
+      label: '""',
+      value: '""',
+      selectedValues: ['[""]'],
+    },
+  });
+});
+
+test('click filters null series values with IS NULL', () => {
+  const { eventHandlers, setDataMask } = setup({ series: 'status' });
+
+  eventHandlers.click({
+    data: [10, 20, 30, 'AV Stores, Co.', null],
+  });
+
+  expect(setDataMask).toHaveBeenCalledWith({
+    extraFormData: {
+      filters: [
+        { col: 'customer_name', op: 'IN', val: ['AV Stores, Co.'] },
+        { col: 'status', op: 'IS NULL' },
+      ],
+    },
+    filterState: {
+      label: 'AV Stores, Co., <NULL>',
+      value: 'AV Stores, Co., <NULL>',
+      selectedValues: ['["AV Stores, Co.",null]'],
+    },
+  });
+});
+
+test('click ignores events without a bubble datum', () => {
+  const { eventHandlers, setDataMask } = setup();
+
+  eventHandlers.click({ data: undefined });
+
+  expect(setDataMask).not.toHaveBeenCalled();
 });
 
 test('context menu exposes cross-filter, drill to detail, and drill by', () => {
@@ -229,4 +282,27 @@ test('context menu exposes cross-filter, drill to detail, and drill by', () => {
     { col: 'status', op: 'IN', val: ['open'] },
   ]);
   expect(payload.crossFilter.isCurrentValueSelected).toBe(false);
+});
+
+test('context menu uses IS NULL for an empty bubble dimension', () => {
+  const { eventHandlers, onContextMenu } = setup({ series: 'status' });
+
+  eventHandlers.contextmenu({
+    data: [10, 20, 30, null, 'open'],
+    event: { stop: jest.fn(), event: { clientX: 1, clientY: 2 } },
+  });
+
+  const [[, , payload]] = onContextMenu.mock.calls;
+  expect(payload.drillToDetail).toEqual([
+    expect.objectContaining({
+      col: 'customer_name',
+      op: 'IS NULL',
+      formattedVal: '<NULL>',
+    }),
+    expect.objectContaining({
+      col: 'status',
+      op: '==',
+      val: 'open',
+    }),
+  ]);
 });

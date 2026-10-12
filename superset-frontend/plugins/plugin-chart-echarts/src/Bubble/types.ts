@@ -37,7 +37,6 @@ export type EchartsBubbleFormData = QueryFormData &
     colorScheme?: string;
     defaultValue?: string[] | null;
     dateFormat: string;
-    emitFilter: boolean;
     tooltipFormat: string;
     x: string;
     y: string;

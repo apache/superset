@@ -42,8 +42,12 @@ import { parseAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
-import { NULL_STRING, OpacityEnum } from '../constants';
-import { getBubbleCrossFilterKey, getSelectedBubbleKeys } from './crossFilter';
+import { OpacityEnum } from '../constants';
+import {
+  formatBubbleValue,
+  getBubbleCrossFilterKey,
+  getSelectedBubbleKeys,
+} from './crossFilter';
 
 const isIterable = (obj: any): obj is Iterable<any> =>
   obj != null && typeof obj[Symbol.iterator] === 'function';
@@ -87,9 +91,11 @@ export function formatTooltip(
   yAxisFormatter: NumberFormatter,
   tooltipSizeFormatter: NumberFormatter,
 ) {
-  const title = params.data[4]
-    ? `${params.data[4]} (${params.data[3]})`
-    : params.data[3];
+  const [, , , entityValue, seriesValue] = params.data ?? [];
+  const title =
+    seriesValue != null
+      ? `${formatBubbleValue(seriesValue)} (${formatBubbleValue(entityValue)})`
+      : formatBubbleValue(entityValue);
 
   return tooltipHtml(
     [
@@ -167,7 +173,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
 
   data.forEach(datum => {
     const dataName = seriesLabel ? datum[seriesLabel] : datum[entityLabel];
-    const name = dataName ? String(dataName) : NULL_STRING;
+    const name = formatBubbleValue(dataName);
     const bubbleSeriesValue = seriesLabel ? datum[seriesLabel] : null;
 
     const filterKey = getBubbleCrossFilterKey(

@@ -18,12 +18,13 @@
  */
 import { useMemo } from 'react';
 import {
-  BinaryQueryObjectFilterClause,
+  ContextMenuFilters,
   DataRecordValue,
   getColumnLabel,
   getNumberFormatter,
   getTimeFormatter,
   QueryFormColumn,
+  QueryObjectFilterClause,
 } from '@superset-ui/core';
 import { BubbleChartTransformedProps } from './types';
 import Echart from '../components/Echart';
@@ -31,13 +32,13 @@ import { EventHandlers } from '../types';
 import { formatSeriesName } from '../utils/series';
 import {
   BubbleDatum,
+  ENTITY_INDEX,
   getBubbleCrossFilterDataMask,
   getSelectedBubbleKeys,
   isBubbleDatum,
+  SERIES_INDEX,
 } from './crossFilter';
 
-const ENTITY_INDEX = 3;
-const SERIES_INDEX = 4;
 const noop = () => {};
 
 type BubbleEvent = {
@@ -52,7 +53,7 @@ function buildDrillFilters(
   datum: BubbleDatum,
   dateFormat: string | undefined,
   coltypeMapping: BubbleChartTransformedProps['coltypeMapping'],
-): BinaryQueryObjectFilterClause[] {
+): QueryObjectFilterClause[] {
   const columns: Array<{ col: QueryFormColumn; value: DataRecordValue }> = [
     { col: entity, value: datum[ENTITY_INDEX] },
   ];
@@ -61,16 +62,17 @@ function buildDrillFilters(
   }
   const timeFormatter = getTimeFormatter(dateFormat);
   const numberFormatter = getNumberFormatter();
-  return columns.map(({ col, value }) => ({
-    col,
-    op: '==' as const,
-    val: value,
-    formattedVal: formatSeriesName(value, {
+  return columns.map(({ col, value }) => {
+    const formattedVal = formatSeriesName(value, {
       timeFormatter,
       numberFormatter,
       coltype: coltypeMapping?.[getColumnLabel(col)],
-    }),
-  }));
+    });
+    if (value == null) {
+      return { col, op: 'IS NULL' as const, formattedVal };
+    }
+    return { col, op: '==' as const, val: value, formattedVal };
+  });
 }
 
 export default function EchartsBubble(props: BubbleChartTransformedProps) {
@@ -106,9 +108,7 @@ export default function EchartsBubble(props: BubbleChartTransformedProps) {
           return;
         }
         const { dataMask } = crossFilterFor(event.data);
-        if (dataMask) {
-          setDataMask(dataMask);
-        }
+        setDataMask(dataMask);
       },
       contextmenu: (event: BubbleEvent) => {
         if (!onContextMenu || !isBubbleDatum(event.data)) {
@@ -119,13 +119,15 @@ export default function EchartsBubble(props: BubbleChartTransformedProps) {
         if (!pointerEvent) {
           return;
         }
+        // The context menu types only binary operators. IS NULL is unary, and
+        // both drill paths forward `op` to the query unchanged.
         const drillFilters = buildDrillFilters(
           entity,
           seriesColumn,
           event.data,
           dateFormat,
           coltypeMapping,
-        );
+        ) as NonNullable<ContextMenuFilters['drillToDetail']>;
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillFilters,
           crossFilter: crossFilterFor(event.data),

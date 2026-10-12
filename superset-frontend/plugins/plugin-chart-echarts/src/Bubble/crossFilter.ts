@@ -32,24 +32,67 @@ export type BubbleDatum = [
   DataRecordValue,
 ];
 
-const ENTITY_INDEX = 3;
-const SERIES_INDEX = 4;
+export const ENTITY_INDEX = 3;
+export const SERIES_INDEX = 4;
+
+/** Display text for an empty-string dimension value. */
+export const EMPTY_STRING = '""';
+
+/**
+ * Human-readable text for a dimension value, used for series names, tooltips
+ * and the cross-filter chip. `null` and `''` stay distinguishable because they
+ * produce different filters (`IS NULL` vs `IN ['']`).
+ */
+export function formatBubbleValue(value: DataRecordValue): string {
+  if (value == null) {
+    return NULL_STRING;
+  }
+  const text = String(value);
+  return text === '' ? EMPTY_STRING : text;
+}
 
 export function isBubbleDatum(value: unknown): value is BubbleDatum {
   return Array.isArray(value) && value.length > SERIES_INDEX;
 }
 
+function toKeyPart(
+  value: DataRecordValue | undefined,
+): string | number | boolean | null {
+  if (value == null) {
+    return null;
+  }
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+/**
+ * Stable identifier of a bubble, stored in `filterState.selectedValues`.
+ * A JSON array keeps entity and series unambiguous (including `null` vs `''`
+ * and `1` vs `'1'`) and survives serialization into dashboard state.
+ */
 export function getBubbleCrossFilterKey(
   entityValue: DataRecordValue,
   seriesValue: DataRecordValue | undefined,
   hasSeries: boolean,
 ): string {
-  const entityPart = entityValue == null ? NULL_STRING : String(entityValue);
+  const parts = hasSeries
+    ? [toKeyPart(entityValue), toKeyPart(seriesValue)]
+    : [toKeyPart(entityValue)];
+  return JSON.stringify(parts);
+}
+
+export function getBubbleCrossFilterLabel(
+  entityValue: DataRecordValue,
+  seriesValue: DataRecordValue | undefined,
+  hasSeries: boolean,
+): string {
+  const entityPart = formatBubbleValue(entityValue);
   if (!hasSeries) {
     return entityPart;
   }
-  const seriesPart = seriesValue == null ? NULL_STRING : String(seriesValue);
-  return `${entityPart}\0${seriesPart}`;
+  return `${entityPart}, ${formatBubbleValue(seriesValue ?? null)}`;
 }
 
 export function getSelectedBubbleKeys(selectedValues: unknown): string[] {
@@ -98,6 +141,7 @@ export function getBubbleCrossFilterDataMask({
   const key = getBubbleCrossFilterKey(entityValue, seriesValue, hasSeries);
   const isCurrentValueSelected = selectedKeys.includes(key);
   const nextKeys = isCurrentValueSelected ? [] : [key];
+  const label = getBubbleCrossFilterLabel(entityValue, seriesValue, hasSeries);
   const filters: QueryObjectFilterClause[] =
     nextKeys.length === 0
       ? []
@@ -114,7 +158,10 @@ export function getBubbleCrossFilterDataMask({
         filters,
       },
       filterState: {
-        value: nextKeys.length ? nextKeys : null,
+        // `label` is the chip text. `selectedValues` keeps the join key so a
+        // second click can clear the same bubble.
+        label: nextKeys.length ? label : null,
+        value: nextKeys.length ? label : null,
         selectedValues: nextKeys.length ? nextKeys : null,
       },
     },

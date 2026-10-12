@@ -274,6 +274,20 @@ describe('Bubble formatTooltip', () => {
     expect(html).toContain('$25,000.00');
     expect(html).toContain('300.0%');
   });
+
+  test('keeps a zero series value in the tooltip title', () => {
+    const html = formatTooltip(
+      { data: [1, 2, 3, 0, false] },
+      'x',
+      'y',
+      'size',
+      dollerFormatter,
+      dollerFormatter,
+      percentFormatter,
+    );
+
+    expect(html).toContain('false (0)');
+  });
 });
 
 describe('legend sorting', () => {
@@ -327,7 +341,7 @@ describe('Bubble cross-filter selection', () => {
     const chartProps = new ChartProps({
       ...chartConfig,
       formData: { ...defaultFormData, opacity: 0.6 },
-      filterState: { selectedValues: ['Alpha Cognac'] },
+      filterState: { selectedValues: ['["Alpha Cognac"]'] },
       emitCrossFilters: true,
     });
     const result = transformProps(chartProps as EchartsBubbleChartProps);
@@ -375,7 +389,7 @@ describe('Bubble cross-filter selection', () => {
         },
       ],
       filterState: {
-        selectedValues: ['AV Stores, Co.\0open'],
+        selectedValues: ['["AV Stores, Co.","open"]'],
       },
     });
     const result = transformProps(chartProps as EchartsBubbleChartProps);
@@ -388,5 +402,48 @@ describe('Bubble cross-filter selection', () => {
 
     expect(openBubble?.itemStyle.opacity).toBe(1);
     expect(closedBubble?.itemStyle.opacity).toBe(0.3);
+  });
+
+  test('uses the default cursor when cross-filtering is disabled', () => {
+    const chartProps = new ChartProps({
+      ...chartConfig,
+      formData: { ...defaultFormData, opacity: 0.6 },
+      filterState: { selectedValues: ['["Alpha Cognac"]'] },
+      emitCrossFilters: false,
+    });
+    const result = transformProps(chartProps as EchartsBubbleChartProps);
+    const series = result.echartOptions.series as { cursor: string }[];
+
+    expect(series.every(item => item.cursor === 'default')).toBe(true);
+  });
+
+  test('keeps numeric zero and false entity values in the series name', () => {
+    const chartProps = new ChartProps({
+      ...chartConfig,
+      queriesData: [
+        {
+          data: [
+            {
+              customer_name: 0,
+              count: 10,
+              'SUM(price_each)': 20,
+              'SUM(sales)': 30,
+            },
+            {
+              customer_name: false,
+              count: 40,
+              'SUM(price_each)': 50,
+              'SUM(sales)': 60,
+            },
+          ],
+        },
+      ],
+    });
+    const result = transformProps(chartProps as EchartsBubbleChartProps);
+    const names = (result.echartOptions.series as { name: string }[]).map(
+      item => item.name,
+    );
+
+    expect(names).toEqual(['0', 'false']);
   });
 });
