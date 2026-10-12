@@ -91,29 +91,40 @@ export async function apiCreateStubSemanticView(
   });
   const layerUuid: string = (await layerResp.json()).result.uuid;
 
-  const viewResp = await apiPost(page, ENDPOINTS.SEMANTIC_VIEW, {
-    views: [{ name: STUB_VIEW_NAME, semantic_layer_uuid: layerUuid }],
-  });
-  const viewUuid: string = (await viewResp.json()).result.created[0].uuid;
+  try {
+    const viewResp = await apiPost(page, ENDPOINTS.SEMANTIC_VIEW, {
+      views: [{ name: STUB_VIEW_NAME, semantic_layer_uuid: layerUuid }],
+    });
+    const viewUuid: string = (await viewResp.json()).result.created[0].uuid;
 
-  // The semantic-view API has no GET; the combined datasource list is where
-  // the integer id that charts and filters reference is exposed.
-  const query = rison.encode({
-    filters: [{ col: 'table_name', opr: 'ct', value: STUB_VIEW_NAME }],
-    page: 0,
-    page_size: 100,
-  });
-  const listResp = await apiGet(page, `${ENDPOINTS.DATASOURCE}?q=${query}`);
-  const rows: Array<{ id: number; uuid: string; kind: string }> = (
-    await listResp.json()
-  ).result;
-  const row = rows.find(
-    item => item.kind === 'semantic_view' && item.uuid === viewUuid,
-  );
-  if (!row) {
-    throw new Error(`Semantic view ${viewUuid} missing from datasource list`);
+    // The semantic-view API has no GET; the combined datasource list is where
+    // the integer id that charts and filters reference is exposed.
+    const query = rison.encode({
+      filters: [{ col: 'table_name', opr: 'ct', value: STUB_VIEW_NAME }],
+      page: 0,
+      page_size: 100,
+    });
+    const listResp = await apiGet(page, `${ENDPOINTS.DATASOURCE}?q=${query}`);
+    const rows: Array<{ id: number; uuid: string; kind: string }> = (
+      await listResp.json()
+    ).result;
+    const row = rows.find(
+      item => item.kind === 'semantic_view' && item.uuid === viewUuid,
+    );
+    if (!row) {
+      throw new Error(`Semantic view ${viewUuid} missing from datasource list`);
+    }
+    return {
+      layerUuid,
+      viewId: row.id,
+      datasource: `${row.id}__semantic_view`,
+    };
+  } catch (error) {
+    await Promise.allSettled([
+      apiDelete(page, `${ENDPOINTS.SEMANTIC_LAYER}${layerUuid}`),
+    ]);
+    throw error;
   }
-  return { layerUuid, viewId: row.id, datasource: `${row.id}__semantic_view` };
 }
 
 export async function apiDeleteSemanticLayer(
