@@ -405,6 +405,30 @@ test('result aggregation reduces the grand summary from every original leaf reco
   expect(pivotData.getAggregator([], []).value()).toBeCloseTo(43.33, 2);
 });
 
+test('result aggregation reduces intermediate column subtotals when column subtotals are on', () => {
+  const leaves = [
+    { product: 'P', region: 'North', store: 'A', value: 10 },
+    { product: 'P', region: 'North', store: 'B', value: 20 },
+    { product: 'P', region: 'South', store: 'C', value: 100 },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData(
+    {
+      data: leaves,
+      rows: ['product'],
+      cols: ['region', 'store'],
+      vals: ['value'],
+      aggregateFunction: 'Average',
+    },
+    { colEnabled: true },
+  );
+
+  // North column subtotal: average of North's own two leaves (10, 20).
+  expect(pivotData.getAggregator(['P'], ['North']).value()).toBe(15);
+  // Row total across every column: average of all three leaves, not of the
+  // region subtotals ((15 + 100) / 2 = 57.5).
+  expect(pivotData.getAggregator(['P'], []).value()).toBeCloseTo(43.33, 2);
+});
+
 test('result aggregation never reduces a true leaf cell, only subtotals and the grand total', () => {
   // A leaf holding one already-aggregated SUM(sales)=100 record must keep
   // rendering that database value -- not fold the single-item set through
@@ -985,6 +1009,9 @@ test('Sum and Average stay blank (null) when every input in the scope is NULL', 
   };
   expect(run('Sum', [null, null])).toBeNull();
   expect(run('Average', [null, null])).toBeNull();
+  const variance = aggregators['Sample Variance'](['x'])();
+  [null, null].forEach(x => variance.push({ x } as unknown as PivotRecord));
+  expect(variance.value()).toBeNull();
   expect(run('Sum', [null, 4])).toBe(4);
   expect(run('Average', [null, 4])).toBe(4);
 });
