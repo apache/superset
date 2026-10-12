@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy.orm.session import Session
 
+from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
     _is_metric_ref,
@@ -39,6 +41,8 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_metrics,
     resolve_metrics_and_groupby,
 )
+from superset.semantic_layers.mapper import validate_filter_columns
+from superset.utils.core import QueryObjectFilterClause
 
 
 def test_extract_form_data_key_from_url_with_key():
@@ -199,8 +203,8 @@ def test_prepare_form_data_for_query_merges_cached_and_request_extra_form_data(
     apply_form_data_filters_to_query(query, form_data)
 
     assert query["filters"] == [
-        {"col": "country", "op": "==", "val": "US"},
-        {"col": "gender", "op": "==", "val": "boy"},
+        {"col": "country", "op": "==", "val": "US", "isExtra": True},
+        {"col": "gender", "op": "==", "val": "boy", "isExtra": True},
     ]
     assert query["time_range"] == "No filter"
 
@@ -364,13 +368,71 @@ def test_merge_extra_form_data_filters_into_query_adds_only_extra_predicates(
 
     assert query["filters"] == [
         {"col": "country", "op": "==", "val": "US"},
-        {"col": "gender", "op": "==", "val": "boy"},
+        {"col": "gender", "op": "==", "val": "boy", "isExtra": True},
     ]
     assert query["time_range"] == "No filter"
     assert query["granularity"] == "updated_at"
     # The grain belongs in extras: a top-level time_grain_sqla is dropped by
     # ChartDataQueryObjectSchema (unknown = EXCLUDE) and never reaches the query.
     assert query["extras"]["time_grain_sqla"] == "P1D"
+
+
+@pytest.mark.parametrize("path", ["saved", "table", "echarts_timeseries_bar"])
+def test_mcp_extra_filters_keep_dashboard_provenance(
+    monkeypatch: pytest.MonkeyPatch, app_context: None, path: str
+) -> None:
+    """A dashboard filter on a metric name is reported; a chart-owned one is refused."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    extra_form_data: dict[str, Any] = {
+        "filters": [{"col": "total_amount", "op": "IN", "val": [1]}]
+    }
+    dashboard_filter: QueryObjectFilterClause = {
+        "col": "total_amount",
+        "op": "IN",
+        "val": [1],
+        "isExtra": True,
+    }
+    chart_owned: QueryObjectFilterClause = {
+        "col": "total_amount",
+        "op": "IN",
+        "val": [2],
+    }
+    filters: list[QueryObjectFilterClause]
+    if path == "saved":
+        query: dict[str, Any] = {"filters": []}
+        merge_extra_form_data_filters_into_query(
+            query, extra_form_data, 1, "semantic_view"
+        )
+        filters = query["filters"]
+        assert filters == [dashboard_filter]
+    else:
+        form_data: dict[str, Any] = {
+            "viz_type": path,
+            "datasource": "1__semantic_view",
+            "metrics": ["total_amount"],
+            "groupby": ["category"],
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": "WHERE",
+                    "subject": "total_amount",
+                    "operator": "IN",
+                    "comparator": [2],
+                }
+            ],
+        }
+        queries: list[dict[str, Any]] = build_query_dicts_from_form_data(
+            form_data, 1, "semantic_view", extra_form_data=extra_form_data
+        )
+        filters = queries[0]["filters"]
+        assert filters == [chart_owned, dashboard_filter]
+
+    validate_filter_columns([dashboard_filter], {"category"}, {"total_amount"})
+    with pytest.raises(QueryObjectValidationError, match="total_amount"):
+        validate_filter_columns([chart_owned], {"category"}, {"total_amount"})
 
 
 def test_merge_extra_form_data_time_grain_override_lands_in_extras(monkeypatch):
