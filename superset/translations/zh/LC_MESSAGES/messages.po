@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-12 14:44+0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -2195,6 +2195,10 @@ msgid "An error occurred while fetching function names."
 msgstr "获取函数名称时出错。"
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr "获取行级安全主体值时出错：%s"
 
@@ -2641,6 +2645,9 @@ msgstr "确实要删除选定的 %s 吗？"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "确实要删除选定的注释吗？"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "确实要删除所选图表吗？"
 
@@ -2736,6 +2743,9 @@ msgstr "时间序列面积图与折线图相似，因为它们表示具有相同
 
 msgid "Arrow"
 msgstr "箭头"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "将一组参数指定为"
@@ -3261,6 +3271,9 @@ msgstr "CVAS (create view as select)查询不是SELECT语句。"
 msgid "Cache Timeout (seconds)"
 msgstr "缓存超时（秒）"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -3407,6 +3420,24 @@ msgstr "无法在默认文件夹中嵌套文件夹"
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "无法解析时间字符串[%(human_readable)s]"
+
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
 
 msgid "Captcha"
 msgstr "验证码"
@@ -3602,6 +3633,9 @@ msgstr "更改这些设置将影响使用此数据集的所有图表，包括其
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "无法修改该看板"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "禁止更改此图表"
@@ -4184,6 +4218,9 @@ msgstr "折叠数据面板"
 #, fuzzy
 msgid "Collapse row"
 msgstr "折叠行"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "折叠设置"
@@ -4848,6 +4885,11 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "不能连接到数据库\"%(database)s\""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "无法获取所有保存的图表"
 
@@ -4906,6 +4948,12 @@ msgstr "计数"
 
 msgid "Country"
 msgstr "国家"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "国家颜色方案"
@@ -5954,6 +6002,12 @@ msgstr "确定删除全部？"
 msgid "Delete annotation"
 msgstr "删除注释"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -6017,6 +6071,11 @@ msgstr[0] "删除了 %(num)d 个注释"
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "删除了 %(num)d 个注释层"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6471,6 +6530,12 @@ msgstr "根据 LIMIT 配置，正在下载 %(rows)s 行数据。如需获取完�
 
 msgid "Draft"
 msgstr "草稿"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -7758,6 +7823,9 @@ msgstr "加载图表数据失败。"
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "无法加载 %s %s 的列"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -9185,6 +9253,9 @@ msgstr "无效的结果类型：%(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "无效的滚动类型：%(type)s"
 
+msgid "Invalid semantic result cache version"
+msgstr ""
+
 #, fuzzy
 msgid "Invalid state."
 msgstr "无效状态。"
@@ -9268,6 +9339,9 @@ msgstr "Issue 1000 - 数据集太大，无法进行查询。"
 
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Issue 1001 - 数据库负载异常。"
+
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -11005,6 +11079,10 @@ msgstr ""
 msgid "No records found"
 msgstr "没有找到任何记录"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 #, fuzzy
 msgid "No results"
 msgstr "无结果"
@@ -11390,6 +11468,9 @@ msgstr "一个或多个指标显示"
 msgid "One or more annotation layers failed loading."
 msgstr "一个或多个注释层加载失败。"
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "一个或多个列已存在"
 
@@ -11476,6 +11557,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -12057,6 +12141,9 @@ msgstr "每个序列的像素高度"
 msgid "Pixels"
 msgstr "像素"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "平铺"
 
@@ -12336,6 +12423,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "预览"
 
@@ -12438,6 +12530,9 @@ msgstr "公开和私下共享的表格"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "仅公开共享的表格"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "已发布"
@@ -12767,6 +12862,9 @@ msgstr "重新加载"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "Reload SQL Lab"
 msgstr "重新加载 SQL 工具箱"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13487,6 +13585,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL查询"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL表达式"
@@ -14918,6 +15021,12 @@ msgstr "显示摘要"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "显示总计"
@@ -15136,6 +15245,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -15422,6 +15534,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16151,6 +16268,12 @@ msgstr "注释已更新。"
 msgid "The background color of the charts."
 msgstr "图表的背景颜色。"
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16396,6 +16519,9 @@ msgstr "看板的显示名称"
 
 msgid "The distance between cells, in pixels"
 msgstr "单元格之间的距离，以像素为单位"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -16926,6 +17052,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "图层的服务 URL"
 
@@ -17132,6 +17273,9 @@ msgstr ""
 msgid "Theme could not be updated."
 msgstr ""
 
+msgid "Theme does not exist"
+msgstr ""
+
 msgid "Theme imported"
 msgstr "主题已导入"
 
@@ -17298,6 +17442,10 @@ msgstr "归档时出现问题：%s"
 msgid "There was an issue cancelling the task: %s"
 msgstr "取消任务时出现问题：%s"
 
+#, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
 msgstr "删除时出现问题：%s"
@@ -17325,6 +17473,10 @@ msgstr "删除所选 %s 时出现问题: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "删除所选注释时出现问题：%s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -17519,10 +17671,20 @@ msgid ""
 "mydatabase.com)."
 msgstr "这可以是一个IP地址(例如127.0.0.1)或一个域名(例如mydatabase.com)。"
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr "此图表将交叉筛选应用于那些数据集包含具有相同名称列的图表。"
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "此图表已移至其他过滤器范围内。"
@@ -17550,6 +17712,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -17697,9 +17871,15 @@ msgstr "此数据集由外部管理，无法在Superset中编辑"
 msgid "This defines the element to be plotted on the chart"
 msgstr "这定义了要在图表上绘制的元素"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
@@ -17995,6 +18175,9 @@ msgstr "不支持此可视化类型。"
 msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "这是由以下因素引发的："
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18579,6 +18762,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "无法计算这样的日期差值"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "无法连接到名为\"%(catalog_name)s\"的目录。"
@@ -18891,6 +19077,9 @@ msgstr "未命名的数据集"
 msgid "Untitled Query"
 msgstr "未命名的查询"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -18902,6 +19091,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "未命名的查询"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "未验证"
@@ -19190,6 +19382,9 @@ msgstr "数值格式"
 #, fuzzy
 msgid "Value and Percentage"
 msgstr "值和百分比"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "值边界"
@@ -20788,6 +20983,9 @@ msgstr[0] ""
 
 msgid "cannot be empty"
 msgstr "不能为空"
+
+msgid "canvases"
+msgstr ""
 
 msgid "cell bar"
 msgstr "单元格栏"

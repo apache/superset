@@ -29,6 +29,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('src/middleware/realtime', () => ({
   subscribeRealtime: jest.fn(() => jest.fn()),
   subscribeRealtimeOpen: jest.fn(() => jest.fn()),
+  subscribeRealtimeState: jest.fn(() => jest.fn()),
 }));
 
 const metadataEndpoint = 'glob:*/api/v1/canvas/7';
@@ -75,7 +76,7 @@ beforeEach(() => {
 test('shows the canvas title and an empty state', async () => {
   fetchMock.get(definitionEndpoint, definition([]));
 
-  render(<CanvasPage />, { useRedux: true });
+  render(<CanvasPage />, { useRedux: true, useRouter: true });
 
   expect(await screen.findByText('Exec overview')).toBeInTheDocument();
   expect(screen.getByText('KPIs and trend')).toBeInTheDocument();
@@ -97,7 +98,7 @@ test('reloads the definition when this canvas changes', async () => {
   });
   fetchMock.get(definitionEndpoint, definition([]));
 
-  render(<CanvasPage />, { useRedux: true });
+  render(<CanvasPage />, { useRedux: true, useRouter: true });
   expect(await screen.findByText('This canvas is empty')).toBeInTheDocument();
 
   fetchMock.removeRoute(definitionEndpoint);
@@ -115,7 +116,7 @@ test('reloads the definition when this canvas changes', async () => {
 test('explains when the canvas cannot be opened', async () => {
   fetchMock.get(definitionEndpoint, 404);
 
-  render(<CanvasPage />, { useRedux: true });
+  render(<CanvasPage />, { useRedux: true, useRouter: true });
 
   expect(
     await screen.findByText(

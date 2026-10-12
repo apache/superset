@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-12 14:44+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -2316,6 +2316,10 @@ msgid "An error occurred while fetching function names."
 msgstr "A apărut o eroare la preluarea numelor de funcții."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2801,6 +2805,9 @@ msgstr "Sigur doriți să ștergeți %s-ul selectat?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Sigur doriți să ștergeți adnotările selectate?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Sigur doriți să ștergeți graficele selectate?"
 
@@ -2905,6 +2912,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Săgeată"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Atribuie un set de parametri ca"
@@ -3435,6 +3445,9 @@ msgstr ""
 msgid "Cache Timeout (seconds)"
 msgstr "Expirare Cache (secunde)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -3570,6 +3583,24 @@ msgstr "Nu se pot cuibări foldere în folderele implicite"
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nu se poate analiza șirul de timp [%(human_readable)s]"
+
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # it, ja, lv, ru, sk, sr, sr_Latn, uk]
@@ -3759,6 +3790,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "Schimbarea acestui Panou de Control este interzisă"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "Schimbarea acestui grafic este interzisă"
@@ -4369,6 +4403,9 @@ msgstr "Restrânge panoul de date"
 
 msgid "Collapse row"
 msgstr "Restrânge rând"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Restrânge setările"
@@ -5045,6 +5082,11 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nu s-a putut conecta la baza de date: \"%(database)s\""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nu s-au putut prelua toate graficele salvate"
 
@@ -5097,6 +5139,12 @@ msgstr "Numără"
 
 msgid "Country"
 msgstr "Țară"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Schemă Culori Țară"
@@ -6206,6 +6254,12 @@ msgstr "Șterge totul Chiar?"
 msgid "Delete annotation"
 msgstr "Șterge adnotare"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -6276,6 +6330,13 @@ msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Șters %(num)d strat de adnotare"
 msgstr[1] "Șterse %(num)d straturi de adnotare"
 msgstr[2] "Șterse %(num)d de straturi de adnotare"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6792,6 +6853,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Ciornă"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -8097,6 +8164,9 @@ msgstr "Eșuat la încărcarea datelor graficului."
 #, fuzzy, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Încărcarea coloanelor pentru %s %s a eșuat"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -9546,6 +9616,9 @@ msgstr "Tip rezultat invalid: %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "rolling_type invalid: %(type)s"
 
+msgid "Invalid semantic result cache version"
+msgstr ""
+
 msgid "Invalid state."
 msgstr "Stare invalidă."
 
@@ -9624,6 +9697,9 @@ msgstr "Problemă 1000 - Setul de date este prea mare pentru interogare."
 
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problemă 1001 - Baza de date este sub o încărcare neobișnuită."
+
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -11376,6 +11452,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Nicio înregistrare găsită"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Fără rezultate"
 
@@ -11757,6 +11837,9 @@ msgstr "Unul sau mai mulți indicatori de afișat"
 msgid "One or more annotation layers failed loading."
 msgstr "Unul sau mai multe straturi de adnotare au eșuat la încărcare."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "Una sau mai multe coloane există deja"
 
@@ -11841,6 +11924,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -12436,6 +12522,9 @@ msgstr "Înălțime pixel pentru fiecare serie"
 msgid "Pixels"
 msgstr "Pixeli"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Simplu"
 
@@ -12709,6 +12798,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Previzualizare"
 
@@ -12806,6 +12900,9 @@ msgstr "Foi partajate public și privat"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "Doar foi partajate public"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "Publicat"
@@ -13122,6 +13219,9 @@ msgstr "Reîncarcă"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Reîncărcați SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13871,6 +13971,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Interogare SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Expresie SQL"
@@ -15409,6 +15514,12 @@ msgstr "Afișează rezumat"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "Afișează total"
 
@@ -15639,6 +15750,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -15921,6 +16035,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16689,6 +16808,12 @@ msgstr "Adnotarea a fost actualizată"
 msgid "The background color of the charts."
 msgstr "Culoarea de fundal a graficelor."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16947,6 +17072,9 @@ msgstr "Numele de afișare al panoului dvs. de control"
 
 msgid "The distance between cells, in pixels"
 msgstr "Distanța dintre celule, în pixeli"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -17540,6 +17668,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "URL-ul serviciului stratului"
 
@@ -17775,6 +17918,9 @@ msgstr ""
 msgid "Theme could not be updated."
 msgstr ""
 
+msgid "Theme does not exist"
+msgstr ""
+
 msgid "Theme imported"
 msgstr "Temă importată"
 
@@ -17963,6 +18109,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "A apărut o problemă la anularea sarcinii: %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "A apărut o problemă la ștergerea %s"
 
@@ -17991,6 +18141,10 @@ msgstr "A apărut o problemă la ștergerea %s selectat(e): %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "A apărut o problemă la ștergerea adnotărilor selectate: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -18208,12 +18362,22 @@ msgstr ""
 "Acesta poate fi fie o adresă IP (de ex. 127.0.0.1), fie un nume de "
 "domeniu (de ex. mydatabase.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "Acest grafic aplică filtre încrucișate graficelor ale căror seturi de "
 "date conțin coloane cu același nume."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Acest grafic a fost mutat într-un domeniu de filtru diferit."
@@ -18240,6 +18404,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -18397,9 +18573,15 @@ msgstr "Acest set de date este gestionat extern și nu poate fi editat în Super
 msgid "This defines the element to be plotted on the chart"
 msgstr "Aceasta definește elementul de reprezentat pe grafic"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 msgid ""
@@ -18716,6 +18898,9 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "Aceasta a fost declanșată de:"
 msgstr[1] "Acestea pot fi declanșate de:"
 msgstr[2] "Acestea pot fi declanșate de către:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -19314,6 +19499,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Nu se poate calcula un astfel de delta de dată"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Nu se poate conecta la catalogul numit \"%(catalog_name)s\"."
@@ -19639,6 +19827,9 @@ msgstr "Set de Date Fără Titlu"
 msgid "Untitled Query"
 msgstr "Interogare Fără Titlu"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -19650,6 +19841,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "interogare fără titlu"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "Neverificat"
@@ -19956,6 +20150,9 @@ msgstr "Format valoare"
 
 msgid "Value and Percentage"
 msgstr "Valoare și procentaj"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Limite valoare"
@@ -21629,6 +21826,9 @@ msgstr[2] ""
 
 msgid "cannot be empty"
 msgstr "nu poate fi gol"
+
+msgid "canvases"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]

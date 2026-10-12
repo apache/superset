@@ -65,7 +65,7 @@ const result: CanvasDefinitionResult = {
   gridColumns: { emea: 24, apac: 24, kpis: 12 },
 };
 
-test('renders core containers and markdown without extensions', () => {
+test('renders core containers and markdown without extensions', async () => {
   registerBuiltinRenderers();
   render(
     <CanvasGrid
@@ -78,6 +78,7 @@ test('renders core containers and markdown without extensions', () => {
 
   expect(screen.getByRole('tab', { name: 'EMEA' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Untitled tab' })).toBeInTheDocument();
-  expect(screen.getByText('Quarterly')).toBeInTheDocument();
+  // SafeMarkdown loads react-markdown asynchronously.
+  expect(await screen.findByText('Quarterly')).toBeInTheDocument();
   expect(screen.getByText('Key numbers')).toBeInTheDocument();
 });

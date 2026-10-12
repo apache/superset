@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-12 14:44+0300\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -2223,6 +2223,10 @@ msgid "An error occurred while fetching function names."
 msgstr "در حین بازیابی نام‌های تابع، خطایی رخ داد."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2699,6 +2703,9 @@ msgstr "آیا مطمئن هستید که می‌خواهید %s انتخاب‌
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "آیا از حذف یادداشت‌های انتخاب شده مطمئن هستید؟"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "آیا مطمئن هستید که می‌خواهید نمودارهای انتخاب‌شده را حذف کنید؟"
 
@@ -2811,6 +2818,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "فلش"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "یک مجموعه از پارامترها را به عنوان"
@@ -3350,6 +3360,9 @@ msgstr "کوئری CVAS (ایجاد نما به عنوان انتخاب) یک ع
 msgid "Cache Timeout (seconds)"
 msgstr "زمان انقضای کش (ثانیه)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -3499,6 +3512,24 @@ msgstr "نمی‌توان پوشه‌ها را در پوشه‌های پیش‌�
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "نمی‌توان رشته زمان [%(human_readable)s] را تجزیه کرد"
+
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
 
 #, fuzzy
 msgid "Captcha"
@@ -3695,6 +3726,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "تغییر این داشبورد ممنوع است"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "تغییر این نمودار ممنوع است"
@@ -4305,6 +4339,9 @@ msgstr "جمع کردن پنل داده"
 
 msgid "Collapse row"
 msgstr "جمع کردن ردیف"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "جمع کردن تنظیمات"
@@ -4989,6 +5026,11 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "نمی‌توان به پایگاه داده متصل شد: \"%(database)s\""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "نتوانستیم همه نمودارهای ذخیره شده را بارگذاری کنیم"
 
@@ -5044,6 +5086,12 @@ msgstr "شمارش"
 
 msgid "Country"
 msgstr "کشور"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "طرح رنگ کشور"
@@ -6121,6 +6169,12 @@ msgstr "همه را واقعاً حذف کن؟"
 msgid "Delete annotation"
 msgstr "حذفی Annotate"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -6192,6 +6246,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "لایه حاشیه‌نویسی %(num)d حذف شد"
 msgstr[1] "لایه‌های حاشیه‌نویسی %(num)d حذف شدند"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6693,6 +6753,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "پیش‌نویس"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -8010,6 +8076,9 @@ msgstr "بارگذاری داده‌های نمودار ناموفق بود."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
 msgstr ""
 
 #, python-format
@@ -9469,6 +9538,9 @@ msgstr "نوع نتیجه نامعتبر است: %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "نوع rolling_type نامعتبر است: %(type)s"
 
+msgid "Invalid semantic result cache version"
+msgstr ""
+
 msgid "Invalid state."
 msgstr "وضعیت نامعتبر."
 
@@ -9547,6 +9619,9 @@ msgstr "مسئله ۱۰۰۰ - مجموعه داده برای کوئری خیلی
 
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "مسئله ۱۰۰۱ - پایگاه داده تحت بار غیرمعمولی قرار دارد."
+
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -11305,6 +11380,10 @@ msgstr ""
 msgid "No records found"
 msgstr "هیچ رکوردی یافت نشد"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "هیچ نتیجه‌ای یافت نشد"
 
@@ -11685,6 +11764,9 @@ msgstr "یک یا چند متریک برای نمایش"
 msgid "One or more annotation layers failed loading."
 msgstr "یک یا چند لایه الحاقی در بارگذاری شکست خوردند."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "یک یا چند ستون قبلاً وجود دارد"
 
@@ -11768,6 +11850,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -12367,6 +12452,9 @@ msgstr "ارتفاع پیکسل هر سری"
 msgid "Pixels"
 msgstr "پیکسل‌ها"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "ساده"
 
@@ -12646,6 +12734,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "پیش‌نمایش"
 
@@ -12747,6 +12840,9 @@ msgstr "برگه‌های به اشتراک گذاشته شده عمومی و خ
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "فقط برگه‌های به اشتراک گذاشته شده عمومی"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "منتشر شده"
@@ -13067,6 +13163,9 @@ msgstr "بارگذاری مجدد"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "بارگذاری مجدد SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13802,6 +13901,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "کوئری SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "عبارت SQL"
@@ -15320,6 +15424,12 @@ msgstr "نمایش خلاصه"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "نمایش مجموع"
@@ -15558,6 +15668,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -15848,6 +15961,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16598,6 +16716,12 @@ msgstr "توضیحات به‌روزرسانی شده‌اند."
 msgid "The background color of the charts."
 msgstr "نام نمودار را اضافه کنید"
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16858,6 +16982,9 @@ msgstr "نام داشبورد را اضافه کنید"
 
 msgid "The distance between cells, in pixels"
 msgstr "فاصله بین سلول‌ها، به پیکسل"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -17449,6 +17576,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "نمایش مقادیر سری در نمودار"
@@ -17685,6 +17827,9 @@ msgstr ""
 msgid "Theme could not be updated."
 msgstr ""
 
+msgid "Theme does not exist"
+msgstr ""
+
 #, fuzzy
 msgid "Theme imported"
 msgstr "داده‌ها وارد شدند"
@@ -17872,6 +18017,10 @@ msgstr ""
 msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
+#, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
 msgstr "یک مشکل در حذف وجود داشت: %s"
@@ -17899,6 +18048,10 @@ msgstr "مشکلی در حذف %s انتخاب‌شده وجود داشت: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "یک مشکل در حذف یادداشت‌های انتخاب‌شده وجود داشت: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -18106,12 +18259,22 @@ msgstr ""
 "این می‌تواند یک آدرس آی‌پی (مانند ۱۲۷.۰.۰.۱) یا یک نام دامنه (مانند "
 "mydatabase.com) باشد."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "این نمودار فیلترهای متقابل را به نمودارهایی اعمال می‌کند که "
 "مجموعه‌داده‌های آن‌ها شامل ستون‌هایی با همان نام است."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "این نمودار به دامنه فیلتر دیگری منتقل شده است."
@@ -18138,6 +18301,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -18294,9 +18469,15 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "این عنصر را برای ترسیم روی نمودار تعریف می‌کند."
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
@@ -18620,6 +18801,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "این  مورد تریاژ شده توسط:"
 msgstr[1] ""
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19219,6 +19403,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "قادر به محاسبه چنین تفاضل تاریخی نیستم"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "عدم توانایی در اتصال به فهرست با نام \"%(catalog_name)s\"."
@@ -19542,6 +19729,9 @@ msgstr "مجموعه داده بدون عنوان"
 msgid "Untitled Query"
 msgstr "کوئری بدون عنوان"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -19553,6 +19743,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "کوئری بی‌عنوان"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -19858,6 +20051,9 @@ msgstr "قالب ارزش"
 
 msgid "Value and Percentage"
 msgstr "مقدار و درصد"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "محدودیت‌های مقدار"
@@ -21507,6 +21703,9 @@ msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "نمی‌تواند خالی باشد"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"

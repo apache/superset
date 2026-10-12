@@ -36,6 +36,7 @@ jest.mock('react-router-dom', () => ({
 jest.mock('src/middleware/realtime', () => ({
   subscribeRealtime: jest.fn(() => jest.fn()),
   subscribeRealtimeOpen: jest.fn(() => jest.fn()),
+  subscribeRealtimeState: jest.fn(() => jest.fn()),
 }));
 
 const canvases = [0, 1].map(id => ({

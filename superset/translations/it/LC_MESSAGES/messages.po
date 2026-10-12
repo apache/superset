@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-12 14:44+0300\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1396,6 +1396,11 @@ msgstr "Un set di dati riutilizzabile verrà salvato con il grafico."
 msgid "A rule with this name already exists."
 msgstr ""
 
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -2598,6 +2603,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Si è verificato un errore nel caricare i nomi delle funzioni."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 "Si è verificato un errore durante il recupero dei valori dei soggetti per"
@@ -3133,6 +3142,9 @@ msgstr "Sei sicuro di voler eliminare i %s selezionati?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Sei sicuro di voler eliminare le annotazioni selezionate?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -3281,6 +3293,9 @@ msgstr ""
 # uk, zh, zh_TW]
 msgid "Arrow"
 msgstr "Freccia"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -3941,6 +3956,9 @@ msgstr "La query CVAS (create view as select) non è un'istruzione SELECT."
 msgid "Cache Timeout (seconds)"
 msgstr "Timeout cache (secondi)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -4101,6 +4119,24 @@ msgstr "Impossibile annidare cartelle nelle cartelle predefinite"
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Impossibile analizzare la stringa dell'orario [%(human_readable)s]"
+
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
 
 msgid "Captcha"
 msgstr "Captcha"
@@ -4328,6 +4364,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "Non è permesso modificare questa dashboard"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "Non è permesso modificare questo grafico"
@@ -5047,6 +5086,9 @@ msgstr "Collassa pannello dati"
 
 msgid "Collapse row"
 msgstr "Collassa riga"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Comprimi impostazioni"
@@ -5891,6 +5933,11 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Impossibile connettersi al database: \"%(database)s\""
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Non posso connettermi al server"
 
@@ -5950,6 +5997,12 @@ msgstr "Conteggio"
 
 msgid "Country"
 msgstr "Nazione"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -7175,6 +7228,12 @@ msgstr "Cancellare tutto?"
 msgid "Delete annotation"
 msgstr "Cancellare annotazione"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -7240,6 +7299,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Cancellata %(num)d livello di annotazioni"
 msgstr[1] "Cancellati %(num)d livelli di annotazioni"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -7803,6 +7868,12 @@ msgstr ""
 # uk, zh, zh_TW]
 msgid "Draft"
 msgstr "Bozza"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -9308,6 +9379,9 @@ msgstr "Impossibile caricare i dati del grafico."
 #, python-format
 msgid "Failed to load columns for %s %s"
 msgstr "Errore nel caricare le colonne per %s %s"
+
+msgid "Failed to load datasource metadata"
+msgstr ""
 
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
@@ -11101,6 +11175,9 @@ msgstr "Tipo di risultato non valido: %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "rolling_type non valido: %(type)s"
 
+msgid "Invalid semantic result cache version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Invalid state."
@@ -11212,6 +11289,9 @@ msgstr ""
 # zh, zh_TW]
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problema 1001: il database è sottoposto a un carico insolito."
+
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -13288,8 +13368,15 @@ msgstr ""
 "Nessun grafico deck.gl multistrato è attualmente aggiunto a questa "
 "dashboard."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nessun record trovato"
+
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
 
 msgid "No results"
 msgstr "Nessun risultato"
@@ -13745,6 +13832,9 @@ msgstr "Una o più metriche da mostrare"
 msgid "One or more annotation layers failed loading."
 msgstr "Impossibile caricare uno o più livelli di annotazioni."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -13861,6 +13951,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -14633,6 +14726,9 @@ msgstr "Altezza dei pixel di ciascuna serie"
 msgid "Pixels"
 msgstr "Pixel"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14975,6 +15071,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -15091,6 +15192,9 @@ msgstr "Fogli condivisi pubblicamente e privatamente"
 # sr_Latn]
 msgid "Publicly shared sheets only"
 msgstr "Solo fogli condivisi pubblicamente"
+
+msgid "Publish"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -15473,6 +15577,9 @@ msgstr "Ricarica"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "Reload SQL Lab"
 msgstr "Ricarica SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -16362,6 +16469,11 @@ msgstr ""
 # sr_Latn, tr, uk, zh, zh_TW]
 msgid "SQL Query"
 msgstr "Query SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Espressione SQL"
@@ -18058,6 +18170,12 @@ msgstr "Mostra riepilogo"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "Mostra totale"
 
@@ -18360,6 +18478,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -18676,6 +18797,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -19542,6 +19668,12 @@ msgstr "L'annotazione è stata aggiornata"
 msgid "The background color of the charts."
 msgstr "Colore sfondo del grafico"
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -19836,6 +19968,9 @@ msgstr "Il nome da visualizzare per la dashboard"
 # uk, zh, zh_TW]
 msgid "The distance between cells, in pixels"
 msgstr "La distanza tra le celle, in pixel"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -20362,6 +20497,9 @@ msgstr ""
 msgid "The provided table was not found in the provided database"
 msgstr "La tabella indicata non è stata trovata nel database indicato"
 
+msgid "The provider query will be available after the chart runs."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -20591,6 +20729,21 @@ msgstr "È in corso la generazione dello screenshot. Non abbandonare la pagina."
 msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 msgid "The service url of the layer"
@@ -20865,6 +21018,9 @@ msgstr ""
 msgid "Theme could not be updated."
 msgstr ""
 
+msgid "Theme does not exist"
+msgstr ""
+
 msgid "Theme imported"
 msgstr "Tema importato"
 
@@ -21066,6 +21222,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "Si è verificato un errore nel cancellare l'attività: %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Si è verificato un errore nel cancellare %s"
 
@@ -21092,6 +21252,10 @@ msgstr "Si è verificato un errore nel cancellare i %s selezionati: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Si è verificato un errore nel cancellare le annotazioni selezionate: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -21337,6 +21501,12 @@ msgstr ""
 "Può essere un indirizzo IP (ad esempio 127.0.0.1) o un nome di dominio "
 "(ad esempio mydatabase.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -21346,6 +21516,10 @@ msgid ""
 msgstr ""
 "Questo grafico applica filtri incrociati ai grafici i cui set di dati "
 "contengono colonne con lo stesso nome."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21384,6 +21558,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -21590,9 +21776,15 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ciò definisce l'elemento da tracciare sul grafico"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
@@ -21955,6 +22147,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "Questo è stato innescato da:"
 msgstr[1] "Questo può essere innescato da:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -22677,6 +22872,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Impossibile calcolare tale delta di date"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -23079,6 +23277,9 @@ msgstr "Dataset senza nome"
 msgid "Untitled Query"
 msgstr "Query senza nome"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -23090,6 +23291,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Query senza nome"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "Non verificato"
@@ -23474,6 +23678,9 @@ msgstr "Formato Valore"
 
 msgid "Value and Percentage"
 msgstr "Valore e percentuale"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Limiti valore"
@@ -25601,6 +25808,9 @@ msgstr[1] ""
 msgid "cannot be empty"
 msgstr "non può essere vuoto"
 
+msgid "canvases"
+msgstr ""
+
 msgid "cell bar"
 msgstr "barra della cella"
 
@@ -26760,14 +26970,3 @@ msgstr[1] ""
 # sr_Latn]
 msgid "№"
 msgstr "№"
-
-msgid ""
-"A semantic view's provider query is produced when the chart runs and "
-"returned with its data."
-msgstr ""
-
-msgid "No provider query is available for this run."
-msgstr ""
-
-msgid "The provider query will be available after the chart runs."
-msgstr ""
