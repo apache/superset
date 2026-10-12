@@ -24,6 +24,17 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view chart-defined metric filters return a client error identifying
+  the metric; select a dimension or remove the unsupported predicate. Dashboard
+  filters on incompatible columns (including metrics) are skipped and reported
+  as rejected, so the chart renders with an **Incompatible** filter indicator.
+  Unknown chart-defined columns are also reported as rejected, matching SQL
+  datasets. Valid dimension filters are reported as applied.
+
+- Dashboard-applied filters now carry `isExtra` in chart-data requests, including
+  MCP chart tools that accept `extra_form_data` (chart data, SQL and previews, for
+  saved and unsaved charts). This changes chart cache keys for dashboard-filtered
+  queries once, so expect a cold chart cache right after deploying.
 - Semantic-layer configuration Save and Reload metadata increment a database-backed
   cache generation. Apply the `c179af013f48` migration before deploying the updated
   application; existing semantic chart caches become cold once on upgrade.
@@ -212,6 +223,15 @@ holds values in another format, such as `20260920`, `09/20/2026` or epoch
 seconds, now matches no rows, even with a Datetime format set. Columns declared
 as `INTEGER` are not affected. On Shillelagh and the meta database, a bound
 with a time of day is cut to its date.
+
+### MCP chart target aliases
+
+Chart tools interpret legacy `datasource_id` with `datasource_type`:
+`table` (the default when omitted) selects a dataset; `semantic_view` selects a
+view. For table-only requests, an explicit `dataset_id` takes precedence over
+`datasource_id`. Unsupported types or conflicting semantic selectors return
+validation errors instead of silently selecting a table. Prefer `dataset_id`
+or `view_id`.
 
 ### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
 
