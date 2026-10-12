@@ -75,7 +75,10 @@ export const REFRESH_FREQUENCY_OPTIONS = [
   { value: CUSTOM_REFRESH_FREQUENCY, label: t('Custom') },
 ];
 
-const isPresetValue = (frequency: number, options: RefreshFrequencyOption[]) =>
+export const isPresetValue = (
+  frequency: number,
+  options: RefreshFrequencyOption[] = REFRESH_FREQUENCY_OPTIONS,
+) =>
   options.some(
     option =>
       option.value === frequency && option.value !== CUSTOM_REFRESH_FREQUENCY,
@@ -131,9 +134,9 @@ export const getRefreshFrequencyOptions = (
     : REFRESH_FREQUENCY_OPTIONS;
 };
 
-const getCustomValue = (
+export const getCustomValue = (
   frequency: number,
-  options: RefreshFrequencyOption[],
+  options: RefreshFrequencyOption[] = REFRESH_FREQUENCY_OPTIONS,
 ) =>
   !isPresetValue(frequency, options) && frequency > 0
     ? frequency.toString()
@@ -153,9 +156,10 @@ const normalizeRefreshLimitSeconds = (
   return refreshLimit;
 };
 
-interface RefreshFrequencySelectProps {
+export interface RefreshFrequencySelectProps {
   value: number;
   onChange: (value: number) => void;
+  options?: [number, string][];
 }
 
 /**
@@ -165,6 +169,7 @@ interface RefreshFrequencySelectProps {
 export const RefreshFrequencySelect = ({
   value,
   onChange,
+  options: optionsProp,
 }: RefreshFrequencySelectProps) => {
   const configuredIntervals = useSelector(
     (state: RootState) =>
@@ -175,8 +180,8 @@ export const RefreshFrequencySelect = ({
       state.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
   );
   const options = useMemo(
-    () => getRefreshFrequencyOptions(configuredIntervals),
-    [configuredIntervals],
+    () => getRefreshFrequencyOptions(optionsProp ?? configuredIntervals),
+    [optionsProp, configuredIntervals],
   );
   const presets = options.filter(
     option => option.value !== CUSTOM_REFRESH_FREQUENCY,
@@ -207,15 +212,15 @@ export const RefreshFrequencySelect = ({
         ? value
         : CUSTOM_REFRESH_FREQUENCY;
     setRadioSelection(selection);
-    setCustomValue(
-      selection === CUSTOM_REFRESH_FREQUENCY
-        ? // getCustomValue would blank a value that collides with a preset;
-          // a custom-originated value is the input's own text.
-          cameFromCustomControls
+    if (selection === CUSTOM_REFRESH_FREQUENCY) {
+      setCustomValue(
+        // getCustomValue would blank a value that collides with a preset;
+        // a custom-originated value is the input's own text.
+        cameFromCustomControls
           ? value.toString()
-          : getCustomValue(value, options)
-        : '',
-    );
+          : getCustomValue(value, options),
+      );
+    }
     if (!cameFromCustomControls) {
       lastCustomEmittedValue.current = null;
     }
@@ -226,11 +231,15 @@ export const RefreshFrequencySelect = ({
     setRadioSelection(selectedValue);
 
     if (selectedValue === CUSTOM_REFRESH_FREQUENCY) {
-      // Custom selected - use current custom value or minimum
-      const numValue = parseInt(customValue, 10) || MINIMUM_REFRESH_INTERVAL;
+      // Custom selected - use current custom value if >= minimum, otherwise fallback to minimum
+      const parsed = parseInt(customValue, 10);
+      const numValue =
+        !Number.isNaN(parsed) && parsed >= MINIMUM_REFRESH_INTERVAL
+          ? parsed
+          : MINIMUM_REFRESH_INTERVAL;
       lastCustomEmittedValue.current = numValue;
       onChange(numValue);
-      if (!customValue) {
+      if (Number.isNaN(parsed) || parsed < MINIMUM_REFRESH_INTERVAL) {
         setCustomValue(MINIMUM_REFRESH_INTERVAL.toString());
       }
     } else {
