@@ -47,6 +47,7 @@ import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
 import { useCanvasLayout } from 'src/features/canvas/useCanvasLayout';
+import PlanModeButton from 'src/features/canvas/PlanModeButton';
 
 registerBuiltinRenderers();
 
@@ -62,8 +63,18 @@ const Page = styled.div`
 const Header = styled.header`
   ${({ theme }) => css`
     display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: ${theme.sizeUnit * 2}px;
+  `}
+`;
+
+const Heading = styled.div`
+  ${({ theme }) => css`
+    display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit}px;
+    min-width: 0;
   `}
 `;
 
@@ -117,6 +128,12 @@ interface CanvasBodyProps {
     value: unknown,
   ) => void;
   refreshKeys: Record<string, number>;
+  /** Set while a draft is open; layout writes then go to the draft. */
+  draftToken?: string;
+  /** Leaves the draft, returning to the published canvas. */
+  onDraftClosed: () => void;
+  /** True when the canvas holds no widgets yet. */
+  isEmpty: boolean;
 }
 
 /**
@@ -131,10 +148,26 @@ function CanvasBody({
   values,
   onValueChange,
   refreshKeys,
+  draftToken,
+  onDraftClosed,
+  isEmpty,
 }: CanvasBodyProps) {
-  const layout = useCanvasLayout(canvasId, result, reload);
+  const layout = useCanvasLayout(canvasId, result, reload, draftToken);
+  // Changes are made in a plan; the published canvas is read-only even for
+  // someone who may edit it. The single place this policy is decided.
+  const editable = result.canEdit && Boolean(draftToken);
   return (
     <>
+      {draftToken && (
+        <DraftBanner
+          token={draftToken}
+          // The revision the layout writes have reached, not the one the
+          // definition was fetched at: a commit must name the draft's current
+          // revision, and dragging moves it on well before the next poll.
+          revision={layout.revision}
+          onClose={onDraftClosed}
+        />
+      )}
       {layout.error && (
         <Alert
           type="warning"
@@ -145,14 +178,23 @@ function CanvasBody({
           data-test="canvas-layout-error"
         />
       )}
-      <CanvasGrid
-        canvasId={canvasId}
-        result={result}
-        values={values}
-        onValueChange={onValueChange}
-        refreshKeys={refreshKeys}
-        layout={layout}
-      />
+      {isEmpty ? (
+        <EmptyState
+          size="medium"
+          title={t('This canvas is empty')}
+          description={t('Ask the chat to add widgets to it.')}
+        />
+      ) : (
+        <CanvasGrid
+          canvasId={canvasId}
+          result={result}
+          values={values}
+          onValueChange={onValueChange}
+          refreshKeys={refreshKeys}
+          layout={layout}
+          editable={editable}
+        />
+      )}
     </>
   );
 }
@@ -226,44 +268,39 @@ function CanvasContent({ id }: { id: number }) {
     <CrudThemeProvider theme={metadata.result?.theme}>
       <Page data-test="canvas-page">
         <Header>
-          <Title>
-            {certifiedBy && (
-              <>
-                <CertifiedBadge
-                  certifiedBy={certifiedBy}
-                  details={metadata.result?.certification_details ?? undefined}
-                />{' '}
-              </>
+          <Heading>
+            <Title>
+              {certifiedBy && (
+                <>
+                  <CertifiedBadge
+                    certifiedBy={certifiedBy}
+                    details={
+                      metadata.result?.certification_details ?? undefined
+                    }
+                  />{' '}
+                </>
+              )}
+              {title}
+            </Title>
+            {metadata.result?.description && (
+              <Description>{metadata.result.description}</Description>
             )}
-            {title}
-          </Title>
-          {metadata.result?.description && (
-            <Description>{metadata.result.description}</Description>
+          </Heading>
+          {state.result.canEdit && !draft.token && (
+            <PlanModeButton canvasId={id} onStarted={draft.open} />
           )}
         </Header>
-        {draft.token && (
-          <DraftBanner
-            token={draft.token}
-            revision={state.result.revision}
-            onClose={draft.clear}
-          />
-        )}
-        {isEmpty ? (
-          <EmptyState
-            size="medium"
-            title={t('This canvas is empty')}
-            description={t('Ask the chat to add widgets to it.')}
-          />
-        ) : (
-          <CanvasBody
-            canvasId={id}
-            result={state.result}
-            reload={reload}
-            values={values}
-            onValueChange={onValueChange}
-            refreshKeys={refreshKeys}
-          />
-        )}
+        <CanvasBody
+          canvasId={id}
+          result={state.result}
+          reload={reload}
+          values={values}
+          onValueChange={onValueChange}
+          refreshKeys={refreshKeys}
+          draftToken={draft.token}
+          onDraftClosed={draft.clear}
+          isEmpty={isEmpty}
+        />
       </Page>
     </CrudThemeProvider>
   );

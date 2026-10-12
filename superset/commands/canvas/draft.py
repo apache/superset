@@ -146,6 +146,12 @@ def draft_payload(draft: CanvasDraft, resolved: bool = True) -> dict[str, Any]:
         "baseRevision": draft.base_revision,
         "revision": draft.revision,
         "definition": draft.definition,
+        # A draft only loads for someone who may edit its canvas
+        # (``load_draft`` -> ``_editable_canvas``), so object editorship is
+        # already settled and only the route-level permission is left. Named
+        # as on the definition response, so a client gates its editing
+        # affordances the same way on either surface.
+        "canEdit": security_manager.can_access("can_write", "Canvas"),
     }
     if resolved:
         payload.update(resolve_scopes(draft.definition))

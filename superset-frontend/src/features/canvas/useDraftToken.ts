@@ -34,6 +34,17 @@ export function useDraftToken() {
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
 
+  /** Open `next` on this page, so a plan started here is shareable by URL. */
+  const open = useCallback((next: string) => {
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${window.location.search}#draft=${next}`,
+    );
+    // `replaceState` fires no `hashchange`, so the state is set here too.
+    setToken(next);
+  }, []);
+
   const clear = useCallback(() => {
     window.history.replaceState(
       null,
@@ -43,5 +54,5 @@ export function useDraftToken() {
     setToken(undefined);
   }, []);
 
-  return { token, clear };
+  return { token, open, clear };
 }

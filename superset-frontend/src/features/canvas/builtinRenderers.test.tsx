@@ -77,9 +77,11 @@ test('renders core containers and markdown without extensions', () => {
       onValueChange={jest.fn()}
       layout={{
         placements: result.placements,
+        revision: result.revision,
         place: jest.fn(),
         dismissError: jest.fn(),
       }}
+      editable={false}
     />,
   );
 

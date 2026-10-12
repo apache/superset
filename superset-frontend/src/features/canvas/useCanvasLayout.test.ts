@@ -277,3 +277,86 @@ test('a gesture queued behind a write is not undone by that write landing', asyn
   releaseFollowUp();
   await waitFor(() => expect(result.current.placements.trend).toEqual(QUEUED));
 });
+
+test('with a draft open, the write goes to the draft and not the canvas', async () => {
+  const draftEndpoint = 'glob:*/api/v1/canvas/draft';
+  fetchMock.patch(draftEndpoint, {
+    result: { revision: 1, ops: [], placements: { kpi: MOVED, trend: TREND } },
+  });
+  const { result } = renderHook(() =>
+    // A draft counts its own revisions, starting at 0.
+    useCanvasLayout(7, resultAt(0), jest.fn(), 'tok-123'),
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  const [call] = fetchMock.callHistory.calls();
+  expect(call.url).toContain('/api/v1/canvas/draft');
+  expect(call.url).not.toContain('/definition');
+  expect(
+    (call.options.headers as Record<string, string>)['x-canvas-draft'],
+  ).toBe('tok-123');
+  // The draft route takes `revision`, not `base_revision`.
+  expect(JSON.parse(call.options.body as string)).toEqual({
+    revision: 0,
+    ops: [{ op: 'place', id: 'kpi', layout: MOVED }],
+  });
+});
+
+test('switching surface drops the revision confirmed on the other one', async () => {
+  fetchMock.patch(endpoint, {
+    result: { revision: 29, ops: [], placements: { kpi: MOVED, trend: TREND } },
+  });
+  fetchMock.patch('glob:*/api/v1/canvas/draft', {
+    result: { revision: 1, ops: [], placements: { kpi: MOVED, trend: TREND } },
+  });
+  const { result, rerender } = renderHook(
+    ({ token, revision }: { token?: string; revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), jest.fn(), token),
+    { initialProps: { token: undefined as string | undefined, revision: 28 } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+
+  // Opening a draft: revision 29 confirmed on the canvas must not become the
+  // base of a draft write, which would be a revision the draft never had.
+  rerender({ token: 'tok-123', revision: 0 });
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
+  const draftCall = fetchMock.callHistory.calls()[1];
+  expect(JSON.parse(draftCall.options.body as string).revision).toBe(0);
+});
+
+test('the reported revision follows the writes, so a commit can use it', async () => {
+  // The regression this guards: publishing a draft sends the revision the
+  // definition was fetched at. A drag moves the draft on immediately, so a
+  // commit right after a drag was rejected until the next poll caught up.
+  fetchMock.patch('glob:*/api/v1/canvas/draft', {
+    result: { revision: 1, ops: [], placements: { kpi: MOVED, trend: TREND } },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(0), jest.fn(), 'tok-123'),
+  );
+
+  // A freshly opened draft is at the revision it was fetched at.
+  expect(result.current.revision).toBe(0);
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() => expect(result.current.revision).toBe(1));
+});
+
+test('the reported revision is never an optimistic guess', () => {
+  // Nothing has been confirmed, so a write in flight must not advance it:
+  // a commit naming a revision the server has not reached is rejected too.
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(4), jest.fn()),
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+
+  expect(result.current.revision).toBe(4);
+});

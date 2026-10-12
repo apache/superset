@@ -118,6 +118,7 @@ const layoutOf = (
   place = jest.fn(),
 ): CanvasLayout => ({
   placements: gridResult.placements,
+  revision: gridResult.revision,
   place,
   dismissError: jest.fn(),
 });
@@ -127,6 +128,7 @@ const renderGrid = (
   onValueChange = jest.fn(),
   gridResult: CanvasDefinitionResult = result,
   place = jest.fn(),
+  editable = false,
 ) =>
   render(
     <CanvasGrid
@@ -136,6 +138,7 @@ const renderGrid = (
       onValueChange={onValueChange}
       refreshKeys={{ c1: 2 }}
       layout={layoutOf(gridResult, place)}
+      editable={editable}
     />,
   );
 afterAll(() => registrations.forEach(registration => registration.dispose()));
@@ -205,7 +208,7 @@ test('setting a cross-filter does nothing while cross-filters are off', () => {
   expect(onValueChange).not.toHaveBeenCalled();
 });
 
-test('a user without edit permission gets no drag or resize handles', () => {
+test('a canvas that is not editable gets no drag or resize handles', () => {
   renderGrid();
 
   expect(
@@ -216,8 +219,8 @@ test('a user without edit permission gets no drag or resize handles', () => {
   ).not.toBeInTheDocument();
 });
 
-test('a user with edit permission gets a handle per placed widget', () => {
-  renderGrid(emptyScopeValues(), jest.fn(), { ...result, canEdit: true });
+test('an editable canvas gets a handle per placed widget', () => {
+  renderGrid(emptyScopeValues(), jest.fn(), result, jest.fn(), true);
 
   // Every node with a resolved placement, on the root grid and inside the
   // nested group, is draggable and resizable.

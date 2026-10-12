@@ -92,6 +92,12 @@ export interface CanvasGridProps {
   refreshKeys?: Record<string, number>;
   /** Placements to render and the write path drag and resize commit through. */
   layout: CanvasLayout;
+  /**
+   * Whether this canvas may be rearranged by hand. Decided by the caller, not
+   * read from `canEdit`: having permission is necessary but not sufficient --
+   * editing happens in a plan, and the published canvas is read-only.
+   */
+  editable: boolean;
 }
 
 /**
@@ -106,6 +112,7 @@ export default function CanvasGrid({
   onValueChange,
   refreshKeys = {},
   layout,
+  editable,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
   const {
@@ -113,7 +120,6 @@ export default function CanvasGrid({
     widgetTypes,
     gridColumns,
     layoutConstraints,
-    canEdit,
     filterScopes,
     crossFilterScopes,
     customizationScopes,
@@ -151,7 +157,7 @@ export default function CanvasGrid({
       rowUnit={rowUnit}
       placements={placements}
       constraints={layoutConstraints}
-      editable={canEdit}
+      editable={editable}
       onPlace={place}
       renderNode={render}
     />

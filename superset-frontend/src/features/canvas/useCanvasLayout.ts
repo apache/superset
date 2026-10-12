@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
+import { DRAFT_TOKEN_HEADER } from './useCanvasDefinition';
 import type {
   ApplyOperationsResult,
   CanvasDefinitionResult,
@@ -35,6 +36,13 @@ interface AppliedLayout {
 export interface CanvasLayout {
   /** Placements to render: the newest local ones, else the server's. */
   placements: Record<string, GridPlacement>;
+  /**
+   * The newest revision the server is known to hold — the one the last write
+   * returned, else the one the definition was fetched at. Never an optimistic
+   * guess, so it is safe to send back as the revision a request is based on
+   * (a draft commit, say, which requires an exact match).
+   */
+  revision: number;
   /** Persist a node's new placement. A no-op when the user can't edit. */
   place: (nodeId: string, placement: GridPlacement) => void;
   /** Why the last write failed, for a dismissable notice. */
@@ -64,6 +72,7 @@ export function useCanvasLayout(
   canvasId: number,
   result: CanvasDefinitionResult,
   reload: () => void,
+  draftToken?: string,
 ): CanvasLayout {
   const [applied, setApplied] = useState<AppliedLayout>();
   const [error, setError] = useState<string>();
@@ -88,26 +97,40 @@ export function useCanvasLayout(
   }, [revision, result.placements]);
 
   useEffect(() => {
-    // A different canvas shares none of this state.
+    // A different canvas, or switching between a draft and the published
+    // canvas, shares none of this state -- a draft counts its own revisions
+    // from zero, so a revision confirmed on one surface means nothing on the
+    // other.
     confirmed.current = undefined;
     writing.current = false;
     queued.current.clear();
     setApplied(undefined);
     setError(undefined);
-  }, [canvasId]);
+  }, [canvasId, draftToken]);
 
   const send = useCallback(
     (ops: Map<string, GridPlacement>) => {
       writing.current = true;
       const base = Math.max(fetched.current, confirmed.current ?? 0);
-      SupersetClient.request({
-        endpoint: `/api/v1/canvas/${canvasId}/definition`,
-        method: 'PATCH',
-        jsonPayload: {
-          base_revision: base,
-          ops: [...ops].map(([id, layout]) => ({ op: 'place', id, layout })),
-        },
-      })
+      const placeOps = [...ops].map(([id, layout]) => ({
+        op: 'place',
+        id,
+        layout,
+      }));
+      // While a draft is open the layout belongs to the draft, not the
+      // published canvas: same operations, but its own route, its own
+      // revision field, and the token that authorizes it.
+      const target = draftToken
+        ? {
+            endpoint: '/api/v1/canvas/draft',
+            headers: { [DRAFT_TOKEN_HEADER]: draftToken },
+            jsonPayload: { revision: base, ops: placeOps },
+          }
+        : {
+            endpoint: `/api/v1/canvas/${canvasId}/definition`,
+            jsonPayload: { base_revision: base, ops: placeOps },
+          };
+      SupersetClient.request({ ...target, method: 'PATCH' })
         .then(({ json }) => {
           const written = json?.result as ApplyOperationsResult | undefined;
           if (!written) return;
@@ -155,7 +178,7 @@ export function useCanvasLayout(
           }
         });
     },
-    [canvasId, reload],
+    [canvasId, draftToken, reload],
   );
 
   const place = useCallback(
@@ -191,5 +214,11 @@ export function useCanvasLayout(
       ? applied.placements
       : result.placements;
 
-  return { placements, place, error, dismissError };
+  return {
+    placements,
+    revision: Math.max(revision, confirmed.current ?? 0),
+    place,
+    error,
+    dismissError,
+  };
 }
