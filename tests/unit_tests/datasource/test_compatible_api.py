@@ -18,6 +18,7 @@
 """Compatibility API preserves semantic provider identities before caching."""
 
 from unittest.mock import MagicMock
+from uuid import uuid4
 
 import pyarrow as pa
 import pytest
@@ -26,7 +27,7 @@ from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import Dimension, Grains, Metric
 from werkzeug.test import TestResponse
 
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 
 @pytest.mark.parametrize("ambiguous", [False, True])
@@ -50,7 +51,10 @@ def test_compatible_endpoint_resolves_semantic_variants(
     )
     provider.get_compatible_metrics.return_value = {metric}
     provider.get_compatible_dimensions.return_value = {raw, month}
-    view: SemanticView = SemanticView(id=73, name="events")
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), name="events-layer", type="test", cache_version=0
+    )
+    view: SemanticView = SemanticView(id=73, name="events", semantic_layer=layer)
     view.implementation = provider
     mocker.patch(
         "superset.datasource.api.DatasourceDAO.get_datasource", return_value=view

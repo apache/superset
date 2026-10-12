@@ -6786,3 +6786,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     "User Registrations",
                 ]:
                     security_menu.childs.remove(item)
+
+
+# Keep the original function identity before operator configuration can replace it.
+STOCK_RAISE_FOR_ACCESS: Callable[..., None] = SupersetSecurityManager.raise_for_access

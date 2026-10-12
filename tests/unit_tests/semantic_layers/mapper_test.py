@@ -72,6 +72,7 @@ from superset.semantic_layers.mapper import (
     _validate_granularity,
     _validate_group_limit,
     _validate_metrics,
+    _ViewMetadata,
     get_results,
     map_query_object,
     validate_query_object,
@@ -135,7 +136,7 @@ def test_default_resolution_exhausts_catalog_orders(
     # Inspect the real validation call's input without replacing its behavior.
     if entry == "validation":
         axis_spy: MagicMock = mocker.spy(mapper, "_get_grain_time_axis_column")
-        _validate_granularity(query)
+        _validate_granularity(query, _ViewMetadata.from_view(datasource.implementation))
         if selected_grain:
             assert axis_spy.call_args.args[1]["event_time"] is raw
         else:
@@ -3149,7 +3150,13 @@ def test_validate_metrics_adhoc_error(
     query_object.metrics = [{"label": "adhoc", "sqlExpression": "SUM(x)"}]
 
     with pytest.raises(ValueError, match="Adhoc metrics are not supported"):
-        _validate_metrics(query_object)
+        _validate_metrics(
+            query_object,
+            _ViewMetadata(
+                tuple(mock_datasource.implementation.get_metrics()),
+                tuple(mock_datasource.implementation.get_dimensions()),
+            ),
+        )
 
 
 def test_validate_filters_adhoc_column_error(
@@ -3317,6 +3324,32 @@ def test_validate_query_object_adhoc_orderby_not_supported_error(
     with pytest.raises(
         ValueError, match="Adhoc expressions in order by are not supported"
     ):
+        validate_query_object(query_object)
+
+
+@pytest.mark.parametrize("include_unknown_name", [False, True])
+def test_validate_query_object_supported_adhoc_orderby(
+    mock_datasource: MagicMock,
+    include_unknown_name: bool,
+) -> None:
+    """Accept supported expressions while still rejecting unknown named elements."""
+    mock_datasource.implementation.features |= frozenset(
+        {SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY}
+    )
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        orderby=[
+            ({"label": "custom_order", "sqlExpression": "RAND()"}, True),
+            ("undefined_column" if include_unknown_name else "category", False),
+        ],
+    )
+
+    if include_unknown_name:
+        with pytest.raises(ValueError, match="All order by elements must be defined"):
+            validate_query_object(query_object)
+    else:
         validate_query_object(query_object)
 
 
@@ -3530,7 +3563,13 @@ def test_validate_granularity_valid(mocker: MockerFixture) -> None:
     query_object.extras = {"time_grain_sqla": "P1D"}
 
     # Should not raise any error - valid granularity with supported time grain
-    _validate_granularity(query_object)
+    _validate_granularity(
+        query_object,
+        _ViewMetadata(
+            tuple(mock_datasource.implementation.get_metrics()),
+            tuple(mock_datasource.implementation.get_dimensions()),
+        ),
+    )
 
 
 def test_validate_group_limit_valid(mocker: MockerFixture) -> None:
@@ -3560,7 +3599,13 @@ def test_validate_group_limit_valid(mocker: MockerFixture) -> None:
     query_object.group_others_when_limit_reached = True
 
     # Should not raise any error - all settings are valid
-    _validate_group_limit(query_object)
+    _validate_group_limit(
+        query_object,
+        _ViewMetadata(
+            tuple(mock_datasource.implementation.get_metrics()),
+            tuple(mock_datasource.implementation.get_dimensions()),
+        ),
+    )
 
 
 def test_get_filters_from_query_object_filter_returns_none(
@@ -4863,6 +4908,99 @@ def test_no_raw_variant_bounds_use_finest_grain(
             ),
             Filter(PredicateType.WHERE, day, Operator.LESS_THAN, datetime(2026, 1, 1)),
         }
+
+
+@pytest.mark.parametrize("entrypoint", ["results", "validate", "map"])
+def test_mapper_fetches_metadata_once(
+    mock_datasource: MagicMock, mocker: MockerFixture, entrypoint: str
+) -> None:
+    """Validation and execution use one observation of each metadata collection."""
+    provider: MockSemanticView = mock_datasource.implementation
+    metrics: MagicMock = mocker.spy(provider, "get_metrics")
+    dimensions: MagicMock = mocker.spy(provider, "get_dimensions")
+    mocker.patch.object(
+        provider,
+        "get_table",
+        create=True,
+        return_value=SemanticResult(
+            requests=[],
+            results=pa.table({"category": ["Books"], "total_sales": [10.0]}),
+        ),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        series_columns=["category"],
+        series_limit=2,
+        series_limit_metric="total_sales",
+        orderby=[("total_sales", False)],
+        row_limit=10,
+    )
+    if entrypoint == "results":
+        result: QueryResult = get_results(query)
+        assert result.df.to_dict("records") == [
+            {"category": "Books", "total_sales": 10.0}
+        ]
+    elif entrypoint == "validate":
+        assert validate_query_object(query)
+    else:
+        mapped: list[SemanticQuery] = map_query_object(query)
+        assert [metric.name for metric in mapped[0].metrics] == ["total_sales"]
+    assert (metrics.call_count, dimensions.call_count) == (1, 1)
+
+
+def test_execution_reuses_members_but_next_query_fetches_fresh_metadata(
+    mock_datasource: MagicMock, mocker: MockerFixture
+) -> None:
+    """A second observation cannot change mapping midway or leak to another query."""
+    provider: MockSemanticView = mock_datasource.implementation
+    original_metrics: set[Metric] = provider.get_metrics()
+    original_dimensions: set[Dimension] = provider.get_dimensions()
+    metrics: MagicMock = mocker.patch.object(
+        provider, "get_metrics", side_effect=[original_metrics, set()]
+    )
+    dimensions: MagicMock = mocker.patch.object(
+        provider, "get_dimensions", side_effect=[original_dimensions, set()]
+    )
+    execute: MagicMock = mocker.patch.object(
+        provider,
+        "get_table",
+        create=True,
+        return_value=SemanticResult(
+            requests=[],
+            results=pa.table({"category": ["Books"], "total_sales": [10.0]}),
+        ),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource, metrics=["total_sales"], columns=["category"]
+    )
+    result: QueryResult = get_results(query)
+    assert result.df.to_dict("records") == [{"category": "Books", "total_sales": 10.0}]
+    with pytest.raises(ValueError, match="All metrics must be defined"):
+        get_results(query)
+    assert (metrics.call_count, dimensions.call_count) == (2, 2)
+    execute.assert_called_once()
+
+
+def test_execution_rejects_stale_selection_before_metadata_fetch(
+    mock_datasource: MagicMock, mocker: MockerFixture
+) -> None:
+    provider: MockSemanticView = mock_datasource.implementation
+    metrics: MagicMock = mocker.spy(provider, "get_metrics")
+    dimensions: MagicMock = mocker.spy(provider, "get_dimensions")
+    mocker.patch.object(
+        provider,
+        "validate_selection_version",
+        side_effect=ValueError("stale selection"),
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource, metrics=["total_sales"], columns=["category"]
+    )
+    with pytest.raises(ValueError, match="stale selection"):
+        get_results(query)
+    metrics.assert_not_called()
+    dimensions.assert_not_called()
 
 
 def test_required_comparison_completeness_failure_rejects_main_result(
