@@ -213,9 +213,12 @@ name and grain; conflicting IDs produce an ambiguity error. Sorting and series
 limits use the selected grouping grain, while filters and time bounds keep the
 default. On dashboards, an ambiguous dataset shows its error only on charts using
 that dataset; other datasets continue loading. Compatibility selections use the
-same default identity and reject ambiguous catalogs. Independent date filters
-remain separate from the chart's generated time bounds, including filters on a
-second date column or a different range on the same column.
+same default identity and reject ambiguous catalogs. In the main query,
+independent date filters remain separate from the chart's generated time bounds,
+including filters on a second date column or a different range on the same column.
+Time-series offset comparisons and group-limit queries with separate inner bounds
+replace all temporal ranges on the selected time axis with their comparison or
+inner bounds. Independent ranges on other date columns remain in those queries.
 
 :::note
 Semantic views and native filter support for them are part of the experimental Semantic Layers
