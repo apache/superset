@@ -646,8 +646,8 @@ class TestMapMixedTimeseriesConfig:
         )
         result = map_mixed_timeseries_config(config, dataset_id=1)
 
-        assert "groupby" not in result
-        assert "groupby_b" not in result
+        assert result["groupby"] == []
+        assert result["groupby_b"] == []
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_mixed_form_data_with_axis_config(self, mock_is_temporal) -> None:

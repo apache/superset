@@ -25,13 +25,15 @@ translating high-level operations into the ``deleted`` / ``modified`` /
 
 import copy
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NULL_STRING
 from superset.dashboards.filter_scope import _is_divider
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.schemas import (
@@ -46,10 +48,16 @@ from superset.mcp_service.dashboard.schemas import (
     NativeFilterSummary,
     NativeFilterUpdateSpec,
 )
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
+)
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from superset.models.dashboard import Dashboard
 
 # Update fields that map to a filter's controlValues, keyed by the
 # NativeFilterUpdateSpec field name they come from.
@@ -697,6 +705,60 @@ def _build_native_filters_payload(  # noqa: C901
     return payload, added_filter_ids, updated_filter_ids
 
 
+def _pre_filter_update_refusal(
+    dashboard: "Dashboard | None", dashboard_id: int
+) -> ManageNativeFiltersResponse | None:
+    """Reject a missing or externally managed dashboard before filter edits."""
+    if dashboard is None:
+        return ManageNativeFiltersResponse(
+            error=(
+                f"Dashboard with ID {dashboard_id} not found."
+                " Use list_dashboards to get valid dashboard IDs."
+            ),
+        )
+
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is None:
+        return None
+
+    from superset import security_manager
+
+    try:
+        security_manager.raise_for_editorship(dashboard)
+    except SupersetSecurityException:
+        return ManageNativeFiltersResponse(
+            dashboard_id=dashboard_id,
+            permission_denied=True,
+            error=(
+                f"You don't have permission to edit dashboard {dashboard_id}. "
+                "Changing native filters requires editorship of the dashboard."
+            ),
+        )
+    except SQLAlchemyError:
+        logger.exception(
+            "Database error checking editorship for dashboard %s", dashboard_id
+        )
+        from superset import db
+
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            logger.warning(
+                "Database rollback failed during native filter error handling"
+            )
+        return ManageNativeFiltersResponse(
+            dashboard_id=dashboard_id,
+            error=(
+                "Failed to verify dashboard edit permission due to a database error."
+            ),
+        )
+    return ManageNativeFiltersResponse(
+        dashboard_id=dashboard_id,
+        managed_externally=True,
+        error=refusal,
+    )
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -713,7 +775,10 @@ def manage_native_filters(
     request: ManageNativeFiltersRequest, ctx: Context
 ) -> ManageNativeFiltersResponse:
     """
-    Add, update, remove, and reorder native filters on a dashboard.
+    Add, update, remove, or reorder dashboard native filters.
+
+    Externally managed dashboards refuse edits
+    (``managed_externally=True``); do not retry.
 
     Supported filter types for new filters: filter_select (dropdown backed
     by a dataset column), filter_time (time range), filter_range (numerical
@@ -749,13 +814,12 @@ def manage_native_filters(
     try:
         with event_logger.log_context(action="mcp.manage_native_filters.validation"):
             dashboard = DashboardDAO.find_by_id(request.dashboard_id)
-            if not dashboard:
-                return ManageNativeFiltersResponse(
-                    error=(
-                        f"Dashboard with ID {request.dashboard_id} not found."
-                        " Use list_dashboards to get valid dashboard IDs."
-                    ),
-                )
+            pre_filter_refusal: ManageNativeFiltersResponse | None = (
+                _pre_filter_update_refusal(dashboard, request.dashboard_id)
+            )
+            if pre_filter_refusal is not None:
+                return pre_filter_refusal
+            assert dashboard is not None
 
             current_config = current_native_filter_config(dashboard)
             dashboard_chart_ids = [slc.id for slc in dashboard.slices]
