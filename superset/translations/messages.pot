@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-10 05:48+0000\n"
+"POT-Creation-Date: 2026-10-12 16:58+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1016,6 +1016,9 @@ msgstr ""
 msgid "A partition value transform cannot contain a sub-query."
 msgstr ""
 
+msgid "A partition value transform cannot name anything through a U&\"...\" escape sequence, which the database decodes and every validator reads literally."
+msgstr ""
+
 msgid "A partition value transform must be a single SQL expression, with no FROM, WHERE or other clause."
 msgstr ""
 
@@ -1077,6 +1080,9 @@ msgid "A valid color scheme is required"
 msgstr ""
 
 msgid "A value transform cannot contain a MySQL executable comment (/*! ... */ or /*M! ... */). Those are comments to every validator and statement text to the database, so what would run is not what was checked."
+msgstr ""
+
+msgid "A value transform cannot name anything through a U&\"...\" escape sequence. The database decodes it and every validator reads it literally, so what would run is not what was checked."
 msgstr ""
 
 #, python-format
@@ -6412,10 +6418,7 @@ msgstr ""
 msgid "Expired"
 msgstr ""
 
-msgid ""
-"Explicit formats validate all values against bundled boundaries. "
-"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
-"ambiguous values fail rather than displaying blank regions."
+msgid "Explicit formats validate all values against bundled boundaries. Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
 msgid "Explore"
@@ -15886,9 +15889,7 @@ msgstr ""
 msgid "Unpin from top"
 msgstr ""
 
-msgid ""
-"Unrecognized or duplicate country value; choose the matching country "
-"format or normalize source values before aggregation."
+msgid "Unrecognized or duplicate country value; choose the matching country format or normalize source values before aggregation."
 msgstr ""
 
 #, python-format

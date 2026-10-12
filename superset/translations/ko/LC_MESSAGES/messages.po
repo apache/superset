@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-10 05:48+0000\n"
+"POT-Creation-Date: 2026-10-12 16:58+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1544,6 +1544,12 @@ msgid "A partition value transform cannot contain a sub-query."
 msgstr ""
 
 msgid ""
+"A partition value transform cannot name anything through a U&\"...\" "
+"escape sequence, which the database decodes and every validator reads "
+"literally."
+msgstr ""
+
+msgid ""
 "A partition value transform must be a single SQL expression, with no "
 "FROM, WHERE or other clause."
 msgstr ""
@@ -1661,6 +1667,12 @@ msgid ""
 "A value transform cannot contain a MySQL executable comment (/*! ... */ "
 "or /*M! ... */). Those are comments to every validator and statement text"
 " to the database, so what would run is not what was checked."
+msgstr ""
+
+msgid ""
+"A value transform cannot name anything through a U&\"...\" escape "
+"sequence. The database decodes it and every validator reads it literally,"
+" so what would run is not what was checked."
 msgstr ""
 
 #, python-format
@@ -4678,6 +4690,9 @@ msgstr "CVAS (create view as select) 쿼리가 SELECT 구문이 아닙니다."
 msgid "Cache Timeout (seconds)"
 msgstr "캐시 만료 시간(초)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -7072,6 +7087,12 @@ msgstr "컬럼 추가"
 #, fuzzy
 msgid "Country"
 msgstr "컬럼 추가"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -18184,6 +18205,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "데이터 미리보기"
 
@@ -18812,6 +18838,9 @@ msgstr "생성자"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL Lab 다시 로드"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -27354,6 +27383,9 @@ msgstr ""
 #, fuzzy
 msgid "Unable to calculate such a date delta"
 msgstr "이러한 날짜 차이를 계산할 수 없습니다"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

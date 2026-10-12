@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-10 05:48+0000\n"
+"POT-Creation-Date: 2026-10-12 16:58+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -1390,6 +1390,12 @@ msgid "A partition value transform cannot contain a sub-query."
 msgstr ""
 
 msgid ""
+"A partition value transform cannot name anything through a U&\"...\" "
+"escape sequence, which the database decodes and every validator reads "
+"literally."
+msgstr ""
+
+msgid ""
 "A partition value transform must be a single SQL expression, with no "
 "FROM, WHERE or other clause."
 msgstr ""
@@ -1492,6 +1498,12 @@ msgid ""
 "A value transform cannot contain a MySQL executable comment (/*! ... */ "
 "or /*M! ... */). Those are comments to every validator and statement text"
 " to the database, so what would run is not what was checked."
+msgstr ""
+
+msgid ""
+"A value transform cannot name anything through a U&\"...\" escape "
+"sequence. The database decodes it and every validator reads it literally,"
+" so what would run is not what was checked."
 msgstr ""
 
 #, python-format
@@ -3976,6 +3988,9 @@ msgstr "CVAS (create view as select) upit nije SELECT izjava."
 msgid "Cache Timeout (seconds)"
 msgstr "Istek keša (sekunde)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # ru, sk, uk]
 msgid ""
 "Cache data separately for each user based on their data access roles and "
@@ -5903,6 +5918,12 @@ msgstr "Broj"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Country"
 msgstr "Država"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Country Color Scheme"
@@ -14712,6 +14733,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Preview"
@@ -15211,6 +15237,9 @@ msgstr "Ponovo učitaj"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Ponovo učitaj SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -22185,6 +22214,9 @@ msgstr ""
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid "Unable to calculate such a date delta"
 msgstr "Nije moguće izračunati takvu razliku u datumima"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format

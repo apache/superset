@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-10 05:48+0000\n"
+"POT-Creation-Date: 2026-10-12 16:58+0000\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -1223,6 +1223,12 @@ msgid "A partition value transform cannot contain a sub-query."
 msgstr ""
 
 msgid ""
+"A partition value transform cannot name anything through a U&\"...\" "
+"escape sequence, which the database decodes and every validator reads "
+"literally."
+msgstr ""
+
+msgid ""
 "A partition value transform must be a single SQL expression, with no "
 "FROM, WHERE or other clause."
 msgstr ""
@@ -1316,6 +1322,12 @@ msgid ""
 "A value transform cannot contain a MySQL executable comment (/*! ... */ "
 "or /*M! ... */). Those are comments to every validator and statement text"
 " to the database, so what would run is not what was checked."
+msgstr ""
+
+msgid ""
+"A value transform cannot name anything through a U&\"...\" escape "
+"sequence. The database decodes it and every validator reads it literally,"
+" so what would run is not what was checked."
 msgstr ""
 
 #, python-format
@@ -3512,6 +3524,9 @@ msgstr "A consulta CVAS (create view as select) não é uma instrução SELECT."
 msgid "Cache Timeout (seconds)"
 msgstr "Tempo limite da cache (seconds)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -5246,6 +5261,12 @@ msgstr "Contar"
 
 msgid "Country"
 msgstr "País"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Esquema de cores do país"
@@ -13245,6 +13266,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Pré-visualização"
 
@@ -13682,6 +13708,9 @@ msgstr "Recarregar"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Recarregar laboratório SQL"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -20155,6 +20184,9 @@ msgstr ""
 
 msgid "Unable to calculate such a date delta"
 msgstr "Não é possível calcular esse delta de data"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
