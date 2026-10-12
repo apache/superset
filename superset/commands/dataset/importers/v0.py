@@ -208,10 +208,18 @@ def import_simple_obj(i_obj: Model, lookup_obj: Callable[[Model], Model]) -> Mod
     return i_obj
 
 
-def import_from_dict(data: dict[str, Any], sync: Optional[list[str]] = None) -> None:
-    """Imports databases from dictionary"""
+def import_from_dict(
+    data: dict[str, Any], sync: Optional[list[str]] = None
+) -> list[SqlaTable]:
+    """Imports databases from dictionary, and answers with the datasets it wrote.
+
+    The datasets are reported so the caller can run the partition filter
+    mapping's repairs over them: `Database.export_children` carries ``tables``,
+    so a database bundle creates datasets here as well as connections.
+    """
     if not sync:
         sync = []
+    imported: list[SqlaTable] = []
     if isinstance(data, dict):
         databases = data.get(DATABASES_KEY, [])
         # This legacy path creates/updates the embedded database connections.
@@ -244,8 +252,10 @@ def import_from_dict(data: dict[str, Any], sync: Optional[list[str]] = None) -> 
                 parsed = make_url_safe(db_obj.sqlalchemy_uri)
                 if parsed.password and parsed.password != PASSWORD_MASK:
                     db_obj.set_sqlalchemy_uri(db_obj.sqlalchemy_uri)
+                imported.extend(db_obj.tables or [])
     else:
         logger.info("Supplied object is not a dictionary.")
+    return imported
 
 
 class ImportDatasetsCommand(BaseCommand):
@@ -276,10 +286,11 @@ class ImportDatasetsCommand(BaseCommand):
     def run(self) -> None:
         self.validate()
 
+        imported: list[SqlaTable] = []
         for file_name, config in self._configs.items():
             logger.info("Importing dataset from file %s", file_name)
             if isinstance(config, dict):
-                import_from_dict(config, sync=self.sync)
+                imported.extend(import_from_dict(config, sync=self.sync))
             else:  # list
                 for dataset in config:
                     # UI exports don't have the database metadata, so we assume
@@ -291,7 +302,43 @@ class ImportDatasetsCommand(BaseCommand):
                         .one()
                     )
                     dataset["database_id"] = database.id
-                    SqlaTable.import_from_dict(dataset, sync=self.sync)
+                    table = SqlaTable.import_from_dict(dataset, sync=self.sync)
+                    if table is not None:
+                        imported.append(table)
+
+        self._repair_partition_mappings(imported)
+
+    @staticmethod
+    def _repair_partition_mappings(datasets: list[SqlaTable]) -> None:
+        """
+        Keep the partition filter mapping honest across a v0 import.
+
+        The mapping's columns ride in `SqlaTable.export_fields`, so this path
+        carries them -- but it calls `SqlaTable.import_from_dict` directly and
+        goes through neither `DatasetDAO.update` nor the v1 importer, so
+        neither of the mapping's repairs ran. An older bundle imported with
+        ``--sync columns`` that omits the partition column deletes it and keeps
+        `partition_column` naming it: pruning silently stops, and every later
+        edit of that dataset fails the partition-column-not-found validation,
+        including a description-only PUT, which carries no columns payload and
+        so cannot reach the branch that forgives a stored-only dangle.
+
+        The same pair, in the same order, as `RefreshDatasetCommand` and the
+        v1 importer. Run after the import rather than around it because
+        ``import_from_dict`` is what discovers which datasets are involved.
+        """
+        if not datasets:
+            return
+        # Deferred import: `daos.dataset` pulls in `views.base`, which
+        # circularly imports back into the commands package at app init.
+        from superset.daos.dataset import DatasetDAO  # noqa: PLC0415
+
+        db.session.flush()
+        for dataset in datasets:
+            DatasetDAO.clear_dangling_partition_mapping(
+                dataset, {column.column_name for column in dataset.columns}
+            )
+            DatasetDAO.clear_unmapped_partition_transforms(dataset)
 
     def validate(self) -> None:
         # ensure all files are YAML

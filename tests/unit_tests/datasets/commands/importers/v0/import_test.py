@@ -105,3 +105,64 @@ def test_validate_scanner_error_raises_incorrect_version_error() -> None:
 
     with pytest.raises(IncorrectVersionError):
         command.validate()
+
+
+def test_a_v0_import_repairs_a_dangling_partition_mapping(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `SqlaTable.export_fields` carries the mapping's columns, so this path
+    imports them -- but it calls `SqlaTable.import_from_dict` directly and goes
+    through neither `DatasetDAO.update` nor the v1 importer, so neither repair
+    ran. An older bundle imported with ``--sync columns`` that omits the
+    partition column deleted it and left `partition_column` naming it, which
+    stops the pruning and fails every later edit of that dataset.
+    """
+    from superset.commands.dataset.importers import v0
+    from superset.daos.dataset import DatasetDAO
+
+    dataset = mocker.MagicMock()
+    dataset.columns = [mocker.MagicMock(column_name="event_time")]
+    mocker.patch.object(v0.SqlaTable, "import_from_dict", return_value=dataset)
+    mocker.patch.object(v0.db.session, "flush")
+    mocker.patch.object(
+        v0.db.session, "query", return_value=mocker.MagicMock()
+    ).return_value.filter_by.return_value.one.return_value = mocker.MagicMock(id=1)
+    dangling = mocker.patch.object(DatasetDAO, "clear_dangling_partition_mapping")
+    unmapped = mocker.patch.object(DatasetDAO, "clear_unmapped_partition_transforms")
+
+    command = v0.ImportDatasetsCommand({}, sync_columns=True)
+    command._configs = {  # noqa: SLF001
+        "ds.yaml": [{"params": '{"database_name": "sample_db"}'}]
+    }
+    command.run()
+
+    dangling.assert_called_once_with(dataset, {"event_time"})
+    unmapped.assert_called_once_with(dataset)
+
+
+def test_a_v0_database_bundle_repairs_its_datasets_too(mocker: MockerFixture) -> None:
+    """
+    `Database.export_children` carries ``tables``, so the database branch
+    creates datasets as well as connections -- which is why
+    `import_from_dict` reports what it wrote rather than the caller guessing.
+    """
+    from superset.commands.dataset.importers import v0
+    from superset.daos.dataset import DatasetDAO
+
+    dataset = mocker.MagicMock()
+    dataset.columns = [mocker.MagicMock(column_name="ds")]
+    db_obj = mocker.MagicMock(tables=[dataset])
+    db_obj.sqlalchemy_uri = "postgresql://u@h/d"
+    mocker.patch.object(v0, "get_user", return_value=None)
+    mocker.patch.object(v0.Database, "import_from_dict", return_value=db_obj)
+    mocker.patch.object(v0.db.session, "flush")
+    dangling = mocker.patch.object(DatasetDAO, "clear_dangling_partition_mapping")
+    unmapped = mocker.patch.object(DatasetDAO, "clear_unmapped_partition_transforms")
+
+    command = v0.ImportDatasetsCommand({})
+    command._configs = {"db.yaml": DATA_WITH_DATABASE}  # noqa: SLF001
+    command.run()
+
+    dangling.assert_called_once_with(dataset, {"ds"})
+    unmapped.assert_called_once_with(dataset)
