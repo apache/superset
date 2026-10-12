@@ -26,7 +26,6 @@ from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
-
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
@@ -101,5 +100,3 @@ def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
         FireboltEngineSpec._time_grain_expressions[time_grain].format(col="ts")
         == expected
     )
-
-

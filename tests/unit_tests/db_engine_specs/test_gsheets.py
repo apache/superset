@@ -1624,5 +1624,3 @@ def test_gsheets_metadata() -> None:
     assert metadata["logo"] == "google-sheets.svg"
     assert "shillelagh[gsheetsapi]" in metadata["pypi_packages"]
     assert 'pip install "apache-superset[gsheets]"' in metadata["install_instructions"]
-
-
