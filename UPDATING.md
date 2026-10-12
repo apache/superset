@@ -176,8 +176,8 @@ reattached to a reachable container by layout repair.
   such a gate to see. The same reasoning adds a new `oracle` entry naming
   `getxml`, `getxmltype`, `newcontext` and `newcontextfromhierarchy`, the
   `DBMS_XMLGEN` / `DBMS_XMLQUERY` calls that run a query handed to them as
-  text; they are listed by bare name because that is what the parser sees for a
-  package-qualified call. The denylist is shared with SQL Lab and Charts, so a
+  text, and `dburitype`, which reads a table by path string; they are listed by
+  bare name because that is what the parser sees for a package-qualified call. The denylist is shared with SQL Lab and Charts, so a
   deployment relying on any of these functions there will now see it refused --
   including a deployment that never enables `PARTITION_FILTER_MAPPING`, since
   the denylist is not gated on the feature flag. Override

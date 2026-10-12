@@ -2624,6 +2624,11 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getxmltype",
         "newcontext",
         "newcontextfromhierarchy",
+        # Reads a table by path string, e.g.
+        # ``DBURITYPE('/HR/EMPLOYEES/ROW[ID=1]/SALARY').getclob()``, which is
+        # the same blind spot as the above with no function argument to
+        # inspect -- and ``PUBLIC`` holds execute on it by default.
+        "dburitype",
     },
 }
 
