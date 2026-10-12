@@ -25,8 +25,20 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { getClientErrorObject } from '@superset-ui/core';
 import PartitionColumnFields from './PartitionColumnFields';
 import PartitionMappingSection from './PartitionMappingSection';
+
+// Only `getClientErrorObject`, and only so one test can hold an error mid
+// normalization; everything else in the module behaves as it really does.
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getClientErrorObject: jest.fn((...args: unknown[]) =>
+    jest
+      .requireActual('@superset-ui/core')
+      .getClientErrorObject(...(args as [unknown])),
+  ),
+}));
 
 const COLUMNS = [
   { column_name: 'event_time', type: 'TIMESTAMP', is_dttm: true },
@@ -52,6 +64,10 @@ const PREVIEW_URL = 'glob:*/api/v1/dataset/1/partition_mapping/preview/';
 
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
+  // Call history only: the module-level implementation delegates to the real
+  // `getClientErrorObject`, and `mockReset` would throw that away for every
+  // test after this one.
+  (getClientErrorObject as jest.Mock).mockClear();
 });
 
 test('the mapped column shows as following the default datetime column', () => {
@@ -1019,6 +1035,72 @@ test('a superseded preview response does not overwrite the current one', async (
 
   await waitFor(() => {
     expect(screen.queryByText('dt_epoch = 1')).not.toBeInTheDocument();
+  });
+  expect(screen.getByText('dt_epoch = 2')).toBeInTheDocument();
+});
+
+test('a superseded preview failure does not overwrite the current one', async () => {
+  // The identity check ran before `getClientErrorObject`, which reads the
+  // response body and so awaits. The race needs the *first* request to fail
+  // while it is still current -- so it passes that check -- and the second to
+  // become current and resolve valid while the first is inside the await.
+  // The stale error then landed on top of the valid preview, and the panel
+  // reported a failure for the transform the box actually holds.
+  let releaseNormalization: (value: unknown) => void = () => {};
+  const held = new Promise(resolve => {
+    releaseNormalization = resolve;
+  });
+  const normalize = getClientErrorObject as jest.Mock;
+  // Cleared here as well as in `afterEach`: the count below is this test's
+  // own, and every earlier test that took the error path added to it.
+  normalize.mockClear();
+  normalize.mockImplementationOnce(async () => {
+    await held;
+    return { error: 'the first transform was rejected' };
+  });
+
+  let call = 0;
+  fetchMock.post(PREVIEW_URL, () => {
+    call += 1;
+    if (call === 1) {
+      return { status: 422, body: { message: 'rejected' } };
+    }
+    return {
+      body: { result: { valid: true, emitted_predicate: 'dt_epoch = 2' } },
+    };
+  });
+
+  const props = {
+    item: { column_name: 'event_time', is_dttm: true },
+    datasource: {
+      id: 1,
+      main_dttm_col: 'event_time',
+      partition_column: 'dt_epoch',
+    },
+    onMoveMappingHere: jest.fn(),
+    onRemoveMapping: jest.fn(),
+    onMonotonicChange: jest.fn(),
+  };
+
+  const { rerender } = render(
+    <PartitionMappingSection {...props} value="first(:value)" />,
+  );
+  // The first request has failed and is parked inside the normalization.
+  await waitFor(() => {
+    expect(normalize).toHaveBeenCalledTimes(1);
+  });
+
+  // The second becomes current and comes back valid.
+  rerender(<PartitionMappingSection {...props} value="second(:value)" />);
+  expect(await screen.findByText('dt_epoch = 2')).toBeInTheDocument();
+
+  // Only now does the first finish normalizing its error.
+  releaseNormalization(undefined);
+
+  await waitFor(() => {
+    expect(
+      screen.queryByText('the first transform was rejected'),
+    ).not.toBeInTheDocument();
   });
   expect(screen.getByText('dt_epoch = 2')).toBeInTheDocument();
 });

@@ -123,6 +123,13 @@ export function usePartitionMappingPreview({
           return;
         }
         const clientError = await getClientErrorObject(error);
+        // Asked again: normalizing the error reads the response body, so a
+        // newer request can resolve while this one is still in that await, and
+        // writing then put a stale error over a current valid preview -- the
+        // panel reporting a failure for the transform the box no longer holds.
+        if (requestId !== latestRequest.current) {
+          return;
+        }
         setPreview({
           valid: false,
           // `message` first only when it really is a string. A marshmallow
