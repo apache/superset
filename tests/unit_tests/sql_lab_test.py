@@ -17,12 +17,15 @@
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
 import json  # noqa: TID251
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
+import pandas as pd
 import pytest
+from flask import g, has_request_context, session
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy import text
@@ -30,21 +33,68 @@ from sqlalchemy.orm import Session
 
 from superset.app import SupersetApp
 from superset.common.db_query_status import QueryStatus
+from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement, Table
 from superset.sql_lab import (
+    _serialize_and_expand_data,
+    _serialize_payload,
     execute_query,
     execute_sql_statements,
     get_query,
     get_sql_results,
     SqlLabException,
 )
+from superset.utils import json as superset_json
 from superset.utils.rls import apply_rls, get_predicates_for_table
 from tests.conftest import with_config
 from tests.unit_tests.models.core_test import oauth2_client_info
+
+
+def test_sql_lab_and_view_json_normalize_decimal_nonfinite() -> None:
+    """Sync SQL Lab and its view consumer share strict Decimal projection."""
+    from superset.views.utils import _deserialize_results_payload
+
+    finite = Decimal("0.10000000000000000001")
+    result_set = MagicMock()
+    result_set.columns = [{"name": "value"}]
+    result_set.to_pandas_df.return_value = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [
+                    Decimal("NaN"),
+                    Decimal("sNaN"),
+                    Decimal("Infinity"),
+                    Decimal("-Infinity"),
+                    finite,
+                ],
+                dtype=object,
+            )
+        }
+    )
+
+    data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
+        result_set, BaseEngineSpec()
+    )
+    assert isinstance(data, list)
+    assert [row["value"] for row in data] == [None, None, None, None, str(finite)]
+
+    payload = {
+        "data": data,
+        "selected_columns": selected_columns,
+        "columns": all_columns,
+        "expanded_columns": expanded_columns,
+    }
+    serialized = _serialize_payload(payload)
+    assert isinstance(serialized, str)
+    assert "NaN" not in serialized
+    assert "Infinity" not in serialized
+    assert _deserialize_results_payload(serialized, MagicMock()) == (
+        superset_json.loads(serialized)
+    )
 
 
 def test_execute_query(mocker: MockerFixture, app: None) -> None:
@@ -249,6 +299,45 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture, app) 
         pytest.fail(
             "SupersetErrorException should not have been raised for payload within the limit"  # noqa: E501
         )
+
+
+@pytest.mark.parametrize("allow_dml", [False, True])
+def test_execute_sql_statements_rejects_client_file_transfer(
+    mocker: MockerFixture, app: SupersetApp, allow_dml: bool
+) -> None:
+    """
+    `execute_sql_statements` rejects client-side file-transfer statements
+    regardless of `allow_dml`: they perform host file I/O, not DML.
+    """
+    from superset.exceptions import SupersetDisallowedClientFileTransferException
+
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_dml = allow_dml
+    query.database.allow_run_async = False
+    query.database.db_engine_spec.engine = "snowflake"
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
+    with pytest.raises(SupersetDisallowedClientFileTransferException) as excinfo:
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="REMOVE @my_stage/b; PUT file:///tmp/data.csv @my_stage",
+            return_results=True,
+            store_results=False,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+
+    # Sorted and comma-separated, not raw set interpolation.
+    assert excinfo.value.error.message == (
+        "SQL statement contains disallowed client-side "
+        "file-transfer command(s): PUT, REMOVE"
+    )
 
 
 def test_execute_sql_statements_mutates_before_split_by_default(
@@ -559,6 +648,77 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         app_context.pop()
 
 
+def _capture_execution_context(mocker: MockerFixture) -> dict[str, Any]:
+    """
+    Stub out ``execute_sql_statements`` and record the context it runs under.
+    """
+    captured: dict[str, Any] = {}
+
+    def execute_sql_statements(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        captured["rls_tenant"] = session.get("rls_tenant")
+        captured["has_request_context"] = has_request_context()
+        captured["user"] = g.user
+        return {"status": QueryStatus.SUCCESS}
+
+    mocker.patch(
+        "superset.sql_lab.execute_sql_statements",
+        side_effect=execute_sql_statements,
+    )
+    mocker.patch(
+        "superset.sql_lab.security_manager.find_user",
+        return_value="the-user",
+    )
+    return captured
+
+
+def test_get_sql_results_reuses_the_active_request(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    Test that a synchronous run keeps the real Flask session.
+
+    SQL Lab's synchronous executor invokes this task directly rather than through
+    Celery, so it already runs inside the authenticated request. Fabricating a
+    second request context there would swap the real session for an empty one and
+    break RLS clauses whose Jinja macros read ``flask.session``.
+    """
+    captured = _capture_execution_context(mocker)
+
+    # Pushed/popped manually (rather than via a ``with`` block) so the
+    # ``finally`` below still pops it if an assertion fails, preventing the
+    # request context from leaking into later tests in the same session.
+    app_context = app.test_request_context()
+    app_context.push()
+
+    try:
+        session["rls_tenant"] = "acme"
+        get_sql_results(query_id=1, rendered_query="SELECT 1")
+    finally:
+        app_context.pop()
+
+    assert captured["rls_tenant"] == "acme"
+    assert captured["user"] == "the-user"
+
+
+def test_get_sql_results_builds_a_request_when_there_is_none(
+    mocker: MockerFixture, app: SupersetApp
+) -> None:
+    """
+    Test that a Celery run still gets a request context of its own.
+
+    A worker has no originating request, and the OAuth2 flow needs a request
+    context to build its redirect URI, so one must still be created there.
+    """
+    captured = _capture_execution_context(mocker)
+
+    with app.app_context():
+        assert not has_request_context()
+        get_sql_results(query_id=1, rendered_query="SELECT 1", username="alice")
+
+    assert captured["has_request_context"] is True
+    assert captured["user"] == "the-user"
+
+
 def test_apply_rls(mocker: MockerFixture) -> None:
     """
     Test the ``apply_rls`` helper function.
@@ -584,12 +744,14 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 database,
                 "examples",
                 exclude_dataset_id=None,
+                include_global_guest_rls=True,
             ),
             mocker.call(
                 Table("t2", "public", "examples"),
                 database,
                 "examples",
                 exclude_dataset_id=None,
+                include_global_guest_rls=True,
             ),
         ]
     )
@@ -631,7 +793,7 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     table = Table("t1", "public", "examples")
     assert get_predicates_for_table(table, database, "examples") == ["c1 = 1"]
     dataset.get_sqla_row_level_filters.assert_called_once_with(
-        include_global_guest_rls=False
+        include_global_guest_rls=True
     )
 
 

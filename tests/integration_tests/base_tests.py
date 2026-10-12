@@ -39,7 +39,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models import core as models
-from superset.models.core import Database
+from superset.models.core import Database, Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql.parse import CTASMethod
@@ -310,6 +310,18 @@ class SupersetTestCase(TestCase):
         return security_manager.add_user(
             username, first_name, last_name, email, role_admin, password
         )
+
+    @staticmethod
+    def get_latest_log(action: str) -> Log:
+        """Return the newest ``logs`` row recorded for ``action``."""
+        log = (
+            db.session.query(Log)
+            .filter_by(action=action)
+            .order_by(Log.id.desc())
+            .first()
+        )
+        assert log is not None, f"no log row recorded for {action}"
+        return log
 
     @staticmethod
     def get_user(username: str) -> ab_models.User:

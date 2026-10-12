@@ -27,8 +27,13 @@ from superset.mcp_service.chart.chart_utils import (
     _summarize_filters,
     map_gauge_config,
 )
-from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import ColumnRef, GaugeChartConfig
+from superset.mcp_service.chart.plugin import BaseChartPlugin, capped_compile_row_limit
+from superset.mcp_service.chart.schemas import (
+    ChartError,
+    ColumnRef,
+    GaugeChartConfig,
+    VegaLitePreview,
+)
 from superset.mcp_service.chart.validation.dataset_validator import (
     DatasetValidator,
     is_numeric_column,
@@ -40,10 +45,16 @@ class GaugeChartPlugin(BaseChartPlugin):
     """Plugin for gauge chart type."""
 
     chart_type = "gauge"
+    allows_empty_result = True
     display_name = "Gauge Chart"
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "gauge_chart": "Gauge Chart",
     }
+    requires_compile_check = True
+    strict_dataset_rebind = True
+    requires_config_for_dataset_rebind = True
+    invalid_result_error_code = "INVALID_GAUGE_RESULT"
+    invalid_result_message = "Gauge metric query returned invalid values"
 
     def pre_validate(
         self,
@@ -193,3 +204,89 @@ class GaugeChartPlugin(BaseChartPlugin):
             ],
             error_code="GAUGE_VALIDATION_ERROR",
         )
+
+    def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:
+        from superset.mcp_service.chart.query_result import (
+            normalize_gauge_query_result,
+        )
+
+        return normalize_gauge_query_result(result, form_data)
+
+    def compile_row_limit(self, form_data: Mapping[str, Any]) -> int:
+        return capped_compile_row_limit(form_data)
+
+    def preview_row_limit(self, form_data: Mapping[str, Any], fallback: int) -> int:
+        value = form_data.get("row_limit", 10)
+        return value if isinstance(value, int) and 1 <= value <= 10 else 10
+
+    def ascii_preview(
+        self, data: list[Any], form_data: dict[str, Any], width: int, height: int = 20
+    ) -> str | ChartError | None:
+        from superset.mcp_service.chart.preview_utils import (
+            generate_gauge_ascii_preview,
+        )
+
+        return generate_gauge_ascii_preview(data, form_data, width)
+
+    def vega_lite_preview(
+        self, data: list[Any], form_data: dict[str, Any]
+    ) -> VegaLitePreview | ChartError | None:
+        from superset.mcp_service.chart.preview_utils import (
+            generate_gauge_vega_lite_preview,
+        )
+
+        return generate_gauge_vega_lite_preview(data, form_data)
+
+    def merge_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        config: Any,
+        *,
+        dataset_rebind: bool,
+    ) -> dict[str, Any] | None:
+        from superset.mcp_service.chart.chart_utils import merge_gauge_update_form_data
+
+        if not isinstance(config, GaugeChartConfig):
+            return None
+        return merge_gauge_update_form_data(
+            existing_form_data, new_form_data, config, dataset_rebind
+        )
+
+    def finalize_update_form_data(
+        self,
+        existing_form_data: dict[str, Any],
+        new_form_data: dict[str, Any],
+        merged: dict[str, Any],
+        config: Any,
+    ) -> dict[str, Any]:
+        # An omitted group_by keeps the cached breakdown; an explicit value,
+        # including [], is already the mapper's replacement.
+        if (
+            isinstance(config, GaugeChartConfig)
+            and "groupby" not in config.model_fields_set
+            and existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+            and "groupby" in existing_form_data
+        ):
+            merged = {**merged, "groupby": existing_form_data["groupby"]}
+        if (
+            isinstance(config, GaugeChartConfig)
+            and "filters" not in config.model_fields_set
+            and "temporal_column" in config.model_fields_set
+            and existing_form_data.get("viz_type") == new_form_data.get("viz_type")
+            and isinstance(existing_form_data.get("adhoc_filters"), list)
+        ):
+            # Cached non-generated filters survive a temporal-column change;
+            # only the generated time binding is replaced.
+            from superset.mcp_service.chart.chart_utils import (
+                merge_gauge_update_form_data,
+            )
+
+            gauge_merged = merge_gauge_update_form_data(
+                existing_form_data, new_form_data, config, False
+            )
+            merged = {**merged, "adhoc_filters": gauge_merged.get("adhoc_filters", [])}
+            for key in set(existing_form_data) - set(gauge_merged):
+                if key.startswith("_mcp_"):
+                    merged.pop(key, None)
+        return merged

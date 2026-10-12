@@ -124,7 +124,11 @@ class DatasetScopeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: "Query", value: frozenset[UUID]) -> "Query":
         from superset.connectors.sqla.models import SqlaTable
 
-        return query.filter(SqlaTable.uuid.in_(value))
+        # SqlaTable.uuid is an unannotated Column, so mypy sees the raw
+        # nullable value type here instead of an InstrumentedAttribute; same
+        # false positive already ignored at
+        # superset/connectors/sqla/models.py:2491.
+        return query.filter(SqlaTable.uuid.in_(value))  # type: ignore[union-attr]
 
 
 def parse_dataset_role_allowlist(config: Any) -> dict[str, set[UUID]] | None:

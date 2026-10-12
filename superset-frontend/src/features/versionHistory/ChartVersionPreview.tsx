@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { canOverwriteSlice } from 'src/explore/exploreUtils/canOverwriteSlice';
 import { Slice } from 'src/types/Chart';
 import {
@@ -70,7 +71,7 @@ function buildPreviewFormData(
 }
 
 export default function ChartVersionPreview() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const preview = useSelector(selectVersionPreview);
   const slice = useSelector<ExplorePageState, Slice | undefined>(
     state => state.explore?.slice ?? undefined,

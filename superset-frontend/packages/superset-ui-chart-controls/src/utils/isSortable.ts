@@ -39,9 +39,19 @@ export function isSortable(controls: ControlStateMapping): boolean {
   // user to provide a sortable result.
   const isCustomSQL = !isPhysicalColumn(xAxisValue);
 
+  // Same reasoning applies to a physical column whose type could not be
+  // resolved to a generic type: sorting categories by a metric stays valid,
+  // so the sort control must not silently disappear for such columns.
+  const isUnknownType = !checkColumnType(
+    getColumnLabel(xAxisValue),
+    controls?.datasource?.datasource,
+    [GenericDataType.String, GenericDataType.Boolean, GenericDataType.Numeric],
+  );
+
   return (
     isForcedCategorical ||
     isCustomSQL ||
+    (isPhysicalColumn(xAxisValue) && isUnknownType) ||
     checkColumnType(
       getColumnLabel(xAxisValue),
       controls?.datasource?.datasource,

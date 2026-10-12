@@ -44,6 +44,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.exceptions import (
     SerializationError,
     SupersetException,
+    SupersetSecurityException,
 )
 from superset.extensions import security_manager
 from superset.legacy import update_time_range
@@ -504,6 +505,17 @@ def get_dashboard_extra_filters(
     ):
         return []
 
+    # Does the caller actually have access to this dashboard? A chart can
+    # legitimately be reused across multiple dashboards, so passing chart
+    # membership above isn't an entitlement check -- without this, a
+    # principal who owns/can access some chart also embedded on a
+    # dashboard they have no access to could pull that dashboard's default
+    # filter configuration into their own request.
+    try:
+        security_manager.raise_for_access(dashboard=dashboard)
+    except SupersetSecurityException:
+        return []
+
     with contextlib.suppress(json.JSONDecodeError):
         json_metadata = json.loads(dashboard.json_metadata)
         native_filters = [
@@ -653,7 +665,7 @@ def _deserialize_results_payload(
                 raise SerializationError("Unable to deserialize table") from ex
 
         df = result_set.SupersetResultSet.convert_table_to_df(pa_table)
-        ds_payload["data"] = dataframe.df_to_records(df) or []
+        ds_payload["data"] = dataframe.df_to_records(df, convert_decimals=True) or []
 
         for column in ds_payload["selected_columns"]:
             if "name" in column:

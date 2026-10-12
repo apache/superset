@@ -46,17 +46,51 @@ class KylinEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         "default_port": 7070,
     }
 
+    # Kylin validates every query with Calcite; queries no cube can answer are
+    # pushed down as SQL text to Spark SQL. ``FLOOR(<ts> TO <unit>)`` cannot be
+    # parsed by Spark, so the grains only use CAST, TIMESTAMPADD and field
+    # functions, which both paths accept. Weeks start on Sunday (DAYOFWEEK is 1
+    # for Sunday on both paths).
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO SECOND) AS TIMESTAMP)",  # noqa: E501
-        TimeGrain.MINUTE: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MINUTE) AS TIMESTAMP)",  # noqa: E501
-        TimeGrain.HOUR: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO HOUR) AS TIMESTAMP)",
-        TimeGrain.DAY: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO DAY) AS DATE)",
-        TimeGrain.WEEK: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO WEEK) AS DATE)",
-        TimeGrain.MONTH: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MONTH) AS DATE)",
-        TimeGrain.QUARTER: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO QUARTER) AS DATE)",
-        TimeGrain.YEAR: "CAST(FLOOR(CAST({col} AS TIMESTAMP) TO YEAR) AS DATE)",
+        TimeGrain.SECOND: (
+            "TIMESTAMPADD(SECOND, HOUR({col}) * 3600 + MINUTE({col}) * 60"
+            " + SECOND({col}), CAST(CAST({col} AS DATE) AS TIMESTAMP))"
+        ),
+        TimeGrain.MINUTE: (
+            "TIMESTAMPADD(MINUTE, HOUR({col}) * 60 + MINUTE({col}),"
+            " CAST(CAST({col} AS DATE) AS TIMESTAMP))"
+        ),
+        TimeGrain.HOUR: (
+            "TIMESTAMPADD(HOUR, HOUR({col}), CAST(CAST({col} AS DATE) AS TIMESTAMP))"
+        ),
+        TimeGrain.DAY: "CAST({col} AS DATE)",
+        TimeGrain.WEEK: (
+            "TIMESTAMPADD(DAY, 1 - DAYOFWEEK({col}), CAST({col} AS DATE))"
+        ),
+        TimeGrain.MONTH: (
+            "TIMESTAMPADD(DAY, 1 - DAYOFMONTH({col}), CAST({col} AS DATE))"
+        ),
+        TimeGrain.QUARTER: (
+            "TIMESTAMPADD(MONTH, 3 * QUARTER({col}) - 3,"
+            " TIMESTAMPADD(DAY, 1 - DAYOFYEAR({col}), CAST({col} AS DATE)))"
+        ),
+        TimeGrain.YEAR: (
+            "TIMESTAMPADD(DAY, 1 - DAYOFYEAR({col}), CAST({col} AS DATE))"
+        ),
     }
+
+    @staticmethod
+    def _mutate_label(label: str) -> str:
+        """
+        Kylin's Calcite resolves identifiers in GROUP BY and ORDER BY against
+        SELECT aliases first. A time-grain column labelled with its source
+        column's name (``<grain of "TS"> AS "TS" ... GROUP BY <grain of "TS">``)
+        is then rejected as "not being grouped". Suffix every label so it never
+        shadows the column it is derived from; Superset maps the result columns
+        back to the expected labels.
+        """
+        return f"{label}__"
 
     @classmethod
     def convert_dttm(

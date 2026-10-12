@@ -203,8 +203,7 @@ test('dashboard groups head with the save date and expand to descriptive rows', 
 test('a group without a versionUuid offers no kebab at all', async () => {
   // Restore and open-as-new both name a specific version; the container
   // handlers silently no-op on a null versionUuid, so offering the menu
-  // reads as breakage. No kebab beats a dead menu — and the expanded
-  // action rows hide theirs for the same reason.
+  // reads as breakage. No kebab beats a dead menu.
   const versionless = group({ transactionId: 3, versionUuid: null });
   const props = defaultProps([versionless], 'dashboard');
   render(<VersionHistoryPanel {...props} />);

@@ -21,6 +21,7 @@ import {
   getClientErrorMessage,
   getClientErrorObject,
   getErrorText,
+  selectClientErrorMessage,
   parseErrorJson,
   ErrorTypeEnum,
 } from '@superset-ui/core';
@@ -106,8 +107,14 @@ test('Handles backwards compatibility between old error messages and the new SIP
 test('Handles Response that can be parsed as text', async () => {
   const textError = 'Hello I am a text error';
 
-  const errorObj = await getClientErrorObject(new Response(textError));
-  expect(errorObj).toMatchObject({ error: textError });
+  const errorObj = await getClientErrorObject(
+    new Response(textError, { status: 403, statusText: 'Forbidden' }),
+  );
+  expect(errorObj).toMatchObject({
+    error: 'Forbidden',
+    status: 403,
+    statusText: 'Forbidden',
+  });
 });
 
 test('Handles Response that contains raw html be parsed as text', async () => {
@@ -304,6 +311,72 @@ test('parseErrorJson with HTML message and status code', () => {
   });
 });
 
+test('parseErrorJson keeps a server message that only quotes an HTML tag', () => {
+  // A database driver echoes the offending fragment back in its syntax error.
+  // The message is prose, not an HTML error page, so it must survive intact
+  // instead of collapsing into the status-code message.
+  const message =
+    'Error: HTTPDriver received ClickHouse error code 62. DB::Exception: ' +
+    "Syntax error: failed at position 37 ('<') (line 1, col 37): <a> AS " +
+    '`My column_b77020` FROM (select number from numbers(10)) AS ' +
+    '`virtual_table` LIMIT 1000 FORMAT Native.';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+
+  // An actual error page still collapses, even when the server pads it with
+  // leading whitespace.
+  const page = '\n  <!doctype html><title>502 Bad Gateway</title>';
+  expect(parseErrorJson({ status: 502, message: page })).toEqual({
+    status: 502,
+    message: page,
+    error: 'Bad gateway',
+  });
+});
+
+test('parseErrorJson keeps a server message that opens with an unclosed HTML tag', () => {
+  // The tag itself is never closed anywhere in the string, unlike a real
+  // fragment such as `<div>...</div>`, so this isn't an HTML error page —
+  // just a message that happens to start by quoting the offending markup.
+  const message = '<a> is not valid syntax';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+});
+
+test('parseErrorJson keeps a message that starts with < but is not a tag', () => {
+  // No leading tag name to match at all, so this never reaches the
+  // closing-tag check; it must still be treated as plain prose.
+  const message = '<3 is not an HTML tag';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+});
+
+test('parseErrorJson keeps a message that itself parses as JSON', () => {
+  // isJsonString() short-circuits checkForHtml before the tag checks ever
+  // run: a message that happens to parse as JSON on its own is never
+  // treated as an HTML error page, whatever text it contains — otherwise
+  // isProbablyHTML()'s full-string scan would flag the embedded tag below
+  // and incorrectly collapse this into a generic status message.
+  const message = '{"detail": "<div>not actually markup</div>"}';
+
+  expect(parseErrorJson({ status: 400, message })).toEqual({
+    status: 400,
+    message,
+    error: message,
+  });
+});
+
 test('parseErrorJson with stacktrace', () => {
   expect(
     parseErrorJson({ error: 'error message', stack: 'stacktrace' }),
@@ -345,7 +418,7 @@ test('getErrorText', async () => {
 
   const error = JSON.stringify({ message: 'Forbidden' });
   expect(await getErrorText(new Response(error), 'dashboard')).toEqual(
-    'You do not have permission to edit this dashboard',
+    'Sorry, there was an error saving this dashboard: Forbidden',
   );
   expect(
     await getErrorText(
@@ -358,8 +431,7 @@ test('getErrorText', async () => {
 test('getErrorText for a non-JSON 403 response', async () => {
   // A 403 originating outside Superset (reverse proxy, WAF, SSO gateway)
   // carries an HTML or plain-text body instead of the API's JSON
-  // `{"message": "Forbidden"}`, so it must fall back to the generic
-  // status-derived text rather than the permission-denied copy.
+  // `{"message": "Forbidden"}`. The HTTP status remains authoritative.
   const proxyForbidden = new Response(
     '<html><head><title>403 Forbidden</title></head><body>Forbidden</body></html>',
     {
@@ -369,7 +441,7 @@ test('getErrorText for a non-JSON 403 response', async () => {
     },
   );
   expect(await getErrorText(proxyForbidden, 'dashboard')).toEqual(
-    'Sorry, there was an error saving this dashboard: Forbidden',
+    'You do not have permission to edit this dashboard',
   );
 
   const supersetForbidden = new Response(
@@ -379,4 +451,32 @@ test('getErrorText for a non-JSON 403 response', async () => {
   expect(await getErrorText(supersetForbidden, 'dashboard')).toEqual(
     'You do not have permission to edit this dashboard',
   );
+
+  const specificForbidden = new Response(
+    JSON.stringify({ message: "You don't have the rights to create a chart" }),
+    { status: 403, statusText: 'FORBIDDEN' },
+  );
+  expect(await getErrorText(specificForbidden, 'chart')).toEqual(
+    "Sorry, there was an error saving this chart: You don't have the rights to create a chart",
+  );
+});
+
+test('selectClientErrorMessage applies consistent precedence', () => {
+  expect(
+    selectClientErrorMessage({ error: 'Forbidden', status: 403 }, 'Fallback', {
+      403: 'Permission denied',
+    }),
+  ).toBe('Permission denied');
+  expect(selectClientErrorMessage({ error: 'Server detail' }, 'Fallback')).toBe(
+    'Server detail',
+  );
+  expect(
+    selectClientErrorMessage(
+      parseErrorJson({
+        message: { field: ['Normalized validation detail'] },
+      }),
+      'Fallback',
+    ),
+  ).toBe('Normalized validation detail');
+  expect(selectClientErrorMessage({ error: '' }, 'Fallback')).toBe('Fallback');
 });

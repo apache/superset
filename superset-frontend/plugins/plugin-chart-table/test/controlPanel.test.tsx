@@ -30,15 +30,12 @@ import {
 } from '@superset-ui/chart-controls';
 import config from '../src/controlPanel';
 
-const findConditionalFormattingControl = (): ControlConfig | null => {
+const findNamedControl = (name: string): ControlConfig | null => {
   for (const section of config.controlPanelSections) {
     if (!section) continue;
     for (const row of section.controlSetRows) {
       for (const control of row) {
-        if (
-          isCustomControlItem(control) &&
-          control.name === 'conditional_formatting'
-        ) {
+        if (isCustomControlItem(control) && control.name === name) {
           return control.config;
         }
       }
@@ -46,6 +43,12 @@ const findConditionalFormattingControl = (): ControlConfig | null => {
   }
   return null;
 };
+
+const findOrderingControl = (): ControlConfig | null =>
+  findNamedControl('order_by_cols');
+
+const findConditionalFormattingControl = (): ControlConfig | null =>
+  findNamedControl('conditional_formatting');
 
 const findMetricsMapStateToProps = ():
   | ControlConfig['mapStateToProps']
@@ -100,6 +103,59 @@ const createMockExplore = (
   } as QueryFormData,
   common: {},
   metadata: {},
+});
+
+test('semantic view raw ordering offers only selected dimensions', () => {
+  const ordering = findOrderingControl();
+  expect(ordering?.mapStateToProps).toBeTruthy();
+
+  const explore: ControlPanelState = {
+    ...createMockExplore(undefined),
+    datasource: {
+      type: 'semantic_view',
+      order_by_choices: [],
+      columns: [
+        { column_name: 'played_at' },
+        { column_name: 'song_name' },
+        { column_name: 'artist_name' },
+      ],
+    } as unknown as Dataset,
+    controls: {
+      all_columns: createMockControlState(['played_at', 'song_name']),
+    },
+  };
+
+  expect(
+    ordering!.mapStateToProps!(explore, createMockControlState(undefined))
+      .choices,
+  ).toEqual([
+    ['["played_at",true]', 'played_at [asc]'],
+    ['["played_at",false]', 'played_at [desc]'],
+    ['["song_name",true]', 'song_name [asc]'],
+    ['["song_name",false]', 'song_name [desc]'],
+  ]);
+});
+
+test('dataset raw ordering retains datasource choices', () => {
+  const ordering = findOrderingControl();
+  expect(ordering?.mapStateToProps).toBeTruthy();
+
+  const explore: ControlPanelState = {
+    ...createMockExplore(undefined),
+    datasource: {
+      type: 'table',
+      order_by_choices: [['["played_at",false]', 'Played at [desc]']],
+      columns: [{ column_name: 'played_at' }],
+    } as unknown as Dataset,
+    controls: {
+      all_columns: createMockControlState(['played_at']),
+    },
+  };
+
+  expect(
+    ordering!.mapStateToProps!(explore, createMockControlState(undefined))
+      .choices,
+  ).toEqual([['["played_at",false]', 'Played at [desc]']]);
 });
 
 const createMockChart = () => ({
@@ -415,4 +471,26 @@ test('columnOptions defaults type_generic to String when missing from datasource
       }),
     ]),
   );
+});
+
+test('column_config mapStateToProps expands comparison columns for metrics', () => {
+  const controlConfig = findNamedControl('column_config');
+  const explore = {
+    ...createMockExplore(['1 year ago']),
+    form_data: {
+      ...createMockExplore(['1 year ago']).form_data,
+      metrics: ['col1'],
+    },
+  };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    createMockChart(),
+  );
+
+  expect(result.columnsPropsObject.colnames).toEqual(
+    expect.arrayContaining(['Main col1', '# col1', '△ col1', '% col1']),
+  );
+  expect(result.columnsPropsObject.childColumnMap['Main col1']).toBe(false);
+  expect(result.columnsPropsObject.childColumnMap['# col1']).toBe(true);
 });

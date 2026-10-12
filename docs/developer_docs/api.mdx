@@ -54,6 +54,14 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 ---
 
+### Database connection secrets
+
+The create (`POST /api/v1/database/`) and update (`PUT /api/v1/database/{pk}`)
+responses mask sensitive fields in `result.masked_encrypted_extra` with `XXXXXXXXXX`,
+using the same engine-specific masking as `GET /api/v1/database/{pk}/connection`.
+The submitted secrets are still stored. Sending the masked values back in a later
+update preserves the stored secrets; send new values to replace them.
+
 ### API Endpoints
 
 #### Core Resources
@@ -186,6 +194,16 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `POST` | [Validate database connection parameters](/developer-docs/api/validate-database-connection-parameters) | `/api/v1/database/validate_parameters/` |
 
 </details>
+
+The database OAuth2 callback at `/api/v1/database/oauth2/` returns HTTP 400
+when authorization is denied or callback state is missing or invalid. Provider
+error text is not echoed in the response; authorization denials use the message
+"The OAuth2 provider denied the request". Restart the OAuth2 flow to retry.
+
+When a database rejects an OAuth2 access token, connection and metadata
+inspection attempt one forced refresh and retry. Reopening a connection inside
+that query retry does not trigger another exchange. If the replacement token is
+also rejected, Superset asks the user to sign in again.
 
 #### Data Exploration
 

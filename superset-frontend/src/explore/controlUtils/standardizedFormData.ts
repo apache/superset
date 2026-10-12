@@ -41,6 +41,10 @@ export const sharedMetricsKey = [
   'x', // via sharedControls, scalar
   'y', // via sharedControls, scalar
   'secondary_metric', // via sharedControls, scalar
+  'open', // candlestick
+  'close', // candlestick
+  'high', // candlestick
+  'low', // candlestick
 ];
 export const sharedColumnsKey = [
   'groupby', // via sharedControls, array

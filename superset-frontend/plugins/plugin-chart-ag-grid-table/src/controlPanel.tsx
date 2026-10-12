@@ -42,6 +42,8 @@ import {
   ConditionalFormattingConfig,
   ObjectFormattingEnum,
   ColorSchemeEnum,
+  getHeaderGroupsControlProps,
+  getTimeComparisonColumnKeys,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -63,12 +65,8 @@ import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 /**
  * Generate comparison column names for a given column.
  */
-const generateComparisonColumns = (colname: string) => [
-  `${t('Main')} ${colname}`,
-  `# ${colname}`,
-  `△ ${colname}`,
-  `% ${colname}`,
-];
+const generateComparisonColumns = (colname: string) =>
+  getTimeComparisonColumnKeys(colname);
 
 /**
  * Generate column types for the comparison columns.
@@ -533,6 +531,43 @@ const config: ControlPanelConfig = {
               description: t(
                 'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'json_in_cell',
+            config: {
+              type: 'CheckboxControl',
+              label: t('JSON in cell'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Add an arrow on the left of collapsed JSON. A click on the arrow expands the value in the row. The icon on the right opens it in a dialog.',
+              ),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Multi-level header'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'header_groups',
+            config: {
+              type: 'HeaderGroupsControl',
+              label: t('Column groups'),
+              default: [],
+              renderTrigger: true,
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                return getHeaderGroupsControlProps(explore, chart);
+              },
             },
           },
         ],

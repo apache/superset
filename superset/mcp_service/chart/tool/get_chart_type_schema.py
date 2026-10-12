@@ -22,6 +22,8 @@ MCP tool: get_chart_type_schema
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
+from functools import lru_cache
 from typing import Any, Dict
 
 from pydantic import TypeAdapter
@@ -32,6 +34,10 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BubbleChartConfig,
+    BulletChartConfig,
+    CountryMapChartConfig,
+    DeckScatterChartConfig,
     GanttChartConfig,
     GaugeChartConfig,
     HandlebarsChartConfig,
@@ -40,9 +46,11 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SunburstChartConfig,
     TableChartConfig,
     TreemapChartConfig,
     WaterfallChartConfig,
+    WorldMapChartConfig,
     XYChartConfig,
 )
 
@@ -61,9 +69,14 @@ class ChartTypeSchemaResponse(TypedDict, total=False):
 
 # Module-level TypeAdapters — one per chart type, compiled once.
 _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
+    "country_map": TypeAdapter(CountryMapChartConfig),
+    "world_map": TypeAdapter(WorldMapChartConfig),
+    "deck_scatter": TypeAdapter(DeckScatterChartConfig),
     "xy": TypeAdapter(XYChartConfig),
+    "bullet": TypeAdapter(BulletChartConfig),
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
+    "sunburst": TypeAdapter(SunburstChartConfig),
     "gauge": TypeAdapter(GaugeChartConfig),
     "treemap_v2": TypeAdapter(TreemapChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
@@ -73,6 +86,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "big_number": TypeAdapter(BigNumberChartConfig),
     "histogram": TypeAdapter(HistogramChartConfig),
     "box_plot": TypeAdapter(BoxPlotChartConfig),
+    "bubble_v2": TypeAdapter(BubbleChartConfig),
     "waterfall": TypeAdapter(WaterfallChartConfig),
     "gantt": TypeAdapter(GanttChartConfig),
 }
@@ -81,6 +95,30 @@ VALID_CHART_TYPES = sorted(_CHART_TYPE_ADAPTERS.keys())
 
 # Per-type examples — lightweight inline examples for each chart type.
 _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
+    "country_map": [
+        {
+            "chart_type": "country_map",
+            "country": "usa",
+            "region_format": "abbreviation",
+            "entity": {"name": "state"},
+            "metric": {"name": "sales", "aggregate": "SUM"},
+        }
+    ],
+    "world_map": [
+        {
+            "chart_type": "world_map",
+            "country_format": "cca2",
+            "entity": {"name": "country"},
+            "metric": {"name": "sales", "aggregate": "SUM"},
+        }
+    ],
+    "deck_scatter": [
+        {
+            "chart_type": "deck_scatter",
+            "latitude": {"name": "latitude"},
+            "longitude": {"name": "longitude"},
+        }
+    ],
     "xy": [
         {
             "chart_type": "xy",
@@ -94,6 +132,26 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "kind": "bar",
             "x": {"name": "category"},
             "y": [{"name": "sales", "aggregate": "SUM"}],
+        },
+    ],
+    "bullet": [
+        {
+            "chart_type": "bullet",
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "ranges": [100000, 250000, 500000],
+            "range_labels": ["Minimum", "Target", "Stretch"],
+            "markers": [300000],
+            "marker_labels": ["Plan"],
+            "show_labels": True,
+        },
+        {
+            "chart_type": "bullet",
+            "metric": {"name": "attainment", "saved_metric": True},
+            "dimensions": [{"name": "region"}],
+            "marker_lines": [1],
+            "marker_line_labels": ["Goal"],
+            "y_axis_format": ".0%",
+            "row_limit": 100,
         },
     ],
     "table": [
@@ -111,6 +169,25 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "chart_type": "pie",
             "dimension": {"name": "region"},
             "metric": {"name": "revenue", "aggregate": "SUM"},
+        },
+    ],
+    "sunburst": [
+        {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "region"}, {"name": "country"}],
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+            "show_labels": True,
+            "sort_by_metric": True,
+        },
+        {
+            "chart_type": "sunburst",
+            "hierarchy": [{"name": "division"}, {"name": "product"}],
+            "metric": {"name": "revenue", "saved_metric": True},
+            "secondary_metric": {
+                "sql_expression": "SUM(profit)",
+                "label": "Profit",
+            },
+            "linear_color_scheme": "superset_seq_1",
         },
     ],
     "pivot_table": [
@@ -208,6 +285,15 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "percentile_high": 90,
         },
     ],
+    "bubble_v2": [
+        {
+            "chart_type": "bubble_v2",
+            "entity": {"name": "country"},
+            "x": {"name": "gdp", "aggregate": "AVG"},
+            "y": {"name": "life_expectancy", "aggregate": "AVG"},
+            "size": {"name": "population", "aggregate": "SUM"},
+        },
+    ],
     "waterfall": [
         {
             "chart_type": "waterfall",
@@ -245,8 +331,25 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "groupby": [{"name": "region"}, {"name": "product"}],
             "metric": {"name": "revenue", "aggregate": "SUM"},
         },
+        {
+            "chart_type": "treemap_v2",
+            "groupby": [{"name": "region"}, {"name": "product"}],
+            "metric": {"name": "total_revenue", "saved_metric": True},
+            "show_labels": True,
+            "show_upper_labels": True,
+            "label_type": "key_value",
+            "number_format": ",.2f",
+            "sort_by_metric": False,
+            "row_limit": 100,
+        },
     ],
 }
+
+
+@lru_cache(maxsize=len(_CHART_TYPE_ADAPTERS))
+def _compiled_chart_schema(chart_type: str) -> dict[str, Any]:
+    """Compile static adapter schemas once; callers must copy before exposing them."""
+    return _CHART_TYPE_ADAPTERS[chart_type].json_schema()
 
 
 def _get_chart_type_schema_impl(
@@ -303,7 +406,7 @@ def _get_chart_type_schema_impl(
             "valid_chart_types": enabled_types,
         }
 
-    schema = adapter.json_schema()
+    schema = deepcopy(_compiled_chart_schema(chart_type))
     result: ChartTypeSchemaResponse = {
         "chart_type": chart_type,
         "schema": schema,
@@ -335,10 +438,11 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, gauge, treemap_v2, pivot_table, mixed_timeseries, handlebars,
-    big_number, histogram, box_plot, waterfall, and gantt. Deployments that enable an
-    AG Grid
-    pivot extension also expose interactive_pivot.
+    country_map, world_map, deck_scatter, table, pie, sunburst, bullet, gauge,
+    treemap_v2,
+    bubble_v2, pivot_table, mixed_timeseries, handlebars, big_number, histogram,
+    box_plot, waterfall, and gantt. Deployments that enable an AG Grid pivot
+    extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally
     with working examples.

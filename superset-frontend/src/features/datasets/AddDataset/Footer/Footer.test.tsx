@@ -161,10 +161,7 @@ describe('Footer', () => {
     await userEvent.click(dropdownTrigger);
 
     // Click the "Create dataset" option
-    await waitFor(() => {
-      const datasetOnlyOption = screen.getByText('Create dataset');
-      userEvent.click(datasetOnlyOption);
-    });
+    await userEvent.click(await screen.findByText('Create dataset'));
 
     await waitFor(() => {
       expect(mockCreateResource).toHaveBeenCalledWith({

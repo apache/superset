@@ -179,7 +179,10 @@ export interface ExplorePageState {
     hiddenFormData?: Partial<QueryFormData>;
     slice: Slice;
     controlsTransferred: string[];
-    standalone: boolean;
+    // Set by hydrateExplore from getUrlParam(URL_PARAMS.standalone), so it is the
+    // coerced numeric mode (or null when absent/unparseable), not the backend's
+    // boolean `is_standalone_mode()`. See ExploreViewContainer's mapStateToProps.
+    standalone: number | null;
     force: boolean;
     common: JsonObject;
     compatibility?: CompatibilityResult;

@@ -119,4 +119,5 @@ export interface DateFilterControlProps {
   description?: ReactNode;
   label?: ReactNode;
   tooltipOnClick?: () => void;
+  displayFormat?: string;
 }

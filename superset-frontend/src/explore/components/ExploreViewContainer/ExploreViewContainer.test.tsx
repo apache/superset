@@ -27,6 +27,8 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import { MemoryRouter, Route, Router } from 'react-router-dom';
 import type { RouteComponentProps } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
@@ -41,6 +43,7 @@ import {
 import { Store } from '@reduxjs/toolkit';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import * as exploreActions from 'src/explore/actions/exploreActions';
+import * as chartActions from 'src/components/Chart/chartAction';
 import ExploreViewContainer from '.';
 
 jest.doMock('@superset-ui/core', () => ({
@@ -117,10 +120,13 @@ jest.mock('../ExploreChartPanel', () => ({
     standalone,
     onQuery,
   }: {
-    standalone?: boolean;
+    standalone?: number;
     onQuery?: () => void;
   }) => {
     const { useEffect, useRef } = jest.requireActual('react');
+    const { ExploreStandaloneMode } = jest.requireActual(
+      'src/explore/constants',
+    );
     const hasQueried = useRef(false);
 
     useEffect(() => {
@@ -130,9 +136,17 @@ jest.mock('../ExploreChartPanel', () => ({
       }
     }, [onQuery]);
 
-    return (
-      <div data-test={standalone ? 'standalone-app' : 'explore-chart-panel'} />
-    );
+    // Distinct markers per mode so a test can tell mode 2 from mode 0: both
+    // render the editor, and asserting only the absence of `standalone-app`
+    // would pass for either.
+    const marker =
+      standalone === ExploreStandaloneMode.HideNav
+        ? 'standalone-app'
+        : standalone === ExploreStandaloneMode.HideNavShowControls
+          ? 'explore-chart-panel-hide-nav'
+          : 'explore-chart-panel';
+
+    return <div data-test={marker} />;
   },
 }));
 
@@ -261,6 +275,89 @@ const renderWithRouter = ({
   return { ...result, history };
 };
 
+test('fetches datasource metadata when the datasource changes', async () => {
+  const datasourceKey = '2__table';
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+    },
+  };
+  fetchMock.get(
+    `glob:*/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+    {
+      id: 2,
+      type: 'table',
+      columns: [],
+      metrics: [],
+    },
+  );
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store: store as Store });
+
+  act(() => {
+    store.dispatch(
+      exploreActions.setControlValue('datasource', datasourceKey, []),
+    );
+  });
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.called(
+        `glob:*/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+      ),
+    ).toBe(true),
+  );
+});
+
+test('shows an error when fetching datasource metadata fails', async () => {
+  const datasourceKey = '3__table';
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+    },
+  };
+  fetchMock.get(
+    `glob:*/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+    500,
+  );
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store: store as Store });
+
+  act(() => {
+    store.dispatch(
+      exploreActions.setControlValue('datasource', datasourceKey, []),
+    );
+  });
+
+  await waitFor(() =>
+    expect(
+      (
+        store.getState() as unknown as {
+          messageToasts: { text: string }[];
+        }
+      ).messageToasts,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          text: 'Failed to load datasource metadata',
+        }),
+      ]),
+    ),
+  );
+});
+
 test('generates a new form_data param when none is available', async () => {
   getChartMetadataRegistry().registerValue(
     'table',
@@ -285,14 +382,58 @@ test('generates a new form_data param when none is available', async () => {
   replaceSpy.mockRestore();
 });
 
-test('renders chart in standalone mode', () => {
-  const { queryByTestId } = renderWithRouter({
-    initialState: {
-      ...reduxState,
-      explore: { ...reduxState.explore, standalone: true },
+// Mirrors production: hydrateExplore seeds `explore.standalone` from
+// getUrlParam(URL_PARAMS.standalone), so it holds the coerced numeric mode ('true'
+// arrives as 1) or null. Deriving it from the same search string here keeps the
+// fixture honest instead of hardcoding a boolean the app never stores.
+const standaloneState = (search: string) => ({
+  search,
+  initialState: {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      standalone: getUrlParam(URL_PARAMS.standalone, search),
     },
-  });
+  },
+});
+
+test('renders chart in standalone mode', () => {
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=1'));
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('preserves legacy standalone=true as chart-only mode', () => {
+  // Backwards compatibility for links created before numeric modes existed.
+  // `standalone` is declared a number param, so getUrlParam maps 'true' to 1;
+  // the backend also still treats 'true' as standalone. Old bookmarks, embeds
+  // and report URLs must keep rendering chart-only rather than the full editor.
+  const { queryByTestId } = renderWithRouter(
+    standaloneState('?standalone=true'),
+  );
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('renders chart-only for report captures (standalone=3)', () => {
+  // ChartStandaloneMode.REPORT. Report and thumbnail captures must stay
+  // chart-only; 3 is also what the backend's truthiness check accepts, so this
+  // doubles as coverage for any value it allows that is not the mode 2 opt-in.
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=3'));
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('renders full editor in standalone=2 mode (hide nav, show controls)', () => {
+  const { queryByTestId } = renderWithRouter(standaloneState('?standalone=2'));
+  expect(queryByTestId('standalone-app')).not.toBeInTheDocument();
+  // Positive assertion on the mode-2 marker: without it this test would also
+  // pass for mode 0, since both render the editor.
+  expect(queryByTestId('explore-chart-panel-hide-nav')).toBeInTheDocument();
+});
+
+test('renders the normal editor when standalone is absent', () => {
+  const { queryByTestId } = renderWithRouter({ search: '' });
+  expect(queryByTestId('explore-chart-panel')).toBeInTheDocument();
+  expect(queryByTestId('standalone-app')).not.toBeInTheDocument();
+  expect(queryByTestId('explore-chart-panel-hide-nav')).not.toBeInTheDocument();
 });
 
 test('generates a form_data param with datasource_id when mounting with existing key', async () => {
@@ -795,6 +936,75 @@ test('shows error indicator with function labels', async () => {
   expect(tooltip).toBeInTheDocument();
 
   expect(await screen.findByText(/Metric is required/)).toBeInTheDocument();
+});
+
+const renderAfterInitialQuery = async (initialState: object) => {
+  const triggerQuerySpy = jest.spyOn(chartActions, 'triggerQuery');
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store: store as Store });
+  // the mocked chart panel queries on mount; finish it like a real chart would
+  await waitFor(() => expect(triggerQuerySpy).toHaveBeenCalled());
+  act(() => {
+    store.dispatch(chartActions.chartUpdateSucceeded([], 1));
+  });
+  triggerQuerySpy.mockClear();
+  return { store, triggerQuerySpy };
+};
+
+test('Ctrl+Enter runs the query when controls are valid', async () => {
+  const { triggerQuerySpy } = await renderAfterInitialQuery(reduxState);
+
+  await userEvent.keyboard('{Control>}{Enter}{/Control}');
+
+  expect(triggerQuerySpy).toHaveBeenCalledWith(true, 1);
+});
+
+test('Cmd+Enter runs the query when controls are valid', async () => {
+  const { triggerQuerySpy } = await renderAfterInitialQuery(reduxState);
+
+  await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+
+  expect(triggerQuerySpy).toHaveBeenCalledWith(true, 1);
+});
+
+test('Ctrl/Cmd+Enter does not run the query when controls have validation errors', async () => {
+  const { triggerQuerySpy } = await renderAfterInitialQuery({
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      controls: {
+        ...reduxState.explore.controls,
+        metric: {
+          value: '',
+          label: 'Metric',
+          validationErrors: ['Metric is required'],
+        },
+      },
+    },
+  });
+
+  await userEvent.keyboard('{Control>}{Enter}{/Control}');
+  await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+
+  expect(triggerQuerySpy).not.toHaveBeenCalled();
+});
+
+test('Ctrl/Cmd+Enter does not run the query while the chart is loading', async () => {
+  const { store, triggerQuerySpy } = await renderAfterInitialQuery(reduxState);
+  act(() => {
+    store.dispatch(
+      chartActions.chartUpdateStarted(
+        new AbortController(),
+        reduxState.charts[1].latestQueryFormData,
+        1,
+      ),
+    );
+  });
+
+  await userEvent.keyboard('{Control>}{Enter}{/Control}');
+  await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+
+  expect(triggerQuerySpy).not.toHaveBeenCalled();
 });
 
 function setupTableChartControlPanel() {

@@ -100,6 +100,11 @@ interface PivotTableCustomizeProps {
   colSubTotals: boolean;
   rowTotals: boolean;
   rowSubTotals: boolean;
+  /**
+   * When row subtotals are shown, start with every row group collapsed.
+   * Viewers can still expand each group with its arrow.
+   */
+  collapseRows?: boolean;
   valueFormat: string;
   currencyFormat: Currency;
   currencyCodeColumn?: string;

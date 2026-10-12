@@ -74,13 +74,16 @@ jest.mock('./utils/pathUtils', () => ({
 }));
 jest.mock('./hooks/useLocale', () => ({}));
 
-const bootstrapData = (locale?: string) => ({
+const bootstrapData = (
+  locale?: string,
+  featureFlags: Record<string, boolean> = {},
+) => ({
   common: {
     d3_format: {},
     d3_time_format: {},
     extra_categorical_color_schemes: [],
     extra_sequential_color_schemes: [],
-    feature_flags: {},
+    feature_flags: featureFlags,
     locale,
   },
   user: {
@@ -173,6 +176,28 @@ test('loads no language pack at all for English', async () => {
   // The translator is configured bare (identity translations), never with
   // a pack: English pays zero payload.
   expect(mockConfigure).toHaveBeenCalledWith();
+  fetchSpy.mockRestore();
+});
+
+test('initializes feature flags before the fallback language-pack fetch', async () => {
+  // Regression test for #37310: plugins that call isFeatureEnabled() during
+  // module import (e.g. embedded entry points, which don't await
+  // initPreamble()) must see flags that are already initialized, even on
+  // the non-English fallback-fetch path where an await yields control.
+  const featureFlags = { EMBEDDED_SUPERSET: true };
+  mockGetBootstrapData.mockReturnValue(bootstrapData('fr', featureFlags));
+  const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve(FAKE_PACK),
+  } as unknown as Response);
+
+  await runPreamble();
+
+  expect(mockInitFeatureFlags).toHaveBeenCalledWith(featureFlags);
+  expect(fetchSpy).toHaveBeenCalledTimes(1);
+  expect(mockInitFeatureFlags.mock.invocationCallOrder[0]).toBeLessThan(
+    fetchSpy.mock.invocationCallOrder[0],
+  );
   fetchSpy.mockRestore();
 });
 

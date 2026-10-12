@@ -36,7 +36,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.expression import ColumnClause
 from sqlalchemy.types import Date, DateTime, String
 
-from superset.constants import TimeGrain
+from superset.constants import EPOCH_FORMATS, TimeGrain
 from superset.db_engine_specs.base import (
     AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
     BaseEngineSpec,
@@ -289,12 +289,6 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
-        if not cursor.description:
-            return []
-        return super().fetch_data(cursor, limit)
-
-    @classmethod
     def epoch_to_dttm(cls) -> str:
         return "(timestamp 'epoch' + {col} * interval '1 second')"
 
@@ -322,11 +316,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
         """
         expr = super().get_timestamp_expr(col, pdf, time_grain)
         col_type = getattr(col, "type", None)
-        if (
-            time_grain
-            and isinstance(col_type, String)
-            and pdf not in ("epoch_s", "epoch_ms")
-        ):
+        if time_grain and isinstance(col_type, String) and pdf not in EPOCH_FORMATS:
             expr = TimestampExpression(
                 expr.name.replace("{col}", "CAST({col} AS TIMESTAMP)"),
                 col,
@@ -635,6 +625,40 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
                 "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
+            },
+            {
+                "name": "ClickHouse Managed Postgres",
+                "description": "Managed PostgreSQL from ClickHouse.",
+                "logo": "clickhouse.png",
+                "homepage_url": "https://clickhouse.com/cloud/postgres",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql+psycopg2://{username}:{password}"
+                    "@{host}:{port}/{database}?sslmode=verify-full"
+                    "&sslrootcert={ca_certificate_path}"
+                ),
+                "parameters": {
+                    "username": "Database user",
+                    "password": "URL-encoded database password",
+                    "host": "Direct PostgreSQL hostname from the Connect dialog",
+                    "port": "Port from the Connect dialog (default: 5432)",
+                    "database": "Database name",
+                    "ca_certificate_path": (
+                        "URL-encoded absolute path to the instance CA certificate "
+                        "on the Superset server"
+                    ),
+                },
+                "notes": (
+                    "In ClickHouse Cloud, open the Connect menu and use the "
+                    "Directly option. Download the instance-specific CA certificate "
+                    "from Settings and make it available to each Superset process "
+                    "that connects to the database. Use verify-full to verify "
+                    "the certificate and hostname."
+                ),
+                "docs_url": (
+                    "https://clickhouse.com/docs/products/managed-postgres/connection"
+                ),
+                "categories": [DatabaseCategory.HOSTED_OPEN_SOURCE],
             },
         ],
     }

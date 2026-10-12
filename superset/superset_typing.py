@@ -162,6 +162,15 @@ Metric: TypeAlias = AdhocMetric | str
 OrderBy: TypeAlias = tuple[Metric | Column, bool]
 
 
+class FetchedRows(list[tuple[Any, ...]]):
+    """List-compatible engine results carrying fetch truncation metadata."""
+
+    def __init__(self, rows: list[tuple[Any, ...]], *, truncated: bool) -> None:
+        """Keep engine truncation with the rows, independent of Flask context."""
+        super().__init__(rows)
+        self.truncated = truncated
+
+
 class QueryObjectDict(TypedDict, total=False):
     """
     TypedDict representation of query objects used throughout Superset.
@@ -300,6 +309,8 @@ class ExplorableData(TypedDict, total=False):
         always_filter_main_dttm: Whether to always filter on main datetime
         normalize_columns: Whether to normalize column names
     """
+
+    semantic_selection_version: str | None
 
     # Core fields from BaseDatasource.data
     id: int | str  # String for UUID-based explorables like SemanticView

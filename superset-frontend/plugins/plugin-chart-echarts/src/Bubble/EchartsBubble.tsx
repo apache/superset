@@ -74,6 +74,7 @@ function buildDrillFilters(
     return { col, op: '==' as const, val: value, formattedVal };
   });
 }
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 
 export default function EchartsBubble(props: BubbleChartTransformedProps) {
   const {
@@ -87,6 +88,8 @@ export default function EchartsBubble(props: BubbleChartTransformedProps) {
     setDataMask = noop,
     onContextMenu,
     coltypeMapping,
+    onLegendStateChanged,
+    onLegendScroll,
   } = props;
   const { entity, series, dateFormat } = formData;
 
@@ -149,11 +152,16 @@ export default function EchartsBubble(props: BubbleChartTransformedProps) {
     setDataMask,
   ]);
 
+  const eventHandlers = useLegendEventHandlers(
+    onLegendStateChanged,
+    onLegendScroll,
+  );
   return (
     <Echart
       height={height}
       width={width}
       echartOptions={echartOptions}
+      eventHandlers={eventHandlers}
       refs={refs}
       eventHandlers={eventHandlers}
       vizType={formData.vizType}

@@ -69,6 +69,7 @@ def mock_query() -> MagicMock:
     query.results_key = None
     query.select_as_cta = False
     query.rows = 0
+    query.limit = None
     query.to_dict = MagicMock(return_value={"id": 123})
     query.database = MagicMock()
     query.database.db_engine_spec.extract_errors.return_value = []
@@ -113,6 +114,7 @@ def mock_result_set() -> MagicMock:
     """Create a mock SupersetResultSet."""
     result_set = MagicMock()
     result_set.size = 2
+    result_set.truncated = False
     result_set.columns = [{"name": "id"}, {"name": "name"}]
     result_set.pa_table = MagicMock()
     result_set.to_pandas_df = MagicMock(
@@ -275,6 +277,7 @@ def mock_query_execution(
 
     # Create a real SupersetResultSet that converts to DataFrame properly
     mock_result_set = MagicMock(spec=SupersetResultSet)
+    mock_result_set.truncated = False
     mock_result_set.to_pandas_df.return_value = pd.DataFrame(
         return_data, columns=column_names
     )

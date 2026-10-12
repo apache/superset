@@ -48,6 +48,8 @@ from superset.commands.utils import (
 )
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.report import ReportScheduleDAO
+from superset.dashboards.layout import repair_position
+from superset.dashboards.schemas import validate_css
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
@@ -97,10 +99,12 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     ObjectType.dashboard, self._model.id, self._model.tags, tags
                 )
 
-            # Re-serialize position_json to escape 4-byte Unicode characters
+            # Re-serialize position_json to escape 4-byte Unicode characters,
+            # repairing a layout that carries detached components on the way
+            # through.
             if position_json := self._properties.get("position_json"):
                 self._properties["position_json"] = json.dumps(
-                    json.loads(position_json)
+                    repair_position(json.loads(position_json), self._model_id)
                 )
 
             # ``set_dash_metadata`` merges the incoming metadata against
@@ -164,6 +168,24 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             validate_tags(ObjectType.dashboard, self._model.tags, tag_ids)
         except ValidationError as ex:
             exceptions.append(ex)
+
+        # A dashboard PUT resends the full object on every save, so only
+        # validate css when it's actually changing -- otherwise a dashboard
+        # whose existing css predates this check (or was imported without
+        # going through it) becomes uneditable for unrelated changes like a
+        # rename or a chart move.
+        if "css" in self._properties:
+            new_css = self._properties["css"]
+            if new_css != self._model.css:
+                try:
+                    validate_css(new_css)
+                except ValidationError as ex:
+                    # Re-key under "css" -- validate_css() raises with the
+                    # default "_schema" field_name, since it's also used as
+                    # a marshmallow field validator elsewhere, where
+                    # marshmallow assigns the field name itself regardless
+                    # of what's set here.
+                    exceptions.append(ValidationError(ex.messages, field_name="css"))
 
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)

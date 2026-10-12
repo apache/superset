@@ -16,9 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { supersetTheme } from '@apache-superset/core/theme';
+import {
+  supersetTheme,
+  Theme,
+  ThemeAlgorithm,
+} from '@apache-superset/core/theme';
+import { ThemeProvider } from '@emotion/react';
+import tinycolor from 'tinycolor2';
 import { DatasetTypeLabel } from './DatasetTypeLabel';
 import { renderWithTheme } from './testUtils';
 
@@ -126,3 +132,41 @@ test('partial token override uses custom bg with default color fallback', () => 
     color: supersetTheme.colorPrimaryText,
   });
 });
+
+test('renders the semantic badge icon and preserves the default label', () => {
+  renderWithTheme(<DatasetTypeLabel datasetType="semantic_view" />);
+  expect(screen.getByTestId('dataset-type-label')).toHaveTextContent(
+    'Semantic',
+  );
+  expect(screen.getByRole('img', { name: 'apartment' })).toBeInTheDocument();
+});
+
+test('accepts page-specific semantic label text', () => {
+  renderWithTheme(
+    <DatasetTypeLabel datasetType="semantic_view" label="Semantic View" />,
+  );
+  expect(screen.getByTestId('dataset-type-label')).toHaveTextContent(
+    'Semantic View',
+  );
+});
+
+test.each([ThemeAlgorithm.DEFAULT, ThemeAlgorithm.DARK])(
+  'semantic badge keeps readable themed text and icon in %s mode',
+  algorithm => {
+    const { theme } = Theme.fromConfig({ algorithm });
+    render(
+      <ThemeProvider theme={theme}>
+        <DatasetTypeLabel datasetType="semantic_view" />
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId('dataset-type-label')).toHaveStyle({
+      color: theme.colorText,
+    });
+    expect(screen.getByRole('img', { name: 'apartment' })).toHaveStyle({
+      color: theme.colorText,
+    });
+    expect(
+      tinycolor.readability(theme.colorText, theme.colorInfoBg),
+    ).toBeGreaterThanOrEqual(4.5);
+  },
+);

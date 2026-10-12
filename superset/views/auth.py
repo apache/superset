@@ -18,7 +18,7 @@
 import logging
 from typing import Optional
 
-from flask import g, redirect
+from flask import g, get_flashed_messages, redirect
 from flask_appbuilder import expose
 from flask_appbuilder.const import LOGMSG_ERR_SEC_NO_REGISTER_HASH
 from flask_appbuilder.security.decorators import no_cache
@@ -39,7 +39,14 @@ class SupersetAuthView(BaseSupersetView, AuthView):
         if g.user is not None and g.user.is_authenticated:
             return redirect(self.appbuilder.get_url_for_index)
 
-        return super().render_app_template()
+        # Drain pending flash messages (failed logins, session
+        # invalidation, forced password change) so they render here
+        # instead of accumulating in the session. This must go through
+        # per-request extra_bootstrap_data, never the cached common
+        # bootstrap payload, so messages can't bleed between users.
+        return super().render_app_template(
+            {"auth_messages": get_flashed_messages(with_categories=True)}
+        )
 
 
 class SupersetRegisterUserView(BaseSupersetView):

@@ -71,6 +71,7 @@ jobs:
               {"dialect": "trino", "timeout": 10},
               {"dialect": "mssql", "timeout": 10},
               {"dialect": "elasticsearch", "timeout": 10},
+              {"dialect": "opensearch", "timeout": 10},
               {"dialect": "oracle", "timeout": 15},
               {"dialect": "db2", "timeout": 25},
               {"dialect": "mariadb", "timeout": 10},

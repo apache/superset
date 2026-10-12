@@ -17,7 +17,11 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { QueryFormData, SupersetClient } from '@superset-ui/core';
+import {
+  BinaryQueryObjectFilterClause,
+  QueryFormData,
+  SupersetClient,
+} from '@superset-ui/core';
 import {
   fireEvent,
   render,
@@ -50,6 +54,9 @@ const waitForRender = (overrides: Record<string, any> = {}) =>
 
 const SAMPLES_ENDPOINT =
   'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1';
+
+const SAMPLES_ENDPOINT_PAGE_2 =
+  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=2';
 
 const DATASET_ENDPOINT = 'glob:*/api/v1/dataset/*';
 
@@ -138,6 +145,26 @@ const fetchWithPaginatedData = () => {
           eu_sales: 6.18,
         },
       ],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+};
+
+const fetchWithTwoPages = () => {
+  setupDatasetEndpoint();
+  fetchMock.post(SAMPLES_ENDPOINT, {
+    result: {
+      total_count: 100,
+      data: [{ year: 1996, na_sales: 11.27, eu_sales: 8.89 }],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+  fetchMock.post(SAMPLES_ENDPOINT_PAGE_2, {
+    result: {
+      total_count: 100,
+      data: [{ year: 2020, na_sales: 42.42, eu_sales: 24.24 }],
       colnames: ['year', 'na_sales', 'eu_sales'],
       coltypes: [0, 0, 0],
     },
@@ -415,4 +442,49 @@ test('renders a semantic-view resource with Not available metadata rows', async 
   expect(await screen.findByText('orders')).toBeInTheDocument();
   const notAvailable = await screen.findAllByText('Not available');
   expect(notAvailable.length).toBeGreaterThan(0);
+});
+
+test('resets to page 1 and refetches when the drill filters change', async () => {
+  jest.restoreAllMocks();
+  fetchWithTwoPages();
+  const initialFilters: BinaryQueryObjectFilterClause[] = [
+    { col: 'year', op: '==', val: 1996, formattedVal: '1996' },
+  ];
+  await waitForRender({ initialFilters });
+  expect(await screen.findByText('11.27')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByTitle('2'));
+  expect(await screen.findByText('42.42')).toBeInTheDocument();
+  expect(screen.queryByText('11.27')).not.toBeInTheDocument();
+
+  // Removing the filter tag changes `filters`, which should clear the cached
+  // pages and drop the pane back to page 1 rather than continuing to request
+  // page 2 under the new filter set.
+  await userEvent.click(screen.getByLabelText('Close'));
+
+  expect(await screen.findByText('11.27')).toBeInTheDocument();
+  expect(screen.queryByText('42.42')).not.toBeInTheDocument();
+  const page1Calls = fetchMock.callHistory.calls(SAMPLES_ENDPOINT);
+  expect(page1Calls).toHaveLength(2);
+  expect(JSON.parse(page1Calls[0].options.body as string).filters).toEqual([
+    expect.objectContaining({ col: 'year', val: 1996 }),
+  ]);
+  expect(JSON.parse(page1Calls[1].options.body as string).filters).toEqual([]);
+});
+
+test('resets to page 1 and refetches on reload', async () => {
+  jest.restoreAllMocks();
+  fetchWithTwoPages();
+  await waitForRender();
+  expect(await screen.findByText('11.27')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByTitle('2'));
+  expect(await screen.findByText('42.42')).toBeInTheDocument();
+  expect(screen.queryByText('11.27')).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Reload' }));
+
+  expect(await screen.findByText('11.27')).toBeInTheDocument();
+  expect(screen.queryByText('42.42')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(SAMPLES_ENDPOINT)).toHaveLength(2);
 });

@@ -20,6 +20,7 @@ import functools
 import inspect
 import logging
 import textwrap
+import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -31,11 +32,97 @@ from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import stats_logger_manager
 from superset.utils import json
 from superset.utils.core import get_user_id, LoggerLevel, to_int
 
 logger = logging.getLogger(__name__)
+
+# The ``logs`` table has an integer column for the dashboard or chart a request
+# touched. This maps the model behind a REST API's ``datamodel`` to that column
+# so every route on the matching API populates it without per-endpoint plumbing.
+LOG_OBJECT_ID_COLUMNS: dict[str, str] = {
+    "Dashboard": "dashboard_id",
+    "Slice": "slice_id",
+}
+
+# Route parameters that identify the single object a REST API route acts on.
+OBJECT_ID_VIEW_ARGS: tuple[str, ...] = (
+    "pk",
+    "id_or_slug",
+    "id_or_uuid",
+    "uuid",
+    "uuid_str",
+)
+
+
+def _resolve_object_id(model: Any, identifier: Any) -> int | None:
+    """
+    Turn a route identifier (id, UUID or slug) into the model's integer id.
+
+    Slugs and UUIDs are looked up bypassing the soft-delete visibility filter so
+    that restore and purge routes can still identify the archived row they act
+    on. Lookup failures never propagate: an unlogged id must not fail a request.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+
+    try:
+        return int(identifier)
+    except (TypeError, ValueError):
+        pass
+
+    try:
+        criterion = model.uuid == uuid.UUID(str(identifier))
+    except ValueError:
+        if not hasattr(model, "slug"):
+            return None
+        criterion = model.slug == str(identifier)
+
+    try:
+        return (
+            db.session.query(model.id)
+            .filter(criterion)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model}})
+            .scalar()
+        )
+    except SQLAlchemyError:
+        logger.debug(
+            "Could not resolve %s %r for event logging", model.__name__, identifier
+        )
+        return None
+
+
+def get_object_ids_from_view_args(
+    view: Any, view_args: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Derive the ``dashboard_id`` / ``slice_id`` log fields for a REST API route.
+
+    ``view`` is the API instance the logged route was called on and
+    ``view_args`` are the keyword arguments Flask passed to it. The result is
+    empty unless the API is backed by a model that ``logs`` has a column for.
+
+    A single-object route (``/<pk>``, ``/<id_or_slug>``, ``/<uuid>``, ...)
+    yields e.g. ``{"dashboard_id": 42}``. A bulk route identified by a rison
+    list of ids yields ``{"dashboard_ids": [...]}`` for the JSON payload
+    instead, since the integer column can only hold one id.
+    """
+    model = getattr(getattr(view, "datamodel", None), "obj", None)
+    column = LOG_OBJECT_ID_COLUMNS.get(getattr(model, "__name__", ""))
+    if column is None:
+        return {}
+
+    for key in OBJECT_ID_VIEW_ARGS:
+        if key in view_args:
+            object_id = _resolve_object_id(model, view_args[key])
+            return {column: object_id} if object_id is not None else {}
+
+    ids = view_args.get("rison")
+    if isinstance(ids, list) and ids and all(isinstance(i, int) for i in ids):
+        return {f"{column}s": ids}
+    return {}
 
 
 def collect_request_payload(include_request_data: bool = True) -> dict[str, Any]:
@@ -321,7 +408,19 @@ class AbstractEventLogger(ABC):
             with self.log_context(
                 action=action_str, object_ref=object_ref_str, **wrapper_kwargs
             ) as log:
-                log(**kwargs)
+                # Resolve the object's id before the route runs so that delete
+                # and purge can still identify the row they are about to remove.
+                # Read the URL's own view args (Flask fills request.view_args
+                # from the route regardless of what a decorator above this one
+                # does to the wrapped function's signature) rather than only
+                # this wrapper's own kwargs, which a decorator like
+                # with_dashboard can empty out by calling the wrapped function
+                # positionally (e.g. f(self, dash)) after resolving the id.
+                view = args[0] if args else None
+                route_args = dict(kwargs)
+                if has_request_context() and request:
+                    route_args.update(request.view_args or {})
+                log(**kwargs, **get_object_ids_from_view_args(view, route_args))
                 if allow_extra_payload:
                     # add a payload updater to the decorated function
                     value = f(*args, add_extra_log_payload=log, **kwargs)

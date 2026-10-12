@@ -18,7 +18,8 @@
 
 import gzip
 import io
-from unittest.mock import patch
+import logging
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -166,14 +167,26 @@ class TestLoadYaml:
             load_yaml("test.yaml", 'key: "unterminated string')
 
 
+def _assert_logged_as_warning(caplog: pytest.LogCaptureFixture, fragment: str) -> None:
+    """Expected, user-input validation failures are already surfaced to the
+    client as a 422; they must be logged at WARNING, never ERROR, so they do
+    not show up as error events in log-based alerting."""
+    matching = [r for r in caplog.records if fragment in r.getMessage()]
+    assert matching, f"no log record containing {fragment!r}"
+    assert all(r.levelno == logging.WARNING for r in matching)
+    assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
+
+
 class TestLoadConfigs:
     """
-    load_configs() merges caller-supplied ``encrypted_extra_secrets`` into the
-    ``masked_encrypted_extra`` field of each config, which comes straight from
-    the imported YAML (before schema validation). A malformed value there used
-    to raise a raw simplejson.JSONDecodeError that escaped uncaught (opaque
-    500); it must instead be collected as a ValidationError like every other
-    per-file failure.
+    Per-file failures inside load_configs() must be collected as
+    ValidationErrors rather than propagating as raw exceptions (opaque 500s):
+
+    - A malformed ``masked_encrypted_extra`` (into which caller-supplied
+      ``encrypted_extra_secrets`` are merged before schema validation) used to
+      raise a raw simplejson.JSONDecodeError.
+    - A config missing its ``uuid`` used to raise a raw KeyError when the
+      password/ssh-tunnel validation looked up ``config["uuid"]``.
     """
 
     @staticmethod
@@ -186,9 +199,20 @@ class TestLoadConfigs:
 
         return TrivialSchema()
 
+    def _database_schemas(self) -> dict[str, object]:
+        from marshmallow import fields, Schema
+
+        class DatabaseSchema(Schema):
+            uuid = fields.UUID(required=True)
+            database_name = fields.String(required=True)
+            sqlalchemy_uri = fields.String(required=True)
+            password = fields.String(required=False, allow_none=True)
+
+        return {"databases/": DatabaseSchema()}
+
     @patch("superset.commands.importers.v1.utils.db")
     def test_invalid_json_in_masked_encrypted_extra_is_collected(
-        self, mock_db: object
+        self, mock_db: object, caplog: pytest.LogCaptureFixture
     ) -> None:
         """A non-JSON ``masked_encrypted_extra`` is converted into a
         ValidationError appended to ``exceptions`` rather than raising."""
@@ -209,6 +233,7 @@ class TestLoadConfigs:
         }
         exceptions: list[ValidationError] = []
 
+        caplog.set_level(logging.WARNING)
         configs = load_configs(
             contents=contents,
             schemas={"databases/": self._trivial_schema()},
@@ -227,6 +252,7 @@ class TestLoadConfigs:
         assert isinstance(exceptions[0], ValidationError)
         assert file_name in exceptions[0].messages
         assert "masked_encrypted_extra" in exceptions[0].messages[file_name]
+        _assert_logged_as_warning(caplog, "Invalid JSON in masked_encrypted_extra")
 
     @patch("superset.commands.importers.v1.utils.db")
     def test_valid_json_in_masked_encrypted_extra_still_merges(
@@ -266,6 +292,160 @@ class TestLoadConfigs:
         assert file_name in configs
         merged = json.loads(configs[file_name]["masked_encrypted_extra"])
         assert merged == {"foo": "actual_secret"}
+
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_missing_uuid_appends_validation_error(self, mock_db: MagicMock) -> None:
+        """A databases config missing `uuid` must not raise a raw KeyError;
+        it should be excluded from the returned configs and a ValidationError
+        appended to the exceptions list instead."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_configs
+
+        mock_db.session.query.return_value.all.return_value = []
+
+        # No `uuid` and no `password`, so the code reaches
+        # `config["uuid"] in db_passwords` and would raise KeyError pre-fix.
+        contents = {
+            "databases/bad.yaml": (
+                "database_name: bad\nsqlalchemy_uri: postgres://localhost\n"
+            ),
+        }
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            self._database_schemas(),
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert "databases/bad.yaml" not in configs
+        assert len(exceptions) == 1
+        assert isinstance(exceptions[0], ValidationError)
+        assert "databases/bad.yaml" in exceptions[0].messages
+
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_missing_key_read_before_validation_logged_as_warning(
+        self, mock_db: MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """An SSH tunnel password supplied for a config that has no
+        ``ssh_tunnel`` section hits a raw KeyError before schema validation;
+        it is collected as a ValidationError and logged at WARNING."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_configs
+
+        mock_db.session.query.return_value.all.return_value = []
+
+        file_name = "databases/no_tunnel.yaml"
+        contents = {
+            file_name: (
+                "uuid: 6ff1d5b3-4b0f-4c6a-9d2f-9c8b7a6e5d4c\n"
+                "database_name: no_tunnel\n"
+                "sqlalchemy_uri: postgres://localhost\n"
+                "password: secret\n"
+            ),
+        }
+        exceptions: list[ValidationError] = []
+
+        caplog.set_level(logging.WARNING)
+        configs = load_configs(
+            contents,
+            self._database_schemas(),
+            {},
+            exceptions,
+            {file_name: "tunnel_secret"},
+            {},
+            {},
+            {},
+        )
+
+        assert file_name not in configs
+        assert len(exceptions) == 1
+        assert exceptions[0].messages == {
+            file_name: {"ssh_tunnel": ["Missing data for required field."]}
+        }
+        _assert_logged_as_warning(caplog, "Missing required key")
+
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_schema_validation_failure_logged_as_warning(
+        self, mock_db: MagicMock, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A config failing marshmallow schema validation (e.g. a missing
+        required field) is collected and logged at WARNING, not ERROR."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_configs
+
+        mock_db.session.query.return_value.all.return_value = []
+
+        contents = {
+            "databases/incomplete.yaml": (
+                "uuid: 6ff1d5b3-4b0f-4c6a-9d2f-9c8b7a6e5d4c\n"
+                "database_name: incomplete\n"
+                "password: secret\n"
+            ),
+        }
+        exceptions: list[ValidationError] = []
+
+        caplog.set_level(logging.WARNING)
+        configs = load_configs(
+            contents,
+            self._database_schemas(),
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert "databases/incomplete.yaml" not in configs
+        assert len(exceptions) == 1
+        assert exceptions[0].messages == {
+            "databases/incomplete.yaml": {
+                "sqlalchemy_uri": ["Missing data for required field."]
+            }
+        }
+        _assert_logged_as_warning(caplog, "Schema validation failed")
+
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_uuid_present_loads_successfully(self, mock_db: MagicMock) -> None:
+        """Control: a well-formed databases config loads with no exceptions."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_configs
+
+        mock_db.session.query.return_value.all.return_value = []
+
+        contents = {
+            "databases/good.yaml": (
+                "uuid: 6ff1d5b3-4b0f-4c6a-9d2f-9c8b7a6e5d4c\n"
+                "database_name: good\n"
+                "sqlalchemy_uri: postgres://localhost\n"
+                "password: secret\n"
+            ),
+        }
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            self._database_schemas(),
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert "databases/good.yaml" in configs
+        assert exceptions == []
 
 
 class TestLoadConfigsNonMappingYaml:
@@ -313,6 +493,40 @@ class TestLoadConfigsNonMappingYaml:
         Database.metadata.create_all(engine)  # pylint: disable=no-member
 
         contents = {"databases/malformed.yaml": "just a string"}
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            {"databases/": ImportV1DatabaseSchema()},
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert configs == {}
+        assert len(exceptions) == 1
+        assert "databases/malformed.yaml" in exceptions[0].messages
+
+    def test_unparseable_yaml_is_reported_as_validation_error(
+        self, session: Session
+    ) -> None:
+        """YAML that ``load_yaml`` cannot parse raises a ValidationError
+        *before* ``config`` is assigned. The ``except ValidationError``
+        handler's ``isinstance(config, dict)`` diagnostic must not then crash
+        with an UnboundLocalError (regression for SUPERSET-PYTHON-176W)."""
+        from superset.commands.importers.v1.utils import load_configs
+        from superset.databases.schemas import ImportV1DatabaseSchema
+        from superset.models.core import Database
+
+        engine = session.get_bind()
+        Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+        # An unterminated quoted scalar raises yaml.scanner.ScannerError,
+        # mirroring the malformed chart YAML seen in the Sentry report.
+        contents = {"databases/malformed.yaml": 'key: "unterminated string'}
         exceptions: list[ValidationError] = []
 
         configs = load_configs(

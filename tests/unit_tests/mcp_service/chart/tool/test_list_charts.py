@@ -32,7 +32,7 @@ from superset.mcp_service.chart.schemas import (
     ChartFilter,
     ListChartsRequest,
 )
-from superset.mcp_service.constants import MAX_PAGE_SIZE
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
     remove_chart_data_model_columns,
@@ -109,7 +109,7 @@ class TestListChartsRequestSchema:
         assert request.order_column is None
         assert request.order_direction == "asc"
         assert request.page == 1
-        assert request.page_size == 10
+        assert request.page_size == DEFAULT_PAGE_SIZE
 
     def test_request_with_filters(self):
         """Test creating request with filters."""

@@ -20,6 +20,11 @@ outputs:
   superset-extensions-cli:
     description: Whether superset-extensions-cli package-related files were changed
     value: ${{ steps.change-detector.outputs.superset-extensions-cli }}
+  languages:
+    description: >-
+      JSON array of CodeQL languages touched, classified by file extension
+      regardless of directory (e.g. ["javascript", "python"])
+    value: ${{ steps.change-detector.outputs.languages }}
 runs:
   using: composite
   steps:

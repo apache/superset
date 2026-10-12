@@ -172,7 +172,8 @@ export default function getControlItemsMap({
         controlItem?.config?.renderTrigger &&
         controlItem.name !== 'sortAscending' &&
         controlItem.name !== 'enableSingleValue' &&
-        controlItem.name !== 'operatorType',
+        controlItem.name !== 'operatorType' &&
+        controlItem.name !== 'displayFormat',
     )
     .forEach(controlItem => {
       const initialValue =

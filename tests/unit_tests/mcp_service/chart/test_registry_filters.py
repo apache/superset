@@ -233,3 +233,12 @@ def test_reconfigure_with_func_then_none_falls_back_to_deny_list():
     configure(disabled={"beta"}, enabled_func=None)
     assert get("alpha") is not None
     assert get("beta") is None
+
+
+def test_disabled_plugin_can_be_looked_up_for_updates() -> None:
+    """Saved updates retain contracts without enabling chart creation."""
+    configure(disabled={"alpha"})
+    assert get("alpha") is None
+    assert isinstance(get("alpha", include_disabled=True), _AlphaPlugin)
+    assert get("unknown", include_disabled=True) is None
+    assert not is_enabled("alpha")

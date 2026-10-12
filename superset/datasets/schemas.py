@@ -23,6 +23,7 @@ from flask_babel import lazy_gettext as _
 from marshmallow import (
     fields,
     post_dump,
+    post_load,
     pre_load,
     Schema,
     validates_schema,
@@ -31,6 +32,7 @@ from marshmallow import (
 from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
+from superset.constants import EPOCH_FORMATS
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
 from superset.utils import json
@@ -68,7 +70,7 @@ openapi_spec_methods_override = {
 
 
 def validate_python_date_format(dt_format: str) -> bool:
-    if dt_format in ("epoch_s", "epoch_ms"):
+    if dt_format in EPOCH_FORMATS:
         return True
     try:
         dt_str = datetime.now().strftime(dt_format)
@@ -78,7 +80,25 @@ def validate_python_date_format(dt_format: str) -> bool:
     return True
 
 
-class DatasetColumnsPutSchema(Schema):
+class ResolveIsCertifiedMixin(Schema):
+    """
+    ``is_certified`` is derived from ``certified_by``/``certification_details``.
+    When either is in the payload they define the state, so the (possibly
+    stale, echoed-from-GET) flag is dropped. On its own, ``False`` clears the
+    certification and ``True`` has no effect.
+    """
+
+    # pylint: disable=unused-argument
+    @post_load
+    def resolve_is_certified(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        if "certified_by" in data or "certification_details" in data:
+            data.pop("is_certified", None)
+        return data
+
+
+class DatasetColumnsPutSchema(ResolveIsCertifiedMixin, Schema):
     id = fields.Integer(required=False)
     column_name = fields.String(required=True, validate=Length(1, 255))
     type = fields.String(allow_none=True)
@@ -90,6 +110,14 @@ class DatasetColumnsPutSchema(Schema):
     description = fields.String(allow_none=True)
     expression = fields.String(allow_none=True)
     extra = fields.String(allow_none=True)
+    # Certification/warning metadata lives inside ``extra`` and is applied
+    # through model property setters. Declared after ``extra`` so the DAO's
+    # ``setattr`` loop applies the flat keys last and they win.
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
+    warning_markdown = fields.String(allow_none=True)
+    is_certified = fields.Boolean(allow_none=True)
+
     filterable = fields.Boolean()
     groupby = fields.Boolean()
     is_active = fields.Boolean(allow_none=True)
@@ -122,11 +150,19 @@ class CurrencyField(fields.Nested):
         return super()._deserialize(value, attr, data, **kwargs)
 
 
-class DatasetMetricsPutSchema(Schema):
+class DatasetMetricsPutSchema(ResolveIsCertifiedMixin, Schema):
     id = fields.Integer()
     expression = fields.String(required=True)
     description = fields.String(allow_none=True)
     extra = fields.String(allow_none=True)
+    # Certification/warning metadata lives inside ``extra`` and is applied
+    # through model property setters. Declared after ``extra`` so the DAO's
+    # ``setattr`` loop applies the flat keys last and they win.
+    certified_by = fields.String(allow_none=True)
+    certification_details = fields.String(allow_none=True)
+    warning_markdown = fields.String(allow_none=True)
+    is_certified = fields.Boolean(allow_none=True)
+
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
     d3format = fields.String(allow_none=True, validate=Length(1, 128))

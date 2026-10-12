@@ -17,10 +17,8 @@
  * under the License.
  */
 import { KeyboardEvent } from 'react';
-import { t } from '@apache-superset/core/translation';
-import { styled, useTheme } from '@apache-superset/core/theme';
-import { Button, Dropdown, Icons } from '@superset-ui/core/components';
-import type { ActivityRecord, VersionedEntityType } from './types';
+import { styled } from '@apache-superset/core/theme';
+import type { ActivityRecord } from './types';
 import {
   describeRecord,
   formatAuthor,
@@ -97,41 +95,8 @@ const Meta = styled.div`
   `}
 `;
 
-// The kebab centers within the first text line (one line-height tall)
-// so it tracks the title, not the middle of the two-line row.
-const KebabWrapper = styled.div`
-  ${({ theme }) => `
-    align-self: flex-start;
-    display: flex;
-    align-items: center;
-    height: ${theme.fontSize * theme.lineHeight}px;
-  `}
-`;
-
-// Icon-only trigger: the design gives row actions the brand accent
-// rather than the link-button blue or a neutral grey.
-const KebabButton = styled(Button)`
-  ${({ theme }) => `
-    && {
-      color: ${theme.colorPrimary};
-    }
-    &&:hover,
-    &&:focus {
-      color: ${theme.colorPrimaryHover};
-    }
-  `}
-`;
-
 export interface ActionRowProps {
-  entityType: VersionedEntityType;
   record: ActivityRecord;
-  /** False for the current (live) version, where restoring is a no-op. */
-  showRestore: boolean;
-  /**
-   * False when the enclosing group has no versionUuid to act on — both
-   * kebab actions name a specific version, so the menu would be dead.
-   */
-  showActions?: boolean;
   /**
    * True when the row belongs to the active group — the current (live)
    * version at rest, or a historical version while previewed. Drives the
@@ -140,73 +105,20 @@ export interface ActionRowProps {
   isHighlighted: boolean;
   isLast: boolean;
   onPreview: () => void;
-  onRestore: () => void;
-  onOpenAsNew: () => void;
 }
 
 export default function ActionRow({
-  entityType,
   record,
-  showRestore,
-  showActions = true,
   isHighlighted,
   isLast,
   onPreview,
-  onRestore,
-  onOpenAsNew,
 }: ActionRowProps) {
-  const theme = useTheme();
   const label = describeRecord(record);
   const meta = `${formatAuthor(record.changed_by)} · ${formatVersionDateTimeShort(
     record.issued_at,
   )}`;
-  const itemStyle = {
-    height: theme.controlHeightLG,
-    paddingLeft: theme.sizeUnit * 6,
-    paddingRight: theme.sizeUnit * 6,
-    display: 'flex',
-    alignItems: 'center',
-  };
-  const menuItems = [
-    ...(showRestore
-      ? [
-          {
-            key: 'restore',
-            label: t('Restore this version'),
-            style: itemStyle,
-            onClick: ({
-              domEvent,
-            }: {
-              domEvent: { stopPropagation: () => void };
-            }) => {
-              domEvent.stopPropagation();
-              onRestore();
-            },
-          },
-        ]
-      : []),
-    {
-      key: 'open-as-new',
-      label:
-        entityType === 'chart'
-          ? t('Open as new chart')
-          : t('Open as new dashboard'),
-      style: itemStyle,
-      onClick: ({
-        domEvent,
-      }: {
-        domEvent: { stopPropagation: () => void };
-      }) => {
-        domEvent.stopPropagation();
-        onOpenAsNew();
-      },
-    },
-  ];
-
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    // Keydowns from the nested kebab <button> bubble up here; only
-    // activate when the row itself has focus, so Enter/Space on the kebab
-    // opens its menu instead of triggering a preview.
+    // Only activate when the row itself has focus.
     if (event.target !== event.currentTarget) {
       return;
     }
@@ -218,7 +130,7 @@ export default function ActionRow({
 
   return (
     <Row
-      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- row contains a nested kebab <button>, which a real <button> cannot
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- timeline layout uses a focusable row with explicit keyboard activation
       role="button"
       tabIndex={0}
       onClick={onPreview}
@@ -233,20 +145,6 @@ export default function ActionRow({
         <Title title={label}>{label}</Title>
         <Meta>{meta}</Meta>
       </Content>
-      <KebabWrapper>
-        {showActions && (
-          <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-            <KebabButton
-              buttonSize="xsmall"
-              buttonStyle="link"
-              aria-label={t('More actions')}
-              onClick={event => event.stopPropagation()}
-            >
-              <Icons.MoreOutlined iconSize="m" />
-            </KebabButton>
-          </Dropdown>
-        )}
-      </KebabWrapper>
     </Row>
   );
 }

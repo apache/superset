@@ -116,6 +116,159 @@ test('should generate grid for dimensions mode', () => {
   );
 });
 
+test('should add dimension filters to every query-specific adhoc filter collection', () => {
+  // Multi-query charts (e.g. Mixed Chart) read each query's filters from a
+  // separate collection. The cell's dimension filter must reach all of them.
+  const formDataWithMultipleQueries: TestFormData = {
+    viz_type: 'mixed_timeseries',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'disabled',
+    matrixify_dimension_rows: {
+      dimension: 'country',
+      values: ['USA', 'Canada'],
+    },
+    adhoc_filters: [
+      {
+        expressionType: 'SIMPLE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: '2024-01-01 : 2024-12-31',
+        clause: 'WHERE',
+      },
+    ],
+    adhoc_filters_b: [
+      {
+        expressionType: 'SIMPLE',
+        subject: 'region',
+        operator: '==',
+        comparator: 'North America',
+        clause: 'WHERE',
+      },
+    ],
+    adhoc_filters_c: [],
+    // A non-adhoc-filter field that must not be touched by the fan-out.
+    filters_b: [{ col: 'should_not_change', op: '==', val: 'unchanged' }],
+  };
+
+  const grid = generateMatrixifyGrid(formDataWithMultipleQueries);
+
+  expect(grid).not.toBeNull();
+  const usaCell = grid!.cells[0][0]!;
+  const canadaCell = grid!.cells[1][0]!;
+
+  // Each cell's dimension filter is added to the primary and every
+  // query-specific collection, including one that started empty
+  // (`adhoc_filters_c`) — and cells don't leak each other's filters, which
+  // would happen if the fan-out mutated a shared array reference instead of
+  // writing a fresh array per cell.
+  [
+    { cell: usaCell, country: 'USA', other: 'Canada' },
+    { cell: canadaCell, country: 'Canada', other: 'USA' },
+  ].forEach(({ cell, country, other }) => {
+    ['adhoc_filters', 'adhoc_filters_b', 'adhoc_filters_c'].forEach(key => {
+      expect(cell.formData[key]).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ subject: 'country', comparator: country }),
+        ]),
+      );
+      expect(cell.formData[key]).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ subject: 'country', comparator: other }),
+        ]),
+      );
+    });
+  });
+
+  // Pre-existing filters on each collection are preserved.
+  expect(usaCell.formData.adhoc_filters).toEqual(
+    expect.arrayContaining([expect.objectContaining({ subject: 'year' })]),
+  );
+  expect(usaCell.formData.adhoc_filters_b).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        subject: 'region',
+        comparator: 'North America',
+      }),
+    ]),
+  );
+
+  // The base formData's collections are untouched by either cell's fan-out.
+  expect(formDataWithMultipleQueries.adhoc_filters_b).toEqual([
+    expect.objectContaining({ subject: 'region', comparator: 'North America' }),
+  ]);
+  expect(formDataWithMultipleQueries.adhoc_filters_c).toEqual([]);
+
+  // Fields that merely look similar (`filters_b`) are left untouched.
+  expect(usaCell.formData.filters_b).toEqual(
+    formDataWithMultipleQueries.filters_b,
+  );
+});
+
+test('should apply a metrics-axis selection to every query-specific metrics collection', () => {
+  // Multi-query charts (e.g. Mixed Chart) read each query's metrics from a
+  // separate collection. When the matrix axis is in "metrics" mode, the
+  // metric chosen for a cell must reach all of them, not just the primary
+  // `metrics` field, or the secondary query renders identically in every
+  // cell of the grid.
+  const mixedChartFormData: TestFormData = {
+    viz_type: 'mixed_timeseries',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_mode_columns: 'disabled',
+    matrixify_rows: [createAdhocMetric('Revenue'), createAdhocMetric('Profit')],
+    metrics: [createAdhocMetric('Original Primary')],
+    metrics_b: [createAdhocMetric('Original Secondary')],
+  };
+
+  const grid = generateMatrixifyGrid(mixedChartFormData);
+
+  expect(grid).not.toBeNull();
+  const revenueCell = grid!.cells[0][0]!;
+  const profitCell = grid!.cells[1][0]!;
+
+  expect(revenueCell.formData.metrics).toEqual([createAdhocMetric('Revenue')]);
+  expect(revenueCell.formData.metrics_b).toEqual([
+    createAdhocMetric('Revenue'),
+  ]);
+  expect(revenueCell.formData.metric).toEqual(createAdhocMetric('Revenue'));
+
+  expect(profitCell.formData.metrics).toEqual([createAdhocMetric('Profit')]);
+  expect(profitCell.formData.metrics_b).toEqual([createAdhocMetric('Profit')]);
+  expect(profitCell.formData.metric).toEqual(createAdhocMetric('Profit'));
+
+  // The base formData's collection is untouched by either cell's override.
+  expect(mixedChartFormData.metrics_b).toEqual([
+    createAdhocMetric('Original Secondary'),
+  ]);
+});
+
+test('should store independent metrics array references per query-specific field', () => {
+  // Each query-specific metrics collection must be its own array, not the
+  // same reference reused across keys, or mutating one (e.g. via push/sort)
+  // would silently mutate the others too.
+  const mixedChartFormData: TestFormData = {
+    viz_type: 'mixed_timeseries',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_mode_columns: 'disabled',
+    matrixify_rows: [createAdhocMetric('Revenue')],
+    metrics: [createAdhocMetric('Original Primary')],
+    metrics_b: [createAdhocMetric('Original Secondary')],
+  };
+
+  const grid = generateMatrixifyGrid(mixedChartFormData);
+  const cellFormData = grid!.cells[0][0]!.formData;
+
+  expect(cellFormData.metrics).not.toBe(cellFormData.metrics_b);
+
+  cellFormData.metrics.push(createAdhocMetric('Mutation'));
+  expect(cellFormData.metrics_b).toEqual([createAdhocMetric('Revenue')]);
+});
+
 test('should generate grid for mixed mode (metrics rows, dimensions columns)', () => {
   const mixedFormData: TestFormData = {
     viz_type: 'table',

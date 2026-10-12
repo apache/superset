@@ -93,6 +93,17 @@ test('a malformed window does not leak into the copy', () => {
   expect(getSoftDeleteRetentionDays()).toBe(0);
 });
 
+test('immediate eligibility does not promise a recovery window', () => {
+  withConf({ SOFT_DELETE_RETENTION_DAYS: -1 });
+  expect(getSoftDeleteRetentionDays()).toBe(-1);
+  expect(archiveConfirmDescription('chart')).toBe(
+    'This chart will be moved to Recently Archived and may be permanently deleted on the next cleanup run.',
+  );
+  expect(archiveConfirmDescription('charts', true)).toBe(
+    'These charts will be moved to Recently Archived and may be permanently deleted on the next cleanup run.',
+  );
+});
+
 test('the confirm copy quotes the window when there is one', () => {
   withConf({ SOFT_DELETE_RETENTION_DAYS: 30 });
   expect(archiveConfirmDescription('chart')).toBe(

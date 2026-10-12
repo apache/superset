@@ -34,6 +34,7 @@ import { defaultGrid } from '../defaults';
 import {
   getColtypesMapping,
   getLegendProps,
+  getLegendScrollDataIndex,
   getMinAndMaxFromBounds,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
@@ -118,6 +119,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     theme,
     filterState,
     emitCrossFilters,
+    legendState,
+    legendIndex,
   } = chartProps;
 
   const [queryData] = queriesData;
@@ -288,7 +291,10 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         legendOrientation,
         showLegend,
         theme,
+        false,
+        legendState,
       ),
+      scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
     },
     tooltip: {
@@ -308,7 +314,12 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     grid: { ...defaultGrid, ...padding },
   };
 
-  const { onContextMenu, setDataMask = () => {} } = hooks;
+  const {
+    onContextMenu,
+    setDataMask = () => {},
+    onLegendStateChanged,
+    onLegendScroll,
+  } = hooks;
 
   return {
     refs,
@@ -317,6 +328,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     echartOptions,
     onContextMenu,
     setDataMask,
+    onLegendStateChanged,
+    onLegendScroll,
     formData,
     filterState,
     emitCrossFilters,

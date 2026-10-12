@@ -389,6 +389,10 @@ def test_configuration_schema_with_partial_config(
         {"snowflake": mock_cls},
         clear=True,
     )
+    mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        return_value=True,
+    )
 
     response = client.post(
         "/api/v1/semantic_layer/schema/configuration",
@@ -396,6 +400,75 @@ def test_configuration_schema_with_partial_config(
     )
 
     assert response.status_code == 200
+    mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
+
+
+@SEMANTIC_LAYERS_APP
+def test_configuration_schema_read_only_user_gets_static_schema(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Without write access the submitted configuration is not used at all."""
+    mock_cls: MagicMock = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {"type": "object"}
+
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"metricflow": mock_cls},
+        clear=True,
+    )
+    can_access: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        side_effect=lambda permission, view: permission != "can_write",
+    )
+
+    response: TestResponse = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "metricflow", "configuration": {"admin_host": "example"}},
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"] == {"type": "object"}
+    can_access.assert_any_call("can_write", "SemanticLayer")
+    mock_cls.configuration_class.model_validate.assert_not_called()
+    mock_cls.get_configuration_schema.assert_called_once_with(None)
+
+
+@SEMANTIC_LAYERS_APP
+def test_configuration_schema_writer_gets_enriched_schema(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """With write access the submitted configuration enriches the schema."""
+    mock_config_obj: MagicMock = MagicMock()
+    mock_cls: MagicMock = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {"properties": {}}
+    mock_cls.configuration_class.model_validate.return_value = mock_config_obj
+    mock_cls.get_configuration_schema.return_value = {
+        "type": "object",
+        "properties": {"account": {"enum": ["a1"]}},
+    }
+
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"metricflow": mock_cls},
+        clear=True,
+    )
+    can_access: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        return_value=True,
+    )
+
+    response: TestResponse = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "metricflow", "configuration": {"admin_host": "example"}},
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"]["properties"] == {"account": {"enum": ["a1"]}}
+    can_access.assert_any_call("can_write", "SemanticLayer")
     mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
 
 
@@ -1483,6 +1556,10 @@ def test_configuration_schema_enrichment_error_fallback(
         {"snowflake": mock_cls},
         clear=True,
     )
+    mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        return_value=True,
+    )
 
     response = client.post(
         "/api/v1/semantic_layer/schema/configuration",
@@ -2568,7 +2645,9 @@ def test_get_semantic_view_structure(
     mock_metric.definition = "SIMPLE"
     mock_metric.description = "Order count"
 
-    mock_view = MagicMock()
+    mock_view: MagicMock = MagicMock(
+        implementation=MagicMock(selection_identity_version="cube-member-id-v1")
+    )
     mock_view.name = "orders"
     mock_view.description = "All orders"
     mock_view.cache_timeout = 600
@@ -2585,6 +2664,7 @@ def test_get_semantic_view_structure(
     assert response.status_code == 200
     result = response.json["result"]
     assert result["name"] == "orders"
+    assert result["semantic_selection_version"] == "cube-member-id-v1"
     # The edit modal has no detail route to hydrate from, so these must ride
     # along with the structure or a saved description cannot be read back.
     assert result["description"] == "All orders"
@@ -2670,7 +2750,9 @@ def test_get_semantic_view_structure_no_grain(
     mock_dim.description = None
     mock_dim.grain = None
 
-    mock_view = MagicMock()
+    mock_view: MagicMock = MagicMock(
+        implementation=MagicMock(selection_identity_version=None)
+    )
     mock_view.name = "customers"
     mock_view.description = None
     mock_view.cache_timeout = None
@@ -2688,6 +2770,7 @@ def test_get_semantic_view_structure_no_grain(
     result = response.json["result"]
     assert result["dimensions"][0]["grain"] is None
     assert result["metrics"] == []
+    assert result["semantic_selection_version"] is None
     # An unset description must come back as null, not be omitted: the modal
     # distinguishes "cleared" from "absent" when hydrating.
     assert result["description"] is None

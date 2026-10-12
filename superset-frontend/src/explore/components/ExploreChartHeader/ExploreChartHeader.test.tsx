@@ -18,6 +18,7 @@
  */
 
 import {
+  configure,
   render,
   screen,
   userEvent,
@@ -48,6 +49,13 @@ const EDIT_PROPERTIES_INITIAL_STATE = {
 };
 
 fetchMock.get(chartEndpoint, { json: 'foo' });
+
+// antd submenus mount their popups asynchronously (through rc-motion), so a
+// nested menu item may not be queryable immediately after hovering its parent.
+// Under parallel CI load that deferred mount can exceed the default 1s
+// async query timeout, which made the export submenu tests flaky. Give async
+// queries a wider budget so they keep polling until the popup renders.
+configure({ asyncUtilTimeout: 5000 });
 
 window.featureFlags = {
   [FeatureFlag.EmbeddableCharts]: true,

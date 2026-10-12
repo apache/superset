@@ -20,7 +20,7 @@ import logging
 import sys
 import traceback
 import uuid
-from contextlib import closing
+from contextlib import closing, nullcontext
 from datetime import datetime
 from sys import getsizeof
 from typing import Any, cast, Optional, TYPE_CHECKING, TypeVar, Union
@@ -28,7 +28,7 @@ from typing import Any, cast, Optional, TYPE_CHECKING, TypeVar, Union
 import backoff
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import current_app as app, has_app_context
+from flask import current_app as app, has_app_context, has_request_context
 from flask_babel import gettext as __
 
 from superset import (
@@ -49,6 +49,7 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
+    SupersetDisallowedClientFileTransferException,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
@@ -231,7 +232,12 @@ def get_sql_results(  # pylint: disable=too-many-arguments
     log_params: Optional[dict[str, Any]] = None,
 ) -> Optional[dict[str, Any]]:
     """Executes the sql query returns the results."""
-    with app.test_request_context():
+    # A Celery worker has no originating request, and one is needed to build the
+    # OAuth2 redirect URI, so fabricate a request context there. SQL Lab's
+    # synchronous executor calls this task directly from inside the authenticated
+    # request, where a nested context would replace the real Flask session with an
+    # empty one -- breaking RLS clauses whose Jinja macros read ``flask.session``.
+    with nullcontext() if has_request_context() else app.test_request_context():
         with override_user(security_manager.find_user(username)):
             try:
                 return execute_sql_statements(
@@ -418,7 +424,7 @@ def _serialize_and_expand_data(
         all_columns, expanded_columns = (selected_columns, [])
     else:
         df = result_set.to_pandas_df()
-        data = df_to_records(df) or []
+        data = df_to_records(df, convert_decimals=True) or []
 
         if expand_data:
             all_columns, data, expanded_columns = db_engine_spec.expand_data(
@@ -512,6 +518,10 @@ def execute_sql_statements(  # noqa: C901
         )
         if found_tables:
             raise SupersetDisallowedSQLTableException(found_tables)
+
+    # Rejected regardless of `allow_dml`: these do host file I/O, not DML.
+    if file_transfer_commands := parsed_script.get_client_file_transfer_commands():
+        raise SupersetDisallowedClientFileTransferException(file_transfer_commands)
 
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()

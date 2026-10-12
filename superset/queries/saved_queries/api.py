@@ -55,7 +55,7 @@ from superset.queries.saved_queries.schemas import (
     validate_label,
 )
 from superset.utils import json
-from superset.utils.core import send_export_zip
+from superset.utils.core import send_export_zip, write_zip_entry
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -301,8 +301,9 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                 for file_name, file_content in ExportSavedQueriesCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except SavedQueryNotFoundError:
                 return self.response_404()
         buf.seek(0)

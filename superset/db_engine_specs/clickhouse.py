@@ -55,6 +55,10 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
     time_groupby_inline = True
+    # ClickHouse resolves an identifier to a SELECT alias first, in every clause:
+    # with `toStartOfDay(toDateTime(ts)) AS ts`, `GROUP BY toStartOfDay(...(ts))`
+    # re-truncates the alias and `WHERE ts >= ...` filters on the bucket.
+    select_alias_shadows_source_column = True
     supports_multivalues_insert = True
     supports_multivalue_columns = True
 
@@ -261,9 +265,21 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
     _show_functions_column = "name"
     supports_file_upload = False
 
-    # Note: Primary metadata is in ClickHouseConnectEngineSpec which consolidates
-    # both drivers. This spec exists for backwards compatibility with existing
-    # connections using the clickhouse-sqlalchemy driver.
+    metadata = {
+        "description": (
+            "ClickHouse is an open-source column-oriented database for real-time "
+            "analytics using SQL (legacy clickhouse-sqlalchemy driver)."
+        ),
+        "logo": "clickhouse.png",
+        "homepage_url": "https://clickhouse.com/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["clickhouse-sqlalchemy"],
+        "connection_string": "clickhouse://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 8123,
+    }
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:

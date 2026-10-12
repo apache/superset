@@ -69,6 +69,7 @@ def _make_mock_dataset(
     dataset.is_favorite = None
     dataset.database_id = 1
     dataset.schema_perm = f"[{database_name}].[{schema}]"
+    dataset.deleted_at = None
     dataset.url = f"/tablemodelview/edit/{dataset_id}"
     dataset.database = MagicMock()
     dataset.database.database_name = database_name

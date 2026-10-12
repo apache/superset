@@ -37,6 +37,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
+from superset.mcp_service.chart.registry import get_registry
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
 )
@@ -125,7 +126,7 @@ async def generate_explore_link(
         with event_logger.log_context(action="mcp.generate_explore_link.dataset_check"):
             dataset = None
             if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                isinstance(request.dataset_id, str) and request.dataset_id.isdecimal()
             ):
                 dataset_id_int = (
                     int(request.dataset_id)
@@ -274,13 +275,16 @@ async def generate_explore_link(
 
         # Tier-1 schema validation against the dataset (no DB roundtrip).
         # Catches references to non-existent columns/metrics with fuzzy
-        # suggestions so the LLM can self-correct ("did you mean sum_boys?").
+        # suggestions so the LLM can self-correct ("did you mean revenue?").
         with event_logger.log_context(action="mcp.generate_explore_link.validation"):
             compile_result = validate_and_compile(
                 normalized_config,
                 form_data,
                 dataset,
-                run_compile_check=normalized_config.chart_type == "gauge",
+                run_compile_check=bool(
+                    (plugin := get_registry().get(normalized_config.chart_type))
+                    and plugin.requires_compile_check
+                ),
             )
         if not compile_result.success:
             await ctx.warning(
