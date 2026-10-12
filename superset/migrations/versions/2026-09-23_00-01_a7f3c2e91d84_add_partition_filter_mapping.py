@@ -28,7 +28,7 @@ The Continuum shadow tables get the same columns so dataset version history and
 restore keep working.
 
 Revision ID: a7f3c2e91d84
-Revises: e4a7c2b9d1f3
+Revises: c179af013f48
 Create Date: 2026-08-31 22:30:00.000000
 
 """
@@ -39,7 +39,7 @@ from superset.migrations.shared.utils import add_columns, drop_columns
 
 # revision identifiers, used by Alembic.
 revision = "a7f3c2e91d84"
-down_revision = "e4a7c2b9d1f3"
+down_revision = "c179af013f48"
 
 
 def upgrade():
