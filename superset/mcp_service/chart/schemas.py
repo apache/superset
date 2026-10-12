@@ -4206,7 +4206,14 @@ class BulletChartConfig(BaseChartConfig):
     )
 
     @staticmethod
-    def _adapt_native_metric(value: Any) -> Any:
+    def _native_metric_label(value: dict[str, Any]) -> Any:
+        """Derive the output label used by native metrics and metric sorts."""
+        return value.get("label") or (
+            value.get("sqlExpression") if value.get("expressionType") == "SQL" else None
+        )
+
+    @classmethod
+    def _adapt_native_metric(cls, value: Any) -> Any:
         """Translate QueryFormMetric shapes into the shared ColumnRef contract."""
         if isinstance(value, str):
             return {"name": value, "saved_metric": True}
@@ -4230,7 +4237,7 @@ class BulletChartConfig(BaseChartConfig):
         if expression_type == "SQL":
             return {
                 "sql_expression": value.get("sqlExpression"),
-                "label": value.get("label") or value.get("sqlExpression"),
+                "label": cls._native_metric_label(value),
             }
         if expression_type != "SIMPLE":
             raise ValueError("metric.expressionType must be 'SIMPLE' or 'SQL'")
@@ -4275,8 +4282,8 @@ class BulletChartConfig(BaseChartConfig):
             canonical.append(name)
         return canonical
 
-    @staticmethod
-    def _adapt_native_order_by(value: Any) -> Any:  # noqa: C901
+    @classmethod
+    def _adapt_native_order_by(cls, value: Any) -> Any:  # noqa: C901
         if value is None:
             return []
         if not isinstance(value, list):
@@ -4301,7 +4308,7 @@ class BulletChartConfig(BaseChartConfig):
                 )
             target, ascending = entry
             if isinstance(target, dict):
-                target = target.get("label") or target.get("metric_name")
+                target = cls._native_metric_label(target) or target.get("metric_name")
             if not isinstance(target, str) or not target:
                 raise ValueError(f"order_by[{index}] needs a column or metric label")
             if not isinstance(ascending, bool):

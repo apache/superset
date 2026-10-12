@@ -101,6 +101,7 @@ from superset.mcp_service.chart.validation.dataset_validator import (
 )
 from superset.mcp_service.chart.validation.pipeline import ValidationPipeline
 from superset.mcp_service.common.error_schemas import DatasetContext
+from superset.utils import json
 from superset.utils.core import GenericDataType
 from superset.utils.json import json_int_dttm_ser
 
@@ -5179,3 +5180,28 @@ def test_bullet_raw_rows_keep_shared_limit_for_long_dimension_text() -> None:
     assert isinstance(plugin.ascii_preview(rows, form_data, 80), ChartError)
     with pytest.raises(BulletOutputError, match="exceeds the size limit"):
         resolve_bullet_render_model(rows, form_data)
+
+
+@pytest.mark.parametrize("label", [None, "", "Total Revenue"])
+@pytest.mark.parametrize("sort_alias", ["orderby", "order_by_cols"])
+def test_bullet_native_sql_metric_sort_uses_metric_output_label(
+    label: str | None, sort_alias: str
+) -> None:
+    """Native SQL metric sorts share the metric's fallback output label."""
+    metric = {"expressionType": "SQL", "sqlExpression": "SUM(revenue)"}
+    if label is not None:
+        metric["label"] = label
+    entry = [metric, False]
+    native: dict[str, Any] = {
+        "viz_type": "bullet",
+        "metric": metric,
+        sort_alias: [json.dumps(entry)] if sort_alias == "order_by_cols" else [entry],
+    }
+
+    config = BulletChartConfig.model_validate(native)
+    output_label = label or "SUM(revenue)"
+    assert config.metric.label == output_label
+    assert config.order_by[0].column == output_label
+    mapped = map_bullet_config(config)
+    assert mapped["metric"]["label"] == output_label
+    assert mapped["orderby"] == [[mapped["metric"], False]]
