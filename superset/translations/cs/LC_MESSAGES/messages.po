@@ -1893,6 +1893,9 @@ msgstr "Dimenze"
 msgid "All filters"
 msgstr "Všechny filtry"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Všechny panely"
 
@@ -2003,6 +2006,12 @@ msgstr ""
 
 msgid "Always filter main datetime column"
 msgstr "Vždy filtrovat hlavní sloupec data a času"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 msgid "An Error Occurred"
 msgstr "Došlo k chybě"
@@ -2892,6 +2901,8 @@ msgstr "Zpět"
 msgid "Back to all"
 msgstr "Zpět na vše"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Backend"
 
@@ -3125,6 +3136,9 @@ msgstr "Velikost bublin"
 
 msgid "Bubble size number format"
 msgstr "Formát čísla pro velikost bublin"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "Body zlomu intervalů"
@@ -4411,6 +4425,9 @@ msgstr "Sloupce ke čtení"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Sloupce k zobrazení v tooltipu."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Kombinovat metriky"
@@ -7409,6 +7426,9 @@ msgstr "Rozbalit řádek"
 msgid "Expand settings"
 msgstr "Rozbalit nastavení"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7426,6 +7446,12 @@ msgstr "Experimentální"
 #, fuzzy
 msgid "Expired"
 msgstr "Prozkoumat"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Prozkoumat"
@@ -8339,6 +8365,13 @@ msgstr "Sloupec GeoJson"
 msgid "GeoJson Settings"
 msgstr "Nastavení GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8437,6 +8470,9 @@ msgstr "Název skupiny"
 
 msgid "Group remaining as \"Others\""
 msgstr "Zůstávající řádky seskupit do skupiny \"Ostatní\""
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"
@@ -8551,6 +8587,8 @@ msgstr "Vodorovné zarovnání"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Hostitel"
 
@@ -8591,11 +8629,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Obrovský"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Kódy ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "URL ikony"
@@ -9421,6 +9465,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -9454,6 +9503,9 @@ msgstr "Levá hodnota"
 
 msgid "Legacy"
 msgstr "Starší verze"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "Legenda"
@@ -9938,6 +9990,11 @@ msgstr "Velikost značky"
 
 msgid "Markers"
 msgstr "Značky"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Typ značkování"
@@ -10446,6 +10503,12 @@ msgstr ""
 "Je přijímáno více formátů, podívejte se na knihovnu geopy.points v "
 "Pythonu pro více podrobností"
 
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
+
 msgid "Multiplier"
 msgstr "Násobitel"
 
@@ -10951,6 +11014,10 @@ msgstr "Graf nenalezen"
 
 msgid "Not in"
 msgstr "Není v"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Není null"
@@ -12438,6 +12505,12 @@ msgstr "Obnovování grafů"
 
 msgid "Refreshing columns"
 msgstr "Obnovování sloupců"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 #, fuzzy
 msgid "Register"
@@ -14097,6 +14170,7 @@ msgstr "Vyberte uživatele"
 msgid "Select values"
 msgstr "Vyberte hodnoty"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14810,6 +14884,7 @@ msgstr "Posuvník"
 msgid "Slider and range input"
 msgstr "Vstup posuvník a rozsah"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -15982,6 +16057,11 @@ msgstr "Sloupec, který se má použít jako cíl hrany."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Sloupec byl v databázi smazán nebo přejmenován."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Konfigurace pro vrstvy mapy"
@@ -18609,6 +18689,17 @@ msgstr "Připnout k panelu výsledků"
 msgid "Unpin from top"
 msgstr "Odepnout z horní části"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -18628,6 +18719,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Nepodporovaný typ klauzule: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
 msgstr ""
