@@ -40,6 +40,7 @@ export interface RadioButtonControlProps {
   options: RadioButtonOption[];
   hovered?: boolean;
   value?: JsonValue;
+  initialValue?: JsonValue;
   onChange: (opt: JsonValue) => void;
 }
 
@@ -53,22 +54,30 @@ function normalizeOption(option: RadioButtonOption): RadioButtonOptionObject {
   return option;
 }
 
-export default function RadioButtonControl({
-  value: initialValue,
-  options,
-  onChange,
-  ...props
-}: RadioButtonControlProps) {
+export default function RadioButtonControl(props: RadioButtonControlProps) {
+  const {
+    value,
+    options,
+    onChange,
+    initialValue: _initialValue,
+    ...headerProps
+  } = props;
+  const hasInitialValueProp = 'initialValue' in props;
+  const isUnpersistedDefault = hasInitialValueProp
+    ? props.initialValue === undefined
+    : value === undefined;
   const normalizedOptions = options.map(normalizeOption);
-  const currentValue = initialValue ?? normalizedOptions[0]?.value;
+  const currentValue = value ?? normalizedOptions[0]?.value;
 
   return (
     <div>
       <div
         role="tablist"
-        aria-label={typeof props.label === 'string' ? props.label : undefined}
+        aria-label={
+          typeof headerProps.label === 'string' ? headerProps.label : undefined
+        }
       >
-        <ControlHeader {...props} />
+        <ControlHeader {...headerProps} />
         <Radio.Group
           value={currentValue}
           onChange={e => onChange(e.target.value)}
@@ -95,7 +104,7 @@ export default function RadioButtonControl({
                   }`}
                   onClick={e => {
                     e.currentTarget?.focus();
-                    if (initialValue === undefined && val === currentValue) {
+                    if (isUnpersistedDefault && val === currentValue) {
                       onChange(val);
                     }
                   }}

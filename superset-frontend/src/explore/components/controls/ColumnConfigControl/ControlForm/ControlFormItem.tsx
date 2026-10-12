@@ -115,7 +115,12 @@ export function ControlFormItem({
             />
           )}
           {/* @ts-expect-error - dynamic Control component has varying prop types */}
-          <Control {...props} value={value} onChange={handleChange} />
+          <Control
+            {...props}
+            value={value}
+            initialValue={initialValue}
+            onChange={handleChange}
+          />
         </>
       )}
     </div>

@@ -120,6 +120,27 @@ test('calls onChange when clicking the displayed default option if value is unpe
   expect(onChange).toHaveBeenCalledWith('option1');
 });
 
+test('calls onChange when clicking the displayed default option when initialValue is unpersisted even if value is seeded with default', () => {
+  const onChange = jest.fn();
+  setup({ value: 'option2', initialValue: undefined, onChange });
+
+  const secondOption = screen.getByText('Option 2');
+  fireEvent.click(secondOption);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith('option2');
+});
+
+test('does not call onChange when clicking option if initialValue is already persisted', () => {
+  const onChange = jest.fn();
+  setup({ value: 'option2', initialValue: 'option2', onChange });
+
+  const secondOption = screen.getByText('Option 2');
+  fireEvent.click(secondOption);
+
+  expect(onChange).not.toHaveBeenCalled();
+});
+
 test('handles multiple clicks correctly', () => {
   const onChange = jest.fn();
   const { rerender } = setup({ value: 'option1', onChange });
