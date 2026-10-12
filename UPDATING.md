@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic provider SDK: migrate to the single `from_configuration` factory with required keyword-only `cache_token` and `context`, plus reserved `credentials=None`; the unreleased optional cache-token factory is removed. See [the execution context contract](docs/developer_docs/extensions/semantic-execution-context.md).
+
 - `SEMANTIC_LAYER_CONTAINMENT_CACHE` is off by default; opted-in providers can
   reuse cached semantic-view results for narrower queries. Containment keys include
   the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable

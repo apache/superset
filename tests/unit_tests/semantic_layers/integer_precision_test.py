@@ -18,7 +18,7 @@
 """Preserve nullable integer values through semantic chart-data serialization."""
 
 from decimal import Decimal
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pyarrow as pa
 import pytest
@@ -97,7 +97,9 @@ def test_chart_data_preserves_nullable_integer_precision(
     view: SemanticView = SemanticView(
         id=7, name="Amounts", configuration="{}", semantic_layer=semantic_layer
     )
-    view.__dict__["implementation"] = provider
+    mocker.patch.object(
+        SemanticView, "implementation", new_callable=PropertyMock, return_value=provider
+    )
     mocker.patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
         return_value=view,
@@ -234,7 +236,9 @@ def test_post_processing_receives_numeric_nullable_integer_metrics(
     view: SemanticView = SemanticView(
         id=7, name="Amounts", configuration="{}", semantic_layer=semantic_layer
     )
-    view.__dict__["implementation"] = provider
+    mocker.patch.object(
+        SemanticView, "implementation", new_callable=PropertyMock, return_value=provider
+    )
     mocker.patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
         return_value=view,
@@ -323,7 +327,9 @@ def test_contribution_with_separate_totals_query(
     view: SemanticView = SemanticView(
         id=7, name="Amounts", configuration="{}", semantic_layer=semantic_layer
     )
-    view.__dict__["implementation"] = provider
+    mocker.patch.object(
+        SemanticView, "implementation", new_callable=PropertyMock, return_value=provider
+    )
     mocker.patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
         return_value=view,

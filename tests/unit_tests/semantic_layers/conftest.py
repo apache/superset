@@ -20,8 +20,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import pyarrow as pa
+from superset_core.semantic_layers.context import SemanticExecutionContext
 from superset_core.semantic_layers.types import (
     Dimension,
     Metric,
@@ -89,4 +91,24 @@ def build_view_meta() -> ViewMeta:
         provider_identity=provider_identity,
         scope_identity=scope_identity,
         timeout=300,
+    )
+
+
+def make_execution_context(**overrides: Any) -> SemanticExecutionContext:
+    """Build a trusted-looking, secret-free SDK value for isolated provider tests."""
+    from superset_core.semantic_layers.context import (
+        ExecutionOrigin,
+        SemanticExecutionContext,
+    )
+
+    return SemanticExecutionContext(
+        **{
+            "principal_id": "1",
+            "role_ids": (),
+            "origin": ExecutionOrigin.REQUEST,
+            "is_guest": False,
+            "namespace": "test-workspace",
+            "identity_digest": "test-identity",
+            **overrides,
+        }
     )

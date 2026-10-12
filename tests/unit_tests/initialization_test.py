@@ -20,6 +20,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
+from pytest_mock import MockerFixture
 from sqlalchemy.exc import OperationalError
 from werkzeug.test import Client
 from werkzeug.wrappers import Response
@@ -83,13 +84,15 @@ class TestSupersetApp:
     @patch("superset.commands.theme.seed.SeedSystemThemesCommand")
     def test_sync_config_to_db_initializes_when_tables_exist(
         self,
-        mock_seed_themes_command,
-        mock_logger,
-    ):
+        mock_seed_themes_command: MagicMock,
+        mock_logger: MagicMock,
+        mocker: MockerFixture,
+    ) -> None:
         """Test that features are initialized when database is up-to-date."""
         # Setup
         app = SupersetApp(__name__)
         app.config = {"SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"}
+        mocker.patch("superset.semantic_layers.execution.bootstrap_semantic_namespace")
         mock_seed_themes = MagicMock()
         mock_seed_themes_command.return_value = mock_seed_themes
 

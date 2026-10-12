@@ -199,6 +199,11 @@ class SupersetApp(Flask):
 
             register_sqla_event_listeners()
 
+            # Defer model imports until initialization has configured SQLAlchemy.
+            from superset.semantic_layers.execution import bootstrap_semantic_namespace
+
+            bootstrap_semantic_namespace()
+
             # Seed system themes from configuration
             from superset.commands.theme.seed import SeedSystemThemesCommand
 

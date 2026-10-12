@@ -24,6 +24,10 @@ from typing import Any
 
 import pyarrow as pa
 from pydantic import BaseModel
+from superset_core.semantic_layers.context import (
+    SemanticCredentials,
+    SemanticExecutionContext,
+)
 from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.types import (
     Dimension,
@@ -33,6 +37,8 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 from superset_core.semantic_layers.view import SemanticView
+
+from tests.unit_tests.semantic_layers.conftest import make_execution_context
 
 
 class LegacyView(SemanticView):
@@ -69,12 +75,30 @@ class LegacyView(SemanticView):
         return self.get_dimensions()
 
 
-class LegacyLayer(SemanticLayer[BaseModel, LegacyView]):
-    configuration_class: type[BaseModel] = BaseModel
+class LegacyConfiguration(BaseModel):
+    """Concrete empty configuration for the contract provider."""
+
+
+class LegacyLayer(SemanticLayer[LegacyConfiguration, LegacyView]):
+    configuration_class: type[BaseModel] = LegacyConfiguration
+    context: SemanticExecutionContext
+    cache_token: str
+    credentials: SemanticCredentials | None
 
     @classmethod
-    def from_configuration(cls, configuration: dict[str, Any]) -> LegacyLayer:
-        return cls()
+    def from_configuration(
+        cls,
+        configuration: dict[str, Any],
+        *,
+        cache_token: str,
+        context: SemanticExecutionContext,
+        credentials: SemanticCredentials | None = None,
+    ) -> LegacyLayer:
+        layer: LegacyLayer = cls()
+        layer.context = context
+        layer.cache_token = cache_token
+        layer.credentials = credentials
+        return layer
 
     @classmethod
     def get_configuration_schema(
@@ -100,7 +124,11 @@ class LegacyLayer(SemanticLayer[BaseModel, LegacyView]):
 
 
 def test_legacy_provider_needs_no_metadata_overrides() -> None:
-    layer: LegacyLayer = LegacyLayer.from_configuration({})
+    layer: LegacyLayer = LegacyLayer.from_configuration(
+        {},
+        cache_token="test",  # noqa: S106
+        context=make_execution_context(),
+    )
     view: LegacyView = layer.get_semantic_view("legacy", {})
     assert view.metadata_cache_token is None
     assert {metric.id for metric in view.get_compatible_metrics(set(), set())} == {
@@ -162,12 +190,13 @@ def test_views_retain_their_captured_cache_identity() -> None:
     assert new_view.metadata_cache_token == "scope:2"  # noqa: S105
 
 
-def test_legacy_factory_accepts_optional_host_identity() -> None:
-    """Existing providers need not implement the cache-aware factory hook."""
-    layer: SemanticLayer[BaseModel, LegacyView] = (
-        LegacyLayer.from_configuration_with_cache_token(
+def test_factory_accepts_required_host_identity() -> None:
+    """Providers accept the required host identity through the single factory."""
+    layer: SemanticLayer[LegacyConfiguration, LegacyView] = (
+        LegacyLayer.from_configuration(
             {},
             cache_token="host-generation",  # noqa: S106
+            context=make_execution_context(),
         )
     )
     assert isinstance(layer, LegacyLayer)

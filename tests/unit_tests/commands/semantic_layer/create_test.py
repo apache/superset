@@ -54,7 +54,9 @@ def test_create_semantic_layer_success(mocker: MockerFixture) -> None:
     assert result == new_model
     expected = {**data, "configuration": '{"account": "test"}'}
     dao.create.assert_called_once_with(attributes=expected)
-    mock_cls.from_configuration.assert_called_once_with({"account": "test"})
+    mock_cls.configuration_class.model_validate.assert_called_once_with(
+        {"account": "test"}
+    )
 
 
 def test_create_semantic_layer_configuration_already_serialized(
@@ -138,7 +140,7 @@ def test_create_semantic_layer_invalid_configuration(
     dao.validate_uniqueness.return_value = True
 
     mock_cls: MagicMock = MagicMock()
-    mock_cls.from_configuration.side_effect = ValueError("bad config")
+    mock_cls.configuration_class.model_validate.side_effect = ValueError("bad config")
     mocker.patch.dict(
         "superset.commands.semantic_layer.create.registry",
         {"snowflake": mock_cls},

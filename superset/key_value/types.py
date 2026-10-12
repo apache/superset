@@ -79,6 +79,8 @@ class KeyValueResource(StrEnum):
     SQLLAB_PERMALINK = "sqllab_permalink"
 
 
+SEMANTIC_INSTALL_ID_KEY: UUID = UUID("b75b1c70-5553-4c5b-868b-bf8d99612626")
+
 # Stable UUIDs for resources that keep one named row in the key-value store.
 FIXED_RESOURCE_KEYS: dict[KeyValueResource, UUID] = {
     KeyValueResource.ALERT_REPORT_CONFIG: UUID("d4f7d2f0-bbd7-4d03-b1da-09c70f5705ec"),
