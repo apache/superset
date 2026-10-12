@@ -28,6 +28,7 @@ import pandas as pd
 import pytest
 from dateutil.relativedelta import relativedelta
 from flask import Flask
+from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql, postgresql
 
 from superset.config import DISALLOWED_SQL_FUNCTIONS
@@ -977,6 +978,45 @@ def test_the_probe_select_carries_the_engine_s_from_clause(app: Flask) -> None:
     assert BaseEngineSpec.select_without_from_suffix == ""
 
 
+@pytest.mark.parametrize(
+    ("module", "spec_name", "suffix"),
+    [
+        ("oracle", "OracleEngineSpec", " FROM DUAL"),
+        ("db2", "Db2EngineSpec", " FROM SYSIBM.SYSDUMMY1"),
+    ],
+)
+def test_the_probe_reads_the_from_suffix_off_the_engine_spec(
+    app: Flask, mocker: MockerFixture, module: str, spec_name: str, suffix: str
+) -> None:
+    """
+    The sibling above hands `build_probe_sql` a suffix directly, so it never
+    exercises the step that reads `select_without_from_suffix` off the engine
+    spec and forwards it. Drop that forwarding and the sibling stays green
+    while Oracle and Db2 stop pruning entirely -- a bare `SELECT ...` raises
+    there, `evaluate_transform` swallows it, and the only symptom is a
+    correctly configured mapping that silently never prunes.
+
+    So this drives the real entry point and asserts on the SQL the engine is
+    handed, plus that the result is accepted.
+    """
+    spec = getattr(import_module(f"superset.db_engine_specs.{module}"), spec_name)
+    database = _database_returning(["us"])
+    mocker.patch.object(
+        type(database), "db_engine_spec", PropertyMock(return_value=spec)
+    )
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["US"]) == [
+            "us"
+        ]
+
+    sql = _probe(database).call_args.kwargs["sql"]
+    assert sql.endswith(suffix)
+    # And the gate that re-parses the compiled probe accepts that shape, rather
+    # than the suffix being appended only to be refused downstream.
+    assert probe_sql_is_evaluable(sql, spec.engine, 1, suffix) is True
+
+
 @pytest.mark.parametrize("dialect", [mysql.dialect(), postgresql.dialect()])
 def test_the_probe_select_does_not_double_percent_signs(dialect: Any) -> None:
     """
@@ -1406,7 +1446,16 @@ def test_the_postgres_full_text_query_functions_are_denied_by_default(
 
 
 @pytest.mark.parametrize(
-    "function", ["getxml", "getxmltype", "newcontext", "newcontextfromhierarchy"]
+    "function",
+    [
+        "getxml",
+        "getxmltype",
+        "newcontext",
+        "newcontextfromhierarchy",
+        # No function argument to inspect at all: the table is named by the
+        # path string handed to the constructor.
+        "dburitype",
+    ],
 )
 def test_the_oracle_query_running_xml_functions_are_denied_by_default(
     function: str,
@@ -1934,52 +1983,54 @@ def test_a_connection_mutator_keys_the_probe_cache_per_caller(app: Flask) -> Non
 
 
 @pytest.mark.parametrize(
-    ("value", "expected"),
+    "value",
     [
-        # Extended ISO, which every engine reads.
-        ("2026-01-01", True),
-        ("2026-01-01 00:00:00", True),
-        ("2026-01-01T10:08:11", True),
+        # Even plain ISO: comparing a temporal column against text is an
+        # implicit coercion, and Trino has none while BigQuery coerces only a
+        # canonical literal -- so on an engine Superset has not confirmed, this
+        # declines rather than risking the whole chart.
+        "2026-01-01",
+        "2026-01-01 00:00:00",
+        "2026-01-01T10:08:11",
+        # The unseparated forms, same answer.
+        "20260101",
+        "20260706100811",
         # Ordinary text, which is the whole point.
-        ("us", False),
-        ("US", False),
-        ("", False),
-        ("x20260101", False),
-        # A month key is not a date any engine reads, so it declines -- on a
-        # *text* partition column it never reaches this gate.
-        ("202601", False),
-        # The basic forms are what an engine has to claim. `fromisoformat`
-        # parses them, so the universal branch is held to the extended shape.
-        ("20260101", False),
-        ("20260706100811", False),
-        ("1767225600", False),
-        ("1767225600000", False),
+        "us",
+        "US",
+        "",
+        "x20260101",
+        "202601",
+        "1767225600",
+        "1767225600000",
     ],
 )
-def test_only_text_every_engine_reads_as_an_instant_suits_a_temporal_key(
-    value: str, expected: bool
-) -> None:
+def test_an_undeclared_engine_reads_no_text_as_an_instant(value: str) -> None:
     """
     `_PROBE_RESULT_TYPES` admits `str` for a temporal partition column so a day
     key keeps working. It admitted every string, so `lower(:value)` answering
     `'us'` passed and the chart failed at the database instead.
 
-    An engine that has declared nothing gets the extended ISO forms and no
-    more: BigQuery coerces a STRING literal to `DATE` only in the canonical
-    form, so admitting `'20260115'` there failed the chart rather than losing
-    the pruning.
+    An earlier cut admitted extended ISO everywhere and only asked the spec
+    about the unseparated forms. That is the hole: on Trino a monotonic
+    `date_format(CAST(:value AS TIMESTAMP), '%Y-%m-%d')` probes to
+    `'2026-01-15'`, and `part_date >= '2026-01-15'` errors there rather than
+    losing the pruning.
     """
-    assert _reads_as_temporal(value, BaseEngineSpec) is expected
+    assert _reads_as_temporal(value, BaseEngineSpec) is False
 
 
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
-        # `'20260115'::date` is 2026-01-15 on PostgreSQL, so the day key this
-        # feature exists for mirrors there.
+        # PostgreSQL's date/time input reads both spellings, so the day key
+        # this feature exists for mirrors there.
+        ("2026-01-01", True),
+        ("2026-01-01 00:00:00", True),
+        ("2026-01-01T10:08:11", True),
+        ("2026-01-01 10:08:11.123456", True),
         ("20260101", True),
         ("20260706100811", True),
-        ("2026-01-01", True),
         # Still not a date, declared formats or not. `strptime` accepts
         # unpadded fields, so a bare epoch parsed happily as `%Y%m%d%H%M%S`
         # (1767-02-25 06:00) and was emitted as a date literal -- the exact
@@ -1993,10 +2044,45 @@ def test_only_text_every_engine_reads_as_an_instant_suits_a_temporal_key(
 def test_an_engine_that_reads_a_day_key_says_so(value: str, expected: bool) -> None:
     """
     Which text reads as an instant is the engine's answer, declared in
-    `temporal_literal_formats`; PostgreSQL's date input takes the unseparated
-    forms as well as the ISO ones.
+    `temporal_literal_formats`.
     """
     assert _reads_as_temporal(value, PostgresEngineSpec) is expected
+
+
+@pytest.mark.parametrize(
+    ("module", "spec_name"),
+    [
+        # Inherit `PostgresBaseEngineSpec`, so declaring the formats there
+        # handed them Postgres's date input. Snowflake's AUTO input does not
+        # take `YYYYMMDD` and reads an all-digit string as epoch seconds.
+        ("snowflake", "SnowflakeEngineSpec"),
+        ("vertica", "VerticaEngineSpec"),
+        ("hana", "HanaEngineSpec"),
+        ("netezza", "NetezzaEngineSpec"),
+        ("hologres", "HologresEngineSpec"),
+        # And the engines the reviewer named as failing the query outright.
+        ("trino", "TrinoEngineSpec"),
+        ("bigquery", "BigQueryEngineSpec"),
+    ],
+)
+def test_a_postgres_relative_does_not_inherit_the_day_key(
+    module: str, spec_name: str
+) -> None:
+    """
+    The declaration lives on the concrete `PostgresEngineSpec` and
+    `RedshiftEngineSpec`, not on the base class seven other specs extend.
+    """
+    spec = getattr(import_module(f"superset.db_engine_specs.{module}"), spec_name)
+    assert spec.temporal_literal_formats == ()
+
+
+def test_redshift_shares_the_postgres_day_key() -> None:
+    """Redshift shares PostgreSQL's date/time input, and names it itself."""
+    from superset.db_engine_specs.redshift import RedshiftEngineSpec
+
+    assert RedshiftEngineSpec.temporal_literal_formats == (
+        PostgresEngineSpec.temporal_literal_formats
+    )
 
 
 def test_the_base_spec_claims_no_day_key_format() -> None:
@@ -2087,8 +2173,11 @@ def _partition_column(column_type: str, **kwargs: Any) -> TableColumn:
         ("BOOLEAN", True, False),
         ("BOOLEAN", 1, True),
         ("TIMESTAMP", datetime(2026, 1, 1), False),
-        # A `to_char` day key is legitimately text.
-        ("TIMESTAMP", "2026-01-01", False),
+        # A `to_char` day key is legitimately text, but only where the engine
+        # reads it: this fixture's database is SQLite, which declares nothing,
+        # so the mirror declines and the query keeps working. The declared case
+        # is `test_an_engine_that_reads_a_day_key_says_so`.
+        ("TIMESTAMP", "2026-01-01", True),
         ("TIMESTAMP", 1767225600, True),
     ],
 )

@@ -1006,6 +1006,8 @@ def stored_expression_error(  # noqa: C901
             )
         )
 
+    # Same door, same reason: the name the denylist below would match is not
+    # the name the engine resolves. See `UNICODE_ESCAPED_IDENTIFIER_RE`.
     statement = _parse_skeleton(transform, database.backend)
     if statement is None:
         return str(
@@ -2728,17 +2730,6 @@ _PROBE_RESULT_TYPES: dict[utils.GenericDataType, tuple[type, ...]] = {
 }
 
 
-#: The extended ISO 8601 date, which every engine reads as a date.
-#:
-#: Used to tell an ISO value apart from a merely ISO-*parseable* one:
-#: `datetime.fromisoformat` also accepts the basic forms -- ``20260115``,
-#: ``20260706100811`` -- and those are exactly what an engine may not read.
-#: BigQuery coerces a STRING literal to ``DATE`` only in the canonical
-#: ``YYYY-MM-DD`` form, so admitting the basic forms everywhere emitted
-#: ``part_date = '20260115'`` there and failed the chart.
-_ISO_DATE_PREFIX_RE = re.compile(r"^\d{4}-\d{2}-\d{2}")
-
-
 def _reads_as_temporal(value: str, db_engine_spec: type[BaseEngineSpec]) -> bool:
     """
     Whether this engine would read this text as a date or timestamp.
@@ -2752,25 +2743,23 @@ def _reads_as_temporal(value: str, db_engine_spec: type[BaseEngineSpec]) -> bool
     refuses once the predicate is already in the statement -- so a chart that
     worked before the mapping returns an error rather than losing its pruning.
 
-    Which text counts is per engine beyond the extended ISO forms, because the
-    day key this feature exists for is not universal: PostgreSQL reads
-    ``'20260115'`` as a date, BigQuery coerces a STRING literal to ``DATE``
-    only in the canonical ``YYYY-MM-DD`` form, and Trino wants an explicit
-    cast. So an engine names what it reads in
-    `BaseEngineSpec.temporal_literal_formats` and says nothing by default,
-    which declines and costs only the pruning.
+    Which text counts is the engine's answer, in full: there is no universal
+    form. Comparing a temporal column against a text value is an implicit
+    coercion, and an engine is free not to have one -- Trino has no
+    VARCHAR-to-DATE comparison at all and BigQuery coerces only a canonical
+    ``YYYY-MM-DD`` *literal*, so even plain ISO text fails the whole chart on
+    those rather than merely losing its pruning. An earlier cut of this gate
+    admitted extended ISO everywhere and only asked the spec about the
+    unseparated forms; that is the hole. So every accepted form is declared in
+    `BaseEngineSpec.temporal_literal_formats`, which is empty by default --
+    an engine Superset has not confirmed declines, and declining costs only
+    the pruning.
 
     Answered by parsing, not by asking the engine: the check runs on the
     chart-query path, where a second round trip is the cost this module spends
     its effort avoiding. Parsing is also the conservative direction -- anything
     unrecognised declines.
     """
-    if _ISO_DATE_PREFIX_RE.match(value):
-        try:
-            datetime.fromisoformat(value)
-            return True
-        except ValueError:
-            pass
     for fmt in db_engine_spec.temporal_literal_formats:
         try:
             # Round-tripped, because `strptime` accepts unpadded fields: a bare

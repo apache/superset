@@ -602,18 +602,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # owner's, like ``p = T(mapped_col)`` itself.
     binary_string_comparison: bool = False
 
-    # Text forms this engine reads as a date or timestamp when one is compared
-    # against a temporal column, beyond the separator-bearing ISO 8601 forms
-    # every engine takes. `strftime`/`strptime` patterns.
+    # Every text form this engine reads as a date or timestamp when one is
+    # compared against a temporal column. `strftime`/`strptime` patterns.
     #
     # Partition filter mapping needs this. A bucketing key such as
     # ``to_char(:value, 'YYYYMMDD')`` is legitimately text, so the mirror
     # ``part_date = '20260115'`` has to be allowed against a ``DATE`` partition
-    # column -- but only where the engine reads it. BigQuery coerces a STRING
-    # literal to ``DATE`` only in the canonical ``YYYY-MM-DD`` form and Trino
-    # wants an explicit cast, so on those the predicate fails the whole chart
-    # rather than merely losing its pruning. Empty by default, so an engine
-    # that has not said so declines the mirror and keeps the query working.
+    # column -- but only where the engine reads it, because comparing a
+    # temporal column against text is an implicit coercion an engine need not
+    # have. Trino has no VARCHAR-to-DATE comparison and BigQuery coerces only a
+    # canonical ``YYYY-MM-DD`` *literal*, so on those even plain ISO text fails
+    # the whole chart rather than merely losing the pruning -- which is why the
+    # ISO forms are declared here too rather than assumed universal.
+    #
+    # Empty by default, so an engine Superset has not confirmed declines the
+    # mirror and keeps the query working. Declared on concrete specs, not on a
+    # shared base: `PostgresBaseEngineSpec` is inherited by Snowflake, whose
+    # AUTO date input reads an all-digit string as epoch seconds instead.
     temporal_literal_formats: tuple[str, ...] = ()
 
     allows_alias_in_orderby = True

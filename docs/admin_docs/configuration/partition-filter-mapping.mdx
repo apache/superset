@@ -94,12 +94,18 @@ partition key, which is exactly what a daily-partitioned table wants. Check the
 box for these.
 
 One caveat if your partition column is **temporal** and the transform answers with *text*: a
-mirror such as `part_date = '20260115'` only works where the database reads that form as a
-date. PostgreSQL and Redshift do; BigQuery coerces a string literal to `DATE` only as
-`YYYY-MM-DD`, and Trino wants an explicit cast, so on those an unseparated day key does not
-mirror and the preview says so. The separator-bearing forms — `2026-01-15`,
-`2026-01-15 00:00:00` — mirror everywhere. Either write the separators into the transform, or
-make the partition column's own type match what the transform returns.
+mirror such as `part_date = '20260115'` compares a date column against a string, which is an
+implicit coercion the database has to actually have. **PostgreSQL and Redshift** do, in both
+the ISO and unseparated spellings, so a text day key mirrors there. Trino has no
+varchar-to-date comparison at all, BigQuery coerces only a canonical `YYYY-MM-DD` *literal*,
+and Snowflake reads an all-digit string as epoch seconds — on those the predicate would fail
+the whole query rather than merely lose its pruning, so Superset declines it and the preview
+says why. Any other engine declines too, until it is confirmed and declared.
+
+If your partition column is temporal and your transform returns text, the robust answer is
+to make the transform's return type match the column: `date(:value)` or
+`cast(... as date)` rather than `to_char(...)`. A *numeric* partition column — the
+`unix_timestamp(:value)` / epoch shape — is unaffected by any of this.
 
 When the box is unchecked, `=` and `IN` filters still mirror; ranges do not.
 
