@@ -261,7 +261,7 @@ def test_semantic_layer_implementation() -> None:
 
     mock_class = MagicMock()
     mock_impl = MagicMock()
-    mock_class.from_configuration.return_value = mock_impl
+    mock_class.from_configuration_with_cache_token.return_value = mock_impl
 
     with patch.dict(
         "superset.semantic_layers.models.registry",
@@ -273,7 +273,9 @@ def test_semantic_layer_implementation() -> None:
 
         result = layer.implementation
 
-    mock_class.from_configuration.assert_called_once_with({"key": "value"})
+    mock_class.from_configuration_with_cache_token.assert_called_once_with(
+        {"key": "value"}, cache_token=layer.metadata_generation
+    )
     assert result == mock_impl
 
 
@@ -507,6 +509,17 @@ def test_semantic_view_get_extra_cache_keys(version: str | None) -> None:
     with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
         composed_key: str = query.cache_key(
             extra_cache_keys=view.get_extra_cache_keys({})
+        )
+        expected: list[Hashable] = [
+            view.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
+        if version is not None:
+            expected.append(("semantic-result-version", "fixture", version))
+        assert view.get_extra_cache_keys({}) == expected
+        assert composed_key != query.cache_key(extra_cache_keys=expected[1:])
+        assert composed_key != query.cache_key(
+            extra_cache_keys=[expected[0], *expected[2:]]
         )
         assert composed_key != query.cache_key(extra_cache_keys=[])
         if version is not None:
@@ -2692,7 +2705,10 @@ def test_result_generation_reads_class_without_provider_construction(
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
     with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
         assert view.result_cache_version == version
-        expected: list[Hashable] = ["semantic-null-filters-v1"]
+        expected: list[Hashable] = [
+            view.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
         if version is not None:
             expected.append(("semantic-result-version", "fixture", version))
         assert view.get_extra_cache_keys({}) == expected

@@ -2895,7 +2895,11 @@ def test_semantic_annotation_generation_versions_sql_parent(
     query: MagicMock = MagicMock()
     query.annotation_layers = [{"sourceType": "line", "value": 7}]
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
-    chart: MagicMock = MagicMock(datasource=view)
+    from superset.models.slice import Slice
+
+    chart: Slice = Slice(
+        datasource_type="semantic_view", datasource_id=17, semantic_view=view
+    )
     provider: MagicMock = MagicMock(result_cache_version=None)
     with (
         patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}),
@@ -2916,6 +2920,7 @@ def test_semantic_annotation_generation_versions_sql_parent(
         "user_id": 42,
         "source_rls": {"7": ["scope"]},
         "semantic_filter_protocol": "semantic-null-filters-v1",
+        "source_versions": {"7": view.metadata_generation},
     }
     assert new != old
     assert new["user_id"] == old["user_id"]
@@ -3033,6 +3038,7 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
         id=17, name="fixture", semantic_layer=SemanticLayer(type="fixture")
     )
     provider: MagicMock = MagicMock()
+    provider.result_cache_version = None
     provider.get_dimensions.return_value = []
     view.__dict__["implementation"] = provider
     chart: Slice = Slice(
@@ -3092,6 +3098,14 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
     processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
     query: QueryObject = QueryObject(columns=[], metrics=[], annotation_layers=[layer])
     with (
+        patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}),
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=[],
+        ),
         patch(
             "superset.common.query_context_processor.ChartDAO.find_by_id",
             return_value=chart,
@@ -3099,7 +3113,7 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
         patch("superset.common.query_context_processor.get_user_id", return_value=42),
     ):
         context: dict[str, Any] = processor._annotation_cache_context(query)
-    legacy_context: dict[str, Any] = {"user_id": 42, "source_rls": {"7": None}}
+    legacy_context: dict[str, Any] = {"user_id": 42, "source_rls": {"7": []}}
     legacy_key: str = query.cache_key(
         datasource="native-1", annotation_context=legacy_context
     )
@@ -3110,4 +3124,5 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
     assert context == {
         **legacy_context,
         "semantic_filter_protocol": "semantic-null-filters-v1",
+        "source_versions": {"7": view.metadata_generation},
     }

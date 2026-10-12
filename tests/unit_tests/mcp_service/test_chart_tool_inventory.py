@@ -69,8 +69,8 @@ CHART_TOOLS = [
 # while any inlined per-type schema still fails.
 TOOL_BUDGETS = [
     ("generate_chart", 2_400),
-    ("update_chart", 4_300),
-    ("update_chart_preview", 2_000),
+    ("update_chart", 4_100),
+    ("update_chart_preview", 2_200),
     ("generate_explore_link", 1_800),
 ]
 
