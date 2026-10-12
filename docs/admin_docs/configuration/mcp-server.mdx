@@ -345,8 +345,9 @@ Ad-hoc aggregates and SQL expressions are rejected. Missing and inaccessible
 views return the same `view_not_found` error without exposing view metadata.
 
 `update_chart` accepts at most one replacement selector; omitting both retains
-the chart's source. A `view_id` rebind validates retained query roles; a
-`dataset_id` rebind, including from a view, requires a complete `config`.
+the chart's source. A `view_id` rebind validates retained query roles, except
+Gauge, Treemap and geographic charts, which require a complete `config` for any
+rebind. A `dataset_id` rebind, including from a view, requires a complete `config`.
 Rebinding preserves the selected source family in previews and stored
 parameters and clears stale query context. An incompatible retained
 configuration must be replaced with a
