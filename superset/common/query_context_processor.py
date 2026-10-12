@@ -43,6 +43,12 @@ from superset.common.utils.time_range_utils import get_since_until_from_time_ran
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
+from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import (
+    DatasourceNotFound,
+    DatasourceTypeNotSupportedError,
+    DatasourceValueIsIncorrect,
+)
 from superset.dataframe import df_to_records
 from superset.exceptions import (
     QueryObjectValidationError,
@@ -59,7 +65,7 @@ from superset.semantic_layers.exceptions import (
 )
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
-from superset.utils import csv, excel
+from superset.utils import csv, excel, json
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
@@ -79,6 +85,7 @@ from superset.utils.pandas_postprocessing.utils import unescape_separator
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
@@ -279,13 +286,14 @@ class QueryContextProcessor:
             force_cached=force_cached,
         )
 
-        # If cache is loaded but missing applied_filter_columns and query has filters,
-        # treat as cache miss to ensure fresh query with proper applied_filter_columns
+        # Entries without any filter reporting predate applied/rejected metadata.
+        # Rejected-only results are complete too (e.g. incompatible dashboard filters).
         if (
             query_obj
             and cache_key
             and cache.is_loaded
             and not cache.applied_filter_columns
+            and not cache.rejected_filter_columns
             and query_obj.filter
             and len(query_obj.filter) > 0
         ):
@@ -471,6 +479,7 @@ class QueryContextProcessor:
         """
         source_rls: dict[str, list[str] | None] = {}
         source_versions: dict[str, tuple[str, str]] = {}
+        metadata_versions: dict[str, str] = {}
         for layer in query_obj.annotation_layers:
             if (
                 layer.get("sourceType")
@@ -481,7 +490,30 @@ class QueryContextProcessor:
             chart = (
                 ChartDAO.find_by_id(layer_value) if layer_value is not None else None
             )
-            annotation_datasource = chart.datasource if chart else None
+            annotation_datasource: Datasource | None = (
+                chart.resolved_datasource if chart else None
+            )
+            if chart and isinstance(chart.query_context, str):
+                try:
+                    source: dict[str, Any] = json.loads(chart.query_context)[
+                        "datasource"
+                    ]
+                    annotation_datasource = DatasourceDAO.get_datasource(
+                        source["type"], source["id"]
+                    )
+                except (
+                    ValueError,
+                    TypeError,
+                    KeyError,
+                    DatasourceNotFound,
+                    DatasourceTypeNotSupportedError,
+                    DatasourceValueIsIncorrect,
+                ):
+                    annotation_datasource = None
+            if isinstance(annotation_datasource, SemanticView):
+                metadata_versions[str(layer_value)] = (
+                    annotation_datasource.metadata_generation
+                )
             source_rls[str(layer.get("value"))] = (
                 security_manager.get_rls_cache_key(annotation_datasource)
                 if annotation_datasource
@@ -493,7 +525,11 @@ class QueryContextProcessor:
                 )
                 if discriminator is not None:
                     source_versions[str(layer_value)] = discriminator
-        context: dict[str, Any] = {"user_id": get_user_id(), "source_rls": source_rls}
+        context: dict[str, Any] = {
+            "user_id": get_user_id(),
+            "source_rls": source_rls,
+            "source_versions": metadata_versions,
+        }
         if source_versions:
             context["semantic_result_versions"] = source_versions
         return context

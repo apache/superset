@@ -1927,6 +1927,9 @@ msgstr "Todas as dimensões"
 msgid "All filters"
 msgstr "Todos os filtros"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Todos os painéis"
 
@@ -2042,6 +2045,12 @@ msgstr ""
 #, fuzzy
 msgid "Always filter main datetime column"
 msgstr "Sempre filtrar a coluna principal de data e hora"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 msgid "An Error Occurred"
 msgstr "Ocorreu um erro"
@@ -2982,6 +2991,8 @@ msgstr "Voltar"
 msgid "Back to all"
 msgstr "Voltar para todos"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Backend"
 
@@ -3257,6 +3268,9 @@ msgstr "Tamanho da bolha"
 #, fuzzy
 msgid "Bubble size number format"
 msgstr "Formato do número do tamanho da bolha"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "Pontos de quebra de balde"
@@ -4649,6 +4663,9 @@ msgstr "Colunas para ler"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Colunas a serem mostradas na dica de ferramenta."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combinar métricas"
@@ -7856,6 +7873,9 @@ msgstr "Expandir linha para editar"
 msgid "Expand settings"
 msgstr "Expandir configurações"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7873,6 +7893,12 @@ msgstr "Experimental"
 #, fuzzy
 msgid "Expired"
 msgstr "Expirado"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Explorar"
@@ -8894,6 +8920,13 @@ msgstr "Coluna GeoJson"
 msgid "GeoJson Settings"
 msgstr "Configurações de GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -9000,6 +9033,9 @@ msgstr "Nome do grupo"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "Grupo permanecendo como \"Outros\""
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"
@@ -9130,6 +9166,8 @@ msgstr "Alinhamento horizontal"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Host"
 
@@ -9178,11 +9216,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Enorme"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Códigos ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 #, fuzzy
 msgid "Icon URL"
@@ -10101,6 +10145,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -10136,6 +10185,9 @@ msgstr "Valor esquerdo"
 
 msgid "Legacy"
 msgstr "Legado"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "Legenda"
@@ -10651,6 +10703,11 @@ msgstr "Tamanho do marcador"
 
 msgid "Markers"
 msgstr "Marcadores"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Tipo de marcação"
@@ -11181,6 +11238,12 @@ msgid ""
 msgstr ""
 "São aceitos vários formatos, consulte a biblioteca Python geopy.points "
 "para mais detalhes"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "Multiplicador"
@@ -11719,6 +11782,10 @@ msgstr "Não encontrado"
 
 msgid "Not in"
 msgstr "Não está em"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Não nulo"
@@ -13328,6 +13395,12 @@ msgstr "Atualização de gráficos"
 
 msgid "Refreshing columns"
 msgstr "Atualização de colunas"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 #, fuzzy
 msgid "Register"
@@ -15112,6 +15185,7 @@ msgstr "Selecione usuários"
 msgid "Select values"
 msgstr "Selecione valores"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -15868,6 +15942,7 @@ msgstr "Controle deslizante"
 msgid "Slider and range input"
 msgstr "Controle deslizante e entrada de intervalo"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -17121,6 +17196,11 @@ msgstr "A coluna a ser usada como alvo da ponte."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "A coluna foi excluída ou renomeada no banco de dados."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -19964,6 +20044,17 @@ msgstr "Soltar do painel de resultados"
 msgid "Unpin from top"
 msgstr "Soltar do topo"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -19983,6 +20074,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Tipo de cláusula sem suporte: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]

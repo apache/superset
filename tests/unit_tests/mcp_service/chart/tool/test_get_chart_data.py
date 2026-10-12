@@ -3265,7 +3265,7 @@ class TestSavedChartExtraFormDataFilters:
             {"filters": [{"col": "country", "op": "==", "val": "USA"}]}, mcp_server
         )
         filters = loaded["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     @pytest.mark.asyncio
     async def test_adhoc_filters_key_reaches_executed_query(
@@ -3287,7 +3287,7 @@ class TestSavedChartExtraFormDataFilters:
             mcp_server,
         )
         filters = loaded["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     @pytest.mark.asyncio
     async def test_temporal_range_filter_reaches_executed_query(
@@ -3311,6 +3311,7 @@ class TestSavedChartExtraFormDataFilters:
             "col": "order_date",
             "op": "TEMPORAL_RANGE",
             "val": "2024-01-01 : 2024-02-01",
+            "isExtra": True,
         } in filters
 
     @pytest.mark.asyncio
@@ -4010,6 +4011,41 @@ def test_recommend_caps_at_max():
 def test_recommend_empty_columns_returns_table():
     result = _recommend_visualizations("table", [], row_count=0)
     assert result == ["table"]
+
+
+def test_recommend_time_spatial_keeps_geographic_points():
+    """A timestamp alongside coordinates must not shadow the map suggestion."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("longitude", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert "geographic points" in result
+    assert "line chart" in result
+
+
+def test_recommend_time_spatial_spends_the_cap_on_the_map():
+    """The map displaces only the nearest variant of a surviving suggestion."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("longitude", "numeric"),
+        _col("revenue", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert result == ["geographic points", "line chart", "area chart", "bar chart"]
+
+
+def test_recommend_non_spatial_temporal_omits_geographic_points():
+    """Coordinates are only suggested when both are actually present."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("revenue", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert "geographic points" not in result
 
 
 def test_recommend_pie_only_for_low_cardinality():
