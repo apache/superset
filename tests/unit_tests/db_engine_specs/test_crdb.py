@@ -96,5 +96,3 @@ def test_cockroachdb_convert_dttm(
     from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
 
     assert CockroachDbEngineSpec.convert_dttm(target_type, dttm) == expected_result
-
-
