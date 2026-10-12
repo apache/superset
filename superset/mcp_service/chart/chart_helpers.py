@@ -1197,17 +1197,11 @@ def build_query_dicts_from_form_data(
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.
     if viz_type.startswith("deck_"):
-        from superset.common.form_data_query_context import normalize_time_column
-
-        qd = build_query_objects_from_form_data(
-            form_data,
-            viz_type=viz_type,
-            row_limit=row_limit,
-            order_desc=order_desc,
-            filters_prepared=True,
-        )[0]
-        qd = _deck_query_adapter(form_data, qd, viz_type)
-        return [normalize_time_column(form_data, qd)]
+        return [
+            build_deck_gl_query_dict(
+                form_data, viz_type, row_limit=row_limit, order_desc=order_desc
+            )
+        ]
     return build_query_objects_from_form_data(
         form_data,
         viz_type=viz_type,
@@ -1216,6 +1210,33 @@ def build_query_dicts_from_form_data(
         filters_prepared=True,
         secondary_form_data=secondary_form_data,
     )
+
+
+def build_deck_gl_query_dict(
+    form_data: dict[str, Any],
+    viz_type: str,
+    *,
+    row_limit: int | None = None,
+    order_desc: bool | None = None,
+) -> dict[str, Any]:
+    """Build the single query a Deck.gl layer issues from its spatial controls.
+
+    ``form_data`` must already be prepared for querying (filters normalized).
+    """
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+        normalize_time_column,
+    )
+
+    qd = build_query_objects_from_form_data(
+        form_data,
+        viz_type=viz_type,
+        row_limit=row_limit,
+        order_desc=order_desc,
+        filters_prepared=True,
+    )[0]
+    qd = _deck_query_adapter(form_data, qd, viz_type)
+    return normalize_time_column(form_data, qd)
 
 
 def resolve_form_data_datasource(
@@ -1408,3 +1429,66 @@ def build_applied_dashboard_filters(
         )
 
     return applied
+
+
+def _parse_orderby(values: Any) -> list[list[Any]]:
+    """Parse bounded native ``order_by_cols`` without coercing malformed input."""
+    if values is not None and not isinstance(values, list):
+        raise ValueError("order_by_cols must be a list")
+    if isinstance(values, list) and len(values) > 100:
+        raise ValueError("order_by_cols must contain at most 100 entries")
+    from superset.utils import json as utils_json
+
+    result: list[list[Any]] = []
+    for index, value in enumerate(values or []):
+        if isinstance(value, str):
+            if len(value) > 1000:
+                raise ValueError(f"order_by_cols[{index}] is too long")
+            try:
+                value = utils_json.loads(value)
+            except (TypeError, ValueError) as ex:
+                raise ValueError(f"order_by_cols[{index}] is not valid JSON") from ex
+        if (
+            isinstance(value, (list, tuple))
+            and len(value) == 2
+            and isinstance(value[0], str)
+            and bool(value[0])
+            and isinstance(value[1], bool)
+        ):
+            result.append(list(value))
+        else:
+            raise ValueError(
+                f"order_by_cols[{index}] must be [column, ascending_boolean]"
+            )
+    return result
+
+
+def _column_label(column: Any) -> str | None:
+    """Return the frontend ``getColumnLabel`` value for a query column."""
+    if isinstance(column, str):
+        return column
+    if not isinstance(column, dict):
+        return None
+    return (
+        column.get("label") or column.get("sqlExpression") or column.get("column_name")
+    )
+
+
+def _metric_label(metric: Any) -> str | None:
+    """Return the frontend ``getMetricLabel`` value for a query metric."""
+    if isinstance(metric, str):
+        return metric
+    if not isinstance(metric, dict):
+        return None
+    if label := metric.get("label"):
+        return label
+    if metric.get("expressionType") == "SIMPLE":
+        column = metric.get("column") or {}
+        name = (
+            column.get("columnName") or column.get("column_name")
+            if isinstance(column, dict)
+            else None
+        )
+        if name and metric.get("aggregate"):
+            return f"{metric['aggregate']}({name})"
+    return metric.get("sqlExpression")

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
+import type { JsonSchema } from '@jsonforms/core';
 import {
   act,
   fireEvent,
@@ -28,13 +29,27 @@ import {
 import SemanticLayerModal from './SemanticLayerModal';
 
 let mockJsonFormsChangeTriggered = false;
+let mockFormSchema: JsonSchema | undefined;
+let mockRefreshingSchema = false;
 let capturedOnChange:
   | ((value: { data: Record<string, unknown>; errors?: unknown[] }) => void)
   | null = null;
 
 jest.mock('@jsonforms/react', () => ({
   ...jest.requireActual('@jsonforms/react'),
-  JsonForms: ({ onChange }: { onChange: (value: unknown) => void }) => {
+  JsonForms: ({
+    onChange,
+    readonly,
+    schema,
+    config,
+  }: {
+    onChange: (value: unknown) => void;
+    readonly?: boolean;
+    schema?: JsonSchema;
+    config?: { refreshingSchema?: boolean };
+  }) => {
+    mockFormSchema = schema;
+    mockRefreshingSchema = !!config?.refreshingSchema;
     capturedOnChange = onChange as typeof capturedOnChange;
     // eslint-disable-next-line react-hooks/rules-of-hooks
     if (!mockJsonFormsChangeTriggered) {
@@ -44,7 +59,7 @@ jest.mock('@jsonforms/react', () => ({
         errors: [],
       });
     }
-    return null;
+    return <input aria-label="Warehouse" readOnly={readonly} />;
   },
 }));
 
@@ -73,6 +88,8 @@ const props = {
 beforeEach(() => {
   mockJsonFormsChangeTriggered = false;
   capturedOnChange = null;
+  mockFormSchema = undefined;
+  mockRefreshingSchema = false;
   jest.useFakeTimers({ advanceTimers: true });
   mockedGet.mockReset();
   mockedPost.mockReset();
@@ -230,6 +247,119 @@ test('cancels pending schema refresh when dependencies become unsatisfied', asyn
 
   // No additional POST should have fired; the cancelled timer must not land.
   expect(mockedPost).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  ['debouncing', false],
+  ['pending', false],
+  ['finished', false],
+  ['unsatisfied', false],
+  ['debouncing', true],
+  ['pending', true],
+  ['finished', true],
+  ['unsatisfied', true],
+])(
+  'ignores stale schema completion when newer dependencies are %s (failure: %s)',
+  async (phase, fails) => {
+    mockJsonFormsChangeTriggered = true;
+    props.addDangerToast.mockClear();
+    render(<SemanticLayerModal {...props} />);
+    await waitFor(() => expect(capturedOnChange).not.toBeNull());
+    const initialSchema = mockFormSchema;
+    let finishOld: () => void = () => {};
+    mockedPost.mockReturnValueOnce(
+      new Promise((resolve, reject) => {
+        finishOld = () =>
+          fails
+            ? reject(new Error('stale failure'))
+            : resolve({
+                json: {
+                  result: {
+                    type: 'object',
+                    properties: { obsolete: { type: 'string' } },
+                  },
+                  warning: 'stale warning',
+                },
+              });
+      }),
+    );
+    await act(async () => {
+      capturedOnChange!({ data: { warehouse: 'wh1' }, errors: [] });
+      jest.advanceTimersByTime(501);
+    });
+    expect(mockedPost).toHaveBeenCalledTimes(2);
+    let finishNew: () => void = () => {};
+    mockedPost.mockReturnValueOnce(
+      new Promise(resolve => {
+        finishNew = () =>
+          resolve({
+            json: {
+              result: {
+                type: 'object',
+                properties: { current: { type: 'string' } },
+              },
+            },
+          });
+      }),
+    );
+    await act(async () => {
+      capturedOnChange!({
+        data: { warehouse: phase === 'unsatisfied' ? '' : 'wh2' },
+        errors: [],
+      });
+      if (phase === 'pending' || phase === 'finished')
+        jest.advanceTimersByTime(501);
+    });
+    if (phase === 'finished') await act(async () => finishNew());
+    await act(async () => finishOld());
+    expect(mockFormSchema).toEqual(
+      phase === 'finished'
+        ? { type: 'object', properties: { current: { type: 'string' } } }
+        : initialSchema,
+    );
+    expect(props.addDangerToast).not.toHaveBeenCalled();
+    expect(mockRefreshingSchema).toBe(
+      phase === 'debouncing' || phase === 'pending',
+    );
+    if (phase === 'debouncing')
+      await act(async () => jest.advanceTimersByTime(501));
+    if (phase === 'debouncing' || phase === 'pending') {
+      await act(async () => finishNew());
+      expect(mockFormSchema?.properties).toEqual({
+        current: { type: 'string' },
+      });
+      expect(mockRefreshingSchema).toBe(false);
+    }
+  },
+);
+
+test('Back clears pending refresh state before configuring a provider again', async () => {
+  mockJsonFormsChangeTriggered = true;
+  render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+  fireEvent.mouseDown(
+    await screen.findByRole('combobox', { name: 'Semantic layer type' }),
+  );
+  fireEvent.click(await screen.findByText('Example'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  await waitFor(() => expect(capturedOnChange).not.toBeNull());
+  let finish: () => void = () => {};
+  mockedPost.mockReturnValueOnce(
+    new Promise(resolve => {
+      finish = () =>
+        resolve({ json: { result: { type: 'object', properties: {} } } });
+    }),
+  );
+  await act(async () => {
+    capturedOnChange!({ data: { warehouse: 'wh1' }, errors: [] });
+    jest.advanceTimersByTime(501);
+  });
+  expect(mockRefreshingSchema).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: /Back/ }));
+  capturedOnChange = null;
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  await waitFor(() => expect(capturedOnChange).not.toBeNull());
+  await act(async () => finish());
+  expect(mockRefreshingSchema).toBe(false);
 });
 
 const completeCredentials = {
@@ -440,4 +570,116 @@ test('save failure without credential fields uses neutral operation wording', as
       'An error occurred while updating the semantic layer',
     ),
   );
+});
+
+test('Reload metadata confirms and closes without navigating away from the toast', async () => {
+  mockJsonFormsChangeTriggered = true;
+  props.onHide.mockClear();
+  render(<SemanticLayerModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Reload metadata' });
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.click(button);
+  await waitFor(() => expect(props.onHide).toHaveBeenCalledTimes(1));
+  expect(mockedPost).toHaveBeenCalledWith({
+    endpoint: `/api/v1/semantic_layer/${props.semanticLayerUuid}/clear_cache`,
+    jsonPayload: {},
+  });
+  expect(props.addSuccessToast).toHaveBeenCalledWith(
+    'Cache cleared; reload to fetch metadata',
+  );
+});
+
+test('Reload metadata stays enabled after schema values are backfilled but disables on an edit', async () => {
+  mockJsonFormsChangeTriggered = true;
+  mockedPost.mockResolvedValue({
+    json: {
+      result: {
+        type: 'object',
+        properties: {
+          warehouse: { type: 'string' },
+          region: { type: 'string', readOnly: true, default: 'us-east-1' },
+          provider: { type: 'string', const: 'snowflake' },
+        },
+      },
+    },
+  });
+
+  render(<SemanticLayerModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Reload metadata' });
+  await waitFor(() => expect(capturedOnChange).not.toBeNull());
+
+  act(() =>
+    capturedOnChange?.({
+      data: { warehouse: 'wh0', region: 'us-east-1', provider: 'snowflake' },
+      errors: [],
+    }),
+  );
+  expect(button).toBeEnabled();
+
+  act(() =>
+    capturedOnChange?.({
+      data: { warehouse: 'wh1', region: 'us-east-1', provider: 'snowflake' },
+      errors: [],
+    }),
+  );
+  expect(button).toBeDisabled();
+});
+
+test('Reload metadata is disabled for unsaved configuration and name edits', async () => {
+  render(<SemanticLayerModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Reload metadata' });
+  expect(button).toBeDisabled();
+  act(() => capturedOnChange?.({ data: { warehouse: 'wh0' }, errors: [] }));
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.change(screen.getByPlaceholderText('Name of the semantic layer'), {
+    target: { value: 'Unsaved name' },
+  });
+  expect(button).toBeDisabled();
+});
+
+test('Reload metadata reports failure without reloading or closing the editor', async () => {
+  mockJsonFormsChangeTriggered = true;
+  props.addDangerToast.mockClear();
+  props.onHide.mockClear();
+  render(<SemanticLayerModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Reload metadata' });
+  await waitFor(() => expect(button).toBeEnabled());
+  mockedPost.mockRejectedValueOnce(new Error('clear failed'));
+  fireEvent.click(button);
+  await waitFor(() =>
+    expect(props.addDangerToast).toHaveBeenCalledWith(
+      'Unable to clear metadata cache',
+    ),
+  );
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(button).toBeEnabled();
+});
+
+test('A pending clear prevents edits and a closed editor ignores its late response', async () => {
+  mockJsonFormsChangeTriggered = true;
+  props.addSuccessToast.mockClear();
+  const { rerender } = render(<SemanticLayerModal {...props} />);
+  const button = await screen.findByRole('button', { name: 'Reload metadata' });
+  await waitFor(() => expect(button).toBeEnabled());
+  let finish: (value: { json: object }) => void = () => {};
+  mockedPost.mockReturnValueOnce(
+    new Promise(resolve => {
+      finish = resolve;
+    }),
+  );
+  expect(
+    screen.getByRole('textbox', { name: 'Warehouse' }),
+  ).not.toHaveAttribute('readonly');
+  fireEvent.click(button);
+  expect(screen.getByRole('textbox', { name: 'Warehouse' })).toHaveAttribute(
+    'readonly',
+  );
+  expect(button).toBeDisabled();
+  expect(
+    screen.getByPlaceholderText('Name of the semantic layer'),
+  ).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  rerender(<SemanticLayerModal {...props} show={false} />);
+  await act(async () => finish({ json: {} }));
+  expect(props.addSuccessToast).not.toHaveBeenCalled();
 });

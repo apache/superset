@@ -140,7 +140,7 @@ Dashboard Management:
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 - restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
 - manage_dashboard_owners: Add/remove dashboard owners by explicit operation (requires write access; rejects changes that would leave zero owners)
-- manage_dashboard_roles: Add/remove dashboard access roles by explicit operation (requires write access; only affects access when ENABLE_VIEWERS is enabled)
+- manage_dashboard_roles: Add/remove dashboard access roles by explicit operation (requires write access; applies regardless of the ENABLE_VIEWERS flag)
 - manage_dashboard_certification: Set or clear a dashboard's certified_by/certification_details badge (requires write access)
 
 Annotation Layers:
@@ -444,6 +444,8 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="bubble_v2": Bubble scatter plotting three metrics at once
   (entity dimension + x, y and size metrics required; optional series
    dimension colors the bubbles by group)
+- chart_type="bullet": Bullet Chart for comparing one numeric measure per row
+  against qualitative ranges, point markers, and marker lines
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -453,7 +455,7 @@ Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
 This field is populated for chart types known to the MCP registry
 (xy, pie, sunburst, table, pivot_table, big_number, mixed_timeseries, handlebars,
-histogram, box_plot, waterfall, gantt, bubble_v2, and interactive_pivot).
+histogram, box_plot, waterfall, gantt, bullet, bubble_v2, and interactive_pivot).
 Availability gates creation and schema discovery, not display names for
 existing charts.
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
