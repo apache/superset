@@ -18,15 +18,11 @@
  */
 
 import type { Page } from '@playwright/test';
-import { apiCreateStubSemanticView } from '../../playwright/helpers/api/semanticLayer';
-import {
-  apiDelete,
-  apiGet,
-  apiPost,
-} from '../../playwright/helpers/api/requests';
+import { apiCreateStubSemanticView } from './semanticLayer';
+import { apiDelete, apiGet, apiPost } from './requests';
 
 jest.mock('@playwright/test', () => ({ test: { skip: jest.fn() } }));
-jest.mock('../../playwright/helpers/api/requests', () => ({
+jest.mock('./requests', () => ({
   apiDelete: jest.fn(),
   apiGet: jest.fn(),
   apiPost: jest.fn(),
