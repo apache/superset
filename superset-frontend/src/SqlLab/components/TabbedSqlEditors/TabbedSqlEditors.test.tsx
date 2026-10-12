@@ -374,7 +374,7 @@ test('new tab button opens the dropdown on keyboard activation', async () => {
   addButton.focus();
   // Enter on a focused native button synthesizes a click, which the
   // capture-phase listener intercepts just like a mouse click.
-  userEvent.type(addButton, '{enter}', { skipClick: true });
+  await userEvent.type(addButton, '{enter}', { skipClick: true });
 
   expect(await screen.findByText('Contributed Tab')).toBeInTheDocument();
 });
