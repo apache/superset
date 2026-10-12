@@ -309,6 +309,7 @@ jobs:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       IMAGE_TAG: apache/superset:GHA-${{ matrix.build_preset }}-${{ github.run_id }}
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
 
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
@@ -340,6 +341,13 @@ jobs:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           build: "true"
+
+      - name: Setup Develocity for Docker
+        if: env.DEVELOCITY_ENABLED == 'true'
+        continue-on-error: true
+        uses: $/.github/actions/setup-develocity-docker
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
 
       - name: Setup supersetbot
         uses: $/.github/actions/setup-supersetbot/
@@ -406,6 +414,7 @@ jobs:
           # only runs when the change detector flags docker/python/frontend
           # changes and the PR build matrix never includes py311/py312.
           EXTRA_FLAGS="$(scripts/docker-build-extra-flags.sh "$BUILD_PRESET" "$IMAGE_TAG")"
+          EXTRA_FLAGS="$EXTRA_FLAGS --build-arg DEVELOCITY_VALUE_CI_commit_sha=$GITHUB_SHA"
 
           for attempt in 1 2 3; do
             # Supersetbot adds --cache-to whenever DOCKERHUB_TOKEN is present.

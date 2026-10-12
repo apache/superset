@@ -64,6 +64,7 @@ jobs:
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
         with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
           python-version: ${{ matrix.python-version }}
       # Runs in parallel via pytest-xdist: the serial suite had grown to
       # ~27-28 min against this job's 30-minute timeout, so the trailing

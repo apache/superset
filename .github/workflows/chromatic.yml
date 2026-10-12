@@ -58,6 +58,16 @@ concurrency:
 env:
   TAG: apache/superset:chromatic-${{ github.run_id }}
   CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+  DEVELOCITY_PROJECT_ID: superset
+  DEVELOCITY_TAG_CI: "true"
+  DEVELOCITY_VALUE_CI_commit_sha: ${{ github.sha }}
+  DEVELOCITY_VALUE_CI_run: ${{ github.run_id }}
+  DEVELOCITY_DOCKER_ARGS: >-
+    -v /tmp/develocity-npm:/opt/develocity-npm:ro
+    -e NODE_PATH=/opt/develocity-npm -e NODE_OPTIONS=--require=@gradle-tech/develocity-agent/preload
+    -e DEVELOCITY_URL -e DEVELOCITY_ACCESS_KEY -e DEVELOCITY_VALUE_CIAutoInjection
+    -e DEVELOCITY_INTERNAL_ENABLE_JEST_REPORTER_INJECTION=true -e DEVELOCITY_PACKAGE_JSON_SEARCH_BOUNDARY=/app
+    -e DEVELOCITY_PROJECT_ID -e DEVELOCITY_TAG_CI -e DEVELOCITY_VALUE_CI_commit_sha -e DEVELOCITY_VALUE_CI_run
 
 permissions:
   contents: read
@@ -72,6 +82,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -94,14 +106,30 @@ jobs:
           fetch-depth: 500
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
+      - name: Setup Develocity for Docker
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' && env.DEVELOCITY_ENABLED == 'true' }}
+        continue-on-error: true
+        uses: $/.github/actions/setup-develocity-docker
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+
       - name: Build Docker Image
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
         run: |
           docker buildx build \
             -t $TAG \
+            --build-arg DEVELOCITY_VALUE_CI_commit_sha="$GITHUB_SHA" \
             --cache-from=type=registry,ref=apache/superset-cache:3.11-slim-trixie \
             --target superset-node-ci \
             .
+
+      - name: Setup Develocity for npm
+        id: develocity-npm
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' && env.DEVELOCITY_ENABLED == 'true' }}
+        continue-on-error: true
+        uses: $/.github/actions/setup-develocity-npm
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
 
       # --webpack-stats-json writes preview-stats.json into storybook-static.
       # TurboSnap (onlyChanged below) needs it to trace which stories a
@@ -111,9 +139,12 @@ jobs:
       # collection into.
       - name: Build Storybook
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        env:
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outcome == 'success' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
           mkdir -p ${{ github.workspace }}/superset-frontend/storybook-static
           docker run \
+          $DEVELOCITY_DOCKER_ENV \
           -v ${{ github.workspace }}/superset-frontend/storybook-static:/app/superset-frontend/storybook-static \
           --rm $TAG \
           bash -c "npm i && npm run build-storybook -- --webpack-stats-json"

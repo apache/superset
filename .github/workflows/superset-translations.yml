@@ -8,6 +8,12 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
+env:
+  DEVELOCITY_PROJECT_ID: superset
+  DEVELOCITY_TAG_CI: "true"
+  DEVELOCITY_VALUE_CI_commit_sha: ${{ github.sha }}
+  DEVELOCITY_VALUE_CI_run: ${{ github.run_id }}
+
 permissions:
   contents: read
   pull-requests: read
@@ -23,6 +29,8 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+    env:
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -43,6 +51,11 @@ jobs:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
+      - name: Setup Develocity for npm
+        if: env.DEVELOCITY_ENABLED == 'true'
+        uses: $/.github/actions/setup-develocity-npm
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
       - name: Install dependencies
         if: steps.check.outputs.frontend
         # cached-dependencies is a git submodule (not a plain directory), and
