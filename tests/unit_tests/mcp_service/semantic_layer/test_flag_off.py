@@ -148,3 +148,56 @@ async def test_unscoped_metrics_omit_views_when_semantic_layers_disabled() -> No
     assert [(item["name"], item["dataset_id"]) for item in payload["metrics"]] == [
         ("count", 17)
     ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tool,saved_semantic",
+    [
+        ("generate_chart", False),
+        ("generate_explore_link", False),
+        ("update_chart", False),
+        ("update_chart", True),
+    ],
+)
+async def test_chart_semantic_targets_report_disabled_availability(
+    tool: str, saved_semantic: bool
+) -> None:
+    """New semantic chart targets retain a structured availability error."""
+    import importlib
+    from types import ModuleType
+
+    update_module: ModuleType = importlib.import_module(
+        "superset.mcp_service.chart.tool.update_chart"
+    )
+    chart: MagicMock = MagicMock(
+        id=9,
+        uuid=None,
+        datasource_id=42,
+        datasource_type="semantic_view" if saved_semantic else "table",
+        slice_name="Saved",
+        viz_type="table",
+        params="{}",
+        is_managed_externally=False,
+    )
+    request: dict[str, Any] = {} if saved_semantic else {"view_id": 17}
+    if tool == "update_chart":
+        request.update(identifier=9, chart_name="Renamed")
+    else:
+        request["config"] = {"chart_type": "table", "columns": [{"name": "category"}]}
+    client: Client
+    lookup: MagicMock
+    with (
+        patch("superset.feature_flag_manager.is_feature_enabled", return_value=False),
+        patch("superset.mcp_service.auth.get_user_from_request"),
+        patch("superset.utils.log.DBEventLogger.log", return_value=None),
+        patch.object(update_module, "find_chart_by_identifier", return_value=chart),
+        patch("superset.daos.datasource.db.session.query") as lookup,
+    ):
+        async with Client(mcp) as client:
+            result: CallToolResult = await client.call_tool(tool, {"request": request})
+    payload: dict[str, Any] = json.loads(result.content[0].text)
+    assert payload["success"] is False
+    assert payload["error"]["error_type"] == "SemanticLayersDisabledError"
+    assert payload["error"]["message"] == "Semantic layers are not enabled."
+    lookup.assert_not_called()
