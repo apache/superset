@@ -1526,9 +1526,64 @@ def test_bm25_name_coverage_ranks_longer_names_first(
 
     assert [tool.name for tool in results[:2]] == [
         "get_thing_info_detail",
-        "get_thing_info",
+        "list_things",
     ]
     assert len(results) == 5
+
+
+@pytest.mark.parametrize("reverse_catalog", [False, True])
+def test_bm25_name_coverage_cut_follows_query_order(
+    bm25_transform: BM25SearchTransform,
+    reverse_catalog: bool,
+) -> None:
+    """Unranked covered names survive the cut by query order, not catalog order."""
+    names = [f"get_report_{index}" for index in range(10, 16)]
+    catalog = [Tool.from_function(lambda: None, name=name) for name in names]
+    if reverse_catalog:
+        catalog.reverse()
+    query = " ".join(name.replace("_", " ") for name in names)
+
+    with patch.object(BM25SearchTransform, "_search", AsyncMock(return_value=[])):
+        results = asyncio.run(bm25_transform._search(catalog, query))
+
+    assert [tool.name for tool in results] == names[:5]
+
+
+@pytest.mark.parametrize("reverse_catalog", [False, True])
+def test_bm25_multi_intent_cut_is_independent_of_catalog_order(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+    reverse_catalog: bool,
+) -> None:
+    """The registered catalog gives the same multi-intent cut in either order."""
+    catalog = (
+        list(reversed(registered_catalog)) if reverse_catalog else registered_catalog
+    )
+    query = (
+        "generate chart get chart info get dataset info get dashboard info "
+        "list dashboards execute sql"
+    )
+
+    assert _production_search(production_bm25_transform, catalog, query) == [
+        "get_chart_info",
+        "get_dataset_info",
+        "get_dashboard_info",
+        "generate_chart",
+        "list_dashboards",
+    ]
+
+
+def test_bm25_nested_name_does_not_displace_metrics(
+    production_bm25_transform: BM25SearchTransform,
+    registered_catalog: list[Tool],
+) -> None:
+    """A metric creation intent does not also promote dataset creation."""
+    query = "create dataset metric for revenue"
+    results = _production_search(production_bm25_transform, registered_catalog, query)
+
+    assert results[0] == "create_dataset_metric"
+    assert "list_metrics" in results
+    assert "create_dataset" not in results
 
 
 def test_regex_does_not_use_name_coverage(

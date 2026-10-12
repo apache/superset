@@ -774,8 +774,9 @@ def _create_search_transform(  # noqa: C901
         2. With ``cover_query_words`` (natural-language search only), multi-word
            names whose words appear in the query as a contiguous, in-order run,
            for example ``get_dataset_info`` for "get dataset info execute sql",
-           ordered by name length and then by upstream rank. Words scattered
-           across the query do not count.
+           ordered by name length, query position, and then upstream rank.
+           Names nested inside another covered name are not promoted. Words
+           scattered across the query do not count.
 
         Only caller-visible candidates are inspected, never the full catalog,
         and the result never exceeds ``max_results``.
@@ -792,22 +793,36 @@ def _create_search_transform(  # noqa: C901
         if cover_query_words:
             query_words = _name_words(query)
             ranked_position = {tool.name: index for index, tool in enumerate(ranked)}
-            covered = sorted(
-                (
-                    tool
-                    for tool in tools
-                    if tool.name not in exact_names
-                    and len(words := _name_words(tool.name)) > 1
+            matches: list[tuple[Tool, list[str], int]] = []
+            for tool in tools:
+                if tool.name in exact_names:
+                    continue
+                words = _name_words(tool.name)
+                if len(words) <= 1:
+                    continue
+                for run_start in range(len(query_words) - len(words) + 1):
+                    if query_words[run_start : run_start + len(words)] == words:
+                        matches.append((tool, words, run_start))
+                        break
+            covered = [
+                tool
+                for tool, words, run_start in sorted(
+                    matches,
+                    key=lambda match: (
+                        -len(match[1]),
+                        match[2],
+                        ranked_position.get(match[0].name, len(ranked_position)),
+                    ),
+                )
+                if not any(
+                    len(other_words) > len(words)
                     and any(
-                        query_words[start : start + len(words)] == words
-                        for start in range(len(query_words) - len(words) + 1)
+                        other_words[start : start + len(words)] == words
+                        for start in range(len(other_words) - len(words) + 1)
                     )
-                ),
-                key=lambda tool: (
-                    -len(_name_words(tool.name)),
-                    ranked_position.get(tool.name, len(ranked_position)),
-                ),
-            )
+                    for _, other_words, _ in matches
+                )
+            ]
         promoted_names = exact_names | {tool.name for tool in covered}
         if not promoted_names:
             return ranked

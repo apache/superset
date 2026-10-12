@@ -1018,8 +1018,13 @@ promoted ahead of other matches before the `max_results` limit is applied. Match
 ignores case and treats underscores and whitespace as equivalent separators
 (including leading, trailing, or repeated whitespace). Only tools visible to
 the caller are eligible. Pinned `always_visible` tools remain in `list_tools`
-rather than search results; non-exact queries retain BM25 ranking or regex
-catalog ordering.
+rather than search results. BM25 also promotes multi-word tool names spelled out
+as a contiguous, in-order run in a longer query. These matches are ordered by
+name length (longest first), then by where the name starts in the query, then
+by BM25 rank. A name contained in another covered name is not promoted separately:
+`create dataset metric for revenue` promotes `create_dataset_metric`, not
+`create_dataset`. Other candidates retain BM25 ranking; regex searches retain
+catalog ordering for non-exact matches.
 
 Tool search reduces the initial token cost from ~15–20K tokens (full catalog) down to ~4–5K tokens (pinned tools + search interface) — roughly 85% savings at the start of each conversation.
 
