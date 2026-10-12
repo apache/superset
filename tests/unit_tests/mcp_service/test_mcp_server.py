@@ -664,3 +664,27 @@ def test_run_server_applies_native_list_config_only_in_native_mode(
             compact.assert_called_once_with(mcp_instance, expected)
     finally:
         os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+def test_authlib_jose_deprecation_warning_suppressed_at_package_init():
+    """authlib.jose's warning stays silent when imported after the package.
+
+    authlib.deprecate installs ``simplefilter("always", ...)`` on first import,
+    which would override an earlier ``ignore`` filter. Run in a fresh
+    interpreter so that import order is the one production sees.
+    """
+    import subprocess
+    import sys
+
+    pytest.importorskip("authlib.jose")
+    result = subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            "-c",
+            "import superset.mcp_service; import authlib.jose",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert "AuthlibDeprecationWarning" not in result.stderr, result.stderr
