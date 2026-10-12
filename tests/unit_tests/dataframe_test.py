@@ -204,6 +204,25 @@ def test_df_to_records_normalizes_only_exact_nonfinite_decimals() -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (np.timedelta64("NaT"), None),
+        (np.timedelta64(123456789, "ns"), pd.Timedelta(123456789, unit="ns")),
+        (np.datetime64("NaT"), None),
+        (np.datetime64("2026-01-01"), pd.Timestamp("2026-01-01")),
+    ],
+)
+def test_df_to_records_boxes_numpy_temporals(value: Any, expected: Any) -> None:
+    """Object-column temporal scalars retain pandas' JSON-compatible boxing."""
+    frame = pd.DataFrame({"value": pd.Series([value], dtype=object)})
+
+    result = df_to_records(frame)[0]["value"]
+
+    assert type(result) is type(expected)
+    assert result == expected
+
+
 def test_df_to_records() -> None:
     data = [("a1", "b1", "c1"), ("a2", "b2", "c2")]
     cursor_descr: DbapiDescription = [
@@ -439,6 +458,73 @@ def test_df_to_records_with_inf_and_nan() -> None:
     # Normal values should remain unchanged
     assert records[3]["result"] == 0.0
     assert records[4]["result"] == 42.5
+
+
+def test_df_to_records_avoids_object_equality_during_nonfinite_cleanup() -> None:
+    class AcceptedEnum(Enum):
+        VALUE = "accepted"
+
+    class HostileEquality:
+        def __eq__(self, _other: object) -> bool:
+            raise AssertionError("object equality must not run during projection")
+
+    hostile = HostileEquality()
+    enum_value = AcceptedEnum.VALUE
+    frame = pd.DataFrame(
+        {
+            "hostile": pd.Series([hostile], dtype=object),
+            "enum": pd.Series([enum_value], dtype=object),
+            "infinite": [np.inf],
+            "missing": pd.Series([pd.NA], dtype=object),
+        }
+    )
+
+    records = df_to_records(frame, convert_big_integers=False)
+
+    assert records[0]["hostile"] is hostile
+    assert records[0]["enum"] is enum_value
+    assert records[0]["infinite"] is None
+    assert records[0]["missing"] is None
+
+
+def test_df_to_records_normalizes_decimals_without_integer_conversion() -> None:
+    """Exact non-finite Decimal cells become null without subclass hooks."""
+
+    class HostileDecimal(Decimal):
+        def is_finite(self) -> bool:
+            raise AssertionError("hostile Decimal is_finite hook executed")
+
+        def __eq__(self, _other: object) -> bool:
+            raise AssertionError("hostile Decimal equality hook executed")
+
+        def __float__(self) -> float:
+            raise AssertionError("hostile Decimal float hook executed")
+
+    finite = Decimal("0.10000000000000000001")
+    hostile = HostileDecimal("NaN")
+    values = [
+        Decimal("NaN"),
+        Decimal("sNaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+        finite,
+        hostile,
+    ]
+    frame = pd.DataFrame({"value": pd.Series(values, dtype=object)})
+
+    records = df_to_records(frame, convert_big_integers=False)
+
+    assert [records[index]["value"] for index in range(4)] == [None] * 4
+    assert records[4]["value"] is finite
+    assert records[5]["value"] is hostile
+    strict_json = superset_json.dumps(records[:5], ignore_nan=False)
+    assert superset_json.loads(strict_json) == [
+        {"value": None},
+        {"value": None},
+        {"value": None},
+        {"value": None},
+        {"value": 0.1},
+    ]
 
 
 def test_df_to_records_nan_json_serialization() -> None:

@@ -2895,7 +2895,11 @@ def test_semantic_annotation_generation_versions_sql_parent(
     query: MagicMock = MagicMock()
     query.annotation_layers = [{"sourceType": "line", "value": 7}]
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
-    chart: MagicMock = MagicMock(datasource=view)
+    from superset.models.slice import Slice
+
+    chart: Slice = Slice(
+        datasource_type="semantic_view", datasource_id=17, semantic_view=view
+    )
     provider: MagicMock = MagicMock(result_cache_version=None)
     with (
         patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}),
@@ -2912,7 +2916,11 @@ def test_semantic_annotation_generation_versions_sql_parent(
         old: dict[str, Any] = processor._annotation_cache_context(query)
         provider.result_cache_version = "guarded-v1"
         new: dict[str, Any] = processor._annotation_cache_context(query)
-    assert old == {"user_id": 42, "source_rls": {"7": ["scope"]}}
+    assert old == {
+        "user_id": 42,
+        "source_rls": {"7": ["scope"]},
+        "source_versions": {"7": view.metadata_generation},
+    }
     assert new != old
     assert new["user_id"] == old["user_id"]
     assert new["source_rls"] == old["source_rls"]

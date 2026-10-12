@@ -75,6 +75,12 @@ def metric_view(mocker: MockerFixture) -> tuple[SemanticView, MagicMock]:
         new_callable=PropertyMock,
         return_value=None,
     )
+    mocker.patch.object(
+        SemanticView,
+        "metadata_generation",
+        new_callable=PropertyMock,
+        return_value="metric-filter-test-generation",
+    )
     mocker.patch(
         "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
     )
