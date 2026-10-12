@@ -25,14 +25,20 @@ export interface BindContext {
 }
 
 interface Bind {
-  source: 'metric' | 'dimension' | 'theme' | 'records';
+  source: 'metric' | 'dimension' | 'theme' | 'records' | 'tuples';
   alias?: string;
   token?: string;
-  fields?: Record<string, string>;
+  fields?: Record<string, string> | string[];
   single?: boolean;
 }
 
-const BIND_SOURCES = new Set(['metric', 'dimension', 'theme', 'records']);
+const BIND_SOURCES = new Set([
+  'metric',
+  'dimension',
+  'theme',
+  'records',
+  'tuples',
+]);
 // ECharts only accepts functions here, which a JSON option can't carry.
 const FUNCTION_ONLY_KEYS = new Set(['valueFormatter', 'labelLayout']);
 // Opened as URLs by ECharts on click.
@@ -40,6 +46,28 @@ const URL_KEYS = new Set(['link', 'sublink']);
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+// Keys that would reach the object prototype instead of the record.
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+// A dotted key (`label.fontSize`) nests, so a column can drive a per-item
+// style.
+function setPath(
+  target: Record<string, unknown>,
+  path: string,
+  value: unknown,
+): void {
+  const keys = path.split('.');
+  if (keys.some(key => UNSAFE_KEYS.has(key))) {
+    throw new Error(`"${path}" is not a valid field path`);
+  }
+  let node = target;
+  keys.slice(0, -1).forEach(key => {
+    if (!Object.hasOwn(node, key) || !isObject(node[key])) node[key] = {};
+    node = node[key] as Record<string, unknown>;
+  });
+  node[keys[keys.length - 1]] = value;
+}
 
 function resolveBind(bind: Bind, ctx: BindContext): unknown {
   if (bind.source === 'theme') {
@@ -53,16 +81,28 @@ function resolveBind(bind: Bind, ctx: BindContext): unknown {
     const values = ctx.rows.map(row => row[bind.alias as string]);
     return bind.single ? values[0] : values;
   }
+  if (bind.source === 'tuples') {
+    // Array-shaped data items (themeRiver, candlestick, boxplot, heatmap…).
+    const columns = bind.fields;
+    if (!Array.isArray(columns) || columns.length === 0) {
+      throw new Error('$bind with source "tuples" needs "fields": [<columns>]');
+    }
+    return ctx.rows.map(row => columns.map(column => row[column]));
+  }
   if (bind.source === 'records') {
     const fields = bind.fields ?? {};
-    if (Object.keys(fields).length === 0) {
-      throw new Error('$bind with source "records" needs "fields"');
+    if (Array.isArray(fields) || Object.keys(fields).length === 0) {
+      throw new Error(
+        '$bind with source "records" needs "fields": {<key>: <column>}',
+      );
     }
-    return ctx.rows.map(row =>
-      Object.fromEntries(
-        Object.entries(fields).map(([key, column]) => [key, row[column]]),
-      ),
-    );
+    return ctx.rows.map(row => {
+      const record: Record<string, unknown> = {};
+      Object.entries(fields).forEach(([key, column]) =>
+        setPath(record, key, row[column]),
+      );
+      return record;
+    });
   }
   throw new Error(`Unknown $bind source "${bind.source}"`);
 }

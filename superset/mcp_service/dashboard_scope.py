@@ -1199,6 +1199,14 @@ def _refuse_definition_change(tool_name: str) -> MCPDashboardScopeError:
     )
 
 
+def _refuse_canvas_preview(request: Any, scope: DashboardScope) -> Any:
+    raise MCPDashboardScopeError(
+        "preview_widget returns rows from a canvas widget's query, which the "
+        "active dashboard filters do not cover.",
+        "Preview canvas widgets outside a dashboard-scoped conversation.",
+    )
+
+
 def _refuse_while_scoped(tool_name: str) -> Rewriter:
     def refuse(request: Any, scope: DashboardScope) -> Any:
         raise _refuse_definition_change(tool_name)
@@ -1239,6 +1247,7 @@ SCOPE_REWRITERS: dict[str, Rewriter] = {
     "update_chart": _gate_update_chart,
     "update_chart_preview": _gate_update_chart_preview,
     **{name: _refuse_while_scoped(name) for name in DEFINITION_CHANGING_TOOLS},
+    "preview_widget": _refuse_canvas_preview,
 }
 
 # Tools that return no dataset rows: metadata, links, and writes. Keep this an
@@ -1247,6 +1256,20 @@ SCOPE_REWRITERS: dict[str, Rewriter] = {
 SCOPE_NEUTRAL_TOOLS = frozenset(
     {
         "apply_dashboard_filters",
+        # Canvases are separate from the scoped dashboard, and their widgets
+        # query as the viewer when rendered; these tools return no rows.
+        "apply_canvas_draft_ops",
+        "apply_canvas_ops",
+        "commit_canvas_draft",
+        "create_canvas",
+        "create_canvas_draft",
+        "delete_canvas_draft",
+        "get_canvas_draft",
+        "get_canvas",
+        "get_widget_control_schema",
+        "list_canvases",
+        "list_widget_types",
+        "update_canvas",
         "create_dataset",
         "create_theme",
         "delete_chart",

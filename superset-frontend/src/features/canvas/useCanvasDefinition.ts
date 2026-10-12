@@ -23,7 +23,11 @@ import {
   subscribeRealtime,
   subscribeRealtimeOpen,
 } from 'src/middleware/realtime';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { CanvasDefinitionResult } from './types';
+
+/** Draft tokens travel in this header, never in a URL. */
+export const DRAFT_TOKEN_HEADER = 'X-Canvas-Draft';
 
 export const REFETCH_DEBOUNCE_MS = 300;
 
@@ -35,15 +39,19 @@ export type CanvasDefinitionState =
 const definitionEndpoint = (canvasId: number) =>
   `/api/v1/canvas/${canvasId}/definition`;
 
+const draftPollSeconds = (): number =>
+  Number(getBootstrapData().common?.conf?.CANVAS_DRAFT_POLL_INTERVAL ?? 0);
+
 /**
- * Loads a canvas definition and keeps it current.
+ * Loads a canvas definition, or the caller's draft of it, and keeps it current.
  *
- * Every write publishes an `entity.changed` nudge carrying only the canvas id
- * over the realtime channel, which canvases require (SIP-227); on a nudge, or
- * after a reconnect since nudges are not replayed, the definition is fetched
- * again.
+ * A published canvas refetches on its `entity.changed` nudge, or after a
+ * reconnect since nudges are not replayed. A draft is private and gets no
+ * nudges: it refetches when the tab regains focus and, while visible, every
+ * `CANVAS_DRAFT_POLL_INTERVAL` seconds, so changes an agent makes in the same
+ * draft show up.
  */
-export function useCanvasDefinition(canvasId: number) {
+export function useCanvasDefinition(canvasId: number, draftToken?: string) {
   const [state, setState] = useState<CanvasDefinitionState>({
     status: 'loading',
   });
@@ -51,9 +59,14 @@ export function useCanvasDefinition(canvasId: number) {
 
   const load = useCallback(async () => {
     try {
-      const { json } = await SupersetClient.get({
-        endpoint: definitionEndpoint(canvasId),
-      });
+      const { json } = await SupersetClient.get(
+        draftToken
+          ? {
+              endpoint: '/api/v1/canvas/draft',
+              headers: { [DRAFT_TOKEN_HEADER]: draftToken },
+            }
+          : { endpoint: definitionEndpoint(canvasId) },
+      );
       revision.current = json.result.revision;
       setState({ status: 'complete', result: json.result });
     } catch (response) {
@@ -63,7 +76,7 @@ export function useCanvasDefinition(canvasId: number) {
         previous.status === 'complete' ? previous : { status: 'error', error },
       );
     }
-  }, [canvasId]);
+  }, [canvasId, draftToken]);
 
   useEffect(() => {
     revision.current = undefined;
@@ -72,6 +85,22 @@ export function useCanvasDefinition(canvasId: number) {
   }, [load]);
 
   useEffect(() => {
+    if (!draftToken) return undefined;
+    const reloadIfVisible = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+    const seconds = draftPollSeconds();
+    const timer =
+      seconds > 0 ? setInterval(reloadIfVisible, seconds * 1000) : undefined;
+    window.addEventListener('focus', reloadIfVisible);
+    return () => {
+      if (timer !== undefined) clearInterval(timer);
+      window.removeEventListener('focus', reloadIfVisible);
+    };
+  }, [draftToken, load]);
+
+  useEffect(() => {
+    if (draftToken) return undefined;
     let debounce: ReturnType<typeof setTimeout> | undefined;
     const scheduleLoad = () => {
       if (debounce !== undefined) return;
@@ -100,7 +129,7 @@ export function useCanvasDefinition(canvasId: number) {
       unsubscribeOpen();
       if (debounce !== undefined) clearTimeout(debounce);
     };
-  }, [canvasId, load]);
+  }, [canvasId, draftToken, load]);
 
   return { state, reload: load };
 }

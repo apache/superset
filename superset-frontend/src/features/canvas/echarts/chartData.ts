@@ -27,6 +27,61 @@ export interface DataBinding {
   dimensions?: string[];
   filters?: Record<string, unknown>[];
   rowLimit?: number;
+  orderBy?: { field: string; descending?: boolean }[];
+}
+
+const metricLabel = (metric: unknown): string | undefined =>
+  typeof metric === 'string'
+    ? metric
+    : typeof metric === 'object' && metric !== null
+      ? ((metric as { label?: string }).label ?? undefined)
+      : undefined;
+
+// A sort key names a metric by its label or a dimension by its column; the
+// query wants the metric itself.
+function orderby(binding: DataBinding): [unknown, boolean][] {
+  return (binding.orderBy ?? []).map(({ field, descending }) => [
+    binding.metrics.find(metric => metricLabel(metric) === field) ?? field,
+    !descending,
+  ]);
+}
+
+/** The value a `filter.select` widget publishes to the widgets in its scope. */
+export interface SelectFilterValue {
+  datasetId: number;
+  column: string;
+  values: string[];
+}
+
+const isSelectFilterValue = (value: unknown): value is SelectFilterValue =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof (value as SelectFilterValue).column === 'string' &&
+  Array.isArray((value as SelectFilterValue).values);
+
+/**
+ * A binding narrowed by the filter values that reach its widget: each
+ * `filter.select` on the same dataset adds an IN clause.
+ */
+export function withFilters(
+  binding: DataBinding,
+  filters: { value: unknown }[],
+): DataBinding {
+  const clauses = filters
+    .map(filter => filter.value)
+    .filter(isSelectFilterValue)
+    .filter(
+      value => value.datasetId === binding.datasetId && value.values.length,
+    )
+    .map(value => ({
+      expressionType: 'SIMPLE',
+      clause: 'WHERE',
+      subject: value.column,
+      operator: 'IN',
+      comparator: value.values,
+    }));
+  if (!clauses.length) return binding;
+  return { ...binding, filters: [...(binding.filters ?? []), ...clauses] };
 }
 
 /**
@@ -46,7 +101,9 @@ export async function fetchRows(binding: DataBinding): Promise<DataRow[]> {
   } as unknown as QueryFormData;
   const { json } = await SupersetClient.post({
     endpoint: '/api/v1/chart/data',
-    jsonPayload: buildQueryContext(formData),
+    jsonPayload: buildQueryContext(formData, baseQueryObject => [
+      { ...baseQueryObject, orderby: orderby(binding) as never },
+    ]),
   });
   const result = json?.result?.[0];
   if (!result || result.error) {

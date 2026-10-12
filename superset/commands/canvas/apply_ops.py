@@ -49,6 +49,7 @@ from superset.commands.canvas.exceptions import (
     CanvasUpdateFailedError,
     DefinitionConflictError,
     DefinitionInvalidError,
+    DraftConflictError,
 )
 from superset.daos.canvas import CanvasDAO
 from superset.exceptions import SupersetSecurityException
@@ -96,6 +97,24 @@ def placement_issues(ops: list[Operation]) -> list[Issue]:
     ]
 
 
+def apply_or_raise(
+    definition: dict[str, Any], ops: list[Operation]
+) -> tuple[dict[str, Any], list[AppliedOperation]]:
+    """Apply ``ops`` to a copy of ``definition``, as one atomic batch."""
+    try:
+        return apply_operations(definition, ops)
+    except OperationError as ex:
+        raise DefinitionInvalidError(
+            str(ex),
+            issues=[Issue(pointer("ops", ex.index), ex.message)],
+            operation_index=ex.index,
+        ) from ex
+    except DefinitionValidationError as ex:
+        raise DefinitionInvalidError(
+            "The operations produce an invalid definition", issues=ex.issues
+        ) from ex
+
+
 class ApplyCanvasOperationsCommand(BaseCommand):
     """
     Apply operations to the latest definition, as long as no change made since
@@ -103,12 +122,18 @@ class ApplyCanvasOperationsCommand(BaseCommand):
     """
 
     def __init__(
-        self, canvas_id_or_uuid: int | str, base_revision: int, ops: list[Operation]
+        self,
+        canvas_id_or_uuid: int | str,
+        base_revision: int,
+        ops: list[Operation],
+        strict: bool = False,
     ) -> None:
         self._canvas_ref = str(canvas_id_or_uuid)
         self._canvas_id = 0
         self._base_revision = base_revision
         self._ops = ops
+        # A draft commit: any change since ``base_revision`` rejects it.
+        self._strict = strict
 
     def run(self) -> ApplyResult:
         canvas = CanvasDAO.find_by_id_or_uuid(self._canvas_ref)
@@ -124,21 +149,12 @@ class ApplyCanvasOperationsCommand(BaseCommand):
         self.validate()
         canvas = CanvasDAO.lock(self._canvas_id)
         current = canvas.revision
+        if self._strict and self._base_revision != current:
+            raise DraftConflictError(current, canvas_changed=True)
         if self._base_revision != current:
             self._check_overlap(current, named_touches(self._ops))
 
-        try:
-            definition, applied = apply_operations(CanvasDAO.load(canvas), self._ops)
-        except OperationError as ex:
-            raise DefinitionInvalidError(
-                str(ex),
-                issues=[Issue(pointer("ops", ex.index), ex.message)],
-                operation_index=ex.index,
-            ) from ex
-        except DefinitionValidationError as ex:
-            raise DefinitionInvalidError(
-                "The operations produce an invalid definition", issues=ex.issues
-            ) from ex
+        definition, applied = apply_or_raise(CanvasDAO.load(canvas), self._ops)
 
         if self._base_revision != current:
             self._check_overlap(current, applied_touches(applied))

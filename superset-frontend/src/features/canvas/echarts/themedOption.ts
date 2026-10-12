@@ -110,6 +110,54 @@ function themedSeries(item: unknown, theme: SupersetTheme): unknown {
   return merge(defaults, series);
 }
 
+const withColor = (item: Option, color: string | undefined): Option => {
+  if (!color) return item;
+  const itemStyle = isPlainObject(item.itemStyle)
+    ? (item.itemStyle as Option)
+    : {};
+  return itemStyle.color === undefined
+    ? { ...item, itemStyle: { ...itemStyle, color } }
+    : item;
+};
+
+/**
+ * The canvas's fixed label colors applied to series and named data items
+ * that set no color of their own.
+ */
+export function withLabelColors(
+  option: Option,
+  labelColors: Record<string, string>,
+): Option {
+  if (!Object.keys(labelColors).length) return option;
+  const colorSeries = (series: unknown): unknown => {
+    if (!isPlainObject(series)) return series;
+    const item = series as Option;
+    const named = withColor(
+      item,
+      typeof item.name === 'string' ? labelColors[item.name] : undefined,
+    );
+    if (!Array.isArray(named.data)) return named;
+    return {
+      ...named,
+      data: named.data.map(datum =>
+        isPlainObject(datum) && typeof (datum as Option).name === 'string'
+          ? withColor(
+              datum as Option,
+              labelColors[(datum as Option).name as string],
+            )
+          : datum,
+      ),
+    };
+  };
+  const { series } = option;
+  return {
+    ...option,
+    series: Array.isArray(series)
+      ? series.map(colorSeries)
+      : colorSeries(series),
+  };
+}
+
 /**
  * An ECharts option styled by the Superset theme: text, tooltips, legends and
  * the coordinate systems the option uses follow the theme (dark mode

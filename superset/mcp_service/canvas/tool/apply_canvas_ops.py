@@ -99,6 +99,10 @@ def apply_canvas_ops(
       widget's props.
     - ``{"op": "place", "id": "<id>", "layout": {"col", "row", "colSpan",
       "rowSpan"}}`` moves or resizes within the parent's grid.
+
+    Grid layouts are 1-based: ``col`` runs from 1 to the grid's columns (24
+    on the root) and ``row`` starts at 1. Leave ``col``/``row`` out to
+    auto-place, and leave spans out to use the widget's default size.
     - ``{"op": "move", "id": "<id>", "parent": "<id>", "index": n}``
       reparents or reorders.
     - ``{"op": "remove", "id": "<id>"}`` removes a placement and its children.

@@ -30,6 +30,26 @@ from superset.mcp_service.widgets.utils import registry
 logger = logging.getLogger(__name__)
 
 
+def _canvas_facts(cls: Any) -> Dict[str, Any]:
+    """The non-default parts of a widget type's canvas behavior, kept short
+    since every type is listed at once."""
+    behavior, ui = cls.behavior, cls.ui
+    facts: Dict[str, Any] = {
+        "container": behavior.container,
+        "acceptedChildren": sorted(behavior.accepted_children)
+        if behavior.accepted_children is not None
+        else None,
+        "allowedParents": sorted(behavior.allowed_parents)
+        if behavior.allowed_parents is not None
+        else None,
+        "filter": behavior.filter,
+        "filterable": behavior.filterable,
+        "emitsFilters": behavior.emits_filters,
+        "defaultSize": list(ui.default_size) if ui.default_size else None,
+    }
+    return {key: value for key, value in facts.items() if value}
+
+
 def _list_widget_types_impl() -> List[Dict[str, Any]]:
     """Pure logic: the registered schema-driven widget types."""
     return [
@@ -37,6 +57,7 @@ def _list_widget_types_impl() -> List[Dict[str, Any]]:
             "id": cls.widget_type,
             "name": cls.name,
             "description": cls.description,
+            "canvas": _canvas_facts(cls) or None,
         }
         for cls in registry.values()
     ]
@@ -59,7 +80,11 @@ def list_widget_types() -> ListWidgetTypesResponse:
     This is the entry point for progressive disclosure: pick a type's ``id``,
     then call ``get_widget_control_schema`` for its minimum-viable control schema
     (call it again with ``paths`` to drill into optional/nested branches).
-    Returns each type's id, human name, and description.
+    Returns each type's id, human name, description and, under ``canvas``,
+    how it nests and filters: containers list ``acceptedChildren``, a type
+    that must sit inside another lists ``allowedParents``, filters are
+    ``filter``, widgets that filters narrow are ``filterable``, and
+    ``defaultSize`` is ``[columns, rows]`` on the 24-column grid.
     """
     return ListWidgetTypesResponse.model_validate(
         {"widget_types": _list_widget_types_impl()}

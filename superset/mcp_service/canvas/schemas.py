@@ -65,3 +65,107 @@ class ApplyCanvasOpsResponse(BaseModel):
     stale: bool | None = Field(
         default=None, description="Reload the canvas: base_revision is too old."
     )
+
+
+class CanvasSummary(BaseModel):
+    id: int
+    title: str
+    slug: str | None = None
+    url: str
+    revision: int
+    description: str | None = None
+    changed_on: str | None = None
+
+
+class ListCanvasesResponse(BaseModel):
+    canvases: list[CanvasSummary] = Field(default_factory=list)
+    count: int = 0
+    error: str | None = None
+
+
+class CanvasWriteResponse(BaseModel):
+    """The result of creating or updating a canvas."""
+
+    id: int | None = None
+    url: str | None = None
+    revision: int | None = None
+    ops: list[dict[str, Any]] | None = Field(
+        default=None, description="The initial operations applied, with their ids."
+    )
+    error: str | None = None
+    errors: Any | None = None
+    operation: int | None = Field(
+        default=None, description="Index of the initial operation that failed."
+    )
+
+
+class PreviewWidgetResponse(BaseModel):
+    placement_id: str | None = None
+    widget_type: str | None = None
+    row_count: int | None = Field(
+        default=None, description="Rows the widget's query returned."
+    )
+    columns: list[str] | None = None
+    sample_rows: list[dict[str, Any]] | None = Field(
+        default=None, description="The first rows of the widget's query."
+    )
+    option: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "The ECharts option as rendered: bindings resolved, theme applied. "
+            "Only with a renderer configured; long data arrays are shortened."
+        ),
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Problems found without looking: unbound fields, empty "
+        "data, tooltips or labels that would print raw objects.",
+    )
+    image: str | None = Field(
+        default=None,
+        description="Whether an image was attached, and its size.",
+    )
+    error: str | None = None
+
+
+class CanvasDraftResponse(BaseModel):
+    """A canvas draft, or the result of a write to one."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    token: str | None = Field(
+        default=None,
+        description="The draft's token; pass it to the other draft tools.",
+    )
+    canvas_id: int | None = None
+    url: str | None = Field(
+        default=None,
+        description="Where the person can open the draft in the browser.",
+    )
+    base_revision: int | None = Field(
+        default=None, description="The canvas revision the draft started from."
+    )
+    revision: int | None = Field(
+        default=None, description="The draft's revision; send it with the next write."
+    )
+    definition: dict[str, Any] | None = None
+    ops: list[dict[str, Any]] | None = Field(
+        default=None, description="The operations just applied, with their ids."
+    )
+    filter_scopes: dict[str, list[str]] | None = Field(
+        default=None, alias="filterScopes"
+    )
+    placements: dict[str, dict[str, int]] | None = None
+    widget_types: dict[str, str] | None = Field(default=None, alias="widgetTypes")
+    canvas_revision: int | None = Field(
+        default=None, description="The canvas revision after a commit."
+    )
+    canvas_changed: bool | None = Field(
+        default=None,
+        description="Commit was rejected because the canvas changed meanwhile.",
+    )
+    error: str | None = None
+    errors: list[dict[str, Any]] | None = None
+    operation: int | None = Field(
+        default=None, description="Index of the operation that failed."
+    )
