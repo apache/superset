@@ -49,7 +49,7 @@ import warnings
 # already installed and ours is inserted in front of it.
 try:
     import authlib.deprecate  # noqa: F401
-except ImportError:  # authlib is only present with the MCP extras
+except ImportError:  # authlib arrives transitively via fastmcp
     pass
 
 warnings.filterwarnings(
