@@ -65,8 +65,7 @@ export default function CheckboxControl({
   ...restProps
 }: CheckboxControlProps): JSX.Element {
   const explanationId = useId();
-  const generatedCheckboxId = useId();
-  const checkboxId = restProps.name || generatedCheckboxId;
+  const checkboxId = useId();
   const handleChange = useCallback((): void => {
     if (!disabled) {
       onChange(!value);
@@ -104,7 +103,8 @@ export default function CheckboxControl({
       <CheckBoxControlWrapper>
         <ControlHeader
           {...restProps}
-          name={checkboxId}
+          name={restProps.name || checkboxId}
+          inputId={checkboxId}
           label={label}
           leftNode={checkbox}
           onClick={

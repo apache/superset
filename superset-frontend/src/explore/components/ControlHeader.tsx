@@ -27,6 +27,7 @@ type ValidationError = string;
 
 export type ControlHeaderProps = {
   name?: string;
+  inputId?: string;
   label?: ReactNode;
   description?: ReactNode;
   validationErrors?: ValidationError[];
@@ -61,6 +62,7 @@ const iconStyles = css`
 
 const ControlHeader: FC<ControlHeaderProps> = ({
   name,
+  inputId,
   label,
   description,
   validationErrors = [],
@@ -162,7 +164,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             overflow: visible;
             padding-bottom: 0.1em;
           `}
-          htmlFor={name}
+          htmlFor={inputId ?? name}
         >
           {leftNode && <span>{leftNode} </span>}
           {/* This label text sits inside FormLabel's <label>, and HTML5

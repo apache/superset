@@ -144,7 +144,7 @@ describe('CheckboxControl', () => {
     render(setup({ disabled: true, disabledReason: 'Unavailable' }));
 
     const checkbox = screen.getByRole('checkbox', { name: 'checkbox label' });
-    expect(checkbox).toHaveAttribute('id', 'show_legend');
+    expect(checkbox).toHaveAttribute('id');
     expect(checkbox).toHaveAccessibleDescription('Unavailable');
   });
 
@@ -162,4 +162,31 @@ describe('CheckboxControl', () => {
     await userEvent.click(screen.getByText('checkbox label'));
     expect(onChange).not.toHaveBeenCalled();
   });
+});
+
+test('same-name instances keep their labels and focus on their own checkbox', () => {
+  const firstChange = jest.fn();
+  const secondChange = jest.fn();
+  render(
+    <>
+      <CheckboxControl
+        name="showCellBars"
+        label="First column bars"
+        onChange={firstChange}
+      />
+      <CheckboxControl
+        name="showCellBars"
+        label="Second column bars"
+        onChange={secondChange}
+      />
+    </>,
+  );
+  const first = screen.getByRole('checkbox', { name: 'First column bars' });
+  const second = screen.getByRole('checkbox', { name: 'Second column bars' });
+  expect(first.id).not.toBe(second.id);
+  fireEvent.click(screen.getByText('Second column bars'));
+  expect(second).toHaveFocus();
+  expect(secondChange).toHaveBeenCalledTimes(1);
+  expect(secondChange).toHaveBeenCalledWith(true);
+  expect(firstChange).not.toHaveBeenCalled();
 });
