@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-12 14:44+0300\n"
+"POT-Creation-Date: 2026-10-12 19:11+0300\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -18396,6 +18396,9 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Bu parola çok yaygın; lütfen daha az tahmin edilebilir bir tane seçin."
+
+msgid "This placement has no data binding."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "

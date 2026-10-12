@@ -17185,6 +17185,131 @@
         ]
       }
     },
+    "/api/v1/canvas/{id_or_uuid}/placement/{placement_id}/data": {
+      "post": {
+        "description": "Runs the query the placement's stored `dataBinding` describes, as the caller, narrowed by `runtime_filters` on the binding's dataset. With the `X-Canvas-Draft` header, reads the placement from the caller's draft of this canvas. Each dataset includes the query that ran when the caller can view queries.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id_or_uuid",
+            "required": true,
+            "schema": {
+              "description": "The canvas id or UUID",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "placement_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "runtime_filters": {
+                    "items": {
+                      "properties": {
+                        "column": {
+                          "type": "string"
+                        },
+                        "datasetId": {
+                          "type": "integer"
+                        },
+                        "values": {
+                          "items": {},
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "datasets": {
+                          "items": {
+                            "properties": {
+                              "inline_data": {
+                                "items": {
+                                  "type": "object"
+                                },
+                                "type": "array"
+                              },
+                              "language": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "query": {
+                                "type": "string"
+                              },
+                              "row_count": {
+                                "type": "integer"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The placement's datasets"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a placement's data",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
     "/api/v1/canvas/{pk}": {
       "delete": {
         "description": "Deletes the canvas, its inline widget instances and its operation log. Persisted widget instances it placed are separate entities and are not deleted.",

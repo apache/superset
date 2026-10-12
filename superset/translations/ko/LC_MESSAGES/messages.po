@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 14:44+0300\n"
+"POT-Creation-Date: 2026-10-12 19:11+0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -26133,6 +26133,9 @@ msgstr "이 페이지는 iframe에 임베드되도록 설계되었지만, 현재
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "이 비밀번호는 너무 일반적입니다. 추측하기 어려운 비밀번호를 선택하세요."
+
+msgid "This placement has no data binding."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "

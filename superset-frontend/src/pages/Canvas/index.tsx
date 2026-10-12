@@ -204,6 +204,7 @@ function CanvasContent({ id }: { id: number }) {
             values={values}
             onValueChange={onValueChange}
             refreshKeys={refreshKeys}
+            draftToken={draft.token}
           />
         )}
       </Page>

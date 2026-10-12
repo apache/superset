@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 14:44+0300\n"
+"POT-Creation-Date: 2026-10-12 19:11+0300\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -19138,6 +19138,9 @@ msgstr "هذه الصفحة مخصصة للتضمين داخل إطار iframe،
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "كلمة المرور هذه شائعة جداً؛ يرجى اختيار كلمة مرور يصعب تخمينها."
+
+msgid "This placement has no data binding."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "

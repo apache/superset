@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-10-12 14:44+0300\n"
+"POT-Creation-Date: 2026-10-12 19:11+0300\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -17811,6 +17811,9 @@ msgstr "Ta stran naj bi bila vdelana kot iframe, vendar izgleda, da temu ni tako
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "This password is too common; please choose a less guessable one."
 msgstr "To geslo je prepogosto; izberite manj uganljivega."
+
+msgid "This placement has no data binding."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-12 14:44+0300\n"
+"POT-Creation-Date: 2026-10-12 19:11+0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -17618,6 +17618,9 @@ msgstr "Ця сторінка має відкриватися лише в iframe
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Цей пароль занадто простий; будь ласка, оберіть більш складний."
+
+msgid "This placement has no data binding."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "

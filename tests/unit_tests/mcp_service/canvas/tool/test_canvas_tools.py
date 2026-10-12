@@ -22,6 +22,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from superset.canvas.data import PlacementData
 from superset.commands.canvas.apply_ops import ApplyResult
 from superset.commands.canvas.exceptions import DefinitionConflictError
 from superset.mcp_service.canvas.tool.canvas_ops_common import _apply_canvas_ops_impl
@@ -222,9 +223,9 @@ def _preview_canvas(node: dict[str, Any]) -> dict[str, Any]:
 
 
 def test_preview_query_matches_the_canvas_request() -> None:
-    from superset.mcp_service.canvas.tool.preview_widget import _query_payload
+    from superset.canvas.data import query_context_payload
 
-    payload = _query_payload(
+    payload = query_context_payload(
         {
             "datasetId": 13,
             "metrics": [REVENUE],
@@ -257,7 +258,7 @@ def test_preview_without_a_renderer_returns_rows_only() -> None:
     rows = [{"revenue": float(i)} for i in range(12)]
     with (
         patch(f"{PREVIEW}.CanvasDAO") as dao,
-        patch(f"{PREVIEW}._fetch_rows", return_value=rows),
+        patch(f"{PREVIEW}.run_binding", return_value=PlacementData(rows, None, None)),
         patch(f"{PREVIEW}.current_app") as app,
         patch(f"{PREVIEW}._render") as render,
     ):
@@ -281,7 +282,7 @@ def test_preview_merges_renderer_warnings_and_image() -> None:
     }
     with (
         patch(f"{PREVIEW}.CanvasDAO") as dao,
-        patch(f"{PREVIEW}._fetch_rows", return_value=[]),
+        patch(f"{PREVIEW}.run_binding", return_value=PlacementData([], None, None)),
         patch(f"{PREVIEW}.current_app") as app,
         patch(f"{PREVIEW}._render") as render,
     ):
@@ -368,3 +369,26 @@ def test_draft_errors_come_back_as_data() -> None:
 
     assert result["canvas_changed"] is True
     assert result["revision"] == 5
+
+
+def test_preview_returns_the_query_to_users_who_can_view_queries() -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    node = {
+        "widgetType": "metric-tile",
+        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+    }
+    data = PlacementData([{"revenue": 1.0}], "SELECT SUM(price) FROM sales", "sql")
+    for allowed, expected in ((True, data.query), (False, None)):
+        with (
+            patch(f"{PREVIEW}.CanvasDAO") as dao,
+            patch(f"{PREVIEW}.run_binding", return_value=data),
+            # A LocalProxy would otherwise be patched with an AsyncMock.
+            patch(f"{PREVIEW}.security_manager", new_callable=MagicMock) as security,
+        ):
+            dao.load.return_value = _preview_canvas(node)
+            security.can_access.return_value = allowed
+            result, _ = _preview_widget_impl(1, "chart", dark=False)
+
+        security.can_access.assert_called_with("can_view_query", "Dashboard")
+        assert result.get("query") == expected

@@ -23,6 +23,7 @@ import { css, styled } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { useWidgetRenderers } from 'src/core';
 import { CanvasDefinitionResult, GridPlacement } from './types';
+import { CanvasDraftContext } from './useWidgetRows';
 
 /** Current values set by nodes, per scope kind, by node id. */
 export type ScopeValues = Record<canvasApi.ScopeKind, Record<string, unknown>>;
@@ -112,6 +113,8 @@ export interface CanvasGridProps {
   ) => void;
   /** Per node, how many automatic refreshes have reached it. */
   refreshKeys?: Record<string, number>;
+  /** The draft being shown; widgets read their data from it. */
+  draftToken?: string;
 }
 
 /**
@@ -125,6 +128,7 @@ export default function CanvasGrid({
   values,
   onValueChange,
   refreshKeys = {},
+  draftToken,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
   const {
@@ -255,8 +259,10 @@ export default function CanvasGrid({
   }
 
   return (
-    <div data-test="canvas-grid">
-      {renderGrid(definition.root.children, columns, renderNode)}
-    </div>
+    <CanvasDraftContext.Provider value={draftToken}>
+      <div data-test="canvas-grid">
+        {renderGrid(definition.root.children, columns, renderNode)}
+      </div>
+    </CanvasDraftContext.Provider>
   );
 }

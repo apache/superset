@@ -89,6 +89,12 @@ class PreviewWidgetResponse(BaseModel):
     sample_rows: list[dict[str, Any]] | None = Field(
         default=None, description="The first rows of the widget's query."
     )
+    query: str | None = Field(
+        default=None,
+        description="The query that ran, as the datasource ran it; only for "
+        "users who can view queries.",
+    )
+    query_language: str | None = None
     option: dict[str, Any] | None = Field(
         default=None,
         description=(

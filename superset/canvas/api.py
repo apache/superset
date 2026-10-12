@@ -34,6 +34,7 @@ from superset_core.canvas import GridPlacement
 from superset_core.widgets import Widget
 
 from superset import is_feature_enabled
+from superset.canvas.data import PlacementDataRequest
 from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
@@ -75,17 +76,24 @@ from superset.commands.canvas.exceptions import (
     CanvasForbiddenError,
     CanvasInvalidError,
     CanvasNotFoundError,
+    CanvasPlacementNotFoundError,
+    CanvasPlacementUnboundError,
     CanvasUpdateFailedError,
     DefinitionConflictError,
     DefinitionInvalidError,
     DraftConflictError,
 )
+from superset.commands.canvas.placement_data import GetPlacementDataCommand
 from superset.commands.canvas.update import UpdateCanvasCommand
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.canvas import CanvasDAO
-from superset.extensions import event_logger
+from superset.daos.exceptions import DatasourceNotFound
+from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.extensions import event_logger, security_manager
 from superset.models.canvas import Canvas
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
+from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -103,7 +111,11 @@ def _handle_canvas_errors(
     def wrapped(self: CanvasRestApi, *args: Any, **kwargs: Any) -> Response:
         try:
             return f(self, *args, **kwargs)
-        except (CanvasNotFoundError, CanvasDraftNotFoundError):
+        except (
+            CanvasNotFoundError,
+            CanvasDraftNotFoundError,
+            CanvasPlacementNotFoundError,
+        ):
             return self.response_404()
         except CanvasForbiddenError:
             return self.response_403()
@@ -115,6 +127,8 @@ def _handle_canvas_errors(
             DraftConflictError,
         ) as ex:
             return self.response(ex.status, **ex.to_payload())
+        except CanvasPlacementUnboundError as ex:
+            return self.response_422(message=str(ex.message))
         except DefinitionVersionError as ex:
             return self.response_422(message=str(ex))
         except (
@@ -204,6 +218,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "apply_draft_operations",
         "commit_draft",
         "delete_draft",
+        "get_placement_data",
     }
     resource_name = "canvas"
     allow_browser_login = True
@@ -219,6 +234,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "apply_draft_operations": "write",
         "commit_draft": "write",
         "delete_draft": "write",
+        "get_placement_data": "read",
     }
     openapi_spec_tag = "Canvases"
 
@@ -874,6 +890,131 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         """
         DeleteCanvasDraftCommand(_draft_token()).run()
         return self.response(200, message="OK")
+
+    @expose("/<id_or_uuid>/placement/<placement_id>/data", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_placement_data"
+        ),
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def get_placement_data(self, id_or_uuid: str, placement_id: str) -> Response:
+        """Run a placement's query and return its data.
+        ---
+        post:
+          summary: Get a placement's data
+          description: >-
+            Runs the query the placement's stored `dataBinding` describes, as
+            the caller, narrowed by `runtime_filters` on the binding's dataset.
+            With the `X-Canvas-Draft` header, reads the placement from the
+            caller's draft of this canvas. Each dataset includes the query
+            that ran when the caller can view queries.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              description: The canvas id or UUID
+            name: id_or_uuid
+          - in: path
+            schema:
+              type: string
+            name: placement_id
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    runtime_filters:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          datasetId:
+                            type: integer
+                          column:
+                            type: string
+                          values:
+                            type: array
+                            items: {}
+          responses:
+            200:
+              description: The placement's datasets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          datasets:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                row_count:
+                                  type: integer
+                                inline_data:
+                                  type: array
+                                  items:
+                                    type: object
+                                query:
+                                  type: string
+                                language:
+                                  type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            body = PlacementDataRequest.model_validate(
+                request.get_json(silent=True) or {}
+            )
+        except PydanticValidationError as ex:
+            return self.response(400, message=_pydantic_errors(ex))
+        token = request.headers.get(DRAFT_TOKEN_HEADER) or None
+        try:
+            data = GetPlacementDataCommand(
+                id_or_uuid, placement_id, body.runtime_filters, token
+            ).run()
+        except DatasourceNotFound:
+            return self.response_404()
+        except SupersetSecurityException:
+            return self.response_403()
+        except (QueryObjectValidationError, ChartDataQueryFailedError) as ex:
+            return self.response_400(message=str(ex.message))
+        dataset: dict[str, Any] = {
+            "name": "main",
+            "row_count": len(data.rows),
+            "inline_data": data.rows,
+        }
+        # Classic charts gate "View query" on the same permission.
+        if data.query and security_manager.can_access("can_view_query", "Dashboard"):
+            dataset["query"] = data.query
+            dataset["language"] = data.language
+        return Response(
+            json.dumps(
+                {"result": {"datasets": [dataset]}},
+                default=json.json_int_dttm_ser,
+                ignore_nan=True,
+            ),
+            status=200,
+            mimetype="application/json",
+        )
 
     @expose("/schema", methods=("GET",))
     @protect()

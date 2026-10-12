@@ -16,59 +16,79 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { canvas as canvasApi } from '@apache-superset/core';
-import { DataBinding, fetchRows, withFilters } from './echarts/chartData';
-import type { DataRow } from './echarts/resolveBindings';
+import { getClientErrorObject } from '@superset-ui/core';
+import {
+  DataBinding,
+  fetchPlacementData,
+  PlacementData,
+  runtimeFilters,
+} from './echarts/chartData';
 
-export interface WidgetRows {
-  rows: DataRow[];
+/** The draft a canvas page shows, if any; its placements read from it. */
+export const CanvasDraftContext = createContext<string | undefined>(undefined);
+
+export interface WidgetRows extends PlacementData {
   loading: boolean;
   error?: string;
 }
 
 /**
- * Rows for a widget's `dataBinding`, narrowed by the filter values that
- * reach it and refetched on refresh. A widget without a binding gets none.
+ * A placement's rows, queried on the server from its stored `dataBinding`,
+ * narrowed by the filter values that reach it and refetched on refresh. A
+ * widget without a binding gets none.
  */
 export function useWidgetRows(
-  bound: DataBinding | undefined,
+  {
+    canvasId,
+    nodeId,
+    props,
+  }: Pick<canvasApi.CanvasWidgetProps, 'canvasId' | 'nodeId' | 'props'>,
   filters: canvasApi.FilterValue[],
   refreshKey: number,
 ): WidgetRows {
-  const binding = bound?.datasetId ? withFilters(bound, filters) : undefined;
-  const bindingKey = JSON.stringify(binding ?? null);
+  const draftToken = useContext(CanvasDraftContext);
+  const binding = props?.dataBinding as DataBinding | undefined;
+  const bound = Boolean(binding?.datasetId);
+  const selected = runtimeFilters(filters);
+  // The binding is in the key so an edit refetches; the server reads it from
+  // the stored definition.
+  const key = JSON.stringify([binding ?? null, selected, draftToken ?? null]);
   const [state, setState] = useState<WidgetRows>({
     rows: [],
-    loading: Boolean(binding),
+    loading: bound,
   });
 
   useEffect(() => {
-    if (!binding) {
+    if (!bound) {
       setState({ rows: [], loading: false });
       return undefined;
     }
     let cancelled = false;
     setState(previous => ({ ...previous, loading: true }));
-    fetchRows(binding)
-      .then(rows => {
-        if (!cancelled) setState({ rows, loading: false });
+    fetchPlacementData({
+      canvasId,
+      placementId: nodeId,
+      draftToken,
+      filters: selected,
+    })
+      .then(data => {
+        if (!cancelled) setState({ ...data, loading: false });
       })
-      .catch(e => {
+      .catch(async e => {
+        if (cancelled) return;
+        const { error } = await getClientErrorObject(e);
         if (!cancelled) {
-          setState({
-            rows: [],
-            loading: false,
-            error: e instanceof Error ? e.message : String(e),
-          });
+          setState({ rows: [], loading: false, error: error ?? String(e) });
         }
       });
     return () => {
       cancelled = true;
     };
-    // The key stands in for the binding, which is recreated on every render.
+    // The key stands in for the binding and filters, recreated every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bindingKey, refreshKey]);
+  }, [canvasId, nodeId, key, refreshKey]);
 
   return state;
 }

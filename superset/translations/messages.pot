@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 14:44+0300\n"
+"POT-Creation-Date: 2026-10-12 19:11+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -15010,6 +15010,9 @@ msgid "This page is intended to be embedded in an iframe, but it looks like that
 msgstr ""
 
 msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
+msgid "This placement has no data binding."
 msgstr ""
 
 msgid "This saved filter state predates the member-ID format. Reset it and explicitly choose its values again."

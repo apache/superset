@@ -1256,13 +1256,13 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 151,
-      "description_chars": 585,
+      "description_chars": 875,
       "entry_bytes": {
-        "structured": 2380,
-        "text_only": 1156
+        "structured": 3372,
+        "text_only": 1902
       },
-      "input_schema_bytes": 312,
-      "output_schema_bytes": 1208
+      "input_schema_bytes": 763,
+      "output_schema_bytes": 1454
     },
     "query_dataset": {
       "annotations": {
@@ -1459,12 +1459,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 547682,
-      "text_only": 224053
+      "structured": 548674,
+      "text_only": 224799
     },
     "compact_catalog_bytes": {
-      "structured": 492226,
-      "text_only": 168597
+      "structured": 492923,
+      "text_only": 169048
     },
     "largest_entry": {
       "structured": {
