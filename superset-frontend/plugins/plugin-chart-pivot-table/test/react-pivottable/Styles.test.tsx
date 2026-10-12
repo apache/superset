@@ -42,6 +42,9 @@ test('sticky-positions the row-label column and its corner header cell(s) so the
   const rowLabelStyle = getComputedStyle(rowLabelCell as Element);
   expect(rowLabelStyle.position).toBe('sticky');
   expect(rowLabelStyle.left).toBe('0px');
+  // A frozen label is width-capped so a long unbroken value can't cover
+  // every metric cell in a narrow chart.
+  expect(rowLabelStyle.maxWidth).toBe('50%');
 
   // The corner cells above the frozen row-label column (the column
   // attribute name cell in each column-header row and the row-attribute

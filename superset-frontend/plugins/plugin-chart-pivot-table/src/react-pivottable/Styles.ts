@@ -171,6 +171,10 @@ export const Styles = styled.div<{
       left: 0;
       z-index: 1;
       background-color: ${theme.colorBgBase};
+      /* Cap the frozen label so a long unbroken value can't grow wider
+       * than the scroll area and cover every metric cell. */
+      max-width: 50%;
+      overflow-wrap: anywhere;
     }
 
     /* The frozen-cell background above is more specific than the generic
