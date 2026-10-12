@@ -77,9 +77,9 @@ form, `NOT IN ('a', NULL)`, means `NOT IN ('a') AND IS NOT NULL`; it excludes bo
 `'a'` and missing values. Empty IN and NOT IN selections are rejected with a query
 validation error. Non-NULL comparisons retain their existing semantics.
 
-Mixed positive selections require the provider's optional `OR_FILTERS` capability.
-A provider that does not declare it returns a clear query validation error instead
-of silently omitting missing-value rows. NULL-only and mixed negative selections
-use ordinary leaf predicates and do not require that capability.
+Every semantic provider must support mixed positive selections through grouped
+OR predicates. NULL-only and mixed negative selections use ordinary leaf
+predicates. Provider adapters must be upgraded before, or together with, the
+host/SDK so that mixed selections preserve missing-value rows.
 
 For adapter authors, see the [semantic filter contract](/developer-docs/extensions/semantic-filters).

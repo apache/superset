@@ -175,7 +175,7 @@ class OrFilter:
 
     Query filter collections combine their members with AND. A group is one member
     of that collection and combines its leaves with OR. Nested groups are unsupported.
-    Providers must declare OR_FILTERS before the host emits a group. Sort leaves
+    Providers must render these groups in query and group-limit filters. Sort leaves
     deterministically when rendering, keeping each bound value paired with its
     predicate; frozenset iteration order is not stable across processes.
     """

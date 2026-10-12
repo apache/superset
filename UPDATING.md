@@ -25,8 +25,9 @@ assists people when migrating to a new version.
 ## Next
 
 - Semantic filters normalize UI NULL/empty-string selections. Mixed positive
-  NULL membership returns HTTP 400 unless the provider supports `OR_FILTERS`;
-  previously it could silently omit NULL rows. Empty membership and invalid NULL
+  NULL membership uses `OrFilter`, which every semantic provider must render;
+  previously it could silently omit NULL rows. Update provider adapters before,
+  or together with, the host/SDK upgrade. Empty membership and invalid NULL
   comparison operands also return query validation errors. The semantic result
   cache key includes a protocol version, so pre-upgrade answers are not reused
   and semantic caches warm again after deployment.
@@ -36,7 +37,7 @@ assists people when migrating to a new version.
   remains `set[Filter] | None`. Host filter-value typing also permits NULL within
   lists and variable-length tuples. See the
   [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
-  for capability opt-in and guarded loading on older SDKs.
+  for mandatory `OrFilter` rendering and guarded loading on older SDKs.
 
 - Semantic-view chart-defined metric filters return a client error identifying
   the metric; select a dimension or remove the unsupported predicate. Dashboard

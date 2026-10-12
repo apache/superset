@@ -32,13 +32,12 @@ from superset_core.semantic_layers.types import (
     OrFilter,
     PredicateType,
     SemanticQuery,
+    SemanticResult,
 )
-from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
 from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.mapper import (
     _convert_query_object_filter,
-    _validate_filter_features,
     get_results,
     map_query_object,
     ValidatedQueryObject,
@@ -122,22 +121,50 @@ def test_empty_membership_is_rejected(operator: str) -> None:
 
 
 @pytest.mark.parametrize("is_rowcount", [False, True])
-def test_legacy_provider_rejects_mixed_null_membership(is_rowcount: bool) -> None:
-    """Do not send an unsupported group or silently narrow legacy results."""
+def test_provider_receives_mixed_null_membership_without_opt_in(
+    is_rowcount: bool,
+) -> None:
+    """Grouped predicates are mandatory for table and row-count execution."""
     datasource: MagicMock = MagicMock()
     datasource.implementation.features = frozenset()
     datasource.implementation.get_dimensions.return_value = {CATEGORY}
     datasource.implementation.get_metrics.return_value = set()
+    datasource.implementation.get_table.return_value = SemanticResult(
+        requests=[], results=pa.table({"category": ["a", None]})
+    )
+    datasource.implementation.get_row_count.return_value = SemanticResult(
+        requests=[], results=pa.table({"rowcount": [2]})
+    )
     query: ValidatedQueryObject = ValidatedQueryObject(
         datasource=datasource,
         columns=["category"],
         filters=[{"col": "category", "op": "IN", "val": ["a", None]}],
     )
     query.is_rowcount = is_rowcount
-    with pytest.raises(QueryObjectValidationError, match="Select NULL separately"):
-        get_results(query)
-    datasource.implementation.get_table.assert_not_called()
-    datasource.implementation.get_row_count.assert_not_called()
+    get_results(query)
+    dispatcher: MagicMock = (
+        datasource.implementation.get_row_count
+        if is_rowcount
+        else datasource.implementation.get_table
+    )
+    dispatcher.assert_called_once()
+    mapped: SemanticQuery = dispatcher.call_args.args[0]
+    assert mapped.filters == {
+        OrFilter(
+            frozenset(
+                {
+                    Filter(
+                        PredicateType.WHERE, CATEGORY, Operator.IN, frozenset({"a"})
+                    ),
+                    Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NULL, None),
+                }
+            )
+        )
+    }
+    if is_rowcount:
+        datasource.implementation.get_table.assert_not_called()
+    else:
+        datasource.implementation.get_row_count.assert_not_called()
 
 
 @pytest.mark.parametrize("stage", [PredicateType.WHERE, PredicateType.HAVING])
@@ -172,19 +199,14 @@ def test_or_group_rejects_nested_or_mixed_stage_children() -> None:
         OrFilter(cast(frozenset[Filter], frozenset({leaf, nested})))
 
 
-def test_or_filters_are_disabled_by_default() -> None:
-    """Existing providers must opt in before receiving grouped predicates."""
-    assert SemanticViewFeature.OR_FILTERS not in SemanticView.features
-
-
-def test_capable_provider_receives_groups_in_main_offset_and_group_limit() -> None:
+def test_main_offset_and_group_limit_receive_groups_without_opt_in() -> None:
     """No inner query may silently lose the NULL member before ranking groups."""
     timestamp: Dimension = Dimension(
         id="ts", name="ts", type=pa.timestamp("s"), definition="ts"
     )
     datasource: MagicMock = MagicMock()
     datasource.fetch_values_predicate = None
-    datasource.implementation.features = frozenset({SemanticViewFeature.OR_FILTERS})
+    datasource.implementation.features = frozenset()
     datasource.implementation.get_dimensions.return_value = {CATEGORY, timestamp}
     datasource.implementation.get_metrics.return_value = set()
     query: ValidatedQueryObject = ValidatedQueryObject(
@@ -239,20 +261,6 @@ def test_capable_provider_receives_groups_in_main_offset_and_group_limit() -> No
                 PredicateType.WHERE, timestamp, Operator.LESS_THAN, datetime(2020, 2, 2)
             ),
         }
-
-
-def test_group_filter_capability_check_covers_missing_and_leaf_only_filters() -> None:
-    """Legacy providers retain all leaf-only paths but never receive OR groups."""
-    leaf: Filter = Filter(PredicateType.WHERE, CATEGORY, Operator.IS_NULL, None)
-    group: OrFilter = OrFilter(
-        frozenset({leaf, replace(leaf, operator=Operator.IS_NOT_NULL)})
-    )
-    _validate_filter_features(None, frozenset())
-    _validate_filter_features({leaf}, frozenset())
-    with pytest.raises(QueryObjectValidationError, match="Select NULL separately"):
-        _validate_filter_features({group}, frozenset())
-    _validate_filter_features({group}, frozenset({SemanticViewFeature.OR_FILTERS}))
-    _validate_filter_features({group}, frozenset({"OR_FILTERS"}))
 
 
 @pytest.mark.parametrize(

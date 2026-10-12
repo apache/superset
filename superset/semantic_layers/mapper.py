@@ -417,7 +417,6 @@ def _map_query_object(
     query_object: ValidatedQueryObject, metadata: _ViewMetadata
 ) -> list[SemanticQuery]:
     """Use the same members for the main query and every time comparison."""
-    semantic_view: SemanticView = query_object.datasource.implementation
     view_metrics: tuple[Metric, ...] = metadata.metrics
     view_dimensions: tuple[Dimension, ...] = metadata.dimensions
 
@@ -483,9 +482,6 @@ def _map_query_object(
         all_dimensions,
     )
 
-    if group_limit is not None:
-        _validate_filter_features(group_limit.filters, semantic_view.features)
-
     queries = []
     for time_offset in [None] + query_object.time_offsets:
         filters = _get_filters_from_query_object(
@@ -493,7 +489,6 @@ def _map_query_object(
             time_offset,
             all_dimensions,
         )
-        _validate_filter_features(filters, semantic_view.features)
         queries.append(
             SemanticQuery(
                 metrics=metrics,
@@ -875,23 +870,6 @@ def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
     if negated:
         return {comparison, null_filter}
     return {OrFilter(frozenset({comparison, null_filter}))}
-
-
-def _validate_filter_features(
-    filters: set[FilterExpression] | None,
-    features: frozenset[SemanticViewFeature | str],
-) -> None:
-    """Fail before provider execution rather than flattening an unsupported group."""
-    if not any(
-        (feature.value if isinstance(feature, SemanticViewFeature) else feature)
-        == SemanticViewFeature.OR_FILTERS.value
-        for feature in features
-    ) and any(isinstance(filter_, OrFilter) for filter_ in filters or ()):
-        logger.debug("Semantic provider does not declare OR_FILTERS")
-        raise QueryObjectValidationError(
-            "This data source cannot combine NULL with other selected values. "
-            "Select NULL separately or ask your administrator to upgrade the provider."
-        )
 
 
 def _timestamp_target_tz(dtype: pa.DataType) -> tzinfo | None:

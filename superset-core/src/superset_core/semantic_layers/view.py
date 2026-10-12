@@ -39,7 +39,6 @@ class SemanticViewFeature(enum.Enum):
     ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
     GROUP_LIMIT = "GROUP_LIMIT"
     GROUP_OTHERS = "GROUP_OTHERS"
-    OR_FILTERS = "OR_FILTERS"
 
 
 class SemanticView(ABC):
