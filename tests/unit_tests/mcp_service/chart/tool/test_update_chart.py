@@ -2954,9 +2954,16 @@ async def test_dataset_only_rebind_requires_complete_config(
 
 
 def _saved_variant_update_params(
-    saved: dict[str, Any], config: dict[str, Any], *, dataset_id: int | None = None
+    saved: dict[str, Any],
+    config: dict[str, Any],
+    *,
+    dataset_id: int | None = None,
+    preview: bool = False,
 ) -> dict[str, Any]:
-    """Run a config update through the tool's resolve, normalize and save steps."""
+    """Run a config update through the tool's resolve, normalize and build steps.
+
+    ``preview`` selects the default preview-first builder over the save payload.
+    """
     from superset.mcp_service.chart.registry import get_registry
     from superset.mcp_service.chart.validation.dataset_validator import (
         DatasetContext,
@@ -3003,9 +3010,18 @@ def _saved_variant_update_params(
             request.config, saved, dataset_rebind=dataset_id is not None
         )
         normalized = plugin.normalize_column_refs(resolved, context)
+        if preview:
+            form_data = _build_preview_form_data(request, chart, normalized)
+            assert isinstance(form_data, dict)
+            return form_data
         payload = _build_update_payload(request, chart, normalized)
     assert isinstance(payload, dict)
     return json.loads(payload["params"])
+
+
+_SAVE_AND_PREVIEW = pytest.mark.parametrize(
+    "preview", [False, True], ids=["save", "preview"]
+)
 
 
 _XY_VARIANT_CONFIG: dict[str, Any] = {
@@ -3024,7 +3040,10 @@ _XY_VARIANT_CONFIG: dict[str, Any] = {
         "echarts_timeseries_scatter",
     ],
 )
-def test_xy_update_without_kind_keeps_saved_chart_kind(viz_type: str) -> None:
+@_SAVE_AND_PREVIEW
+def test_xy_update_without_kind_keeps_saved_chart_kind(
+    viz_type: str, preview: bool
+) -> None:
     """An update that names no kind keeps the saved chart and its controls."""
     saved = {
         "viz_type": viz_type,
@@ -3035,7 +3054,7 @@ def test_xy_update_without_kind_keeps_saved_chart_kind(viz_type: str) -> None:
         "row_limit": 77,
     }
 
-    params = _saved_variant_update_params(saved, _XY_VARIANT_CONFIG)
+    params = _saved_variant_update_params(saved, _XY_VARIANT_CONFIG, preview=preview)
 
     assert params["viz_type"] == viz_type
     assert params["metrics"][0]["label"] == "SUM(revenue)"
@@ -3052,6 +3071,23 @@ def test_xy_update_with_kind_replaces_saved_chart_kind() -> None:
     assert params["viz_type"] == "echarts_timeseries_line"
 
 
+def test_xy_rebind_without_kind_keeps_saved_chart_kind() -> None:
+    """The kind is not tied to the dataset, so a rebind keeps it too."""
+    saved = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "old_ds",
+        "metrics": ["old_metric"],
+        "groupby": ["old_dimension"],
+    }
+
+    params = _saved_variant_update_params(saved, _XY_VARIANT_CONFIG, dataset_id=99)
+
+    assert params["viz_type"] == "echarts_timeseries_bar"
+    assert params["x_axis"] == "ds"
+    assert params["metrics"][0]["label"] == "SUM(revenue)"
+    assert "old_dimension" not in params.get("groupby", [])
+
+
 def test_xy_update_without_kind_defaults_to_line_for_another_chart_type() -> None:
     saved = {"viz_type": "pie", "groupby": ["region"], "metric": "count"}
 
@@ -3066,7 +3102,8 @@ _TABLE_VARIANT_CONFIG: dict[str, Any] = {
 }
 
 
-def test_table_update_without_viz_type_keeps_interactive_table() -> None:
+@_SAVE_AND_PREVIEW
+def test_table_update_without_viz_type_keeps_interactive_table(preview: bool) -> None:
     """An update that names no viz_type keeps a saved ag-grid table."""
     saved = {
         "viz_type": "ag-grid-table",
@@ -3078,13 +3115,28 @@ def test_table_update_without_viz_type_keeps_interactive_table() -> None:
         "row_limit": 77,
     }
 
-    params = _saved_variant_update_params(saved, _TABLE_VARIANT_CONFIG)
+    params = _saved_variant_update_params(saved, _TABLE_VARIANT_CONFIG, preview=preview)
 
     assert params["viz_type"] == "ag-grid-table"
     assert params["metrics"][0]["label"] == "SUM(revenue)"
     assert params["page_length"] == 50
     assert params["table_timestamp_format"] == "%Y"
     assert params["row_limit"] == 77
+
+
+def test_table_rebind_without_viz_type_keeps_interactive_table() -> None:
+    saved = {
+        "viz_type": "ag-grid-table",
+        "query_mode": "aggregate",
+        "groupby": ["old_dimension"],
+        "metrics": ["old_metric"],
+    }
+
+    params = _saved_variant_update_params(saved, _TABLE_VARIANT_CONFIG, dataset_id=99)
+
+    assert params["viz_type"] == "ag-grid-table"
+    assert params["groupby"] == ["region"]
+    assert params["metrics"][0]["label"] == "SUM(revenue)"
 
 
 def test_table_update_with_viz_type_replaces_interactive_table() -> None:
@@ -3120,10 +3172,13 @@ _BIG_NUMBER_VARIANT_CONFIG: dict[str, Any] = {
 }
 
 
-def test_big_number_update_without_show_trendline_keeps_saved_trendline() -> None:
+@_SAVE_AND_PREVIEW
+def test_big_number_update_without_show_trendline_keeps_saved_trendline(
+    preview: bool,
+) -> None:
     """An update that names no trendline setting keeps a saved trendline."""
     params = _saved_variant_update_params(
-        _BIG_NUMBER_TRENDLINE, _BIG_NUMBER_VARIANT_CONFIG
+        _BIG_NUMBER_TRENDLINE, _BIG_NUMBER_VARIANT_CONFIG, preview=preview
     )
 
     assert params["viz_type"] == "big_number"
@@ -3135,6 +3190,51 @@ def test_big_number_update_without_show_trendline_keeps_saved_trendline() -> Non
     assert params["time_grain_sqla"] == "P1D"
     # The inherited column is not a named one, so the saved time range stays.
     assert params["adhoc_filters"] == [_BIG_NUMBER_TIME_RANGE_FILTER]
+
+
+@pytest.mark.parametrize(
+    "x_axis",
+    [
+        pytest.param("ds", id="column"),
+        pytest.param({"column_name": "ds"}, id="column-object"),
+    ],
+)
+def test_big_number_update_keeps_trendline_saved_under_x_axis(x_axis: Any) -> None:
+    """Explore saves the trendline column as x_axis, not granularity_sqla."""
+    from superset.mcp_service.chart.chart_helpers import resolve_big_number_columns
+
+    saved = {
+        "viz_type": "big_number",
+        "metric": "count",
+        "x_axis": x_axis,
+        "compare_lag": 7,
+        "adhoc_filters": [_BIG_NUMBER_TIME_RANGE_FILTER],
+    }
+
+    params = _saved_variant_update_params(saved, _BIG_NUMBER_VARIANT_CONFIG)
+
+    assert params["viz_type"] == "big_number"
+    assert params["metric"]["label"] == "SUM(revenue)"
+    assert resolve_big_number_columns(params) == ["ds"]
+    assert params["compare_lag"] == 7
+    assert params["adhoc_filters"] == [_BIG_NUMBER_TIME_RANGE_FILTER]
+
+
+def test_big_number_update_does_not_inherit_adhoc_trendline_column() -> None:
+    """A SQL expression x_axis has no column name the typed config can carry."""
+    saved = {
+        "viz_type": "big_number",
+        "metric": "count",
+        "x_axis": {
+            "expressionType": "SQL",
+            "sqlExpression": "DATE(ds)",
+            "label": "day",
+        },
+    }
+
+    params = _saved_variant_update_params(saved, _BIG_NUMBER_VARIANT_CONFIG)
+
+    assert params["viz_type"] == "big_number_total"
 
 
 def test_big_number_update_keeps_trendline_on_a_new_temporal_column() -> None:

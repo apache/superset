@@ -717,6 +717,8 @@ async def update_chart(  # noqa: C901
     - Use numeric ID or UUID string to identify the chart (NOT chart name).
     - config is optional — omit it to rename a chart without changing its visualization
     - To append table columns without restating the existing list, use add_columns
+    - On a chart of the same type, leaving out xy 'kind', table 'viz_type' or
+      big_number 'show_trendline' keeps the saved value instead of the default
 
     config takes the same chart configuration as generate_chart; call
     get_chart_type_schema(chart_type) for a chart type's fields and examples.

@@ -224,9 +224,19 @@ class BigNumberChartPlugin(BaseChartPlugin):
             return config
         if "temporal_column" in config.model_fields_set:
             return config.model_copy(update={"show_trendline": True})
-        saved_column = existing_form_data.get("granularity_sqla")
         # The saved trendline column belongs to the previous dataset on a rebind.
-        if dataset_rebind or not isinstance(saved_column, str) or not saved_column:
+        if dataset_rebind:
+            return config
+        # The query builder imports this helper after plugin loading.
+        from superset.mcp_service.chart.chart_helpers import (
+            resolve_big_number_columns,
+        )
+
+        # Explore saves the column as x_axis; the mapper as granularity_sqla.
+        saved_columns = resolve_big_number_columns(existing_form_data)
+        saved_column = saved_columns[0] if saved_columns else None
+        # An adhoc SQL x_axis has no column name the typed config can carry.
+        if not isinstance(saved_column, str):
             return config
         resolved = config.model_copy(
             update={"show_trendline": True, "temporal_column": saved_column}
