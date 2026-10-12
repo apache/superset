@@ -44,7 +44,7 @@ const funnelLegendSection = legendSection.filter(row => {
     !control ||
     typeof control !== 'object' ||
     !('name' in control) ||
-    control.name !== 'legendOrientation'
+    control.name !== 'legendType'
   );
 });
 
