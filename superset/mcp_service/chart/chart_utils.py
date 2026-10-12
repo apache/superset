@@ -287,7 +287,9 @@ def generate_explore_link(
             numeric_dataset_id = int(dataset_id)
             source_found = True
         elif datasource_type != DatasourceType.TABLE.value:
-            raise ValueError(f"Unsupported datasource type: {datasource_type}")
+            # Preserve other families without treating their IDs as table IDs
+            # or creating form state for a source this helper cannot resolve.
+            return _basic_explore_url(base_url, datasource_type, dataset_id)
         elif isinstance(dataset_id, int) or (
             isinstance(dataset_id, str) and dataset_id.isdecimal()
         ):

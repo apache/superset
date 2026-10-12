@@ -5941,7 +5941,8 @@ def _normalize_chart_target_alias(data: dict[str, Any]) -> dict[str, Any]:
             and data[target_key] != source_id
         ):
             raise ValueError("datasource_id conflicts with the explicit chart target")
-        # Legacy table requests give the explicit dataset_id precedence.
+        # Keep explicit dataset_id precedence for backward compatibility with
+        # legacy table requests; semantic targets have no such legacy contract.
         if data.get(target_key) is None:
             data[target_key] = source_id
     return data
