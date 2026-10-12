@@ -264,6 +264,48 @@ test('an equality carrying a time of day is not mirrored at day resolution', () 
   ).toBe(false);
 });
 
+test('a value carrying a UTC offset is not mirrored at any resolution', () => {
+  // `_mirror_probe_input` declines an offset-bearing instant ahead of the
+  // full-resolution return, because a transform such as
+  // `CAST(:value AS TIMESTAMP)` drops the offset rather than converting
+  // through it. So this is declined on a column the engine compares in full,
+  // which the resolution gates never looked at -- the glyph promised pruning
+  // the query does not do.
+  const FULL = { ...ACTIVE, literal_resolution: 'full' as const };
+  const DAY = { ...ACTIVE, literal_resolution: 'day' as const };
+
+  for (const comparator of [
+    '2024-01-01T01:00:00+01:00',
+    '2024-01-01T01:00:00+0100',
+    '2024-01-01T00:00:00Z',
+    '2024-01-01 00:00:00-05:00',
+  ]) {
+    expect(isMirroredFilter(FULL, { ...equalsFilter, comparator })).toBe(false);
+    expect(
+      isMirroredFilter(FULL, { ...equalsFilter, operator: '>=', comparator }),
+    ).toBe(false);
+    expect(isMirroredFilter(DAY, { ...equalsFilter, comparator })).toBe(false);
+  }
+
+  // One member is the whole list's problem, as it is server-side.
+  expect(
+    isMirroredFilter(FULL, {
+      ...equalsFilter,
+      operator: 'IN',
+      comparator: ['2024-01-01', '2024-01-02T01:00:00+01:00'],
+    }),
+  ).toBe(false);
+
+  // And an offsetless instant on a full-resolution column still mirrors, so
+  // the new gate has not swallowed the ordinary case.
+  expect(
+    isMirroredFilter(FULL, {
+      ...equalsFilter,
+      comparator: '2024-01-01T01:00:00',
+    }),
+  ).toBe(true);
+});
+
 test('a date, or a date at midnight, still mirrors at day resolution', () => {
   // The decline is about a *lost* time of day, not about DATE columns: where the
   // value sits on the day boundary the engine's comparison and the mirror's

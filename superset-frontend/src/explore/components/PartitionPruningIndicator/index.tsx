@@ -188,6 +188,27 @@ function carriesTimeOfDay(value: unknown): boolean {
 /** A zero-padded ISO calendar date, extended (`2024-01-01`) or basic (`20240101`). */
 const ISO_DATE_PREFIX = /^\d{4}(-\d{2}-\d{2}|\d{4})/;
 
+/** A trailing UTC offset or `Z`, on a value that starts as an ISO date. */
+const UTC_OFFSET = /^\d{4}-\d{2}-\d{2}[ T][\d:.]+(Z|[+-]\d{2}:?\d{2})$/i;
+
+/**
+ * A value whose time frame the transform would discard.
+ *
+ * `_mirror_probe_input` declines any instant carrying a UTC offset, ahead of
+ * the full-resolution return and so on *every* column: a transform such as
+ * `CAST(:value AS TIMESTAMP)` drops the offset rather than converting through
+ * it, and a mirror built from the wrong frame asks for a partition the
+ * matching rows are not in. The resolution gates below do not see it, so a
+ * full-resolution column kept showing the glyph for a filter that emits no
+ * predicate.
+ *
+ * The same trade as the two helpers above: only ever used to *hide* the glyph,
+ * so it fires only on a shape the server certainly declines.
+ */
+function carriesUtcOffset(value: unknown): boolean {
+  return typeof value === 'string' && UTC_OFFSET.test(value);
+}
+
 /**
  * Whether the server stands a chance of reading this value as an instant.
  *
@@ -250,12 +271,20 @@ function hasMirrorableValue(
       Array.isArray(comparator) &&
       comparator.length > 0 &&
       !comparator.some(isNullish) &&
+      // Declined whatever the resolution; one member is the whole list's
+      // problem, as it is server-side.
+      !comparator.some(carriesUtcOffset) &&
       !(
         comparesLessThanTheValue &&
         comparator.some(member => !readableAsInstant(member))
       ) &&
       !(resolution === 'day' && comparator.some(carriesTimeOfDay))
     );
+  }
+  // Ahead of the resolution gates, because the offset is declined on every
+  // column -- including one the engine compares in full.
+  if (carriesUtcOffset(comparator)) {
+    return false;
   }
   if (comparesLessThanTheValue && !readableAsInstant(comparator)) {
     return false;
