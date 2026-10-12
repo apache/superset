@@ -110,15 +110,16 @@ const tableApi = api.injectEndpoints({
         urlParams: {
           force: forceRefresh,
           schema_name: schema ? encodeURIComponent(schema) : '',
-          ...(catalog && { catalog_name: catalog }),
+          ...(catalog && { catalog_name: encodeURIComponent(catalog) }),
         },
         transformResponse: ({ json }: QueryResponse) => ({
           options: json.result,
           hasMore: json.count > json.result.length,
         }),
       }),
-      serializeQueryArgs: ({ queryArgs: { dbId, schema } }) => ({
+      serializeQueryArgs: ({ queryArgs: { dbId, catalog, schema } }) => ({
         dbId,
+        catalog,
         schema,
       }),
     }),
