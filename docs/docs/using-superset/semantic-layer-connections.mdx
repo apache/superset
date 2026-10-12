@@ -38,7 +38,10 @@ only checks the private-key envelope, not cryptographic validity. Password-prote
 keys also need their passphrase. The hint is for private keys, not certificates.
 
 Automatic metadata discovery is debounced. Discovery failures do not prevent entering
-manual values when suggestions are unavailable. Errors use fixed messages rather than
-displaying provider exceptions. Saved secrets remain masked while editing; retaining
-a mask preserves the saved secret on Save. Changing connection dependencies can clear
+manual values when suggestions are unavailable. Discovery errors use fixed messages
+rather than displaying provider exceptions. Save displays the server's sanitized
+validation reason, such as a duplicate name or missing configuration field, with a
+generic fallback when no reason is available. Saved secrets remain masked while
+editing; configuration changes may require re-entering masked values, as explained
+by the server's validation message. Changing connection dependencies can clear
 dependent selections, so check those fields before saving.

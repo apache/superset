@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import type { JsonSchema } from '@jsonforms/core';
 import {
   act,
@@ -93,6 +93,10 @@ beforeEach(() => {
   jest.useFakeTimers({ advanceTimers: true });
   mockedGet.mockReset();
   mockedPost.mockReset();
+  jest
+    .mocked(getClientErrorObject)
+    .mockReset()
+    .mockResolvedValue({ error: '' });
 
   mockedGet
     .mockResolvedValueOnce({
@@ -546,7 +550,65 @@ test('replaces edit-fetch failure with a safe message', async () => {
   );
 });
 
-test('replaces Save failure with a safe message', async () => {
+test.each([
+  ['create', 'Name already exists: Example'],
+  ['update', 'Name already exists: Example'],
+  ['create', 'Invalid configuration: auth.private_key: missing'],
+  ['update', 'Invalid configuration: auth.private_key: missing'],
+  [
+    'update',
+    'This update changes the configuration while reusing a stored ' +
+      'secret value (a masked field). Provide the real value for any ' +
+      'masked field to confirm a configuration change.',
+  ],
+  ['create', ''],
+  ['update', ''],
+])('preserves the %s Save validation reason: %s', async (mode, message) => {
+  props.addDangerToast.mockClear();
+  props.onHide.mockClear();
+  if (mode === 'update') {
+    await setupExampleProvider(completeCredentials);
+  } else {
+    mockJsonFormsChangeTriggered = true;
+    render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+    fireEvent.mouseDown(
+      await screen.findByRole('combobox', { name: 'Semantic layer type' }),
+    );
+    fireEvent.click(await screen.findByText('Example'));
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    await waitFor(() => expect(capturedOnChange).not.toBeNull());
+    act(() => capturedOnChange!({ data: {}, errors: [] }));
+  }
+  jest
+    .mocked(getClientErrorObject)
+    .mockImplementationOnce(
+      jest.requireActual<typeof import('@superset-ui/core')>(
+        '@superset-ui/core',
+      ).getClientErrorObject,
+    );
+  const save = mode === 'update' ? SupersetClient.put : SupersetClient.post;
+  jest
+    .mocked(save)
+    .mockRejectedValueOnce(
+      new Response(JSON.stringify({ message }), { status: 422 }),
+    );
+  const button = screen.getByRole('button', {
+    name: mode === 'update' ? 'Save' : 'Create',
+  });
+  fireEvent.click(button);
+  await waitFor(() =>
+    expect(props.addDangerToast).toHaveBeenCalledWith(
+      message ||
+        (mode === 'update'
+          ? 'An error occurred while updating the semantic layer'
+          : 'An error occurred while creating the semantic layer'),
+    ),
+  );
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(button).toBeEnabled();
+});
+
+test('Save falls back when the normalized error has no message', async () => {
   await setupExampleProvider(completeCredentials);
   (SupersetClient.put as jest.Mock).mockRejectedValueOnce(
     new Error('SECRET <root>: value_error'),

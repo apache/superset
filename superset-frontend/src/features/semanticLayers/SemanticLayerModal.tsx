@@ -349,11 +349,13 @@ export default function SemanticLayerModal({
         addSuccessToast(t('Semantic layer created'));
       }
       onHide();
-    } catch {
+    } catch (error) {
+      const clientError = await getClientErrorObject(error);
       addDangerToast(
-        isEditMode
-          ? t('An error occurred while updating the semantic layer')
-          : t('An error occurred while creating the semantic layer'),
+        clientError.error ||
+          (isEditMode
+            ? t('An error occurred while updating the semantic layer')
+            : t('An error occurred while creating the semantic layer')),
       );
     } finally {
       setSaving(false);
