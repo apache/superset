@@ -24,8 +24,10 @@ from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
     _is_metric_ref,
     _resolve_deck_gl_metrics,
+    _resolve_x_axis_sort_target,
     apply_form_data_filters_to_query,
     build_query_dicts_from_form_data,
+    build_single_query_dict,
     extract_form_data_key_from_url,
     find_chart_by_identifier,
     get_cached_form_data,
@@ -1513,6 +1515,278 @@ def test_shared_query_builder_keeps_mixed_timeseries_ordering_per_query(
     # and otherwise falls back to its own metric.
     assert secondary["orderby"] == (secondary_orderby or [["sum_sales", False]])
     assert form_data["orderby"] == [["count", True]]
+
+
+def test_build_single_query_dict_x_axis_sort_with_metric_label() -> None:
+    """
+    Verify build_single_query_dict maps x_axis_sort metric label to
+    query orderby.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd = build_single_query_dict(form_data, ["category"], [metric])
+    assert qd["orderby"] == [(metric, False)]
+
+
+def test_build_single_query_dict_x_axis_sort_with_metric_column_name() -> None:
+    """
+    Verify build_single_query_dict matches x_axis_sort column name to
+    metric dict.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "x_axis_sort": "sales",
+        "x_axis_sort_asc": True,
+    }
+    qd = build_single_query_dict(form_data, ["category"], [metric])
+    assert qd["orderby"] == [(metric, True)]
+
+
+def test_build_single_query_dict_x_axis_sort_with_saved_metric() -> None:
+    """Verify build_single_query_dict handles saved string metric in x_axis_sort."""
+    form_data = {
+        "x_axis_sort": "revenue",
+        "x_axis_sort_asc": False,
+    }
+    qd = build_single_query_dict(form_data, ["category"], ["revenue"])
+    assert qd["orderby"] == [("revenue", False)]
+
+
+def test_build_single_query_dict_x_axis_sort_with_dimension_column() -> None:
+    """Verify build_single_query_dict preserves dimension column sort."""
+    form_data = {
+        "x_axis_sort": "category",
+        "x_axis_sort_asc": True,
+    }
+    qd = build_single_query_dict(form_data, ["category"], ["revenue"])
+    assert qd["orderby"] == [("category", True)]
+
+
+def test_build_single_query_dict_prefers_existing_orderby() -> None:
+    """Verify explicit orderby in form_data takes precedence over x_axis_sort."""
+    form_data = {
+        "orderby": [["count", True]],
+        "x_axis_sort": "sales",
+        "x_axis_sort_asc": False,
+    }
+    qd = build_single_query_dict(form_data, ["category"], ["sales"])
+    assert qd["orderby"] == [["count", True]]
+
+
+def test_build_single_query_dict_temporal_chart_guards_against_x_axis_sort() -> None:
+    """
+    Verify temporal charts do not override chronological order with
+    x_axis_sort.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    # Case 1: is_timeseries flag passed
+    form_data = {
+        "x_axis": "order_date",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd = build_single_query_dict(
+        form_data, ["order_date"], [metric], is_timeseries=True
+    )
+    assert "orderby" not in qd
+
+    # Case 2: granularity_sqla present indicates temporal chart
+    form_data_temporal = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "order_date",
+        "granularity_sqla": "order_date",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd_temporal = build_single_query_dict(form_data_temporal, ["order_date"], [metric])
+    assert "orderby" not in qd_temporal
+
+    # Case 3: time_grain_sqla indicates temporal chart
+    form_data_grain = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "order_date",
+        "granularity_sqla": "order_date",
+        "time_grain_sqla": "P1D",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    qd_grain = build_single_query_dict(form_data_grain, ["order_date"], [metric])
+    assert "orderby" not in qd_grain
+
+
+def test_build_query_dicts_from_form_data_xy_bar_with_x_axis_sort() -> None:
+    """
+    Verify build_query_dicts_from_form_data sets orderby for categorical
+    xy bar chart.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "category",
+        "metrics": [metric],
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    col = queries[0]["columns"][0]
+    assert (
+        col if isinstance(col, str) else col.get("sqlExpression") or col.get("label")
+    ) == "category"
+    assert queries[0]["metrics"] == [metric]
+    assert queries[0]["orderby"] == [[metric, False]]
+
+
+def test_resolve_x_axis_sort_target_case_insensitive_label() -> None:
+    """Verify _resolve_x_axis_sort_target matches metric label case-insensitively."""
+    metric = {
+        "label": "Total Sales",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    resolved = _resolve_x_axis_sort_target("total sales", [metric])
+    assert resolved == metric
+
+
+def test_resolve_x_axis_sort_target_case_insensitive_column() -> None:
+    """
+    Verify _resolve_x_axis_sort_target matches metric column name
+    case-insensitively.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "Sales"},
+    }
+    resolved = _resolve_x_axis_sort_target("sales", [metric])
+    assert resolved == metric
+
+
+def test_resolve_x_axis_sort_target_sql_expression() -> None:
+    """Verify _resolve_x_axis_sort_target matches adhoc SQL expression metric."""
+    metric = {
+        "expressionType": "SQL",
+        "sqlExpression": "COUNT(DISTINCT user_id)",
+        "label": "unique_users",
+    }
+    resolved = _resolve_x_axis_sort_target("count(distinct user_id)", [metric])
+    assert resolved == metric
+
+
+def test_resolve_x_axis_sort_target_string_metric_case_insensitive() -> None:
+    """
+    Verify _resolve_x_axis_sort_target matches bare string metric
+    case-insensitively.
+    """
+    resolved = _resolve_x_axis_sort_target("totalsales", ["TotalSales"])
+    assert resolved == "TotalSales"
+
+
+def test_build_single_query_dict_x_axis_sort_ignores_unmatched_series_sort() -> None:
+    """
+    Verify build_single_query_dict does not set orderby when x_axis_sort
+    contains a series-sort value (like 'sum' or 'max') that is neither
+    a metric nor a column, preventing 'Unknown column used in orderby: sum'.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "x_axis_sort": "sum",
+        "x_axis_sort_asc": False,
+    }
+    qd = build_single_query_dict(form_data, ["category"], [metric])
+    assert "orderby" not in qd
+
+    # Also test with 'max'
+    form_data_max = {
+        "x_axis_sort": "max",
+        "x_axis_sort_asc": True,
+    }
+    qd_max = build_single_query_dict(form_data_max, ["category"], [metric])
+    assert "orderby" not in qd_max
+
+
+def test_build_query_dicts_from_form_data_xy_bar_explore_default_grain() -> None:
+    """
+    Verify explore default time_grain_sqla ('P1D') on categorical bar chart
+    (without granularity_sqla) does not cause x_axis_sort to be dropped.
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis": "category",
+        "time_grain_sqla": "P1D",
+        "metrics": [metric],
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    col = queries[0]["columns"][0]
+    assert (col if isinstance(col, str) else col.get("label")) == "category"
+    assert queries[0]["metrics"] == [metric]
+    sort_op = {"operation": "sort", "options": {"ascending": False, "by": "SUM(sales)"}}
+    assert sort_op in queries[0]["post_processing"]
+
+
+def test_build_single_query_dict_x_axis_sort_ignored_when_groupby_set() -> None:
+    """
+    Verify build_single_query_dict does not set orderby from x_axis_sort
+    when form_data has groupby set (multi-series chart).
+    """
+    metric = {
+        "label": "SUM(sales)",
+        "aggregate": "SUM",
+        "column": {"column_name": "sales"},
+    }
+    form_data = {
+        "viz_type": "echarts_timeseries_bar",
+        "x_axis_sort": "SUM(sales)",
+        "x_axis_sort_asc": False,
+        "groupby": ["region"],
+    }
+    qd = build_single_query_dict(
+        form_data,
+        columns=["category", "region"],
+        metrics=[metric],
+    )
+    assert "orderby" not in qd
 
 
 def test_resolve_deck_gl_columns_ignores_cross_filter_column():

@@ -70,6 +70,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -82,16 +83,23 @@ def _finalize_response(payload: object) -> GenerateChartResponse:
 
 
 def _get_existing_form_data(chart: Any) -> dict[str, Any]:
-    """Return a chart's saved form data, treating malformed params as empty."""
-    if not getattr(chart, "params", None):
-        return {}
-    try:
-        parsed = json.loads(chart.params)
-    except (ValueError, TypeError):
-        parsed = None
-    if not isinstance(parsed, dict):
-        logger.warning("Failed to parse existing chart.params for chart %s", chart.id)
-        return {}
+    """Return saved form data with a chart-level visualization fallback."""
+    parsed: dict[str, Any] = {}
+    if getattr(chart, "params", None):
+        try:
+            value = json.loads(chart.params)
+        except (ValueError, TypeError):
+            value = None
+        if isinstance(value, dict):
+            parsed = value
+        else:
+            logger.warning(
+                "Failed to parse existing chart.params for chart %s", chart.id
+            )
+    if not parsed.get("viz_type") and isinstance(
+        viz_type := getattr(chart, "viz_type", None), str
+    ):
+        parsed["viz_type"] = viz_type
     return parsed
 
 
@@ -235,6 +243,29 @@ def _merge_replacement_config(
     )
 
 
+def _map_replacement_config(
+    existing_form_data: dict[str, Any],
+    parsed_config: Any,
+    effective_dataset_id: int | None,
+) -> dict[str, Any]:
+    """Map a replacement config, allowing a disabled type only in place.
+
+    Disabled chart types remain editable when the saved chart already uses
+    them, but a different chart may not be converted into one.
+    """
+    saved_plugin = plugin_for_viz_type(existing_form_data.get("viz_type"))
+    new_form_data = map_config_to_form_data(
+        parsed_config,
+        dataset_id=effective_dataset_id,
+        include_disabled=(
+            saved_plugin is not None
+            and saved_plugin.chart_type == parsed_config.chart_type
+        ),
+    )
+    new_form_data.pop("_mcp_warnings", None)
+    return new_form_data
+
+
 def _is_dataset_rebind(request: UpdateChartRequest, chart: Any) -> bool:
     """Return whether a request changes the chart's datasource identity."""
     return request.dataset_id is not None and str(request.dataset_id) != str(
@@ -258,12 +289,13 @@ def _dataset_rebind_config_error(chart: Any) -> GenerateChartResponse:
     """Require complete target roles rather than returning an empty query."""
     plugin = plugin_for_viz_type(getattr(chart, "viz_type", None))
     display_name = plugin.display_name if plugin is not None else "Chart"
+    roles = plugin.dataset_rebind_roles if plugin is not None else "roles"
     return _validation_error_response(
         message=(
             f"{display_name} dataset rebind requires a complete {display_name} config."
         ),
         details=(
-            "Provide the chart type and complete roles valid on the target "
+            f"Provide the chart type and complete {roles} valid on the target "
             "dataset. This prevents stale metric, groupby, and filter roles "
             "from the previous dataset from being retained."
         ),
@@ -288,11 +320,10 @@ def _build_update_payload(  # noqa: C901
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id, include_disabled=True
-        )
-        new_form_data.pop("_mcp_warnings", None)
         existing_form_data = _get_existing_form_data(chart)
+        new_form_data = _map_replacement_config(
+            existing_form_data, parsed_config, effective_dataset_id
+        )
         dataset_rebind = _is_dataset_rebind(request, chart)
         if not dataset_rebind:
             merge_table_column_config(existing_form_data, new_form_data)
@@ -409,10 +440,9 @@ def _build_preview_form_data(  # noqa: C901
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id, include_disabled=True
+        new_form_data = _map_replacement_config(
+            existing_form_data, parsed_config, effective_dataset_id
         )
-        new_form_data.pop("_mcp_warnings", None)
         dataset_rebind = _is_dataset_rebind(request, chart)
         if not dataset_rebind:
             merge_table_column_config(existing_form_data, new_form_data)
@@ -539,7 +569,9 @@ def _validate_update_against_dataset(  # noqa: C901
     try:
         merged_plugin = plugin_for_viz_type(form_data.get("viz_type"))
         merged_config = (
-            merged_plugin.validate_merged_form_data(form_data, dataset.id)
+            merged_plugin.validate_merged_form_data(
+                form_data, dataset.id, update_config=parsed_config
+            )
             if merged_plugin is not None
             else None
         )
@@ -607,7 +639,6 @@ def _create_preview_url(
     """
     from superset.commands.explore.form_data.parameters import CommandParameters
     from superset.mcp_service.commands.create_form_data import MCPCreateFormDataCommand
-    from superset.utils.core import DatasourceType
 
     base_url = get_superset_base_url()
 
@@ -687,6 +718,9 @@ async def update_chart(  # noqa: C901
     - config is optional — omit it to rename a chart without changing its visualization
     - To append table columns without restating the existing list, use add_columns
 
+    config takes the same chart configuration as generate_chart; call
+    get_chart_type_schema(chart_type) for a chart type's fields and examples.
+
     Example usage (preview, default):
     ```json
     {
@@ -708,71 +742,23 @@ async def update_chart(  # noqa: C901
     }
     ```
 
-    Example usage (persist immediately):
-    ```json
-    {
-        "identifier": 123,
-        "generate_preview": false,
-        "config": {"chart_type": "table", "columns": [{"name": "region"}]}
-    }
-    ```
+    Sunburst updates preserve omitted saved presentation and filter settings;
+    pass filters=[] explicitly to clear filters.
 
-    Update a Sunburst while preserving omitted saved presentation and filter
-    settings (pass filters=[] explicitly to clear filters):
-    ```json
-    {
-        "identifier": 123,
-        "config": {
-            "chart_type": "sunburst",
-            "hierarchy": [{"name": "region"}, {"name": "country"}],
-            "metric": {"name": "revenue", "aggregate": "SUM"},
-            "show_total": true
-        }
-    }
-    ```
-
-    Add a table column while preserving existing columns and metrics:
-    ```json
-    {
-        "identifier": 123,
-        "add_columns": [{"name": "go_live_date", "aggregate": "MIN"}]
-    }
-    ```
-
+    Add a table column while preserving existing columns and metrics.
     add_columns combines with chart_name to append and rename in one call.
     Columns already on the chart are ignored, so repeating a column is safe:
     ```json
     {
         "identifier": 123,
         "chart_name": "Go-Live Tracker",
-        "add_columns": [{"name": "region"}]
+        "add_columns": [{"name": "go_live_date", "aggregate": "MIN"}]
     }
     ```
 
-    Example usage with a custom SQL metric (ratios, conditional aggregations,
-    unit conversions). Pass 'sql_expression' instead of 'name'+'aggregate'.
-    A 'label' is required:
-    ```json
-    {
-        "identifier": 123,
-        "config": {
-            "chart_type": "xy",
-            "x": {"name": "date"},
-            "y": [{
-                "sql_expression":
-                    "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / "
-                    "NULLIF(COUNT(*), 0)",
-                "label": "Win Rate"
-            }],
-            "kind": "line"
-        }
-    }
-    ```
-
-    Use when:
-    - Modifying existing saved chart
-    - Updating title, filters, or visualization settings
-    - Changing chart type or data columns
+    For a custom SQL metric (ratios, conditional aggregations, unit
+    conversions), pass 'sql_expression' with a required 'label' instead of
+    'name'+'aggregate'.
 
     Returns:
     - Updated chart info, form_data (reflects what was saved), and metadata
@@ -825,6 +811,30 @@ async def update_chart(  # noqa: C901
                         "error_type": "DatasetNotAccessible",
                         "message": error_msg,
                         "details": error_msg,
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
+
+        if (
+            getattr(chart, "datasource_type", None)
+            == DatasourceType.SEMANTIC_VIEW.value
+        ):
+            # The update path builds table-typed form data from datasource_id,
+            # which would rebind the chart to a same-id table.
+            unsupported_msg: str = (
+                f"Chart {chart.id} uses a semantic view; update_chart supports "
+                "only dataset-backed charts."
+            )
+            return GenerateChartResponse.model_validate(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "UnsupportedDatasourceType",
+                        "message": unsupported_msg,
+                        "details": unsupported_msg,
                     },
                     "success": False,
                     "schema_version": "2.0",
