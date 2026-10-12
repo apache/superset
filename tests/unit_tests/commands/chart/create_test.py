@@ -464,12 +464,14 @@ def test_touch_dashboards_persisted_model_preserves_audit() -> None:
     """Issue #44305: Ensure SQLAlchemy onupdate=get_user_id does not clear
     changed_by_fk on a real persisted model in no-user contexts.
     """
+    from typing import Any
+
     import sqlalchemy as sa
     from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
     from superset.commands.chart.utils import touch_dashboards
 
-    base = declarative_base()
+    base: Any = declarative_base()
 
     def mock_get_user_id() -> int | None:
         return None
