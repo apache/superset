@@ -37,6 +37,14 @@ assists people when migrating to a new version.
   only the affected dataset reports the ambiguity; other datasets still load.
   Independent temporal filters are preserved alongside the chart's time bounds,
   which can narrow results where those filters were previously discarded.
+- Address validation refuses additional non-global address forms. Addresses in
+  the well-known NAT64 prefix `64:ff9b::/96` are checked using their embedded IPv4
+  address and refused when that address is unsafe. Local-use translation
+  (`64:ff9b:1::/48`), IPv4-compatible (`::/96`), 6to4 and Teredo forms are refused
+  outright. Operator-specific NAT64 prefixes are not detected: recognizing them
+  requires knowledge of the operator's prefix configuration. Existing per-feature
+  internal-host settings continue to control OAuth2, webhook, URL dataset import
+  and Impala checks.
 
 - Semantic-layer APIs are registered regardless of the `SEMANTIC_LAYERS` flag.
   The flag is evaluated at runtime for API requests and background queries.
@@ -1193,10 +1201,13 @@ chart's explicit reselection. Supporting dynamic group-by requires preserving th
 version in target rebuilds and recording the source identity in the emitted mask;
 that follow-up is not included here.
 
-Matrixify All mode with A to Z or Z to A sorting cannot populate or refresh values
-for versioned semantic views. Saved values are preserved; for a new selection,
-switch to Members and enter values manually. The control explains this limitation
-when suggestions are unavailable.
+Versioned semantic-view value suggestions require `semantic_selection_version`
+from saved or explicitly initialized selections on the column-values request.
+Missing or stale markers return `unavailable_versioned_view` before cache access
+or provider value retrieval. Explore filter and Matrixify controls preserve this
+provenance; they never infer it from current datasource metadata. After explicit
+reselection, suggestions and Matrixify All mode work again. Manual entry remains
+available when selection provenance cannot be verified.
 
 The marker is a compatibility contract, not an authorization credential. API
 clients must rebuild their selections from current member IDs before supplying
