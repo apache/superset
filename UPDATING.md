@@ -29,6 +29,21 @@ assists people when migrating to a new version.
   the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
   `SEMANTIC_LAYERS`; configure shared persistent `DATA_CACHE_CONFIG` and Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every web/worker process.
 
+- Semantic-layer APIs are registered regardless of the `SEMANTIC_LAYERS` flag.
+  The flag is evaluated at runtime for API requests and background queries.
+  Disabling it refuses semantic-view data, chart saves and cached chart/dashboard
+  images containing semantic charts, while retaining stored assets. Both fresh
+  and cached dashboard screenshots/thumbnails return 404 when any chart uses a
+  semantic view. Interactive dashboards retain unavailable semantic charts and
+  continue rendering ordinary datasets. Dual-source MCP tools retain dataset
+  access; unscoped metric listings omit semantic views. Legacy batch warm-up
+  reports a per-chart error for a disabled semantic chart and continues. Existing
+  permissions remain required when enabled. Run `superset init` during upgrade
+  to register the existing semantic permissions even when the feature is off.
+  Runtime flag hooks can enable the feature without another restart or permission
+  sync; provider extensions must already be loaded. Do not target runtime
+  enablement until all web and worker processes run this version.
+
 - Semantic-view chart-defined metric filters return a client error identifying
   the metric; select a dimension or remove the unsupported predicate. Dashboard
   filters on incompatible columns (including metrics) are skipped and reported
@@ -66,6 +81,16 @@ assists people when migrating to a new version.
   to choose the default exposed temporal dimension for new charts. The declaration
   is optional; absent, unknown or non-temporal names retain the existing fallback.
   Saved chart selections are preserved.
+
+### Dashboard copy layout validation
+
+Copying a dashboard with its charts returns HTTP 422 if a layout slot references
+an existing chart outside the source dashboard's membership. No partial copy is
+saved. Open and re-save the source dashboard to rebuild its chart membership
+before retrying. Non-null malformed chart references also return HTTP 422.
+Empty slots left by older copies (null or missing chart IDs in object metadata)
+are converted to placeholders, preserving their size. Detached slots are
+reattached to a reachable container by layout repair.
 
 - MCP data-bearing tools enforce mandatory chart-query result limits before
   response serialization or CSV/XLSX export, independently of the configurable

@@ -564,7 +564,7 @@ class Superset(BaseSupersetView):
                         for key, value in ChartWarmUpCacheCommand(
                             slc, dashboard_id, extra_filters
                         )
-                        .run()
+                        .run(skip_disabled=True)
                         .items()
                     }
                     for slc in slices
