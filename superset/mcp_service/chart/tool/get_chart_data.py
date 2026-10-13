@@ -91,6 +91,10 @@ from superset.mcp_service.utils.response_utils import (
     format_data_columns,
     format_data_quality,
 )
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.utils.core import DatasourceType, GenericDataType
 from superset.utils.json import JSONDecodeError
 
@@ -591,6 +595,15 @@ async def _get_chart_data(  # noqa: C901
             )
         )
         logger.info("Getting data for chart %s: %s", chart_id, chart_name)
+
+        if (
+            chart_datasource_type == "semantic_view"
+            and not is_semantic_layers_enabled()
+        ):
+            return ChartError(
+                error=SemanticLayersDisabledError.message,
+                error_type="SemanticLayersDisabledError",
+            )
 
         # Guests skip the RBAC check (authorize_query covers it) but keep the
         # existence check, so a deleted dataset or semantic view still returns
