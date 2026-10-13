@@ -282,6 +282,10 @@ function ChartRendererComponent({
   const chartEnableNoResults =
     getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
 
+  // A failed load leaves its errored response in the store, and the next
+  // CHART_UPDATE_STARTED clears chartAlert but not queriesResponse. Checking
+  // the response itself keeps that stale error from being drawn as chart data
+  // while the retry is in flight.
   const hasAnyErrors = queriesResponse?.some(item => item?.error);
   // The response of a chart that fetches its own data stays empty once it has
   // loaded, so for those any response that landed counts as previous data.
