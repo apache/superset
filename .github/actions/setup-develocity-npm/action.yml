@@ -4,6 +4,10 @@ inputs:
   develocity-access-key:
     description: "Access key for develocity.apache.org; the action exchanges it for a short-lived token"
     required: true
+outputs:
+  agent-installed:
+    description: "'true' when the agent is present under /tmp/develocity-npm, so jobs can safely preload it"
+    value: ${{ steps.check-agent.outputs.installed }}
 runs:
   using: "composite"
   steps:
@@ -16,3 +20,15 @@ runs:
         develocity-npm-agent-version: 4.1.1
         # Fixed location, so the frontend container jobs can mount the agent
         develocity-npm-agent-install-location: /tmp/develocity-npm
+    # The setup above only logs a warning when the agent download fails, so
+    # check the agent is actually there before callers preload it
+    - name: Check Develocity npm agent
+      id: check-agent
+      shell: bash
+      run: |
+        if [ -f /tmp/develocity-npm/@gradle-tech/develocity-agent/package.json ]; then
+          echo "installed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "::warning::Develocity npm agent not found, Build Scans disabled for this job"
+          echo "installed=false" >> "$GITHUB_OUTPUT"
+        fi

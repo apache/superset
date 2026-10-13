@@ -140,7 +140,7 @@ jobs:
       - name: Build Storybook
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
         env:
-          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outcome == 'success' && env.DEVELOCITY_DOCKER_ARGS || '' }}
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
           mkdir -p ${{ github.workspace }}/superset-frontend/storybook-static
           docker run \
