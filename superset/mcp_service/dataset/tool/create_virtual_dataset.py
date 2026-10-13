@@ -16,9 +16,10 @@
 # under the License.
 
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastmcp import Context
+from pydantic import Field
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.exceptions import SupersetGenericDBErrorException
@@ -96,7 +97,18 @@ def _update_virtual_dataset(dataset_id: int, update_props: dict[str, Any]) -> An
     ),
 )
 async def create_virtual_dataset(  # noqa: C901
-    request: CreateVirtualDatasetRequest, ctx: Context
+    request: Annotated[
+        CreateVirtualDatasetRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {...}}. '
+                "Provide SQL and a dataset name. Use returned id as dataset_id in "
+                "generate_chart or generate_explore_link; "
+                "pick chart columns from returned columns."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> CreateVirtualDatasetResponse:
     """Save a SQL query as a virtual dataset so it can be charted.
 

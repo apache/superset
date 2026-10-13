@@ -35,6 +35,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.models import User
 
@@ -227,3 +228,25 @@ def test_pre_update_failure_rolls_back_subject_sync_without_orphaning(
     assert db.session.query(User).filter_by(id=user_id).one_or_none() is not None
     # But the subject sync this request attempted never landed.
     assert _subject_for(user_id) is None
+
+
+@pytest.mark.parametrize("column", ["changed_by_fk", "created_by_fk"])
+def test_pre_delete_clears_self_referencing_audit_column(
+    column: str,
+    after_each: None,  # noqa: F811
+) -> None:
+    """Existing installs can hold a user row whose ``changed_by_fk`` or
+    ``created_by_fk`` points at itself; SQLAlchemy cannot order the DELETE of
+    such a row (``CircularDependencyError``). ``pre_delete`` clears it so the
+    delete through ``SupersetUserApi`` succeeds.
+    """
+    user = _make_persisted_user(f"self_ref_{column}")
+    user_id = user.id
+    setattr(user, column, user_id)
+    db.session.commit()
+
+    api = _api_for()
+    api.pre_delete(user)
+    api.datamodel.delete(user)
+
+    assert db.session.query(User).filter_by(id=user_id).one_or_none() is None

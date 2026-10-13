@@ -132,11 +132,21 @@ class DorisEngineSpec(MySQLEngineSpec):
     engine_aliases = {"doris"}
     engine_name = "Apache Doris"
     max_column_name_length = 64
-    default_driver = "pydoris"
+    # pydoris registers its dialect (a ``MySQLDialect_mysqldb`` subclass) as
+    # ``doris`` and ``pydoris``, so the installed driver is ``mysqldb``. The
+    # connection form is only offered when ``default_driver`` is installed.
+    default_driver = "mysqldb"
     sqlalchemy_uri_placeholder = (
         "doris://user:password@host:port/catalog.db[?key=value&key=value...]"
     )
-    # REQUIRED can fall back with MariaDB Connector/C; verification fails closed.
+    # mysqlclient receives URI query values as strings, and neither ``ssl=0`` nor
+    # ``ssl=1`` enables TLS. ``VERIFY_CA`` requires TLS rather than falling back to
+    # cleartext, as ``REQUIRED`` can with MariaDB Connector/C. With MariaDB
+    # Connector/C, mysqlclient maps ``VERIFY_CA`` to
+    # ``MYSQL_OPT_SSL_VERIFY_SERVER_CERT``, which also verifies the hostname: the
+    # switch needs ``ssl_ca=<path>`` in the connection's additional parameters and
+    # a server certificate matching the host. A Doris FE on its default
+    # self-signed certificate fails closed once the switch is on.
     encryption_parameters = {"ssl_mode": MYSQL_SSL_MODE_VERIFY_CA}
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = True
@@ -171,6 +181,14 @@ class DorisEngineSpec(MySQLEngineSpec):
             "doris://{username}:{password}@{host}:{port}/{catalog}.{database}"
         ),
         "default_port": 9030,
+        "notes": (
+            "The SSL switch sets ssl_mode=VERIFY_CA. With MariaDB Connector/C, "
+            "which mysqlclient uses in the Superset image, this also verifies the "
+            "server hostname. Add ssl_ca=<path to the CA certificate> in Additional "
+            "parameters and use a Doris FE certificate that matches the host. A "
+            "Doris FE on its default self-signed certificate fails to connect once "
+            "the switch is on."
+        ),
         "parameters": {
             "username": "User name",
             "password": "Password",
@@ -355,9 +373,10 @@ class DorisEngineSpec(MySQLEngineSpec):
             == MYSQL_SSL_MODE_VERIFY_IDENTITY
         ):
             uri = uri.update_query_dict({"ssl_mode": MYSQL_SSL_MODE_VERIFY_IDENTITY})
-        # ``engine+default_driver`` would be ``pydoris+pydoris``, which no
-        # SQLAlchemy entry point provides; ``doris`` is the dialect's scheme.
-        return uri.set(drivername="doris").render_as_string(hide_password=False)
+        # ``engine+default_driver`` would be ``pydoris+mysqldb``, which no
+        # SQLAlchemy entry point provides. ``pydoris`` is registered, and keeps
+        # the URL backend equal to ``engine`` so the edit modal finds the form.
+        return uri.set(drivername=cls.engine).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(

@@ -131,6 +131,10 @@ beforeEach(() => {
   lastMapProps = {};
   document.body.innerHTML = '';
   jest.clearAllMocks();
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Chrome',
+    configurable: true,
+  });
   mockFitBounds.mockImplementation(
     (
       bounds: [[number, number], [number, number]],
@@ -279,6 +283,33 @@ test('passes Mapbox styles through when a key exists', () => {
 
   expect(lastMapProps.mapStyle).toBe('mapbox://styles/mapbox/dark-v11');
   expect(lastMapProps.mapboxAccessToken).toBe('pk.test');
+});
+
+test('preserves the MapLibre canvas on Safari for image export', () => {
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Version/17.0 Safari/605.1.15',
+    configurable: true,
+  });
+
+  render(<MapLibre {...defaultProps} />);
+
+  expect(lastMapProps.canvasContextAttributes).toEqual({
+    preserveDrawingBuffer: true,
+  });
+});
+
+test('preserves the Mapbox canvas on Safari for image export', () => {
+  Object.defineProperty(navigator, 'userAgent', {
+    value: 'Version/17.0 Safari/605.1.15',
+    configurable: true,
+  });
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
+    common: { conf: { MAPBOX_API_KEY: 'pk.test' } },
+  })}'></div>`;
+
+  render(<MapLibre {...defaultProps} mapProvider="mapbox" />);
+
+  expect(lastMapProps.preserveDrawingBuffer).toBe(true);
 });
 
 test('handles undefined bounds gracefully', () => {

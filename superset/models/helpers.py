@@ -1609,6 +1609,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
         sql_shifted_temporal_labels: set[str] | None = None,
+        semantic_cache_status: Optional[str] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -1622,6 +1623,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
         self.sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
+        # A ``SemanticCacheStatus`` value, or None for non-semantic sources.
+        self.semantic_cache_status: Optional[str] = semantic_cache_status
         self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
@@ -1688,17 +1691,59 @@ class CertificationMixin:
     def is_certified(self) -> bool:
         return bool(self.get_extra_dict().get("certification"))
 
+    @is_certified.setter
+    def is_certified(self, value: Optional[bool]) -> None:
+        if value is False:
+            self._update_extra(lambda extra: extra.pop("certification", None))
+
     @property
     def certified_by(self) -> Optional[str]:
         return self.get_extra_dict().get("certification", {}).get("certified_by")
+
+    @certified_by.setter
+    def certified_by(self, value: Optional[str]) -> None:
+        self._update_certification("certified_by", value)
 
     @property
     def certification_details(self) -> Optional[str]:
         return self.get_extra_dict().get("certification", {}).get("details")
 
+    @certification_details.setter
+    def certification_details(self, value: Optional[str]) -> None:
+        self._update_certification("details", value)
+
     @property
     def warning_markdown(self) -> Optional[str]:
         return self.get_extra_dict().get("warning_markdown")
+
+    @warning_markdown.setter
+    def warning_markdown(self, value: Optional[str]) -> None:
+        def update(extra: dict[str, Any]) -> None:
+            if value:
+                extra["warning_markdown"] = value
+            else:
+                extra.pop("warning_markdown", None)
+
+        self._update_extra(update)
+
+    def _update_extra(self, update: Callable[[dict[str, Any]], None]) -> None:
+        extra = dict(self.get_extra_dict())
+        update(extra)
+        self.extra = json.dumps(extra)
+
+    def _update_certification(self, key: str, value: Optional[str]) -> None:
+        def update(extra: dict[str, Any]) -> None:
+            certification = dict(extra.get("certification") or {})
+            if value:
+                certification[key] = value
+            else:
+                certification.pop(key, None)
+            if certification:
+                extra["certification"] = certification
+            else:
+                extra.pop("certification", None)
+
+        self._update_extra(update)
 
 
 def clone_model(
@@ -2635,7 +2680,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if getattr(self, "enforce_numerical_metrics", True):
             dataframe_utils.df_metrics_to_num(df, query_object)
 
-        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        # ``mask`` + ``infer_objects`` rather than ``replace``, which emits a
+        # FutureWarning about deprecated silent downcasting on object columns.
+        df = df.mask(df.isin([np.inf, -np.inf])).infer_objects()
 
         return df
 
@@ -2683,6 +2730,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            except (TypeError, pd.errors.DataError) as ex:
+                raise QueryObjectValidationError(str(ex)) from ex
 
         # Update result with processed data
         result.df = df
@@ -4068,7 +4117,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif value is not None:
                 value = handle_temporal_value(value)
             if target_generic_type == utils.GenericDataType.BOOLEAN:
-                return utils.cast_to_boolean(value)
+                boolean_value = utils.cast_to_boolean(value)
+                if db_engine_spec is not None:
+                    return db_engine_spec.coerce_boolean_for_sql(boolean_value)
+                return boolean_value
             return value
 
         if isinstance(values, (list, tuple)):

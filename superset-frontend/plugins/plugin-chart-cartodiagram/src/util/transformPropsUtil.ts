@@ -18,9 +18,12 @@
  */
 
 import {
+  CategoricalColorNamespace,
   ChartProps,
   convertKeysToCamelCase,
   DataRecord,
+  getLabelsColorMap,
+  LabelsColorMapSource,
 } from '@superset-ui/core';
 import { isObject } from 'lodash-es';
 import {
@@ -273,6 +276,11 @@ export const getChartConfigs = (
     formData: chartFormData,
     rawFormData: chartFormDataSnake,
     datasource: {},
+    // Dashboard colors are coordinated by the shared labels color map.
+    colorScale:
+      getLabelsColorMap().source === LabelsColorMapSource.Explore
+        ? CategoricalColorNamespace.getScale(chartFormData.colorScheme)
+        : undefined,
   };
 
   const { queriesData } = chartProps;

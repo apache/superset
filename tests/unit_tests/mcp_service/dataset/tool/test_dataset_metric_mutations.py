@@ -24,7 +24,10 @@ from unittest.mock import MagicMock, patch, PropertyMock
 import pytest
 from fastmcp import Client
 from pydantic import ValidationError
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
@@ -48,6 +51,16 @@ from superset.utils import json
 
 TOOLS = ["create_dataset_metric", "delete_dataset_metric"]
 UUID = "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+
+
+@pytest.fixture
+def session_engine() -> Engine:
+    """Let the tool worker thread use the ``session`` built by this test."""
+    # The injected Session is handed from setup to a single tool worker
+    # sequentially; concurrent ownership is covered with scoped sessions.
+    return create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
 
 
 @pytest.fixture(autouse=True)

@@ -17,9 +17,10 @@
  * under the License.
  */
 import domToImage from 'dom-to-image-more';
+import html2canvas from 'html2canvas';
 import { getInstanceByDom } from 'echarts/core';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
-import { store } from 'src/views/store';
+import { isSafari } from 'src/utils/common';
+import { forceLoadAllCharts } from './downloadUtils';
 import downloadAsImageOptimized, {
   waitForStableScrollHeight,
 } from './downloadAsImage';
@@ -29,39 +30,41 @@ jest.mock('dom-to-image-more', () => ({
   default: { toJpeg: jest.fn(), toPng: jest.fn() },
 }));
 
+jest.mock('html2canvas', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
+jest.mock('src/utils/common', () => ({
+  ...jest.requireActual('src/utils/common'),
+  isSafari: jest.fn(),
+}));
+
 jest.mock('echarts/core', () => ({
   __esModule: true,
   getInstanceByDom: jest.fn(),
-}));
-
-jest.mock('src/components/MessageToasts/actions', () => ({
-  // Must return a real action object: the utils pass the action to
-  // `store.dispatch`, and Redux rejects a dispatched `undefined`. Delegating
-  // to the actual creator keeps the mocked shape identical to production.
-  addWarningToast: jest.fn((text: string, options?: Record<string, unknown>) =>
-    jest
-      .requireActual('src/components/MessageToasts/actions')
-      .addWarningToast(text, options),
-  ),
-}));
-
-jest.mock('src/views/store', () => ({
-  store: { dispatch: jest.fn() },
 }));
 
 jest.mock('@apache-superset/core/translation', () => ({
   t: (str: string) => str,
 }));
 
+jest.mock('./downloadUtils', () => {
+  const actual = jest.requireActual('./downloadUtils');
+  return {
+    ...actual,
+    forceLoadAllCharts: jest.fn(actual.forceLoadAllCharts),
+  };
+});
+
 const mockToJpeg = domToImage.toJpeg as jest.Mock;
 const mockToPng = domToImage.toPng as jest.Mock;
-const mockAddWarningToast = addWarningToast as jest.Mock;
+const mockHtml2Canvas = html2canvas as jest.Mock;
+const mockIsSafari = isSafari as jest.Mock;
+// Passed explicitly to downloadAsImageOptimized below, mirroring how a real
+// caller supplies an already-bound `useToasts()` callback.
+const mockAddWarningToast = jest.fn();
 const mockGetInstanceByDom = getInstanceByDom as jest.Mock;
-const mockDispatch = store.dispatch as jest.Mock;
-// The genuine action the store receives, for dispatch-shape assertions.
-const realAddWarningToast = jest.requireActual(
-  'src/components/MessageToasts/actions',
-).addWarningToast as (text: string) => Record<string, unknown>;
 
 // document.fonts.ready is not implemented in jsdom; provide a resolved promise
 Object.defineProperty(document, 'fonts', {
@@ -108,6 +111,10 @@ beforeEach(() => {
   // clearAllMocks does not clear a mockReturnValue, so reset the instance lookup explicitly to
   // stop a return value leaking into any clone-path test added after the ECharts ones below.
   mockGetInstanceByDom.mockReset();
+  // Default to a non-Safari engine so the dom-to-image paths under test stay in
+  // effect; the Safari-specific tests opt in with mockIsSafari.mockReturnValue(true).
+  mockIsSafari.mockReturnValue(false);
+  mockHtml2Canvas.mockReset();
   mockToJpeg.mockResolvedValue('data:image/jpeg;base64,test');
   mockToPng.mockResolvedValue('data:image/png;base64,test');
 });
@@ -220,29 +227,20 @@ test('waitForStableScrollHeight resolves if scrollHeight throws (element removed
 });
 
 test('shows warning toast when element is not found', async () => {
-  const handler = downloadAsImageOptimized('div', 'test');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'test',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   // closest() returning null simulates a selector that matches nothing
   await handler({ currentTarget: { closest: () => null } } as any);
 
   expect(mockAddWarningToast).toHaveBeenCalledWith(
     'Image download failed, please refresh and try again.',
   );
-  // The action creator's result is what reaches the store, not the toast
-  // itself. Compared on the stable fields — the toast id is a fresh nanoid
-  // per call, so the full object can never be equal.
-  const dispatched = mockDispatch.mock.calls[0][0] as {
-    type: string;
-    payload: Record<string, unknown>;
-  };
-  const expected = realAddWarningToast(
-    'Image download failed, please refresh and try again.',
-  ) as { type: string; payload: { toastType: string; duration: number } };
-  expect(dispatched.type).toBe(expected.type);
-  expect(dispatched.payload).toMatchObject({
-    toastType: expected.payload.toastType,
-    duration: expected.payload.duration,
-    text: 'Image download failed, please refresh and try again.',
-  });
   expect(mockToJpeg).not.toHaveBeenCalled();
 });
 
@@ -250,7 +248,14 @@ test('shows "still loading" toast when grid has not yet rendered its first rows'
   const { container, agContainer, cleanup } = buildAgGridElement();
   attachMockApi(agContainer, { firstDataRendered: false });
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   await handler(syntheticEventFor(container));
 
   expect(mockAddWarningToast).toHaveBeenCalledWith(
@@ -266,7 +271,14 @@ test('switches to print layout, captures JPEG, and restores normal layout', asyn
   const { container, agContainer, cleanup } = buildAgGridElement();
   const api = attachMockApi(agContainer);
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -288,7 +300,14 @@ test('restores normal layout in finally even when image capture throws', async (
   const { container, agContainer, cleanup } = buildAgGridElement();
   const api = attachMockApi(agContainer);
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -308,7 +327,14 @@ test('still captures image when _agGridApi is absent (graceful degradation)', as
   // No API — only the first-data-rendered flag
   (agContainer as any)._agGridFirstDataRendered = true;
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -344,7 +370,14 @@ test('resolves ag-cell min-height to row pixel height when content fits within i
     return Promise.resolve('data:image/jpeg;base64,test');
   });
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -385,7 +418,14 @@ test('uses cell scrollHeight when it exceeds row offsetHeight (stale row heights
     return Promise.resolve('data:image/jpeg;base64,test');
   });
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -420,7 +460,14 @@ test('derives image width from getColumnState by summing visible column pixel wi
     },
   );
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -445,7 +492,14 @@ test('restores column pixel widths via applyColumnState with flex stripped after
   (api as any).getColumnState = jest.fn(() => savedState);
   (api as any).applyColumnState = jest.fn();
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -475,7 +529,14 @@ test('restores original column state with flex in finally after capture', async 
   (api as any).getColumnState = jest.fn(() => savedState);
   (api as any).applyColumnState = jest.fn();
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -515,7 +576,14 @@ test('falls back to agRootWrapper.offsetWidth when getColumnState returns no vis
     },
   );
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -546,7 +614,14 @@ test('restores ag-cell styles after capture even when toJpeg throws', async () =
   row.appendChild(cell);
   agRootWrapper.appendChild(row);
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -565,7 +640,14 @@ test('calls resetRowHeights after print layout to force ag-grid to re-measure ro
   const api = attachMockApi(agContainer);
   (api as any).resetRowHeights = jest.fn();
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -583,7 +665,14 @@ test('does not throw when resetRowHeights is absent from the api', async () => {
   const { container, agContainer, cleanup } = buildAgGridElement();
   attachMockApi(agContainer); // api has only setGridOption, no resetRowHeights
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await expect(exportPromise).resolves.toBeUndefined();
@@ -605,7 +694,14 @@ test('falls through to clone path for dashboard export with a single ag-grid cha
   dashboard.appendChild(agContainer);
   document.body.appendChild(dashboard);
 
-  const handler = downloadAsImageOptimized('.dashboard', 'My Dashboard', true);
+  const handler = downloadAsImageOptimized(
+    '.dashboard',
+    'My Dashboard',
+    true,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   await handler({ currentTarget: {} } as any);
 
   expect(mockToJpeg).toHaveBeenCalledWith(
@@ -632,7 +728,14 @@ test('falls through to clone path for dashboard export with multiple ag-grid cha
   }
   document.body.appendChild(dashboard);
 
-  const handler = downloadAsImageOptimized('.dashboard', 'My Dashboard', true);
+  const handler = downloadAsImageOptimized(
+    '.dashboard',
+    'My Dashboard',
+    true,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   await handler({ currentTarget: {} } as any);
 
   expect(mockToJpeg).toHaveBeenCalledWith(
@@ -680,7 +783,14 @@ function buildScrollableChartElement(rootClassName?: string) {
 test('captures JPEG for non-ag-grid elements via the clone path', async () => {
   const { container, cleanup } = buildScrollableChartElement();
 
-  const handler = downloadAsImageOptimized('div', 'Bar Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Bar Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   await handler(syntheticEventFor(container));
 
   expect(mockToJpeg).toHaveBeenCalledWith(
@@ -740,7 +850,14 @@ test('shows warning toast when clone capture throws', async () => {
   const container = document.createElement('div');
   document.body.appendChild(container);
 
-  const handler = downloadAsImageOptimized('div', 'Bar Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Bar Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   await handler(syntheticEventFor(container));
 
   expect(mockAddWarningToast).toHaveBeenCalledWith(
@@ -756,7 +873,14 @@ test('ag-grid path uses theme colorBgContainer as background', async () => {
   attachMockApi(agContainer);
 
   const theme = { colorBgContainer: '#1a1a2e' } as any;
-  const handler = downloadAsImageOptimized('div', 'My Chart', false, theme);
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    false,
+    theme,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -776,10 +900,14 @@ test('ag-grid path exports PNG (transparent) via toPng when format is png', asyn
   attachMockApi(agContainer);
 
   const theme = { colorBgContainer: '#1a1a2e' } as any;
-  const handler = downloadAsImageOptimized('div', 'My Chart', false, theme, {
-    format: 'png',
-    backgroundType: 'transparent',
-  });
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    false,
+    theme,
+    { format: 'png', backgroundType: 'transparent' },
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -801,10 +929,14 @@ test('ag-grid path exports PNG (solid) via toPng using theme background', async 
   attachMockApi(agContainer);
 
   const theme = { colorBgContainer: '#1a1a2e' } as any;
-  const handler = downloadAsImageOptimized('div', 'My Chart', false, theme, {
-    format: 'png',
-    backgroundType: 'solid',
-  });
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    false,
+    theme,
+    { format: 'png', backgroundType: 'solid' },
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -824,7 +956,14 @@ test('ag-grid path falls back to white background when theme is absent', async (
   const { container, agContainer, cleanup } = buildAgGridElement();
   attachMockApi(agContainer);
 
-  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   const exportPromise = handler(syntheticEventFor(container));
   await jest.runAllTimersAsync();
   await exportPromise;
@@ -842,7 +981,14 @@ test('clone path falls back to white background when theme is absent', async () 
   const container = document.createElement('div');
   document.body.appendChild(container);
 
-  const handler = downloadAsImageOptimized('div', 'Bar Chart');
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Bar Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
   await handler(syntheticEventFor(container));
 
   expect(mockToJpeg).toHaveBeenCalledWith(
@@ -903,6 +1049,7 @@ test('re-renders an ECharts canvas at PNG_SCALE pixel ratio so the export is cri
     false,
     undefined,
     { format: 'png' },
+    mockAddWarningToast,
   );
   await handler(syntheticEventFor(container));
 
@@ -944,6 +1091,7 @@ test('preserves a non-ECharts canvas at its on-screen resolution (no re-render)'
     false,
     undefined,
     { format: 'png' },
+    mockAddWarningToast,
   );
   await handler(syntheticEventFor(container));
 
@@ -984,6 +1132,7 @@ test('falls back to a 1:1 copy when the ECharts instance is gone (getInstanceByD
     false,
     undefined,
     { format: 'png' },
+    mockAddWarningToast,
   );
   await handler(syntheticEventFor(container));
 
@@ -1028,6 +1177,7 @@ test('falls back to a 1:1 copy (and still exports) when renderToCanvas throws', 
     false,
     undefined,
     { format: 'png' },
+    mockAddWarningToast,
   );
   await handler(syntheticEventFor(container));
 
@@ -1067,6 +1217,7 @@ test('re-renders an ECharts host only once when it owns multiple canvas layers',
     false,
     undefined,
     { format: 'png' },
+    mockAddWarningToast,
   );
   await handler(syntheticEventFor(container));
 
@@ -1075,4 +1226,293 @@ test('re-renders an ECharts host only once when it owns multiple canvas layers',
 
   restore();
   document.body.removeChild(container);
+});
+
+// Safari/WebKit cannot rasterize the SVG <foreignObject> that dom-to-image-more
+// builds, so image captures route through html2canvas instead.
+test('captures via html2canvas on Safari instead of dom-to-image', async () => {
+  mockIsSafari.mockReturnValue(true);
+  const toDataURL = jest.fn(() => 'data:image/jpeg;base64,safari');
+  mockHtml2Canvas.mockResolvedValue({ toDataURL });
+
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  const handler = downloadAsImageOptimized('div', 'My Chart');
+  await handler(syntheticEventFor(container));
+
+  expect(mockHtml2Canvas).toHaveBeenCalledWith(
+    container,
+    expect.objectContaining({ useCORS: true, scale: 1, logging: false }),
+  );
+  expect(toDataURL).toHaveBeenCalledWith('image/jpeg', 0.95);
+  expect(mockToJpeg).not.toHaveBeenCalled();
+  expect(mockToPng).not.toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+
+  document.body.removeChild(container);
+});
+
+test('requests a transparent, scaled PNG from html2canvas on Safari', async () => {
+  mockIsSafari.mockReturnValue(true);
+  const toDataURL = jest.fn(() => 'data:image/png;base64,safari');
+  mockHtml2Canvas.mockResolvedValue({ toDataURL });
+
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    false,
+    undefined,
+    {
+      format: 'png',
+      backgroundType: 'transparent',
+    },
+  );
+  await handler(syntheticEventFor(container));
+
+  expect(mockHtml2Canvas).toHaveBeenCalledWith(
+    container,
+    expect.objectContaining({ backgroundColor: null, scale: 2 }),
+  );
+  expect(toDataURL).toHaveBeenCalledWith('image/png', 0.95);
+
+  document.body.removeChild(container);
+});
+
+test('honours the node filter in the html2canvas capture on Safari', async () => {
+  mockIsSafari.mockReturnValue(true);
+  mockHtml2Canvas.mockResolvedValue({
+    toDataURL: jest.fn(() => 'data:image/jpeg;base64,safari'),
+  });
+
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  const handler = downloadAsImageOptimized('div', 'My Chart');
+  await handler(syntheticEventFor(container));
+
+  const [firstCall] = mockHtml2Canvas.mock.calls;
+  const [, { ignoreElements }] = firstCall;
+  const excluded = document.createElement('div');
+  excluded.className = 'header-controls';
+  const included = document.createElement('div');
+  expect(ignoreElements(excluded)).toBe(true);
+  expect(ignoreElements(included)).toBe(false);
+
+  document.body.removeChild(container);
+});
+
+test('shows a warning toast when the html2canvas capture rejects on Safari', async () => {
+  mockIsSafari.mockReturnValue(true);
+  mockHtml2Canvas.mockRejectedValue(new Error('capture failed'));
+
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
+  await handler(syntheticEventFor(container));
+
+  expect(mockAddWarningToast).toHaveBeenCalledWith(
+    'Image download failed, please refresh and try again.',
+  );
+  expect(mockToJpeg).not.toHaveBeenCalled();
+
+  document.body.removeChild(container);
+});
+
+test('keeps ag-grid print layout and full dimensions when capturing on Safari', async () => {
+  jest.useFakeTimers();
+  mockIsSafari.mockReturnValue(true);
+  const { container, agContainer, agRootWrapper, cleanup } =
+    buildAgGridElement();
+  const api = attachMockApi(agContainer);
+  Object.defineProperty(agRootWrapper, 'scrollHeight', {
+    get: () => 900,
+    configurable: true,
+  });
+  Object.defineProperty(agRootWrapper, 'offsetWidth', {
+    get: () => 700,
+    configurable: true,
+  });
+  const toDataURL = jest.fn(() => 'data:image/jpeg;base64,safari');
+  mockHtml2Canvas.mockResolvedValue({ toDataURL });
+
+  const handler = downloadAsImageOptimized('div', 'My Chart');
+  const exportPromise = handler(syntheticEventFor(container));
+  await jest.runAllTimersAsync();
+  await exportPromise;
+
+  expect(api.setGridOption).toHaveBeenCalledWith('domLayout', 'print');
+  expect(mockHtml2Canvas).toHaveBeenCalledWith(
+    agRootWrapper,
+    expect.objectContaining({ height: 900, width: 700, scale: 1 }),
+  );
+  expect(api.setGridOption).toHaveBeenCalledWith('domLayout', 'normal');
+  expect(mockToJpeg).not.toHaveBeenCalled();
+
+  cleanup();
+});
+
+test('preserves canvas content in the html2canvas clone on Safari', async () => {
+  const { drawImage, restore } = stubCanvasContext();
+  mockIsSafari.mockReturnValue(true);
+  const container = document.createElement('div');
+  const canvas = document.createElement('canvas');
+  canvas.width = 400;
+  canvas.height = 300;
+  container.appendChild(canvas);
+  document.body.appendChild(container);
+  const toDataURL = jest.fn(() => 'data:image/png;base64,safari');
+
+  mockHtml2Canvas.mockImplementation(
+    (
+      _element,
+      options: { onclone: (document: Document, clone: HTMLElement) => void },
+    ) => {
+      options.onclone(document, container.cloneNode(true) as HTMLElement);
+      return Promise.resolve({ toDataURL });
+    },
+  );
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Deck Chart',
+    false,
+    undefined,
+    { format: 'png' },
+  );
+  await handler(syntheticEventFor(container));
+
+  expect(drawImage).toHaveBeenCalledWith(canvas, 0, 0);
+
+  restore();
+  document.body.removeChild(container);
+});
+
+// `processCloneForVisibility` expands clipped content on the clone, so the source
+// element's measurements understate what the capture must cover. html2canvas reads
+// width/height only after onclone returns, so the callback must widen them or long
+// tables and virtualized lists are cropped to their on-screen size on Safari.
+test('widens the Safari capture to the expanded clone size, not the on-screen size', async () => {
+  mockIsSafari.mockReturnValue(true);
+  const container = document.createElement('div');
+  Object.defineProperty(container, 'scrollHeight', {
+    get: () => 300,
+    configurable: true,
+  });
+  Object.defineProperty(container, 'scrollWidth', {
+    get: () => 400,
+    configurable: true,
+  });
+  document.body.appendChild(container);
+  const toDataURL = jest.fn(() => 'data:image/jpeg;base64,safari');
+
+  let captured: { width?: number; height?: number } | undefined;
+  mockHtml2Canvas.mockImplementation(
+    (
+      _element,
+      options: {
+        width?: number;
+        height?: number;
+        onclone: (document: Document, clone: HTMLElement) => void;
+      },
+    ) => {
+      // The expanded clone is taller and wider than the element it came from.
+      const clone = document.createElement('div');
+      Object.defineProperty(clone, 'scrollHeight', {
+        get: () => 900,
+        configurable: true,
+      });
+      Object.defineProperty(clone, 'scrollWidth', {
+        get: () => 1200,
+        configurable: true,
+      });
+      options.onclone(document, clone);
+      captured = options;
+      return Promise.resolve({ toDataURL });
+    },
+  );
+
+  const handler = downloadAsImageOptimized('div', 'Long Table');
+  await handler(syntheticEventFor(container));
+
+  expect(captured?.height).toBe(900);
+  expect(captured?.width).toBe(1200);
+
+  document.body.removeChild(container);
+});
+
+test('keeps the on-screen capture size as a floor when the clone is not larger', async () => {
+  mockIsSafari.mockReturnValue(true);
+  const container = document.createElement('div');
+  Object.defineProperty(container, 'scrollHeight', {
+    get: () => 1000,
+    configurable: true,
+  });
+  Object.defineProperty(container, 'scrollWidth', {
+    get: () => 800,
+    configurable: true,
+  });
+  document.body.appendChild(container);
+  const toDataURL = jest.fn(() => 'data:image/jpeg;base64,safari');
+
+  let captured: { width?: number; height?: number } | undefined;
+  mockHtml2Canvas.mockImplementation(
+    (
+      _element,
+      options: {
+        width?: number;
+        height?: number;
+        onclone: (document: Document, clone: HTMLElement) => void;
+      },
+    ) => {
+      // A clone that reports nothing usable must not shrink the capture.
+      const clone = document.createElement('div');
+      options.onclone(document, clone);
+      captured = options;
+      return Promise.resolve({ toDataURL });
+    },
+  );
+
+  const handler = downloadAsImageOptimized('div', 'Chart');
+  await handler(syntheticEventFor(container));
+
+  expect(captured?.height).toBe(1000);
+  expect(captured?.width).toBe(800);
+
+  document.body.removeChild(container);
+});
+
+test('forwards both bound toast callbacks to forceLoadAllCharts', async () => {
+  const el = document.createElement('div');
+  document.body.appendChild(el);
+  const addInfoToast = jest.fn();
+
+  await downloadAsImageOptimized(
+    '.dashboard',
+    'test',
+    false,
+    undefined,
+    {},
+    mockAddWarningToast,
+    addInfoToast,
+  )(syntheticEventFor(el));
+
+  expect(forceLoadAllCharts).toHaveBeenCalledWith(
+    el,
+    undefined,
+    mockAddWarningToast,
+    addInfoToast,
+  );
+  document.body.removeChild(el);
 });

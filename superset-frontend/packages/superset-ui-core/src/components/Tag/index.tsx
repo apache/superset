@@ -17,3 +17,4 @@
  * under the License.
  */
 export { Tag } from 'antd';
+export type { TagProps, CheckableTagProps } from 'antd/es/tag';

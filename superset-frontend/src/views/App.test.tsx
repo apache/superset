@@ -20,7 +20,7 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { chat } from 'src/core/chat';
 import ChatProvider from 'src/core/chat/ChatProvider';
-import App from './App';
+import App, { pageScrollShellCss } from './App';
 
 jest.mock('src/setup/setupApp', () => jest.fn());
 jest.mock('src/setup/setupPlugins', () => jest.fn());
@@ -122,4 +122,14 @@ test('changing chat display mode preserves the mounted panel and in-flight state
   unmount();
   registration.dispose();
   window.featureFlags = {};
+});
+
+// Locks in the page-scroll shell's CSS contract (superset#44867). #app is a
+// growable flex item, so the shell must take the height #app grants it. A 100vh
+// shell overflows #app whenever a host page injects content above it, and
+// Explore/SQL Lab hide body overflow, leaving that overflow unreachable.
+test('the page-scroll shell fills #app instead of claiming a whole viewport', () => {
+  expect(pageScrollShellCss.styles).toMatch(/flex:\s*1 1 auto/);
+  expect(pageScrollShellCss.styles).toMatch(/min-height:\s*0/);
+  expect(pageScrollShellCss.styles).not.toMatch(/min-height:\s*100vh/);
 });

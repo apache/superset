@@ -49,6 +49,7 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
+    SupersetDisallowedClientFileTransferException,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
@@ -423,7 +424,7 @@ def _serialize_and_expand_data(
         all_columns, expanded_columns = (selected_columns, [])
     else:
         df = result_set.to_pandas_df()
-        data = df_to_records(df) or []
+        data = df_to_records(df, convert_decimals=True) or []
 
         if expand_data:
             all_columns, data, expanded_columns = db_engine_spec.expand_data(
@@ -517,6 +518,10 @@ def execute_sql_statements(  # noqa: C901
         )
         if found_tables:
             raise SupersetDisallowedSQLTableException(found_tables)
+
+    # Rejected regardless of `allow_dml`: these do host file I/O, not DML.
+    if file_transfer_commands := parsed_script.get_client_file_transfer_commands():
+        raise SupersetDisallowedClientFileTransferException(file_transfer_commands)
 
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()

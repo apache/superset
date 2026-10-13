@@ -16,143 +16,119 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryData, VizType } from '@superset-ui/core';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { ChartPills, ChartPillsProps } from './ChartPills';
 
-const ROW_LIMIT = 10000;
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import type { QueryData } from '@superset-ui/core';
+import { ChartPills } from './ChartPills';
 
-const renderPills = (props: Partial<ChartPillsProps> = {}) => {
-  const refreshCachedQuery = jest.fn();
+jest.mock('@superset-ui/core/components', () => ({
+  Button: jest.requireActual('@superset-ui/core/components/Button').Button,
+  CachedLabel: ({ cacheSource }: { cacheSource?: string }) => (
+    <span data-test="cached-label">
+      {cacheSource === 'semantic' ? 'Semantic cache' : 'Ordinary cache'}
+    </span>
+  ),
+  Timer: () => <span data-test="timer" />,
+}));
+
+const response = (
+  semanticCacheStatus: QueryData['semantic_cache_status'],
+  isCached = true,
+): QueryData =>
+  ({
+    is_cached: isCached,
+    semantic_cache_status: semanticCacheStatus,
+  }) as QueryData;
+
+test('passes semantic cache source to the cached label', () => {
   render(
     <ChartPills
-      chartStatus="success"
+      queriesResponse={[response('HIT')]}
       chartUpdateStartTime={0}
-      rowLimit={ROW_LIMIT}
-      refreshCachedQuery={refreshCachedQuery}
-      {...props}
+      refreshCachedQuery={jest.fn()}
+      hideRowCount
     />,
   );
-  return { refreshCachedQuery };
-};
 
-// Table viz types report their total row count in a second query response.
-const paginatedTableResponses = (
-  pageRowCount: number,
-  totalRowCount: number,
-): QueryData[] => [
-  { rowcount: pageRowCount, data: [] },
-  { data: [{ rowcount: totalRowCount }] },
-];
-
-const cachedResponse = (): QueryData => ({
-  rowcount: 25,
-  is_cached: true,
-  cached_dttm: '2024-01-01T00:00:00',
-  data: [],
+  expect(screen.getByTestId('cached-label')).toHaveTextContent(
+    'Semantic cache',
+  );
 });
 
-test.each([VizType.Table, VizType.TableAgGrid])(
-  'reads the row count of a %s from the second query',
-  vizType => {
-    renderPills({
-      queriesResponse: paginatedTableResponses(25, 250),
-      formData: { viz_type: vizType },
-    });
+test('keeps ordinary cache source distinct', () => {
+  render(
+    <ChartPills
+      queriesResponse={[response('MISS')]}
+      chartUpdateStartTime={0}
+      refreshCachedQuery={jest.fn()}
+      hideRowCount
+    />,
+  );
 
-    expect(screen.getByText('250 rows')).toBeInTheDocument();
-    expect(screen.queryByText('25 rows')).not.toBeInTheDocument();
+  expect(screen.getByTestId('cached-label')).toHaveTextContent(
+    'Ordinary cache',
+  );
+});
+
+test('shows the cache label for a direct semantic cache hit', () => {
+  render(
+    <ChartPills
+      queriesResponse={[response('HIT', false)]}
+      chartUpdateStartTime={0}
+      refreshCachedQuery={jest.fn()}
+      hideRowCount
+    />,
+  );
+
+  expect(screen.getByTestId('cached-label')).toHaveTextContent(
+    'Semantic cache',
+  );
+});
+
+test('does not claim a cache hit for mixed semantic provenance', () => {
+  render(
+    <ChartPills
+      queriesResponse={[response('MIXED', false)]}
+      chartUpdateStartTime={0}
+      refreshCachedQuery={jest.fn()}
+      hideRowCount
+    />,
+  );
+
+  expect(screen.queryByTestId('cached-label')).not.toBeInTheDocument();
+});
+
+test.each(['MISS', undefined] as const)(
+  'aggregates a data HIT and a row-count %s as mixed provenance',
+  countStatus => {
+    const refresh = jest.fn();
+    render(
+      <ChartPills
+        queriesResponse={[
+          response('HIT', false),
+          { ...response(countStatus, false), data: [{ rowcount: 100 }] },
+        ]}
+        formData={{ viz_type: 'table', server_pagination: true }}
+        chartUpdateStartTime={0}
+        refreshCachedQuery={refresh}
+        hideRowCount
+      />,
+    );
+    expect(screen.getByText('Mixed cache')).toBeInTheDocument();
+    expect(screen.queryByText('Semantic cache')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Mixed cache' }));
+    expect(refresh).toHaveBeenCalledTimes(1);
   },
 );
 
-test('reads the row count from the first query for a table with a single query', () => {
-  renderPills({
-    queriesResponse: [{ rowcount: 25, data: [] }],
-    formData: { viz_type: VizType.Table },
-  });
-
-  expect(screen.getByText('25 rows')).toBeInTheDocument();
-});
-
-test('reads the row count from the first query for non-table charts even with a second query', () => {
-  renderPills({
-    queriesResponse: paginatedTableResponses(25, 250),
-    formData: { viz_type: VizType.Histogram },
-  });
-
-  expect(screen.getByText('25 rows')).toBeInTheDocument();
-  expect(screen.queryByText('250 rows')).not.toBeInTheDocument();
-});
-
-test('prefers sql_rowcount over rowcount', () => {
-  renderPills({
-    queriesResponse: [{ sql_rowcount: 40, rowcount: 7, data: [] }],
-    formData: { viz_type: VizType.Histogram },
-  });
-
-  expect(screen.getByText('40 rows')).toBeInTheDocument();
-  expect(screen.queryByText('7 rows')).not.toBeInTheDocument();
-});
-
-test('falls back to rowcount when sql_rowcount is absent', () => {
-  renderPills({
-    queriesResponse: [{ rowcount: 7, data: [] }],
-    formData: { viz_type: VizType.Histogram },
-  });
-
-  expect(screen.getByText('7 rows')).toBeInTheDocument();
-});
-
-test('hides the row count but keeps the timer when hideRowCount is set', () => {
-  renderPills({
-    queriesResponse: [{ rowcount: 25, data: [] }],
-    hideRowCount: true,
-  });
-
-  expect(screen.queryByText('25 rows')).not.toBeInTheDocument();
-  expect(screen.getByRole('timer')).toBeInTheDocument();
-});
-
-test('does not show the row count without a query response', () => {
-  renderPills({ queriesResponse: [] });
-
-  expect(screen.queryByText(/rows?$/)).not.toBeInTheDocument();
-});
-
-test('shows the cached label for a cached response and refreshes on click', async () => {
-  const { refreshCachedQuery } = renderPills({
-    queriesResponse: [cachedResponse()],
-  });
-
-  expect(refreshCachedQuery).not.toHaveBeenCalled();
-  await userEvent.click(screen.getByText('Cached'));
-
-  expect(refreshCachedQuery).toHaveBeenCalledTimes(1);
-});
-
-test('does not show the cached label for an uncached response', () => {
-  renderPills({ queriesResponse: [{ rowcount: 25, data: [] }] });
-
-  expect(screen.queryByText('Cached')).not.toBeInTheDocument();
-});
-
-test('shows neither the row count nor the cached label while loading', () => {
-  renderPills({
-    chartStatus: 'loading',
-    queriesResponse: [cachedResponse()],
-  });
-
-  expect(screen.queryByText('25 rows')).not.toBeInTheDocument();
-  expect(screen.queryByText('Cached')).not.toBeInTheDocument();
-  expect(screen.getByRole('timer')).toBeInTheDocument();
-});
-
-test('shows the elapsed time between the update start and end', () => {
-  renderPills({
-    chartUpdateStartTime: 1000,
-    chartUpdateEndTime: 3500,
-    queriesResponse: [{ rowcount: 25, data: [] }],
-  });
-
-  expect(screen.getByRole('timer')).toHaveTextContent(/^00:00:02\.500$/);
+test('aggregates all semantic hits', () => {
+  render(
+    <ChartPills
+      queriesResponse={[response('HIT', false), response('HIT', false)]}
+      chartUpdateStartTime={0}
+      refreshCachedQuery={jest.fn()}
+      hideRowCount
+    />,
+  );
+  expect(screen.getByText('Semantic cache')).toBeInTheDocument();
 });

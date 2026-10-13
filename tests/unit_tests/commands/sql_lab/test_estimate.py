@@ -216,6 +216,36 @@ def test_apply_sql_security_allows_dml_when_enabled(mock_app: MagicMock) -> None
     assert command._apply_sql_security("INSERT INTO t VALUES (1)")
 
 
+@pytest.mark.parametrize("allow_dml", [False, True])
+@pytest.mark.parametrize(
+    "sql, expected_heads",
+    [
+        ("PUT file:///tmp/data.csv @my_stage", "PUT"),
+        ("GET @my_stage 'file:///tmp/'", "GET"),
+        ("REMOVE @my_stage/b; PUT file:///tmp/a @my_stage", "PUT, REMOVE"),
+    ],
+)
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_blocks_client_file_transfer(
+    mock_app: MagicMock, sql: str, expected_heads: str, allow_dml: bool
+) -> None:
+    """
+    The estimate path rejects client-side file-transfer statements regardless
+    of `allow_dml`, matching the execution path.
+    """
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    from superset.exceptions import SupersetDisallowedClientFileTransferException
+
+    command = _make_command_with_db(sql, allow_dml=allow_dml, engine="snowflake")
+    with pytest.raises(SupersetDisallowedClientFileTransferException) as excinfo:
+        command._apply_sql_security(sql)
+
+    assert excinfo.value.error.message == (
+        "SQL statement contains disallowed client-side "
+        f"file-transfer command(s): {expected_heads}"
+    )
+
+
 @patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=False)
 @patch("superset.commands.sql_lab.estimate.app")
 def test_apply_sql_security_blocks_disallowed_table(

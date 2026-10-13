@@ -32,7 +32,6 @@ _p=80;    while ! _is_free $_p; do ((_p++)); done; export NGINX_PORT=$_p
 _p=8088;  while ! _is_free $_p; do ((_p++)); done; export SUPERSET_PORT=$_p
 _p=9000;  while ! _is_free $_p; do ((_p++)); done; export NODE_PORT=$_p
 _p=8080;  while ! _is_free $_p || [ $_p -eq $NGINX_PORT ]; do ((_p++)); done; export WEBSOCKET_PORT=$_p
-_p=8081;  while ! _is_free $_p || [ $_p -eq $WEBSOCKET_PORT ]; do ((_p++)); done; export CYPRESS_PORT=$_p
 _p=5432;  while ! _is_free $_p; do ((_p++)); done; export DATABASE_PORT=$_p
 _p=6379;  while ! _is_free $_p; do ((_p++)); done; export REDIS_PORT=$_p
 

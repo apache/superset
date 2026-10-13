@@ -381,9 +381,28 @@ function ChartRendererComponent({
 
   const setDataMaskCallback = useCallback(
     (dataMask: DataMask) => {
-      actions?.updateDataMask?.(chartId, dataMask);
+      const sourceForm = latestQueryFormData ?? formData;
+      actions?.updateDataMask?.(
+        chartId,
+        sourceForm.datasource?.endsWith('__semantic_view')
+          ? {
+              ...dataMask,
+              extraFormData: {
+                ...dataMask.extraFormData,
+                semantic_selection_sources: [
+                  ...(dataMask.extraFormData?.semantic_selection_sources ?? []),
+                  ...(sourceForm.semantic_selection_sources ?? []),
+                  {
+                    datasource: sourceForm.datasource,
+                    version: sourceForm.semantic_selection_version ?? null,
+                  },
+                ],
+              },
+            }
+          : dataMask,
+      );
     },
-    [actions, chartId],
+    [actions, chartId, latestQueryFormData, formData],
   );
 
   // Hooks object - memoized
