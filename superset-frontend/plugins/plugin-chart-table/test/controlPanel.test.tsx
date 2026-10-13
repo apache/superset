@@ -890,3 +890,36 @@ test('column_config mapStateToProps expands comparison columns for metrics', () 
   expect(result.columnsPropsObject.childColumnMap['Main col1']).toBe(false);
   expect(result.columnsPropsObject.childColumnMap['# col1']).toBe(true);
 });
+
+test.each([false, true])(
+  'numeric-leading provider uid retains pagination capability and reset advice: %s',
+  supportsOffset => {
+    const features = supportsOffset ? ['ROW_OFFSET'] : [];
+    const state = panelState(features, 'semantic_view', true);
+    state.datasource = {
+      ...state.datasource,
+      id: 7,
+      uid: '123__orders',
+    } as Dataset;
+    state.form_data.datasource = '123__orders';
+    renderPagination(state);
+    const disabled = !features.includes('ROW_OFFSET');
+    expect(screen.getByRole('checkbox').hasAttribute('disabled')).toBe(
+      disabled,
+    );
+    expect(
+      pageLength.mapStateToProps?.(state, state.controls.server_page_length),
+    ).toMatchObject({ disabled });
+    expect(
+      pagination.mapStateToProps?.(state, state.controls.server_pagination),
+    ).toMatchObject({
+      disabledReason: 'This semantic view does not support server pagination.',
+      resetLabel: 'Turn off server pagination',
+    });
+    if (disabled) {
+      expect(
+        screen.getByRole('button', { name: 'Turn off server pagination' }),
+      ).toBeInTheDocument();
+    }
+  },
+);

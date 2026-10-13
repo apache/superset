@@ -24,7 +24,9 @@ assists people when migrating to a new version.
 
 ## Next
 
-- Explore control headers without a click action render as plain text, not disabled buttons; interactive headers retain keyboard activation.
+- Explore control headers without a click action render as plain text, not disabled
+  buttons; interactive headers retain keyboard activation. Description buttons
+  remain visible and keyboard accessible, including for disabled inputs.
 
 
 - Semantic-layer APIs are registered regardless of the `SEMANTIC_LAYERS` flag.

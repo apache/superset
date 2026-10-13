@@ -17,7 +17,7 @@
  * under the License.
  */
 import { handleKeyboardActivation } from '@superset-ui/core';
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useId } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
@@ -77,13 +77,14 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   onDescriptionHoverChange,
 }) => {
   const theme = useTheme();
+  const descriptionId = useId();
 
   if (!label) {
     return null;
   }
 
   const renderOptionalIcons = () => {
-    if (!hovered) {
+    if (!hovered && !description) {
       return null;
     }
 
@@ -101,7 +102,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
         {description && (
           <>
             <Tooltip
-              id="description-tooltip"
+              id={descriptionId}
               title={description}
               placement="top"
               mouseLeaveDelay={0}
@@ -132,7 +133,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             </Tooltip>{' '}
           </>
         )}
-        {renderTrigger && (
+        {hovered && renderTrigger && (
           <span>
             <InfoTooltip
               label={t('bolt')}

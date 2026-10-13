@@ -27,7 +27,9 @@ export function hasMatchingDatasourceMetadata({
   datasource,
   form_data,
 }: Pick<ControlPanelState, 'datasource' | 'form_data'>): boolean {
-  const selected = form_data.datasource?.match(/^(\d+)__(.+)$/);
+  const selected = form_data.datasource?.match(
+    /^(\d+)__(table|semantic_view)$/,
+  );
   if (selected) {
     return (
       datasource?.id === Number(selected[1]) && datasource.type === selected[2]
