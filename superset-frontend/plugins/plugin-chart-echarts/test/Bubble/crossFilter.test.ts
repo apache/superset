@@ -91,6 +91,21 @@ test('getBubbleCrossFilterDataMask formats a temporal entity on the chip', () =>
   ]);
 });
 
+test('getBubbleCrossFilterDataMask keeps a numeric entity unabbreviated', () => {
+  const { dataMask } = getBubbleCrossFilterDataMask({
+    entity: 'customer_id',
+    series: 'year',
+    datum: [1, 2, 3, 12345, 2024],
+    selectedKeys: [],
+  });
+
+  expect(dataMask.filterState.label).toBe('12345, 2024');
+  expect(dataMask.extraFormData.filters).toEqual([
+    { col: 'customer_id', op: 'IN', val: [12345] },
+    { col: 'year', op: 'IN', val: [2024] },
+  ]);
+});
+
 test('getBubbleCrossFilterDataMask stores bigint as a JSON-safe string', () => {
   const { dataMask } = getBubbleCrossFilterDataMask({
     entity: 'customer_name',

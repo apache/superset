@@ -19,7 +19,6 @@
 import {
   DataRecordValue,
   getColumnLabel,
-  getNumberFormatter,
   getTimeFormatter,
   QueryFormColumn,
   QueryObjectFilterClause,
@@ -93,13 +92,13 @@ export function getBubbleCrossFilterKey(
 type CrossFilterLabelFormat = {
   coltypeMapping?: Record<string, number>;
   timeFormatter?: ReturnType<typeof getTimeFormatter>;
-  numberFormatter?: ReturnType<typeof getNumberFormatter>;
 };
 
 /**
  * Chip text for one dimension. An empty string is labeled before
  * `formatSeriesName`, which would leave it blank. Temporal values use the
- * same formatter as the drill filters.
+ * same time formatter as the drill filters. Numbers are left unformatted:
+ * the smart number formatter would abbreviate an id or a year.
  */
 function formatCrossFilterPart(
   col: QueryFormColumn,
@@ -111,7 +110,6 @@ function formatCrossFilterPart(
   }
   return formatSeriesName(value, {
     timeFormatter: format.timeFormatter,
-    numberFormatter: format.numberFormatter,
     coltype: format.coltypeMapping?.[getColumnLabel(col)],
   });
 }
@@ -198,7 +196,6 @@ export function getBubbleCrossFilterDataMask({
     {
       coltypeMapping,
       timeFormatter: getTimeFormatter(dateFormat),
-      numberFormatter: getNumberFormatter(),
     },
   );
   const filters: QueryObjectFilterClause[] =
