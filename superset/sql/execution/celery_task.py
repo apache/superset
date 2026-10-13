@@ -27,6 +27,7 @@ import dataclasses
 import logging
 import traceback
 import uuid
+from collections.abc import Callable
 from typing import Any, TYPE_CHECKING
 
 import msgpack
@@ -80,13 +81,16 @@ def _handle_query_error(
     prefix_message: str = "",
 ) -> dict[str, Any]:
     """Handle error while processing the SQL query."""
+    timed_out = query.status == QueryStatus.TIMED_OUT
+    if _make_check_stopped_fn(query, preserve_pending=True)():
+        return _stopped_query_payload(query)
+
     payload = payload or {}
     msg = f"{prefix_message} {str(ex)}".strip()
     query.error_message = msg
     query.tmp_table_name = None
     # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler)
-    if query.status != QueryStatus.TIMED_OUT:
-        query.status = QueryStatus.FAILED
+    query.status = QueryStatus.TIMED_OUT if timed_out else QueryStatus.FAILED
 
     if not query.end_time:
         query.end_time = now_as_float()
@@ -150,8 +154,9 @@ def _finalize_successful_query(
     execution_results: list[tuple[str, SupersetResultSet | None, float, int]],
     payload: dict[str, Any],
     total_execution_time_ms: float,
-) -> None:
-    """Update query metadata and payload after successful execution."""
+    check_stopped_fn: Callable[[], bool] | None = None,
+) -> bool:
+    """Update metadata and payload unless stopped during result serialization."""
     # Calculate total rows across all statements
     total_rows = 0
     statements_data: list[dict[str, Any]] = []
@@ -198,6 +203,9 @@ def _finalize_successful_query(
                 }
             )
 
+    if check_stopped_fn and check_stopped_fn():
+        return False
+
     query.rows = total_rows
     query.progress = 100
     query.set_extra_json_key("progress", None)
@@ -215,6 +223,7 @@ def _finalize_successful_query(
         }
     )
     payload["query"]["state"] = QueryStatus.SUCCESS.value
+    return True
 
 
 def _store_results_in_backend(
@@ -266,6 +275,8 @@ def _store_results_in_backend(
         logger.debug("*** compressed payload size: %i", len(compressed))
 
         write_success = results_backend.set(key, compressed, cache_timeout)
+        if _make_check_stopped_fn(query, preserve_pending=True)():
+            return
         if not write_success:
             logger.error(
                 "Query %s: Failed to store results in backend, key: %s",
@@ -371,14 +382,35 @@ def execute_sql_task(
                 return _handle_query_error(ex, query)
 
 
-def _make_check_stopped_fn(query: Query) -> Any:
-    """Create a function to check if query was stopped."""
+def _stopped_query_payload(query: Query) -> dict[str, Any]:
+    """Return a minimal stopped result without publishing successful results."""
+    query.status = QueryStatus.STOPPED
+    if not query.end_time:
+        query.end_time = now_as_float()
+    db.session.commit()  # pylint: disable=consider-using-transaction
+    return {"query_id": query.id, "status": QueryStatus.STOPPED.value}
+
+
+def _make_check_stopped_fn(
+    query: Query, preserve_pending: bool = False
+) -> Callable[[], bool]:
+    """Check stop intent, optionally preserving uncommitted success metadata."""
 
     def check_stopped() -> bool:
-        db.session.refresh(query)
-        return query.status == QueryStatus.STOPPED or bool(
-            query.extra.get(QUERY_EARLY_CANCEL_KEY)
-        )
+        # Finalization has dirty result metadata. Read status without flushing
+        # stale state or discarding that metadata on an ordinary success path.
+        with db.session.no_autoflush:
+            db.session.refresh(
+                query, attribute_names=["status"] if preserve_pending else None
+            )
+            stopped = query.status == QueryStatus.STOPPED or bool(
+                query.extra.get(QUERY_EARLY_CANCEL_KEY)
+            )
+            if stopped and preserve_pending:
+                # Discard pending success fields and reload the recorded stop
+                # time before any subsequent commit can overwrite them.
+                db.session.refresh(query)
+        return stopped
 
     return check_stopped
 
@@ -494,20 +526,25 @@ def _execute_sql_statements(
 
     # Re-check after connection cleanup, before publishing success or results.
     if stopped or check_stopped():
-        query.status = QueryStatus.STOPPED
-        if not query.end_time:
-            query.end_time = now_as_float()
-        db.session.commit()  # pylint: disable=consider-using-transaction
-        payload.update({"status": QueryStatus.STOPPED.value})
-        return payload
+        return _stopped_query_payload(query)
 
     total_execution_time_ms = (now_as_float() - execution_start_time) * 1000
-    _finalize_successful_query(
-        query, original_script, execution_results, payload, total_execution_time_ms
-    )
+    if not _finalize_successful_query(
+        query,
+        original_script,
+        execution_results,
+        payload,
+        total_execution_time_ms,
+        check_stopped_fn=check_stopped,
+    ):
+        return _stopped_query_payload(query)
 
     if results_backend:
         _store_results_in_backend(query, payload, database)
+
+    # Serialization and backend writes can outlive the last execution check.
+    if _make_check_stopped_fn(query, preserve_pending=True)():
+        return _stopped_query_payload(query)
 
     if query.status != QueryStatus.FAILED:
         query.status = QueryStatus.SUCCESS
