@@ -34,6 +34,13 @@ interface DraftBannerProps {
    * those changes landed and then delete it, losing them.
    */
   saving?: boolean;
+  /**
+   * Reports whether a publish or discard is running, so the caller can stop
+   * accepting edits: a commit names a revision and then deletes the draft, so
+   * a change accepted after it read that revision is replayed by nothing and
+   * lost while the publish still reports success.
+   */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 /**
@@ -45,6 +52,7 @@ export default function DraftBanner({
   revision,
   onClose,
   saving = false,
+  onBusyChange,
 }: DraftBannerProps) {
   const { addSuccessToast, addDangerToast } = useToasts();
   const [busy, setBusy] = useState(false);
@@ -52,6 +60,7 @@ export default function DraftBanner({
 
   const run = async (action: () => Promise<unknown>, done: string) => {
     setBusy(true);
+    onBusyChange?.(true);
     try {
       await action();
       addSuccessToast(done);
@@ -61,6 +70,7 @@ export default function DraftBanner({
       addDangerToast(error.message || error.error || t('Something went wrong'));
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   };
 

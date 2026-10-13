@@ -288,6 +288,11 @@ export default function CanvasGridSurface({
     (nodeId: string, kind: GestureKind) =>
     (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (event.button !== 0) return;
+      // One gesture at a time. A second finger on another handle also reports
+      // button 0, and letting it replace the live gesture would strand the
+      // first pointer: its move and up events fail the pointerId guards, so
+      // its drag would be dropped without ever being committed.
+      if (live.current) return;
       const origin = placements[nodeId];
       if (!origin) return;
       event.preventDefault();

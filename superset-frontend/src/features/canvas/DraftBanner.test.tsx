@@ -83,3 +83,57 @@ test('discarding deletes the draft', async () => {
 
   await waitFor(() => expect(onClose).toHaveBeenCalled());
 });
+
+test('the banner reports busy for the whole commit, so edits can be stopped', async () => {
+  // Guards the race: a commit reads a revision then deletes the draft, so a
+  // change accepted in between is replayed by nothing and silently lost.
+  let finishCommit: () => void = () => {};
+  const held = new Promise<Response>(resolve => {
+    finishCommit = () =>
+      resolve(
+        new Response(JSON.stringify({ result: { revision: 5 } }), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+  });
+  fetchMock.post(commitEndpoint, () => held);
+  const onBusyChange = jest.fn();
+  render(
+    <DraftBanner
+      token="tok-123"
+      revision={4}
+      onClose={jest.fn()}
+      onBusyChange={onBusyChange}
+    />,
+    { useRedux: true },
+  );
+
+  fireEvent.click(publishButton());
+
+  // Busy before the request settles, which is the window the race lives in.
+  await waitFor(() => expect(onBusyChange).toHaveBeenCalledWith(true));
+  expect(onBusyChange).not.toHaveBeenCalledWith(false);
+
+  finishCommit();
+
+  await waitFor(() => expect(onBusyChange).toHaveBeenCalledWith(false));
+});
+
+test('busy is reported false again when a commit fails', async () => {
+  fetchMock.post(commitEndpoint, 409);
+  const onBusyChange = jest.fn();
+  render(
+    <DraftBanner
+      token="tok-123"
+      revision={4}
+      onClose={jest.fn()}
+      onBusyChange={onBusyChange}
+    />,
+    { useRedux: true },
+  );
+
+  fireEvent.click(publishButton());
+
+  // Otherwise a rejected publish would leave the canvas uneditable.
+  await waitFor(() => expect(onBusyChange).toHaveBeenCalledWith(false));
+});

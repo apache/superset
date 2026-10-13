@@ -37,9 +37,12 @@ const surface = (
   editable: boolean,
   onPlace: jest.Mock,
   constraints: Record<string, SpanConstraints>,
+  // Separate from `live`: a node can be a child of the grid without having a
+  // resolved placement, and it must stay mounted when it does.
+  childIds: string[] = Object.keys(live),
 ) => (
   <CanvasGridSurface
-    childIds={Object.keys(live)}
+    childIds={childIds}
     columns={24}
     gap={16}
     rowUnit={40}
@@ -55,14 +58,16 @@ const renderSurface = ({
   editable = true,
   onPlace = jest.fn(),
   constraints = {} as Record<string, SpanConstraints>,
+  live = placements,
+  childIds = Object.keys(placements),
 } = {}) => {
   const { rerender } = render(
-    surface(placements, editable, onPlace, constraints),
+    surface(live, editable, onPlace, constraints, childIds),
   );
   return Object.assign(onPlace, {
     /** Simulate a write landing while a gesture is still live. */
     replace: (next: Record<string, GridPlacement>) =>
-      rerender(surface(next, editable, onPlace, constraints)),
+      rerender(surface(next, editable, onPlace, constraints, childIds)),
   });
 };
 
@@ -346,14 +351,56 @@ test('a write landing mid-gesture does not move the ground under the pointer', (
   });
 });
 
-test('a gesture cannot start on a widget with no placement', () => {
+test('a widget with no resolved placement renders, with no handles', () => {
+  // Still a child of the grid, so it stays mounted; it just has nowhere to be
+  // dragged from, so it gets no handles while its sibling keeps its own.
+  renderSurface({
+    live: { trend: placements.trend },
+    childIds: ['kpi', 'trend'],
+  });
+
+  expect(screen.getByText('widget kpi')).toBeInTheDocument();
+  expect(handles('Move widget')).toHaveLength(1);
+  expect(handles('Resize widget')).toHaveLength(1);
+});
+
+test('a second pointer cannot steal a live gesture', () => {
   const onPlace = renderSurface();
-  const handle = handles('Move widget')[0];
+  const [first, second] = handles('Move widget');
 
-  onPlace.replace({ trend: placements.trend });
-  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
-  pointer(handle, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
-  pointer(handle, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+  // One finger grabs 'kpi'.
+  pointer(first, 'pointerdown', {
+    button: 0,
+    pointerId: 1,
+    clientX: 0,
+    clientY: 0,
+  });
+  // Another touches 'trend's handle: also button 0, so only an explicit guard
+  // stops it replacing the live gesture and stranding the first pointer.
+  pointer(second, 'pointerdown', {
+    button: 0,
+    pointerId: 2,
+    clientX: 0,
+    clientY: 0,
+  });
 
-  expect(onPlace).not.toHaveBeenCalled();
+  // The first finger finishes its drag and is still the one that commits.
+  pointer(first, 'pointermove', {
+    pointerId: 1,
+    clientX: COL_PITCH * 4,
+    clientY: 0,
+  });
+  pointer(first, 'pointerup', {
+    pointerId: 1,
+    clientX: COL_PITCH * 4,
+    clientY: 0,
+  });
+
+  expect(onPlace).toHaveBeenCalledTimes(1);
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 5,
+    row: 1,
+    colSpan: 6,
+    rowSpan: 4,
+  });
 });

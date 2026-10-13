@@ -153,9 +153,14 @@ function CanvasBody({
   isEmpty,
 }: CanvasBodyProps) {
   const layout = useCanvasLayout(canvasId, result, reload, draftToken);
+  // True while the draft is being published or discarded.
+  const [committing, setCommitting] = useState(false);
   // Changes are made in a plan; the published canvas is read-only even for
-  // someone who may edit it. The single place this policy is decided.
-  const editable = result.canEdit && Boolean(draftToken);
+  // someone who may edit it. Editing also stops once a publish starts: the
+  // commit names a revision and then deletes the draft, so a change accepted
+  // after that read would be replayed by nothing. The single place this
+  // policy is decided.
+  const editable = result.canEdit && Boolean(draftToken) && !committing;
   return (
     <>
       {draftToken && (
@@ -169,6 +174,7 @@ function CanvasBody({
           // commit then would publish the older revision and delete the
           // draft, silently dropping the move the user just made.
           saving={layout.saving}
+          onBusyChange={setCommitting}
           onClose={onDraftClosed}
         />
       )}
