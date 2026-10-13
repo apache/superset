@@ -272,9 +272,23 @@ function ChartRendererComponent({
     prevQueriesResponseRef.current = queriesResponse;
   }, [queriesResponse]);
 
+  const currentFormData =
+    chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
+  const vizType = currentFormData.viz_type || propVizType;
+  // Some charts fetch their own data and issue no top-level query (e.g. deck.gl
+  // Multiple Layers, which renders its sub-layer charts), so an empty response
+  // is expected and shouldn't trigger the no-results state. Honor the chart's
+  // own enableNoResults metadata (defaults to true).
+  const chartEnableNoResults =
+    getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
+
   const hasAnyErrors = queriesResponse?.some(item => item?.error);
-  const hasValidPreviousData =
-    (queriesResponse?.length ?? 0) > 0 && !hasAnyErrors;
+  // The response of a chart that fetches its own data stays empty once it has
+  // loaded, so for those any response that landed counts as previous data.
+  const hasPreviousResponse = chartEnableNoResults
+    ? (queriesResponse?.length ?? 0) > 0
+    : Array.isArray(queriesResponse);
+  const hasValidPreviousData = hasPreviousResponse && !hasAnyErrors;
 
   // An auto-refresh keeps the chart on screen while its query is in flight.
   // The store holds the previous response until the new one lands, so that
@@ -470,10 +484,6 @@ function ChartRendererComponent({
 
   renderStartTimeRef.current = Logger.getTimestamp();
 
-  const currentFormData =
-    chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
-  const vizType = currentFormData.viz_type || propVizType;
-
   // It's bad practice to use unprefixed `vizType` as classnames for chart
   // container. It may cause css conflicts as in the case of legacy table chart.
   // When migrating charts, we should gradually add a `superset-chart-` prefix
@@ -539,12 +549,6 @@ function ChartRendererComponent({
     Object.keys(ownState.agGridFilterModel).length > 0;
 
   const currentFormDataExtended = currentFormData as JsonObject;
-  // Some charts fetch their own data and issue no top-level query (e.g. deck.gl
-  // Multiple Layers, which renders its sub-layer charts), so an empty response
-  // is expected and shouldn't trigger the no-results state. Honor the chart's
-  // own enableNoResults metadata (defaults to true).
-  const chartEnableNoResults =
-    getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
   const bypassNoResult =
     chartEnableNoResults &&
     !(

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { ChartMetadata, ChartPlugin, QueryData } from '@superset-ui/core';
 import ChartRenderer, {
@@ -31,6 +32,7 @@ jest.mock(
 );
 
 const VIZ_TYPE = 'refresh_test_chart';
+const SELF_FETCHING_VIZ_TYPE = 'refresh_test_self_fetching_chart';
 const NO_RESULTS = 'No results were returned for this query';
 
 interface TestChartProps {
@@ -41,6 +43,17 @@ const TestChart = ({ queriesData }: TestChartProps) => (
   <div data-test="refresh-test-chart">value={queriesData[0].data[0].value}</div>
 );
 
+const selfFetchingChartMounted = jest.fn();
+
+// Stands in for deck.gl Multiple Layers: it issues no query of its own, so
+// its response is an empty array, and it loads its data when it mounts.
+const SelfFetchingTestChart = () => {
+  useEffect(() => {
+    selfFetchingChartMounted();
+  }, []);
+  return <div data-test="self-fetching-test-chart" />;
+};
+
 beforeAll(() => {
   new ChartPlugin({
     metadata: new ChartMetadata({ name: 'Refresh test chart', thumbnail: '' }),
@@ -49,6 +62,20 @@ beforeAll(() => {
   })
     .configure({ key: VIZ_TYPE })
     .register();
+  new ChartPlugin({
+    metadata: new ChartMetadata({
+      name: 'Self-fetching refresh test chart',
+      thumbnail: '',
+      enableNoResults: false,
+    }),
+    Chart: SelfFetchingTestChart,
+  })
+    .configure({ key: SELF_FETCHING_VIZ_TYPE })
+    .register();
+});
+
+beforeEach(() => {
+  selfFetchingChartMounted.mockClear();
 });
 
 const queriesResponse = (value: number) =>
@@ -144,4 +171,63 @@ test('still shows the no-results state when a finished query returns no rows', a
   );
 
   expect(await screen.findByText(NO_RESULTS)).toBeInTheDocument();
+});
+
+const selfFetchingProps = (
+  overrides: Partial<ChartRendererProps>,
+): ChartRendererProps =>
+  props({
+    formData: {
+      viz_type: SELF_FETCHING_VIZ_TYPE,
+    } as ChartRendererProps['formData'],
+    vizType: SELF_FETCHING_VIZ_TYPE,
+    suppressLoadingSpinner: true,
+    queriesResponse: [],
+    ...overrides,
+  });
+
+test('keeps a self-fetching chart mounted while an auto-refresh query is in flight', async () => {
+  const { rerender } = render(
+    <ChartRenderer {...selfFetchingProps({ chartStatus: 'rendered' })} />,
+  );
+  await screen.findByTestId('self-fetching-test-chart');
+
+  rerender(
+    <ChartRenderer {...selfFetchingProps({ chartStatus: 'loading' })} />,
+  );
+  expect(screen.getByTestId('self-fetching-test-chart')).toBeInTheDocument();
+
+  rerender(
+    <ChartRenderer {...selfFetchingProps({ chartStatus: 'success' })} />,
+  );
+  expect(screen.getByTestId('self-fetching-test-chart')).toBeInTheDocument();
+  // A remount would make the chart load all of its data again.
+  expect(selfFetchingChartMounted).toHaveBeenCalledTimes(1);
+});
+
+test('does not render a self-fetching chart whose first query is still in flight', () => {
+  render(
+    <ChartRenderer
+      {...selfFetchingProps({ chartStatus: 'loading', queriesResponse: null })}
+    />,
+  );
+
+  expect(
+    screen.queryByTestId('self-fetching-test-chart'),
+  ).not.toBeInTheDocument();
+});
+
+test('does not render a chart with an empty response while its query is in flight', () => {
+  render(
+    <ChartRenderer
+      {...props({
+        chartStatus: 'loading',
+        suppressLoadingSpinner: true,
+        queriesResponse: [],
+      })}
+    />,
+  );
+
+  expect(screen.queryByTestId('refresh-test-chart')).not.toBeInTheDocument();
+  expect(screen.queryByText(NO_RESULTS)).not.toBeInTheDocument();
 });
