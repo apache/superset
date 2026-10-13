@@ -716,8 +716,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     >
       <LeftPane aria-label={t('Choose chart type')} role="tablist">
         <Selector
-          css={({ sizeUnit }) => // adjust style for not being inside a collapse
-          css`
+          // adjust style for not being inside a collapse
+          css={({ sizeUnit }) => css`
             margin: ${sizeUnit * 2}px;
             margin-bottom: 0;
           `}
@@ -732,8 +732,8 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           onClick={clickSelector}
         />
         <Selector
-          css={({ sizeUnit }) => // adjust style for not being inside a collapse
-          css`
+          // adjust style for not being inside a collapse
+          css={({ sizeUnit }) => css`
             margin: ${sizeUnit * 2}px;
             margin-bottom: 0;
           `}
