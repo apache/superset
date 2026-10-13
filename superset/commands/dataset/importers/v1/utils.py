@@ -639,6 +639,15 @@ def import_dataset(  # noqa: C901
         main_dttm_col=config.get(
             "main_dttm_col", getattr(existing, "main_dttm_col", None)
         ),
+        # So an overwrite that echoes the stored transform keeps it; only a
+        # value the bundle introduces on an unmapped column is dropped.
+        stored_by_name={
+            column.column_name: (
+                column.partition_value_transform,
+                bool(column.partition_transform_is_monotonic),
+            )
+            for column in getattr(existing, "columns", None) or []
+        },
     ):
         logger.warning(
             "Dropping the partition value transform on %s.%s (dataset %s) "

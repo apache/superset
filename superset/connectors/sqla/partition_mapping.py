@@ -2087,6 +2087,7 @@ def drop_unmapped_value_transforms(
     partition_mapped_column: str | None,
     main_dttm_col: str | None,
     names_by_id: dict[int, str] | None = None,
+    stored_by_name: dict[str, tuple[str | None, bool]] | None = None,
 ) -> list[str]:
     """
     Null the value transform on every *incoming* column the mapping cannot mirror.
@@ -2135,6 +2136,17 @@ def drop_unmapped_value_transforms(
         one, and every transform in it was dropped. Callers whose writer keys
         on the name instead (`update_from_object`, the importer) pass nothing.
         An entry this cannot name is left alone rather than guessed at.
+    :param stored_by_name: ``(transform, is_monotonic)`` as currently stored,
+        per column name, so an *echo* can be told from an introduction. A
+        GET-then-PUT client sends back every column exactly as it received it,
+        so changing the default datetime column away from the mapped one made
+        the payload's unchanged copy of its transform look like a value being
+        parked -- and nulling it destroyed configuration the owner never
+        touched, unrecoverably, with the flag off and the editor's own fields
+        hidden. An unchanged value is the model-level pass's business under its
+        own flag, which is the same line this function's docstring already
+        draws for a column the payload omits. Callers that cannot see storage
+        pass nothing and keep the stricter behaviour.
     """
     mapped_column = (
         (partition_mapped_column or main_dttm_col) if partition_column else None
@@ -2148,12 +2160,20 @@ def drop_unmapped_value_transforms(
                 name = names_by_id.get(column_id)
         if name is None or name == mapped_column:
             continue
-        if column.get("partition_value_transform") or column.get(
-            "partition_transform_is_monotonic"
-        ):
-            column["partition_value_transform"] = None
-            column["partition_transform_is_monotonic"] = False
-            cleared.append(name)
+        transform = column.get("partition_value_transform")
+        is_monotonic = column.get("partition_transform_is_monotonic")
+        if not transform and not is_monotonic:
+            continue
+        if stored_by_name is not None and name in stored_by_name:
+            stored_transform, stored_monotonic = stored_by_name[name]
+            if transform == stored_transform and bool(is_monotonic) == bool(
+                stored_monotonic
+            ):
+                # An echo, not an introduction. See `stored_by_name`.
+                continue
+        column["partition_value_transform"] = None
+        column["partition_transform_is_monotonic"] = False
+        cleared.append(name)
     return cleared
 
 

@@ -457,6 +457,16 @@ class Datasource(BaseSupersetView):
             partition_column=datasource_dict.get("partition_column"),
             partition_mapped_column=datasource_dict.get("partition_mapped_column"),
             main_dttm_col=datasource_dict.get("main_dttm_col"),
+            # So an unchanged echo of stored configuration survives: this
+            # endpoint's own client does GET-then-POST, which is exactly the
+            # shape that looked like a value being parked.
+            stored_by_name={
+                column.column_name: (
+                    column.partition_value_transform,
+                    bool(column.partition_transform_is_monotonic),
+                )
+                for column in getattr(orm_datasource, "columns", None) or []
+            },
         ):
             logger.info(
                 "Dataset %s: dropped an incoming partition value transform "

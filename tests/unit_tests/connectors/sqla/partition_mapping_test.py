@@ -2962,6 +2962,102 @@ def test_without_a_partition_column_no_incoming_transform_survives() -> None:
     assert columns[0]["partition_value_transform"] is None
 
 
+def test_an_echo_of_a_stored_transform_is_not_dropped() -> None:
+    """
+    The GET-then-PUT shape every client of these endpoints uses: the payload
+    carries every column back exactly as it arrived. Changing the default
+    datetime column away from the mapped one then made the unchanged copy of
+    its transform look like a value being parked, and nulling it destroyed
+    configuration the owner never touched -- unrecoverably, since with the flag
+    off the editor hides the fields and the model-level pass declines to run.
+
+    An unchanged value is the model-level pass's business, under its own flag,
+    which is the line this function already draws for a column the payload
+    omits entirely.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": True,
+        }
+    ]
+    stored = {"event_time": ("unix_timestamp(:value)", True)}
+
+    # `event_time2` is the newly chosen default, so `event_time` is no longer
+    # the mapped column -- and its transform is nonetheless an echo.
+    assert (
+        drop_unmapped_value_transforms(
+            columns,
+            partition_column="dt_epoch",
+            partition_mapped_column=None,
+            main_dttm_col="event_time2",
+            stored_by_name=stored,
+        )
+        == []
+    )
+    assert columns[0]["partition_value_transform"] == "unix_timestamp(:value)"
+    assert columns[0]["partition_transform_is_monotonic"] is True
+
+
+@pytest.mark.parametrize(
+    ("transform", "monotonic"),
+    [
+        # A different expression...
+        ("to_unixtime(:value)", True),
+        # ...or the same expression with the flag flipped. Either is the
+        # request introducing something, which is what the gate is for.
+        ("unix_timestamp(:value)", False),
+    ],
+)
+def test_a_changed_transform_on_an_unmapped_column_is_still_dropped(
+    transform: str, monotonic: bool
+) -> None:
+    """
+    The other half: knowing what is stored must not turn the gate off. A
+    flag-off window is precisely when a value gets parked for later, and this
+    is the writer that stops it.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": transform,
+            "partition_transform_is_monotonic": monotonic,
+        }
+    ]
+
+    assert drop_unmapped_value_transforms(
+        columns,
+        partition_column="dt_epoch",
+        partition_mapped_column=None,
+        main_dttm_col="event_time2",
+        stored_by_name={"event_time": ("unix_timestamp(:value)", True)},
+    ) == ["event_time"]
+    assert columns[0]["partition_value_transform"] is None
+
+
+def test_a_caller_that_cannot_see_storage_keeps_the_stricter_behaviour() -> None:
+    """
+    `stored_by_name` is optional, and omitting it drops an unmapped column's
+    transform whether or not it is an echo -- the behaviour every caller had
+    before. A column storage does not mention is treated as an introduction
+    for the same reason.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+        }
+    ]
+
+    assert drop_unmapped_value_transforms(
+        columns,
+        partition_column="dt_epoch",
+        partition_mapped_column=None,
+        main_dttm_col="event_time2",
+    ) == ["event_time"]
+
+
 def test_a_column_the_payload_says_nothing_about_is_left_alone() -> None:
     """
     "Incoming" is the whole scope. A transform already in storage on a column

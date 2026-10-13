@@ -504,6 +504,15 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 # primary key and lets `column_name` be omitted, which is what
                 # the dataset editor's own PUT sends.
                 names_by_id={column.id: column.column_name for column in item.columns},
+                # So an unchanged echo of stored configuration is left alone;
+                # only a value this request introduces is dropped.
+                stored_by_name={
+                    column.column_name: (
+                        column.partition_value_transform,
+                        bool(column.partition_transform_is_monotonic),
+                    )
+                    for column in item.columns
+                },
             ):
                 logger.info(
                     "Dataset %s: dropped an incoming partition value transform "
