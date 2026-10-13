@@ -17,8 +17,8 @@
 """allow saved_query chart datasource
 
 Revision ID: dfa683969f48
-Revises: 95d8a99c822e
-Create Date: 2026-09-29 00:00:00.000000
+Revises: c179af013f48
+Create Date: 2026-10-13 00:00:00.000000
 
 """
 
@@ -32,7 +32,7 @@ from superset import db
 
 # revision identifiers, used by Alembic.
 revision = "dfa683969f48"
-down_revision = "95d8a99c822e"
+down_revision = "c179af013f48"
 
 Base = declarative_base()
 
