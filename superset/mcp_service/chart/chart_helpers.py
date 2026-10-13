@@ -922,8 +922,16 @@ def resolve_gantt_query_fields(  # noqa: C901
         if isinstance(value, str) and value:
             return value
         if isinstance(value, dict) and 0 < len(value) <= 20:
-            # QueryFormColumn objects use column_name for physical columns or
-            # expressionType/sqlExpression/label for adhoc columns.
+            # Saved QueryFormColumn objects need names in semantic queries;
+            # ad-hoc expressions retain their dictionary representation.
+            column_name: object = value.get("column_name")
+            if (
+                isinstance(column_name, str)
+                and column_name
+                and value.get("expressionType") in (None, "SIMPLE")
+                and not value.get("sqlExpression")
+            ):
+                return column_name
             if value.get("column_name") or (
                 value.get("expressionType") and value.get("label")
             ):

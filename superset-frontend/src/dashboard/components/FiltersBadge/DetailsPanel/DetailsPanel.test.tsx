@@ -143,6 +143,25 @@ test('Should render "appliedCrossFilterIndicators"', async () => {
   ]);
 });
 
+test('shows a rejected dashboard column under Incompatible', async () => {
+  const props = createProps();
+  props.appliedIndicators = [];
+  props.appliedCrossFilterIndicators = [];
+  render(
+    <DetailsPanel {...props}>
+      <button type="button">Filter status</button>
+    </DetailsPanel>,
+    { useRedux: true },
+  );
+  await userEvent.hover(screen.getByRole('button', { name: 'Filter status' }));
+  expect(
+    await screen.findByText('Incompatible filters (1)'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'search Vaccine Approach Copy' }),
+  ).toBeInTheDocument();
+});
+
 test('Should render "appliedIndicators"', async () => {
   const props = createProps();
   props.appliedCrossFilterIndicators = [];

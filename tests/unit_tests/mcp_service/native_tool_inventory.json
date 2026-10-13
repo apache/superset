@@ -232,12 +232,12 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 250,
-      "description_chars": 3219,
+      "description_chars": 3451,
       "entry_bytes": {
-        "structured": 24898,
-        "text_only": 5181
+        "structured": 25623,
+        "text_only": 5906
       },
-      "input_schema_bytes": 1547,
+      "input_schema_bytes": 2037,
       "output_schema_bytes": 19701
     },
     "generate_dashboard": {
@@ -264,12 +264,12 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 100,
-      "description_chars": 1361,
+      "description_chars": 1970,
       "entry_bytes": {
-        "structured": 7665,
-        "text_only": 2700
+        "structured": 8800,
+        "text_only": 3835
       },
-      "input_schema_bytes": 986,
+      "input_schema_bytes": 1463,
       "output_schema_bytes": 4949
     },
     "get_annotation_layer_info": {
@@ -1192,12 +1192,12 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 45,
-      "description_chars": 2044,
+      "description_chars": 2259,
       "entry_bytes": {
-        "structured": 25708,
-        "text_only": 5991
+        "structured": 26247,
+        "text_only": 6530
       },
-      "input_schema_bytes": 3592,
+      "input_schema_bytes": 3913,
       "output_schema_bytes": 19701
     },
     "update_chart_preview": {
@@ -1267,16 +1267,16 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 518230,
-      "text_only": 210599
+      "structured": 520629,
+      "text_only": 212998
     },
     "compact_catalog_bytes": {
-      "structured": 467910,
-      "text_only": 160279
+      "structured": 469198,
+      "text_only": 161567
     },
     "largest_entry": {
       "structured": {
-        "bytes": 25708,
+        "bytes": 26247,
         "name": "update_chart"
       },
       "text_only": {
