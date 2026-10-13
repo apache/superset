@@ -2629,6 +2629,10 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         # the same blind spot as the above with no function argument to
         # inspect -- and ``PUBLIC`` holds execute on it by default.
         "dburitype",
+        # The same reader through its factory, and its sibling URI types.
+        "geturi",
+        "xdburitype",
+        "httpuritype",
     },
 }
 
