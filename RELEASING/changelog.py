@@ -30,6 +30,7 @@ try:
     from github import (
         Auth,
         BadCredentialsException,
+        Commit,
         Github,
         PullRequest,
         Repository,
@@ -42,6 +43,27 @@ except ModuleNotFoundError:
 SUPERSET_REPO = "apache/superset"
 SUPERSET_PULL_REQUEST_TYPES = r"^(fix|feat|chore|refactor|docs|build|ci|/gmi)"
 SUPERSET_RISKY_LABELS = r"^(blocking|risk|hold|revert|security vulnerability)"
+# subject of a commit made with `git revert`, which unlike a merged revert PR has no
+# PR number of its own
+REVERT_SUBJECT = re.compile(r'^Revert "(.*)"$')
+CHANGELOG_HEADER = """<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->"""
 
 
 @dataclass
@@ -56,6 +78,7 @@ class GitLog:
     message: str
     pr_number: Union[int, None] = None
     author_email: str = ""
+    is_revert: bool = False
 
     def __eq__(self, other: object) -> bool:
         """A log entry is considered equal if it has the same PR number"""
@@ -71,7 +94,7 @@ class GitChangeLog:
     """
     Helper class to output a list of logs entries on a superset changelog format
 
-    We want to map a git author to a github login, for that we call github's API
+    Each PR is credited to its author's github login, for that we call github's API
     """
 
     def __init__(
@@ -86,7 +109,6 @@ class GitChangeLog:
         self._logs = logs
         self._cache_file = cache_file
         self._pr_logs_with_details = self._load_cached_pull_request_details()
-        self._github_login_cache: dict[str, Optional[str]] = {}
         self._wait = 10
         github_token = access_token or os.environ.get("GITHUB_TOKEN")
         self._github = Github(auth=Auth.Token(github_token) if github_token else None)
@@ -153,22 +175,7 @@ class GitChangeLog:
 
         return pull_request
 
-    def _get_github_login(self, git_log: GitLog) -> Optional[str]:
-        """
-        Tries to fetch a github login (username) from a git author
-        """
-        author_name = git_log.author
-        github_login = self._github_login_cache.get(author_name)
-        if github_login:
-            return github_login
-        if git_log.pr_number:
-            github_login = self._get_pull_request_details(git_log)["login"]
-        # set cache
-        self._github_login_cache[author_name] = github_login
-        return github_login
-
-    def _has_commit_migrations(self, git_sha: str) -> bool:
-        commit = self._superset_repo.get_commit(sha=git_sha)
+    def _has_commit_migrations(self, commit: Commit) -> bool:
         return any(
             "superset/migrations/versions/" in file.filename for file in commit.files
         )
@@ -181,8 +188,14 @@ class GitChangeLog:
                 return detail
             pr_info = self._fetch_github_pr(pr_number)
 
-        has_migrations = self._has_commit_migrations(git_log.sha)
-        title = pr_info.title if pr_info else git_log.message
+        commit = self._superset_repo.get_commit(sha=git_log.sha)
+        has_migrations = self._has_commit_migrations(commit)
+        if pr_info:
+            title, login = pr_info.title, pr_info.user.login
+        else:
+            # github still serves the commit of a PR it no longer serves
+            title = git_log.message.removesuffix(f" (#{pr_number})")
+            login = commit.author.login if commit.author else None
         pr_type = re.match(SUPERSET_PULL_REQUEST_TYPES, title)
         if pr_type:
             pr_type = pr_type.group().strip('"')  # type: ignore
@@ -192,7 +205,7 @@ class GitChangeLog:
         is_risky = self._is_risk_pull_request(pr_labels)
         detail = {
             "id": pr_number,
-            "login": pr_info.user.login if pr_info else None,
+            "login": login,
             "has_migrations": has_migrations,
             "labels": labels,
             "title": title,
@@ -244,17 +257,14 @@ class GitChangeLog:
     def __repr__(self) -> str:
         result = f"\n{self._get_changelog_version_head()}\n"
         changelog = {
-            "Database Migrations": "\n",
-            "Features": "\n",
-            "Fixes": "\n",
-            "Others": "\n",
+            "Database Migrations": "",
+            "Features": "",
+            "Fixes": "",
+            "Others": "",
         }
         for i, log in enumerate(self._logs):
-            github_login = self._get_github_login(log)
             pr_info = self._get_pull_request_details(log)
-
-            if not github_login:
-                github_login = log.author
+            github_login = pr_info["login"] or log.author
 
             if self._show_risk:
                 if pr_info.get("is_risky"):
@@ -267,14 +277,20 @@ class GitChangeLog:
             else:
                 self._parse_change_log(changelog, pr_info, github_login)
 
-            print(f"\r {i}/{len(self._logs)}", end="", flush=True)
+            print(f"\r {i}/{len(self._logs)}", end="", flush=True, file=sys.stderr)
+        print(file=sys.stderr)
 
         if self._show_risk:
             return result
 
-        for key in changelog:
-            result += f"**{key}** {changelog[key]}\n"
-        return result
+        # the complete CHANGELOG/<version>.md file
+        sections = "\n\n".join(
+            f"**{key}**\n\n{entries}".rstrip() for key, entries in changelog.items()
+        )
+        return (
+            f"{CHANGELOG_HEADER}\n\n## Change Log\n\n"
+            f"{self._get_changelog_version_head()}\n\n{sections}"
+        )
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         for log in self._logs:
@@ -311,8 +327,27 @@ class GitLogs:
     def fetch(self) -> None:
         self._logs = list(map(self._parse_log, self._git_logs()))[::-1]
 
+    @property
+    def pull_request_logs(self) -> list[GitLog]:
+        """
+        The latest commit of each PR in effect at this git ref, oldest first. PRs
+        reverted on the branch itself are left out, and PRs merged more than once
+        are listed once
+        """
+        pull_requests: dict[int, GitLog] = {}
+        for log in self._logs:
+            if not log.pr_number:
+                continue
+            pull_requests.pop(log.pr_number, None)
+            if not log.is_revert:
+                pull_requests[log.pr_number] = log
+        return list(pull_requests.values())
+
     def diff(self, git_logs: "GitLogs") -> list[GitLog]:
-        return [log for log in git_logs.logs if log not in self._logs]
+        pr_numbers = {log.pr_number for log in self.pull_request_logs}
+        return [
+            log for log in git_logs.pull_request_logs if log.pr_number not in pr_numbers
+        ]
 
     def __repr__(self) -> str:
         return f"{self._git_ref}, Log count:{len(self._logs)}"
@@ -349,8 +384,13 @@ class GitLogs:
     def _parse_log(log_item: str) -> GitLog:
         pr_number = None
         split_log_item = log_item.split("|")
+        # a revert's subject wraps the reverted commit's, so unwrap it to find the
+        # reverted PR; reverting a revert lands that PR again
+        subject, reverts = split_log_item[4], 0
+        while revert := REVERT_SUBJECT.match(subject):
+            subject, reverts = revert.group(1), reverts + 1
         # parse the PR number from the log message
-        match = re.match(r".*\(\#(\d*)\)", split_log_item[4])
+        match = re.match(r".*\(\#(\d*)\)", subject)
         if match:
             pr_number = int(match.group(1))
         return GitLog(
@@ -360,6 +400,7 @@ class GitLogs:
             time=split_log_item[3],
             message=split_log_item[4],
             pr_number=pr_number,
+            is_revert=reverts % 2 == 1,
         )
 
 
@@ -428,6 +469,12 @@ def compare(base_parameters: BaseParameters) -> None:
     help="File that caches the pull request details fetched from github, so an"
     " interrupted run resumes where it left off. Delete it to fetch everything again",
 )
+@click.option(
+    "--release_version",
+    envvar="SUPERSET_VERSION",
+    help="The version to name in the changelog heading (e.g. 1.5.0),"
+    " if not provided will try SUPERSET_VERSION env var, then --current_version",
+)
 @click.pass_obj
 def change_log(
     base_parameters: BaseParameters,
@@ -435,13 +482,14 @@ def change_log(
     access_token: str,
     risk: bool,
     cache_file: str,
+    release_version: Optional[str],
 ) -> None:
     """Outputs a changelog (by PR)"""
     previous_logs = base_parameters.previous_logs
     current_logs = base_parameters.current_logs
     previous_diff_logs = previous_logs.diff(current_logs)
     logs = GitChangeLog(
-        current_logs.git_ref,
+        release_version or current_logs.git_ref,
         previous_diff_logs[::-1],
         access_token=access_token,
         risk=risk,
@@ -462,7 +510,7 @@ def change_log(
             for log in logs:
                 writer.writerow(log)
     else:
-        print("Fetching github usernames, this may take a while:")
+        print("Fetching github usernames, this may take a while:", file=sys.stderr)
         print(logs)
 
 
