@@ -18,7 +18,8 @@
 
 Covers the scheme-swap helper, the upgrade() path over a mixture of Databricks
 ODBC, native connector and unrelated connections, downgrade() protecting
-natively-created connector connections, and the full round trip.
+natively-created connector connections (including ones carrying a copied
+marker), skipping rows with malformed ``extra``, and the full round trip.
 """
 
 from __future__ import annotations
@@ -42,6 +43,7 @@ _swap_scheme = migration._swap_scheme
 ODBC_PREFIX = migration.ODBC_PREFIX
 CONNECTOR_PREFIX = migration.CONNECTOR_PREFIX
 MARKER = migration.MIGRATION_MARKER
+REVISION = migration.revision
 
 # Superset stores the password as this mask rather than the real credential
 MASK = "X" * 10
@@ -142,7 +144,7 @@ def test_upgrade_rewrites_only_odbc_connections(engine) -> None:
         assert extra["engine_params"]["connect_args"]["http_path"] == (
             "/sql/1.0/warehouses/abc"
         )
-        assert extra[MARKER] is True
+        assert extra[MARKER] == {"revision": REVISION, "database_id": 1}
 
         # native connector connection is left exactly as it was (no marker)
         native = verify.get(Database, 2)
@@ -188,7 +190,7 @@ def test_downgrade_only_reverts_migrated_connections(engine) -> None:
     marked_extra = json.dumps(
         {
             "engine_params": {"connect_args": {"http_path": "/sql/1.0/warehouses/abc"}},
-            MARKER: True,
+            MARKER: {"revision": REVISION, "database_id": 1},
         }
     )
     with Session(engine) as seed:
@@ -241,3 +243,79 @@ def test_round_trip_through_upgrade_and_downgrade(engine) -> None:
         database = verify.get(Database, 1)
         assert database.sqlalchemy_uri == original_uri
         assert json.loads(database.extra) == json.loads(EXTRA)
+
+
+def test_upgrade_skips_rows_with_malformed_extra(engine) -> None:
+    """
+    A row whose extra is not a JSON object is left untouched, and the rest of
+    the run still migrates every other ODBC connection.
+    """
+    odbc_uri = f"databricks+pyodbc://token:{MASK}@host:443/main"
+    with Session(engine) as seed:
+        seed.add_all(
+            [
+                Database(id=1, sqlalchemy_uri=odbc_uri, extra="not json"),
+                Database(id=2, sqlalchemy_uri=odbc_uri, extra="[1, 2]"),
+                Database(id=3, sqlalchemy_uri=odbc_uri, extra=EXTRA),
+            ]
+        )
+        seed.commit()
+
+    with engine.begin() as conn:
+        _run(migration.upgrade, conn)
+
+    with Session(engine) as verify:
+        for database_id, extra in ((1, "not json"), (2, "[1, 2]")):
+            skipped = verify.get(Database, database_id)
+            assert skipped.sqlalchemy_uri == odbc_uri
+            assert skipped.extra == extra
+
+        migrated = verify.get(Database, 3)
+        assert (
+            migrated.sqlalchemy_uri
+            == f"databricks+connector://token:{MASK}@host:443/main"
+        )
+        assert json.loads(migrated.extra)[MARKER] == {
+            "revision": REVISION,
+            "database_id": 3,
+        }
+
+
+@pytest.mark.parametrize(
+    "marker",
+    [
+        # extra copied from migrated connection id=1 onto a different row
+        {"revision": REVISION, "database_id": 1},
+        # a marker from a different revision
+        {"revision": "000000000000", "database_id": 2},
+        # a bare truthy value that does not identify this revision and row
+        True,
+    ],
+)
+def test_downgrade_ignores_markers_not_written_for_the_row(engine, marker) -> None:
+    connector_uri = f"databricks+connector://token:{MASK}@host:443/main"
+    extra = json.dumps({MARKER: marker})
+    with Session(engine) as seed:
+        seed.add(Database(id=2, sqlalchemy_uri=connector_uri, extra=extra))
+        seed.commit()
+
+    with engine.begin() as conn:
+        _run(migration.downgrade, conn)
+
+    with Session(engine) as verify:
+        native = verify.get(Database, 2)
+        assert native.sqlalchemy_uri == connector_uri
+        assert native.extra == extra
+
+
+def test_downgrade_skips_rows_with_malformed_extra(engine) -> None:
+    connector_uri = f"databricks+connector://token:{MASK}@host:443/main"
+    with Session(engine) as seed:
+        seed.add(Database(id=1, sqlalchemy_uri=connector_uri, extra="not json"))
+        seed.commit()
+
+    with engine.begin() as conn:
+        _run(migration.downgrade, conn)
+
+    with Session(engine) as verify:
+        assert verify.get(Database, 1).sqlalchemy_uri == connector_uri
