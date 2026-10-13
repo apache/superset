@@ -390,6 +390,10 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%s days"
+msgstr ""
+
+#, python-format
 msgid "%s field"
 msgid_plural "%s fields"
 msgstr[0] ""
@@ -1417,7 +1421,13 @@ msgstr ""
 msgid "Advanced data type"
 msgstr ""
 
+msgid "Advanced options"
+msgstr ""
+
 msgid "Advanced settings"
+msgstr ""
+
+msgid "Advanced time range"
 msgstr ""
 
 msgid "Advanced-Analytics"
@@ -1578,6 +1588,9 @@ msgid "All %s hidden columns"
 msgstr ""
 
 msgid "All Text"
+msgstr ""
+
+msgid "All available dates are included."
 msgstr ""
 
 msgid "All changes"
@@ -2451,6 +2464,9 @@ msgstr ""
 msgid "Back to all"
 msgstr ""
 
+msgid "Back to calendar"
+msgstr ""
+
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
@@ -3244,6 +3260,9 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid "Checking time range…"
+msgstr ""
+
 msgid "Child label position"
 msgstr ""
 
@@ -3278,6 +3297,9 @@ msgstr ""
 msgid "Choose already exists"
 msgstr ""
 
+msgid "Choose an end date to complete your range."
+msgstr ""
+
 msgid "Choose chart type"
 msgstr ""
 
@@ -3291,6 +3313,12 @@ msgid "Choose current semantic fields"
 msgstr ""
 
 msgid "Choose current semantic filter fields"
+msgstr ""
+
+msgid "Choose date"
+msgstr ""
+
+msgid "Choose date and time"
 msgstr ""
 
 msgid "Choose from existing dashboard filters and select a value to refine your report results."
@@ -3821,6 +3849,9 @@ msgid "Comparison font size"
 msgstr ""
 
 msgid "Comparison suffix"
+msgstr ""
+
+msgid "Complete your date selection to preview the range."
 msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
@@ -4435,6 +4466,12 @@ msgstr ""
 msgid "DD/MM format dates, international and European format"
 msgstr ""
 
+msgid "DD/MM/YYYY"
+msgstr ""
+
+msgid "DD/MM/YYYY HH:mm"
+msgstr ""
+
 msgid "DEC"
 msgstr ""
 
@@ -4822,10 +4859,16 @@ msgstr ""
 msgid "Date Time Format"
 msgstr ""
 
+msgid "Date and time range"
+msgstr ""
+
 msgid "Date format"
 msgstr ""
 
 msgid "Date format string"
+msgstr ""
+
+msgid "Date range"
 msgstr ""
 
 msgid "Date/Time"
@@ -5971,10 +6014,16 @@ msgstr ""
 msgid "End date"
 msgstr ""
 
+msgid "End date and time"
+msgstr ""
+
 msgid "End date excluded from time range"
 msgstr ""
 
 msgid "End date must be after start date"
+msgstr ""
+
+msgid "End must be after start."
 msgstr ""
 
 msgid "Ends With"
@@ -6007,6 +6056,10 @@ msgid "Enter a new password"
 msgstr ""
 
 msgid "Enter a part of the object name"
+msgstr ""
+
+#, python-format
+msgid "Enter a valid date using %s."
 msgstr ""
 
 msgid "Enter alert name"
@@ -7065,6 +7118,9 @@ msgstr ""
 msgid "Found invalid orderby options"
 msgstr ""
 
+msgid "Fr"
+msgstr ""
+
 msgid "Fraction digits"
 msgstr ""
 
@@ -7353,6 +7409,13 @@ msgid "Hostname or IP address"
 msgstr ""
 
 msgid "Hour"
+msgstr ""
+
+#, python-format
+msgid "Hour %s"
+msgstr ""
+
+msgid "Hours"
 msgstr ""
 
 #, python-format
@@ -8020,10 +8083,28 @@ msgstr ""
 msgid "Last"
 msgstr ""
 
+msgid "Last 12 hours"
+msgstr ""
+
+msgid "Last 15 minutes"
+msgstr ""
+
+msgid "Last 24 hours"
+msgstr ""
+
 msgid "Last 30 days"
 msgstr ""
 
+msgid "Last 30 minutes"
+msgstr ""
+
+msgid "Last 4 hours"
+msgstr ""
+
 msgid "Last 7 days"
+msgstr ""
+
+msgid "Last 8 hours"
 msgstr ""
 
 msgid "Last 90 days"
@@ -8048,6 +8129,9 @@ msgid "Last available value seen on %s"
 msgstr ""
 
 msgid "Last day"
+msgstr ""
+
+msgid "Last hour"
 msgstr ""
 
 msgid "Last login"
@@ -8907,6 +8991,13 @@ msgid "Minute"
 msgstr ""
 
 #, python-format
+msgid "Minute %s"
+msgstr ""
+
+msgid "Minutes"
+msgstr ""
+
+#, python-format
 msgid "Minutes %s"
 msgstr ""
 
@@ -8924,6 +9015,9 @@ msgid "Missing URL parameters"
 msgstr ""
 
 msgid "Mixed Chart"
+msgstr ""
+
+msgid "Mo"
 msgstr ""
 
 msgid "Modified"
@@ -9177,6 +9271,9 @@ msgid "New tab (Ctrl + t)"
 msgstr ""
 
 msgid "Next"
+msgstr ""
+
+msgid "Next month"
 msgstr ""
 
 msgid "Nightingale"
@@ -9790,6 +9887,10 @@ msgstr ""
 msgid "Open in SQL lab"
 msgstr ""
 
+#, python-format
+msgid "Open picker for %s"
+msgstr ""
+
 msgid "Open query in SQL Lab"
 msgstr ""
 
@@ -10158,6 +10259,9 @@ msgstr ""
 msgid "Pick your favorite markup language"
 msgstr ""
 
+msgid "Picker type"
+msgstr ""
+
 msgid "Pie Chart"
 msgstr ""
 
@@ -10462,6 +10566,9 @@ msgstr ""
 msgid "Previous Line"
 msgstr ""
 
+msgid "Previous month"
+msgstr ""
+
 msgid "Primary"
 msgstr ""
 
@@ -10607,6 +10714,9 @@ msgid "Query was stopped."
 msgstr ""
 
 msgid "Queued"
+msgstr ""
+
+msgid "Quick ranges"
 msgstr ""
 
 msgid "RBAC only"
@@ -11517,6 +11627,9 @@ msgstr ""
 msgid "SUN"
 msgstr ""
 
+msgid "Sa"
+msgstr ""
+
 msgid "Same as \"Run as\""
 msgstr ""
 
@@ -11920,6 +12033,9 @@ msgid "Select a database to upload the file to"
 msgstr ""
 
 msgid "Select a database to write a query"
+msgstr ""
+
+msgid "Select a date range"
 msgstr ""
 
 msgid "Select a delimiter for this data"
@@ -13065,6 +13181,9 @@ msgstr ""
 msgid "Start date"
 msgstr ""
 
+msgid "Start date and time"
+msgstr ""
+
 msgid "Start date included in time range"
 msgstr ""
 
@@ -13187,6 +13306,9 @@ msgid "Style the ends of the progress bar with a round cap"
 msgstr ""
 
 msgid "Styling"
+msgstr ""
+
+msgid "Su"
 msgstr ""
 
 msgid "Subcategories"
@@ -13566,6 +13688,9 @@ msgid "Text align"
 msgstr ""
 
 msgid "Text embedded in email"
+msgstr ""
+
+msgid "Th"
 msgstr ""
 
 #, python-format
@@ -14909,6 +15034,9 @@ msgstr ""
 msgid "This metric might be incompatible with current %s"
 msgstr ""
 
+msgid "This month"
+msgstr ""
+
 msgid "This name is already taken. Please choose another one."
 msgstr ""
 
@@ -14993,6 +15121,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "This week"
+msgstr ""
 
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
@@ -15220,6 +15351,9 @@ msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
 
+msgid "Today"
+msgstr ""
+
 msgid "Token Request URI"
 msgstr ""
 
@@ -15385,6 +15519,9 @@ msgstr ""
 msgid "Try different criteria to display results."
 msgstr ""
 
+msgid "Tu"
+msgstr ""
+
 msgid "Tuesday"
 msgstr ""
 
@@ -15399,6 +15536,12 @@ msgstr ""
 
 #, python-format
 msgid "Type \"%s\" to confirm"
+msgstr ""
+
+msgid "Type a date and time, or use the calendar icon. End time is exclusive."
+msgstr ""
+
+msgid "Type a date, or use the calendar icon. Both days are included."
 msgstr ""
 
 msgid "Type a value"
@@ -16205,6 +16348,9 @@ msgstr ""
 msgid "Waterfall Chart"
 msgstr ""
 
+msgid "We"
+msgstr ""
+
 msgid "We are unable to connect to your database."
 msgstr ""
 
@@ -16685,6 +16831,9 @@ msgid "Yes, cancel"
 msgstr ""
 
 msgid "Yes, overwrite changes"
+msgstr ""
+
+msgid "Yesterday"
 msgstr ""
 
 #, python-format

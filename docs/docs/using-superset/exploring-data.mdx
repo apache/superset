@@ -86,12 +86,34 @@ In this section, we'll create a table visualization
 to show the number of flights and cost per travel class.
 
 By default, Apache Superset only shows the last week of data. In our example, we want to visualize all
-of the data in the dataset. Click the **Time ‣ Time Range** section and change
-the **Range Type** to **No Filter**.
-
-<img src={useBaseUrl('/img/tutorial/no_filter_on_time_filter.png')} />
+of the data in the dataset. Click the **Time ‣ Time Range** section and choose
+**All time** in the calendar's quick ranges.
 
 Click **Apply** to save.
+
+The time filter opens an inline calendar with two consecutive months. Select a
+start date and then an end date, or enter them in the date fields. Both selected
+days are included. Selecting an earlier end date in the calendar reverses the
+selection automatically; an end date typed before the start date must be
+corrected before applying. Use the arrow keys to move between days and Page Up
+or Page Down to move between months.
+
+Click an endpoint's text to type a date in `DD/MM/YYYY` format. Clicking its
+calendar icon opens a single-date picker; Arrow Down also opens it and Escape
+closes it. Incomplete or impossible dates stay in the input and disable
+**Apply** until corrected.
+
+Choose **Date and time range** to enter `DD/MM/YYYY HH:mm` or select a date,
+hour, and minute from the endpoint's picker. Click **Done** to confirm that
+picker. Date-time ranges preserve the exact endpoints, with an exclusive end
+time. A saved absolute range with non-midnight timestamps opens in this mode.
+
+Quick ranges such as **Last 7 days**, **This month**, and **Previous month**
+remain relative when saved. Date-time mode also offers minute and hour ranges,
+including **Last 15 minutes** and **Last 4 hours**. **Advanced options** provides
+the existing relative, custom date/time, and expression controls; advanced
+expressions open those controls automatically. **Cancel** discards changes
+until **Apply** is clicked. Dashboard time filters use the same calendar.
 
 Now, we want to specify the rows in our table by using the **Group by** option. Since in this
 example, we want to understand different Travel Classes, we select **Travel Class** in this menu.
