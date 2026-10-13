@@ -162,6 +162,14 @@ class DatasourceRestApi(BaseSupersetApi):
               dimensions. Semantic non-text dimensions return the bounded page
               without server-side search. Case sensitivity follows the datasource
               or semantic provider.
+          - in: query
+            schema:
+              type: string
+            name: semantic_selection_version
+            description: >-
+              Identity version from the saved or explicitly initialized field
+              selections. Required for versioned semantic views; never infer it
+              from current datasource metadata for legacy selections.
           responses:
             200:
               description: A List of distinct values for the column
@@ -174,8 +182,9 @@ class DatasourceRestApi(BaseSupersetApi):
                         type: string
                         enum: [unavailable_versioned_view]
                         description: >-
-                          Suggestions are disabled for versioned semantic views;
-                          enter values manually.
+                          Selection provenance is missing or stale for this
+                          versioned semantic view; reselect fields or enter
+                          values manually.
                       result:
                         type: array
                         items:
@@ -218,12 +227,19 @@ class DatasourceRestApi(BaseSupersetApi):
         self, datasource: BaseDatasource, datasource_type: str, column_name: str
     ) -> FlaskResponse:
         """Return suggestions for an authorized datasource, gating before cache."""
-        # This route cannot prove the provenance of saved dimension names.
-        # Gate before cache access as well as provider execution.
+        # A saved display title may equal a different member's stable ID.
+        # Check the caller's selection version before cache access or value
+        # retrieval. The marker is the caller's assertion, not proof of
+        # provenance: anyone can copy it from datasource metadata. It only
+        # prevents stale-title collisions; authorization is enforced above.
+        selection_version: str | None = None
         if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+            selection_version = cast(
+                SemanticView, datasource
+            ).implementation.selection_identity_version
             if (
-                cast(SemanticView, datasource).implementation.selection_identity_version
-                is not None
+                selection_version is not None
+                and request.args.get("semantic_selection_version") != selection_version
             ):
                 return self.response(
                     200,
@@ -270,6 +286,11 @@ class DatasourceRestApi(BaseSupersetApi):
             cache_key: str = _column_values_cache_key(
                 datasource,
                 {
+                    **(
+                        {"semantic_selection_version": selection_version}
+                        if selection_version is not None
+                        else {}
+                    ),
                     "col": column_name,
                     "limit": row_limit,
                     "denorm": denormalize_column,
