@@ -181,7 +181,7 @@ describe('dashboardState actions', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('saveDashboardRequest', () => {
     test.each([false, true])(
-      'Save As preserves scoping without updating the source (duplicate_slices=%s)',
+      'Save As sends cross-filter configuration without updating the source (duplicate_slices=%s)',
       async duplicateSlices => {
         const sourceId = 192;
         const copyId = 193;
@@ -196,7 +196,8 @@ describe('dashboardState actions', () => {
         } as unknown as JsonResponse);
         const { chartConfiguration, globalChartConfiguration } =
           getCrossFiltersConfiguration(
-            state.dashboardLayout.present,
+            state.dashboardLayout
+              .present as unknown as RootState['dashboardLayout']['present'],
             state.dashboardInfo
               .metadata as RootState['dashboardInfo']['metadata'],
             state.charts,
