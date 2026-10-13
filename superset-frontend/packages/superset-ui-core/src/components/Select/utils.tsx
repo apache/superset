@@ -51,10 +51,30 @@ export function isEqual(
     isObject(a) && key in a ? a[key as keyof CustomLabeledValue] : a;
   const actualB =
     isObject(b) && key in b ? b[key as keyof CustomLabeledValue] : b;
+
+  if (
+    (typeof actualA === 'number' &&
+      typeof actualB === 'string' &&
+      actualB.trim() === '') ||
+    (typeof actualB === 'number' &&
+      typeof actualA === 'string' &&
+      actualA.trim() === '')
+  ) {
+    return false;
+  }
+
   // When comparing the values we use the equality
   // operator to automatically convert different types
   // eslint-disable-next-line eqeqeq
-  return actualA == actualB;
+  if (actualA == actualB) {
+    return true;
+  }
+  if (typeof actualA === 'string' && typeof actualB === 'string') {
+    const trimmedA = actualA.trim();
+    const trimmedB = actualB.trim();
+    return trimmedA.length > 0 && trimmedA === trimmedB;
+  }
+  return false;
 }
 
 export function getOption(

@@ -42,7 +42,13 @@ export type CustomLabeledValue = {
 
 export type AntdProps = AntdSelectProps<AntdSelectValue>;
 
-export type SelectValue = AntdSelectValue | null;
+export type SelectValue =
+  | RawValue
+  | RawValue[]
+  | LabeledValue
+  | LabeledValue[]
+  | null
+  | undefined;
 
 export type { RefSelectProps };
 

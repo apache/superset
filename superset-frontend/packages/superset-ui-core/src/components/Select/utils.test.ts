@@ -184,3 +184,70 @@ test('propertyComparator sorts mixed bigint and number properties numerically', 
     bigHundred,
   ]);
 });
+
+test('isEqual handles matching numbers and strings', () => {
+  expect(isEqual(1, 1, 'value')).toBe(true);
+  expect(isEqual(1, '1', 'value')).toBe(true);
+  expect(isEqual({ value: 1 }, 1, 'value')).toBe(true);
+  expect(isEqual({ value: 1 }, '1', 'value')).toBe(true);
+  expect(isEqual(' test ', 'test', 'value')).toBe(true);
+  expect(isEqual({ value: 'abc' }, { value: 'abc' }, 'value')).toBe(true);
+  expect(isEqual({ value: 'abc' }, { value: 'def' }, 'value')).toBe(false);
+});
+
+test('isEqual distinguishes empty strings and whitespace while preserving deduplication', () => {
+  expect(isEqual('', ' ', 'value')).toBe(false);
+  expect(isEqual(' ', '', 'value')).toBe(false);
+  expect(isEqual('', '   ', 'value')).toBe(false);
+  expect(isEqual(' ', '   ', 'value')).toBe(false);
+  expect(isEqual('', '', 'value')).toBe(true);
+  expect(isEqual(' ', ' ', 'value')).toBe(true);
+  expect(isEqual(' test ', 'test', 'value')).toBe(true);
+  expect(isEqual(' Sales ', 'Sales', 'value')).toBe(true);
+  expect(isEqual('Sales', ' Sales ', 'value')).toBe(true);
+  expect(isEqual('Sales', 'sales', 'value')).toBe(false);
+  expect(isEqual(0, '', 'value')).toBe(false);
+  expect(isEqual(0, ' ', 'value')).toBe(false);
+  expect(isEqual(0, '0', 'value')).toBe(true);
+  expect(isEqual(1, '1', 'value')).toBe(true);
+  expect(isEqual(null, undefined, 'value')).toBe(true);
+  expect(isEqual(null, '', 'value')).toBe(false);
+  expect(isEqual({ value: 0 }, '', 'value')).toBe(false);
+  expect(isEqual({ value: 0 }, '0', 'value')).toBe(true);
+  expect(isEqual({ label: ' Sales ' }, 'Sales', 'label')).toBe(true);
+});
+
+test('getOption and hasOption locate options by value or label', () => {
+  const options = [
+    { label: 'Option 1', value: 1 },
+    { label: 'Option 2', value: 2 },
+    { label: 'New Option', value: 'New Option', isNewOption: true },
+  ];
+  expect(hasOption(1, options)).toBe(true);
+  expect(hasOption(99, options)).toBe(false);
+  expect(hasOption('Option 2', options, true)).toBe(true);
+  expect(hasOption('Option 2', options, false)).toBe(false);
+  expect(getOption(2, options)).toEqual({ label: 'Option 2', value: 2 });
+  expect(getOption('Option 1', options, true)).toEqual({
+    label: 'Option 1',
+    value: 1,
+  });
+  expect(getOption({ value: 2 }, options)).toEqual({
+    label: 'Option 2',
+    value: 2,
+  });
+  expect(getOption({ label: 'Option 1' }, options, true)).toEqual({
+    label: 'Option 1',
+    value: 1,
+  });
+});
+
+test('isNewOption detects temporary new option flag safely', () => {
+  expect(isNewOption({ label: 'test', value: 'test', isNewOption: true })).toBe(
+    true,
+  );
+  expect(isNewOption({ label: 'test', value: 'test' })).toBe(false);
+  expect(isNewOption(null)).toBe(false);
+  expect(isNewOption('string')).toBe(false);
+  expect(isNewOption(123)).toBe(false);
+});
