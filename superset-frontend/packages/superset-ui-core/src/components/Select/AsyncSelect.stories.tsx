@@ -350,7 +350,7 @@ const createMockUserFetcher =
  * with a [new] badge and are automatically dropped if the server returns a matching
  * option upon search completion.
  */
-export const WithAllowNewOptions = (args: AsyncSelectProps) => (
+export const WithAllowNewOptions = (args: Omit<AsyncSelectProps, 'ref'>) => (
   <div style={{ width: DEFAULT_WIDTH }}>
     <AsyncSelect
       {...args}

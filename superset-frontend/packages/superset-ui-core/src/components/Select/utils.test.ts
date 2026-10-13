@@ -199,6 +199,28 @@ test('isEqual handles matching numbers and strings', () => {
   expect(isEqual({ value: 'abc' }, { value: 'def' }, 'value')).toBe(false);
 });
 
+test('isEqual distinguishes empty strings and whitespace while preserving deduplication', () => {
+  expect(isEqual('', ' ', 'value')).toBe(false);
+  expect(isEqual(' ', '', 'value')).toBe(false);
+  expect(isEqual('', '   ', 'value')).toBe(false);
+  expect(isEqual(' ', '   ', 'value')).toBe(false);
+  expect(isEqual('', '', 'value')).toBe(true);
+  expect(isEqual(' ', ' ', 'value')).toBe(true);
+  expect(isEqual(' test ', 'test', 'value')).toBe(true);
+  expect(isEqual(' Sales ', 'Sales', 'value')).toBe(true);
+  expect(isEqual('Sales', ' Sales ', 'value')).toBe(true);
+  expect(isEqual('Sales', 'sales', 'value')).toBe(false);
+  expect(isEqual(0, '', 'value')).toBe(false);
+  expect(isEqual(0, ' ', 'value')).toBe(false);
+  expect(isEqual(0, '0', 'value')).toBe(true);
+  expect(isEqual(1, '1', 'value')).toBe(true);
+  expect(isEqual(null, undefined, 'value')).toBe(true);
+  expect(isEqual(null, '', 'value')).toBe(false);
+  expect(isEqual({ value: 0 }, '', 'value')).toBe(false);
+  expect(isEqual({ value: 0 }, '0', 'value')).toBe(true);
+  expect(isEqual({ label: ' Sales ' }, 'Sales', 'label')).toBe(true);
+});
+
 test('getOption and hasOption locate options by value or label', () => {
   const options = [
     { label: 'Option 1', value: 1 },
