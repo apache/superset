@@ -51,3 +51,4 @@ under the License.
 - [5.0.0](./CHANGELOG/5.0.0.md)
 - [6.0.0](./CHANGELOG/6.0.0.md)
 - [6.1.0](./CHANGELOG/6.1.0.md)
+- [7.0.0](./CHANGELOG/7.0.0.md)

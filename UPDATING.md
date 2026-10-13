@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+## 7.0.0
+
 - A chart whose datasource no longer exists (hard-deleted, or no datasource ID)
   has its denormalized `perm`, `schema_perm` and `catalog_perm` cleared when it is
   saved, including during the dataset's deletion. Purging a soft-deleted dataset
