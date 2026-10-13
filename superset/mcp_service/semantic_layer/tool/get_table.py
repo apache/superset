@@ -60,6 +60,10 @@ from superset.mcp_service.semantic_layer.schemas import (
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -625,6 +629,12 @@ async def _get_table(
             request.row_limit,
         )
     )
+
+    if request.view_id is not None and not is_semantic_layers_enabled():
+        return SemanticLayerError.create(
+            error=SemanticLayersDisabledError.message,
+            error_type="SemanticLayersDisabledError",
+        )
 
     if not user_can_view_data_model_metadata():
         return SemanticLayerError.create(

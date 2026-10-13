@@ -163,6 +163,7 @@ export const dndAdhocFilterControl: SharedControlConfig<
     // current active adhoc metrics
     selectedMetrics:
       form_data.metrics || (form_data.metric ? [form_data.metric] : []),
+    semanticSelectionVersion: form_data.semantic_selection_version,
     datasource,
   }),
   provideFormDataToProps: true,
