@@ -1629,6 +1629,115 @@ def test_finalization_stop_check_preserves_pending_metadata(
     engine.dispose()
 
 
+@pytest.mark.parametrize(
+    "checkpoint", ["serialization", "backend_error", "timeout", "timeout_oauth2_lookup"]
+)
+@pytest.mark.parametrize("stop_requested", [False, True])
+def test_task_error_lookup_does_not_flush_over_a_stop(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    checkpoint: str,
+    stop_requested: bool,
+) -> None:
+    """The task's error lookup must not flush stale metadata before checking Stop."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'task-stop.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+
+    def interrupt_processing() -> None:
+        """Optionally commit Stop independently before result processing fails."""
+        if stop_requested:
+            with Session(engine) as stop_session:
+                stopped_query = stop_session.get(Query, 123)
+                assert stopped_query is not None
+                stopped_query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+                stopped_query.status = QueryStatusEnum.STOPPED
+                stopped_query.end_time = 1234.5
+                stop_session.commit()
+        if checkpoint.startswith("timeout"):
+            raise SoftTimeLimitExceeded()
+        raise RuntimeError("Result processing failed")
+
+    with Session(engine, expire_on_commit=False) as session:
+        query = Query(
+            id=123,
+            client_id="task-stop",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+        execute = mocker.patch.object(
+            celery_task,
+            "execute_sql_with_cursor",
+            return_value=[("SELECT 1", None, 1.0, 0)],
+        )
+        mocker.patch.object(celery_task, "results_backend", None)
+        if checkpoint.startswith("timeout"):
+            execute.side_effect = lambda **kwargs: interrupt_processing()
+            if checkpoint == "timeout_oauth2_lookup":
+
+                def load_oauth2_settings() -> bool:
+                    """Model the ORM load while deciding whether to retry an error."""
+                    session.query(Query).count()
+                    return False
+
+                mock_database.is_oauth2_enabled.side_effect = load_oauth2_settings
+        elif checkpoint == "serialization":
+            result_set = MagicMock(size=1, truncated=False)
+            execute.return_value = [("SELECT 1", result_set, 1.0, 1)]
+            mocker.patch.object(
+                celery_task,
+                "_serialize_result_set",
+                side_effect=lambda _: interrupt_processing(),
+            )
+        else:
+            backend = MagicMock()
+            backend.set.side_effect = lambda *args: interrupt_processing()
+            mocker.patch.object(celery_task, "results_backend", backend)
+            mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+
+        # Keep the real _get_query: a mocked lookup cannot expose autoflush.
+        payload = celery_task.execute_sql_task(123, query.sql)
+
+        assert payload is not None
+        if stop_requested:
+            assert payload == {"query_id": 123, "status": QueryStatusEnum.STOPPED}
+        else:
+            expected_status = (
+                QueryStatusEnum.TIMED_OUT
+                if checkpoint.startswith("timeout")
+                else QueryStatusEnum.FAILED
+            )
+            assert payload["status"] == expected_status
+        session.refresh(query)
+        if stop_requested:
+            assert query.status == QueryStatusEnum.STOPPED
+            assert query.end_time == Decimal("1234.5")
+            assert query.extra == {QUERY_EARLY_CANCEL_KEY: True}
+            assert query.error_message is None
+        else:
+            assert query.status == expected_status
+            assert query.end_time is not None
+            assert query.error_message is not None
+        assert query.results_key is None
+    engine.dispose()
+
+
 @pytest.mark.parametrize("stopped", [False, True])
 def test_error_stop_check_preserves_uncommitted_timeout(
     mocker: MockerFixture,
