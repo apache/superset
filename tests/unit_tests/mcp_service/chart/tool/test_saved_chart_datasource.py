@@ -39,6 +39,8 @@ from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tool_name", ["get_chart_data", "get_chart_info"])

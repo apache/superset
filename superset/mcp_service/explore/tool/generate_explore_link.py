@@ -59,6 +59,7 @@ from superset.mcp_service.utils.url_utils import (
     extract_permalink_key_from_url,
     get_superset_base_url,
 )
+from superset.semantic_layers.access import SemanticLayersDisabledError
 
 logger = logging.getLogger(__name__)
 
@@ -373,6 +374,16 @@ async def generate_explore_link(  # noqa: C901
             success=True,
         )
 
+    except SemanticLayersDisabledError:
+        return GenerateExploreLinkResponse(
+            url="",
+            success=False,
+            error=ChartGenerationError(
+                error_type="SemanticLayersDisabledError",
+                message=SemanticLayersDisabledError.message,
+                details=SemanticLayersDisabledError.message,
+            ),
+        )
     except Exception as e:
         await ctx.error(
             "Explore link generation failed for dataset_id=%s, chart_type=%s: %s: %s"

@@ -96,6 +96,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.models.slice import Slice
+from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
@@ -1430,6 +1431,17 @@ async def update_chart(  # noqa: C901
         return _validation_error_response(
             message="Gantt chart column roles are invalid",
             details=str(ex),
+        )
+    except SemanticLayersDisabledError:
+        return _finalize_response(
+            {
+                "success": False,
+                "error": {
+                    "error_type": "SemanticLayersDisabledError",
+                    "message": SemanticLayersDisabledError.message,
+                    "details": SemanticLayersDisabledError.message,
+                },
+            }
         )
     except OAuth2RedirectError as ex:
         await ctx.warning(
