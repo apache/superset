@@ -1547,6 +1547,88 @@ class TestUpdateChartSaveWithConfig:
         assert isinstance(form_data, dict)
         assert "viz_type" in form_data
 
+    @patch(
+        "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+        return_value=None,
+    )
+    @patch.object(
+        update_chart_module, "_validate_update_against_dataset", return_value=None
+    )
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("generate_preview", [False, True])
+    async def test_sql_trendline_is_not_dropped_by_an_update_that_omits_it(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_check_access,
+        mock_update_cmd_cls,
+        unused_validate_mock,
+        unused_find_dataset_mock,
+        mcp_server,
+        generate_preview: bool,
+    ):
+        """A saved SQL expression trendline is refused, not silently removed."""
+        mock_chart = Mock()
+        mock_chart.id = 77
+        mock_chart.datasource_id = 10
+        mock_chart.datasource_type = "table"
+        mock_chart.slice_name = "Daily signups"
+        mock_chart.viz_type = "big_number"
+        mock_chart.uuid = "uuid-77"
+        mock_chart.params = json.dumps(
+            {
+                "viz_type": "big_number",
+                "metric": "count",
+                "x_axis": {
+                    "expressionType": "SQL",
+                    "sqlExpression": "DATE(ds)",
+                    "label": "day",
+                },
+            }
+        )
+        mock_find_by_id.return_value = mock_chart
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="my_dataset",
+            warnings=[],
+        )
+        mock_update_cmd_cls.return_value.run.return_value = Mock(
+            id=77, slice_name="Daily signups", viz_type="big_number", uuid="uuid-77"
+        )
+
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "update_chart",
+                {
+                    "request": {
+                        "identifier": 77,
+                        "generate_preview": generate_preview,
+                        "config": {
+                            "chart_type": "big_number",
+                            "metric": {"name": "revenue", "aggregate": "SUM"},
+                        },
+                    }
+                },
+            )
+
+        data = result.structured_content
+        assert data["success"] is False, data
+        assert data["error"]["error_type"] == "ValidationError"
+        assert data["error"]["message"] == "Invalid Big Number update configuration"
+        assert "SQL expression" in data["error"]["details"]
+        mock_update_cmd_cls.assert_not_called()
+
 
 class TestUpdateChartErrorPaths:
     """Integration tests for error-handling branches in update_chart."""
@@ -3240,17 +3322,67 @@ def test_big_number_update_keeps_trendline_saved_under_x_axis(x_axis: Any) -> No
     assert params["adhoc_filters"] == [_BIG_NUMBER_TIME_RANGE_FILTER]
 
 
-def test_big_number_update_does_not_inherit_adhoc_trendline_column() -> None:
-    """A SQL expression x_axis has no column name the typed config can carry."""
-    saved = {
-        "viz_type": "big_number",
-        "metric": "count",
-        "x_axis": {
-            "expressionType": "SQL",
-            "sqlExpression": "DATE(ds)",
-            "label": "day",
-        },
-    }
+_BIG_NUMBER_SQL_TRENDLINE: dict[str, Any] = {
+    "viz_type": "big_number",
+    "metric": "count",
+    "x_axis": {
+        "expressionType": "SQL",
+        "sqlExpression": "DATE(ds)",
+        "label": "day",
+    },
+    "compare_lag": 7,
+}
+
+
+def test_big_number_update_rejects_dropping_a_sql_trendline_column() -> None:
+    """A SQL expression x_axis has no column name the typed config can carry.
+
+    Mapping the update would turn the chart into a plain big number, so the
+    update is refused until the caller says what to do with the trendline.
+    """
+    with pytest.raises(ValueError, match="SQL expression") as excinfo:
+        _saved_variant_update_params(
+            _BIG_NUMBER_SQL_TRENDLINE, _BIG_NUMBER_VARIANT_CONFIG
+        )
+
+    assert "temporal_column" in str(excinfo.value)
+    assert "show_trendline" in str(excinfo.value)
+
+
+def test_big_number_update_replaces_a_sql_trendline_column() -> None:
+    from superset.mcp_service.chart.chart_helpers import resolve_big_number_columns
+
+    params = _saved_variant_update_params(
+        _BIG_NUMBER_SQL_TRENDLINE,
+        {**_BIG_NUMBER_VARIANT_CONFIG, "temporal_column": "order_date"},
+    )
+
+    assert params["viz_type"] == "big_number"
+    assert resolve_big_number_columns(params) == ["order_date"]
+    assert params["compare_lag"] == 7
+
+
+def test_big_number_update_with_show_trendline_false_drops_a_sql_trendline() -> None:
+    params = _saved_variant_update_params(
+        _BIG_NUMBER_SQL_TRENDLINE,
+        {**_BIG_NUMBER_VARIANT_CONFIG, "show_trendline": False},
+    )
+
+    assert params["viz_type"] == "big_number_total"
+
+
+def test_big_number_rebind_does_not_reject_a_sql_trendline_column() -> None:
+    """A rebind already replaces the saved time column, SQL expression or not."""
+    params = _saved_variant_update_params(
+        _BIG_NUMBER_SQL_TRENDLINE, _BIG_NUMBER_VARIANT_CONFIG, dataset_id=99
+    )
+
+    assert params["viz_type"] == "big_number_total"
+
+
+def test_big_number_update_without_a_saved_time_column_becomes_total() -> None:
+    """A saved trendline chart with no time column has no trendline to keep."""
+    saved = {"viz_type": "big_number", "metric": "count"}
 
     params = _saved_variant_update_params(saved, _BIG_NUMBER_VARIANT_CONFIG)
 

@@ -250,9 +250,18 @@ class BigNumberChartPlugin(BaseChartPlugin):
         # Explore saves the column as x_axis; the mapper as granularity_sqla.
         saved_columns = resolve_big_number_columns(existing_form_data)
         saved_column = saved_columns[0] if saved_columns else None
-        # An adhoc SQL x_axis has no column name the typed config can carry.
-        if not isinstance(saved_column, str):
+        if saved_column is None:
             return config
+        # An adhoc SQL x_axis has no column name the typed config can carry,
+        # so mapping this update would drop the trendline the caller never
+        # mentioned. Make the caller choose instead.
+        if not isinstance(saved_column, str):
+            raise ValueError(
+                "The saved trendline uses a SQL expression as its time column, "
+                "which a Big Number config cannot carry. Set 'temporal_column' "
+                "to a dataset column to keep a trendline, or set "
+                "'show_trendline' to false to remove it."
+            )
         resolved = config.model_copy(
             update={"show_trendline": True, "temporal_column": saved_column}
         )
