@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { act, render, screen } from 'spec/helpers/testing-library';
 import { ChartMetadata, ChartPlugin, QueryData } from '@superset-ui/core';
 import ChartRenderer, {
   ChartRendererProps,
@@ -80,6 +80,14 @@ beforeEach(() => {
 
 const queriesResponse = (value: number) =>
   [{ data: [{ value }] }] as unknown as QueryData[];
+
+// SuperChart loads the chart plugin asynchronously, so a chart that is about
+// to render is not in the DOM right after render(). Tests asserting that a
+// chart stays absent have to let that load settle first.
+const waitForChartLoad = () =>
+  act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
 
 const props = (overrides: Partial<ChartRendererProps>): ChartRendererProps => ({
   chartId: 1,
@@ -205,19 +213,21 @@ test('keeps a self-fetching chart mounted while an auto-refresh query is in flig
   expect(selfFetchingChartMounted).toHaveBeenCalledTimes(1);
 });
 
-test('does not render a self-fetching chart whose first query is still in flight', () => {
+test('does not render a self-fetching chart whose first query is still in flight', async () => {
   render(
     <ChartRenderer
       {...selfFetchingProps({ chartStatus: 'loading', queriesResponse: null })}
     />,
   );
+  await waitForChartLoad();
 
   expect(
     screen.queryByTestId('self-fetching-test-chart'),
   ).not.toBeInTheDocument();
+  expect(selfFetchingChartMounted).not.toHaveBeenCalled();
 });
 
-test('does not render a chart with an empty response while its query is in flight', () => {
+test('does not render a chart with an empty response while its query is in flight', async () => {
   render(
     <ChartRenderer
       {...props({
@@ -227,6 +237,7 @@ test('does not render a chart with an empty response while its query is in fligh
       })}
     />,
   );
+  await waitForChartLoad();
 
   expect(screen.queryByTestId('refresh-test-chart')).not.toBeInTheDocument();
   expect(screen.queryByText(NO_RESULTS)).not.toBeInTheDocument();
