@@ -24,8 +24,6 @@ assists people when migrating to a new version.
 
 ## Next
 
-- Semantic provider SDK: migrate to the single `from_configuration` factory with required keyword-only `cache_token` and `context`, plus reserved `credentials=None`; the unreleased optional cache-token factory is removed. See [the execution context contract](docs/developer_docs/extensions/semantic-execution-context.md).
-
 - `SEMANTIC_LAYER_CONTAINMENT_CACHE` is off by default; opted-in providers can
   reuse cached semantic-view results for narrower queries. Containment keys include
   the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
@@ -188,6 +186,21 @@ reattached to a reachable container by layout repair.
   exports. Ordinary table bundles retain their existing format. The examples
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
+
+### Graph null category colors
+
+Graph charts label SQL `NULL` categories as `<NULL>` and share their colors with
+other charts using that label. Move any `label_colors["N/A"]` setting intended for
+SQL NULL to `label_colors["<NULL>"]`; `N/A` continues to identify the literal value.
+
+The literal string `<NULL>` is quoted as `"<NULL>"` to keep it separate from SQL
+NULL. Quoted forms of that literal are also escaped to avoid collisions; other
+quoted labels keep their existing display and color keys. Use the displayed
+label as the custom color key, for example:
+
+```json
+{"<NULL>": "#e53935", "\"<NULL>\"": "#123456"}
+```
 
 ### Alerts & Reports: runtime configuration and per-schedule "Run As" executor (SIP-209)
 
