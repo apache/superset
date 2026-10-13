@@ -70,7 +70,9 @@ jobs:
         # dimension, so it runs on every event.
         app_root: ["", "/app/prefix"]
     env:
-      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      # A dispatch can check out a fork PR or an arbitrary ref while keeping
+      # repository secrets, so never expose the Develocity key to that code
+      DEVELOCITY_ENABLED: ${{ github.event_name != 'workflow_dispatch' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
@@ -117,7 +119,7 @@ jobs:
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
         with:
-          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+          develocity-access-key: ${{ env.DEVELOCITY_ENABLED == 'true' && secrets.DEVELOCITY_ACCESS_KEY || '' }}
       - name: Setup postgres
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
@@ -311,7 +313,9 @@ jobs:
         browser: ["chromium"]
         app_root: ["", "/app/prefix"]
     env:
-      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
+      # A dispatch can check out a fork PR or an arbitrary ref while keeping
+      # repository secrets, so never expose the Develocity key to that code
+      DEVELOCITY_ENABLED: ${{ github.event_name != 'workflow_dispatch' && secrets.DEVELOCITY_ACCESS_KEY != '' }}
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config_gaq
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
@@ -358,7 +362,7 @@ jobs:
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
         with:
-          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+          develocity-access-key: ${{ env.DEVELOCITY_ENABLED == 'true' && secrets.DEVELOCITY_ACCESS_KEY || '' }}
       - name: Setup postgres
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from

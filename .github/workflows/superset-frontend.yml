@@ -124,7 +124,7 @@ jobs:
 
       - name: npm run test with coverage
         env:
-          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outcome == 'success' && env.DEVELOCITY_DOCKER_ARGS || '' }}
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
           mkdir -p ${{ github.workspace }}/superset-frontend/coverage
           docker run \
@@ -199,14 +199,14 @@ jobs:
       # The last weird node command is to run tests fo custom Superset lint rules
       - name: lint
         env:
-          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outcome == 'success' && env.DEVELOCITY_DOCKER_ARGS || '' }}
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
           docker run --rm $DEVELOCITY_DOCKER_ENV $TAG bash -c \
           "npm i && npm run lint && node --import tsx --test custom-lint-rules/**/*.test.ts"
 
       - name: tsc
         env:
-          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outcome == 'success' && env.DEVELOCITY_DOCKER_ARGS || '' }}
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
           docker run --rm $DEVELOCITY_DOCKER_ENV $TAG bash -c \
           "npm i && npm run plugins:build && npm run type"
@@ -238,7 +238,7 @@ jobs:
 
       - name: Validate dependency tree
         env:
-          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outcome == 'success' && env.DEVELOCITY_DOCKER_ARGS || '' }}
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
           docker run --rm $DEVELOCITY_DOCKER_ENV $TAG bash -c \
           "npm ls --all --package-lock-only --depth=0 --json > /dev/null"
@@ -270,7 +270,7 @@ jobs:
 
       - name: Build Storybook and Run Tests
         env:
-          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outcome == 'success' && env.DEVELOCITY_DOCKER_ARGS || '' }}
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
           docker run --rm $DEVELOCITY_DOCKER_ENV $TAG bash -c \
           "npx playwright install-deps && npx playwright install chromium && npm run test-storybook"
@@ -356,7 +356,7 @@ jobs:
 
       - name: Build production bundle with stats
         env:
-          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outcome == 'success' && env.DEVELOCITY_DOCKER_ARGS || '' }}
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
           mkdir -p ${{ github.workspace }}/superset-frontend/bundle-stats
           mkdir -p ${{ github.workspace }}/superset-frontend/.temp_cache
