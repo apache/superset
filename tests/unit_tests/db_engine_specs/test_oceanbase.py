@@ -19,6 +19,7 @@ from typing import Any
 
 import pytest
 from sqlalchemy import JSON, types
+
 from superset.db_engine_specs.oceanbase import ARRAY, MAP, NUMBER, NUMERIC
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
@@ -54,7 +55,7 @@ def test_get_column_spec(
     is_dttm: bool,
 ) -> None:
     from superset.db_engine_specs.oceanbase import (
-        OceanBaseEngineSpec as spec,
+        OceanBaseEngineSpec as spec,  # noqa: N813
     )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
