@@ -126,13 +126,12 @@ class CatalogResponse(BaseModel):
     )
     truncated: bool = Field(
         False,
-        description="True when the page ended early to stay within the response "
-        "size bound; next_cursor is then always set. A page with no next_cursor "
-        "is complete and never truncated",
+        description="True when the page ended early at the response size bound; "
+        "next_cursor is then set",
     )
     fields_shortened: bool = Field(
         False,
-        description="True when an item's name or description was shortened, or "
-        "an oversized URL omitted. Does not mean entries are missing",
+        description="True when a name or description was shortened or an "
+        "oversized URL omitted; no entries are missing",
     )
     message: str | None = Field(None, description="Explanation when restricted")
