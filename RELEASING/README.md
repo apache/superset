@@ -223,7 +223,16 @@ Next, update the `CHANGELOG/<version>.md` with all the changes that are included
 Make sure the branch has been pushed to `origin` to ensure the changelog generator
 can pick up changes since the previous release.
 Similar to `cherrytree`, the change log script requires a github token, either as an env var
-(`GITHUB_TOKEN`) or as the parameter `--access_token`.
+(`GITHUB_TOKEN`) or as the parameter `--access_token`. If you use the GitHub CLI, you can
+reuse its token with `export GITHUB_TOKEN=$(gh auth token)`.
+
+Fetching the pull request details from github can take hours for a large release, as the
+script makes two API requests per pull request and has to wait whenever it hits github's
+rate limit. The fetched details are cached in a file (see `--cache_file`), so if a run is
+interrupted, rerunning the same command resumes where it left off. Pull requests that github
+no longer serves, for example ones hidden along with a suspended account, are listed using
+their commit details instead, and the script prints a warning for each so they can be
+checked by hand.
 
 #### Initial release (e.g. 1.5.0)
 

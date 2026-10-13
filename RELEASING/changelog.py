@@ -14,9 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import csv as lib_csv
+import json  # noqa: TID251 - standalone release script, not part of superset
 import os
 import re
 import sys
+import tempfile
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any, Optional, Union
@@ -25,7 +27,14 @@ import click
 from click.core import Context
 
 try:
-    from github import BadCredentialsException, Github, PullRequest, Repository
+    from github import (
+        Auth,
+        BadCredentialsException,
+        Github,
+        PullRequest,
+        Repository,
+        UnknownObjectException,
+    )
 except ModuleNotFoundError:
     print("PyGitHub is a required package for this script")
     exit(1)
@@ -71,29 +80,70 @@ class GitChangeLog:
         logs: list[GitLog],
         access_token: Optional[str] = None,
         risk: Optional[bool] = False,
+        cache_file: Optional[str] = None,
     ) -> None:
         self._version = version
         self._logs = logs
-        self._pr_logs_with_details: dict[int, dict[str, Any]] = {}
+        self._cache_file = cache_file
+        self._pr_logs_with_details = self._load_cached_pull_request_details()
         self._github_login_cache: dict[str, Optional[str]] = {}
-        self._github_prs: dict[int, Any] = {}
         self._wait = 10
         github_token = access_token or os.environ.get("GITHUB_TOKEN")
-        self._github = Github(github_token)
+        self._github = Github(auth=Auth.Token(github_token) if github_token else None)
         self._show_risk = risk
         self._superset_repo: Repository = None
 
-    def _fetch_github_pr(self, pr_number: int) -> PullRequest:
+    def _load_cached_pull_request_details(self) -> dict[int, dict[str, Any]]:
         """
-        Fetches a github PR info
+        Loads the PR details persisted by previous runs, so an interrupted run
+        resumes where it left off instead of fetching everything from github again
+        """
+        details: dict[int, dict[str, Any]] = {}
+        if not self._cache_file or not os.path.exists(self._cache_file):
+            return details
+        truncated = False
+        with open(self._cache_file) as cache:
+            for line in cache:
+                try:
+                    detail = json.loads(line)
+                except json.JSONDecodeError:
+                    truncated = True
+                    continue
+                details[detail["id"]] = detail
+        if truncated:
+            # a run killed mid-write leaves a truncated line behind, so rewrite the
+            # cache without it to keep new records from being appended onto it
+            with open(self._cache_file, "w") as cache:
+                cache.writelines(
+                    f"{json.dumps(detail)}\n" for detail in details.values()
+                )
+        print(
+            f"Loaded {len(details)} cached pull requests from {self._cache_file}",
+            file=sys.stderr,
+        )
+        return details
+
+    def _cache_pull_request_details(self, detail: dict[str, Any]) -> None:
+        self._pr_logs_with_details[detail["id"]] = detail
+        if self._cache_file:
+            with open(self._cache_file, "a") as cache:
+                cache.write(f"{json.dumps(detail)}\n")
+
+    def _fetch_github_pr(self, pr_number: int) -> Optional[PullRequest]:
+        """
+        Fetches a github PR info, or None if github no longer has the PR
+        (e.g. it was deleted, or its author's account was suspended)
         """
         try:
-            github_repo = self._github.get_repo(SUPERSET_REPO)
-            self._superset_repo = github_repo
-            pull_request = self._github_prs.get(pr_number)
-            if not pull_request:
-                pull_request = github_repo.get_pull(pr_number)
-                self._github_prs[pr_number] = pull_request
+            if self._superset_repo is None:
+                self._superset_repo = self._github.get_repo(SUPERSET_REPO)
+            pull_request = self._superset_repo.get_pull(pr_number)
+        except UnknownObjectException:
+            print(
+                f"\nPR #{pr_number} not found on github, using its commit details",
+                file=sys.stderr,
+            )
+            return None
         except BadCredentialsException:
             print(
                 "Bad credentials to github provided"
@@ -112,11 +162,7 @@ class GitChangeLog:
         if github_login:
             return github_login
         if git_log.pr_number:
-            pr_info = self._fetch_github_pr(git_log.pr_number)
-            if pr_info:
-                github_login = pr_info.user.login
-            else:
-                github_login = author_name
+            github_login = self._get_pull_request_details(git_log)["login"]
         # set cache
         self._github_login_cache[author_name] = github_login
         return github_login
@@ -141,10 +187,12 @@ class GitChangeLog:
         if pr_type:
             pr_type = pr_type.group().strip('"')  # type: ignore
 
-        labels = (" | ").join([label.name for label in pr_info.labels])
-        is_risky = self._is_risk_pull_request(pr_info.labels)
+        pr_labels = pr_info.labels if pr_info else []
+        labels = (" | ").join([label.name for label in pr_labels])
+        is_risky = self._is_risk_pull_request(pr_labels)
         detail = {
             "id": pr_number,
+            "login": pr_info.user.login if pr_info else None,
             "has_migrations": has_migrations,
             "labels": labels,
             "title": title,
@@ -153,7 +201,7 @@ class GitChangeLog:
         }
 
         if pr_number:
-            self._pr_logs_with_details[pr_number] = detail
+            self._cache_pull_request_details(detail)
 
         return detail
 
@@ -373,9 +421,20 @@ def compare(base_parameters: BaseParameters) -> None:
     " if not provided will try to fetch from GITHUB_TOKEN env var",
 )
 @click.option("--risk", is_flag=True, help="show all pull requests with risky labels")
+@click.option(
+    "--cache_file",
+    default=os.path.join(tempfile.gettempdir(), "superset_changelog_cache.jsonl"),
+    show_default=True,
+    help="File that caches the pull request details fetched from github, so an"
+    " interrupted run resumes where it left off. Delete it to fetch everything again",
+)
 @click.pass_obj
 def change_log(
-    base_parameters: BaseParameters, csv: str, access_token: str, risk: bool
+    base_parameters: BaseParameters,
+    csv: str,
+    access_token: str,
+    risk: bool,
+    cache_file: str,
 ) -> None:
     """Outputs a changelog (by PR)"""
     previous_logs = base_parameters.previous_logs
@@ -386,6 +445,7 @@ def change_log(
         previous_diff_logs[::-1],
         access_token=access_token,
         risk=risk,
+        cache_file=cache_file,
     )
     if csv:
         with open(csv, "w") as csv_file:
