@@ -34,7 +34,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 from fastmcp.exceptions import ToolError
 from flask import g
 from pydantic import ValidationError
@@ -779,6 +779,35 @@ async def test_tool_is_registered_read_only() -> None:
     assert tool.annotations.destructiveHint is False
 
 
+@pytest.mark.asyncio
+async def test_default_tool_search_exposes_catalog_completeness_guidance(
+    act_as: Any,
+) -> None:
+    """Clients get the completeness contract within the default search budget."""
+    from superset.mcp_service.mcp_config import MCP_TOOL_SEARCH_CONFIG
+    from superset.mcp_service.server import _apply_tool_search_transform
+
+    act_as(admin_role())
+    tool = await mcp.get_tool("get_catalog")
+    assert tool is not None
+    server = FastMCP("catalog-discovery-test")
+    server.add_tool(tool)
+    _apply_tool_search_transform(server, MCP_TOOL_SEARCH_CONFIG)
+
+    async with Client(server) as client:
+        result = await client.call_tool("search_tools", {"query": "get_catalog"})
+    entries = json.loads(result.content[0].text)
+    entry = next(item for item in entries if item["name"] == "get_catalog")
+    description = entry["description"]
+    assert len(description) <= MCP_TOOL_SEARCH_CONFIG["max_description_length"]
+    description = " ".join(description.split())
+    assert "Follow next_cursor until null" in description
+    assert "truncated=true means byte-bound pagination" in description
+    assert "fields_shortened=true means shortened text or an omitted URL" in description
+    assert "not missing entries" in description
+    assert "outputSchema" not in entry
+
+
 @pytest.fixture
 def mcp_user() -> Iterator[None]:
     with patch("superset.mcp_service.auth.get_user_from_request") as get_user:
@@ -1006,6 +1035,30 @@ def test_fields_shortened_follows_the_items_on_each_page(
     assert [page.fields_shortened for page in pages] == [True, False]
     assert [page.truncated for page in pages] == [False, False]
     assert len(ids) == 20
+
+
+def test_fields_shortened_excludes_items_deferred_by_byte_bound(
+    catalog_fixtures: SimpleNamespace, act_as: Any
+) -> None:
+    """A shortened item deferred by the byte bound only flags its returned page."""
+    act_as(admin_role())
+    session = catalog_fixtures.session
+    _add_datasets(session, 80, start_id=10, description="d" * 400)
+    _add_datasets(session, 1, start_id=90, description="d" * 5000)
+    _add_datasets(session, 19, start_id=91, description="d" * 400)
+
+    first = _page("datasets", page_size=100)
+    assert first.truncated is True
+    assert first.fields_shortened is False
+    assert first.next_cursor is not None
+    assert all(item.id < 90 for item in first.items)
+
+    second = _page("datasets", page_size=100, cursor=first.next_cursor)
+    assert second.fields_shortened is True
+    assert second.truncated is False
+    assert second.next_cursor is None
+    assert 90 in [item.id for item in second.items]
+    assert [item.id for item in first.items + second.items] == [1, 2, *range(10, 110)]
 
 
 @pytest.mark.parametrize(
