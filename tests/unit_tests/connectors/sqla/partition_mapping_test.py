@@ -779,6 +779,56 @@ def test_non_deterministic_functions_are_reported(
     assert expected_name in find_non_deterministic_functions(transform, "hive")
 
 
+@pytest.mark.parametrize(
+    ("engine", "transform", "expected_name"),
+    [
+        # `now()` is statement-stable on PostgreSQL; these two are not even
+        # that, and the ANSI four did not name them.
+        ("postgresql", "age(clock_timestamp(), :value)", "CLOCK_TIMESTAMP"),
+        ("postgresql", "age(statement_timestamp(), :value)", "STATEMENT_TIMESTAMP"),
+        # Every engine spells "now" its own way, and the gate matches by name.
+        ("mysql", "datediff(sysdate(), :value)", "SYSDATE"),
+        ("mysql", "datediff(curdate(), :value)", "CURDATE"),
+        ("oracle", "datediff(day, :value, LOCALTIMESTAMP)", "LOCALTIMESTAMP"),
+        ("oracle", "SYSTIMESTAMP - :value", "SYSTIMESTAMP"),
+        ("mssql", "DATEDIFF(day, :value, GETDATE())", "GETDATE"),
+        ("mssql", "DATEDIFF(day, :value, SYSUTCDATETIME())", "SYSUTCDATETIME"),
+        ("clickhouse", "now64() - :value", "NOW64"),
+        ("bigquery", "DATE_DIFF(CURRENT_DATETIME(), :value, DAY)", "CURRENT_DATETIME"),
+    ],
+)
+def test_every_engine_s_spelling_of_now_is_reported(
+    engine: str, transform: str, expected_name: str
+) -> None:
+    """
+    The list is matched by SQL function name, so a spelling it does not carry
+    passes the gate. A relative partition key such as
+    `datediff(day, :value, LOCALTIMESTAMP)` is then probed once, cached, and
+    keeps emitting yesterday's partition value after midnight -- so the chart
+    silently drops rows.
+    """
+    assert expected_name in find_non_deterministic_functions(transform, engine)
+
+
+@pytest.mark.parametrize(
+    ("engine", "transform"),
+    [
+        # The canonical transforms, which must not be swept up by the names
+        # added above.
+        ("hive", "unix_timestamp(:value)"),
+        ("postgresql", "to_char(:value, 'YYYYMMDD')"),
+        ("postgresql", "extract(epoch from :value)"),
+        ("mysql", "date_format(:value, '%Y%m%d')"),
+        ("oracle", "trunc(:value)"),
+        ("mssql", "CONVERT(date, :value)"),
+    ],
+)
+def test_the_canonical_transforms_are_still_pure(engine: str, transform: str) -> None:
+    """The list grew; this is the half that says it did not grow into the
+    transforms this feature exists for."""
+    assert find_non_deterministic_functions(transform, engine) == set()
+
+
 def test_niladic_unix_timestamp_is_rejected_but_the_unary_form_is_not() -> None:
     """
     On Hive/Impala ``unix_timestamp()`` means "now" while ``unix_timestamp(x)``
@@ -1562,6 +1612,12 @@ def test_the_postgres_full_text_query_functions_are_denied_by_default(
         # No function argument to inspect at all: the table is named by the
         # path string handed to the constructor.
         "dburitype",
+        # The same reader reached through its factory, and the sibling URI
+        # types. Without a case each, deleting these three from `config.py`
+        # left the suite green and reopened the factory path.
+        "geturi",
+        "xdburitype",
+        "httpuritype",
     ],
 )
 def test_the_oracle_query_running_xml_functions_are_denied_by_default(
@@ -2723,15 +2779,26 @@ def test_a_transform_that_changes_data_is_refused(app: Flask, transform: str) ->
 
 
 @pytest.mark.parametrize(
-    "transform",
+    ("backend", "transform"),
     [
-        "orders_seq.NEXTVAL + :value",
-        "orders_seq.CURRVAL + :value",
-        "ORDERS_SEQ.nextval + :value",
-        'lower("Schema"."Seq".NEXTVAL || :value)',
+        # The suffix form, which parses as a qualified column.
+        ("oracle", "orders_seq.NEXTVAL + :value"),
+        ("oracle", "orders_seq.CURRVAL + :value"),
+        ("oracle", "ORDERS_SEQ.nextval + :value"),
+        ("oracle", 'lower("Schema"."Seq".NEXTVAL || :value)'),
+        # And the call, which parses as a function. `is_mutating` walks
+        # function names on PostgreSQL alone, so every other engine let these
+        # through -- the suffix check cannot see them either.
+        ("postgresql", "nextval('s') + :value"),
+        ("duckdb", "nextval('s') + :value"),
+        ("mysql", "NEXTVAL(s) + :value"),
+        ("mysql", "SETVAL(s, 1) + :value"),
+        ("mssql", "NEXT VALUE FOR s + :value"),
     ],
 )
-def test_a_transform_reading_a_sequence_is_refused(app: Flask, transform: str) -> None:
+def test_a_transform_reading_a_sequence_is_refused(
+    app: Flask, backend: str, transform: str
+) -> None:
     """
     The gate above walks *function* names, and `orders_seq.NEXTVAL` is a
     qualified **column** reference to the parser -- so it passed every shape
@@ -2739,13 +2806,18 @@ def test_a_transform_reading_a_sequence_is_refused(app: Flask, transform: str) -
     probe ran. On a cache schedule, from a dataset editor holding neither SQL
     Lab nor a DML grant.
     """
-    database = Database(database_name="probe_db", sqlalchemy_uri="oracle://u@h/d")
+    database = Database(
+        database_name="probe_db", sqlalchemy_uri=f"{backend}://u@h/d"
+    )
 
     with app.app_context():
         reason = stored_expression_error(database, None, None, transform)
 
     assert reason is not None
-    assert "cannot read a sequence" in reason
+    # Either gate is a pass: on PostgreSQL `is_mutating` already walks
+    # function names and answers first with "cannot change data". What matters
+    # is that no spelling reaches the probe.
+    assert "cannot read a sequence" in reason or "cannot change data" in reason
 
 
 def test_a_column_merely_named_like_a_sequence_is_not_refused(app: Flask) -> None:

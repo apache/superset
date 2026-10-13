@@ -277,15 +277,61 @@ _PLACEHOLDER_STANDIN = "superset_pfm_value_standin"
 #: Functions whose value depends on wall-clock time or randomness. The probe
 #: runs in a different session at a different moment from the chart query and
 #: its result is then cached, so any of these freezes a snapshot of probe time
-#: into the emitted predicate.
+#: into the emitted predicate: a transform such as
+#: ``datediff(day, :value, LOCALTIMESTAMP)`` for a relative partition key is
+#: evaluated once and then keeps emitting yesterday's answer, so the chart
+#: silently drops rows after midnight.
+#:
+#: Matched by SQL function name, so every engine's spelling of "now" has to be
+#: named -- the ANSI four were not enough. Listed rather than delegated to the
+#: engine specs because the risk is the same everywhere and a spec that had not
+#: got round to declaring its own would fail open; a name no engine has is
+#: inert, so over-listing costs nothing.
 NON_DETERMINISTIC_FUNCTIONS = {
+    # ANSI, and the engines that spell it this way.
     "CURRENT_DATE",
     "CURRENT_TIME",
     "CURRENT_TIMESTAMP",
+    "LOCALTIME",
+    "LOCALTIMESTAMP",
     "NOW",
     "RAND",
     "RANDOM",
     "UUID",
+    # PostgreSQL. `now()` is statement-stable; these two are not even that.
+    "CLOCK_TIMESTAMP",
+    "STATEMENT_TIMESTAMP",
+    "TIMEOFDAY",
+    # MySQL and MariaDB.
+    "CURDATE",
+    "CURTIME",
+    "SYSDATE",
+    "UTC_DATE",
+    "UTC_TIME",
+    "UTC_TIMESTAMP",
+    "UUID_SHORT",
+    # Oracle.
+    "SYSTIMESTAMP",
+    "SYS_GUID",
+    # SQL Server.
+    "GETDATE",
+    "GETUTCDATE",
+    "SYSDATETIME",
+    "SYSUTCDATETIME",
+    "SYSDATETIMEOFFSET",
+    "NEWID",
+    # BigQuery.
+    "CURRENT_DATETIME",
+    "GENERATE_UUID",
+    # Snowflake.
+    "RANDSTR",
+    "UUID_STRING",
+    # ClickHouse.
+    "NOW64",
+    "RANDCANONICAL",
+    "GENERATEUUIDV4",
+    # H2 and Derby, which the test fixtures use.
+    "RANDOM_UUID",
 }
 
 #: Functions that mean "now" only in their zero-argument form. On Hive and
@@ -641,15 +687,36 @@ def contains_unicode_escaped_identifier(transform: str | None) -> bool:
 #: and is caught as a function; this is only about the suffix form.
 SEQUENCE_PSEUDO_COLUMNS = frozenset({"nextval", "currval"})
 
+#: The same thing written as a call.
+#:
+#: Only the suffix form parses as a column; `nextval('s')` on PostgreSQL and
+#: DuckDB, `NEXTVAL(s)`/`SETVAL(s, 1)` on MySQL and MariaDB, and SQL Server's
+#: `NEXT VALUE FOR s` all parse as functions. `SQLStatement.is_mutating` walks
+#: function names on PostgreSQL alone -- deliberately, since the same names are
+#: read-only elsewhere -- so every other engine let these through.
+#:
+#: Matched on the name whatever the engine, because advancing a sequence is a
+#: write wherever it happens and a transform has no reason to call one.
+SEQUENCE_FUNCTIONS = frozenset(
+    {"nextval", "setval", "next_value_for", "nextvalfor", "prevval", "lastval"}
+)
 
-def references_sequence_pseudo_column(statement: SQLStatement) -> bool:
-    """Whether the statement reads a sequence pseudo-column.
 
-    See `SEQUENCE_PSEUDO_COLUMNS`. Answered on the parse rather than on raw
-    text, because the name has to be in column position for this to be the
-    construct: a column or alias merely *called* ``nextval`` is not it.
+def references_sequence(statement: SQLStatement) -> bool:
+    """Whether the statement reads or advances a sequence.
+
+    Both spellings: the pseudo-column suffix, which parses as a column (see
+    `SEQUENCE_PSEUDO_COLUMNS`), and the call, which parses as a function (see
+    `SEQUENCE_FUNCTIONS`).
+
+    Answered on the parse rather than on raw text, because position is what
+    makes it the construct: a column or alias merely *called* ``nextval`` is
+    an ordinary column, and a string literal holding the word is text.
     """
-    return bool(statement.get_column_names() & SEQUENCE_PSEUDO_COLUMNS)
+    return bool(
+        statement.get_column_names() & SEQUENCE_PSEUDO_COLUMNS
+        or statement.get_disallowed_functions(set(SEQUENCE_FUNCTIONS))
+    )
 
 
 def contains_jinja(transform: str | None) -> bool:
@@ -1168,7 +1235,7 @@ def stored_expression_error(  # noqa: C901
     # Not reached by the walk above, which is why it is its own gate: a
     # sequence pseudo-column is a *column* to the parser and a write to the
     # engine. See `SEQUENCE_PSEUDO_COLUMNS`.
-    if references_sequence_pseudo_column(statement):
+    if references_sequence(statement):
         return str(
             _(
                 "A partition value transform cannot read a sequence. "
