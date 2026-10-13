@@ -70,6 +70,7 @@ import {
 } from './utils';
 import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
+import { resolveTransitiveChildIds } from '../dependencyGraph';
 import {
   useAllAppliedDataMask,
   useFilters,
@@ -97,6 +98,20 @@ const EXCLUDED_URL_PARAMS: string[] = [
 ];
 
 const EMPTY_DATA_MASK_RECORD: Record<string, DataMask> = {};
+
+// Canonical cleared value for a filter of a given type. Range filters stage
+// [null, null] (bare null is ignored by RangeFilterPlugin's sync effect),
+// everything else stages null so the select plugin treats it as a cleared
+// value rather than an uninitialized one that re-applies defaults. A
+// defaultToFirstItem stage is one exception: it resolves to the first option
+// of its new scope and must stage undefined for the select's init effect to
+// re-seed it.
+const getClearedValue = (filterType?: string, defaultToFirstItem?: boolean) =>
+  defaultToFirstItem
+    ? undefined
+    : filterType === 'filter_range'
+      ? [null, null]
+      : null;
 
 const publishDataMask = debounce(
   async (
@@ -233,6 +248,9 @@ const FilterBar: FC<FiltersBarProps> = ({
   const [clearAllTriggers, setClearAllTriggers] = useState<
     Record<string, boolean>
   >({});
+  const [cascadeClearTriggers, setCascadeClearTriggers] = useState<
+    Record<string, boolean>
+  >({});
   const [initializedFilters, setInitializedFilters] = useState<Set<string>>(
     new Set(),
   );
@@ -315,6 +333,86 @@ const FilterBar: FC<FiltersBarProps> = ({
 
         const hasRequiredValue = isRequired && isEmptyValue;
 
+        // Cascade clearing: when a parent filter's value changes, every
+        // transitive descendant (child) dependent filter must have its
+        // selection reset. Otherwise the child keeps a stale value that no
+        // longer belongs to the parent's option set (e.g. Country=UK with a
+        // City value only valid under USA), producing impossible filter
+        // combinations that blank charts.
+        const prevMask = draft[filter.id];
+        const prevValue = prevMask?.filterState?.value;
+        const prevExtra = prevMask?.extraFormData;
+        const nextExtra = baseDataMask.extraFormData;
+        // Filters configured with defaultToFirstItem auto-select their first
+        // option on load. That seed is initialization, not a dependency
+        // change, and must not clear descendants. Persisted values reach the
+        // applied state through the sync effect rather than this callback, so
+        // any other first emission is a genuine user selection.
+        const isAutoSeedInit =
+          prevValue === undefined && !!filter.controlValues?.defaultToFirstItem;
+        // A filter being (re)initialized from persisted state re-emits its own
+        // saved mask on mount: first the reducer's empty extraFormData, then
+        // its saved clauses. Those synchronization emissions are not user
+        // changes and must not cascade-clear descendants, or opening a
+        // dashboard with a saved parent/child combination would wipe the child
+        // with no user action. The parent only counts as "live" once it has
+        // been initialized (received a value with non-empty extraFormData) or
+        // when it transitions from an empty/cleared state into a real
+        // selection.
+        const isInitializationEmission =
+          !initializedFilters.has(filter.id) &&
+          prevValue !== undefined &&
+          prevValue !== null;
+        // The effective dependency state is the parent's extraFormData (the
+        // clauses and time_range merged into descendants), not the raw
+        // selected value: inverse-selection toggles change the clause while
+        // the selected value stays identical.
+        const parentValueChanged =
+          !!prevMask &&
+          !isAutoSeedInit &&
+          !isInitializationEmission &&
+          !isEqual(prevExtra, nextExtra);
+        if (parentValueChanged) {
+          const childIds = resolveTransitiveChildIds(filter.id, filters);
+          childIds.forEach(childId => {
+            const childMask = draft[childId];
+            if (!childMask) return;
+            const childFilter = filters[childId];
+            const childInScope = inScopeFilterIds.has(childId);
+            childMask.extraFormData = {};
+            const { filterState } = childMask;
+            if (filterState) {
+              const childIsRequired =
+                !!childFilter?.controlValues?.enableEmptyFilter;
+              // A defaultToFirstItem child stages undefined (not null) so the
+              // Select plugin's init effect re-seeds the first option of the
+              // newly-scoped set: clearing it to null would leave it empty even
+              // though its whole purpose is to resolve to the first value.
+              filterState.value = getClearedValue(
+                childFilter?.filterType,
+                childFilter?.controlValues?.defaultToFirstItem,
+              );
+              // Out-of-scope descendants are staged Apply-safe: an error
+              // status would disable Apply one tab away, and getFiltersToApply
+              // skips their empty staged value until they enter scope.
+              // Staging the clear anyway means the stale applied selection is
+              // invalidated as soon as the tab comes back into view.
+              filterState.validateStatus =
+                childInScope && childIsRequired ? 'error' : undefined;
+            }
+            // Only in-scope Select children consume a visual clear trigger.
+            // Range/Time descendants sync their cleared state from the staged
+            // value, and an unconsumed trigger would fire later if the filter
+            // were edited into a Select.
+            if (childInScope && childFilter?.filterType === 'filter_select') {
+              setCascadeClearTriggers(prev => ({
+                ...prev,
+                [childId]: true,
+              }));
+            }
+          });
+        }
+
         draft[filter.id] = {
           ...baseDataMask,
           filterState: {
@@ -330,6 +428,8 @@ const FilterBar: FC<FiltersBarProps> = ({
       initializedFilters,
       setInitializedFilters,
       dataMaskApplied,
+      inScopeFilterIds,
+      filters,
     ],
   );
 
@@ -526,7 +626,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       // undefined: the select plugin's init effect treats undefined as
       // "uninitialized" and would re-apply default values once the clear-all
       // trigger completes.
-      const clearedValue = filterType === 'filter_range' ? [null, null] : null;
+      const clearedValue = getClearedValue(filterType);
       const isRequired = !!filter.controlValues?.enableEmptyFilter;
       if (dataMaskSelected[id]) {
         // Stage the cleared value locally; do NOT dispatch to Redux here.
@@ -584,6 +684,14 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const handleClearAllComplete = useCallback((filterId: string) => {
     setClearAllTriggers(prev => {
+      const newTriggers = { ...prev };
+      delete newTriggers[filterId];
+      return newTriggers;
+    });
+  }, []);
+
+  const handleCascadeClearComplete = useCallback((filterId: string) => {
+    setCascadeClearTriggers(prev => {
       const newTriggers = { ...prev };
       delete newTriggers[filterId];
       return newTriggers;
@@ -666,6 +774,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         }
         clearAllTriggers={clearAllTriggers}
         onClearAllComplete={handleClearAllComplete}
+        cascadeClearTriggers={cascadeClearTriggers}
+        onCascadeClearComplete={handleCascadeClearComplete}
       />
     ) : verticalConfig ? (
       <Vertical
@@ -687,6 +797,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         mobileMode={verticalConfig.mobileMode}
         clearAllTriggers={clearAllTriggers}
         onClearAllComplete={handleClearAllComplete}
+        cascadeClearTriggers={cascadeClearTriggers}
+        onCascadeClearComplete={handleCascadeClearComplete}
       />
     ) : null;
 

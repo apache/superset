@@ -116,6 +116,8 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   onPendingCustomizationDataMaskChange,
   clearAllTriggers,
   onClearAllComplete,
+  cascadeClearTriggers,
+  onCascadeClearComplete,
 }) => {
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
@@ -230,6 +232,8 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
                   chartCustomizationValues={chartCustomizationValues}
                   clearAllTriggers={clearAllTriggers}
                   onClearAllComplete={onClearAllComplete}
+                  cascadeClearTriggers={cascadeClearTriggers}
+                  onCascadeClearComplete={onCascadeClearComplete}
                 />
               </>
             )}
