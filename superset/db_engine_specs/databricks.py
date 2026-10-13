@@ -40,7 +40,7 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     DatabaseCategory,
 )
-from superset.db_engine_specs.hive import SparkSqlBooleanEqualityMixin, HiveEngineSpec
+from superset.db_engine_specs.hive import HiveEngineSpec, SparkSqlBooleanEqualityMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error
 from superset.utils import json
