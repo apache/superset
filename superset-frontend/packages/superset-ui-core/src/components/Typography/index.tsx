@@ -23,8 +23,7 @@ export type { TitleProps } from 'antd/es/typography/Title';
 export type { ParagraphProps } from 'antd/es/typography/Paragraph';
 
 const StyledLink = styled(AntdTypography.Link)`
-    ${({ theme }) =>
-      css`
+    ${({ theme }) => css`
       && {
         color: ${theme.colorLink};
         &:hover {
