@@ -61,24 +61,15 @@ def _require_msgcat() -> None:
     """
     Skip the calling test when gettext's ``msgcat`` is missing, or fail it.
 
-    Most environments treat gettext as optional: a bare local ``pytest`` run,
-    or a CI job that never installs gettext, should skip these tests rather
-    than fail.
-
-    The Python-Unit and Python-Nightly-Canary workflows install gettext and
-    set SUPERSET_GETTEXT_STRICT, because there msgcat is not optional. A
-    missing msgcat there means the job is misconfigured, and the tests should
-    fail loudly instead of silently reporting a misleadingly green, skipped
-    result. The same pattern guards the testcontainers drivers
-    (tests/testcontainers/db_engine_specs/_driver.py).
+    A local ``pytest`` run without gettext skips these tests. On CI (``CI``
+    set), a missing msgcat fails them instead: CI is a controlled environment,
+    and the Python-Unit and Python-Nightly-Canary workflows install gettext,
+    so a skip there would hide a misconfigured job.
     """
     if shutil.which("msgcat"):
         return
-    if os.environ.get("SUPERSET_GETTEXT_STRICT"):
-        pytest.fail(
-            "SUPERSET_GETTEXT_STRICT is set, but gettext's msgcat is not on "
-            "PATH: install gettext in this job"
-        )
+    if os.environ.get("CI"):
+        pytest.fail("CI is set, but gettext's msgcat is not on PATH: install gettext")
     pytest.skip("gettext's msgcat is not installed on this machine")
 
 

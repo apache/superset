@@ -55,11 +55,6 @@ jobs:
         python-version: ["current"]
     env:
       PYTHONPATH: ${{ github.workspace }}
-      # This job installs gettext, so treat msgcat as required: a missing
-      # msgcat should fail the babel_update.sh tests, not silently skip them.
-      # See _require_msgcat in
-      # tests/unit_tests/scripts/translations/babel_update_test.py.
-      SUPERSET_GETTEXT_STRICT: true
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -70,8 +65,8 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
-      # The babel_update.sh tests run the script's msgcat step. With
-      # SUPERSET_GETTEXT_STRICT set above, they fail when gettext is missing.
+      # The babel_update.sh tests run the script's msgcat step and fail on CI
+      # when gettext is missing (tests/unit_tests/scripts/translations).
       - name: Install gettext tools
         uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
         with:

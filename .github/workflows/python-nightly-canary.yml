@@ -35,11 +35,6 @@ jobs:
     env:
       PYTHONPATH: ${{ github.workspace }}
       SQLALCHEMY_WARN_20: "1"
-      # This job installs gettext, so treat msgcat as required: a missing
-      # msgcat should fail the babel_update.sh tests, not silently skip them.
-      # See _require_msgcat in
-      # tests/unit_tests/scripts/translations/babel_update_test.py.
-      SUPERSET_GETTEXT_STRICT: true
     steps:
       - name: "Checkout master (${{ github.sha }})"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
