@@ -22,7 +22,7 @@ from datetime import datetime
 from re import Pattern
 from typing import Any, Optional
 
-from flask_babel import gettext as __
+from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 from sqlalchemy.engine.url import URL
@@ -185,27 +185,27 @@ class MssqlEngineSpec(BasicParametersMixin, BaseEngineSpec):
         # must precede the access denied pattern: a login to an unknown
         # database also reports the generic login failure
         CONNECTION_UNKNOWN_DATABASE_REGEX: (
-            __('Unable to connect to database "%(database)s".'),
+            _('Unable to connect to database "%(database)s".'),
             SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
             {"invalid": ["database"]},
         ),
         CONNECTION_ACCESS_DENIED_REGEX: (
-            __('Either the username "%(username)s" or the password is incorrect.'),
+            _('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
             {"invalid": ["username", "password"]},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
-            __('The hostname "%(hostname)s" cannot be resolved.'),
+            _('The hostname "%(hostname)s" cannot be resolved.'),
             SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
             {"invalid": ["host"]},
         ),
         CONNECTION_PORT_CLOSED_REGEX: (
-            __('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
+            _('Port %(port)s on hostname "%(hostname)s" refused the connection.'),
             SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
             {"invalid": ["host", "port"]},
         ),
         CONNECTION_HOST_DOWN_REGEX: (
-            __(
+            _(
                 'The host "%(hostname)s" might be down, and can\'t be '
                 "reached on port %(port)s."
             ),
