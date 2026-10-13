@@ -39,6 +39,7 @@ from superset.mcp_service.chart.plugins.geographic import (
     WorldMapChartPlugin,
 )
 from superset.mcp_service.chart.plugins.handlebars import HandlebarsChartPlugin
+from superset.mcp_service.chart.plugins.heatmap import HeatmapChartPlugin
 from superset.mcp_service.chart.plugins.histogram import HistogramChartPlugin
 from superset.mcp_service.chart.plugins.interactive_pivot import (
     InteractivePivotChartPlugin,
@@ -71,6 +72,7 @@ register(HandlebarsChartPlugin())
 register(BigNumberChartPlugin())
 register(HistogramChartPlugin())
 register(BoxPlotChartPlugin())
+register(HeatmapChartPlugin())
 register(WaterfallChartPlugin())
 register(GanttChartPlugin())
 
@@ -85,6 +87,7 @@ __all__ = [
     "WorldMapChartPlugin",
     "DeckScatterChartPlugin",
     "HandlebarsChartPlugin",
+    "HeatmapChartPlugin",
     "HistogramChartPlugin",
     "InteractivePivotChartPlugin",
     "MixedTimeseriesChartPlugin",
