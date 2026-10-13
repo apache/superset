@@ -17,10 +17,11 @@
 
 """Optional MCP dataset routing constraints, independent of authorization."""
 
+import enum
 import inspect
 import logging
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, TYPE_CHECKING
+from typing import Any, Final, Literal, TYPE_CHECKING, TypeAlias
 from uuid import UUID
 
 from fastmcp.exceptions import ToolError
@@ -35,6 +36,24 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 CONFIG_KEY = "MCP_DATASET_ROLE_ALLOWLIST"
+
+
+class _UnscopedType(enum.Enum):
+    """Type of the ``UNSCOPED`` sentinel; a single-member enum for typing."""
+
+    UNSCOPED = "unscoped"
+
+
+# Returned by a ``MCP_DATASET_ROLE_ALLOWLIST`` resolver to exempt the current
+# caller from routing constraints (full tool surface, no dataset filter), e.g.
+# for a tenant that has not opted into dataset scoping. Checked by identity:
+# ``None``, an empty iterable, errors and any other value still deny every
+# dataset, so only an explicit opt-out can widen access.
+UNSCOPED: Final = _UnscopedType.UNSCOPED
+
+DatasetScopeResolver: TypeAlias = Callable[
+    [Any], Iterable[str | UUID] | Literal[_UnscopedType.UNSCOPED] | None
+]
 
 _NO_SUBSTITUTE = (
     "No query was run. Do not substitute another dataset; explain the scope "
@@ -208,6 +227,7 @@ def get_dataset_scope() -> frozenset[UUID] | None:
     - A callable resolving the allowlist for the current request's user (see
       ``_resolve_callable_scope``), for deployments where roles and dataset
       UUIDs are not static (e.g. per-workspace in a multi-tenant install).
+      The callable returns ``UNSCOPED`` to leave the caller unconstrained.
 
     Authorization is applied separately by the dataset DAO and the normal
     query execution/RLS machinery. No scope is cached across calls or users.
@@ -235,9 +255,15 @@ def get_dataset_scope() -> frozenset[UUID] | None:
 
 
 def _resolve_callable_scope(
-    resolver: Callable[[Any], Iterable[str | UUID] | None],
-) -> frozenset[UUID]:
+    resolver: DatasetScopeResolver,
+) -> frozenset[UUID] | None:
     """Call a configured ``MCP_DATASET_ROLE_ALLOWLIST`` resolver for this request.
+
+    Returns None only when the resolver returns the ``UNSCOPED`` sentinel,
+    which exempts this caller from routing constraints. ``None`` from the
+    resolver is not an opt-out: it is the natural "no grants found" result of
+    a lookup, so treating it as unrestricted would turn a missed lookup into
+    full access.
 
     Fails CLOSED -- denies every dataset for this request -- if the resolver
     raises, returns ``None``, or returns something that cannot be parsed as
@@ -254,6 +280,8 @@ def _resolve_callable_scope(
     user_id = getattr(user, "id", None)
     try:
         result = resolver(user)
+        if result is UNSCOPED:
+            return None
         if result is None:
             return frozenset()
         if isinstance(result, (str, bytes)) or not isinstance(result, Iterable):

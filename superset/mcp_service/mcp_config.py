@@ -18,9 +18,8 @@
 
 import logging
 import secrets
-from collections.abc import Callable, Iterable
-from typing import Any, Dict, Optional, Sequence
-from uuid import UUID
+from collections.abc import Callable
+from typing import Any, Dict, Optional, Sequence, TYPE_CHECKING
 
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from flask import Flask
@@ -34,6 +33,9 @@ from superset.mcp_service.constants import (
 )
 from superset.mcp_service.guest_token_verifier import GuestTokenVerifier
 from superset.mcp_service.jwt_verifier import DetailedJWTVerifier, MCPJWTVerifier
+
+if TYPE_CHECKING:
+    from superset.mcp_service.dataset_scope import DatasetScopeResolver
 
 logger = logging.getLogger(__name__)
 
@@ -75,21 +77,23 @@ MCP_BUG_REPORT_CONTACT: str | None = None
 #     their effective roles' lists; an unlisted role (including Admin)
 #     contributes nothing. {} permits no datasets. Suitable for single-
 #     tenant installs where roles and dataset UUIDs are fixed at deploy time.
-#   Callable[[user], Iterable[str | UUID] | None] -- resolves the allowed dataset
-#     UUIDs for the current request's user instead of a static mapping. Use
+#   Callable[[user], Iterable[str | UUID] | UNSCOPED | None] -- resolves the
+#     allowed dataset UUIDs for the current request's user instead of a static
+#     mapping. Use
 #     this when role names and dataset UUIDs are not static -- e.g. one MCP
 #     deployment serving many per-workspace tenants, each with its own roles
 #     and datasets. Called on every tool call that needs routing enforcement,
 #     possibly more than once per call, so it must be cheap, side-effect free
 #     and in-process (no slow network I/O per call).
+#     Return `superset.mcp_service.dataset_scope.UNSCOPED` to exempt the
+#     caller (e.g. a tenant that has not opted in) from routing constraints:
+#     full tool surface, no dataset filter. Import it inside the callable,
+#     since importing MCP modules while the config loads is circular.
 #     Fails CLOSED (denies every dataset for that request) if the callable
 #     raises (including during iteration), returns None or an empty iterable,
-#     or returns a value that cannot be parsed as dataset UUIDs -- it never
-#     falls back to the unscoped (full tool
-#     surface) behavior that a bare `None` *config* means at the top level.
-MCP_DATASET_ROLE_ALLOWLIST: (
-    dict[str, list[str]] | Callable[[Any], Iterable[str | UUID] | None] | None
-) = None
+#     or returns a value that cannot be parsed as dataset UUIDs -- only the
+#     explicit UNSCOPED sentinel lifts the constraints.
+MCP_DATASET_ROLE_ALLOWLIST: "dict[str, list[str]] | DatasetScopeResolver | None" = None
 
 # Maximum admitted warehouse-capable tool calls per application/process. There
 # is no waiting queue: a saturated pool returns a server-busy error. Timed-out

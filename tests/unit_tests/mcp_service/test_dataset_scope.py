@@ -35,6 +35,7 @@ from superset.mcp_service.dataset_scope import (
     NO_DATASET_IDENTITY_ERROR,
     OUT_OF_SCOPE_ERROR,
     SCOPED_TOOLS,
+    UNSCOPED,
     UNSUPPORTED_TOOL_ERROR,
 )
 
@@ -283,6 +284,69 @@ def test_callable_config_enforces_dataset_routing(app: Flask, result: object) ->
         find.assert_called_once_with(1, query_options=None)
         with pytest.raises(MCPDatasetScopeError, match=UNSUPPORTED_TOOL_ERROR):
             _enforce("execute_sql", request={"database_id": 1, "sql": "SELECT 1"})
+
+
+def test_callable_config_unscoped_sentinel_lifts_constraints(app: Flask) -> None:
+    """``UNSCOPED`` exempts a caller, e.g. a tenant that has not opted in.
+
+    It must restore the whole tool surface, including tools scoped mode
+    refuses, without resolving or filtering any dataset.
+    """
+    resolver = Mock(return_value=UNSCOPED)
+    signature = MagicMock(wraps=_sig())
+    user = SimpleNamespace(id=1)
+    with (
+        app.app_context(),
+        patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=resolver),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id") as find,
+    ):
+        g.user = user
+        assert get_dataset_scope() is None
+        enforce_call_dataset_scope(
+            "execute_sql", signature, (), {"request": {"sql": "SELECT 1"}}
+        )
+        _enforce("query_dataset", request={"dataset_id": 1})
+    find.assert_not_called()
+    signature.bind_partial.assert_not_called()
+    resolver.assert_called_with(user)
+
+
+def test_callable_config_unscoped_is_per_caller(app: Flask) -> None:
+    """One tenant opting out does not unscope another tenant's caller."""
+    opted_out = SimpleNamespace(id=1)
+    scoped = SimpleNamespace(id=2)
+
+    def resolver(user: SimpleNamespace) -> object:
+        return UNSCOPED if user is opted_out else [FIRST]
+
+    with patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=resolver):
+        with app.test_request_context():
+            g.user = opted_out
+            assert get_dataset_scope() is None
+        with app.test_request_context():
+            g.user = scoped
+            assert get_dataset_scope() == {FIRST}
+            with pytest.raises(MCPDatasetScopeError, match=UNSUPPORTED_TOOL_ERROR):
+                _enforce("execute_sql", request={"sql": "SELECT 1"})
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        "unscoped",  # the sentinel's value, not the sentinel
+        [UNSCOPED],
+        [FIRST, UNSCOPED],
+        type(UNSCOPED),  # the enum class iterates its members
+    ],
+)
+def test_callable_config_unscoped_only_by_identity(app: Flask, result: object) -> None:
+    """Only the sentinel object itself opts out; look-alikes still fail closed."""
+    with (
+        app.app_context(),
+        patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=lambda user: result),
+    ):
+        g.user = SimpleNamespace(id=1)
+        assert get_dataset_scope() == frozenset()
 
 
 @pytest.mark.parametrize("config", [[], {"Readers": "*"}, {"Readers": ["bad"]}])
