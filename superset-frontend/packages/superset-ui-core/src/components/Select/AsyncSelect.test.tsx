@@ -1369,6 +1369,7 @@ test('drops optimistic new option when paginated mergeData contains matching lab
 
   // Type a term that will match next page's label
   await type('Created Later');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
   const options = await findAllSelectOptions();
   expect(
     Array.from(options).some(opt => opt.textContent?.includes('Created Later')),
