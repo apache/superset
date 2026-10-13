@@ -89,8 +89,10 @@ class Grains:
     Conflicting IDs, types, definitions or descriptions for the same name and
     grain make the catalog ambiguous; that is a provider defect to fix rather
     than a tie for the host to break by picking a variant.
-    The host does not detect such a conflict: it keeps the last variant it sees
-    for a ``(name, grain)`` pair.
+    The host does not detect such a conflict: grouping keeps the first variant
+    it sees for a ``(name, grain)`` pair, while filters and ordering resolve the
+    name to the last variant seen, so one query can group and filter on
+    different IDs.
     """
 
     SECOND = Grain("Second", "PT1S")
@@ -144,8 +146,9 @@ class Dimension:
     grain are a provider defect, not a tie for the host to break silently.
     Metric names are unique on their own, and must not collide with a dimension
     name. Both rules are provider obligations: the host does not currently
-    detect a duplicate ``(name, grain)`` (it keeps the last variant it sees) or a
-    metric name that collides with a dimension name. A query selects at most one
+    detect a duplicate ``(name, grain)`` (grouping and filtering may then pick
+    different variants) or a metric name that collides with a dimension name.
+    A query selects at most one
     variant per name, so a result carries one column per selected member name.
 
     Attributes:
