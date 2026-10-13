@@ -430,11 +430,10 @@ export default function AddSemanticViewModal({
                 refreshGen !== schemaRefreshGenRef.current
               )
                 return;
-              // Reset before applying: the request itself succeeded, so a
-              // throw inside applyRuntimeSchema must not be reported (or
-              // retried) as a transient network failure.
               if (!json.result)
                 throw new Error('Runtime schema refresh returned no schema');
+              // The request succeeded, so end the current outage; a later
+              // failure can toast and retry again.
               refreshErrorToastShownRef.current = false;
               retriedDepSnapshotRef.current = '';
               applyRuntimeSchema(json.result);
@@ -465,7 +464,7 @@ export default function AddSemanticViewModal({
                 schema?.properties ?? {},
               ).some(
                 ([key, field]) =>
-                  key in dynamicDeps &&
+                  (dynamicDeps[key] ?? []).some(dep => dep !== key) &&
                   field.type !== 'array' &&
                   field.type !== 'object' &&
                   Array.isArray(field.enum) &&

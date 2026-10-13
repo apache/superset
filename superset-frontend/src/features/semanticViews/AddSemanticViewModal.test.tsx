@@ -420,13 +420,26 @@ test('a const array default does not loop updates', async () => {
 
 test('a failed array-only refresh keeps views and Add usable with a bounded retry', async () => {
   let refreshCount = 0;
-  mockLayerWithSchema(dynamicMetricsSchema, {
+  const schemaWithMode = {
+    ...dynamicMetricsSchema,
+    properties: {
+      ...dynamicMetricsSchema.properties,
+      mode: {
+        type: 'string',
+        title: 'Mode',
+        enum: ['full', 'cube'],
+        'x-dynamic': true,
+        'x-dependsOn': ['mode'],
+      },
+    },
+  };
+  mockLayerWithSchema(schemaWithMode, {
     '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
       if ((payload as { runtime_data?: unknown })?.runtime_data) {
         refreshCount += 1;
         return Promise.reject(new Error('refresh boom'));
       }
-      return Promise.resolve({ json: { result: dynamicMetricsSchema } });
+      return Promise.resolve({ json: { result: schemaWithMode } });
     },
   });
   const props = createProps();
@@ -633,6 +646,11 @@ async function openDependentSchemaForm(
   const props = createProps();
   const { rerender } = render(<AddSemanticViewModal {...props} />);
   await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  // Let JSON Forms emit its mount-time change before selecting a database.
+  // Otherwise that delayed event can reset the dependency snapshot mid-pick.
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
   await chooseDependentOption('Database', 'first');
   await act(async () => {
     jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
@@ -833,6 +851,13 @@ test('reconciliation retains manual text for empty enums and clears old selectio
       emptyEnum,
     ),
   ).toEqual({ database: 'second' });
+  expect(
+    reconcileDynamicFieldValues(
+      { database: 'third', schema: 'manual_schema' },
+      emptyEnum,
+      databaseSchema(['third_only']),
+    ),
+  ).toEqual({ database: 'third' });
 });
 
 test('a refresh response without a schema reports failure and permits one retry', async () => {
@@ -1233,12 +1258,15 @@ test('a persistently failing refresh retries once, not on every edit', async () 
     pending[2].reject(new Error('refresh boom'));
   });
 
-  // More edits in the same dependency state must not schedule a third attempt.
+  // More edits in the same dependency state must not schedule a third attempt
+  // or fetch views for the stale options.
+  const viewsBefore = viewsRequests().length;
   fireEvent.change(note, { target: { value: 'another edit' } });
   await act(async () => {
     jest.advanceTimersByTime(10 + SCHEMA_REFRESH_DEBOUNCE_MS);
   });
   expect(pending).toHaveLength(3);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
   expect(
     props.addDangerToast.mock.calls.filter(([msg]) =>
       String(msg).includes('refreshing the runtime schema'),
