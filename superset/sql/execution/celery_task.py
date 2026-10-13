@@ -365,7 +365,12 @@ def execute_sql_task(
     :returns: Query result payload or None
     """
     with app.test_request_context():
-        with override_user(security_manager.find_user(username)):
+        # OAuth retries and error recovery can load ORM state after a failure.
+        # Only guarded commits may flush pending terminal metadata over a stop.
+        with (
+            override_user(security_manager.find_user(username)),
+            db.session.no_autoflush,
+        ):
             try:
                 from superset.utils.oauth2 import execute_with_oauth2_retry
 
