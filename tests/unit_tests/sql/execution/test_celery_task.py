@@ -1495,3 +1495,158 @@ def test_execute_sql_task_with_failed_status_before_final_commit(
     # Verify query status remains FAILED and is not changed to SUCCESS
     assert result is not None
     assert mock_query.status == QueryStatusEnum.FAILED
+
+
+@pytest.mark.parametrize(
+    "stop_checkpoint",
+    ["serialization", "backend_write", "backend_failure", "backend_error"],
+)
+def test_impala_stop_during_result_finalization_stays_stopped(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    mock_result_set: MagicMock,
+    stop_checkpoint: str,
+) -> None:
+    """A stop during result processing must not become a successful query."""
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+    from superset.sql.execution import celery_task
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query.database = mock_database
+    mock_database.db_engine_spec = ImpalaEngineSpec
+    mock_query.extra = {QUERY_CANCEL_KEY: "0123456789abcdef:fedcba9876543210"}
+    mock_query.set_extra_json_key.side_effect = (
+        lambda key, value: mock_query.extra.update({key: value})
+    )
+    mocker.patch.object(celery_task, "_get_query", return_value=mock_query)
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[(mock_query.sql, mock_result_set, 1.0, 2)],
+    )
+    backend = mocker.patch.object(celery_task, "results_backend", MagicMock())
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"results")
+    post = mocker.patch("superset.db_engine_specs.impala.requests.post")
+
+    def record_stop() -> None:
+        """Deliver a stop after the post-execution check has passed."""
+        assert SQLExecutor._cancel_query(mock_database, mock_query)
+        assert mock_query.status == QueryStatusEnum.STOPPED
+        mock_query.end_time = 1234.5
+
+    def serialize(result_set: MagicMock) -> tuple[list[object], list[object]]:
+        """Stop while preparing the success payload."""
+        if stop_checkpoint == "serialization":
+            record_stop()
+        return [], []
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Stop while the results backend write is in flight."""
+        if stop_checkpoint != "serialization":
+            record_stop()
+        if stop_checkpoint == "backend_error":
+            raise RuntimeError("Backend unavailable")
+        return stop_checkpoint != "backend_failure"
+
+    mocker.patch.object(celery_task, "_serialize_result_set", side_effect=serialize)
+    backend.set.side_effect = store
+
+    mocker.patch.object(celery_task, "security_manager", MagicMock())
+    payload = celery_task.execute_sql_task(123, mock_query.sql)
+
+    assert payload == {"query_id": 123, "status": QueryStatusEnum.STOPPED}
+    assert mock_query.status == QueryStatusEnum.STOPPED
+    assert mock_query.end_time == 1234.5
+    assert mock_query.results_key is None
+    if stop_checkpoint == "serialization":
+        backend.set.assert_not_called()
+    else:
+        backend.set.assert_called_once()
+    post.assert_not_called()
+
+
+@pytest.mark.parametrize("stopped", [False, True])
+def test_finalization_stop_check_preserves_pending_metadata(
+    mocker: MockerFixture, app_context: None, stopped: bool
+) -> None:
+    """A status-only refresh keeps success fields but discards them on a stop."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine("sqlite://")
+    Query.__table__.create(engine)
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="stop-test",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        session.refresh(query)
+        mocker.patch.object(celery_task.db, "session", session)
+        if stopped:
+            with engine.begin() as conn:
+                conn.execute(
+                    Query.__table__.update()
+                    .where(Query.id == 123)
+                    .values(status=QueryStatusEnum.STOPPED, end_time=1234.5)
+                )
+        query.rows = 42
+        query.progress = 100
+        query.end_time = 5678.9
+        query.set_extra_json_key("columns", [{"name": "id"}])
+
+        assert (
+            celery_task._make_check_stopped_fn(query, preserve_pending=True)()
+            == stopped
+        )
+        if stopped:
+            payload = celery_task._stopped_query_payload(query)
+            assert payload == {"query_id": 123, "status": QueryStatusEnum.STOPPED}
+            assert query.end_time == 1234.5
+            assert query.rows != 42
+            assert "columns" not in query.extra
+        else:
+            session.commit()
+            session.refresh(query)
+            assert query.rows == 42
+            assert query.progress == 100
+            assert query.end_time == Decimal("5678.9")
+            assert query.extra["columns"] == [{"name": "id"}]
+    engine.dispose()
+
+
+@pytest.mark.parametrize("stopped", [False, True])
+def test_error_stop_check_preserves_uncommitted_timeout(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_db_session: MagicMock,
+    stopped: bool,
+) -> None:
+    """A remote stop wins, but refreshing must not erase a local timeout."""
+    from superset.sql.execution import celery_task
+
+    mock_query.status = QueryStatusEnum.TIMED_OUT
+    mock_query.tmp_table_name = "pending_table"
+
+    def refresh(query: MagicMock, attribute_names: list[str] | None = None) -> None:
+        """Reload the persisted status as a real session would."""
+        query.status = QueryStatusEnum.STOPPED if stopped else QueryStatusEnum.RUNNING
+
+    mock_db_session.refresh.side_effect = refresh
+    payload = celery_task._handle_query_error(RuntimeError("Timed out"), mock_query)
+
+    assert payload["status"] == (
+        QueryStatusEnum.STOPPED if stopped else QueryStatusEnum.TIMED_OUT
+    )
+    mock_db_session.flush.assert_not_called()
