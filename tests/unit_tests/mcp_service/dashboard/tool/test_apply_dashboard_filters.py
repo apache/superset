@@ -26,6 +26,8 @@ Covers:
 - Value resolution per filter type (filter_select, filter_time)
 - Filters addressed by display name, by ID, and case-insensitively
 - Clearing a selection, including the enableEmptyFilter branch
+- Select values checked against the column's data: missing values refused
+  with suggestions, case-insensitive matches resolved to the stored value
 - Unknown, ambiguous, duplicate, and wrong-type targets -> clear errors
 - Unsupported filter types -> clear error
 - Dashboard not found and permission denial
@@ -1185,6 +1187,385 @@ async def test_mixed_value_types_are_preserved(mcp_server: object) -> None:
     entry = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
     assert entry["extraFormData"]["filters"][0]["val"] == ["EMEA", 7, 1.5, True, None]
     assert entry["filterState"]["label"] == "EMEA, 7, 1.5, TRUE, <NULL>"
+
+
+# ---------------------------------------------------------------------------
+# Select values checked against the filter column's data
+# ---------------------------------------------------------------------------
+
+REGION_VALUES: list[Any] = ["APAC", "EMEA", "North America", "LATAM"]
+
+
+def _mock_values_dataset(
+    values: list[Any],
+    search_results: dict[str, list[Any]] | None = None,
+) -> Mock:
+    """Build a dataset whose column holds ``values``.
+
+    A search returns ``search_results[term]`` when given, otherwise the
+    values containing the term case-insensitively, as the real query does.
+    """
+
+    def values_for_column(
+        column_name: str,
+        limit: int,
+        denormalize_column: bool = False,
+        search: str | None = None,
+        **kwargs: Any,
+    ) -> list[Any]:
+        """Return the stored values, honoring the limit and search term."""
+        if search is None:
+            return values[:limit]
+        if search_results is not None and search in search_results:
+            return search_results[search][:limit]
+        return [
+            value
+            for value in values
+            if value is not None and search.lower() in str(value).lower()
+        ][:limit]
+
+    dataset = Mock()
+    dataset.normalize_columns = False
+    dataset.values_for_column = Mock(side_effect=values_for_column)
+    return dataset
+
+
+async def _apply_region(
+    mcp_server: object,
+    values: list[Any],
+    dataset: Mock | None,
+    captured: dict[str, Any],
+) -> dict[str, Any]:
+    """Apply ``values`` to the Region filter backed by ``dataset``."""
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])),
+        patch(DATASET_GET, return_value=dataset),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        return await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Region", "values": values}],
+            },
+        )
+
+
+@pytest.mark.asyncio
+async def test_value_missing_from_the_data_is_rejected(mcp_server: object) -> None:
+    """A value the column lacks is refused instead of emptying every chart."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(REGION_VALUES)
+
+    data = await _apply_region(mcp_server, ["Asia Pacific"], dataset, captured)
+
+    assert "state" not in captured
+    assert data["permalink_key"] is None
+    assert data["dashboard_url"] is None
+    assert data["applied_filters"] == []
+    assert data["error"] == (
+        "Filter 'Region' has no value 'Asia Pacific' in column 'region', so "
+        "applying it would leave every chart it filters empty. No filter "
+        "values were applied. Available values: 'APAC', 'EMEA', 'LATAM', "
+        "'North America' (4 in total). Tell the user the value was not found "
+        "and offer these values instead of reporting the filter as applied."
+    )
+    dataset.raise_for_access.assert_called_once_with()
+    dataset.values_for_column.assert_called_once_with(
+        column_name="region",
+        limit=current_app.config["FILTER_SELECT_ROW_LIMIT"],
+        denormalize_column=True,
+        search=None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_one_missing_value_blocks_the_whole_request(mcp_server: object) -> None:
+    """No permalink is written when any requested value is missing."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(REGION_VALUES)
+
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER, TIME_FILTER])),
+        patch(DATASET_GET, return_value=dataset),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Time Range", "time_range": "Last week"},
+                    {"filter_name_or_id": "Region", "values": ["EMEA", "Mars"]},
+                ],
+            },
+        )
+
+    assert "state" not in captured
+    assert data["applied_filters"] == []
+    assert "has no value 'Mars'" in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("requested", "suggested"),
+    [
+        ("North", "'North America'"),
+        ("Emeaa", "'EMEA'"),
+    ],
+)
+async def test_missing_value_suggests_close_matches(
+    mcp_server: object, requested: str, suggested: str
+) -> None:
+    """A partial or misspelled value is refused with its likely matches."""
+    captured: dict[str, Any] = {}
+
+    data = await _apply_region(
+        mcp_server, [requested], _mock_values_dataset(REGION_VALUES), captured
+    )
+
+    assert "state" not in captured
+    assert f"Closest matches for '{requested}': {suggested}." in data["error"]
+    assert "Available values" not in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_case_insensitive_match_applies_the_stored_value(
+    mcp_server: object,
+) -> None:
+    """A value differing only in case or spacing applies the column's spelling."""
+    captured: dict[str, Any] = {}
+
+    data = await _apply_region(
+        mcp_server,
+        ["emea", "  north   AMERICA ", "EMEA"],
+        _mock_values_dataset(REGION_VALUES),
+        captured,
+    )
+
+    assert data["error"] is None
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
+    assert entry["extraFormData"]["filters"] == [
+        {"col": "region", "op": "IN", "val": ["EMEA", "North America"]}
+    ]
+    assert entry["filterState"] == {
+        "value": ["EMEA", "North America"],
+        "label": "EMEA, North America",
+    }
+    assert data["applied_filters"][0]["values"] == ["EMEA", "North America"]
+
+
+@pytest.mark.asyncio
+async def test_text_value_matches_a_numeric_column_value(mcp_server: object) -> None:
+    """A number sent as text applies the column's numeric value."""
+    captured: dict[str, Any] = {}
+
+    data = await _apply_region(
+        mcp_server, ["2024"], _mock_values_dataset([2023, 2024]), captured
+    )
+
+    assert data["error"] is None
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
+    assert entry["extraFormData"]["filters"][0]["val"] == [2024]
+
+
+@pytest.mark.asyncio
+async def test_case_insensitive_match_must_be_unambiguous(mcp_server: object) -> None:
+    """Several values matching ignoring case are offered, not guessed between."""
+    captured: dict[str, Any] = {}
+
+    data = await _apply_region(
+        mcp_server, ["Apac"], _mock_values_dataset(["APAC", "apac"]), captured
+    )
+
+    assert "state" not in captured
+    assert "Closest matches for 'Apac': 'APAC'" in data["error"]
+    # Both spellings fold to the same text, so one stands in for the pair.
+    assert data["applied_filters"] == []
+
+
+@pytest.mark.asyncio
+async def test_value_beyond_a_truncated_first_page_is_found_by_search(
+    mcp_server: object,
+) -> None:
+    """Absence from a truncated first page is confirmed by a full-column search."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(REGION_VALUES + ["Oceania"])
+
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(mcp_server, ["oceania"], dataset, captured)
+
+    assert data["error"] is None
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
+    assert entry["extraFormData"]["filters"][0]["val"] == ["Oceania"]
+    assert dataset.values_for_column.call_args.kwargs["search"] == "oceania"
+
+
+@pytest.mark.asyncio
+async def test_value_missing_beyond_a_truncated_first_page_is_rejected(
+    mcp_server: object,
+) -> None:
+    """A truncated column only claims the values it lists are a sample."""
+    captured: dict[str, Any] = {}
+
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(
+            mcp_server, ["Asia Pacific"], _mock_values_dataset(REGION_VALUES), captured
+        )
+
+    assert "state" not in captured
+    assert "Available values include: 'APAC', 'EMEA'." in data["error"]
+    assert "in total" not in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_null_is_checked_only_against_a_complete_column(
+    mcp_server: object,
+) -> None:
+    """NULL is refused when the full column lacks it, and kept when truncated."""
+    rejected: dict[str, Any] = {}
+    data = await _apply_region(
+        mcp_server, [None], _mock_values_dataset(REGION_VALUES), rejected
+    )
+    assert "has no value '<NULL>'" in data["error"]
+
+    kept: dict[str, Any] = {}
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(
+            mcp_server, [None], _mock_values_dataset(REGION_VALUES), kept
+        )
+    assert data["error"] is None
+    assert kept["state"]["dataMask"]["NATIVE_FILTER-region"]["filterState"][
+        "value"
+    ] == [None]
+
+
+@pytest.mark.asyncio
+async def test_empty_column_rejects_every_value(mcp_server: object) -> None:
+    """A column with no values has nothing to offer instead."""
+    captured: dict[str, Any] = {}
+
+    data = await _apply_region(mcp_server, ["EMEA"], _mock_values_dataset([]), captured)
+
+    assert "state" not in captured
+    assert data["error"].endswith(
+        "The column has no values to filter on. Tell the user the value was "
+        "not found instead of reporting the filter as applied."
+    )
+
+
+@pytest.mark.asyncio
+async def test_boolean_and_integer_values_stay_distinct(mcp_server: object) -> None:
+    """True and 1 compare equal in Python but are separate selections."""
+    captured: dict[str, Any] = {}
+
+    data = await _apply_region(
+        mcp_server, [1, True, 1], _mock_values_dataset([1, True, 0]), captured
+    )
+
+    assert data["error"] is None
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
+    assert entry["extraFormData"]["filters"][0]["val"] == [1, True]
+
+
+@pytest.mark.asyncio
+async def test_failed_search_applies_the_value_unchecked(mcp_server: object) -> None:
+    """A value that cannot be searched for is applied rather than refused."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(REGION_VALUES)
+    first_page = dataset.values_for_column.side_effect
+
+    def fail_search(*args: Any, **kwargs: Any) -> list[Any]:
+        """Serve the first page but fail the search query."""
+        if kwargs.get("search") is not None:
+            raise RuntimeError("search failed")
+        return first_page(*args, **kwargs)
+
+    dataset.values_for_column.side_effect = fail_search
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(mcp_server, ["Oceania"], dataset, captured)
+
+    assert data["error"] is None
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
+    assert entry["extraFormData"]["filters"][0]["val"] == ["Oceania"]
+
+
+@pytest.mark.asyncio
+async def test_unreadable_values_apply_the_request_unchecked(
+    mcp_server: object,
+) -> None:
+    """Values are applied as given when the column cannot be read."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    denied = _mock_values_dataset(REGION_VALUES)
+    denied.raise_for_access.side_effect = SupersetSecurityException(
+        SupersetError(
+            message="denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    failing = _mock_values_dataset(REGION_VALUES)
+    failing.values_for_column.side_effect = KeyError("region")
+
+    for dataset in (None, denied, failing):
+        captured: dict[str, Any] = {}
+        data = await _apply_region(mcp_server, ["Asia Pacific"], dataset, captured)
+        assert data["error"] is None
+        entry = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
+        assert entry["extraFormData"]["filters"][0]["val"] == ["Asia Pacific"]
+
+    # An inaccessible dataset's values are never read.
+    denied.values_for_column.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_values_are_checked_with_the_real_column_query(
+    mcp_server: object, tmp_path: Any
+) -> None:
+    """The check runs the dataset's distinct-values query against real data."""
+    import sqlite3
+
+    from superset.connectors.sqla.models import TableColumn
+
+    path = tmp_path / "regions.db"
+    with sqlite3.connect(path) as conn:
+        conn.execute("CREATE TABLE sales (region TEXT)")
+        conn.executemany(
+            "INSERT INTO sales VALUES (?)", [("APAC",), ("EMEA",), ("EMEA",)]
+        )
+    dataset = SqlaTable(
+        table_name="sales",
+        database=Database(database_name="regions", sqlalchemy_uri=f"sqlite:///{path}"),
+        columns=[TableColumn(column_name="region", type="TEXT")],
+    )
+
+    with (
+        patch.object(SqlaTable, "raise_for_access"),
+        patch.object(SqlaTable, "get_sqla_row_level_filters", return_value=[]),
+    ):
+        rejected: dict[str, Any] = {}
+        data = await _apply_region(mcp_server, ["Asia Pacific"], dataset, rejected)
+        assert "Available values: 'APAC', 'EMEA' (2 in total)." in data["error"]
+
+        applied: dict[str, Any] = {}
+        data = await _apply_region(mcp_server, ["apac"], dataset, applied)
+        assert data["error"] is None
+        entry = applied["state"]["dataMask"]["NATIVE_FILTER-region"]
+        assert entry["extraFormData"]["filters"][0]["val"] == ["APAC"]
+
+
+@pytest.mark.asyncio
+async def test_clearing_a_select_does_not_read_the_column(mcp_server: object) -> None:
+    """An empty selection needs no data check."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(REGION_VALUES)
+
+    data = await _apply_region(mcp_server, [], dataset, captured)
+
+    assert data["error"] is None
+    dataset.values_for_column.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
