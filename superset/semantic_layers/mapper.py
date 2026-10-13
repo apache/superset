@@ -66,6 +66,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
 from superset.semantic_layers.completeness import provider_completeness
+from superset.semantic_layers.members import members_by_key
 from superset.superset_typing import AdhocColumn, Column
 from superset.utils.core import (
     FilterOperator,
@@ -127,6 +128,9 @@ class ValidatedQueryObject(QueryObject):
     filter: list[ValidatedQueryObjectFilterClause]  # type: ignore[assignment]
     series_columns: Sequence[str]  # type: ignore[assignment]
     series_limit_metric: str | None
+    # ``_validate_metrics`` rejects adhoc metrics, so by this point every entry
+    # is a member name that can key the mapping built by ``members_by_key``.
+    metrics: list[str] | None  # type: ignore[assignment]
 
 
 @dataclass(frozen=True)
@@ -413,8 +417,8 @@ def _map_query_object(
     view_metrics: tuple[Metric, ...] = metadata.metrics
     view_dimensions: tuple[Dimension, ...] = metadata.dimensions
 
-    all_metrics = {metric.name: metric for metric in view_metrics}
-    all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
+    all_metrics: dict[str, Metric] = members_by_key(view_metrics)
+    all_dimensions: dict[str, Dimension] = members_by_key(view_dimensions)
 
     validate_filter_columns(query_object.filter, all_dimensions, all_metrics)
 
@@ -1294,7 +1298,7 @@ def _validate_granularity(
     Make sure time column and time grain are valid.
     """
     view_dimensions: tuple[Dimension, ...] = metadata.dimensions
-    all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
+    all_dimensions: dict[str, Dimension] = members_by_key(view_dimensions)
     dimension_names = set(all_dimensions.keys())
 
     if (legacy_time_column := query_object.granularity) and (
