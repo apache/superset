@@ -54,6 +54,31 @@ interface AvailableView {
   already_added: boolean;
 }
 
+/** Keep manual text when discovery has no choices; drop invalid enum selections. */
+export function reconcileDynamicFieldValues(
+  previous: Record<string, unknown>,
+  previousSchema: JsonSchema | null,
+  rawSchema: JsonSchema,
+): Record<string, unknown> {
+  const invalidFields = Object.entries(rawSchema.properties ?? {})
+    .filter(
+      ([key, field]) =>
+        (field as Record<string, unknown>)['x-dynamic'] === true &&
+        Array.isArray(field.enum) &&
+        (field.enum.length > 0 ||
+          (previousSchema?.properties?.[key]?.enum?.length ?? 0) > 0) &&
+        key in previous &&
+        !field.enum.includes(previous[key]),
+    )
+    .map(([key]) => key);
+  if (invalidFields.length === 0) return previous;
+  const next = { ...previous };
+  invalidFields.forEach(key => {
+    delete next[key];
+  });
+  return next;
+}
+
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
@@ -223,25 +248,12 @@ export default function AddSemanticViewModal({
   const retriedDepSnapshotRef = useRef('');
   const applyRuntimeSchema = useCallback((rawSchema: JsonSchema) => {
     dynamicDepsRef.current = getDynamicDependencies(rawSchema);
+    const previousSchema = runtimeSchemaRef.current;
     // Reconcile against the matching response, not an intermediate empty
     // option list. Retain selections that are valid in both dependency states.
-    setRuntimeData(previous => {
-      const invalidFields = Object.entries(rawSchema.properties ?? {})
-        .filter(
-          ([key, field]) =>
-            (field as Record<string, unknown>)['x-dynamic'] === true &&
-            Array.isArray(field.enum) &&
-            key in previous &&
-            !field.enum.includes(previous[key]),
-        )
-        .map(([key]) => key);
-      if (invalidFields.length === 0) return previous;
-      const next = { ...previous };
-      invalidFields.forEach(key => {
-        delete next[key];
-      });
-      return next;
-    });
+    setRuntimeData(previous =>
+      reconcileDynamicFieldValues(previous, previousSchema, rawSchema),
+    );
     const schema = sanitizeSchema(rawSchema);
     const uiSchema = buildUiSchema(schema);
     // Dedupe key = key-order-canonical schema + the derived ui schema.
@@ -421,12 +433,12 @@ export default function AddSemanticViewModal({
               // Reset before applying: the request itself succeeded, so a
               // throw inside applyRuntimeSchema must not be reported (or
               // retried) as a transient network failure.
+              if (!json.result)
+                throw new Error('Runtime schema refresh returned no schema');
               refreshErrorToastShownRef.current = false;
               retriedDepSnapshotRef.current = '';
-              if (json.result) {
-                applyRuntimeSchema(json.result);
-                setStaleSchemaOptions(false);
-              }
+              applyRuntimeSchema(json.result);
+              setStaleSchemaOptions(false);
             } catch (error) {
               if (
                 gen !== fetchGenRef.current ||

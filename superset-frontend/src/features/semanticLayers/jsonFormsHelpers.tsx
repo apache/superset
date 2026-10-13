@@ -315,7 +315,7 @@ export function DynamicFieldControl(props: ControlProps) {
           onChange={value => props.handleChange(props.path, value)}
           options={options}
           // Disabling closes the menu without discarding a still-valid value.
-          disabled={!props.enabled || refreshing || stale}
+          disabled={!props.enabled || stale}
           loading={refreshing}
           allowClear
           placeholder={refreshing ? t('Loading...') : placeholder}
