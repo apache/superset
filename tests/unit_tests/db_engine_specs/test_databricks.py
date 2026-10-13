@@ -75,15 +75,64 @@ def test_dialect_supports_installed_sqlalchemy(mocker: MockerFixture) -> None:
     finally:
         engine.dispose()
 
-    connector_engine = create_engine(
-        "databricks+connector://token:test-token@localhost"
-        "?http_path=/sql/1.0/warehouses/test&catalog=main&schema=default"
+    native_uri_str = DatabricksNativeEngineSpec.build_sqlalchemy_uri(
+        {
+            "access_token": "test-token",
+            "host": "localhost",
+            "port": 443,
+            "database": "default",
+        }
     )
+    native_url, _ = DatabricksNativeEngineSpec.adjust_engine_params(
+        make_url(native_uri_str),
+        connect_args={"http_path": "/sql/1.0/warehouses/test"},
+        catalog="main",
+        schema="default",
+    )
+    connector_engine = create_engine(native_url)
     try:
         assert isinstance(connector_engine.dialect, dialect.DatabricksDialect)
+        _, connector_connect_args = connector_engine.dialect.create_connect_args(
+            connector_engine.url
+        )
+        assert connector_connect_args["http_path"] == "/sql/1.0/warehouses/test"
+        assert connector_connect_args["catalog"] == "main"
+        assert connector_connect_args["schema"] == "default"
     finally:
         connector_engine.dispose()
     socket.assert_not_called()
+
+
+def test_databricks_native_adjust_engine_params() -> None:
+    """Test that DatabricksNativeEngineSpec translates catalog and schema to query params."""
+    uri_str = DatabricksNativeEngineSpec.build_sqlalchemy_uri(
+        {
+            "access_token": "test-token",
+            "host": "localhost",
+            "port": 443,
+            "database": "default",
+        }
+    )
+    assert uri_str == "databricks+connector://token:test-token@localhost:443/default"
+
+    # Test explicit catalog and schema with http_path in connect_args
+    adjusted_url, _ = DatabricksNativeEngineSpec.adjust_engine_params(
+        make_url(uri_str),
+        connect_args={"http_path": "/sql/1.0/warehouses/test"},
+        catalog="main",
+        schema="custom_schema",
+    )
+    assert adjusted_url.query["catalog"] == "main"
+    assert adjusted_url.query["schema"] == "custom_schema"
+    assert adjusted_url.query["http_path"] == "/sql/1.0/warehouses/test"
+
+    # Test catalog from connect_args and fallback schema from URI database
+    adjusted_url_fallback, _ = DatabricksNativeEngineSpec.adjust_engine_params(
+        make_url(uri_str),
+        connect_args={"catalog": "connect_arg_cat"},
+    )
+    assert adjusted_url_fallback.query["catalog"] == "connect_arg_cat"
+    assert adjusted_url_fallback.query["schema"] == "default"
 
 
 def test_databricks_connector_dialect_registration() -> None:

@@ -1020,6 +1020,37 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         ).render_as_string(hide_password=False)
 
     @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        effective_catalog = (
+            catalog or connect_args.get("catalog") or uri.query.get("catalog")
+        )
+        effective_schema = (
+            schema
+            or uri.query.get("schema")
+            or (uri.database if uri.database else None)
+        )
+
+        query_params: dict[str, str] = {}
+        if effective_catalog:
+            query_params["catalog"] = effective_catalog
+        if effective_schema:
+            query_params["schema"] = effective_schema
+        if http_path := connect_args.get("http_path"):
+            if "http_path" not in uri.query:
+                query_params["http_path"] = http_path
+
+        if query_params:
+            uri = uri.update_query_dict(query_params)
+
+        return uri, connect_args
+
+    @classmethod
     def get_parameters_from_uri(  # type: ignore
         cls, uri: str, *_, **__
     ) -> DatabricksNativeParametersType:
@@ -1128,7 +1159,7 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.PROPRIETARY,
         ],
-        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
+        "pypi_packages": ["databricks-dbapi[odbc]", "pyodbc"],
         "connection_string": (
             "databricks+pyodbc://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
         ),
@@ -1140,6 +1171,17 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
             "database": "Database name",
             "http_path": "HTTP path from SQL endpoint settings",
         },
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "databricks-dbapi pins sqlalchemy>=1.3,<2.0; no SQLAlchemy 2.0 "
+                    "support is planned for the legacy driver. Use the Databricks "
+                    "Python Connector (databricks-sql-connector) instead."
+                ),
+                "tracking_url": "https://github.com/databricks/databricks-dbapi",
+            }
+        ],
     }
 
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
@@ -1172,7 +1214,7 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
-        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
+        "pypi_packages": ["databricks-dbapi[hive]", "pyhive", "thrift"],
         "connection_string": (
             "databricks+pyhive://token:{access_token}@{host}:{port}/{database}?http_path={http_path}"
         ),
@@ -1184,6 +1226,17 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
             "database": "Database name",
             "http_path": "HTTP path from cluster settings",
         },
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "databricks-dbapi pins sqlalchemy>=1.3,<2.0; no SQLAlchemy 2.0 "
+                    "support is planned for the legacy driver. Use the Databricks "
+                    "Python Connector (databricks-sql-connector) instead."
+                ),
+                "tracking_url": "https://github.com/databricks/databricks-dbapi",
+            }
+        ],
     }
 
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which

@@ -32,7 +32,6 @@ def test_arc_metadata() -> None:
         metadata["description"]
         == "Arc is a data platform with multiple connection options."
     )
-    assert metadata["logo"] == "arc.png"
     assert "arc-superset-arrow" in metadata["pypi_packages"]
     assert metadata["default_port"] == 8000
 

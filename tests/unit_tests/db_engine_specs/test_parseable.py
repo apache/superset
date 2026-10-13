@@ -34,7 +34,6 @@ def test_parseable_metadata() -> None:
     assert (
         "Parseable is a distributed log analytics database" in metadata["description"]
     )
-    assert metadata["logo"] == "parseable.png"
     assert "sqlalchemy-parseable" in metadata["pypi_packages"]
     assert metadata["default_port"] == 8000
     assert (

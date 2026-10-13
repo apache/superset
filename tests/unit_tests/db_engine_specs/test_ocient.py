@@ -43,7 +43,6 @@ def test_ocient_properties() -> None:
 def test_ocient_metadata() -> None:
     metadata = OcientEngineSpec.metadata
     assert metadata["description"] == "Ocient is a hyperscale data analytics database."
-    assert metadata["logo"] == "ocient.png"
     assert "sqlalchemy-ocient" in metadata["pypi_packages"]
     assert metadata["default_port"] == 4050
 

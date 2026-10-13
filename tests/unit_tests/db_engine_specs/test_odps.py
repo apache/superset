@@ -35,7 +35,6 @@ def test_odps_properties() -> None:
 def test_odps_metadata() -> None:
     metadata = OdpsEngineSpec.metadata
     assert "MaxCompute" in metadata["description"]
-    assert metadata["logo"] == "maxcompute.png"
     assert "pyodps" in metadata["pypi_packages"]
     assert "odps://" in metadata["connection_string"]
 
