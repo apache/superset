@@ -26,6 +26,15 @@ assists people when migrating to a new version.
 
 ## 7.0.0
 
+- Address validation refuses additional non-global address forms. Addresses in
+  the well-known NAT64 prefix `64:ff9b::/96` are checked using their embedded IPv4
+  address and refused when that address is unsafe. Local-use translation
+  (`64:ff9b:1::/48`), IPv4-compatible (`::/96`), 6to4 and Teredo forms are refused
+  outright. Operator-specific NAT64 prefixes are not detected: recognizing them
+  requires knowledge of the operator's prefix configuration. Existing per-feature
+  internal-host settings continue to control OAuth2, webhook, URL dataset import
+  and Impala checks.
+
 - A chart whose datasource no longer exists (hard-deleted, or no datasource ID)
   has its denormalized `perm`, `schema_perm` and `catalog_perm` cleared when it is
   saved, including during the dataset's deletion. Purging a soft-deleted dataset
