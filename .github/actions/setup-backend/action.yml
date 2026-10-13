@@ -84,6 +84,7 @@ runs:
       shell: bash
     - name: Setup Develocity for Python
       if: inputs.install-superset == 'true' && inputs.develocity-access-key != ''
+      continue-on-error: true
       uses: gradle/develocity-actions/setup-python@9d8792ab22712b19790c2abce53e9ebb2694c312 # v2.5
       with:
         develocity-url: https://develocity.apache.org

@@ -38,6 +38,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - name: Setup Develocity for npm
         if: env.DEVELOCITY_ENABLED == 'true'
+        continue-on-error: true
         uses: $/.github/actions/setup-develocity-npm
         with:
           develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
