@@ -28,6 +28,8 @@ Covers:
 - Clearing a selection, including the enableEmptyFilter branch
 - Select values checked against the column's data: missing values refused
   with suggestions, case-insensitive matches resolved to the stored value
+- Column values read through the column-values API's shared result cache,
+  partitioned by effective RLS and never read before the access check
 - Unknown, ambiguous, duplicate, and wrong-type targets -> clear errors
 - Unsupported filter types -> clear error
 - Dashboard not found and permission denial
@@ -35,7 +37,8 @@ Covers:
   through get_dashboard_layout's permalink read path
 """
 
-from collections.abc import Callable
+import itertools
+from collections.abc import Callable, Iterator
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -1194,6 +1197,7 @@ async def test_mixed_value_types_are_preserved(mcp_server: object) -> None:
 # ---------------------------------------------------------------------------
 
 REGION_VALUES: list[Any] = ["APAC", "EMEA", "North America", "LATAM"]
+_DATASET_IDS = itertools.count(1)
 
 
 def _mock_values_dataset(
@@ -1226,8 +1230,44 @@ def _mock_values_dataset(
 
     dataset = Mock()
     dataset.normalize_columns = False
+    # Fields the shared column-values cache key is built from.
+    dataset.uid = f"{next(_DATASET_IDS)}__table"
+    dataset.changed_on = None
+    dataset.cache_timeout = None
+    dataset.is_rls_supported = False
     dataset.values_for_column = Mock(side_effect=values_for_column)
     return dataset
+
+
+class _FakeDataCache:
+    """A dict-backed stand-in for ``cache_manager.data_cache``."""
+
+    def __init__(self) -> None:
+        self.entries: dict[str, Any] = {}
+        self.timeouts: dict[str, int] = {}
+
+    def get(self, key: str) -> Any:
+        return self.entries.get(key)
+
+    def set(self, key: str, value: Any, timeout: int) -> None:
+        self.entries[key] = value
+        self.timeouts[key] = timeout
+
+
+@pytest.fixture(autouse=True)
+def data_cache() -> Iterator[_FakeDataCache]:
+    """Give every test an empty column-values cache, as the API reads it."""
+    from superset.extensions import security_manager
+
+    cache = _FakeDataCache()
+    with (
+        patch("superset.datasource.api.cache_manager") as manager,
+        # The cache key fingerprints the caller's effective RLS; default to none.
+        patch.object(security_manager, "get_rls_filters", return_value=[]),
+        patch.object(security_manager, "get_guest_rls_filters", return_value=[]),
+    ):
+        manager.data_cache = cache
+        yield cache
 
 
 async def _apply_region(
@@ -1275,6 +1315,7 @@ async def test_value_missing_from_the_data_is_rejected(mcp_server: object) -> No
         column_name="region",
         limit=current_app.config["FILTER_SELECT_ROW_LIMIT"],
         denormalize_column=True,
+        array_elements=False,
         search=None,
     )
 
@@ -3191,3 +3232,191 @@ async def test_zero_sql_row_cap_never_runs_an_unlimited_values_query(
     assert data["error"] is None
     assert data["applied_filters"][0]["values"] == ["Mars"]
     dataset.values_for_column.assert_not_called()
+
+
+def _column_values_key(dataset: Mock, **query: Any) -> str:
+    """Build the key the column-values API uses for the same query."""
+    from superset.datasource.api import _column_values_cache_key
+
+    return _column_values_cache_key(
+        dataset,
+        {
+            "col": "region",
+            "limit": current_app.config["FILTER_SELECT_ROW_LIMIT"],
+            "denorm": True,
+            "elements": False,
+            "q": None,
+            **query,
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_repeated_calls_read_column_values_from_the_shared_cache(
+    mcp_server: object, data_cache: _FakeDataCache
+) -> None:
+    """A second tool call does not re-run the DISTINCT query."""
+    dataset = _mock_values_dataset(REGION_VALUES)
+
+    for _ in range(2):
+        captured: dict[str, Any] = {}
+        data = await _apply_region(mcp_server, ["emea"], dataset, captured)
+        assert data["error"] is None
+        assert data["applied_filters"][0]["values"] == ["EMEA"]
+
+    dataset.values_for_column.assert_called_once()
+    # The entry is the one the column-values API would read and write.
+    assert list(data_cache.entries) == [_column_values_key(dataset)]
+    assert data_cache.entries[_column_values_key(dataset)] == REGION_VALUES
+
+
+@pytest.mark.asyncio
+async def test_entries_written_by_the_column_values_api_are_reused(
+    mcp_server: object, data_cache: _FakeDataCache
+) -> None:
+    """A UI-warmed entry serves validation without touching the dataset."""
+    dataset = _mock_values_dataset(REGION_VALUES)
+    data_cache.set(_column_values_key(dataset), REGION_VALUES, timeout=300)
+
+    captured: dict[str, Any] = {}
+    data = await _apply_region(mcp_server, ["emea"], dataset, captured)
+
+    assert data["applied_filters"][0]["values"] == ["EMEA"]
+    dataset.values_for_column.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_searches_are_cached_with_the_api_search_timeout(
+    mcp_server: object, data_cache: _FakeDataCache
+) -> None:
+    """A CONTAINS search is shared with the UI's search and expires quickly."""
+    from superset.datasource.api import SEARCH_CACHE_TIMEOUT
+
+    dataset = _mock_values_dataset(REGION_VALUES + ["Oceania"])
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        for _ in range(2):
+            captured: dict[str, Any] = {}
+            data = await _apply_region(mcp_server, ["oceania"], dataset, captured)
+            assert data["applied_filters"][0]["values"] == ["Oceania"]
+        search_key = _column_values_key(dataset, limit=2, q="ocean")
+        page_key = _column_values_key(dataset, limit=2)
+
+    assert dataset.values_for_column.call_count == 2
+    assert set(data_cache.entries) == {page_key, search_key}
+    assert data_cache.timeouts[search_key] == SEARCH_CACHE_TIMEOUT
+    assert data_cache.timeouts[page_key] == current_app.config.get(
+        "CACHE_DEFAULT_TIMEOUT", 300
+    )
+
+
+@pytest.mark.asyncio
+async def test_cached_values_are_not_shared_across_different_rls(
+    mcp_server: object, data_cache: _FakeDataCache
+) -> None:
+    """Callers with different effective RLS never read each other's values."""
+    from superset.extensions import security_manager
+
+    dataset = _mock_values_dataset(["APAC", "EMEA"])
+    unrestricted: list[str] = []
+    restricted = ["region != 'EMEA'-"]
+    other = ["region = 'EMEA'-"]
+    rows = {
+        tuple(unrestricted): ["APAC", "EMEA"],
+        tuple(restricted): ["APAC"],
+        tuple(other): ["EMEA"],
+    }
+    rls: list[str] = unrestricted
+
+    def query(**kwargs: Any) -> list[Any]:
+        """Return the rows the caller's RLS allows."""
+        return rows[tuple(rls)]
+
+    dataset.values_for_column.side_effect = query
+    results = []
+    for rls in (unrestricted, restricted, unrestricted, restricted, other):
+        with patch.object(security_manager, "get_rls_cache_key", return_value=rls):
+            captured: dict[str, Any] = {}
+            results.append(await _apply_region(mcp_server, ["EMEA"], dataset, captured))
+
+    # Callers whose RLS allows EMEA resolve it; the restricted one never gets
+    # it from an entry cached for an unrestricted caller, and repeats stay denied.
+    assert [bool(data["error"]) for data in results] == [
+        False,
+        True,
+        False,
+        True,
+        False,
+    ]
+    for data in (results[1], results[3]):
+        assert "Available values: 'APAC' (1 in total)." in data["error"]
+    # One query per distinct RLS scope ([], restricted, other); repeats hit.
+    assert dataset.values_for_column.call_count == 3
+    assert len(data_cache.entries) == 3
+
+
+@pytest.mark.asyncio
+async def test_cache_key_is_scoped_to_the_dataset_and_its_edits(
+    mcp_server: object, data_cache: _FakeDataCache
+) -> None:
+    """Another dataset, or an edited one, never reuses a cached entry."""
+    first = _mock_values_dataset(["APAC", "EMEA"])
+    second = _mock_values_dataset(["APAC", "EMEA"])
+    second.uid = "second__table"
+    edited = _mock_values_dataset(["APAC", "EMEA"])
+    edited.changed_on = "2026-10-13 00:00:00"
+
+    for dataset in (first, second, edited, first):
+        await _apply_region(mcp_server, ["EMEA"], dataset, {})
+
+    assert len({_column_values_key(d) for d in (first, second, edited)}) == 3
+    assert len(data_cache.entries) == 3
+    first.values_for_column.assert_called_once()
+    second.values_for_column.assert_called_once()
+    edited.values_for_column.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_cache_is_not_read_before_the_access_check(
+    mcp_server: object, data_cache: _FakeDataCache
+) -> None:
+    """A cached entry cannot be served to a caller denied the dataset."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    dataset = _mock_values_dataset(REGION_VALUES)
+    data_cache.set(_column_values_key(dataset), REGION_VALUES, timeout=300)
+    dataset.raise_for_access.side_effect = SupersetSecurityException(
+        SupersetError(
+            message="denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+    with patch.object(data_cache, "get", wraps=data_cache.get) as cache_get:
+        captured: dict[str, Any] = {}
+        data = await _apply_region(mcp_server, ["Mars"], dataset, captured)
+
+    # Applied unchecked, with nothing about the cached values revealed.
+    assert data["error"] is None
+    assert data["applied_filters"][0]["values"] == ["Mars"]
+    cache_get.assert_not_called()
+    dataset.values_for_column.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_failed_queries_are_not_cached(
+    mcp_server: object, data_cache: _FakeDataCache
+) -> None:
+    """An error is retried on the next call instead of being remembered."""
+    dataset = _mock_values_dataset(REGION_VALUES)
+    working = dataset.values_for_column.side_effect
+    dataset.values_for_column.side_effect = RuntimeError("database down")
+
+    data = await _apply_region(mcp_server, ["Mars"], dataset, {})
+    assert data["error"] is None
+    assert not data_cache.entries
+
+    dataset.values_for_column.side_effect = working
+    data = await _apply_region(mcp_server, ["Mars"], dataset, {})
+    assert "has no value 'Mars'" in data["error"]

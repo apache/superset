@@ -197,15 +197,26 @@ def _column_values(
     filter options, so the values checked here are the ones a viewer could
     pick. ``search`` narrows it to values containing the term,
     case-insensitively.
+
+    Reads go through the column-values API's ``data_cache`` entries (same key
+    and timeout), so a heavy virtual dataset is not re-queried per filter or
+    per tool call, and the UI and this tool warm each other. The key is
+    partitioned by the effective RLS, so entries are not shared across users
+    with different row-level security; the caller authorizes the dataset
+    before this runs. Searches are cached too, under the API's short
+    search-term timeout.
     """
+    from superset.datasource.api import get_cached_column_values
+
     limit = apply_max_row_limit(current_app.config["FILTER_SELECT_ROW_LIMIT"])
     if limit <= 0:
         raise ValueError("Column-value validation requires a positive row limit")
-    values = dataset.values_for_column(
+    values, _ = get_cached_column_values(
+        dataset,
         column_name=column,
         limit=limit,
         denormalize_column=not dataset.normalize_columns,
-        search=search,
+        search=search or None,
     )
     # Match the JSON scalar options the column-values API sends to the UI,
     # rather than returning driver-specific date/decimal/numpy objects to the

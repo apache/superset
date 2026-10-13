@@ -98,6 +98,87 @@ def _column_values_cache_key(
     )
 
 
+def get_cached_column_values(
+    datasource: BaseDatasource | SemanticView,
+    *,
+    column_name: str,
+    limit: int,
+    denormalize_column: bool,
+    array_elements: bool = False,
+    search: str | None = None,
+    selection_version: str | None = None,
+    force: bool = False,
+) -> tuple[list[Any], bool]:
+    """Return a column's distinct values through the shared ``data_cache`` entry.
+
+    Used by the column-values endpoint and by callers that read the same
+    values (e.g. the MCP filter validation), so they share cache entries and
+    a heavy virtual dataset's DISTINCT query runs once per key, not once per
+    caller (#39342).
+
+    Callers must have authorized the datasource (``raise_for_access``) first:
+    the key partitions entries by effective RLS, not by user, so the cache
+    itself is not an access check. ``search`` must already be stripped, with
+    ``None`` for "no search", so equal queries produce equal keys.
+
+    Returns ``(values, cache_hit)``. ``force`` skips the read and refreshes
+    the entry.
+    """
+    cache_key: str = _column_values_cache_key(
+        datasource,
+        {
+            **(
+                {"semantic_selection_version": selection_version}
+                if selection_version is not None
+                else {}
+            ),
+            "col": column_name,
+            "limit": limit,
+            "denorm": denormalize_column,
+            "elements": array_elements,
+            "q": search,
+        },
+    )
+    cached: list[Any] | None
+    if not force and (cached := cache_manager.data_cache.get(cache_key)) is not None:
+        logger.debug(
+            "column-values cache HIT: uid=%s col=%s", datasource.uid, column_name
+        )
+        return cached, True
+    payload: list[Any] = datasource.values_for_column(
+        column_name=column_name,
+        limit=limit,
+        denormalize_column=denormalize_column,
+        array_elements=array_elements,
+        search=search,
+    )
+
+    # Warn before caching very large payloads (high-cardinality columns)
+    # so operators can spot cache-memory pressure before Redis OOMs.
+    # Threshold is operator-tunable; defaults to 100k rows.
+    warn_threshold: int = app.config.get("FILTER_VALUES_CACHE_WARN_THRESHOLD", 100_000)
+    payload_size: int
+    if (payload_size := len(payload)) > warn_threshold:
+        logger.warning(
+            "column-values payload exceeds cache-warn threshold: "
+            "uid=%s col=%s rows=%d threshold=%d",
+            datasource.uid,
+            column_name,
+            payload_size,
+            warn_threshold,
+        )
+
+    timeout: int = datasource.cache_timeout or app.config.get(
+        "CACHE_DEFAULT_TIMEOUT", 300
+    )
+    # Bound each distinct search term's lifetime instead of retaining one
+    # entry per keystroke for the full default timeout.
+    timeout = min(timeout, SEARCH_CACHE_TIMEOUT) if search else timeout
+    cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
+    logger.debug("column-values cache MISS: uid=%s col=%s", datasource.uid, column_name)
+    return payload, False
+
+
 class DatasourceRestApi(BaseSupersetApi):
     allow_browser_login = True
     class_permission_name = "Datasource"
@@ -278,41 +359,16 @@ class DatasourceRestApi(BaseSupersetApi):
         # - ``semantic_result_version`` — opt-in producer guarantee, omitted
         #   for SDK-default providers to preserve their legacy key bytes.
         force: bool = parse_boolean_string(request.args.get("force"))
-        cached: list[Any] | None
         try:
-            cache_key: str = _column_values_cache_key(
+            payload, cache_hit = get_cached_column_values(
                 datasource,
-                {
-                    **(
-                        {"semantic_selection_version": selection_version}
-                        if selection_version is not None
-                        else {}
-                    ),
-                    "col": column_name,
-                    "limit": row_limit,
-                    "denorm": denormalize_column,
-                    "elements": array_elements,
-                    "q": search,
-                },
-            )
-            if (
-                not force
-                and (cached := cache_manager.data_cache.get(cache_key)) is not None
-            ):
-                logger.debug(
-                    "column-values cache HIT: uid=%s col=%s",
-                    datasource.uid,
-                    column_name,
-                )
-                response: Response = self.response(200, result=cached, limit=row_limit)
-                response.headers["X-Cache-Status"] = "HIT"
-                return response
-            payload: list[Any] = datasource.values_for_column(
                 column_name=column_name,
                 limit=row_limit,
                 denormalize_column=denormalize_column,
                 array_elements=array_elements,
                 search=search,
+                selection_version=selection_version,
+                force=force,
             )
         except QueryObjectValidationError as ex:
             # Validation errors can quote dataset SQL; embedded guests get the
@@ -331,35 +387,8 @@ class DatasourceRestApi(BaseSupersetApi):
                 ),
             )
 
-        # Warn before caching very large payloads (high-cardinality columns)
-        # so operators can spot cache-memory pressure before Redis OOMs.
-        # Threshold is operator-tunable; defaults to 100k rows.
-        warn_threshold: int = app.config.get(
-            "FILTER_VALUES_CACHE_WARN_THRESHOLD", 100_000
-        )
-        payload_size: int
-        if (payload_size := len(payload)) > warn_threshold:
-            logger.warning(
-                "column-values payload exceeds cache-warn threshold: "
-                "uid=%s col=%s rows=%d threshold=%d",
-                datasource.uid,
-                column_name,
-                payload_size,
-                warn_threshold,
-            )
-
-        timeout: int = datasource.cache_timeout or app.config.get(
-            "CACHE_DEFAULT_TIMEOUT", 300
-        )
-        # Bound each distinct search term's lifetime instead of retaining one
-        # entry per keystroke for the full default timeout.
-        timeout = min(timeout, SEARCH_CACHE_TIMEOUT) if search else timeout
-        cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
-        logger.debug(
-            "column-values cache MISS: uid=%s col=%s", datasource.uid, column_name
-        )
-        response = self.response(200, result=payload, limit=row_limit)
-        response.headers["X-Cache-Status"] = "MISS"
+        response: Response = self.response(200, result=payload, limit=row_limit)
+        response.headers["X-Cache-Status"] = "HIT" if cache_hit else "MISS"
         return response
 
     @expose(
