@@ -272,14 +272,26 @@ function ChartRendererComponent({
     prevQueriesResponseRef.current = queriesResponse;
   }, [queriesResponse]);
 
+  const hasAnyErrors = queriesResponse?.some(item => item?.error);
+  const hasValidPreviousData =
+    (queriesResponse?.length ?? 0) > 0 && !hasAnyErrors;
+
+  // An auto-refresh keeps the chart on screen while its query is in flight.
+  // The store holds the previous response until the new one lands, so that
+  // response is what the chart renders in the meantime.
+  const isRefreshing =
+    Boolean(restProps.suppressLoadingSpinner) && chartStatus === 'loading';
+  const hasRenderableResults =
+    resultsReady || (isRefreshing && hasValidPreviousData);
+
   // Clone queriesResponse to protect against plugin mutation of Redux state.
-  // Gate on `resultsReady` so the deep clone doesn't run for every
+  // Gate on `hasRenderableResults` so the deep clone doesn't run for every
   // queriesResponse identity change during loading/idle (only when results
-  // are actually about to render). Matches the pre-refactor gating.
+  // are actually about to render).
   // TODO: remove once reducers use Redux Toolkit with Immer.
   const mutableQueriesResponse = useMemo(
-    () => (resultsReady ? cloneDeep(queriesResponse) : undefined),
-    [queriesResponse, resultsReady],
+    () => (hasRenderableResults ? cloneDeep(queriesResponse) : undefined),
+    [queriesResponse, hasRenderableResults],
   );
 
   // Handler functions
@@ -448,18 +460,12 @@ function ChartRendererComponent({
     ],
   );
 
-  const hasAnyErrors = queriesResponse?.some(item => item?.error);
-  const hasValidPreviousData =
-    (queriesResponse?.length ?? 0) > 0 && !hasAnyErrors;
-
   if (!!chartAlert || chartStatus === null) {
     return null;
   }
 
-  if (chartStatus === 'loading') {
-    if (!restProps.suppressLoadingSpinner || !hasValidPreviousData) {
-      return null;
-    }
+  if (chartStatus === 'loading' && !hasRenderableResults) {
+    return null;
   }
 
   renderStartTimeRef.current = Logger.getTimestamp();
@@ -584,10 +590,7 @@ function ChartRendererComponent({
           legendState={state.legendState}
           enableNoResults={bypassNoResult}
           legendIndex={state.legendIndex}
-          isRefreshing={
-            Boolean(restProps.suppressLoadingSpinner) &&
-            chartStatus === 'loading'
-          }
+          isRefreshing={isRefreshing}
           {...drillToDetailProps}
         />
       </div>

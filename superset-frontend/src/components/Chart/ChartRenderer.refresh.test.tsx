@@ -1,0 +1,147 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { render, screen } from 'spec/helpers/testing-library';
+import { ChartMetadata, ChartPlugin, QueryData } from '@superset-ui/core';
+import ChartRenderer, {
+  ChartRendererProps,
+} from 'src/components/Chart/ChartRenderer';
+import { ChartSource } from 'src/types/ChartSource';
+
+// These tests run the real SuperChart, because the bug they guard against
+// lives in what SuperChart does with the data ChartRenderer hands it.
+jest.mock(
+  'src/components/Chart/ChartContextMenu/ChartContextMenu',
+  () => () => <div />,
+);
+
+const VIZ_TYPE = 'refresh_test_chart';
+const NO_RESULTS = 'No results were returned for this query';
+
+interface TestChartProps {
+  queriesData: { data: { value: number }[] }[];
+}
+
+const TestChart = ({ queriesData }: TestChartProps) => (
+  <div data-test="refresh-test-chart">value={queriesData[0].data[0].value}</div>
+);
+
+beforeAll(() => {
+  new ChartPlugin({
+    metadata: new ChartMetadata({ name: 'Refresh test chart', thumbnail: '' }),
+    Chart: TestChart,
+    transformProps: chartProps => ({ queriesData: chartProps.queriesData }),
+  })
+    .configure({ key: VIZ_TYPE })
+    .register();
+});
+
+const queriesResponse = (value: number) =>
+  [{ data: [{ value }] }] as unknown as QueryData[];
+
+const props = (overrides: Partial<ChartRendererProps>): ChartRendererProps => ({
+  chartId: 1,
+  datasource: {} as ChartRendererProps['datasource'],
+  formData: { viz_type: VIZ_TYPE } as ChartRendererProps['formData'],
+  vizType: VIZ_TYPE,
+  source: ChartSource.Dashboard,
+  width: 600,
+  height: 400,
+  actions: {
+    chartRenderingSucceeded: jest.fn(),
+    chartRenderingFailed: jest.fn(),
+    logEvent: jest.fn(),
+  } as unknown as ChartRendererProps['actions'],
+  queriesResponse: queriesResponse(1),
+  ...overrides,
+});
+
+test('keeps the chart on screen while an auto-refresh query is in flight', async () => {
+  const { rerender } = render(
+    <ChartRenderer
+      {...props({ chartStatus: 'rendered', suppressLoadingSpinner: true })}
+    />,
+  );
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=1',
+  );
+
+  rerender(
+    <ChartRenderer
+      {...props({ chartStatus: 'loading', suppressLoadingSpinner: true })}
+    />,
+  );
+
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=1',
+  );
+  expect(screen.queryByText(NO_RESULTS)).not.toBeInTheDocument();
+});
+
+test('renders the previous data when mounted in the middle of an auto-refresh', async () => {
+  render(
+    <ChartRenderer
+      {...props({ chartStatus: 'loading', suppressLoadingSpinner: true })}
+    />,
+  );
+
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=1',
+  );
+  expect(screen.queryByText(NO_RESULTS)).not.toBeInTheDocument();
+});
+
+test('shows the new data once the auto-refresh query returns', async () => {
+  const { rerender } = render(
+    <ChartRenderer
+      {...props({ chartStatus: 'rendered', suppressLoadingSpinner: true })}
+    />,
+  );
+  await screen.findByTestId('refresh-test-chart');
+  rerender(
+    <ChartRenderer
+      {...props({ chartStatus: 'loading', suppressLoadingSpinner: true })}
+    />,
+  );
+
+  rerender(
+    <ChartRenderer
+      {...props({
+        chartStatus: 'success',
+        suppressLoadingSpinner: true,
+        queriesResponse: queriesResponse(2),
+      })}
+    />,
+  );
+
+  expect(await screen.findByText('value=2')).toBeInTheDocument();
+});
+
+test('still shows the no-results state when a finished query returns no rows', async () => {
+  render(
+    <ChartRenderer
+      {...props({
+        chartStatus: 'rendered',
+        suppressLoadingSpinner: true,
+        queriesResponse: [{ data: [] }] as unknown as QueryData[],
+      })}
+    />,
+  );
+
+  expect(await screen.findByText(NO_RESULTS)).toBeInTheDocument();
+});
