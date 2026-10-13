@@ -38,19 +38,31 @@ the driver string inside credentials or query values are left untouched.
 
 To keep ``downgrade`` from clobbering connections a user created directly on
 ``databricks+connector`` (which must stay on that driver), ``upgrade`` records a
-marker (``MIGRATION_MARKER``) in ``extra``. ``downgrade`` reverts only the rows
-carrying that marker and removes it, so the round trip is exact and native
-connector connections are never touched. The marker is an unknown key to the
-``extra`` validator, which tolerates it, and is cosmetic until the connection is
-next saved through the API.
+marker (``MIGRATION_MARKER``) in ``extra`` whose value names this revision and
+the id of the row it was written to. ``downgrade`` reverts only rows on the
+connector driver whose marker matches exactly that revision and row id, and
+removes it, so the round trip is exact and native connector connections are
+never touched -- including ones whose ``extra`` was copied from a migrated
+connection, since a copy lives under a different row id. The marker is an
+unknown key to the ``extra`` validator, which tolerates it, and is cosmetic
+until the connection is next saved through the API.
+
+A row whose ``extra`` is not a valid JSON object is logged and skipped in both
+directions rather than aborting the run. ``paginated_update`` commits per
+batch, and each migrated row receives its new URI and marker together, so a
+run that stops partway leaves every row either fully migrated or untouched and
+is safe to re-run.
 
 Revision ID: a3f5c9e21b84
-Revises: 884a2115ebd3
+Revises: c179af013f48
 Create Date: 2026-09-15 00:00:00.000000
 
 """
 
 from __future__ import annotations
+
+import logging
+from typing import Any
 
 from alembic import op
 from sqlalchemy import Column, Integer, Text
@@ -62,7 +74,9 @@ from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "a3f5c9e21b84"
-down_revision = "884a2115ebd3"
+down_revision = "c179af013f48"
+
+logger = logging.getLogger("alembic.env")
 
 Base = declarative_base()
 
@@ -71,6 +85,7 @@ CONNECTOR_PREFIX = "databricks+connector"
 
 # Marker written to ``extra`` on upgrade so downgrade can revert exactly the
 # rows this migration touched and leave native connector connections alone.
+# Its value is produced by ``_marker_value`` and is bound to a specific row.
 MIGRATION_MARKER = "migrated_from_databricks_odbc"
 
 
@@ -106,6 +121,26 @@ def _load_extra(extra: str | None) -> dict:
     return loaded
 
 
+def _marker_value(database: Database) -> dict[str, Any]:
+    """The marker value identifying ``database`` as migrated by this revision."""
+    return {"revision": revision, "database_id": database.id}
+
+
+def _safe_load_extra(database: Database) -> dict | None:
+    """
+    Parse ``database.extra``, logging and returning ``None`` when it is
+    malformed so the caller can skip the row instead of aborting the run.
+    """
+    try:
+        return _load_extra(database.extra)
+    except ValueError:
+        logger.warning(
+            "Skipping database id=%s: extra is not a valid JSON object",
+            database.id,
+        )
+        return None
+
+
 def upgrade() -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
@@ -117,9 +152,11 @@ def upgrade() -> None:
         updated = _swap_scheme(database.sqlalchemy_uri, ODBC_PREFIX, CONNECTOR_PREFIX)
         if updated is None:
             continue
+        extra = _safe_load_extra(database)
+        if extra is None:
+            continue
+        extra[MIGRATION_MARKER] = _marker_value(database)
         database.sqlalchemy_uri = updated
-        extra = _load_extra(database.extra)
-        extra[MIGRATION_MARKER] = True
         database.extra = json.dumps(extra)
 
     session.commit()
@@ -133,9 +170,11 @@ def downgrade() -> None:
         Database.sqlalchemy_uri.like(f"{CONNECTOR_PREFIX}%")
     )
     for database in paginated_update(query):
-        extra = _load_extra(database.extra)
-        if not extra.get(MIGRATION_MARKER):
-            # Not migrated by us -- a natively created connector connection.
+        extra = _safe_load_extra(database)
+        if extra is None or extra.get(MIGRATION_MARKER) != _marker_value(database):
+            # Not migrated by this revision for this row -- a natively created
+            # connector connection, or one whose ``extra`` was copied from a
+            # migrated connection.
             continue
         reverted = _swap_scheme(database.sqlalchemy_uri, CONNECTOR_PREFIX, ODBC_PREFIX)
         if reverted is None:
