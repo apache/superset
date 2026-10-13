@@ -459,8 +459,20 @@ export default function AddSemanticViewModal({
                 retriedDepSnapshotRef.current = snapshot;
                 lastDepSnapshotRef.current = '';
               }
-              // Retain selections, but keep stale choices unavailable until
-              // a matching refresh succeeds. Toast once per outage.
+              // Only scalar choices can remain unsafe after a failed refresh;
+              // array choices are not reconciled and should not block views.
+              const hasStaleScalarChoices = Object.entries(
+                schema?.properties ?? {},
+              ).some(
+                ([key, field]) =>
+                  key in dynamicDeps &&
+                  field.type !== 'array' &&
+                  field.type !== 'object' &&
+                  Array.isArray(field.enum) &&
+                  field.enum.length > 0,
+              );
+              setStaleSchemaOptions(hasStaleScalarChoices);
+              // Retain selections and toast once per outage.
               if (!refreshErrorToastShownRef.current) {
                 refreshErrorToastShownRef.current = true;
                 addDangerToast(

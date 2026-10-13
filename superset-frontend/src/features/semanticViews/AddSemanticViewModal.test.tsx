@@ -418,7 +418,7 @@ test('a const array default does not loop updates', async () => {
   }
 });
 
-test('a failed schema refresh surfaces a toast and preserves selections', async () => {
+test('a failed array-only refresh keeps views and Add usable with a bounded retry', async () => {
   let refreshCount = 0;
   mockLayerWithSchema(dynamicMetricsSchema, {
     '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
@@ -445,6 +445,18 @@ test('a failed schema refresh surfaces a toast and preserves selections', async 
   expect(refreshCount).toBeGreaterThanOrEqual(1);
   // The user's selection is untouched by the failure (spec FR-005).
   expect(selectedTag('m1')).toBeTruthy();
+  await waitFor(
+    () => {
+      expect(
+        screen.getByRole('combobox', { name: 'Semantic views' }),
+      ).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
+  await selectOption('Semantic views', 'orders');
+  expect(screen.getByRole('button', { name: /Add 1 view/ })).toBeEnabled();
+  await pickFromSelect(/metrics/i, 'm2');
+  await waitFor(() => expect(refreshCount).toBe(2), { timeout: 10000 });
 });
 
 test('the save payload carries every selected metric', async () => {
