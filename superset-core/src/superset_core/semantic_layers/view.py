@@ -44,6 +44,34 @@ class SemanticViewFeature(enum.Enum):
 class SemanticView(ABC):
     """
     Abstract base class for semantic views.
+
+    Implementations own translation and execution; the rules the host relies on
+    are fixed here so every provider agrees on them:
+
+    - **Member identity.** ``Metric.name`` and ``Dimension.name`` are the stable
+      selection keys; ``verbose_name`` is display only and ``id`` is
+      provider-private. See :class:`~superset_core.semantic_layers.types.Metric`.
+      A provider that changes what ``name`` means declares a new
+      :attr:`selection_identity_version`.
+    - **Grain variants.** Several dimension variants may share one ``name``, at
+      most one per ``(name, grain)``. See
+      :class:`~superset_core.semantic_layers.types.Grains` for the intended
+      preference, which not every host lookup applies yet, and for why grains
+      must not be ordered by name.
+    - **NULL in filters.** ``None`` is never a comparison operand; splitting
+      nullness into ``IS_NULL``/``IS_NOT_NULL`` is the host's responsibility.
+      Until the host does so, keep handling ``None``; see
+      :class:`~superset_core.semantic_layers.types.Operator`.
+    - **Ordering before limit.** ``order`` is applied to the full result set
+      before ``offset`` and ``limit``. See
+      :class:`~superset_core.semantic_layers.types.SemanticQuery`.
+
+    Uniqueness works at two levels. In the **catalog**, dimensions are unique
+    per ``(name, grain)`` -- so several grain variants of one name are expected
+    -- while metric names are unique on their own and must not collide with a
+    dimension name. These are provider obligations the host does not currently
+    check. In a **query**, at most one variant per name is selected, so a result
+    carries one column per selected member name.
     """
 
     # Defaults to no optional features: providers opt in by overriding, and
@@ -68,19 +96,18 @@ class SemanticView(ABC):
                 "automatically mapped to member IDs."
             )
 
-    # Implementations must expose a display name for the view.
-    # Declared here as a type annotation (not abstract) so that existing
-    # implementations are not required to add a formal @abstractmethod.
-    name: str
+    # Optional display name. Hosts may supply their own label when it is empty;
+    # identity always comes from uid(), never from this presentation field.
+    name: str = ""
 
     @property
     def metadata_cache_token(self) -> str | None:
-        """Return the identity captured with these members, or None for legacy views.
+        """Return the ``cache_token`` these members were discovered under.
 
-        A provider using a bound metadata store must return its observation's
-        nonempty token. The host must reject a missing token in that mode rather
-        than silently using legacy cache keys. Never look up a later identity
-        independently of the data used for discovery or compatibility.
+        Providers echo the token passed to ``from_configuration_with_cache_token``;
+        legacy views return None. Report the token captured with the members, never
+        a later one. The host keys its caches on its own metadata generation, not
+        on this value.
         """
         return None
 
@@ -121,6 +148,10 @@ class SemanticView(ABC):
     def get_table(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a semantic query and return the results.
+
+        Sort by ``query.order`` before applying ``query.offset`` and
+        ``query.limit``; truncating before sorting returns the wrong rows. Name
+        each result column after the member that produced it.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;

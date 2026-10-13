@@ -20,7 +20,7 @@ from sqlalchemy.dialects import registry
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import DatabaseCategory
-from superset.db_engine_specs.hive import HiveEngineSpec
+from superset.db_engine_specs.hive import HiveEngineSpec, SparkSqlBooleanEqualityMixin
 
 time_grain_expressions: dict[str | None, str] = {
     None: "{col}",
@@ -41,7 +41,9 @@ time_grain_expressions: dict[str | None, str] = {
 }
 
 
-class SparkEngineSpec(HiveEngineSpec):
+class SparkEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
+    """Engine specification for Apache Spark SQL."""
+
     engine = "spark"
     registry.register("spark", "pyhive.sqlalchemy_hive", "HiveDialect")
     _time_grain_expressions = time_grain_expressions

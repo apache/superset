@@ -158,6 +158,7 @@ def large_metric_catalog() -> Generator[MagicMock, None, None]:
         yield view
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_default_page_byte_bound(
     mcp_server: FastMCP,
@@ -177,6 +178,7 @@ async def test_list_metrics_default_page_byte_bound(
     large_metric_catalog.get_compatible_dimensions.assert_not_called()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_embedded_page_byte_bound(
     mcp_server: FastMCP,
@@ -328,6 +330,7 @@ async def test_list_metrics_builtin_happy_path(mcp_server: FastMCP) -> None:
     assert all(m["dataset_id"] == 42 for m in metrics)
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_mutual_exclusion_validation(mcp_server: FastMCP) -> None:
     """list_metrics returns a validation error when dataset_id and view_id coexist."""
@@ -378,6 +381,7 @@ async def test_list_metrics_search_filter(mcp_server: FastMCP) -> None:
     assert metrics[0]["name"] == "revenue"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_external_includes_verbose_name(
     mcp_server: FastMCP,
@@ -404,6 +408,7 @@ async def test_list_metrics_external_includes_verbose_name(
     assert metrics["bookings"]["semantic_selection_version"] == "cube-member-id-v1"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_external_access_denied(mcp_server: FastMCP) -> None:
     """An explicit view_id lookup surfaces AccessDenied instead of InternalError."""
@@ -424,6 +429,7 @@ async def test_list_metrics_external_access_denied(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "AccessDenied"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_external_per_metric_compatible_dimensions(
     mcp_server: FastMCP,
@@ -533,6 +539,7 @@ async def test_list_metrics_nonexistent_dataset_id_returns_empty(
     mock_dao.find_by_id.assert_called_once()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_nonexistent_view_id_returns_empty(
     mcp_server: FastMCP,

@@ -1900,6 +1900,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
+        """
+        Convert a Python boolean to the value used when building SQL filter
+        expressions for boolean columns.
+
+        Most engines accept Python booleans, but some drivers render them as
+        integer literals (0/1), which strict engines like Databricks reject
+        with a DATATYPE_MISMATCH error when the value is compared against a
+        boolean column (#36765). Override this in engine specs whose drivers
+        misrender Python booleans, returning an expression that compiles to an
+        explicit boolean literal (e.g. sqlalchemy.true()/false()).
+
+        :param value: Boolean value (True, False, or None)
+        :return: Value suitable for the engine's filter expressions
+        """
+        return value
+
+    @classmethod
     def handle_boolean_filter(
         cls, sqla_col: Any, op: str, value: bool
     ) -> BinaryExpression:
@@ -1915,6 +1933,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param value: Boolean value (True or False)
         :return: SQLAlchemy expression for the boolean filter
         """
+        value = cls.coerce_boolean_for_sql(value)
         if cls.use_equality_for_boolean_filters:
             return sqla_col == value
         else:
@@ -2762,6 +2781,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: A comment-safe SQL string to retry with, or ``None``
         """
         return None
+
+    @classmethod
+    def expand_nested_columns(
+        cls,
+        cursor: Any,
+        columns: list[ResultSetColumnType],
+    ) -> list[ResultSetColumnType]:
+        """
+        Add one column per nested field (e.g. STRUCT members) to the columns
+        inferred from ``cursor.description`` by ``get_columns_description``, so
+        virtual datasets get the dotted columns the inspector returns for
+        physical tables. The default returns ``columns`` unchanged.
+        """
+        return columns
 
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:

@@ -3265,7 +3265,7 @@ class TestSavedChartExtraFormDataFilters:
             {"filters": [{"col": "country", "op": "==", "val": "USA"}]}, mcp_server
         )
         filters = loaded["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     @pytest.mark.asyncio
     async def test_adhoc_filters_key_reaches_executed_query(
@@ -3287,7 +3287,7 @@ class TestSavedChartExtraFormDataFilters:
             mcp_server,
         )
         filters = loaded["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     @pytest.mark.asyncio
     async def test_temporal_range_filter_reaches_executed_query(
@@ -3311,6 +3311,7 @@ class TestSavedChartExtraFormDataFilters:
             "col": "order_date",
             "op": "TEMPORAL_RANGE",
             "val": "2024-01-01 : 2024-02-01",
+            "isExtra": True,
         } in filters
 
     @pytest.mark.asyncio
@@ -4010,6 +4011,41 @@ def test_recommend_caps_at_max():
 def test_recommend_empty_columns_returns_table():
     result = _recommend_visualizations("table", [], row_count=0)
     assert result == ["table"]
+
+
+def test_recommend_time_spatial_keeps_geographic_points():
+    """A timestamp alongside coordinates must not shadow the map suggestion."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("longitude", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert "geographic points" in result
+    assert "line chart" in result
+
+
+def test_recommend_time_spatial_spends_the_cap_on_the_map():
+    """The map displaces only the nearest variant of a surviving suggestion."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("longitude", "numeric"),
+        _col("revenue", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert result == ["geographic points", "line chart", "area chart", "bar chart"]
+
+
+def test_recommend_non_spatial_temporal_omits_geographic_points():
+    """Coordinates are only suggested when both are actually present."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("revenue", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert "geographic points" not in result
 
 
 def test_recommend_pie_only_for_low_cardinality():
@@ -5649,6 +5685,54 @@ class TestBigNumberHeadline:
             assert headline is not None
             assert headline["value"] == expected_value
             assert headline["aggregation"] == expected_aggregation
+
+
+@pytest.mark.asyncio
+async def test_disabled_semantic_chart_returns_availability_error(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    """Semantic chart data is refused before validation, cache or provider work."""
+    import importlib
+    from types import ModuleType
+    from unittest.mock import patch
+
+    from fastmcp import Client
+    from fastmcp.client.client import CallToolResult
+
+    from superset.models.slice import Slice
+
+    client: Client
+    command: MagicMock
+    validate: MagicMock
+    module: ModuleType = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    chart: Slice = Slice(
+        id=17,
+        slice_name="semantic",
+        datasource_id=17,
+        datasource_type="semantic_view",
+        viz_type="table",
+        params="{}",
+    )
+    with (
+        patch("superset.feature_flag_manager.is_feature_enabled", return_value=False),
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(module, "validate_chart_dataset") as validate,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 17}}
+            )
+    payload: dict[str, Any] = json.loads(result.content[0].text)
+    assert payload["error"] == "Semantic layers are not enabled."
+    assert payload["error_type"] == "SemanticLayersDisabledError"
+    validate.assert_not_called()
+    command.assert_not_called()
 
 
 @pytest.mark.parametrize("engine", ["csv", "openpyxl", "xlsxwriter"])
