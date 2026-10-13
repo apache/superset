@@ -24,7 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
-- Address validation refuses additional non-global address forms. Translation addresses are checked using their embedded IPv4 address; local-use translation, IPv4-compatible, 6to4 and Teredo forms are refused. Existing per-feature internal-host settings continue to control OAuth2, webhook, URL dataset import and Impala checks.
+- Address validation refuses additional non-global address forms. Addresses in
+  the well-known NAT64 prefix `64:ff9b::/96` are checked using their embedded IPv4
+  address and refused when that address is unsafe. Local-use translation
+  (`64:ff9b:1::/48`), IPv4-compatible (`::/96`), 6to4 and Teredo forms are refused
+  outright. Operator-specific NAT64 prefixes are not detected: recognizing them
+  requires knowledge of the operator's prefix configuration. Existing per-feature
+  internal-host settings continue to control OAuth2, webhook, URL dataset import
+  and Impala checks.
 
 - Semantic-layer APIs are registered regardless of the `SEMANTIC_LAYERS` flag.
   The flag is evaluated at runtime for API requests and background queries.
