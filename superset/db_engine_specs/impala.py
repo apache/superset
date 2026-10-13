@@ -245,8 +245,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
         through the coordinator's HTTP endpoint instead would invalidate the
         handle the worker is still polling, so the run fails with an unknown
         query handle error rather than ending as stopped.
+
+        Publish STOPPED with the flag in the same transaction: the worker can
+        close the cursor as soon as it observes the flag, and synchronous fetch
+        must recognise the resulting driver error as a stop.
         """
         query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+        query.status = QueryStatus.STOPPED
         db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod

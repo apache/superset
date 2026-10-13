@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from contextlib import nullcontext
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import Flask
+from pytest_mock import MockerFixture
 
 from superset.constants import (
     QUERY_CANCEL_KEY,
@@ -28,7 +30,75 @@ from superset.constants import (
 )
 from superset.db_engine_specs.impala import ImpalaEngineSpec
 from superset.sql.execution.executor import SQLExecutor
-from superset.sql_lab import cancel_query
+from superset.sql_lab import cancel_query, execute_query, SqlLabQueryStoppedException
+from superset.utils.core import QueryStatus
+
+
+@pytest.mark.parametrize("use_executor", [False, True])
+def test_stop_during_poll_does_not_fail_sync_fetch(
+    mocker: MockerFixture, app_context: None, use_executor: bool
+) -> None:
+    """A worker seeing the committed stop intent must also see STOPPED."""
+    from impala.hiveserver2 import HiveServer2Cursor
+
+    query = MagicMock(
+        id=1,
+        status=QueryStatus.RUNNING,
+        progress=0,
+        executed_sql="SELECT 1",
+        extra={QUERY_CANCEL_KEY: "0123456789abcdef:fedcba9876543210"},
+        limit=None,
+    )
+    query.database.db_engine_spec = ImpalaEngineSpec
+    query.set_extra_json_key.side_effect = lambda key, value: query.extra.update(
+        {key: value}
+    )
+    cursor = HiveServer2Cursor(MagicMock())
+    operation = MagicMock(has_result_set=True)
+
+    def execute_async(sql: str) -> None:
+        """Publish a real impyla operation backed by mocked RPCs."""
+        cursor._last_operation = operation
+        cursor._last_operation_active = True
+
+    def stop_before_poll() -> str:
+        """Let the worker run before the Stop caller can do another commit."""
+        if use_executor:
+            assert SQLExecutor._cancel_query(query.database, query)
+        else:
+            assert cancel_query(query)
+        return "RUNNING_STATE"
+
+    mocker.patch.object(cursor, "execute_async", side_effect=execute_async)
+    operation.get_status.side_effect = stop_before_poll
+    session = mocker.patch("superset.db.session")
+    committed_stops: list[QueryStatus] = []
+
+    def record_commit() -> None:
+        """Capture the status published with the early-cancel flag."""
+        if query.extra.get(QUERY_EARLY_CANCEL_KEY):
+            committed_stops.append(query.status)
+
+    session.commit.side_effect = record_commit
+    mocker.patch.object(
+        ImpalaEngineSpec,
+        "get_cancel_query_id",
+        return_value=query.extra[QUERY_CANCEL_KEY],
+    )
+    mocker.patch("superset.sql_lab.warm_and_release_connection")
+    mocker.patch(
+        "superset.sql_lab.event_logger.log_context", return_value=nullcontext()
+    )
+    post = mocker.patch("superset.db_engine_specs.impala.requests.post")
+
+    with pytest.raises(SqlLabQueryStoppedException):
+        execute_query(query, cursor)
+
+    assert committed_stops == [QueryStatus.STOPPED]
+    operation.cancel.assert_called_once_with()
+    operation.close.assert_called_once_with()
+    assert cursor.description is None
+    post.assert_not_called()
 
 
 @pytest.mark.parametrize(
