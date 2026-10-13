@@ -260,7 +260,7 @@ def test_semantic_layer_implementation() -> None:
 
     mock_class = MagicMock()
     mock_impl = MagicMock()
-    mock_class.from_configuration.return_value = mock_impl
+    mock_class.from_configuration_with_cache_token.return_value = mock_impl
 
     with patch.dict(
         "superset.semantic_layers.models.registry",
@@ -272,7 +272,9 @@ def test_semantic_layer_implementation() -> None:
 
         result = layer.implementation
 
-    mock_class.from_configuration.assert_called_once_with({"key": "value"})
+    mock_class.from_configuration_with_cache_token.assert_called_once_with(
+        {"key": "value"}, cache_token=layer.metadata_generation
+    )
     assert result == mock_impl
 
 
@@ -500,7 +502,7 @@ def test_semantic_view_get_extra_cache_keys() -> None:
         "superset.semantic_layers.models.registry", {"fixture": ProviderLayer}
     ):
         result: list[Any] = view.get_extra_cache_keys({})
-    assert result == []
+    assert result == [view.metadata_generation]
 
 
 def test_semantic_view_perm() -> None:
@@ -2673,7 +2675,7 @@ def test_result_generation_reads_class_without_provider_construction(
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
     with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
         assert view.result_cache_version == version
-        assert view.get_extra_cache_keys({}) == (
+        assert view.get_extra_cache_keys({}) == [view.metadata_generation] + (
             [] if version is None else [("semantic-result-version", "fixture", version)]
         )
     provider.assert_not_called()

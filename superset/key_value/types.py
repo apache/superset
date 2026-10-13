@@ -19,7 +19,8 @@ from __future__ import annotations
 import json
 import pickle
 from abc import ABC, abstractmethod
-from typing import Any, TypedDict, Union
+from dataclasses import dataclass
+from typing import Any, TYPE_CHECKING, TypedDict, Union
 from uuid import UUID
 
 from marshmallow import Schema, ValidationError
@@ -30,6 +31,9 @@ from superset.key_value.exceptions import (
 )
 from superset.utils.backports import StrEnum
 
+if TYPE_CHECKING:
+    from sqlalchemy.orm import Query
+
 Key = Union[int, UUID]
 
 
@@ -37,6 +41,30 @@ class KeyValueFilter(TypedDict, total=False):
     resource: str
     id: int | None
     uuid: UUID | None
+
+
+@dataclass(frozen=True)
+class RowLock:
+    """
+    Row lock to take when reading a key-value entry, held for the rest of the
+    transaction. The fields map to the arguments of ``Query.with_for_update``;
+    the defaults take an exclusive ``FOR UPDATE`` lock.
+    """
+
+    # Shared lock (``FOR SHARE`` / ``LOCK IN SHARE MODE``) instead of exclusive
+    read: bool = False
+    nowait: bool = False
+    skip_locked: bool = False
+    # Postgres only (``FOR KEY SHARE`` / ``FOR NO KEY UPDATE``)
+    key_share: bool = False
+
+    def apply(self, query: Query) -> Query:
+        return query.with_for_update(
+            read=self.read,
+            nowait=self.nowait,
+            skip_locked=self.skip_locked,
+            key_share=self.key_share,
+        )
 
 
 class KeyValueResource(StrEnum):

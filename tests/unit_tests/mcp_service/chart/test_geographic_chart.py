@@ -1,0 +1,2199 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""Typed geographic contracts, native query semantics, and boundary parity."""
+
+from copy import deepcopy
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+from unittest.mock import Mock, patch
+
+import pytest
+from fastmcp import Client
+from pydantic import TypeAdapter, ValidationError
+from sqlalchemy.exc import SQLAlchemyError
+
+from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.chart_helpers import build_query_dicts_from_form_data
+from superset.mcp_service.chart.chart_utils import (
+    analyze_chart_capabilities,
+    map_config_to_form_data,
+    merge_chart_form_data,
+    merge_form_data_for_update,
+)
+from superset.mcp_service.chart.compile import _compile_chart
+from superset.mcp_service.chart.plugins.geographic import (
+    CountryMapChartPlugin,
+    DeckScatterChartPlugin,
+)
+from superset.mcp_service.chart.preview_utils import (
+    _generate_ascii_preview_from_data,
+    _generate_vega_lite_preview_from_data,
+)
+from superset.mcp_service.chart.query_result import (
+    metric_result_label,
+    normalize_chart_query_result,
+)
+from superset.mcp_service.chart.registry import get_registry
+from superset.mcp_service.chart.schemas import (
+    ChartConfig,
+    ChartError,
+    GenerateChartRequest,
+    GenerateExploreLinkRequest,
+    UpdateChartRequest,
+)
+from superset.mcp_service.chart.tool.get_chart_type_schema import (
+    _CHART_EXAMPLES,
+    _get_chart_type_schema_impl,
+)
+from superset.utils import json
+from superset.utils.core import GenericDataType
+from superset.utils.geographic import resolve_geographic_value, resolve_region
+from superset.utils.geographic_regions import REGIONS
+
+KINDS = ("country_map", "world_map", "deck_scatter")
+# Reuse the compiled union schema; each validation still creates a fresh config.
+CHART_CONFIG_ADAPTER = TypeAdapter(ChartConfig)
+
+
+def config_for(kind: str) -> Any:
+    """Parse the published example rather than duplicating a private contract."""
+    return CHART_CONFIG_ADAPTER.validate_python(_CHART_EXAMPLES[kind][0])
+
+
+def form_for(kind: str) -> dict[str, Any]:
+    """Map the same config consumed by the three public tools."""
+    return map_config_to_form_data(config_for(kind))
+
+
+def result_for(kind: str) -> dict[str, Any]:
+    """Native query results before frontend display transforms."""
+    row = (
+        {"state": "CA", "SUM(sales)": 10}
+        if kind == "country_map"
+        else {"country": "US", "SUM(sales)": 10}
+        if kind == "world_map"
+        else {"latitude": 37.8, "longitude": -122.4}
+    )
+    return {"queries": [{"data": [row]}]}
+
+
+def invalid_result_for(kind: str) -> dict[str, Any]:
+    """Keep valid metrics while failing the actual geographic value contract."""
+    result = result_for(kind)
+    row = result["queries"][0]["data"][0]
+    if kind == "country_map":
+        row["state"] = "BC"
+    elif kind == "world_map":
+        row["country"] = "not-a-country"
+    else:
+        row["latitude"] = 91
+    return result
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_geographic_example_configs_are_independent(kind: str) -> None:
+    """Sharing a compiled schema must not share mutable config instances."""
+    first = config_for(kind)
+    second = config_for(kind)
+    assert first is not second
+    first.row_limit = 1
+    assert second.row_limit == 10000
+    assert config_for(kind).row_limit == 10000
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_geographic_schema_examples_and_all_request_unions(kind: str) -> None:
+    """Each entry point uses the required, bounded shared discriminator."""
+    example = _CHART_EXAMPLES[kind][0]
+    schema = _get_chart_type_schema_impl(kind)["schema"]
+    assert "chart_type" in schema["required"]
+    assert schema["additionalProperties"] is False
+    assert schema["properties"]["row_limit"]["maximum"] == 10000
+    for model, identity in (
+        (GenerateChartRequest, {"dataset_id": 3}),
+        (GenerateExploreLinkRequest, {"dataset_id": 3}),
+        (UpdateChartRequest, {"identifier": 1}),
+    ):
+        assert (
+            model.model_validate({**identity, "config": example}).config.chart_type
+            == kind
+        )
+    for patch_ in (
+        {"row_limit": 10001},
+        {"row_limit": True},
+        {"row_limit": "100"},
+        {"bogus": 1},
+    ):
+        with pytest.raises(ValidationError):
+            CHART_CONFIG_ADAPTER.validate_python({**example, **patch_})
+    with pytest.raises(ValidationError):
+        CHART_CONFIG_ADAPTER.validate_python(
+            {k: v for k, v in example.items() if k != "chart_type"}
+        )
+
+
+@pytest.mark.parametrize(
+    "country,value,format_,expected",
+    [
+        ("usa", "CA", "abbreviation", "US-CA"),
+        ("usa", "ca", "abbreviation", "US-CA"),
+        ("usa", "California", "name", "US-CA"),
+        ("usa", "us-ca", "iso_3166_2", "US-CA"),
+        ("canada", "BC", "abbreviation", "CA-BC"),
+        ("australia", "Victoria", "name", "AU-VIC"),
+        ("australia", "NSW", "abbreviation", "AU-NSW"),
+        ("australia", "Queensland", "name", "AU-QLD"),
+        ("japan", "Tokyo", "name", "JP-13"),
+        ("japan", "Osaka", "name", "JP-27"),
+        ("uk", "Isle of Wight", "name", "GB-IOW"),
+    ],
+)
+def test_region_resolution(
+    country: str, value: str, format_: str, expected: str
+) -> None:
+    """All formats resolve only to identifiers present in the chosen geometry."""
+    assert resolve_region(value, country, format_) == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "BC",
+        "Victoria",
+        "NSW",
+        "Queensland",
+        "Tokyo",
+        "Osaka",
+        "Isle of Wight",
+        None,
+        1,
+        "",
+        "CA ",
+    ],
+)
+def test_us_rejects_non_us_and_malformed_values(value: object) -> None:
+    """Cross-country values never silently disappear from a map."""
+    with pytest.raises(ValueError, match="country=usa"):
+        resolve_region(value, "usa", "abbreviation")
+
+
+def test_exact_first_and_ambiguous_folded_names() -> None:
+    """Do not let a case-insensitive dictionary overwrite distinct names."""
+    pairs = [("Region", "A"), ("REGION", "B")]
+    assert resolve_geographic_value("Region", pairs) == "A"
+    with pytest.raises(ValueError, match="ambiguous"):
+        resolve_geographic_value("region", pairs)
+    with pytest.raises(ValueError, match="ambiguous"):
+        resolve_geographic_value("Region", pairs + [("Region", "C")])
+
+
+@pytest.mark.parametrize("country", REGIONS)
+def test_region_data_matches_frontend_geometry(country: str) -> None:
+    """Updating geometry requires updating its bounded backend lookup too."""
+    root = Path(__file__).resolve().parents[4]
+    path = (
+        root
+        / "superset-frontend/plugins/plugin-chart-country-map/src/countries"
+        / f"{country}.geojson"
+    )
+    expected = sorted(
+        {
+            (
+                f["properties"]["ISO"],
+                f["properties"].get("NAME_2") or f["properties"]["NAME_1"],
+            )
+            for f in json.loads(path.read_text())["features"]
+        }
+    )
+    assert REGIONS[country] == expected
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_geographic_native_query_and_filters(kind: str) -> None:
+    """Query roles and ordering match the frontend's buildQuery contract."""
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {
+            **_CHART_EXAMPLES[kind][0],
+            "filters": [{"column": "segment", "op": "IN", "value": ["Retail"]}],
+        }
+    )
+    form = map_config_to_form_data(config)
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="sqlite",
+    ):
+        query = build_query_dicts_from_form_data(form, 3, "table")[0]
+    assert {"col": "segment", "op": "IN", "val": ["Retail"]} in query["filters"]
+    assert query["row_limit"] == 10000
+    if kind == "deck_scatter":
+        assert set(query["columns"]) == {"latitude", "longitude"}
+        assert query["metrics"] == []
+        assert query["is_timeseries"] is False
+        assert query["orderby"] == []
+        assert {"col": "latitude", "op": "IS NOT NULL", "val": None} in query["filters"]
+    else:
+        assert query["columns"] == [form["entity"]]
+        assert query["metrics"] == [form["metric"]]
+        if kind == "world_map":
+            assert query["orderby"] == [[form["metric"], False]]
+
+
+@pytest.mark.parametrize("same", [True, False])
+def test_world_bubble_metrics_deduplicate_by_label(same: bool) -> None:
+    """The secondary bubble-size metric is queried unless its alias is shared."""
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {
+            **_CHART_EXAMPLES["world_map"][0],
+            "show_bubbles": True,
+            "secondary_metric": {
+                "name": "sales" if same else "population",
+                "aggregate": "SUM",
+            },
+        }
+    )
+    form = map_config_to_form_data(config)
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="sqlite",
+    ):
+        query = build_query_dicts_from_form_data(form, 3, "table")[0]
+    assert len(query["metrics"]) == (1 if same else 2)
+
+
+def _size_metric_case(kind: str) -> tuple[dict[str, Any], dict[str, Any], str]:
+    """Return form data, a valid result and the size metric's result label."""
+    if kind == "world_map":
+        config = CHART_CONFIG_ADAPTER.validate_python(
+            {
+                **_CHART_EXAMPLES["world_map"][0],
+                "show_bubbles": True,
+                "secondary_metric": {"name": "population", "aggregate": "SUM"},
+            }
+        )
+    else:
+        config = CHART_CONFIG_ADAPTER.validate_python(
+            {
+                **_CHART_EXAMPLES["deck_scatter"][0],
+                "radius_metric": {"name": "orders", "aggregate": "COUNT"},
+            }
+        )
+    form = map_config_to_form_data(config)
+    label = (
+        metric_result_label(form["secondary_metric"])
+        if kind == "world_map"
+        else metric_result_label(form["point_radius_fixed"]["value"])
+    )
+    assert label is not None
+    result = result_for(kind)
+    result["queries"][0]["data"][0][label] = 5
+    return form, result, label
+
+
+@pytest.mark.parametrize("kind", ["world_map", "deck_scatter"])
+@pytest.mark.parametrize("value", [-1, -0.5, Decimal("-0.001")])
+def test_negative_size_metric_is_rejected(kind: str, value: object) -> None:
+    """Bubble and point radius metrics size marks, so they must be nonnegative."""
+    form, result, label = _size_metric_case(kind)
+    assert not isinstance(normalize_chart_query_result(result, form), ChartError)
+    result["queries"][0]["data"][0][label] = value
+    failure = normalize_chart_query_result(result, form)
+    assert isinstance(failure, ChartError)
+    assert failure.error_type == "InvalidGeographicResult"
+    assert "size metrics must be nonnegative" in failure.error
+
+
+@pytest.mark.parametrize("kind", ["world_map", "deck_scatter"])
+def test_zero_size_metric_is_accepted(kind: str) -> None:
+    """Zero is a valid, if invisible, mark size."""
+    form, result, label = _size_metric_case(kind)
+    result["queries"][0]["data"][0][label] = 0
+    assert not isinstance(normalize_chart_query_result(result, form), ChartError)
+
+
+def test_world_map_negative_color_metric_is_accepted_with_bubbles() -> None:
+    """Only the bubble metric is size-constrained; the color metric may be < 0."""
+    form, result, _ = _size_metric_case("world_map")
+    result["queries"][0]["data"][0][metric_result_label(form["metric"])] = -10
+    assert not isinstance(normalize_chart_query_result(result, form), ChartError)
+
+
+@pytest.mark.parametrize("value", [-1, None, float("nan"), "n/a"])
+def test_world_map_unused_secondary_metric_does_not_gate_choropleth(
+    value: object,
+) -> None:
+    """A secondary metric kept with show_bubbles=False is not rendered, so its
+    values cannot fail the color choropleth."""
+    form, result, label = _size_metric_case("world_map")
+    form = {**form, "show_bubbles": False}
+    result["queries"][0]["data"][0][label] = value
+    assert not isinstance(normalize_chart_query_result(result, form), ChartError)
+
+    form["show_bubbles"] = True
+    assert isinstance(normalize_chart_query_result(result, form), ChartError)
+
+
+def test_world_map_bubbles_without_secondary_metric_is_rejected() -> None:
+    """Bubbles still require the size metric at result validation."""
+    form = {**form_for("world_map"), "show_bubbles": True}
+    form.pop("secondary_metric", None)
+    failure = normalize_chart_query_result(result_for("world_map"), form)
+    assert isinstance(failure, ChartError)
+    assert "show_bubbles requires secondary_metric" in failure.error
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_result_validation_preserves_source_and_cache(kind: str) -> None:
+    """Validation cannot mutate cache records or export identifiers."""
+    result = result_for(kind)
+    before = deepcopy(result)
+    assert normalize_chart_query_result(result, form_for(kind)) == before
+    assert result == before
+    assert normalize_chart_query_result(
+        {"queries": [{"data": []}]}, form_for(kind)
+    ) == {"queries": [{"data": []}]}
+    bad: dict[str, Any]
+    for bad in (
+        {},
+        {"queries": []},
+        {"queries": [{"data": [{}]}]},
+        {"queries": [{"data": "bad"}]},
+    ):
+        assert isinstance(normalize_chart_query_result(bad, form_for(kind)), ChartError)
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_invalid_values_and_geometry_preview(kind: str) -> None:
+    """Never return fabricated Vega bars for geographic requests."""
+    form = form_for(kind)
+    result = result_for(kind)
+    row = result["queries"][0]["data"][0]
+    for column in list(row):
+        bad = deepcopy(result)
+        bad["queries"][0]["data"][0][column] = "not valid"
+        error = normalize_chart_query_result(bad, form)
+        assert isinstance(error, ChartError)
+        assert error.error_type == "InvalidGeographicResult"
+    assert (
+        "geometry not reproduced"
+        in _generate_ascii_preview_from_data([row], form).ascii_content
+    )
+    preview = _generate_vega_lite_preview_from_data([row], form)
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "UnsupportedGeographicPreview"
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_advertised_preview_formats_can_actually_be_produced(kind: str) -> None:
+    """Capabilities must not offer a Vega-Lite preview the generator rejects."""
+    form = form_for(kind)
+    row = result_for(kind)["queries"][0]["data"][0]
+    capabilities = analyze_chart_capabilities(form["viz_type"], config_for(kind))
+
+    assert "vega_lite" not in capabilities.optimal_formats
+    assert isinstance(_generate_vega_lite_preview_from_data([row], form), ChartError)
+
+    # A non-geographic interactive type still advertises what it can produce.
+    scatter_form = {"viz_type": "echarts_timeseries_scatter", "x_axis": "x"}
+    scatter_capabilities = analyze_chart_capabilities(
+        scatter_form["viz_type"], config_for(kind)
+    )
+    assert "vega_lite" in scatter_capabilities.optimal_formats
+    assert not isinstance(
+        _generate_vega_lite_preview_from_data([{"x": "a", "y": 1}], scatter_form),
+        ChartError,
+    )
+
+
+def test_alias_collisions_fail_instead_of_losing_aggregates() -> None:
+    """CA and ca grouped separately cannot safely be added (e.g. AVG)."""
+    result = {
+        "queries": [
+            {"data": [{"state": value, "SUM(sales)": 1} for value in ("CA", "ca")]}
+        ]
+    }
+    error = normalize_chart_query_result(result, form_for("country_map"))
+    assert isinstance(error, ChartError)
+    assert "normalize source values before aggregation" in error.error
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_update_omissions_explicit_clearing_and_rebind(kind: str) -> None:
+    """Unspecified controls survive updates, not old dataset roles on rebind."""
+    config = config_for(kind)
+    old = {
+        **form_for(kind),
+        "row_limit": 12,
+        "time_range": "Last week",
+        "template_params": {"old": 1},
+        "adhoc_filters": [
+            {
+                "subject": "segment",
+                "operator": "IN",
+                "comparator": ["Retail"],
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+            }
+        ],
+    }
+    merged = merge_chart_form_data(old, form_for(kind), config)
+    assert merged["row_limit"] == 12
+    assert merged["time_range"] == "Last week"
+    assert merged["adhoc_filters"] == old["adhoc_filters"]
+    cleared = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES[kind][0], "filters": [], "time_range": None}
+    )
+    merged = merge_chart_form_data(old, map_config_to_form_data(cleared), cleared)
+    assert not merged.get("adhoc_filters")
+    assert merged.get("time_range") is None
+    rebound = merge_chart_form_data(old, form_for(kind), config, dataset_rebind=True)
+    assert not rebound.get("adhoc_filters")
+    assert "template_params" not in rebound
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_compile_checks_full_bounded_map_result(kind: str) -> None:
+    """An invalid region outside the first two rows must block generation."""
+    result = result_for(kind)
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+            return_value=Mock(),
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        rows = result["queries"][0]["data"]
+        second = (
+            {"state": "TX", "SUM(sales)": 20}
+            if kind == "country_map"
+            else {"country": "FR", "SUM(sales)": 20}
+            if kind == "world_map"
+            else {"latitude": 40.7, "longitude": -74.0}
+        )
+        rows.append(second)
+        command.return_value.run.return_value = result
+        assert _compile_chart(form_for(kind), 3).success
+        assert build.call_args.kwargs["row_limit"] == 10000
+        assert len(rows) == 2
+        rows.append({})
+        failure = _compile_chart(form_for(kind), 3)
+        assert not failure.success
+        assert failure.error_code == "INVALID_GEOGRAPHIC_RESULT"
+        assert failure.error_obj is not None
+        assert (
+            "Match country and value format to the source identifiers"
+            in failure.error_obj.suggestions
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+async def test_fastmcp_schema_and_public_input_discriminators(kind: str) -> None:
+    """The actual FastMCP server advertises all three public entry points."""
+    with patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+    ):
+        async with Client(mcp) as client:
+            response = await client.call_tool(
+                "get_chart_type_schema", {"chart_type": kind}
+            )
+            assert response.structured_content["chart_type"] == kind
+            tools = {tool.name: tool for tool in await client.list_tools()}
+            for name in ("generate_chart", "update_chart", "generate_explore_link"):
+                assert kind in json.dumps(tools[name].inputSchema)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("valid", [True, False])
+@pytest.mark.parametrize("persist", [False, True])
+@pytest.mark.parametrize(
+    "entry",
+    ["generate_chart", "generate_explore_link", "update_chart", "update_chart_preview"],
+)
+async def test_fastmcp_geographic_entry_points_execute_result_contract(  # noqa: C901
+    kind: str, valid: bool, entry: str, persist: bool
+) -> None:
+    """Public calls execute the real compile contract, including failed queries."""
+    await _exercise_public_geographic_entry(kind, valid, entry, persist)
+
+
+async def _exercise_public_geographic_entry(  # noqa: C901
+    kind: str,
+    valid: bool,
+    entry: str,
+    persist: bool,
+    *,
+    rebind: bool = False,
+    result_override: dict[str, Any] | None = None,
+    existing_override: dict[str, Any] | None = None,
+    config_override: dict[str, Any] | None = None,
+    expected_error: str | None = None,
+    expected_form_data: dict[str, Any] | None = None,
+    invalid_error_code: str = "INVALID_GEOGRAPHIC_RESULT",
+    invalid_error_message: str | None = None,
+) -> None:
+    """Run native public compile/save paths against controlled database results."""
+    import importlib
+    from contextlib import ExitStack
+
+    config = config_for(kind)
+    request = {"config": config.model_dump(exclude_unset=True)}
+    if config_override is not None:
+        request["config"].update(config_override)
+    dataset = Mock(
+        id=3,
+        table_name="locations",
+        datasource_name="locations",
+        schema=None,
+        columns=[],
+        metrics=[],
+        database=Mock(database_name="examples"),
+        main_dttm_col=None,
+    )
+    chart = Mock(
+        id=9,
+        datasource_id=3,
+        datasource_type="table",
+        datasource=dataset,
+        slice_name="Locations",
+        viz_type=kind,
+        params=json.dumps(form_for(kind)),
+        uuid="11111111-1111-1111-1111-111111111111",
+        description="",
+        url="/explore/?slice_id=9",
+    )
+    if existing_override is not None:
+        chart.params = json.dumps({**form_for(kind), **existing_override})
+    if rebind:
+        old = json.loads(chart.params)
+        old.update(
+            template_params={"stale": "source"},
+            time_range="Last week",
+            groupby=["segment"],
+            granularity_sqla="old_date",
+            secondary_metric="old_metric",
+            dimension="segment",
+            color_scheme="supersetColors",
+            adhoc_filters=[
+                {
+                    "subject": "segment",
+                    "operator": "IN",
+                    "comparator": ["Retail"],
+                    "expressionType": "SIMPLE",
+                    "clause": "WHERE",
+                }
+            ],
+        )
+        chart.params = json.dumps(old)
+        request["dataset_id"] = 4
+        # The rebind target resolves to its own dataset identity.
+        dataset.id = 4
+    if entry == "update_chart":
+        request.update(identifier=9, generate_preview=not persist)
+    else:
+        request["dataset_id"] = 3
+    if entry == "generate_chart":
+        request["preview_formats"] = ["url"]
+        request["save_chart"] = persist
+    if entry == "update_chart_preview":
+        request["form_data_key"] = "geographic-cache"
+    response_data = (
+        result_override
+        if result_override is not None
+        else (result_for(kind) if valid else invalid_result_for(kind))
+    )
+    if rebind:
+        response_data["queries"][0]["data"][0]["old_metric"] = 1
+    domain = "explore" if entry == "generate_explore_link" else "chart"
+    module = importlib.import_module(f"superset.mcp_service.{domain}.tool.{entry}")
+    with ExitStack() as stack:
+        dataset_access = stack.enter_context(
+            patch(
+                "superset.mcp_service.auth.security_manager.can_access_datasource",
+                return_value=True,
+            )
+        )
+        if rebind:
+            stack.enter_context(
+                patch(
+                    "superset.mcp_service.chart.validation.dataset_validator.build_dataset_context_from_orm",
+                    return_value=Mock(
+                        available_columns=[{"name": "segment"}, {"name": "old_date"}],
+                        available_metrics=[{"name": "old_metric"}],
+                    ),
+                )
+            )
+        for target, value in [
+            (
+                "superset.mcp_service.auth.get_user_from_request",
+                Mock(id=1, username="admin", roles=[], groups=[]),
+            ),
+            ("superset.utils.log.DBEventLogger.log", None),
+            ("superset.daos.dataset.DatasetDAO.find_by_id", dataset),
+            (
+                "superset.mcp_service.chart.compile.DatasetValidator.validate_against_dataset",
+                (True, None),
+            ),
+            ("superset.mcp_service.chart.compile.build_dataset_context_from_orm", None),
+            (
+                "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+                Mock(),
+            ),
+            (
+                "superset.mcp_service.chart.chart_utils.generate_explore_link",
+                "http://localhost/explore/?form_data_key=geo",
+            ),
+            (
+                "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run",
+                "geo",
+            ),
+            (
+                "superset.commands.explore.permalink.create.CreateExplorePermalinkCommand.run",
+                "geo",
+            ),
+        ]:
+            stack.enter_context(patch(target, return_value=value))
+        stack.enter_context(
+            patch(
+                "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator.normalize_column_names",
+                side_effect=lambda cfg, *args, **kwargs: cfg,
+            )
+        )
+        command = stack.enter_context(
+            patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+        )
+        command.return_value.run.return_value = response_data
+        if hasattr(module, "has_dataset_access"):
+            stack.enter_context(
+                patch.object(module, "has_dataset_access", return_value=True)
+            )
+        if entry == "generate_chart":
+            if persist:
+                create = stack.enter_context(
+                    patch("superset.commands.chart.create.CreateChartCommand")
+                )
+                create.return_value.run.return_value = chart
+                stack.enter_context(
+                    patch("superset.db.session.refresh", return_value=None)
+                )
+                stack.enter_context(
+                    patch(
+                        "superset.daos.chart.ChartDAO.find_by_id",
+                        side_effect=SQLAlchemyError("test detached chart"),
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        module,
+                        "validate_chart_dataset",
+                        return_value=Mock(is_valid=True, warnings=[]),
+                    )
+                )
+            parsed = GenerateChartRequest.model_validate(request)
+            stack.enter_context(
+                patch(
+                    "superset.mcp_service.chart.validation.ValidationPipeline.validate_request_with_warnings",
+                    return_value=Mock(
+                        is_valid=True, request=parsed, warnings={}, error=None
+                    ),
+                )
+            )
+        elif entry == "update_chart_preview":
+            stack.enter_context(
+                patch.object(module, "_find_dataset", return_value=dataset)
+            )
+            stack.enter_context(
+                patch.object(
+                    module,
+                    "_get_previous_form_data",
+                    return_value={
+                        **form_for(kind),
+                        "datasource": "3__table",
+                        "row_limit": 12,
+                        **(existing_override or {}),
+                    },
+                )
+            )
+            stack.enter_context(
+                patch.object(
+                    module,
+                    "generate_explore_link",
+                    return_value="http://localhost/explore/?form_data_key=geo",
+                )
+            )
+        elif entry == "update_chart":
+            if persist:
+                update = stack.enter_context(
+                    patch("superset.commands.chart.update.UpdateChartCommand")
+                )
+                update.return_value.run.return_value = chart
+            stack.enter_context(
+                patch.object(module, "find_chart_by_identifier", return_value=chart)
+            )
+            stack.enter_context(
+                patch(
+                    "superset.mcp_service.auth.check_chart_data_access",
+                    return_value=Mock(is_valid=True),
+                )
+            )
+        async with Client(mcp) as client:
+            response = await client.call_tool(entry, {"request": request})
+        payload = response.structured_content
+        assert payload["success"] is valid, json.dumps(payload)
+        if rebind:
+            dataset_access.assert_called_once_with(datasource=dataset)
+        if expected_error is not None:
+            assert expected_error in json.dumps(payload["error"])
+            command.return_value.run.assert_not_called()
+            if persist:
+                update.assert_not_called()
+            return
+        assert command.return_value.run.called
+        if valid:
+            assert payload["form_data"]["viz_type"] == kind
+            for field, value in (expected_form_data or {}).items():
+                assert payload["form_data"][field] == value
+                if persist:
+                    saved_form = json.loads(update.call_args.args[-1]["params"])
+                    assert saved_form[field] == value
+            if existing_override is not None and persist:
+                saved_form = json.loads(update.call_args.args[-1]["params"])
+                assert saved_form["adhoc_filters"] == []
+            if rebind:
+                rebound = payload["form_data"]
+                assert not rebound.get("adhoc_filters"), rebound
+                assert "template_params" not in rebound
+                assert not rebound.get("groupby")
+                assert not rebound.get("granularity_sqla")
+                assert not rebound.get("secondary_metric")
+                assert not rebound.get("dimension")
+                assert rebound.get("time_range") != "Last week"
+                assert rebound["color_scheme"] == "supersetColors"
+                assert rebound["datasource"] == "4__table"
+                if persist:
+                    saved = update.call_args.args[-1]
+                    assert saved["query_context"] is None
+                    assert not json.loads(saved["params"]).get("adhoc_filters")
+        else:
+            assert payload["error"]["error_code"] == invalid_error_code, payload
+            if invalid_error_message is not None:
+                assert invalid_error_message in json.dumps(payload["error"]), payload
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("data_path", ["saved", "saved_cache", "unsaved_cache"])
+@pytest.mark.parametrize("valid", [True, False])
+@pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+async def test_geographic_chart_data_saved_cached_and_exports(
+    kind: str, data_path: str, valid: bool, export_format: str
+) -> None:
+    """Raw identifiers survive every data/export path; invalid rows fail all three."""
+    await _exercise_geographic_data_export(kind, data_path, valid, export_format)
+
+
+async def _exercise_geographic_data_export(
+    kind: str,
+    data_path: str,
+    valid: bool,
+    export_format: str,
+    *,
+    decimal_coordinates: bool = False,
+    spatial: dict[str, Any] | None = None,
+    spatial_value: str | None = None,
+    form_overrides: dict[str, Any] | None = None,
+    row_overrides: dict[str, Any] | None = None,
+) -> None:
+    """Exercise saved and cached data/export with pre-JSON database scalars."""
+    import importlib
+    from contextlib import ExitStack
+    from types import SimpleNamespace
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    form = {**form_for(kind), "datasource": "3__table", "slice_name": "Locations"}
+    source = result_for(kind) if valid else invalid_result_for(kind)
+    rows = source["queries"][0]["data"]
+    if decimal_coordinates:
+        rows[0] = {"latitude": Decimal("37.5"), "longitude": Decimal("-122.25")}
+    if spatial is not None:
+        form["spatial"] = spatial
+        column = spatial.get("geohashCol") or spatial["lonlatCol"]
+        rows[0] = {column: spatial_value}
+    form.update(form_overrides or {})
+    rows[0].update(row_overrides or {})
+    source["queries"][0].update(
+        colnames=list(rows[0]),
+        coltypes=[
+            GenericDataType.NUMERIC
+            if isinstance(value, (int, float, Decimal)) and not isinstance(value, bool)
+            else GenericDataType.STRING
+            for value in rows[0].values()
+        ],
+        rowcount=len(rows),
+    )
+    query = {"columns": list(rows[0]), "metrics": [], "row_limit": 10000}
+    context = SimpleNamespace(
+        queries=[
+            SimpleNamespace(filter=[], time_range=None, to_dict=lambda: dict(query))
+        ],
+        form_data=form,
+    )
+    chart = SimpleNamespace(
+        id=9,
+        slice_name="Locations",
+        viz_type=kind,
+        datasource_id=3,
+        datasource_type="table",
+        query_context=json.dumps(
+            {"datasource": {"id": 3, "type": "table"}, "queries": [query]}
+        ),
+        params=json.dumps(form),
+    )
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            )
+        )
+        stack.enter_context(
+            patch("superset.utils.log.DBEventLogger.log", return_value=None)
+        )
+        for name, value in (
+            ("get_cached_form_data", json.dumps(form)),
+            ("build_query_dicts_from_form_data", [query]),
+            ("build_query_context_from_form_data", context),
+            ("find_chart_by_identifier", chart),
+            (
+                "validate_chart_dataset",
+                SimpleNamespace(is_valid=True, warnings=[], error=None),
+            ),
+        ):
+            stack.enter_context(patch.object(module, name, return_value=value))
+        stack.enter_context(
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                return_value=context,
+            )
+        )
+        command = stack.enter_context(
+            patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+        )
+        command.return_value.run.return_value = source
+        request: dict[str, Any] = {"format": export_format}
+        if data_path != "unsaved_cache":
+            request["identifier"] = "9"
+        if data_path != "saved":
+            request["form_data_key"] = "geographic-cache"
+        async with Client(mcp) as client:
+            response = await client.call_tool("get_chart_data", {"request": request})
+        payload = json.loads(response.content[0].text)
+        if not valid:
+            assert payload["error_type"] == "InvalidGeographicResult", payload
+        else:
+            assert "error_type" not in payload, payload
+            assert payload["row_count"] == 1
+            if export_format == "json":
+                if decimal_coordinates:
+                    # Response serialization normalises Decimal to a JSON
+                    # number, agreeing with the native chart JSON converter.
+                    assert payload["data"] == [
+                        {key: float(value) for key, value in rows[0].items()}
+                    ]
+                    assert isinstance(rows[0]["latitude"], Decimal)
+                    assert json.json_int_dttm_ser(rows[0]["latitude"]) == 37.5
+                else:
+                    assert payload["data"] == rows
+            elif export_format == "csv":
+                import csv
+                from io import StringIO
+
+                assert list(csv.DictReader(StringIO(payload["csv_data"])))[0] == {
+                    key: str(value) for key, value in rows[0].items()
+                }
+            else:
+                import base64
+                from io import BytesIO
+
+                from openpyxl import load_workbook
+
+                workbook = load_workbook(
+                    BytesIO(base64.b64decode(payload["excel_data"]))
+                )
+                assert list(workbook.active.values)[1] == tuple(rows[0].values())
+        assert source["queries"][0]["data"] is rows
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_metric_alias_cannot_replace_a_geographic_dimension(kind: str) -> None:
+    """A result needs distinct keys for its coordinate/entity and metric roles."""
+    field = "radius_metric" if kind == "deck_scatter" else "metric"
+    label = (
+        "latitude"
+        if kind == "deck_scatter"
+        else "state"
+        if kind == "country_map"
+        else "country"
+    )
+    with pytest.raises(ValidationError, match="conflicts with a geographic column"):
+        CHART_CONFIG_ADAPTER.validate_python(
+            {
+                **_CHART_EXAMPLES[kind][0],
+                field: {"name": "sales", "aggregate": "SUM", "label": label},
+            }
+        )
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_explicit_temporal_binding_clear_preserves_user_filters(kind: str) -> None:
+    """Clearing dashboard binding removes only the generated no-filter predicate."""
+    old = form_for(kind)
+    generated = {
+        "subject": "event_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "No filter",
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+    }
+    user_filter = {**generated, "comparator": "Last week"}
+    old.update(
+        _mcp_dashboard_time_filter_subject="event_time",
+        adhoc_filters=[generated, user_filter],
+    )
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES[kind][0], "temporal_column": None}
+    )
+    dataset = Mock(main_dttm_col="default_time")
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=3)
+    merged = merge_chart_form_data(old, mapped, config)
+    assert merged["adhoc_filters"] == [user_filter]
+    assert "_mcp_dashboard_time_filter_subject" not in merged
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_omitted_temporal_column_keeps_saved_dashboard_binding(kind: str) -> None:
+    """An update that omits temporal_column must not remap to the dataset default."""
+    old = form_for(kind)
+    saved = {
+        "subject": "event_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "No filter",
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+    }
+    old.update(_mcp_dashboard_time_filter_subject="event_time", adhoc_filters=[saved])
+    config = config_for(kind)
+    dataset = Mock(main_dttm_col="created_at")
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=3)
+    assert mapped["_mcp_dashboard_time_filter_subject"] == "created_at"
+    merged = merge_chart_form_data(old, mapped, config)
+    assert merged["_mcp_dashboard_time_filter_subject"] == "event_time"
+    assert merged["adhoc_filters"] == [saved]
+
+
+def test_world_map_merged_metrics_with_shared_label_are_rejected() -> None:
+    """A kept secondary metric cannot alias a replaced color metric."""
+    plugin = get_registry().get("world_map")
+    assert plugin is not None
+    form = form_for("world_map")
+    form["show_bubbles"] = True
+    form["secondary_metric"] = form["metric"]
+    form["metric"] = {
+        "expressionType": "SQL",
+        "sqlExpression": "AVG(sales)",
+        "label": metric_result_label(form["secondary_metric"]),
+    }
+    with pytest.raises(ValueError, match="distinct result labels"):
+        plugin.validate_merged_form_data(form, 3)
+    form["secondary_metric"] = form["metric"]
+    assert plugin.validate_merged_form_data(form, 3) is None
+
+
+@pytest.mark.parametrize(
+    ("radius", "expects_metric"), [("count", True), ("100", False), ("2.5", False)]
+)
+def test_legacy_string_point_radius_is_valid(radius: str, expects_metric: bool) -> None:
+    """A preserved legacy radius string is a metric key or a fixed size."""
+    plugin = get_registry().get("deck_scatter")
+    assert isinstance(plugin, DeckScatterChartPlugin)
+    assert plugin.result_metrics({"point_radius_fixed": radius}) == (
+        [radius] if expects_metric else []
+    )
+
+
+def test_points_use_native_units_and_keyless_map_renderer() -> None:
+    """MapLibre and native radius units work without a Mapbox credential."""
+    form = form_for("deck_scatter")
+    assert form["point_unit"] == "radius_m"
+    assert form["map_renderer"] == "maplibre"
+    assert form["maplibre_style"].startswith("https://basemaps.cartocdn.com/")
+    assert (form["min_radius"], form["max_radius"]) == (2, 250)
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_geographic_nested_refs_filters_and_time_are_strict(kind: str) -> None:
+    """Bounded nested schemas keep the shared aliases, not arbitrary fields."""
+    schema = _get_chart_type_schema_impl(kind)["schema"]
+    assert schema["$defs"]["GeographicColumnRef"]["additionalProperties"] is False
+    assert schema["$defs"]["GeographicFilterConfig"]["additionalProperties"] is False
+    example = deepcopy(_CHART_EXAMPLES[kind][0])
+    role = "latitude" if kind == "deck_scatter" else "entity"
+    name = example[role]["name"]
+    example[role] = {"column_name": name}
+    example["filters"] = [{"col": name, "opr": "IN", "val": ["CA"]}]
+    config = CHART_CONFIG_ADAPTER.validate_python(example)
+    assert getattr(config, role).name == name
+    assert config.filters[0].column == name
+    for patch_ in (
+        {"time_range": "not a time range"},
+        {role: {"name": name, "extra": True}},
+        {"filters": [{"column": name, "op": "IN", "value": ["CA"] * 1001}]},
+    ):
+        with pytest.raises(ValidationError):
+            CHART_CONFIG_ADAPTER.validate_python({**example, **patch_})
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_geographic_query_context_seeds_native_form_data(kind: str) -> None:
+    """QueryContext receives full native controls for virtual-dataset Jinja."""
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_context_from_form_data,
+    )
+
+    form = {**form_for(kind), "datasource": "3__table"}
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="sqlite",
+        ),
+        patch("superset.common.query_context_factory.QueryContextFactory") as factory,
+    ):
+        build_query_context_from_form_data(form)
+    seeded = factory.return_value.create.call_args.kwargs["form_data"]
+    assert seeded["viz_type"] == kind
+    assert seeded["mcp_geographic"] is True
+    assert seeded["datasource"] == "3__table"
+    if kind == "deck_scatter":
+        assert seeded["spatial"]["latCol"] == "latitude"
+    else:
+        assert seeded["entity"] == ("state" if kind == "country_map" else "country")
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_geographic_ascii_clamps_width_and_handles_render_errors(kind: str) -> None:
+    """Map data previews share the safe table fallback behavior."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    plugin = plugin_for_viz_type(kind)
+    assert plugin is not None
+    form = form_for(kind)
+    with patch("superset.mcp_service.chart.ascii_charts.generate_ascii_table") as table:
+        table.return_value = "table"
+        preview = plugin.ascii_preview([{"value": 1}], form, width=-1)
+        assert isinstance(preview, str)
+        assert preview.endswith("table")
+        table.assert_called_once_with([{"value": 1}], 21)
+        table.side_effect = ValueError("invalid table")
+        assert (
+            plugin.ascii_preview([{"value": 1}], form, width=80)
+            == "ASCII chart generation failed"
+        )
+
+
+def test_geographic_recommendations_preserve_time_series_and_bound_cardinality() -> (
+    None
+):
+    """Ambiguous names do not override temporal or high-cardinality suggestions."""
+    from superset.mcp_service.chart.schemas import DataColumn
+    from superset.mcp_service.chart.tool.get_chart_data import _build_candidates
+
+    def column(name: str, dtype: str, count: int = 10) -> DataColumn:
+        """Build realistic inferred column metadata."""
+        return DataColumn(
+            name=name,
+            display_name=name,
+            data_type=dtype,
+            unique_count=count,
+            null_count=0,
+            sample_values=[],
+        )
+
+    metric = column("sales", "numeric")
+    state = column("state", "string")
+    assert "country map" in _build_candidates([state, metric], 10)
+    assert "line chart" in _build_candidates(
+        [state, metric, column("date", "temporal")], 10
+    )
+    assert "country map" not in _build_candidates(
+        [column("state", "string", 1000), metric], 1000
+    )
+    assert "country map" not in _build_candidates(
+        [column("state", "boolean"), metric], 10
+    )
+
+
+def test_world_country_aliases_are_cached_by_format() -> None:
+    """Per-row validation reuses bounded immutable aliases without format leakage."""
+    from superset.mcp_service.chart.plugins.geographic import _world_country_entries
+
+    assert _world_country_entries("cca2") is _world_country_entries("cca2")
+    assert ("US", "USA") in _world_country_entries("cca2")
+    assert ("USA", "USA") in _world_country_entries("cca3")
+    assert ("US", "USA") not in _world_country_entries("cca3")
+
+
+def test_bundled_uk_halton_and_wirral_names_are_distinct() -> None:
+    """GB-HAL is Halton and GB-WRL is Wirral, so both names resolve uniquely."""
+    assert resolve_region("Halton", "uk", "name") == "GB-HAL"
+    assert resolve_region("Wirral", "uk", "name") == "GB-WRL"
+    assert resolve_region("GB-HAL", "uk", "iso_3166_2") == "GB-HAL"
+    assert resolve_region("WRL", "uk", "abbreviation") == "GB-WRL"
+
+
+def test_bundled_region_names_are_unique_after_folding() -> None:
+    """Every bundled region name must resolve, so none may share a folded key."""
+    from superset.utils.geographic import geographic_key
+
+    for country, entries in REGIONS.items():
+        keys = [geographic_key(name) for _, name in entries]
+        duplicates = {key for key in keys if keys.count(key) > 1}
+        assert not duplicates, f"{country}: {sorted(duplicates)}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("viz", ["gauge_chart", *KINDS])
+async def test_public_rebind_guidance_matches_chart_roles(viz: str) -> None:
+    """Gauge rebind guidance must not request geographic roles."""
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
+            return_value=Mock(id=1, datasource_id=3, viz_type=viz),
+        ),
+    ):
+        async with Client(mcp) as client:
+            response = await client.call_tool(
+                "update_chart",
+                {
+                    "request": {
+                        "identifier": 1,
+                        "dataset_id": 4,
+                    }
+                },
+            )
+    payload = response.structured_content
+    assert not payload["success"]
+    details = payload["error"]["details"]
+    assert "metric" in details
+    assert ("geographic" in details) is (viz != "gauge_chart")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("persist", [False, True])
+async def test_public_geographic_rebind_drops_same_named_source_state(
+    kind: str, persist: bool
+) -> None:
+    """Saved and unsaved rebinding drops even target-resolvable source filters."""
+    await _exercise_public_geographic_entry(
+        kind, True, "update_chart", persist, rebind=True
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "entry",
+    ["generate_chart", "generate_explore_link", "update_chart", "update_chart_preview"],
+)
+@pytest.mark.parametrize("persist", [False, True])
+async def test_public_decimal_coordinates_compile(entry: str, persist: bool) -> None:
+    """NUMERIC query coordinates are validated before the JSON conversion step."""
+    result = result_for("deck_scatter")
+    result["queries"][0]["data"][0] = {
+        "latitude": Decimal("37.8"),
+        "longitude": Decimal("-122.4"),
+    }
+    await _exercise_public_geographic_entry(
+        "deck_scatter", True, entry, persist, result_override=result
+    )
+    assert isinstance(result["queries"][0]["data"][0]["latitude"], Decimal)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["country_map", "world_map"])
+async def test_public_decimal_geographic_metrics_compile(kind: str) -> None:
+    """NUMERIC aggregates remain valid without coercing source export values."""
+    result = result_for(kind)
+    result["queries"][0]["data"][0]["SUM(sales)"] = Decimal("10.5")
+    await _exercise_public_geographic_entry(
+        kind, True, "generate_chart", False, result_override=result
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "value",
+    [
+        Decimal("NaN"),
+        Decimal("sNaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+        Decimal("90.00001"),
+        Decimal("90.000000000000000000000000000000001"),
+        Decimal("-90.000000000000000000000000000000001"),
+        True,
+        "37.8",
+        1 + 2j,
+    ],
+)
+async def test_public_decimal_coordinate_invalid_values(value: object) -> None:
+    """Decimal support never permits nonfinite, out-of-range, or nonreal points."""
+    result = result_for("deck_scatter")
+    result["queries"][0]["data"][0]["latitude"] = value
+    # The shared result contract rejects non-finite and nonreal values before
+    # the geographic coordinate checks run.
+    hostile = isinstance(value, complex) or (
+        isinstance(value, Decimal) and not value.is_finite()
+    )
+    await _exercise_public_geographic_entry(
+        "deck_scatter",
+        False,
+        "generate_chart",
+        False,
+        result_override=result,
+        invalid_error_code=(
+            "CHART_COMPILE_FAILED" if hostile else "INVALID_GEOGRAPHIC_RESULT"
+        ),
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("data_path", ["saved", "saved_cache", "unsaved_cache"])
+@pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+async def test_public_decimal_coordinates_data_exports(
+    data_path: str, export_format: str
+) -> None:
+    """Finite database Decimals survive saved/cached JSON, CSV, and Excel paths."""
+    await _exercise_geographic_data_export(
+        "deck_scatter", data_path, True, export_format, decimal_coordinates=True
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        Decimal("NaN"),
+        Decimal("sNaN"),
+        Decimal("Infinity"),
+        Decimal("1e1000"),
+        "1.5",
+        True,
+        1 + 2j,
+    ],
+)
+def test_decimal_geographic_metric_rejects_non_json_numbers(value: object) -> None:
+    """Decimal support retains strict finite JSON-compatible metric results."""
+    result = result_for("world_map")
+    result["queries"][0]["data"][0]["SUM(sales)"] = value
+    assert isinstance(
+        normalize_chart_query_result(result, form_for("world_map")), ChartError
+    )
+
+
+@pytest.mark.parametrize("value", ["Curaçao", "Åland Islands", "Réunion", "Curacao"])
+def test_world_map_accepts_accented_country_names(value: str) -> None:
+    """Accented spellings resolve to their unaccented bundled alias."""
+    form = {
+        **form_for("world_map"),
+        "country_fieldtype": "name",
+        "show_bubbles": True,
+        "secondary_metric": "SUM(sales)",
+    }
+    result = result_for("world_map")
+    result["queries"][0]["data"][0][form["entity"]] = value
+    assert not isinstance(normalize_chart_query_result(result, form), ChartError)
+
+
+def test_world_map_accented_and_plain_names_resolve_alike() -> None:
+    """Both spellings reach one country, so the pair is a duplicate, not a miss."""
+    form = {
+        **form_for("world_map"),
+        "country_fieldtype": "name",
+        "show_bubbles": True,
+        "secondary_metric": "SUM(sales)",
+    }
+    result = result_for("world_map")
+    row = result["queries"][0]["data"][0]
+    result["queries"][0]["data"] = [
+        {**row, form["entity"]: "Curaçao"},
+        {**row, form["entity"]: "Curacao"},
+    ]
+    failure = normalize_chart_query_result(result, form)
+    assert isinstance(failure, ChartError)
+    assert "CUW" in failure.error
+
+
+def test_world_map_folding_still_rejects_unknown_values() -> None:
+    """Folding widens accepted spellings without inventing a country."""
+    form = {
+        **form_for("world_map"),
+        "country_fieldtype": "name",
+        "show_bubbles": True,
+        "secondary_metric": "SUM(sales)",
+    }
+    result = result_for("world_map")
+    result["queries"][0]["data"][0][form["entity"]] = "Cürãçaoland"
+    assert isinstance(normalize_chart_query_result(result, form), ChartError)
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("cca2", "Áo"), ("cca2", "Bỉ"), ("cioc", "Mön")],
+)
+def test_world_map_code_fields_reject_accented_labels(field: str, value: str) -> None:
+    """Short ISO codes never fold, so a label cannot become another country."""
+    form = {**form_for("world_map"), "country_fieldtype": field}
+    result = result_for("world_map")
+    result["queries"][0]["data"][0][form["entity"]] = value
+    failure = normalize_chart_query_result(result, form)
+    assert isinstance(failure, ChartError)
+    assert "unrecognized" in failure.error
+
+
+@pytest.mark.parametrize(
+    "value,country",
+    [("Mön", "uk"), ("Cá", "usa")],
+)
+def test_region_code_formats_reject_accented_labels(value: str, country: str) -> None:
+    """Short region codes never fold, so a label cannot become another region."""
+    for format_ in ("abbreviation", "iso_3166_2"):
+        with pytest.raises(ValueError, match="unrecognized"):
+            resolve_region(value, country, format_)
+
+
+def test_region_names_still_fold_diacritics() -> None:
+    """Romanized spellings keep reaching the accented names in the geometry."""
+    assert resolve_region("Hokkaido", "japan", "name") == "JP-01"
+    assert resolve_region("Hokkaidō", "japan", "name") == "JP-01"
+    assert resolve_region("Kochi", "japan", "name") == "JP-39"
+    assert resolve_region("Kōchi", "japan", "name") == "JP-39"
+
+
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("saved_limit", [50000, 0, -1, "invalid", 12])
+def test_geographic_inherited_limit_matches_compilation(
+    kind: str, saved_limit: int | str
+) -> None:
+    """Native queries and geographic compilation consume the same bounded rows."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    config = config_for(kind)
+    old = {**form_for(kind), "row_limit": saved_limit}
+    old.pop("mcp_geographic")
+    merged = merge_chart_form_data(old, form_for(kind), config)
+    plugin = plugin_for_viz_type(kind)
+    assert plugin is not None
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="sqlite",
+    ):
+        query = build_query_dicts_from_form_data(merged, 3, "table")[0]
+    assert merged["mcp_geographic"] is True
+    assert query["row_limit"] == plugin.compile_row_limit(merged)
+    assert 1 <= query["row_limit"] <= 10000
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_omitted_temporal_column_preserves_cleared_binding(kind: str) -> None:
+    """Clearing then updating on the same dataset must not restore a default."""
+    dataset = Mock(main_dttm_col="created_at")
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+    ):
+        old = map_config_to_form_data(config_for(kind), dataset_id=3)
+        clear = CHART_CONFIG_ADAPTER.validate_python(
+            {**_CHART_EXAMPLES[kind][0], "temporal_column": None}
+        )
+        cleared = merge_chart_form_data(
+            old, map_config_to_form_data(clear, dataset_id=3), clear
+        )
+        config = config_for(kind)
+        merged = merge_chart_form_data(
+            cleared, map_config_to_form_data(config, dataset_id=3), config
+        )
+    assert "_mcp_dashboard_time_filter_subject" not in merged
+    assert merged["adhoc_filters"] == cleared["adhoc_filters"] == []
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_replacement_filters_discard_native_predicates(kind: str) -> None:
+    """Nonempty replacements remove native predicates from the prepared query."""
+    old = form_for(kind)
+    old.update(
+        filters=[{"col": "segment", "op": "IN", "val": ["Retail"]}],
+        where="segment = 'Retail'",
+        having="COUNT(*) > 10",
+    )
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {
+            **_CHART_EXAMPLES[kind][0],
+            "filters": [{"column": "segment", "op": "IN", "value": ["Wholesale"]}],
+        }
+    )
+    merged = merge_chart_form_data(old, map_config_to_form_data(config), config)
+    assert not {"filters", "where", "having"} & merged.keys()
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="sqlite",
+    ):
+        query = build_query_dicts_from_form_data(merged, 3, "table")[0]
+    assert {"col": "segment", "op": "IN", "val": ["Wholesale"]} in query["filters"]
+    assert {"col": "segment", "op": "IN", "val": ["Retail"]} not in query["filters"]
+    assert not query.get("where")
+    assert not query.get("having")
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_update_omitting_time_keeps_saved_time_column_filter(kind: str) -> None:
+    """A saved bounded range stays filtered on its native time column."""
+    old = {
+        **form_for(kind),
+        "granularity_sqla": "created_at",
+        "time_grain_sqla": "P1D",
+        "time_range": "2024-01-01 : 2024-02-01",
+    }
+    config = config_for(kind)
+    merged = merge_chart_form_data(old, map_config_to_form_data(config), config)
+    native = {k: v for k, v in old.items() if k != "mcp_geographic"}
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="sqlite",
+    ):
+        query = build_query_dicts_from_form_data(merged, 3, "table")[0]
+        native_query = build_query_dicts_from_form_data(native, 3, "table")[0]
+    for q in (query, native_query):
+        assert q["granularity"] == "created_at"
+        assert q["time_range"] == "2024-01-01 : 2024-02-01"
+    if kind == "deck_scatter":
+        # Scatter points are never time-bucketed; typed points also drop the
+        # inherited grain.
+        assert query["is_timeseries"] is False
+        assert "time_grain_sqla" not in (query.get("extras") or {})
+        assert native_query["is_timeseries"] is False
+
+
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("previous_type", ["same", "table"])
+@pytest.mark.parametrize("temporal_column", ["event_time", None])
+def test_explicit_geographic_time_update_overrides_native_granularity(
+    kind: str, previous_type: str, temporal_column: str | None
+) -> None:
+    """Explicit time updates win over native controls, including conversions."""
+    old = {**form_for(kind), "granularity_sqla": "created_at"}
+    if previous_type == "table":
+        old["viz_type"] = "table"
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES[kind][0], "temporal_column": temporal_column}
+    )
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=Mock(main_dttm_col="created_at"),
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+    ):
+        mapped = map_config_to_form_data(config, dataset_id=3)
+    for merged in (
+        merge_chart_form_data(old, dict(mapped), config),
+        merge_form_data_for_update(old, dict(mapped), config),
+    ):
+        assert "granularity_sqla" not in merged
+        if temporal_column is None:
+            assert "_mcp_dashboard_time_filter_subject" not in merged
+            assert not merged.get("adhoc_filters")
+        else:
+            assert merged["_mcp_dashboard_time_filter_subject"] == temporal_column
+            assert any(
+                f["subject"] == temporal_column and f["operator"] == "TEMPORAL_RANGE"
+                for f in merged["adhoc_filters"]
+            )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+@pytest.mark.parametrize(
+    ("spatial", "value"),
+    [
+        ({"type": "geohash", "geohashCol": "location"}, "9q8yy"),
+        ({"type": "geohash", "geohashCol": "location"}, "9Q8YY"),
+        (
+            {"type": "delimited", "lonlatCol": "location", "delimiter": ","},
+            "-122.4,37.8",
+        ),
+        (
+            {"type": "delimited", "lonlatCol": "location"},
+            "-122.4 W,37.8 N",
+        ),
+        (
+            {
+                "type": "delimited",
+                "lonlatCol": "location",
+                "reverseCheckbox": True,
+            },
+            "37.8,-122.4",
+        ),
+    ],
+)
+async def test_saved_points_native_spatial_formats_export(
+    export_format: str, spatial: dict[str, Any], value: str
+) -> None:
+    """Explore spatial edits remain readable and preserve raw export columns."""
+    await _exercise_geographic_data_export(
+        "deck_scatter",
+        "saved",
+        True,
+        export_format,
+        spatial=spatial,
+        spatial_value=value,
+    )
+
+
+@pytest.mark.parametrize(
+    ("spatial_type", "value"),
+    [
+        ("geohash", "invalid!"),
+        ("geohash", ""),
+        ("delimited", "181,0"),
+        ("delimited", "0,91"),
+        ("delimited", "nan,0"),
+        ("delimited", "inf,0"),
+        ("delimited", "1"),
+        ("delimited", "1,2,3"),
+        ("delimited", "text,0"),
+        ("delimited", ""),
+        ("delimited", ",0"),
+        ("delimited", "Infinity,0"),
+    ],
+)
+def test_native_point_spatial_formats_reject_invalid_coordinates(
+    spatial_type: str, value: str
+) -> None:
+    """Alternate encodings still enforce the geographic result contract."""
+    column_key = "geohashCol" if spatial_type == "geohash" else "lonlatCol"
+    with pytest.raises(
+        ValueError, match="geohash|coordinates|finite number|nonempty string"
+    ):
+        DeckScatterChartPlugin().row_identifier(
+            {"location": value},
+            {"spatial": {"type": spatial_type, column_key: "location"}},
+        )
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("-122.4 W,37.8 N", [-122.4, 37.8]),
+        ("  +.5deg,1.e1 N", [0.5, 10.0]),
+        ("1e+ W,2e- N", [1.0, 2.0]),
+        ("0x10,2_0", [0.0, 2.0]),
+        ("\ufeff-122.4,37.8", [-122.4, 37.8]),
+    ],
+)
+def test_delimited_coordinates_match_native_numeric_prefix(
+    value: str, expected: list[float]
+) -> None:
+    """Decode parseFloat prefixes without modifying the source export value."""
+    from superset.mcp_service.chart.plugins.geographic import (
+        _decode_geographic_coordinates,
+    )
+
+    assert _decode_geographic_coordinates(value, "delimited") == expected
+
+
+@pytest.mark.parametrize(
+    ("spatial", "row"),
+    [
+        (
+            {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+            {"lon": None, "lat": 0},
+        ),
+        ({"type": "geohash", "geohashCol": "location"}, {"location": "invalid!"}),
+        ({"type": "delimited", "lonlatCol": "location"}, {"location": "text,0"}),
+    ],
+)
+def test_native_skipped_points_consistently_fail_mcp_result_validation(
+    spatial: dict[str, str], row: dict[str, object]
+) -> None:
+    """Native null positions retain the same strict contract for every encoding."""
+    form = {**form_for("deck_scatter"), "spatial": spatial}
+    result = {"queries": [{"data": [row]}]}
+    normalized = DeckScatterChartPlugin().normalize_query_result(result, form)
+    assert isinstance(normalized, ChartError)
+    assert normalized.error_type == "InvalidGeographicResult"
+    assert result["queries"][0]["data"] == [row]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+@pytest.mark.parametrize("data_path", ["saved", "saved_cache"])
+async def test_saved_country_map_legacy_iso_format_exports(
+    export_format: str, data_path: str
+) -> None:
+    """Explore's legacy ISO option preserves saved MCP data and export access."""
+    await _exercise_geographic_data_export(
+        "country_map",
+        data_path,
+        True,
+        export_format,
+        form_overrides={"region_format": None},
+        row_overrides={"state": "US-CA"},
+    )
+
+
+@pytest.mark.parametrize("label", ["position", "weight", "extraProps"])
+def test_scatter_metric_alias_cannot_replace_native_spatial_fields(label: str) -> None:
+    """Accepted radius aliases cannot overwrite native spatial feature fields."""
+    with pytest.raises(ValidationError, match="conflicts with a native spatial field"):
+        CHART_CONFIG_ADAPTER.validate_python(
+            {
+                **_CHART_EXAMPLES["deck_scatter"][0],
+                "radius_metric": {"name": "sales", "aggregate": "SUM", "label": label},
+            }
+        )
+
+
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("temporal_column", [None, "replacement_time"])
+def test_explore_saved_binding_can_be_cleared_or_replaced(
+    kind: str, temporal_column: str | None
+) -> None:
+    """A retained Explore hidden control identifies only the generated predicate."""
+    initial = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES[kind][0], "temporal_column": "event_time"}
+    )
+    old = map_config_to_form_data(initial)
+    user_filter = {
+        "subject": "event_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "Last week",
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+    }
+    old["adhoc_filters"].append(user_filter)
+    saved = json.loads(json.dumps(old))
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES[kind][0], "temporal_column": temporal_column}
+    )
+    merged = merge_chart_form_data(saved, map_config_to_form_data(config), config)
+    assert user_filter in merged["adhoc_filters"]
+    generated = [
+        f
+        for f in merged["adhoc_filters"]
+        if f.get("operator") == "TEMPORAL_RANGE" and f.get("comparator") == "No filter"
+    ]
+    assert [f["subject"] for f in generated] == (
+        [] if temporal_column is None else [temporal_column]
+    )
+
+
+@pytest.mark.parametrize("value", ["CA", "BC", "CA-BC", "not-a-region"])
+def test_legacy_country_format_still_rejects_unmatched_boundaries(value: str) -> None:
+    """Legacy format means full selected-country ISO codes, not guessed aliases."""
+    plugin = CountryMapChartPlugin()
+    with pytest.raises(ValueError, match="unrecognized"):
+        plugin.row_identifier(
+            {"state": value},
+            {**form_for("country_map"), "region_format": None},
+        )
+
+
+@pytest.mark.parametrize("expression", ["SIMPLE", "SQL"])
+def test_world_map_row_limit_update_preserves_equivalent_bubble_metric(
+    expression: str,
+) -> None:
+    """UI option names and column metadata do not change metric semantics."""
+    metric = (
+        {"name": "sales", "aggregate": "SUM"}
+        if expression == "SIMPLE"
+        else {"sql_expression": "SUM(sales)", "label": "sales_total"}
+    )
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {
+            **_CHART_EXAMPLES["world_map"][0],
+            "metric": metric,
+            "secondary_metric": metric,
+            "show_bubbles": True,
+        }
+    )
+    old = map_config_to_form_data(config)
+    old["secondary_metric"]["optionName"] = "metric_explore_saved"
+    if expression == "SIMPLE":
+        old["secondary_metric"]["column"].update(id=42, type="DOUBLE")
+    update = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES["world_map"][0], "metric": metric, "row_limit": 50}
+    )
+    merged = merge_chart_form_data(old, map_config_to_form_data(update), update)
+    assert merged["row_limit"] == 50
+    assert merged["metric"] != merged["secondary_metric"]
+    plugin = get_registry().get("world_map")
+    assert plugin is not None
+    assert plugin.validate_merged_form_data(merged, 3) is None
+    fields = plugin.resolve_query_fields(merged, "world_map")
+    assert fields is not None
+    metrics, _ = fields
+    assert len(metrics) == 1
+
+
+@pytest.mark.parametrize("kind", ["country_map", "world_map"])
+@pytest.mark.parametrize("label", ["region", None])
+def test_geographic_adhoc_entity_result_label(kind: str, label: str | None) -> None:
+    """Explore Custom SQL entities resolve like native getColumnLabel."""
+    form = form_for(kind)
+    source = result_for(kind)
+    entity = form["entity"]
+    sql = f"UPPER({entity})"
+    form["entity"] = {"sqlExpression": sql, "label": label}
+    row = source["queries"][0]["data"][0]
+    row[label or sql] = row.pop(entity)
+    assert normalize_chart_query_result(source, form) is source
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["country_map", "world_map"])
+@pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+async def test_geographic_saved_adhoc_entity_exports(
+    kind: str, export_format: str
+) -> None:
+    """Saved Custom SQL entities remain readable in all MCP export formats."""
+    entity = form_for(kind)["entity"]
+    value = result_for(kind)["queries"][0]["data"][0][entity]
+    await _exercise_geographic_data_export(
+        kind,
+        "saved",
+        True,
+        export_format,
+        form_overrides={
+            "entity": {"sqlExpression": f"UPPER({entity})", "label": "region"}
+        },
+        row_overrides={"region": value},
+    )
+
+
+@pytest.mark.parametrize("name", ["position", "weight", "extraProps"])
+def test_point_dimension_cannot_replace_native_spatial_fields(name: str) -> None:
+    """Fixed-radius maps protect feature fields even without radius metrics."""
+    with pytest.raises(ValidationError, match="conflicts with a native spatial field"):
+        CHART_CONFIG_ADAPTER.validate_python(
+            {**_CHART_EXAMPLES["deck_scatter"][0], "dimension": {"name": name}}
+        )
+
+
+@pytest.mark.parametrize("role", ["latitude", "longitude"])
+def test_point_dimension_cannot_reuse_a_coordinate_column(role: str) -> None:
+    """Coordinate columns are stripped from point properties, so they cannot color."""
+    example = _CHART_EXAMPLES["deck_scatter"][0]
+    with pytest.raises(ValidationError, match="coordinate column"):
+        CHART_CONFIG_ADAPTER.validate_python(
+            {**example, "dimension": {"name": example[role]["name"]}}
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("role", ["latitude", "longitude"])
+@pytest.mark.parametrize(
+    ("entry", "persist"),
+    [("update_chart", True), ("update_chart", False), ("update_chart_preview", False)],
+)
+async def test_point_update_rejects_inherited_dimension_coordinate_collision(
+    role: str, entry: str, persist: bool
+) -> None:
+    """Merged role collisions must fail before querying or persisting points."""
+    row = {"latitude": 37.8, "longitude": -122.4}
+    row["category"] = row.pop(role)
+    await _exercise_public_geographic_entry(
+        "deck_scatter",
+        False,
+        entry,
+        persist,
+        existing_override={"dimension": "category"},
+        config_override={role: {"name": "category"}},
+        result_override={"queries": [{"data": [row]}]},
+        expected_error="reuses a coordinate column",
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("label", ["weight", "position", "extraProps"])
+@pytest.mark.parametrize("radius_form", ["bare", "saved", "adhoc"])
+@pytest.mark.parametrize(
+    ("entry", "persist"),
+    [("update_chart", True), ("update_chart", False), ("update_chart_preview", False)],
+)
+async def test_point_update_rejects_inherited_reserved_radius_label(
+    label: str, radius_form: str, entry: str, persist: bool
+) -> None:
+    """Native radius labels must be revalidated before typed updates query/save."""
+    metric: Any = label
+    if radius_form == "adhoc":
+        metric = {
+            "expressionType": "SIMPLE",
+            "aggregate": "SUM",
+            "column": {"columnName": "sales"},
+            "label": label,
+        }
+    radius = metric if radius_form == "bare" else {"type": "metric", "value": metric}
+    result = result_for("deck_scatter")
+    result["queries"][0]["data"][0][label] = 10
+    await _exercise_public_geographic_entry(
+        "deck_scatter",
+        False,
+        entry,
+        persist,
+        existing_override={"mcp_geographic": False, "point_radius_fixed": radius},
+        result_override=result,
+        expected_error="conflicts with a native spatial field",
+    )
+
+
+@pytest.mark.parametrize("label", ["weight", "position", "extraProps"])
+@pytest.mark.parametrize("operation", ["clear", "fixed", "replace"])
+def test_point_update_can_replace_reserved_radius_label(
+    label: str, operation: str
+) -> None:
+    """Explicit radius controls remove an invalid inherited native metric."""
+    update = dict(_CHART_EXAMPLES["deck_scatter"][0])
+    if operation == "fixed":
+        update["radius"] = 25
+    else:
+        update["radius_metric"] = (
+            None if operation == "clear" else {"name": "sales", "aggregate": "SUM"}
+        )
+    config = CHART_CONFIG_ADAPTER.validate_python(update)
+    merged = merge_chart_form_data(
+        {**form_for("deck_scatter"), "point_radius_fixed": label},
+        map_config_to_form_data(config),
+        config,
+    )
+    plugin = DeckScatterChartPlugin()
+    assert plugin.validate_merged_form_data(merged, 3) is None
+    assert label not in [metric_result_label(m) for m in plugin.result_metrics(merged)]
+
+
+@pytest.mark.parametrize("role", ["latitude", "longitude"])
+@pytest.mark.parametrize("operation", ["preserve", "clear", "replace", "rebind"])
+def test_point_update_accepts_distinct_effective_dimension(
+    role: str, operation: str
+) -> None:
+    """Omission preserves valid roles; clearing/replacing/rebinding removes clashes."""
+    update = dict(_CHART_EXAMPLES["deck_scatter"][0])
+    if operation != "preserve":
+        update[role] = {"name": "category"}
+    if operation in {"clear", "replace"}:
+        update["dimension"] = None if operation == "clear" else {"name": "segment"}
+    config = CHART_CONFIG_ADAPTER.validate_python(update)
+    merged = merge_chart_form_data(
+        {**form_for("deck_scatter"), "dimension": "category"},
+        map_config_to_form_data(config),
+        config,
+        dataset_rebind=operation == "rebind",
+    )
+    expected = {
+        "preserve": "category",
+        "clear": None,
+        "replace": "segment",
+        "rebind": None,
+    }
+    assert merged.get("dimension") == expected[operation]
+    assert DeckScatterChartPlugin().validate_merged_form_data(merged, 3) is None
+
+
+@pytest.mark.parametrize("value", ["us-ca", "Us-Ca", "US-ca"])
+def test_legacy_country_format_requires_exact_boundary_iso(value: str) -> None:
+    """The legacy renderer joins on exact boundary ids without normalization."""
+    plugin = CountryMapChartPlugin()
+    form = {**form_for("country_map"), "region_format": None}
+    assert plugin.row_identifier({"state": "US-CA"}, form) == "US-CA"
+    with pytest.raises(ValueError, match="unrecognized"):
+        plugin.row_identifier({"state": value}, form)
+
+
+@pytest.mark.parametrize(
+    ("saved", "expected"),
+    [
+        ("100", {"type": "fix", "value": 100}),
+        ("2.5", {"type": "fix", "value": 2.5}),
+        ("count", "count"),
+    ],
+)
+def test_update_normalizes_preserved_numeric_string_radius(
+    saved: str, expected: Any
+) -> None:
+    """A preserved fixed radius is saved in the form the native query reads."""
+    old = {**form_for("deck_scatter"), "point_radius_fixed": saved}
+    config = config_for("deck_scatter")
+    plugin = get_registry().get("deck_scatter")
+    assert plugin is not None
+    merged = plugin.merge_update_form_data(
+        old, map_config_to_form_data(config), config, dataset_rebind=False
+    )
+    assert merged is not None
+    assert merged["point_radius_fixed"] == expected
+
+
+@pytest.mark.parametrize("show_bubbles", [False, True])
+def test_world_map_singapore_requires_visible_bubbles(show_bubbles: bool) -> None:
+    """A dictionary match without a boundary cannot silently vanish."""
+    form = form_for("world_map")
+    form.update(show_bubbles=show_bubbles, secondary_metric=form["metric"])
+    source = result_for("world_map")
+    source["queries"][0]["data"][0][form["entity"]] = "SG"
+    result = normalize_chart_query_result(source, form)
+    if show_bubbles:
+        assert result is source
+    else:
+        assert isinstance(result, ChartError)
+        assert "SGP" in result.error
+        assert "boundary" in result.error
+
+
+@pytest.mark.parametrize(
+    "secondary",
+    [
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": "AVG",
+            "column": {"column_name": "sales"},
+        },
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": "SUM",
+            "column": {"column_name": "profit"},
+        },
+        {"expressionType": "SQL", "sqlExpression": "AVG(sales)"},
+    ],
+)
+def test_world_map_shared_label_with_different_expression_is_rejected(
+    secondary: dict[str, Any],
+) -> None:
+    """Ignoring metadata must not hide real aggregate/column/SQL differences."""
+    form = form_for("world_map")
+    form.update(
+        show_bubbles=True,
+        secondary_metric={**secondary, "label": metric_result_label(form["metric"])},
+    )
+    plugin = get_registry().get("world_map")
+    assert plugin is not None
+    with pytest.raises(ValueError, match="distinct result labels"):
+        plugin.validate_merged_form_data(form, 3)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "entry", ["generate_chart", "update_chart", "generate_explore_link"]
+)
+async def test_world_map_missing_boundary_fails_public_compile(entry: str) -> None:
+    """A valid dictionary alias without a polygon cannot compile as a choropleth."""
+    result = result_for("world_map")
+    result["queries"][0]["data"][0]["country"] = "SG"
+    await _exercise_public_geographic_entry(
+        "world_map", False, entry, True, result_override=result
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+async def test_saved_native_map_update_accepts_null_filters(kind: str) -> None:
+    """Same-dataset updates tolerate native nullable filters before saving."""
+    await _exercise_public_geographic_entry(
+        kind,
+        True,
+        "update_chart",
+        True,
+        existing_override={"adhoc_filters": None},
+    )
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_null_native_filters_allow_explicit_temporal_clear(kind: str) -> None:
+    """Clearing the generated time binding also tolerates native null filters."""
+    config = CHART_CONFIG_ADAPTER.validate_python(
+        {**_CHART_EXAMPLES[kind][0], "temporal_column": None}
+    )
+    old = {**form_for(kind), "adhoc_filters": None}
+    merged = merge_chart_form_data(old, map_config_to_form_data(config), config)
+    assert merged["adhoc_filters"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "entry,persist",
+    [("update_chart", True), ("update_chart", False), ("update_chart_preview", False)],
+)
+async def test_world_map_enabling_bubbles_retains_omitted_size_metric(
+    entry: str, persist: bool
+) -> None:
+    """Bubble toggles validate the merged saved or cached metric, not the patch."""
+    await _exercise_public_geographic_entry(
+        "world_map",
+        True,
+        entry,
+        persist,
+        existing_override={
+            "show_bubbles": False,
+            "secondary_metric": form_for("world_map")["metric"],
+        },
+        config_override={"show_bubbles": True},
+        expected_form_data={
+            "show_bubbles": True,
+            "secondary_metric": form_for("world_map")["metric"],
+        },
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("entry", ["generate_chart", "generate_explore_link"])
+async def test_world_map_fresh_bubbles_require_size_metric(entry: str) -> None:
+    """Fresh generation still rejects bubbles without a size metric."""
+    await _exercise_public_geographic_entry(
+        "world_map", False, entry, False, config_override={"show_bubbles": True}
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "entry,persist",
+    [("update_chart", True), ("update_chart", False), ("update_chart_preview", False)],
+)
+async def test_world_map_bubbles_reject_explicit_size_metric_clear(
+    entry: str, persist: bool
+) -> None:
+    """Explicit clearing must not inherit the saved or cached size metric."""
+    await _exercise_public_geographic_entry(
+        "world_map",
+        False,
+        entry,
+        persist,
+        existing_override={"secondary_metric": form_for("world_map")["metric"]},
+        config_override={"show_bubbles": True, "secondary_metric": None},
+        result_override=result_for("world_map"),
+        invalid_error_message="show_bubbles requires secondary_metric",
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("label", "inherited_radius"),
+    [("store_id", False), ("store_id", True), ("latitude", True), ("longitude", True)],
+)
+@pytest.mark.parametrize(
+    ("entry", "persist"),
+    [("update_chart", True), ("update_chart", False), ("update_chart_preview", False)],
+)
+async def test_point_update_rejects_effective_radius_column_collision(
+    label: str, inherited_radius: bool, entry: str, persist: bool
+) -> None:
+    """Merged radius aliases cannot deduplicate effective dimension/coordinates."""
+    metric = {"name": "sales", "aggregate": "SUM", "label": label}
+    existing: dict[str, Any] = {"dimension": "store_id"}
+    config: dict[str, Any] = {}
+    if inherited_radius:
+        existing["point_radius_fixed"] = {
+            "type": "metric",
+            "value": {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"columnName": "sales"},
+                "label": label,
+            },
+        }
+    else:
+        config["radius_metric"] = metric
+    result = result_for("deck_scatter")
+    result["queries"][0]["data"][0]["store_id"] = 10
+    await _exercise_public_geographic_entry(
+        "deck_scatter",
+        False,
+        entry,
+        persist,
+        existing_override=existing,
+        config_override=config,
+        result_override=result,
+        expected_error="conflicts with an effective dimension or coordinate column",
+    )
+
+
+@pytest.mark.parametrize(
+    ("spatial_type", "column_key"),
+    [("geohash", "geohashCol"), ("delimited", "lonlatCol")],
+)
+def test_point_radius_label_cannot_reuse_encoded_coordinate_column(
+    spatial_type: str, column_key: str
+) -> None:
+    """Encoded coordinate fields also participate in SELECT name deduplication."""
+    form = {
+        **form_for("deck_scatter"),
+        "spatial": {"type": spatial_type, column_key: "coordinates"},
+        "point_radius_fixed": {
+            "type": "metric",
+            "value": {
+                "expressionType": "SIMPLE",
+                "aggregate": "SUM",
+                "column": {"columnName": "sales"},
+                "label": "coordinates",
+            },
+        },
+    }
+    with pytest.raises(ValueError, match="effective dimension or coordinate column"):
+        DeckScatterChartPlugin().validate_merged_form_data(form, 3)
