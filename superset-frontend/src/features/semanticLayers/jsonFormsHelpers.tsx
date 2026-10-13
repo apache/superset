@@ -313,7 +313,14 @@ export function DynamicFieldControl(props: ControlProps) {
   }
 
   if (!refreshing) {
-    return <SchemaTextControl {...props} />;
+    // Keep a suffix mounted: toggling it remounts the input and drops focus.
+    const options = {
+      ...props.uischema.options,
+      inputProps: { suffix: <span /> },
+    };
+    return (
+      <SchemaTextControl {...props} uischema={{ ...props.uischema, options }} />
+    );
   }
 
   const uischema = {

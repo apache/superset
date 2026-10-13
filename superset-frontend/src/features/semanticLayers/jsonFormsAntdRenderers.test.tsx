@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import {
   fireEvent,
   render,
@@ -173,6 +174,67 @@ test.each([false, true])(
     expect(screen.getByRole('textbox', { name: 'Database' })).toBeEnabled();
   },
 );
+test('dynamic text keeps focus and both characters when discovery starts and finishes', async () => {
+  const schema = {
+    type: 'object',
+    properties: {
+      account: { type: 'string', title: 'Account' },
+      database: {
+        type: 'string',
+        title: 'Database',
+        'x-dynamic': true,
+        'x-dependsOn': ['account'],
+      },
+      schema: {
+        type: 'string',
+        title: 'Schema',
+        'x-dynamic': true,
+        'x-dependsOn': ['database'],
+      },
+    },
+  } as JsonSchema;
+  function DiscoveryForm({ finished = false }: { finished?: boolean }) {
+    const [data, setData] = useState<Record<string, unknown>>({
+      account: 'synthetic',
+    });
+    return (
+      <JsonForms
+        schema={schema}
+        uischema={buildUiSchema(schema)}
+        data={data}
+        renderers={renderers}
+        cells={cellRegistryEntries}
+        config={{
+          // The host starts discovery when the dependent field can refresh.
+          refreshingSchema: !!data.database && !finished,
+          formData: data,
+        }}
+        onChange={({ data }: { data: Record<string, unknown> }) =>
+          setData(data)
+        }
+      />
+    );
+  }
+  const { rerender } = render(<DiscoveryForm />);
+  const input = screen.getByRole('textbox', { name: 'Database' });
+  // Allow JSON Forms' debounced onChange to notify the host between keys.
+  await userEvent.type(input, 'ab', { delay: 50 });
+  const currentInput = screen.getByRole<HTMLInputElement>('textbox', {
+    name: 'Database',
+  });
+  expect({
+    value: currentInput.value,
+    sameInput: currentInput === input,
+    focusOnBody: document.activeElement === document.body,
+  }).toEqual({ value: 'ab', sameInput: true, focusOnBody: false });
+  expect(input).toHaveFocus();
+  expect(screen.getByRole('textbox', { name: 'Database' })).toBe(input);
+  rerender(<DiscoveryForm finished />);
+  expect(screen.getByRole('textbox', { name: 'Database' })).toBe(input);
+  expect(input).toHaveValue('ab');
+  expect(input).toHaveFocus();
+});
+
 const keyHelp = 'Paste the whole key, including the BEGIN and END lines.';
 const passwordHelp = 'Leave blank for an unencrypted key.';
 // Pydantic's SecretStr | None inside a discriminated auth union.
