@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock, PropertyMock
 from uuid import UUID
@@ -278,6 +279,100 @@ def test_startup_namespace_is_shared_across_independent_apps(
             engine.dispose()
     assert namespaces[0] == namespaces[1]
     assert UUID(namespaces[0])
+
+
+def test_startup_namespace_insert_race_uses_winners_identity(tmp_path: Path) -> None:
+    """Two absent-row readers converge after a real unique-constraint failure."""
+    from sqlalchemy import create_engine, event, select
+    from sqlalchemy.engine import Connection, Engine, ExceptionContext
+    from sqlalchemy.exc import IntegrityError
+    from sqlalchemy.orm import Session
+
+    from superset.key_value.models import KeyValueEntry
+    from superset.key_value.types import JsonKeyValueCodec
+    from superset.semantic_layers.execution import _install_namespace
+
+    database_url: str = f"sqlite:///{tmp_path / 'namespace-race.db'}"
+    loser: Engine = create_engine(database_url)
+    winner: Engine = create_engine(database_url)
+    winner_namespaces: list[str] = []
+    collisions: list[IntegrityError] = []
+
+    def commit_winner_before_insert(
+        connection: Connection,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Commit the second caller after the first read but before its INSERT."""
+        if statement.lstrip().upper().startswith("INSERT"):
+            assert not winner_namespaces
+            winner_namespaces.append(_install_namespace(winner))
+
+    def record_collision(context: ExceptionContext) -> None:
+        """Observe the database exception rather than synthesizing a failure."""
+        assert isinstance(context.sqlalchemy_exception, IntegrityError)
+        collisions.append(context.sqlalchemy_exception)
+
+    try:
+        KeyValueEntry.__table__.create(loser)
+        event.listen(loser, "before_cursor_execute", commit_winner_before_insert)
+        event.listen(loser, "handle_error", record_collision)
+        recovered: str = _install_namespace(loser)
+        assert len(collisions) == 1
+        assert winner_namespaces == [recovered]
+        assert UUID(recovered)
+        with Session(winner) as verification:
+            values: list[bytes] = list(
+                verification.scalars(select(KeyValueEntry.value))
+            )
+        assert len(values) == 1
+        assert JsonKeyValueCodec().decode(values[0]) == {"namespace": recovered}
+    finally:
+        loser.dispose()
+        winner.dispose()
+
+
+@pytest.mark.parametrize("namespace", [None, 7, "", "   "])
+def test_startup_namespace_rejects_invalid_persisted_identity(
+    tmp_path: Path, namespace: Any
+) -> None:
+    """Invalid durable identity fails closed and is not replaced by a new UUID."""
+    from sqlalchemy import create_engine, select
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.orm import Session
+
+    from superset.key_value.models import KeyValueEntry
+    from superset.key_value.types import (
+        JsonKeyValueCodec,
+        KeyValueResource,
+        SEMANTIC_INSTALL_ID_KEY,
+    )
+    from superset.semantic_layers.execution import _install_namespace
+
+    engine: Engine = create_engine(f"sqlite:///{tmp_path / 'invalid-namespace.db'}")
+    encoded: bytes = JsonKeyValueCodec().encode({"namespace": namespace})
+    try:
+        KeyValueEntry.__table__.create(engine)
+        with Session(engine) as writer:
+            writer.add(
+                KeyValueEntry(
+                    uuid=SEMANTIC_INSTALL_ID_KEY,
+                    resource=KeyValueResource.APP.value,
+                    value=encoded,
+                )
+            )
+            writer.commit()
+        with pytest.raises(
+            ValueError, match="Semantic execution namespace is unavailable"
+        ):
+            _install_namespace(engine)
+        with Session(engine) as verification:
+            assert list(verification.scalars(select(KeyValueEntry.value))) == [encoded]
+    finally:
+        engine.dispose()
 
 
 def test_one_session_two_principals_never_share_instances(
