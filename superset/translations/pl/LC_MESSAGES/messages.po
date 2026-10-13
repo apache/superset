@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 19:11+0300\n"
+"POT-Creation-Date: 2026-10-13 11:06+0300\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -8642,6 +8642,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtruj wykresy"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filtr ma wartość domyślną"
 
@@ -8684,6 +8690,10 @@ msgstr "Filtruj swoje wykresy"
 
 msgid "Filters"
 msgstr "Filtry"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9621,6 +9631,10 @@ msgstr "Uwzględnij nazwę serii jako oś"
 #, fuzzy
 msgid "Include time"
 msgstr "Uwzględnij czas"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 #, fuzzy
 msgid "Increase"

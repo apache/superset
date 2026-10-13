@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-12 19:11+0300\n"
+"POT-Creation-Date: 2026-10-13 11:06+0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -8071,6 +8071,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "筛选图表"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "筛选器具有默认值"
 
@@ -8113,6 +8119,10 @@ msgstr "过滤您的图表"
 
 msgid "Filters"
 msgstr "筛选器"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "筛选器和控件"
@@ -8963,6 +8973,10 @@ msgstr "包括系列名称作为轴"
 
 msgid "Include time"
 msgstr "包含时间"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 #, fuzzy
 msgid "Increase"

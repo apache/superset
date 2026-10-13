@@ -922,8 +922,16 @@ def resolve_gantt_query_fields(  # noqa: C901
         if isinstance(value, str) and value:
             return value
         if isinstance(value, dict) and 0 < len(value) <= 20:
-            # QueryFormColumn objects use column_name for physical columns or
-            # expressionType/sqlExpression/label for adhoc columns.
+            # Saved QueryFormColumn objects need names in semantic queries;
+            # ad-hoc expressions retain their dictionary representation.
+            column_name: object = value.get("column_name")
+            if (
+                isinstance(column_name, str)
+                and column_name
+                and value.get("expressionType") in (None, "SIMPLE")
+                and not value.get("sqlExpression")
+            ):
+                return column_name
             if value.get("column_name") or (
                 value.get("expressionType") and value.get("label")
             ):
@@ -1429,3 +1437,66 @@ def build_applied_dashboard_filters(
         )
 
     return applied
+
+
+def _parse_orderby(values: Any) -> list[list[Any]]:
+    """Parse bounded native ``order_by_cols`` without coercing malformed input."""
+    if values is not None and not isinstance(values, list):
+        raise ValueError("order_by_cols must be a list")
+    if isinstance(values, list) and len(values) > 100:
+        raise ValueError("order_by_cols must contain at most 100 entries")
+    from superset.utils import json as utils_json
+
+    result: list[list[Any]] = []
+    for index, value in enumerate(values or []):
+        if isinstance(value, str):
+            if len(value) > 1000:
+                raise ValueError(f"order_by_cols[{index}] is too long")
+            try:
+                value = utils_json.loads(value)
+            except (TypeError, ValueError) as ex:
+                raise ValueError(f"order_by_cols[{index}] is not valid JSON") from ex
+        if (
+            isinstance(value, (list, tuple))
+            and len(value) == 2
+            and isinstance(value[0], str)
+            and bool(value[0])
+            and isinstance(value[1], bool)
+        ):
+            result.append(list(value))
+        else:
+            raise ValueError(
+                f"order_by_cols[{index}] must be [column, ascending_boolean]"
+            )
+    return result
+
+
+def _column_label(column: Any) -> str | None:
+    """Return the frontend ``getColumnLabel`` value for a query column."""
+    if isinstance(column, str):
+        return column
+    if not isinstance(column, dict):
+        return None
+    return (
+        column.get("label") or column.get("sqlExpression") or column.get("column_name")
+    )
+
+
+def _metric_label(metric: Any) -> str | None:
+    """Return the frontend ``getMetricLabel`` value for a query metric."""
+    if isinstance(metric, str):
+        return metric
+    if not isinstance(metric, dict):
+        return None
+    if label := metric.get("label"):
+        return label
+    if metric.get("expressionType") == "SIMPLE":
+        column = metric.get("column") or {}
+        name = (
+            column.get("columnName") or column.get("column_name")
+            if isinstance(column, dict)
+            else None
+        )
+        if name and metric.get("aggregate"):
+            return f"{metric['aggregate']}({name})"
+    return metric.get("sqlExpression")

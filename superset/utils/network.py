@@ -40,11 +40,16 @@ _SSRF_UNSAFE_NETWORKS = (
     ipaddress.ip_network("172.16.0.0/12"),
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("224.0.0.0/4"),  # IPv4 multicast — is_global is True in Python
+    ipaddress.ip_network("::/96"),
+    ipaddress.ip_network("64:ff9b:1::/48"),
+    ipaddress.ip_network("2001::/32"),
     ipaddress.ip_network("::1/128"),
     ipaddress.ip_network("fc00::/7"),
     ipaddress.ip_network("fe80::/10"),
     ipaddress.ip_network("ff00::/8"),  # IPv6 multicast
 )
+
+_NAT64: ipaddress.IPv6Network = ipaddress.IPv6Network("64:ff9b::/96")
 
 PORT_TIMEOUT = 5
 PING_TIMEOUT = 5
@@ -163,12 +168,20 @@ def is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     """
     Return True if a single IP address is public and globally routable.
 
-    IPv4-mapped IPv6 addresses (e.g. ``::ffff:127.0.0.1``) are unwrapped so
-    they are checked against the IPv4 unsafe networks rather than bypassing
-    them.
+    IPv4-mapped IPv6 addresses and addresses in the well-known NAT64 prefix
+    ``64:ff9b::/96`` are checked using their embedded IPv4 address and refused
+    when that address is unsafe. Local-use translation (``64:ff9b:1::/48``),
+    IPv4-compatible (``::/96``), 6to4 and Teredo forms are refused outright.
+    Operator-specific NAT64 prefixes are not detected: recognizing them
+    requires knowledge of the operator's prefix configuration.
     """
-    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
-        ip = ip.ipv4_mapped
+    if isinstance(ip, ipaddress.IPv6Address):
+        if ip.ipv4_mapped:
+            ip = ip.ipv4_mapped
+        elif ip in _NAT64:
+            ip = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+        elif ip.sixtofour:
+            return False
     return ip.is_global and not any(ip in net for net in _SSRF_UNSAFE_NETWORKS)
 
 
