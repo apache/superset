@@ -20,12 +20,12 @@
 import inspect
 from collections.abc import Iterator
 from types import SimpleNamespace
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import call, MagicMock, Mock, patch
 from uuid import UUID
 
 import pytest
 from fastmcp.exceptions import ToolError
-from flask import Flask, g
+from flask import current_app, Flask, g, has_request_context
 
 from superset.mcp_service.dataset_scope import (
     DATASET_IDENTIFIER_FIELDS,
@@ -116,16 +116,49 @@ def test_scope_is_unrestricted_without_an_app_context() -> None:
 
 def test_callable_config_resolves_per_request(app: Flask) -> None:
     """A callable resolves its own allowlist instead of a role union."""
-    resolver = Mock(return_value=[str(FIRST), str(SECOND)])
+    resolver = Mock(side_effect=[[str(FIRST)], [str(SECOND)], []])
+    first_user = SimpleNamespace(id=1)
+    second_user = SimpleNamespace(id=2)
+    with patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=resolver):
+        with app.test_request_context():
+            g.user = first_user
+            assert get_dataset_scope() == {FIRST}
+            assert get_dataset_scope() == {SECOND}
+        with app.test_request_context():
+            g.user = second_user
+            assert get_dataset_scope() == frozenset()
+    assert resolver.call_args_list == [
+        call(first_user),
+        call(first_user),
+        call(second_user),
+    ]
+
+
+def test_callable_config_can_use_flask_request_context(app: Flask) -> None:
+    """Resolvers run in the caller's context, like restricted tool policies."""
     user = SimpleNamespace(id=1)
+
+    def resolver(principal: object) -> Iterator[UUID]:
+        """Read request-local state, including while consuming a lazy result."""
+        assert has_request_context()
+        assert current_app._get_current_object() is app
+        assert principal is g.user is user
+        yield FIRST
+
+    with (
+        app.test_request_context(),
+        patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=resolver),
+    ):
+        g.user = user
+        assert get_dataset_scope() == {FIRST}
+
+
+def test_callable_config_receives_none_without_a_user(app: Flask) -> None:
+    """The hook receives None when no user has been resolved."""
+    resolver = Mock(return_value=None)
     with app.app_context(), patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=resolver):
-        g.user = user
-        assert get_dataset_scope() == {FIRST, SECOND}
-        g.user = user
-        assert get_dataset_scope() == {FIRST, SECOND}
-    # Called once per request, not cached across calls.
-    assert resolver.call_count == 2
-    resolver.assert_called_with(user)
+        assert get_dataset_scope() == frozenset()
+    resolver.assert_called_once_with(None)
 
 
 def test_callable_config_accepts_uuid_objects_and_empty_result(app: Flask) -> None:
@@ -150,8 +183,11 @@ def test_callable_config_accepts_uuid_objects_and_empty_result(app: Flask) -> No
         lambda user: None,
         Mock(side_effect=RuntimeError("workspace lookup failed")),
         lambda user: "not-a-list",  # a bare string is iterable but rejected
+        lambda user: str(FIRST),
+        lambda user: str(FIRST).encode(),
         lambda user: 42,
         lambda user: ["not-a-uuid"],
+        lambda user: [FIRST, "not-a-uuid"],
         lambda user: [object()],
     ],
 )
@@ -169,11 +205,63 @@ def test_callable_config_fails_closed_never_unscoped(
         assert get_dataset_scope() == frozenset()
 
 
+@pytest.mark.parametrize("yield_first", [False, True])
+def test_callable_config_fails_closed_on_iteration_error(
+    app: Flask, yield_first: bool
+) -> None:
+    """Lazy failures must discard even valid entries yielded before the error."""
+
+    def resolver(user: object) -> Iterator[UUID]:
+        """Simulate a lazy policy lookup failing partway through resolution."""
+        if yield_first:
+            yield FIRST
+        raise RuntimeError("lazy lookup failed")
+
+    with app.app_context(), patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=resolver):
+        g.user = SimpleNamespace(id=1)
+        assert get_dataset_scope() == frozenset()
+
+
 def test_callable_config_is_not_validated_at_startup() -> None:
     """A callable's result depends on per-request state and can't be checked here."""
     from superset.mcp_service.dataset_scope import parse_dataset_role_allowlist
 
-    assert parse_dataset_role_allowlist(lambda user: None) is None
+    resolver = Mock(side_effect=AssertionError("must not run at startup"))
+    assert parse_dataset_role_allowlist(resolver) is None
+    resolver.assert_not_called()
+
+
+def test_callable_config_fails_closed_when_iter_cannot_start(app: Flask) -> None:
+    """An iterable can fail before producing an iterator."""
+    result = MagicMock(spec=Iterator)
+    result.__iter__.side_effect = RuntimeError("cannot start iteration")
+    with (
+        app.app_context(),
+        patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=Mock(return_value=result)),
+    ):
+        assert get_dataset_scope() == frozenset()
+
+
+@pytest.mark.parametrize("result", [[FIRST], [SECOND], [], None, [FIRST, "bad"]])
+def test_callable_config_enforces_dataset_routing(app: Flask, result: object) -> None:
+    """Dynamic scopes narrow data access and never reopen unsupported tools."""
+    with (
+        app.app_context(),
+        patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=Mock(return_value=result)),
+        patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id",
+            return_value=SimpleNamespace(uuid=FIRST),
+        ) as find,
+    ):
+        g.user = SimpleNamespace(id=1)
+        if result == [FIRST]:
+            _enforce("query_dataset", request={"dataset_id": 1})
+        else:
+            with pytest.raises(MCPDatasetScopeError, match=OUT_OF_SCOPE_ERROR):
+                _enforce("query_dataset", request={"dataset_id": 1})
+        find.assert_called_once_with(1, query_options=None)
+        with pytest.raises(MCPDatasetScopeError, match=UNSUPPORTED_TOOL_ERROR):
+            _enforce("execute_sql", request={"database_id": 1, "sql": "SELECT 1"})
 
 
 @pytest.mark.parametrize("config", [[], {"Readers": "*"}, {"Readers": ["bad"]}])
@@ -339,6 +427,14 @@ def test_allowlist_is_wired_into_the_mcp_config_defaults() -> None:
     assert get_mcp_config({"MCP_DATASET_ROLE_ALLOWLIST": {"Readers": [str(FIRST)]}})[
         "MCP_DATASET_ROLE_ALLOWLIST"
     ] == {"Readers": [str(FIRST)]}
+    resolver = Mock(return_value=[FIRST])
+    assert (
+        get_mcp_config({"MCP_DATASET_ROLE_ALLOWLIST": resolver})[
+            "MCP_DATASET_ROLE_ALLOWLIST"
+        ]
+        is resolver
+    )
+    resolver.assert_not_called()
 
 
 @pytest.fixture

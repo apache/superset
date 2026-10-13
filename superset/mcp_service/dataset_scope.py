@@ -151,7 +151,8 @@ def parse_dataset_role_allowlist(config: Any) -> dict[str, set[UUID]] | None:
         return None
     if not isinstance(config, dict):
         raise MCPDatasetScopeError(
-            f"{CONFIG_KEY} must map role names to lists of dataset UUIDs."
+            f"{CONFIG_KEY} must map role names to lists of dataset UUIDs "
+            "or be a callable resolving dataset UUIDs."
         )
     normalized: dict[str, set[UUID]] = {}
     for role, identifiers in config.items():
@@ -233,7 +234,9 @@ def get_dataset_scope() -> frozenset[UUID] | None:
     )
 
 
-def _resolve_callable_scope(resolver: Callable[[Any], Any]) -> frozenset[UUID]:
+def _resolve_callable_scope(
+    resolver: Callable[[Any], Iterable[str | UUID] | None],
+) -> frozenset[UUID]:
     """Call a configured ``MCP_DATASET_ROLE_ALLOWLIST`` resolver for this request.
 
     Fails CLOSED -- denies every dataset for this request -- if the resolver
@@ -248,6 +251,19 @@ def _resolve_callable_scope(resolver: Callable[[Any], Any]) -> frozenset[UUID]:
     user = getattr(g, "user", None)
     try:
         result = resolver(user)
+        if result is None:
+            return frozenset()
+        if isinstance(result, (str, bytes)) or not isinstance(result, Iterable):
+            logger.warning(
+                "%s callable returned %s, expected an iterable of dataset UUIDs "
+                "or None; failing closed (denying all datasets) for this request",
+                CONFIG_KEY,
+                type(result).__name__,
+            )
+            return frozenset()
+        # A lazy result can raise during iteration or UUID conversion, not just
+        # when invoking the resolver. Discard partial grants on any failure.
+        coerced = _coerce_callable_scope_entries(result)
     except Exception:  # noqa: BLE001 — operator-supplied callable may raise anything
         logger.warning(
             "%s callable raised while resolving dataset scope; failing "
@@ -256,17 +272,6 @@ def _resolve_callable_scope(resolver: Callable[[Any], Any]) -> frozenset[UUID]:
             exc_info=True,
         )
         return frozenset()
-    if result is None:
-        return frozenset()
-    if isinstance(result, (str, bytes)) or not isinstance(result, Iterable):
-        logger.warning(
-            "%s callable returned %s, expected an iterable of dataset UUIDs "
-            "or None; failing closed (denying all datasets) for this request",
-            CONFIG_KEY,
-            type(result).__name__,
-        )
-        return frozenset()
-    coerced = _coerce_callable_scope_entries(result)
     if coerced is None:
         logger.warning(
             "%s callable returned a value that is not a valid dataset UUID; "
@@ -278,7 +283,7 @@ def _resolve_callable_scope(resolver: Callable[[Any], Any]) -> frozenset[UUID]:
 
 
 def _coerce_callable_scope_entries(
-    identifiers: Iterable[Any],
+    identifiers: Iterable[object],
 ) -> frozenset[UUID] | None:
     """Convert a resolver's returned identifiers to UUIDs, or None if invalid."""
     coerced: set[UUID] = set()
