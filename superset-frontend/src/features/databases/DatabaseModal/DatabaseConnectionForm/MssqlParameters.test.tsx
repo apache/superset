@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import {
   ConfigurationMethod,
   DatabaseConnectionFormProps,
@@ -95,4 +95,13 @@ test('other engines keep the common port placeholder', () => {
 
   expect(screen.getByPlaceholderText('e.g. 5432')).toBeInTheDocument();
   expect(screen.queryByPlaceholderText('e.g. 1433')).not.toBeInTheDocument();
+});
+
+test('MSSQL host tooltip explains how to reach a named instance', async () => {
+  renderForm('mssql');
+
+  // the host field is the first field of the form, so its tooltip comes first
+  await userEvent.hover(screen.getAllByTestId('info-tooltip-icon')[0]);
+
+  expect(await screen.findByText(/For a named instance/)).toBeInTheDocument();
 });

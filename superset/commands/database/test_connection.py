@@ -36,6 +36,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 from superset.commands.database.utils import (
     engine_params_changed,
     ping,
+    reuse_stored_password,
     ssh_tunnel_endpoint_changed,
 )
 from superset.daos.database import DatabaseDAO
@@ -97,10 +98,10 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine_params_changed(model.extra, self._properties.get("extra", "{}"))
                 or self._ssh_tunnel_endpoint_changed
             )
-            if uri == model.safe_sqlalchemy_uri():
+            if reusable_uri := reuse_stored_password(model, uri):
                 if self._identity_changed:
                     raise DatabaseTestConnectionUnsafeRebindError()
-                uri = model.sqlalchemy_uri_decrypted
+                uri = reusable_uri
 
         url = make_url_safe(uri)
 

@@ -241,6 +241,8 @@ export type DBReducerActionType =
       payload: {
         database_name?: string;
         engine?: string;
+        driver?: string;
+        sqlalchemy_uri_placeholder?: string;
         configuration_method: ConfigurationMethod;
       };
     }
@@ -761,10 +763,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const useSqlAlchemyForm =
     db?.configuration_method === ConfigurationMethod.SqlalchemyUri;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
-  const isDynamic = (engine: string | undefined) =>
-    availableDbs?.databases?.find(
+  const isDynamic = (engine: string | undefined) => {
+    // several entries can share an engine (e.g. SQL Server and Azure Synapse
+    // are both ``mssql``), so prefer the one matching the selected driver
+    const candidates = availableDbs?.databases?.filter(
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
-    )?.parameters !== undefined;
+    );
+    const match =
+      candidates?.find(
+        (DB: DatabaseForm) => DB.default_driver === db?.driver,
+      ) || candidates?.[0];
+    return match?.parameters !== undefined;
+  };
   const showDBError = validationErrors || dbErrors;
   const history = useHistory();
 
@@ -1246,11 +1256,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             (database: DatabaseForm, index: number) => ({
               value: database.name,
               label: database.name,
+              // lets a search for the backend name (e.g. "mssql") find it
+              engine: database.engine,
               key: `database-${index}`,
             }),
           ),
           { value: 'Other', label: t('Other'), key: 'Other' },
         ]}
+        optionFilterProps={['label', 'value', 'engine']}
         showSearch
         sortComparator={(a, b) => {
           // Always put "Other" at the end
@@ -2195,6 +2208,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                                 configuration_method:
                                   ConfigurationMethod.DynamicForm,
                                 engine: db?.engine,
+                                driver: db?.driver,
+                                sqlalchemy_uri_placeholder:
+                                  db?.sqlalchemy_uri_placeholder,
                               },
                             })
                           }
@@ -2397,6 +2413,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                             type: ActionType.ConfigMethodChange,
                             payload: {
                               engine: db.engine,
+                              driver: db.driver,
+                              sqlalchemy_uri_placeholder:
+                                db.sqlalchemy_uri_placeholder,
                               configuration_method:
                                 ConfigurationMethod.SqlalchemyUri,
                               database_name: db.database_name,

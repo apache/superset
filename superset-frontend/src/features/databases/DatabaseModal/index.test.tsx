@@ -315,6 +315,46 @@ describe('DatabaseModal', () => {
           sqlalchemy_uri_placeholder:
             'databricks+connector://token:{access_token}@{host}:{port}/{database_name}',
         },
+        // both entries share the ``mssql`` engine; Azure Synapse sorts first
+        // and keeps the SQLAlchemy URI form
+        {
+          available_drivers: ['pymssql', 'pyodbc'],
+          default_driver: 'pyodbc',
+          engine: 'mssql',
+          name: 'Azure Synapse',
+          preferred: false,
+          sqlalchemy_uri_placeholder:
+            'mssql+pyodbc://user:password@host:port/dbname[?key=value&key=value...]',
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+          },
+        },
+        {
+          available_drivers: ['pymssql', 'pyodbc'],
+          default_driver: 'pymssql',
+          engine: 'mssql',
+          name: 'Microsoft SQL Server',
+          parameters: {
+            properties: {
+              database: { type: 'string' },
+              host: { type: 'string' },
+              password: { type: 'string', nullable: true },
+              port: { type: 'integer', format: 'int32' },
+              query: { type: 'object' },
+              username: { type: 'string', nullable: true },
+            },
+            required: ['database', 'host', 'port', 'username'],
+            type: 'object',
+          },
+          preferred: false,
+          sqlalchemy_uri_placeholder:
+            'mssql+pymssql://user:password@host:port/dbname[?key=value&key=value...]',
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+          },
+        },
       ],
     });
     fetchMock.post(
@@ -451,6 +491,23 @@ describe('DatabaseModal', () => {
           clipboardData: { getData: () => 'post' },
         }),
       ).not.toThrow();
+    });
+
+    test('finds a database by its engine name in the select', async () => {
+      setup();
+
+      await userEvent.type(await screen.findByRole('combobox'), 'mssql');
+
+      // neither name contains "mssql"; both match through their engine
+      expect(
+        await screen.findByRole('option', { name: 'Microsoft SQL Server' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('option', { name: 'Azure Synapse' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', { name: 'PostgreSQL' }),
+      ).not.toBeInTheDocument();
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -1877,6 +1934,37 @@ describe('DatabaseModal', () => {
       await screen.findByTestId('database-name-input'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('sqlalchemy-uri-input')).toBeInTheDocument();
+  });
+
+  test('SQL Server keeps its URI placeholder and a way back to the form', async () => {
+    setup({ dbEngine: 'Microsoft SQL Server' });
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+
+    // the SQL Server entry, not Azure Synapse (which shares the ``mssql``
+    // engine), drives the URI form after switching
+    expect(await screen.findByTestId('sqlalchemy-uri-input')).toHaveAttribute(
+      'placeholder',
+      'mssql+pymssql://user:password@host:port/dbname[?key=value&key=value...]',
+    );
+    expect(
+      screen.getByText('Connect this database using the dynamic form instead'),
+    ).toBeInTheDocument();
+  });
+
+  test('Azure Synapse opens on the SQLAlchemy URI form', async () => {
+    setup({ dbEngine: 'Azure Synapse' });
+
+    expect(await screen.findByTestId('sqlalchemy-uri-input')).toHaveAttribute(
+      'placeholder',
+      'mssql+pyodbc://user:password@host:port/dbname[?key=value&key=value...]',
+    );
+    expect(
+      screen.queryByText(
+        'Connect this database using the dynamic form instead',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   test.each([

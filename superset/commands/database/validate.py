@@ -29,6 +29,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.utils import (
     engine_params_changed,
+    reuse_stored_password,
     ssh_tunnel_endpoint_changed,
 )
 from superset.daos.database import DatabaseDAO
@@ -130,7 +131,9 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             self._properties.get("parameters"),
             encrypted_extra,
         )
-        if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():
+        if self._model and (
+            reusable_uri := reuse_stored_password(self._model, sqlalchemy_uri)
+        ):
             if identity_changed:
                 raise InvalidParametersError(
                     [
@@ -148,7 +151,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                         )
                     ]
                 )
-            sqlalchemy_uri = self._model.sqlalchemy_uri_decrypted
+            sqlalchemy_uri = reusable_uri
 
         # Forward the SSH tunnel into the connection test so that
         # tunnel-only databases are reached through the tunnel rather

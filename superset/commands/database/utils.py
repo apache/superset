@@ -50,6 +50,9 @@ def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) ->
     Whether two SQLAlchemy URIs differ once their password is stripped --
     i.e. whether the effective connection destination (driver, host, port,
     database, username, query params) changed.
+
+    Query parameters the existing URI's engine spec declares in
+    ``connection_tuning_query_params`` are left out of the comparison.
     """
     try:
         stored = make_url_safe(existing_uri or "")._replace(password=None)
@@ -58,7 +61,36 @@ def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) ->
         # An unparseable URI cannot be compared: treat it as a change so a
         # stored secret never survives onto it.
         return True
+    # resolved from the stored URI rather than ``Database.db_engine_spec``, which
+    # needs the (possibly unavailable) decrypted password
+    if tuning_params := Database.get_db_engine_spec(
+        stored
+    ).connection_tuning_query_params:
+        stored = stored.difference_update_query(tuning_params)
+        incoming = incoming.difference_update_query(tuning_params)
     return stored != incoming
+
+
+def reuse_stored_password(model: Database, submitted_uri: str) -> str | None:
+    """
+    Return ``submitted_uri`` with the stored password restored, if the
+    submission keeps the masked password and only differs from the stored URI
+    in the engine spec's ``connection_tuning_query_params``; ``None`` otherwise.
+    """
+    safe_uri = model.safe_sqlalchemy_uri()
+    if submitted_uri == safe_uri:
+        return model.sqlalchemy_uri_decrypted
+    try:
+        submitted = make_url_safe(submitted_uri)
+        stored = make_url_safe(safe_uri)
+    except DatabaseInvalidError:
+        return None
+    if submitted.password != stored.password or uri_identity_changed(
+        safe_uri, submitted_uri
+    ):
+        return None
+    password = make_url_safe(model.sqlalchemy_uri_decrypted).password
+    return submitted.set(password=password).render_as_string(hide_password=False)
 
 
 def engine_params_changed(
