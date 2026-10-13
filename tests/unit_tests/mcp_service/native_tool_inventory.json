@@ -24,12 +24,12 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 252,
-      "description_chars": 2037,
+      "description_chars": 2235,
       "entry_bytes": {
-        "structured": 7981,
-        "text_only": 5305
+        "structured": 8222,
+        "text_only": 5546
       },
-      "input_schema_bytes": 2911,
+      "input_schema_bytes": 2951,
       "output_schema_bytes": 2660
     },
     "create_dataset": {
@@ -1267,12 +1267,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 520629,
-      "text_only": 212998
+      "structured": 520870,
+      "text_only": 213239
     },
     "compact_catalog_bytes": {
-      "structured": 469198,
-      "text_only": 161567
+      "structured": 469238,
+      "text_only": 161607
     },
     "largest_entry": {
       "structured": {

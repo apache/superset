@@ -27,6 +27,7 @@ which DEFINES the filters and writes to the shared dashboard.
 
 import difflib
 import logging
+import re
 from collections.abc import Sequence
 from typing import Any, TYPE_CHECKING
 
@@ -54,6 +55,7 @@ from superset.mcp_service.dashboard.tool.manage_native_filters import (
     _value_label,
     current_native_filter_config,
 )
+from superset.utils import json
 from superset.utils.core import apply_max_row_limit
 from superset.utils.number_format import format_smart_number
 
@@ -82,6 +84,8 @@ _MAX_VALUE_SUGGESTIONS = 10
 
 # Returned by _match_value when no column value matches; None is a real value.
 _NOT_FOUND = object()
+_AMBIGUOUS = object()
+_UNRESOLVED = object()
 
 
 def _publish_filters_applied(dashboard_id: int, permalink_key: str) -> bool:
@@ -198,7 +202,15 @@ def _column_values(
         denormalize_column=not dataset.normalize_columns,
         search=search,
     )
-    return values, len(values) < limit
+    # Match the JSON scalar options the column-values API sends to the UI,
+    # rather than returning driver-specific date/decimal/numpy objects to the
+    # response schema or using their differing Python display labels.
+    candidates = json.loads(json.dumps(values))
+    if any(
+        v is not None and not isinstance(v, (str, int, float, bool)) for v in candidates
+    ):
+        raise NotImplementedError("Structured column values are not scalar selections")
+    return candidates, len(values) < limit
 
 
 def _normalize_value(value: FilterSelectValue) -> str:
@@ -212,8 +224,8 @@ def _match_value(value: FilterSelectValue, candidates: Sequence[Any]) -> Any:
     An exact match keeps the requested value. Otherwise a single column
     value whose text matches ignoring case and whitespace (``"emea"`` for
     ``"EMEA"``, ``"2024"`` for ``2024``) is used instead, since filtering on
-    the requested spelling would match no rows. Several such values are
-    ambiguous and count as no match.
+    the requested spelling would match no rows. Several such values return
+    ``_AMBIGUOUS`` instead of being treated as absent.
     """
     for candidate in candidates:
         # bool is an int subclass, so True would otherwise match 1.
@@ -229,28 +241,36 @@ def _match_value(value: FilterSelectValue, candidates: Sequence[Any]) -> Any:
         for candidate in candidates
         if candidate is not None and _normalize_value(candidate) == wanted
     }
-    return next(iter(matches.values())) if len(matches) == 1 else _NOT_FOUND
+    if len(matches) > 1:
+        return _AMBIGUOUS
+    return next(iter(matches.values())) if matches else _NOT_FOUND
 
 
 def _suggest_values(value: FilterSelectValue, candidates: Sequence[Any]) -> list[Any]:
     """Return column values that look like what ``value`` was meant to be."""
     wanted = _normalize_value(value)
-    by_label: dict[str, Any] = {}
+    by_label: dict[str, dict[tuple[type, Any], Any]] = {}
     for candidate in candidates:
         if candidate is not None:
-            by_label.setdefault(_normalize_value(candidate), candidate)
+            by_label.setdefault(_normalize_value(candidate), {})[
+                (type(candidate), candidate)
+            ] = candidate
     suggested = [label for label in by_label if wanted and wanted in label]
     suggested += difflib.get_close_matches(
         wanted, list(by_label), n=_MAX_VALUE_SUGGESTIONS, cutoff=0.6
     )
-    return [by_label[label] for label in dict.fromkeys(suggested)][
-        :_MAX_VALUE_SUGGESTIONS
-    ]
+    return [
+        candidate
+        for label in dict.fromkeys(suggested)
+        for candidate in by_label[label].values()
+    ][:_MAX_VALUE_SUGGESTIONS]
 
 
 def _quote_values(values: Sequence[Any]) -> str:
     """Render values as a quoted, comma-separated list."""
-    return ", ".join(f"'{_value_label(value)}'" for value in values)
+    return ", ".join(
+        repr(value) if isinstance(value, str) else json.dumps(value) for value in values
+    )
 
 
 def _unknown_values_error(
@@ -265,8 +285,8 @@ def _unknown_values_error(
     noun = "value" if len(unknown) == 1 else "values"
     message = [
         f"Filter '{name}' has no {noun} {_quote_values([v for v, _ in unknown])} "
-        f"in column '{column}', so applying it would leave every chart it "
-        "filters empty. No filter values were applied."
+        f"in column '{column}'. Unknown selections can produce empty chart "
+        "results. No filter values were applied."
     ]
     for value, suggestions in unknown:
         if suggestions:
@@ -275,9 +295,7 @@ def _unknown_values_error(
                 f"{_quote_values(suggestions)}."
             )
     if not any(suggestions for _, suggestions in unknown):
-        shown = sorted(
-            (value for value in candidates if value is not None), key=_value_label
-        )[:_MAX_VALUE_SUGGESTIONS]
+        shown = sorted(candidates, key=_value_label)[:_MAX_VALUE_SUGGESTIONS]
         if not shown:
             message.append(
                 "The column has no values to filter on. Tell the user the "
@@ -294,27 +312,80 @@ def _unknown_values_error(
     return _FilterApplyError(" ".join(message))
 
 
+def _unresolved_value_error(
+    conf: dict[str, Any],
+    value: FilterSelectValue,
+    candidates: Sequence[Any],
+    match: Any,
+) -> _FilterApplyError:
+    """Offer typed exact alternatives without claiming an unresolved value absent."""
+    alternatives = {
+        (type(candidate), candidate): candidate
+        for candidate in candidates
+        if candidate is not None
+        and _normalize_value(candidate) == _normalize_value(value)
+    }
+    shown = ", ".join(
+        json.dumps(v) for v in list(alternatives.values())[:_MAX_VALUE_SUGGESTIONS]
+    )
+    reason = (
+        "is ambiguous between distinct column values"
+        if match is _AMBIGUOUS
+        else "cannot be resolved uniquely because the value search is truncated"
+    )
+    return _FilterApplyError(
+        f"Filter '{conf.get('name') or conf.get('id')}' value "
+        f"{json.dumps(value)} {reason}. No filter values were applied. "
+        f"Exact column values include: {shown}. Ask the user to choose "
+        "an exact value, preserving its spelling and JSON type; do not "
+        "report the value as absent or the filter as applied."
+    )
+
+
 def _search_value(
     dataset: "SqlaTable",
     conf: dict[str, Any],
     column: str,
     value: FilterSelectValue,
+    cache: dict[str, tuple[list[Any], bool]],
 ) -> tuple[Any, list[Any]]:
     """Look ``value`` up across the whole column, past a truncated first page.
 
     Returns the matched value (or ``_NOT_FOUND``) and the values the search
     returned, for suggestions. A value the search cannot settle (NULL, which
-    a containment search cannot find, or a failed query) is kept as given:
+    a containment search cannot find, native or non-ASCII values whose SQL
+    text representation or lowercasing may differ, a truncated search with no
+    match, or a failed query) is kept as given:
     absence from a truncated page proves nothing. Normalized matches require
     a complete search result to establish uniqueness; exact matches do not.
     """
-    if value is None:
+    if not isinstance(value, str) or not value.isascii():
+        # NULL cannot be found with LIKE; native numbers and booleans need not
+        # have the same SQL text representation as their Python display label.
+        # SQL lower() also need not implement non-ASCII case folding.
         return value, []
     try:
-        # A whole phrase misses stored values with different whitespace. Every
-        # normalized match contains each word; use the longest to narrow the query.
-        term = max(_value_label(value).split(), key=len, default="")
-        searched, complete = _column_values(dataset, column, search=term)
+        target = dataset.get_column(column)
+        if target is not None and target.is_string is False:
+            # Numeric, boolean and date columns can be rendered differently by
+            # SQL casts and the JSON serializer (e.g. datetime's T separator).
+            return value, []
+        # SQL lower() is not Python casefold(). ASCII k/s can be stored as
+        # Kelvin sign/long s, and ff/fi/fl as ligatures. Exclude those pieces
+        # so every casefold-equivalent value contains the searched substring.
+        # Splitting words also tolerates whitespace differences. If no safe
+        # substring remains, reuse the unfiltered page rather than claiming
+        # that a narrower query can establish absence or uniqueness.
+        pieces = [
+            part
+            for word in value.split()
+            for part in re.split(r"k|s|ffi|ffl|ff|fi|fl", word, flags=re.IGNORECASE)
+        ]
+        term = max(pieces, key=len, default="")
+        key = term.lower()
+        if key not in cache:
+            cache[key] = _column_values(dataset, column, search=term)
+        searched, complete = cache[key]
     except Exception:  # noqa: BLE001 pylint: disable=broad-except
         logger.warning(
             "Could not search column %s for filter %s",
@@ -326,8 +397,11 @@ def _search_value(
     match = _match_value(value, searched)
     # Only an exact match is decisive when even the search results are truncated.
     # A lone normalized match on that page does not establish uniqueness.
-    if not complete and match != value:
-        match = _NOT_FOUND
+    if not complete and match is _NOT_FOUND:
+        # The literal value may be hidden beyond the narrowed result limit.
+        return value, searched
+    if not complete and match not in (_AMBIGUOUS, _NOT_FOUND) and match != value:
+        match = _UNRESOLVED
     return match, searched
 
 
@@ -338,10 +412,10 @@ def _verify_select_values(
 
     Returns the values to apply, with near matches replaced by the column
     value they match, and raises when a value matches nothing: an ``IN``
-    predicate on a value the column lacks would silently empty every chart
-    in the filter's scope. When the values cannot be read (unresolvable or
-    inaccessible dataset, query failure, unsupported datasource) they are
-    applied unchecked, as before, rather than blocking the request.
+    predicate on unknown values could silently empty chart results. When the
+    values cannot be read (unresolvable or inaccessible dataset, query failure,
+    unsupported datasource) they are applied unchecked, as before, rather than
+    blocking the request.
     """
     from superset.exceptions import SupersetSecurityException
 
@@ -368,11 +442,14 @@ def _verify_select_values(
     # Keyed by type too: True == 1, but they are different selections.
     seen: set[tuple[type, FilterSelectValue]] = set()
     unknown: list[tuple[FilterSelectValue, list[Any]]] = []
-    for value in values:
+    searches = {"": (candidates, complete)}
+    for _, value in dict.fromkeys((type(v), v) for v in values):
         match = _match_value(value, candidates)
         searched: list[Any] = []
         if not complete and match != value:
-            match, searched = _search_value(dataset, conf, column, value)
+            match, searched = _search_value(dataset, conf, column, value, searches)
+        if match is _AMBIGUOUS or match is _UNRESOLVED:
+            raise _unresolved_value_error(conf, value, [*searched, *candidates], match)
         if match is _NOT_FOUND:
             unknown.append((value, _suggest_values(value, [*searched, *candidates])))
         elif (type(match), match) not in seen:
@@ -687,8 +764,9 @@ async def apply_dashboard_filters(
     dashboard has. Only exact-match select filters without inverse selection
     are supported. Supply ``values`` for a filter_select filter (an empty
     list clears it, and a single-select filter accepts at most one value;
-    values are checked against the column's data and an unknown value fails
-    with values to offer the user), ``time_range`` for a filter_time
+    values are checked against readable column options and an unknown value
+    fails with values to offer the user; values that cannot be verified are
+    kept unchanged, not certified as present), ``time_range`` for a filter_time
     filter, ``range`` as a ``[lower, upper]`` pair for a filter_range filter
     (either bound may be null, and ``[null, null]`` clears it), and
     ``time_grain`` as a list of at most one value for a filter_timegrain

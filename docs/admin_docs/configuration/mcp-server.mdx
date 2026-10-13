@@ -186,7 +186,20 @@ Inverse-selection configurations are rejected.
 Select filters configured for contains, starts-with, or ends-with matching are
 rejected rather than silently applying exact matching. A single-select filter
 accepts at most one value; a longer list is rejected rather than stored as a
-selection the control cannot render. Clearing a required select
+selection the control cannot render.
+Select values are checked against the target column's distinct values under the
+caller's dataset permissions and row-level security. Exact values are preserved;
+a unique match ignoring case and whitespace uses the stored column value.
+Missing values fail without creating a permalink, with bounded suggestions.
+Ambiguous values and normalized matches whose uniqueness cannot be established
+fail with exact alternatives, preserving their spelling and JSON type.
+Lookups respect `FILTER_SELECT_ROW_LIMIT` and `SQL_MAX_ROW`. On a truncated
+column, a bounded containment search checks text values beyond the first page.
+Absence from another truncated page is not proof that a value is invalid. Values
+that cannot be verified (including query failures, unreadable datasets, native
+numbers/booleans, non-text columns, or non-ASCII text beyond a truncated page)
+are applied unchanged, not certified as present. Clearing a selection does not
+query the column. Clearing a required select
 filter with `values: []` matches no rows, including when opening the returned
 permalink; an explicit clear does not restore its saved default.
 
