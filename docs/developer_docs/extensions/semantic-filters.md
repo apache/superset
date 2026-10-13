@@ -34,6 +34,9 @@ membership and NULL comparison/LIKE operands are rejected before provider calls.
 Scalar comparisons use the first collection value, or NULL for an empty collection,
 matching native datasources.
 
+The host's `superset_typing.FilterValues` permits `None` inside list selections
+and variable-length tuples. SDK `FilterValues` also includes `None`.
+
 ## Provider compatibility
 
 `OrFilter` is mandatory core vocabulary, not an optional capability. Every
@@ -69,3 +72,8 @@ adapter module so older SDKs can still load the legacy leaf path.
 The host includes `semantic-null-filters-v1` in semantic result-cache keys. This
 separates legacy answers during rolling deployment without flushing unrelated
 caches. Keep this protocol marker alongside any metadata-generation cache keys.
+
+Containment-cache identities use format `v5`, separating grouped predicates from
+older leaf-only entries during rolling upgrades. OR groups require identical
+canonical group sets for reuse; they are not flattened or used in subset proofs
+or leftover row filtering. Queries with grouped predicates do not use rollup reuse.

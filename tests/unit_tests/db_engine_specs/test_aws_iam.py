@@ -524,6 +524,67 @@ def test_get_iam_credentials_cache_different_keys() -> None:
         _credentials_cache.clear()
 
 
+def test_no_cache_never_stores_or_returns_a_value() -> None:
+    """``_NoCache`` (the fallback used when ``cachetools`` isn't installed)
+    must always miss: a plain ``dict`` fallback would never evict a stored
+    credential, so every call after the real 600s TTL would keep reusing the
+    same expired STS credentials until the process restarted."""
+    from superset.db_engine_specs.aws_iam import _NoCache
+
+    cache = _NoCache()
+    key = ("arn:aws:iam::123456789012:role/TestRole", "us-east-1", None)
+
+    assert cache.get(key) is None
+    with pytest.raises(KeyError):
+        cache[key]  # noqa: B018
+
+    cache[key] = {"AccessKeyId": "ASIA..."}
+
+    # the write above must not have actually stored anything
+    assert cache.get(key) is None
+    assert len(cache) == 0
+    assert list(cache) == []
+
+
+def test_get_iam_credentials_without_cachetools_never_caches() -> None:
+    """End-to-end regression test for the ``cachetools``-unavailable
+    fallback: with ``_credentials_cache`` swapped for a ``_NoCache`` (as
+    happens at import time when ``cachetools`` can't be imported),
+    ``get_iam_credentials`` must call ``assume_role`` fresh every time
+    instead of reusing a stale cached value forever."""
+    from superset.db_engine_specs import aws_iam
+    from superset.db_engine_specs.aws_iam import _NoCache, AWSIAMAuthMixin
+
+    mock_credentials = {
+        "AccessKeyId": "ASIA...",
+        "SecretAccessKey": "secret...",
+        "SessionToken": "token...",
+    }
+
+    with (
+        patch.object(aws_iam, "_credentials_cache", _NoCache()),
+        patch("boto3.client") as mock_boto3_client,
+    ):
+        mock_sts = MagicMock()
+        mock_sts.assume_role.return_value = {"Credentials": mock_credentials}
+        mock_boto3_client.return_value = mock_sts
+
+        result1 = AWSIAMAuthMixin.get_iam_credentials(
+            role_arn="arn:aws:iam::123456789012:role/UncachedRole",
+            region="us-east-1",
+        )
+        result2 = AWSIAMAuthMixin.get_iam_credentials(
+            role_arn="arn:aws:iam::123456789012:role/UncachedRole",
+            region="us-east-1",
+        )
+
+        assert result1 == mock_credentials
+        assert result2 == mock_credentials
+        # Without a real TTL cache, every call must re-assume the role rather
+        # than silently reusing a (potentially expired) cached credential.
+        assert mock_sts.assume_role.call_count == 2
+
+
 @with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_iam_authentication_custom_ssl_args() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
