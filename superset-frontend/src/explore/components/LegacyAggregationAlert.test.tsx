@@ -143,6 +143,43 @@ test('a delayed tag-removal response does not clear a newer tag after switching 
   );
 });
 
+test('a late tag response for a previous chart does not show the notice on the current chart', async () => {
+  // Tagged chart 1's GET is still pending when the user opens untagged chart
+  // 2; chart 1's late response must be ignored rather than surfacing its tag.
+  let resolveChart1: (value: unknown) => void = () => {};
+  const chart1Response = new Promise(resolve => {
+    resolveChart1 = resolve;
+  });
+  fetchMock.get('glob:*/api/v1/chart/1', () => chart1Response);
+  fetchMock.get('glob:*/api/v1/chart/2', { result: { tags: [] } });
+
+  const { rerender } = render(<LegacyAggregationAlert sliceId={1} />, {
+    useRedux: true,
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/1').length).toBe(1),
+  );
+
+  rerender(<LegacyAggregationAlert sliceId={2} />);
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/2').length).toBe(1),
+  );
+
+  resolveChart1({
+    result: { tags: [{ id: 7, name: LEGACY_AGGREGATION_TAG, type: 1 }] },
+  });
+  // Let the late response settle before asserting the notice stayed absent.
+  await new Promise(resolve => {
+    setTimeout(resolve, 50);
+  });
+
+  expect(
+    screen.queryByText(
+      'This chart was updated to use the restored aggregation',
+    ),
+  ).not.toBeInTheDocument();
+});
+
 test('re-fetches and drops the notice after a same-slice save clears the tag server-side', async () => {
   // First fetch (initial mount) still finds the tag; second fetch (after the
   // save) reflects saveModalActions.ts's own server-side deletion on save --
