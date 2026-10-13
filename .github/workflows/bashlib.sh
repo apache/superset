@@ -296,13 +296,6 @@ playwright-run() {
 }
 
 playwright-run-semantic() {
-  # The semantic-layer REST APIs only register when SEMANTIC_LAYERS is on, and
-  # Superset builds AppBuilder with update_perms=False, so their permissions
-  # exist only after a `superset init` that sees the flag. playwright_testdata
-  # ran init under the base test config, so sync roles again under this step's
-  # config before `playwright-run` boots gunicorn with it -- the same thing a
-  # deployment does after turning the flag on. Without it Admin gets 403 on
-  # POST /api/v1/semantic_layer/.
   local APP_ROOT=$1
 
   cd "$GITHUB_WORKSPACE"
@@ -311,10 +304,6 @@ playwright-run-semantic() {
     echo "::error::SUPERSET_CONFIG must be tests.integration_tests.superset_test_config_semantic for this step."
     return 1
   fi
-
-  say "::group::Sync roles with SEMANTIC_LAYERS enabled"
-  superset init
-  say "::endgroup::"
 
   playwright-run "$APP_ROOT" semantic-view/
 }
