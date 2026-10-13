@@ -77,6 +77,7 @@ from superset.mcp_service.utils.oauth2_utils import (
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -958,6 +959,17 @@ async def generate_chart(  # noqa: C901
         )
         return _finalize_response(result)
 
+    except SemanticLayersDisabledError:
+        return _finalize_response(
+            {
+                "success": False,
+                "error": {
+                    "error_type": "SemanticLayersDisabledError",
+                    "message": SemanticLayersDisabledError.message,
+                    "details": SemanticLayersDisabledError.message,
+                },
+            }
+        )
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart generation requires OAuth authentication: dataset_id=%s"
