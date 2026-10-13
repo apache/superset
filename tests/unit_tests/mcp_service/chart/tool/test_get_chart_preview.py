@@ -1438,7 +1438,12 @@ class TestGetChartPreview:
         # reached the query regardless of render format (the capture happens before
         # any format-specific rendering).
         query = captured_query_contexts[0]["queries"][0]
-        assert {"col": "gender", "op": "==", "val": "girl"} in query["filters"]
+        assert {
+            "col": "gender",
+            "op": "==",
+            "val": "girl",
+            "isExtra": True,
+        } in query["filters"]
 
     @pytest.mark.asyncio
     async def test_preview_dimensions(self):

@@ -107,10 +107,12 @@ def _install_namespace(engine: Engine) -> str:
                     value=codec.encode({"namespace": str(uuid4())}),
                 )
             )
+            # @transaction owns db.session; this startup session must commit
+            # independently and recover a competing worker's insert locally.
             try:
-                session.commit()
+                session.commit()  # pylint: disable=consider-using-transaction
             except IntegrityError:
-                session.rollback()
+                session.rollback()  # pylint: disable=consider-using-transaction
             value = session.scalar(statement)
         namespace: Any = (
             codec.decode(value).get("namespace") if value is not None else None
