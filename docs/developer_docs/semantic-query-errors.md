@@ -32,9 +32,17 @@ Its `SemanticQueryErrorCode` accepts `UNSUPPORTED_QUERY`, `UNSUPPORTED_OFFSET`,
 The host selects localized messages for these codes. Chart-data execution returns
 HTTP 400 for typed rejections, including row-count and required comparison queries.
 Embedded guests receive the existing generic error message. An unclassified failure
-from provider execution remains HTTP 500 with generic text; a plain `ValueError`
+from provider execution returns HTTP 500 with generic text; a plain `ValueError`
 is not evidence of invalid query input. Authentication, authorization, cancellation,
 and worker timeout control exceptions keep their existing behavior.
+
+During `get_table` and `get_row_count` execution, provider-raised
+`SupersetTimeoutException` (previously HTTP 408),
+`SupersetGenericDBErrorException` (previously HTTP 400), and
+`SupersetTemplateParamsErrorException` (previously HTTP 400) now return generic
+HTTP 500 responses. They are unclassified provider failures, not deliberate input
+rejections. This does not change the passthrough for worker control timeouts
+(`SoftTimeLimitExceeded`) or host `QueryObjectValidationError` subclasses.
 
 Use this exception only for positively identified input validation failures in
 `get_table` and `get_row_count`. Do not translate conversion, transport, configuration,

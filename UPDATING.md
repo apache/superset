@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic chart-query execution classifies provider-raised `SupersetTimeoutException`
+  (formerly HTTP 408), `SupersetGenericDBErrorException` and
+  `SupersetTemplateParamsErrorException` (formerly HTTP 400) as generic HTTP 500
+  failures. Worker control timeouts and host input-validation errors retain their
+  existing handling. See the [provider error contract](docs/developer_docs/semantic-query-errors.md).
+
 - Semantic-layer APIs are registered regardless of the `SEMANTIC_LAYERS` flag.
   The flag is evaluated at runtime for API requests and background queries.
   Disabling it refuses semantic-view data, chart saves and cached chart/dashboard
