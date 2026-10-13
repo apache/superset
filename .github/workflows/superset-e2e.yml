@@ -147,7 +147,9 @@ jobs:
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Setup Develocity for npm
-        if: env.DEVELOCITY_ENABLED == 'true'
+        # check the event here too: code checked out on dispatch can
+        # rewrite DEVELOCITY_ENABLED through $GITHUB_ENV
+        if: github.event_name != 'workflow_dispatch' && env.DEVELOCITY_ENABLED == 'true'
         continue-on-error: true
         uses: $/.github/actions/setup-develocity-npm
         with:
@@ -390,7 +392,9 @@ jobs:
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Setup Develocity for npm
-        if: env.DEVELOCITY_ENABLED == 'true'
+        # check the event here too: code checked out on dispatch can
+        # rewrite DEVELOCITY_ENABLED through $GITHUB_ENV
+        if: github.event_name != 'workflow_dispatch' && env.DEVELOCITY_ENABLED == 'true'
         continue-on-error: true
         uses: $/.github/actions/setup-develocity-npm
         with:
