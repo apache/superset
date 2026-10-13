@@ -840,6 +840,13 @@ test.each(['semantic_view', 'table'])(
 );
 
 test('saved true survives datasource changes until an explicit keyboard edit', async () => {
+  const unsupportedState = panelState([], 'semantic_view', true);
+  expect(
+    pagination.mapStateToProps?.(
+      unsupportedState,
+      unsupportedState.controls.server_pagination,
+    ),
+  ).not.toHaveProperty('value');
   const saved = Object.freeze({ server_pagination: true });
   const onEdit = jest.fn();
   function Editor({ features }: { features?: string[] }) {
