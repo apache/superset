@@ -17,9 +17,11 @@
 
 """Tests for celery_task.py - async SQL execution via Celery."""
 
+from collections.abc import Callable
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 
 import msgpack
 import pandas as pd
@@ -1616,8 +1618,10 @@ def test_finalization_stop_check_preserves_pending_metadata(
             assert query.rows != 42
             assert "columns" not in query.extra
         else:
-            session.commit()
+            query.status = QueryStatusEnum.SUCCESS
+            assert celery_task._commit_query_unless_stopped(query)
             session.refresh(query)
+            assert query.status == QueryStatusEnum.SUCCESS
             assert query.rows == 42
             assert query.progress == 100
             assert query.end_time == Decimal("5678.9")
@@ -1650,3 +1654,116 @@ def test_error_stop_check_preserves_uncommitted_timeout(
         QueryStatusEnum.STOPPED if stopped else QueryStatusEnum.TIMED_OUT
     )
     mock_db_session.flush.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "checkpoint",
+    ["success", "backend_failure", "error", "payload_load", "error_load"],
+)
+def test_stop_cannot_be_overwritten_by_terminal_metadata(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    checkpoint: str,
+) -> None:
+    """A separately committed stop must win even after the worker's last read."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'stop.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    original_make_check = celery_task._make_check_stopped_fn
+    stop_delivered = False
+
+    def deliver_stop() -> None:
+        """Commit the stop in an independent transaction."""
+        nonlocal stop_delivered
+        with Session(engine) as stop_session:
+            stopped_query = stop_session.get(Query, 123)
+            assert stopped_query is not None
+            stopped_query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+            stopped_query.status = QueryStatusEnum.STOPPED
+            stopped_query.end_time = 1234.5
+            stop_session.commit()
+        stop_delivered = True
+
+    def make_check(query: Query, preserve_pending: bool = False) -> Callable[[], bool]:
+        """Deliver Stop after a successful read, before any terminal writes."""
+        check = original_make_check(query, preserve_pending)
+
+        def check_then_stop() -> bool:
+            """Expose the check/write race without mocking ORM operations."""
+            stopped = check()
+            if (
+                preserve_pending
+                and not stop_delivered
+                and checkpoint not in {"payload_load", "error_load"}
+            ):
+                deliver_stop()
+            return stopped
+
+        return check_then_stop
+
+    mocker.patch.object(celery_task, "_make_check_stopped_fn", side_effect=make_check)
+    with Session(engine, expire_on_commit=False) as session:
+        query = Query(
+            id=123,
+            client_id="stop-race",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        session.refresh(query)
+        mocker.patch.object(celery_task.db, "session", session)
+        mocker.patch.object(celery_task, "_get_query", return_value=query)
+        mocker.patch.object(
+            celery_task,
+            "execute_sql_with_cursor",
+            return_value=[("SELECT 1", None, 1.0, 0)],
+        )
+        mocker.patch.object(celery_task, "results_backend", None)
+        if checkpoint == "backend_failure":
+            backend = MagicMock()
+            backend.set.return_value = False
+            mocker.patch.object(celery_task, "results_backend", backend)
+            mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+
+        def load_relationship() -> Any:
+            """Model the autoflush caused by a lazy relationship lookup."""
+            deliver_stop()
+            session.query(Query).count()
+            return {"id": 123} if checkpoint == "payload_load" else []
+
+        if checkpoint == "payload_load":
+            mocker.patch.object(Query, "to_dict", side_effect=load_relationship)
+        elif checkpoint == "error_load":
+            mock_database.db_engine_spec.extract_errors.side_effect = (
+                lambda *args, **kwargs: load_relationship()
+            )
+
+        payload: dict[str, Any] | None
+        if checkpoint in {"error", "error_load"}:
+            payload = celery_task._handle_query_error(
+                RuntimeError("Driver error"), query
+            )
+        else:
+            payload = celery_task._execute_sql_statements(123, query.sql, None)
+
+        assert stop_delivered
+        assert payload == {"query_id": 123, "status": QueryStatusEnum.STOPPED}
+        session.refresh(query)
+        assert query.status == QueryStatusEnum.STOPPED
+        assert query.end_time == Decimal("1234.5")
+        assert query.extra[QUERY_EARLY_CANCEL_KEY] is True
+        assert query.error_message is None
+        assert query.results_key is None
+    engine.dispose()

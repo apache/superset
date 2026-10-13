@@ -85,40 +85,42 @@ def _handle_query_error(
     if _make_check_stopped_fn(query, preserve_pending=True)():
         return _stopped_query_payload(query)
 
-    payload = payload or {}
-    msg = f"{prefix_message} {str(ex)}".strip()
-    query.error_message = msg
-    query.tmp_table_name = None
-    # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler)
-    query.status = QueryStatus.TIMED_OUT if timed_out else QueryStatus.FAILED
+    with db.session.no_autoflush:
+        payload = payload or {}
+        msg = f"{prefix_message} {str(ex)}".strip()
+        query.error_message = msg
+        query.tmp_table_name = None
+        # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler)
+        query.status = QueryStatus.TIMED_OUT if timed_out else QueryStatus.FAILED
 
-    if not query.end_time:
-        query.end_time = now_as_float()
+        if not query.end_time:
+            query.end_time = now_as_float()
 
-    # Extract DB-specific errors
-    if isinstance(ex, SupersetErrorException):
-        errors = [ex.error]
-    elif isinstance(ex, SupersetErrorsException):
-        errors = ex.errors
-    else:
-        errors = query.database.db_engine_spec.extract_errors(
-            str(ex), database_name=query.database.unique_name
+        # Extract DB-specific errors
+        if isinstance(ex, SupersetErrorException):
+            errors = [ex.error]
+        elif isinstance(ex, SupersetErrorsException):
+            errors = ex.errors
+        else:
+            errors = query.database.db_engine_spec.extract_errors(
+                str(ex), database_name=query.database.unique_name
+            )
+
+        errors_payload = [dataclasses.asdict(error) for error in errors]
+        if errors:
+            query.set_extra_json_key("errors", errors_payload)
+
+        if not _commit_query_unless_stopped(query):
+            return _stopped_query_payload(query)
+        payload.update(
+            {"status": query.status.value, "error": msg, "errors": errors_payload}
         )
-
-    errors_payload = [dataclasses.asdict(error) for error in errors]
-    if errors:
-        query.set_extra_json_key("errors", errors_payload)
-
-    db.session.commit()  # pylint: disable=consider-using-transaction
-    payload.update(
-        {"status": query.status.value, "error": msg, "errors": errors_payload}
-    )
-    if app.config.get("SHOW_STACKTRACE"):
-        if stacktrace := traceback.format_exc():
-            payload["stacktrace"] = stacktrace
-    if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
-        payload["link"] = troubleshooting_link
-    return payload
+        if app.config.get("SHOW_STACKTRACE"):
+            if stacktrace := traceback.format_exc():
+                payload["stacktrace"] = stacktrace
+        if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
+            payload["link"] = troubleshooting_link
+        return payload
 
 
 def _serialize_payload(payload: dict[Any, Any]) -> bytes:
@@ -206,24 +208,25 @@ def _finalize_successful_query(
     if check_stopped_fn and check_stopped_fn():
         return False
 
-    query.rows = total_rows
-    query.progress = 100
-    query.set_extra_json_key("progress", None)
-    # Store columns from last statement (for compatibility)
-    if execution_results and execution_results[-1][1] is not None:
-        query.set_extra_json_key("columns", execution_results[-1][1].columns)
-    query.end_time = now_as_float()
+    with db.session.no_autoflush:
+        query.rows = total_rows
+        query.progress = 100
+        query.set_extra_json_key("progress", None)
+        # Store columns from last statement (for compatibility)
+        if execution_results and execution_results[-1][1] is not None:
+            query.set_extra_json_key("columns", execution_results[-1][1].columns)
+        query.end_time = now_as_float()
 
-    payload.update(
-        {
-            "status": QueryStatus.SUCCESS.value,
-            "statements": statements_data,
-            "total_execution_time_ms": total_execution_time_ms,
-            "query": query.to_dict(),
-        }
-    )
-    payload["query"]["state"] = QueryStatus.SUCCESS.value
-    return True
+        payload.update(
+            {
+                "status": QueryStatus.SUCCESS.value,
+                "statements": statements_data,
+                "total_execution_time_ms": total_execution_time_ms,
+                "query": query.to_dict(),
+            }
+        )
+        payload["query"]["state"] = QueryStatus.SUCCESS.value
+        return True
 
 
 def _store_results_in_backend(
@@ -232,79 +235,81 @@ def _store_results_in_backend(
     database: Any,
 ) -> None:
     """Store query results in the results backend."""
-    key = str(uuid.uuid4())
-    payload["query"]["resultsKey"] = key
-    logger.info(
-        "Query %s: Storing results in results backend, key: %s",
-        str(query.id),
-        key,
-    )
-    stats_logger = app.config["STATS_LOGGER"]
-    with stats_timing("sqllab.query.results_backend_write", stats_logger):
-        with stats_timing(
-            "sqllab.query.results_backend_write_serialization", stats_logger
-        ):
-            serialized_payload = _serialize_payload(payload)
+    with db.session.no_autoflush:
+        key = str(uuid.uuid4())
+        payload["query"]["resultsKey"] = key
+        logger.info(
+            "Query %s: Storing results in results backend, key: %s",
+            str(query.id),
+            key,
+        )
+        stats_logger = app.config["STATS_LOGGER"]
+        with stats_timing("sqllab.query.results_backend_write", stats_logger):
+            with stats_timing(
+                "sqllab.query.results_backend_write_serialization", stats_logger
+            ):
+                serialized_payload = _serialize_payload(payload)
 
-            # Check payload size limit
-            if sql_lab_payload_max_mb := app.config.get("SQLLAB_PAYLOAD_MAX_MB"):
-                serialized_payload_size = len(serialized_payload)
-                max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
+                # Check payload size limit
+                if sql_lab_payload_max_mb := app.config.get("SQLLAB_PAYLOAD_MAX_MB"):
+                    serialized_payload_size = len(serialized_payload)
+                    max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
 
-                if serialized_payload_size > max_bytes:
-                    logger.info("Result size exceeds the allowed limit.")
-                    raise SupersetErrorException(
-                        SupersetError(
-                            message=(
-                                f"Result size "
-                                f"({serialized_payload_size / BYTES_IN_MB:.2f} MB) "
-                                f"exceeds the allowed limit of "
-                                f"{sql_lab_payload_max_mb} MB."
-                            ),
-                            error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
-                            level=ErrorLevel.ERROR,
+                    if serialized_payload_size > max_bytes:
+                        logger.info("Result size exceeds the allowed limit.")
+                        raise SupersetErrorException(
+                            SupersetError(
+                                message=(
+                                    f"Result size "
+                                    f"({serialized_payload_size / BYTES_IN_MB:.2f} MB) "
+                                    f"exceeds the allowed limit of "
+                                    f"{sql_lab_payload_max_mb} MB."
+                                ),
+                                error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
+                                level=ErrorLevel.ERROR,
+                            )
                         )
-                    )
 
-        cache_timeout = database.cache_timeout
-        if cache_timeout is None:
-            cache_timeout = app.config["CACHE_DEFAULT_TIMEOUT"]
+            cache_timeout = database.cache_timeout
+            if cache_timeout is None:
+                cache_timeout = app.config["CACHE_DEFAULT_TIMEOUT"]
 
-        compressed = zlib_compress(serialized_payload)
-        logger.debug("*** serialized payload size: %i", len(serialized_payload))
-        logger.debug("*** compressed payload size: %i", len(compressed))
+            compressed = zlib_compress(serialized_payload)
+            logger.debug("*** serialized payload size: %i", len(serialized_payload))
+            logger.debug("*** compressed payload size: %i", len(compressed))
 
-        write_success = results_backend.set(key, compressed, cache_timeout)
-        if _make_check_stopped_fn(query, preserve_pending=True)():
-            return
-        if not write_success:
-            logger.error(
-                "Query %s: Failed to store results in backend, key: %s",
-                str(query.id),
-                key,
-            )
-            stats_logger.incr("sqllab.results_backend.write_failure")
-            query.results_key = None
-            query.status = QueryStatus.FAILED
-            query.error_message = (
-                "Failed to store query results in the results backend. "
-                "Please try again or contact your administrator."
-            )
-            db.session.commit()  # pylint: disable=consider-using-transaction
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__("Failed to store query results. Please try again."),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
-                    level=ErrorLevel.ERROR,
+            write_success = results_backend.set(key, compressed, cache_timeout)
+            if _make_check_stopped_fn(query, preserve_pending=True)():
+                return
+            if not write_success:
+                logger.error(
+                    "Query %s: Failed to store results in backend, key: %s",
+                    str(query.id),
+                    key,
                 )
-            )
-        else:
-            query.results_key = key
-            logger.info(
-                "Query %s: Successfully stored results in backend, key: %s",
-                str(query.id),
-                key,
-            )
+                stats_logger.incr("sqllab.results_backend.write_failure")
+                query.results_key = None
+                query.status = QueryStatus.FAILED
+                query.error_message = (
+                    "Failed to store query results in the results backend. "
+                    "Please try again or contact your administrator."
+                )
+                if not _commit_query_unless_stopped(query):
+                    return
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=__("Failed to store query results. Please try again."),
+                        error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                )
+            else:
+                query.results_key = key
+                logger.info(
+                    "Query %s: Successfully stored results in backend, key: %s",
+                    str(query.id),
+                    key,
+                )
 
 
 def _serialize_result_set(
@@ -380,6 +385,24 @@ def execute_sql_task(
                 stats_logger.incr("error_sqllab_unhandled")
                 query = _get_query(query_id=query_id)
                 return _handle_query_error(ex, query)
+
+
+def _commit_query_unless_stopped(query: Query) -> bool:
+    """Atomically guard terminal metadata writes against a concurrent stop."""
+    with db.session.no_autoflush:
+        # The conditional write acquires the row's write lock until commit.
+        # A separate status read cannot protect the subsequent ORM flush.
+        updated = (
+            db.session.query(Query)
+            .filter(Query.id == query.id, Query.status != QueryStatus.STOPPED)
+            .update({Query.status: query.status}, synchronize_session=False)
+        )
+        if not updated:
+            # A locking read also sees the latest row under REPEATABLE READ.
+            db.session.refresh(query, with_for_update=True)
+            return False
+    db.session.commit()  # pylint: disable=consider-using-transaction
+    return True
 
 
 def _stopped_query_payload(query: Query) -> dict[str, Any]:
@@ -542,12 +565,18 @@ def _execute_sql_statements(
     if results_backend:
         _store_results_in_backend(query, payload, database)
 
+    return _publish_query_result(query, payload)
+
+
+def _publish_query_result(query: Query, payload: dict[str, Any]) -> dict[str, Any]:
+    """Publish terminal metadata only if no stop has won the finalization race."""
     # Serialization and backend writes can outlive the last execution check.
     if _make_check_stopped_fn(query, preserve_pending=True)():
         return _stopped_query_payload(query)
 
     if query.status != QueryStatus.FAILED:
         query.status = QueryStatus.SUCCESS
-    db.session.commit()  # pylint: disable=consider-using-transaction
+    if not _commit_query_unless_stopped(query):
+        return _stopped_query_payload(query)
 
     return payload
