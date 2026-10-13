@@ -49,12 +49,16 @@ from superset.commands.chart.exceptions import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
+from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
+from superset.semantic_layers.access import (
+    SemanticLayersDisabledError,
+)
 from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils import json
@@ -220,6 +224,8 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
+        except SemanticLayersDisabledError as error:
+            return self.response(404, message=str(error))
         except DatasourceNotFound:
             return self.response_404()
         except SupersetSecurityException:
@@ -318,6 +324,8 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
+        except SemanticLayersDisabledError as error:
+            return self.response(404, message=str(error))
         except DatasourceNotFound:
             return self.response_404()
         except SupersetSecurityException:
@@ -750,7 +758,11 @@ class ChartDataRestApi(ChartRestApi):
         """
 
         try:
-            return ChartDataQueryContextSchema().load(form_data)
+            schema: ChartDataQueryContextSchema = ChartDataQueryContextSchema()
+            schema.query_context_factory = QueryContextFactory(
+                authorize_semantic_before_metadata=True
+            )
+            return schema.load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
         except ValueError as ex:

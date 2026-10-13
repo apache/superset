@@ -16,6 +16,11 @@
 # under the License.
 """Command to restore a soft-deleted dashboard."""
 
+from typing import Any
+
+from sqlalchemy import select
+
+from superset import db
 from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
     DashboardNotFoundError,
@@ -25,6 +30,58 @@ from superset.commands.dashboard.exceptions import (
 from superset.commands.restore import BaseRestoreCommand
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
+from superset.semantic_layers.models import SemanticView
+from superset.utils import json
+
+
+def _parse_restore_metadata(raw_metadata: str | None) -> dict[str, Any] | None:
+    """Only clean up metadata whose control structure can be walked safely."""
+    try:
+        metadata: Any = json.loads(raw_metadata or "{}")
+    except (TypeError, ValueError, RecursionError):
+        return None
+    if not isinstance(metadata, dict):
+        return None
+    for key in ("native_filter_configuration", "chart_customization_config"):
+        controls: Any = metadata.get(key)
+        if controls is None:
+            continue
+        if not isinstance(controls, list):
+            return None
+        for control in controls:
+            if not isinstance(control, dict) or (
+                "id" in control and not isinstance(control["id"], str)
+            ):
+                return None
+            targets: Any = control.get("targets")
+            if targets is not None and (
+                not isinstance(targets, list)
+                or any(not isinstance(target, dict) for target in targets)
+            ):
+                return None
+            parents: Any = control.get("cascadeParentIds")
+            if parents is not None and (
+                not isinstance(parents, list)
+                or any(not isinstance(parent, str) for parent in parents)
+            ):
+                return None
+    return metadata
+
+
+def _semantic_target_id(target: dict[str, Any]) -> int | None:
+    """Read a stored datasource ID without treating booleans as integer IDs."""
+    raw_id: Any = target.get("datasetId")
+    if isinstance(raw_id, bool) or not (
+        isinstance(raw_id, int)
+        or (isinstance(raw_id, str) and raw_id.isascii() and raw_id.isdecimal())
+    ):
+        return None
+    try:
+        value: int = int(raw_id)
+    except ValueError:
+        # Oversized decimal strings can exceed Python's integer conversion limit.
+        return None
+    return value if 0 < value <= 2**63 - 1 else None
 
 
 class RestoreDashboardCommand(BaseRestoreCommand[Dashboard]):
@@ -43,6 +100,81 @@ class RestoreDashboardCommand(BaseRestoreCommand[Dashboard]):
     not_found_exc = DashboardNotFoundError
     forbidden_exc = DashboardForbiddenError
     restore_failed_exc = DashboardRestoreFailedError
+
+    def prepare_restore(self, model: Dashboard) -> None:
+        """Remove controls with missing semantic targets before making them live.
+
+        A missing target invalidates the entire control, including its defaults.
+        Do not confuse unavailable providers or lost datasource grants with deletion:
+        only metadata existence matters after dashboard editorship was validated.
+        """
+        metadata: dict[str, Any] | None = _parse_restore_metadata(model.json_metadata)
+        if metadata is None:
+            self.warnings.append(
+                "Warning: dashboard filter cleanup was skipped because its metadata "
+                "is malformed. Review the dashboard filters before using its results."
+            )
+            return
+        keys: tuple[str, str] = (
+            "native_filter_configuration",
+            "chart_customization_config",
+        )
+        controls: list[dict[str, Any]] = [
+            control for key in keys for control in metadata.get(key) or []
+        ]
+        semantic_ids: dict[int, set[int | None]] = {
+            id(control): {
+                _semantic_target_id(target)
+                for target in control.get("targets") or []
+                if target.get("datasourceType") == "semantic_view"
+            }
+            for control in controls
+        }
+        requested_ids: set[int] = {
+            target_id
+            for ids in semantic_ids.values()
+            for target_id in ids
+            if target_id is not None
+        }
+        existing_ids: set[int] = (
+            set(
+                db.session.scalars(
+                    select(SemanticView.id).where(SemanticView.id.in_(requested_ids))
+                )
+            )
+            if requested_ids
+            else set()
+        )
+        removed: list[dict[str, Any]] = [
+            control for control in controls if semantic_ids[id(control)] - existing_ids
+        ]
+        if not removed:
+            return
+        removed_objects: set[int] = {id(control) for control in removed}
+        removed_ids: set[str] = {
+            control["id"] for control in removed if "id" in control
+        }
+        for key in keys:
+            if key in metadata and metadata[key] is not None:
+                metadata[key] = [
+                    control
+                    for control in metadata[key]
+                    if id(control) not in removed_objects
+                ]
+                for control in metadata[key]:
+                    if control.get("cascadeParentIds"):
+                        control["cascadeParentIds"] = [
+                            parent
+                            for parent in control["cascadeParentIds"]
+                            if parent not in removed_ids
+                        ]
+        model.json_metadata = json.dumps(metadata)
+        self.warnings.append(
+            f"Warning: removed {len(removed)} dashboard filter(s) or display "
+            "control(s) referencing a missing semantic view or an invalid semantic "
+            "view ID. Review the dashboard "
+            "filters before using its results."
+        )
 
     def validate(self) -> Dashboard:  # type: ignore[override]
         """Extend ``BaseRestoreCommand.validate`` with a slug-conflict pre-check.

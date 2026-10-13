@@ -18,7 +18,10 @@
  */
 
 import { ChartProps, DatasourceType } from '@superset-ui/core';
-import transformProps from './transformProps';
+import { logging } from '@apache-superset/core/utils';
+import transformProps, {
+  filterDrawableGeographicPoints,
+} from './transformProps';
 
 interface ScatterFeature {
   position: [number, number];
@@ -301,3 +304,322 @@ test('Scatter transformProps should preserve extra properties from records', () 
     another_field: 123,
   });
 });
+
+test.each([91, -91, Number.NaN, Number.POSITIVE_INFINITY, '37.8', null])(
+  'typed geographic points skip invalid latitude %s',
+  latitude => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'fix', value: 1000 },
+      },
+      queriesData: [{ data: [{ LATITUDE: latitude, LONGITUDE: -122.4 }] }],
+    } as ChartProps;
+    expect(transformProps(props).payload.data.features).toEqual([]);
+  },
+);
+
+test('typed geographic points preserve longitude-latitude ordering and metric radius', () => {
+  const props = {
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      mcp_geographic: true,
+      point_radius_fixed: { type: 'metric', value: 'population' },
+    },
+  } as ChartProps;
+  expect(transformProps(props).payload.data.features[0]).toMatchObject({
+    position: [-122.4, 37.8],
+    radius: 50000,
+  });
+});
+
+test.each([undefined, null, 'missing', '10', Number.NaN, Infinity, -1])(
+  'typed geographic points skip sparse/non-numeric radius %s',
+  population => {
+    const sparse = { LATITUDE: 37.8, LONGITUDE: -122.4 };
+    const data = [
+      population === undefined ? sparse : { ...sparse, population },
+      { LATITUDE: 37.9, LONGITUDE: -122.3, population: 0 },
+      { LATITUDE: 38, LONGITUDE: -122, population: 10 },
+    ];
+    const original = data.map(row => ({ ...row }));
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'metric', value: 'population' },
+      },
+      queriesData: [{ data }],
+    } as ChartProps;
+    expect(transformProps(props).payload.data.features).toMatchObject([
+      { position: [-122.3, 37.9], radius: 0 },
+      { position: [-122, 38], radius: 10 },
+    ]);
+    expect(data).toEqual(original);
+  },
+);
+
+test('typed geographic points log how many points were skipped', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  try {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'metric', value: 'population' },
+      },
+      queriesData: [
+        {
+          data: [
+            { LATITUDE: 91, LONGITUDE: -122.4, population: 1 },
+            { LATITUDE: 37.8, LONGITUDE: -122.4, population: null },
+            { LATITUDE: 38, LONGITUDE: -122, population: 10 },
+          ],
+        },
+      ],
+    } as ChartProps;
+    expect(transformProps(props).payload.data.features).toHaveLength(1);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Skipped 2 of 3 geographic points'),
+    );
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+test('filterDrawableGeographicPoints keeps valid points without logging', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  try {
+    const records = [
+      { LATITUDE: 90, LONGITUDE: -180 },
+      { LATITUDE: -90, LONGITUDE: 180 },
+    ];
+    expect(
+      filterDrawableGeographicPoints(records, {
+        type: 'latlong',
+        latCol: 'LATITUDE',
+        lonCol: 'LONGITUDE',
+      }),
+    ).toEqual(records);
+    expect(warn).not.toHaveBeenCalled();
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+test.each([
+  { type: 'geohash', geohashCol: 'location' },
+  { type: 'delimited', lonlatCol: 'location' },
+])(
+  'MCP points remain drawable after switching spatial format to $type',
+  spatial => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        spatial,
+        point_radius_fixed: { type: 'metric', value: 'population' },
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              location: spatial.type === 'geohash' ? '9q8yy' : '-122.4,37.8',
+              population: 10,
+            },
+            {
+              location: spatial.type === 'geohash' ? '9q8yy' : '-122.4,37.8',
+              population: -1,
+            },
+          ],
+        },
+      ],
+    } as ChartProps;
+    const features = transformProps(props).payload.data
+      .features as ScatterFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0].position[0]).toBeCloseTo(-122.4, 1);
+    expect(features[0].position[1]).toBeCloseTo(37.8, 1);
+    expect(features[0].radius).toBe(10);
+  },
+);
+
+test.each(['position', 'weight', 'extraProps'])(
+  'typed scatter skips radius alias %s rather than corrupting native spatial fields',
+  label => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'metric', value: label },
+      },
+      queriesData: [
+        {
+          data: [{ LATITUDE: 37.8, LONGITUDE: -122.4, [label]: 10 }],
+        },
+      ],
+    } as ChartProps;
+    expect(transformProps(props).payload.data.features).toEqual([]);
+  },
+);
+
+test.each(['position', 'weight', 'extraProps'])(
+  'fixed-radius scatter keeps coordinates when dimension is %s',
+  dimension => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        dimension,
+        point_radius_fixed: { type: 'fix', value: 100 },
+      },
+      queriesData: [
+        { data: [{ LATITUDE: 37.8, LONGITUDE: -122.4, [dimension]: 'A' }] },
+      ],
+    };
+    const result = transformProps(props as ChartProps);
+    const features = result.payload.data.features as ScatterFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0].position).toEqual([-122.4, 37.8]);
+    expect(features[0].cat_color).toBe('A');
+    expect(features[0].radius).toBe(100);
+  },
+);
+
+test('legacy scatter reads a weight radius from the source without replacing geometry', () => {
+  const props = {
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      point_radius_fixed: { type: 'metric', value: 'weight' },
+    },
+    queriesData: [
+      { data: [{ LATITUDE: 37.8, LONGITUDE: -122.4, weight: 42 }] },
+    ],
+  };
+  const features = transformProps(props as ChartProps).payload.data
+    .features as ScatterFeature[];
+  expect(features[0].position).toEqual([-122.4, 37.8]);
+  expect(features[0].radius).toBe(42);
+});
+
+test.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
+  'scatter reads prototype-named radius metric %s from the source',
+  label => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: { type: 'metric', value: label },
+      },
+      queriesData: [
+        { data: [{ LATITUDE: 37.8, LONGITUDE: -122.4, [label]: 42 }] },
+      ],
+    };
+    const features = transformProps(props as ChartProps).payload.data
+      .features as ScatterFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0]).toMatchObject({
+      position: [-122.4, 37.8],
+      radius: 42,
+      metric: 42,
+    });
+  },
+);
+
+test.each(['constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
+  'scatter reads prototype-named dimension %s from the source',
+  dimension => {
+    const props = {
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        dimension,
+        point_radius_fixed: { type: 'fix', value: 100 },
+      },
+      queriesData: [
+        { data: [{ LATITUDE: 37.8, LONGITUDE: -122.4, [dimension]: 'A' }] },
+      ],
+    };
+    const features = transformProps(props as ChartProps).payload.data
+      .features as ScatterFeature[];
+    expect(features).toHaveLength(1);
+    expect(features[0]).toMatchObject({
+      position: [-122.4, 37.8],
+      radius: 100,
+      cat_color: 'A',
+    });
+  },
+);
+
+test.each(['100', '2.5', '0'])(
+  'typed geographic points preserve legacy fixed radius %s',
+  radius => {
+    const result = transformProps({
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: true,
+        point_radius_fixed: radius,
+      },
+    } as ChartProps);
+    const features = result.payload.data.features as ScatterFeature[];
+    expect(features).toHaveLength(2);
+    features.forEach(feature => {
+      expect(feature.radius).toBe(Number(radius));
+      expect(feature.metric).toBeUndefined();
+    });
+    expect(result.payload.data.metricLabels).toEqual([]);
+  },
+);
+
+test('typed geographic points preserve legacy saved-metric radius', () => {
+  const result = transformProps({
+    ...mockChartProps,
+    rawFormData: {
+      ...mockChartProps.rawFormData,
+      mcp_geographic: true,
+      point_radius_fixed: 'population',
+    },
+  } as ChartProps);
+  const features = result.payload.data.features as ScatterFeature[];
+  expect(features).toHaveLength(2);
+  expect(features.map(feature => feature.radius)).toEqual([50000, 75000]);
+  expect(result.payload.data.metricLabels).toEqual(['population']);
+});
+
+test.each([undefined, false])(
+  'native scatter preserves numeric-string metric names with mcp_geographic=%s',
+  mcpGeographic => {
+    const result = transformProps({
+      ...mockChartProps,
+      rawFormData: {
+        ...mockChartProps.rawFormData,
+        mcp_geographic: mcpGeographic,
+        point_radius_fixed: '100',
+      },
+      queriesData: [
+        {
+          data: [
+            { LATITUDE: 37.8, LONGITUDE: -122.4, '100': 10 },
+            { LATITUDE: 37.9, LONGITUDE: -122.3, '100': 20 },
+          ],
+        },
+      ],
+    } as ChartProps);
+    const features = result.payload.data.features as ScatterFeature[];
+    expect(features.map(feature => feature.radius)).toEqual([10, 20]);
+    expect(features.map(feature => feature.metric)).toEqual([10, 20]);
+    expect(result.payload.data.metricLabels).toEqual(['100']);
+  },
+);

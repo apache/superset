@@ -29,6 +29,8 @@ from superset.mcp_service.app import mcp
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
