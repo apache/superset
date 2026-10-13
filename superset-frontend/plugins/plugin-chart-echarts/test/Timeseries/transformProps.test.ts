@@ -4772,4 +4772,72 @@ describe('natural sort of a category x-axis (#35853)', () => {
 
     expect(data.map(row => row[0])).toEqual(['202410', '202401', '202402']);
   });
+
+  test('keeps a consistent (lexicographic) order across a column mixing numeric-like and non-numeric strings', () => {
+    // "2" and "10" alone would sort numerically, but "15x" never parses as
+    // a number. Picking a numeric/BigInt comparison per pair instead of a
+    // single strategy for the whole column makes the comparator
+    // non-transitive: "2" < "10" as integers, but "10" < "15x" and
+    // "15x" < "2" lexicographically - a 3-way cycle Array.prototype.sort
+    // has no defined behavior for.
+    const chartProps = categoryChartProps([
+      { dim: '2', metric: 1 },
+      { dim: '15x', metric: 2 },
+      { dim: '10', metric: 3 },
+    ]);
+
+    const { echartOptions } = transformProps(chartProps);
+    const series = echartOptions.series as SeriesOption[];
+    const data = series[0].data as [string, number][];
+
+    expect(data.map(row => row[0])).toEqual(['10', '15x', '2']);
+  });
+
+  test('computes the percent-change baseline from the sorted, on-screen order', () => {
+    // Backend returns these out of order, with 202410 arriving first. If
+    // rebaseToPercentChange ran before the natural sort, it would pick
+    // 202410's value (4) as the 0% baseline, even though 202401 ends up
+    // the leftmost on-screen category once sorted.
+    const chartProps = categoryChartProps(
+      [
+        { dim: '202410', metric: 4 },
+        { dim: '202401', metric: 1 },
+        { dim: '202402', metric: 2 },
+      ],
+      {
+        rebasePercentChange: true,
+      } as unknown as Partial<EchartsTimeseriesFormData>,
+    );
+
+    const { echartOptions } = transformProps(chartProps);
+    const series = echartOptions.series as SeriesOption[];
+    const data = series[0].data as [string, number][];
+
+    expect(data.map(row => row[0])).toEqual(['202401', '202402', '202410']);
+    // 202401 is the sorted-leftmost category, so it's the 0% baseline.
+    expect(data.map(row => row[1])).toEqual([0, 1, 3]);
+  });
+
+  test('skips the natural sort when x_axis_sort already orders categories by a metric', () => {
+    // sortOperator (buildQuery.ts) would have the backend return these rows
+    // pre-sorted by `metric` ascending, an explicit user choice. Natural-
+    // sorting by x-value on top of that would silently discard it.
+    const chartProps = categoryChartProps(
+      [
+        { dim: '202402', metric: 1 },
+        { dim: '202401', metric: 5 },
+        { dim: '202410', metric: 10 },
+      ],
+      {
+        xAxisSort: 'metric',
+        xAxisSortAsc: true,
+      } as unknown as Partial<EchartsTimeseriesFormData>,
+    );
+
+    const { echartOptions } = transformProps(chartProps);
+    const series = echartOptions.series as SeriesOption[];
+    const data = series[0].data as [string, number][];
+
+    expect(data.map(row => row[0])).toEqual(['202402', '202401', '202410']);
+  });
 });

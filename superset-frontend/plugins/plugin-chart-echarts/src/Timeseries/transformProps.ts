@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { invert } from 'lodash-es';
+import { invert, isEmpty } from 'lodash-es';
 import { rebaseToPercentChange } from './percentChange';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -317,13 +317,43 @@ function getMaxStackedValueByStack(
 // A plain integer (optionally signed) is only exactly representable as a JS
 // number up to Number.MAX_SAFE_INTEGER (2^53 - 1); beyond that, Number()
 // can silently collapse distinct values to the same float, e.g.
-// "9007199254740993" and "9007199254740992" - so naturalCompare below
+// "9007199254740993" and "9007199254740992" - so the integer mode below
 // switches such pairs to BigInt comparison instead.
 const INTEGER_LIKE = /^-?\d+$/;
 
+type NaturalSortMode = 'integer' | 'numeric' | 'lexicographic';
+
+// Picking a comparison strategy per pair (BigInt, then Number, then
+// localeCompare) isn't transitive across a mixed column: "2" < "10" as
+// integers, "10" < "15x" lexicographically (neither parses as a plain
+// number), and "15x" < "2" lexicographically too - a 3-way cycle.
+// Array.prototype.sort has no defined result for a non-transitive
+// comparator. Classifying the whole column once, up front, and running
+// every pair through that single strategy keeps naturalCompare a real
+// total order: BigInt, Number, and localeCompare are each transitive on
+// their own as long as they aren't mixed mid-sort.
+function classifyNaturalSortMode(values: unknown[]): NaturalSortMode {
+  let allInteger = true;
+  let allNumeric = true;
+  values.forEach(value => {
+    if (value === undefined || value === null || value === '') return;
+    const str = String(value);
+    if (!INTEGER_LIKE.test(str)) {
+      allInteger = false;
+      if (!isFinite(Number(str))) {
+        allNumeric = false;
+      }
+    }
+  });
+  if (allInteger) return 'integer';
+  if (allNumeric) return 'numeric';
+  return 'lexicographic';
+}
+
 // ----- natural sort helper -----
-// Try numeric comparison first for numeric-like strings, fallback to localeCompare.
-function naturalCompare(a: any, b: any): number {
+// Compares under whichever mode classifyNaturalSortMode picked for the
+// whole column, instead of guessing a strategy per pair.
+function naturalCompare(a: any, b: any, mode: NaturalSortMode): number {
   const sa = a === undefined || a === null ? '' : String(a);
   const sb = b === undefined || b === null ? '' : String(b);
 
@@ -332,7 +362,7 @@ function naturalCompare(a: any, b: any): number {
   if (sa === '') return -1;
   if (sb === '') return 1;
 
-  if (INTEGER_LIKE.test(sa) && INTEGER_LIKE.test(sb)) {
+  if (mode === 'integer') {
     const ba = BigInt(sa);
     const bb = BigInt(sb);
     if (ba < bb) return -1;
@@ -340,15 +370,10 @@ function naturalCompare(a: any, b: any): number {
     return 0;
   }
 
-  const na = Number(sa);
-  const nb = Number(sb);
-
-  // If both parse as finite numbers, do numeric sort
-  if (isFinite(na) && isFinite(nb)) {
-    return na - nb;
+  if (mode === 'numeric') {
+    return Number(sa) - Number(sb);
   }
 
-  // Otherwise fallback to lexicographic
   return sa.localeCompare(sb);
 }
 
@@ -483,6 +508,7 @@ export default function transformProps(
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const forecastRebasedData = rebaseForecastDatum(data, verboseMap);
   let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
+  const rawXAxisLabel = xAxisLabel;
   if (
     isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
     isDefined(verboseMap[xAxisLabel])
