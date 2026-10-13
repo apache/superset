@@ -43,6 +43,7 @@ rather than a copy of its logic:
 
 import os
 import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -91,7 +92,9 @@ def _add_interpreter_shims(stub_dir: Path) -> None:
     """
     for name in ("python", "python3"):
         shim = stub_dir / name
-        shim.write_text(f'#!/bin/sh\nexec "{sys.executable}" "$@"\n', encoding="utf-8")
+        shim.write_text(
+            f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n', encoding="utf-8"
+        )
         shim.chmod(shim.stat().st_mode | stat.S_IEXEC)
 
 
