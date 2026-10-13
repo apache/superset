@@ -288,7 +288,7 @@ async def _attach_dashboard_filters(
 
         if dashboard_filters is None:
             await ctx.warning(
-                "Dashboard %s native filter configuration is malformed; "
+                "Dashboard %s filter configuration or layout is malformed; "
                 "dashboard filters applied to this chart could not be resolved."
                 % (dashboard_id,)
             )

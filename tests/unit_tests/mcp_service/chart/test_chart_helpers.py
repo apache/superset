@@ -2257,5 +2257,33 @@ def test_build_applied_dashboard_filters_malformed_position_json(
         position_json="not valid json {{{",
     )
     result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
-    assert result is not None
-    assert [flt.id for flt in result] == ["NATIVE_FILTER-1"]
+    assert result is None
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"scope": None},
+        {"defaultDataMask": None},
+        {"targets": [None]},
+    ],
+)
+@patch("superset.security_manager", MagicMock())
+@patch("superset.db")
+def test_build_applied_dashboard_filters_null_filter_subfield(mock_db, overrides):
+    native_filter = {
+        "id": "NATIVE_FILTER-1",
+        "name": "Country",
+        "type": "NATIVE_FILTER",
+        "filterType": "filter_select",
+        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+        "targets": [{"column": {"name": "country"}, "datasetId": 7}],
+        "defaultDataMask": {},
+        **overrides,
+    }
+    _setup_dashboard_mock(
+        mock_db,
+        json_metadata=json.dumps({"native_filter_configuration": [native_filter]}),
+    )
+    result = build_applied_dashboard_filters(dashboard_id=1, chart_id=1)
+    assert result is None
