@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -2816,9 +2816,6 @@ msgstr "Si è verificato un errore durante l'analisi della chiave."
 
 msgid "An error occurred while pruning logs "
 msgstr "Si è verificato un errore durante l'eliminazione dei log "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Si è verificato un errore nell'aggiornare lo schema di configurazione"
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -6058,6 +6055,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -9730,6 +9732,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtra grafici"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -9776,6 +9784,10 @@ msgstr "Controlli del filtro"
 
 msgid "Filters"
 msgstr "Filtri"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filtri e controlli"
@@ -10901,6 +10913,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Includi la descrizione da inviare con %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -10912,6 +10927,10 @@ msgstr "Includi il nome della serie come asse"
 # zh, zh_TW]
 msgid "Include time"
 msgstr "Includere il tempo"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Aumenta"
@@ -19825,6 +19844,10 @@ msgstr ""
 "L'asse X non è nell'elenco dei filtri, il che impedirà il suo utilizzo "
 "nei filtri per intervallo di tempo nei dashboard. Desideri aggiungerlo "
 "all'elenco dei filtri?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

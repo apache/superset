@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -2794,9 +2794,6 @@ msgstr "Došlo je do greške prilikom analize ključa."
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, ru, sk, sl, uk, zh, zh_TW]
 msgid "An error occurred while pruning logs "
 msgstr "Došlo je do greške prilikom čišćenja dnevnika "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Došlo je do greške prilikom ažuriranja šeme konfiguracije"
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -5895,6 +5892,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -9617,6 +9619,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtriraj grafikone"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Filter has default value"
 msgstr "Filter ima podrazumevanu vrednost"
@@ -9672,6 +9680,10 @@ msgstr "Filtrirajte svoje grafikone"
 # zh, zh_TW]
 msgid "Filters"
 msgstr "Filteri"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 # uk]
 msgid "Filters and controls"
@@ -10679,6 +10691,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Uključite opis koji će biti poslat sa %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Include series name as an axis"
 msgstr "Uključi naziv serije kao osu"
@@ -10686,6 +10701,10 @@ msgstr "Uključi naziv serije kao osu"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Include time"
 msgstr "Uključi vreme"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Increase"
@@ -19228,6 +19247,10 @@ msgstr ""
 "X-osa nije na listi filtera, što će sprečiti njeno korišćenje u filterima"
 " vremenskog opsega u kontrolnim tablama. Želite li da je dodate na listu "
 "filtera?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

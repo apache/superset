@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -2923,9 +2923,6 @@ msgstr "Ocorreu um erro ao analisar a chave."
 
 msgid "An error occurred while pruning logs "
 msgstr "Ocorreu um erro ao limpar os registros"
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Ocorreu um erro ao atualizar o esquema de configuração"
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -6239,6 +6236,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -10107,6 +10109,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrar gráficos"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -10157,6 +10165,10 @@ msgstr "Filtrar os seus gráficos"
 
 msgid "Filters"
 msgstr "Filtros"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filtros e controles"
@@ -11267,6 +11279,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Incluir descrição a ser enviada com%s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -11275,6 +11290,10 @@ msgstr "Incluir o nome da série como um eixo"
 
 msgid "Include time"
 msgstr "Incluir horário"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Aumentar"
@@ -20530,6 +20549,10 @@ msgstr ""
 "O eixo X não está na lista de filtros, o que impedirá que ele seja usado "
 "em filtros de intervalo de tempo em painéis. Gostaria de adicioná-lo à "
 "lista de filtros?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

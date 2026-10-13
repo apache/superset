@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -2435,9 +2435,6 @@ msgstr "یک خطا در حین تجزیه کلید رخ داد."
 
 msgid "An error occurred while pruning logs "
 msgstr "در حین قطع کردن گزارش‌ها خطایی رخ داد"
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -5149,6 +5146,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 #, python-format
@@ -8406,6 +8408,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "فیلتر چارت‌ها"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "فیلتر دارای مقدار پیش‌فرض است"
 
@@ -8447,6 +8455,10 @@ msgstr "چارت‌های خود را فیلتر کنید"
 
 msgid "Filters"
 msgstr "فیلترها"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9344,11 +9356,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "توضیحاتی را که باید با %s ارسال شود، شامل کنید."
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "نام سری را به عنوان محور شامل کنید"
 
 msgid "Include time"
 msgstr "زمان را شامل کنید"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "افزایش"
@@ -16874,6 +16893,10 @@ msgstr ""
 "محور X در لیست فیلترها نیست که این موضوع از استفاده آن در فیلترهای بازه "
 "زمانی در داشبوردها جلوگیری می‌کند. آیا مایل هستید آن را به لیست فیلترها "
 "اضافه کنید؟"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

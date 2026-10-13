@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -3501,9 +3501,6 @@ msgstr "เกิดข้อผิดพลาดขณะแยกวิเค
 #, fuzzy
 msgid "An error occurred while pruning logs "
 msgstr "เกิดข้อผิดพลาดขณะตัดแต่งบันทึก "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -7712,6 +7709,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -12787,6 +12789,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "กรองแผนภูมิ"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -12865,6 +12873,10 @@ msgstr "กรองแผนภูมิของคุณ"
 #, fuzzy
 msgid "Filters"
 msgstr "ตัวกรอง"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -14263,6 +14275,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "รวมคำอธิบายที่จะส่งพร้อมกับ %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -14274,6 +14289,10 @@ msgstr "รวมชื่อชุดข้อมูลเป็นแกน"
 #, fuzzy
 msgid "Include time"
 msgstr "รวมเวลา"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -26050,6 +26069,10 @@ msgstr ""
 "แกน X ไม่อยู่ในรายการตัวกรอง "
 "ซึ่งจะทำให้ไม่สามารถใช้ในตัวกรองช่วงเวลาในแดชบอร์ดได้ "
 "ต้องการเพิ่มลงในรายการตัวกรองหรือไม่?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

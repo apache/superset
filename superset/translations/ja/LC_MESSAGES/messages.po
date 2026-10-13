@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -2190,9 +2190,6 @@ msgstr "キーの解析中にエラーが発生しました。"
 
 msgid "An error occurred while pruning logs "
 msgstr "ログの削除(プルーニング)中にエラーが発生しました "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "構成スキーマの更新中にエラーが発生しました"
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -4548,6 +4545,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 #, python-format
@@ -7364,6 +7366,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "チャートをフィルター"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "フィルターに既定値あり"
 
@@ -7402,6 +7410,10 @@ msgstr "チャートを絞り込む"
 
 msgid "Filters"
 msgstr "フィルター"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "フィルターとコントロール"
@@ -8171,11 +8183,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s と一緒に送信する説明文を含める"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "系列名を軸として含める"
 
 msgid "Include time"
 msgstr "時間を含める"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "増加"
@@ -14806,6 +14825,10 @@ msgid ""
 "used in time range filters in dashboards. Would you like to add it to the"
 " filters list?"
 msgstr "X軸がフィルターリストに含まれていないため、ダッシュボードの時間範囲フィルターで使用できません。フィルターリストに追加しますか？"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

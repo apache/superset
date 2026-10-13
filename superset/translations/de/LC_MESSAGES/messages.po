@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -2352,9 +2352,6 @@ msgstr "Beim Parsen des Schlüssels ist ein Fehler aufgetreten."
 
 msgid "An error occurred while pruning logs "
 msgstr "Beim Kürzen von Protokollen ist ein Fehler aufgetreten "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Beim Aktualisieren des Konfigurationsschemas ist ein Fehler aufgetreten"
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -4912,6 +4909,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 #, python-format
@@ -7919,6 +7921,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Diagramme filtern"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filter hat den Standardwert"
 
@@ -7959,6 +7967,10 @@ msgstr "Filtern Sie Ihre Diagramme"
 
 msgid "Filters"
 msgstr "Filter"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filter und Bedienelemente"
@@ -8789,11 +8801,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Beschreibung beilegen, die mitgeschickt wird %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Zeitreihennamen als Achse einschließen"
 
 msgid "Include time"
 msgstr "Zeit einschließen"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Anstieg"
@@ -15821,6 +15840,10 @@ msgstr ""
 "Die x-Achse ist nicht in der Filterliste enthalten, wodurch sie nicht in "
 "Zeitbereichsfiltern in Dashboards verwendet werden kann. Möchten Sie sie "
 "zur Filterliste hinzufügen?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

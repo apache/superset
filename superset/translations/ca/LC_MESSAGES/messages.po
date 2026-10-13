@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -2436,9 +2436,6 @@ msgstr "S'ha produït un error mentre s'analitzava la clau."
 
 msgid "An error occurred while pruning logs "
 msgstr "S'ha produït un error mentre es netejaven els registres "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -5133,6 +5130,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 #, python-format
@@ -8373,6 +8375,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrar gràfics"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "El filtre té valor per defecte"
 
@@ -8414,6 +8422,10 @@ msgstr "Filtrar els teus gràfics"
 
 msgid "Filters"
 msgstr "Filtres"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9308,11 +9320,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Incloure descripció per enviar amb %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Incloure nom de sèrie com a eix"
 
 msgid "Include time"
 msgstr "Incloure temps"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Augment"
@@ -16771,6 +16790,10 @@ msgstr ""
 "en\n"
 "            filtres de rang temporal als dashboards. Vols afegir-lo a la "
 "llista de filtres?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

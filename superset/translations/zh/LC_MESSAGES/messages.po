@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -2396,9 +2396,6 @@ msgstr "解析键时出错。"
 
 msgid "An error occurred while pruning logs "
 msgstr "精简日志时出错 "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "刷新配置模式时发生错误"
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -5008,6 +5005,11 @@ msgstr "无法加载此配置的元数据；显示默认表单。详情请参阅
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -8151,6 +8153,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "筛选图表"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "筛选器具有默认值"
 
@@ -8193,6 +8201,10 @@ msgstr "过滤您的图表"
 
 msgid "Filters"
 msgstr "筛选器"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "筛选器和控件"
@@ -9058,11 +9070,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "将描述与 %s 一起发送"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "包括系列名称作为轴"
 
 msgid "Include time"
 msgstr "包含时间"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 #, fuzzy
 msgid "Increase"
@@ -16428,6 +16447,10 @@ msgid ""
 "used in time range filters in dashboards. Would you like to add it to the"
 " filters list?"
 msgstr "X轴不在筛选器列表中，这将阻止其在仪表板的时间范围筛选器中使用。是否要将其添加到筛选器列表？"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

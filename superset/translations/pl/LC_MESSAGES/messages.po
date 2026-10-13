@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -2519,10 +2519,6 @@ msgstr "Wystąpił błąd podczas analizowania klucza."
 
 msgid "An error occurred while pruning logs "
 msgstr "Wystąpił błąd podczas czyszczenia dzienników."
-
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Wystąpił błąd podczas usuwania wartości."
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -5305,6 +5301,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 #, python-format
@@ -8721,6 +8722,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtruj wykresy"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filtr ma wartość domyślną"
 
@@ -8763,6 +8770,10 @@ msgstr "Filtruj swoje wykresy"
 
 msgid "Filters"
 msgstr "Filtry"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9714,12 +9725,19 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Dołącz opis, który zostanie wysłany z %s."
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Uwzględnij nazwę serii jako oś"
 
 #, fuzzy
 msgid "Include time"
 msgstr "Uwzględnij czas"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 #, fuzzy
 msgid "Increase"
@@ -17560,6 +17578,10 @@ msgstr ""
 "Oś X nie znajduje się na liście filtrów, co uniemożliwi jej użycie w "
 "filtrach zakresu czasu na pulpitach nawigacyjnych. Czy chcesz dodać ją do"
 " listy filtrów?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -2441,12 +2441,6 @@ msgstr "Bir hata anahtarı parlarken gerçekleşti."
 
 msgid "An error occurred while pruning logs "
 msgstr "Bir hata, girişleri yaparken gerçekleşti"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Yapılandırma şeması yenilenirken bir hata oluştu"
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -5082,6 +5076,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 #, python-format
@@ -8293,6 +8292,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Grafikleri filtrele"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filtrenin default değeri var"
 
@@ -8336,6 +8341,10 @@ msgstr "Grafiklerinizi filtreleyin"
 
 msgid "Filters"
 msgstr "Filtreler"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9198,11 +9207,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s ile gönderilecek açıklamayı ekleyin"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Bir eksen olarak seri adı ekleyin"
 
 msgid "Include time"
 msgstr "Zaman ekle"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Arttırmak"
@@ -16654,6 +16670,10 @@ msgid ""
 msgstr ""
 "X-axis, panolarda zaman aralık filtrelerinde kullanılmasını engelleyecek "
 "filtreler listesinde değildir. Filtre listesine eklemek ister misiniz?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

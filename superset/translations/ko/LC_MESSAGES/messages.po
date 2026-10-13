@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -3192,10 +3192,6 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #, fuzzy
 msgid "An error occurred while pruning logs "
 msgstr "로그를 정리하는 중 오류가 발생했습니다 "
-
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -7060,6 +7056,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -11549,6 +11550,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "차트 수정"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -11611,6 +11618,10 @@ msgstr "차트 필터링"
 
 msgid "Filters"
 msgstr "필터"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -12917,6 +12928,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s와 함께 전송될 설명 포함"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -12927,6 +12941,10 @@ msgstr "시리즈 이름을 축으로 포함"
 #, fuzzy
 msgid "Include time"
 msgstr "종료 시간"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 #, fuzzy
 msgid "Increase"
@@ -23739,6 +23757,10 @@ msgid ""
 "used in time range filters in dashboards. Would you like to add it to the"
 " filters list?"
 msgstr "X축이 필터 목록에 없어 대시보드의 시간 범위 필터에서 사용할 수 없습니다. 필터 목록에 추가하시겠습니까?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

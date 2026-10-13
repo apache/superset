@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -2402,9 +2402,6 @@ msgstr "Pri parsovanie klíče došlo k chybe."
 
 msgid "An error occurred while pruning logs "
 msgstr "Pri mazaní protokolov došlo k chybe "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -4979,6 +4976,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 #, python-format
@@ -8101,6 +8103,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrovať grafy"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filter má predvolený hodnotu"
 
@@ -8142,6 +8150,10 @@ msgstr "Filtrujte svoje grafy"
 
 msgid "Filters"
 msgstr "Filtre"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -8985,11 +8997,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Zahrnúť popis, ktorý bude odeslán s %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Zahrnúť názov série ako osu"
 
 msgid "Include time"
 msgstr "Zahrnúť čas"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Zvýšit"
@@ -16236,6 +16255,10 @@ msgstr ""
 "Osa X nie je na zozname filtrov, což zabranie jejímu použití v\n"
 "            filtrech časového rozsahu na nástenkách. Chcete ji pridať do "
 "zozname filtrov?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "

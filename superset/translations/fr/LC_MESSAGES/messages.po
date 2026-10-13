@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-12 22:54+0000\n"
+"POT-Creation-Date: 2026-10-13 15:19+0000\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -2396,11 +2396,6 @@ msgstr "Une erreur s'est produite lors de l'analyse de la clé."
 
 msgid "An error occurred while pruning logs "
 msgstr "Une erreur s'est produite lors de la suppression des journaux "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-"Une erreur s'est produite lors de l'actualisation du schéma de "
-"configuration"
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -4979,6 +4974,11 @@ msgstr ""
 msgid ""
 "Could not parse the CSS to convert @import rules. Check for syntax errors"
 " and try again."
+msgstr ""
+
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
 msgstr ""
 
 #, python-format
@@ -8040,6 +8040,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrer les graphiques"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Le filtre a une valeur par défaut"
 
@@ -8080,6 +8086,10 @@ msgstr "Filtrer vos graphiques"
 
 msgid "Filters"
 msgstr "Filtres"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filtres et contrôles"
@@ -8925,11 +8935,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Inclure une description à envoyer avec %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Inclure le nom de la série comme axe"
 
 msgid "Include time"
 msgstr "Inclure l'heure"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Augmenter"
@@ -16102,6 +16119,10 @@ msgstr ""
 "L'axe X ne figure pas dans la liste des filtres, ce qui l'empêchera "
 "d'être utilisé dans les filtres de plage de temps dans les tableaux de "
 "bord. Voulez-vous l'ajouter à la liste des filtres?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
