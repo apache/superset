@@ -680,8 +680,8 @@ def test_authlib_jose_deprecation_warning_suppressed_at_package_init():
     # The module-level deprecation warning only exists in authlib >= 1.7.
     if tuple(int(x) for x in authlib.__version__.split(".")[:2]) < (1, 7):
         pytest.skip("authlib.jose does not warn before authlib 1.7")
-    result = subprocess.run(
-        [  # noqa: S603
+    result = subprocess.run(  # noqa: S603
+        [
             sys.executable,
             "-c",
             "import superset.mcp_service; import authlib.jose",
