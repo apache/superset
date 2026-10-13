@@ -61,10 +61,8 @@ test('maps the structure payload', async () => {
   ]);
 });
 
-test('evicts the cache on failure so a later call refetches after recovery', async () => {
+test('refetches the structure after a transient failure', async () => {
   const endpoint = 'glob:*/api/v1/semantic_view/502/structure';
-  // First response fails: without eviction, the rejected promise would stay
-  // cached and every later call would replay the failure for the session.
   fetchMock.getOnce(endpoint, 500);
 
   await expect(fetchSemanticViewStructure(502)).rejects.toBeTruthy();
@@ -72,8 +70,6 @@ test('evicts the cache on failure so a later call refetches after recovery', asy
     fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/502/structure'),
   ).toHaveLength(1);
 
-  // Endpoint healthy again: the second call must hit the network, not a
-  // poisoned cache entry.
   fetchMock.get(endpoint, {
     result: { name: 'orders', dimensions: [], metrics: [] },
   });

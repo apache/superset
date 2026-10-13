@@ -104,6 +104,7 @@ def _publish_filters_applied(dashboard_id: int, permalink_key: str) -> bool:
 
 def _describe_filters(configs: list[dict[str, Any]]) -> str:
     """Render the dashboard's filters as a name/ID list for error messages."""
+    configs = [conf for conf in configs if conf.get("type") != "DIVIDER"]
     if not configs:
         return "This dashboard has no native filters."
     described = ", ".join(
@@ -321,7 +322,7 @@ def _apply_one(
             f"Filter '{spec.filter_name_or_id}' has no ID in the dashboard's "
             "configuration and cannot be targeted."
         )
-    filter_type = conf.get("filterType")
+    filter_type = "divider" if conf.get("type") == "DIVIDER" else conf.get("filterType")
     if filter_type not in SUPPORTED_FILTER_TYPES:
         raise _FilterApplyError(
             f"Filter '{spec.filter_name_or_id}' has type '{filter_type}', "

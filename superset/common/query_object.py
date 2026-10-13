@@ -411,6 +411,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     ) -> QueryObjectValidationError | None:
         """Validate query object"""
         try:
+            self._validate_semantic_view_extras()
             if self.datasource and self.datasource.type == "semantic_view":
                 implementation: SemanticViewABC = cast(
                     "SemanticView", self.datasource
@@ -444,6 +445,19 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                             "datasource metadata or MCP list_metrics."
                         )
                     ) from ex
+                if self.filter:
+                    # Validate before result-cache access, including old entries
+                    # computed while non-dimension predicates were discarded.
+                    # avoid circular import: mapper imports QueryObject.
+                    from superset.semantic_layers.mapper import validate_filter_columns
+
+                    dimension_names: set[str] = {
+                        dimension.name for dimension in implementation.get_dimensions()
+                    }
+                    metric_names: set[str] = {
+                        metric.name for metric in implementation.get_metrics()
+                    }
+                    validate_filter_columns(self.filter, dimension_names, metric_names)
             self._validate_there_are_no_missing_series()
             self._validate_no_have_duplicate_labels()
             self._validate_time_offsets()
@@ -453,6 +467,20 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             if raise_exceptions:
                 raise
             return ex
+
+    def _validate_semantic_view_extras(self) -> None:
+        """Reject unsupported SQL clauses before resolving a semantic provider."""
+        if (
+            self.datasource
+            and self.datasource.type == "semantic_view"
+            and (self.extras.get("where") or self.extras.get("having"))
+        ):
+            raise QueryObjectValidationError(
+                _(
+                    "SQL WHERE/HAVING expressions are not supported for semantic "
+                    "views. Remove the SQL clause or use a semantic dimension filter."
+                )
+            )
 
     def _validate_no_have_duplicate_labels(self) -> None:
         all_labels = self.metric_names + self.column_names

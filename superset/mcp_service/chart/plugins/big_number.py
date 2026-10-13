@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, cast, ClassVar
+from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
     _big_number_chart_what,
@@ -156,6 +156,21 @@ class BigNumberChartPlugin(BaseChartPlugin):
     ) -> dict[str, Any]:
         return map_big_number_config(config, dataset_id=dataset_id)
 
+    def apply_temporal_columns(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        temporal_columns: set[str],
+    ) -> None:
+        """Reject an unpublished time-column type before saving its time filter."""
+        if config.temporal_column and not is_column_truly_temporal(
+            config.temporal_column, None, temporal_columns=temporal_columns
+        ):
+            raise ValueError(
+                f"Big Number temporal column '{config.temporal_column}' "
+                "is not temporal in the semantic view"
+            )
+
     def post_map_validate(
         self,
         config: Any,
@@ -278,22 +293,5 @@ class BigNumberChartPlugin(BaseChartPlugin):
         row_limit: int | None,
         order_desc: bool | None,
     ) -> list[dict[str, Any]] | None:
-        if viz_type != self.TRENDLINE_VIZ_TYPE:
-            return None
-        from superset.mcp_service.chart.chart_helpers import (
-            build_single_query_dict,
-        )
-
-        metrics, columns = cast(
-            tuple[list[Any], list[Any]],
-            self.resolve_query_fields(form_data, viz_type),
-        )
-        return [
-            build_single_query_dict(
-                form_data,
-                columns,
-                metrics,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            )
-        ]
+        """Use the shared native builder for temporal and result operators."""
+        return None
