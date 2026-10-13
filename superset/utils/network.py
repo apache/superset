@@ -168,9 +168,12 @@ def is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     """
     Return True if a single IP address is public and globally routable.
 
-    IPv4-mapped IPv6 addresses (e.g. ``::ffff:127.0.0.1``) are unwrapped so
-    they are checked against the IPv4 unsafe networks rather than bypassing
-    them.
+    IPv4-mapped IPv6 addresses and addresses in the well-known NAT64 prefix
+    ``64:ff9b::/96`` are checked using their embedded IPv4 address and refused
+    when that address is unsafe. Local-use translation (``64:ff9b:1::/48``),
+    IPv4-compatible (``::/96``), 6to4 and Teredo forms are refused outright.
+    Operator-specific NAT64 prefixes are not detected: recognizing them
+    requires knowledge of the operator's prefix configuration.
     """
     if isinstance(ip, ipaddress.IPv6Address):
         if ip.ipv4_mapped:
