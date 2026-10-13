@@ -1030,6 +1030,32 @@ describe('extractShowValueIndexes', () => {
     });
   });
 
+  test('should shift the indexes by the series rendered before them', () => {
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'abc',
+            name: 'abc',
+            data: [
+              ['Jan', 10],
+              ['Feb', null],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['Jan', 20],
+              ['Feb', null],
+            ],
+          },
+        ],
+        { stack: true, onlyTotal: true, seriesIndexOffset: 3 },
+      ),
+    ).toEqual({ __default__: [4, undefined] });
+  });
+
   test('should safely handle stack groups with prototype property names like __proto__ or constructor', () => {
     const result = extractShowValueIndexes(
       [

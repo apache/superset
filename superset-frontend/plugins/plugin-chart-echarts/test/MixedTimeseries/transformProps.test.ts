@@ -547,6 +547,86 @@ test('threads labelPosition and labelPositionB to series A and B', () => {
   expect(seriesB?.label?.position).toBe(LabelPositionEnum.Bottom);
 });
 
+function formatFirstValueLabels(series: SeriesOption[]) {
+  const labels: Record<string, string | number | undefined> = {};
+  // ECharts passes each series' position in the rendered series array.
+  series.forEach((option, seriesIndex) => {
+    const formatter = (option as SeriesWithLabelFormatter).label?.formatter;
+    if (formatter) {
+      labels[String(option.name)] = formatter({
+        dataIndex: 0,
+        seriesIndex,
+        seriesName: String(option.name),
+        value: (option.data as [number, number][])[0],
+      });
+    }
+  });
+  return labels;
+}
+
+test('shows the Query B stack total on its topmost series', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      showQueryIdentifiers: true,
+      stack: false,
+      showValueB: true,
+      onlyTotalB: true,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+
+  expect(
+    formatFirstValueLabels(echartOptions.series as SeriesOption[]),
+  ).toMatchObject({
+    'sum__num (Query B), girl': '',
+    'sum__num (Query B), boy': '3',
+  });
+});
+
+test('keeps the Query A stack total on its topmost series when annotations are shown', () => {
+  const formula: FormulaAnnotationLayer = {
+    name: 'My Formula',
+    annotationType: AnnotationType.Formula,
+    value: 'x*2',
+    style: AnnotationStyle.Solid,
+    show: true,
+    showLabel: false,
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      annotationLayers: [formula],
+      showQueryIdentifiers: true,
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      showValue: true,
+      onlyTotal: true,
+    },
+    queriesData,
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+
+  expect(
+    formatFirstValueLabels(echartOptions.series as SeriesOption[]),
+  ).toMatchObject({
+    'sum__num (Query A), girl': '',
+    'sum__num (Query A), boy': '3',
+  });
+});
+
 describe('legend sorting', () => {
   const getChartProps = (overrides = {}) =>
     createEchartsTimeseriesTestChartProps<
