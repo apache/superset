@@ -39,9 +39,19 @@ SYNTAX_ERROR_REGEX = re.compile(
     ": mismatched input '(?P<syntax_error>.*?)'. Expecting: "
 )
 
-# Host portion of the PyAthena SQLAlchemy URI, e.g.
-# ``athena.us-east-1.amazonaws.com`` — the region is the only variable part.
-ATHENA_HOST_REGEX = re.compile(r"^athena\.(?P<region_name>.+)\.amazonaws\.com$")
+# Standard regional host of the PyAthena SQLAlchemy URI, e.g.
+# ``athena.us-east-1.amazonaws.com`` or ``athena.cn-north-1.amazonaws.com.cn``.
+# Mirrors the pattern PyAthena itself uses to derive ``region_name`` from the
+# host; any other host (e.g. a VPC/PrivateLink endpoint) is passed to PyAthena
+# verbatim.
+ATHENA_HOST_REGEX = re.compile(
+    r"^athena\.(?P<region_name>[a-z0-9-]+)\.amazonaws\.com(?P<china>\.cn)?$"
+)
+
+# URI query parameters exposed as their own form fields; every other query
+# parameter (``catalog_name``, ``role_arn``, ``endpoint_url``, ...) round-trips
+# through the ``query`` parameter so editing a connection never drops it.
+ATHENA_FORM_QUERY_PARAMS = ("s3_staging_dir", "work_group")
 
 
 class AthenaParametersSchema(Schema):
@@ -81,6 +91,12 @@ class AthenaParametersSchema(Schema):
         allow_none=True,
         metadata={"description": _("Athena work group to run queries against")},
     )
+    query = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Raw(),
+        required=False,
+        metadata={"description": _("Additional parameters")},
+    )
 
 
 class AthenaParametersType(TypedDict, total=False):
@@ -90,6 +106,7 @@ class AthenaParametersType(TypedDict, total=False):
     s3_staging_dir: Optional[str]
     schema_name: Optional[str]
     work_group: Optional[str]
+    query: dict[str, Any]
 
 
 class AthenaEngineSpec(BaseEngineSpec):
@@ -276,7 +293,13 @@ class AthenaEngineSpec(BaseEngineSpec):
         # PyAthena needs an S3 result location or a work group (which may define
         # its own result location or use managed query results); empty values
         # are left out of the URI.
-        query: dict[str, str] = {}
+        # Carry through any other URI query parameters (catalog_name, role_arn,
+        # endpoint_url, ...) so they are not lost when the form is re-saved.
+        query: dict[str, str] = {
+            key: str(value)
+            for key, value in (parameters.get("query") or {}).items()
+            if key not in ATHENA_FORM_QUERY_PARAMS and value is not None
+        }
         if s3_staging_dir := parameters.get("s3_staging_dir"):
             query["s3_staging_dir"] = s3_staging_dir
         if work_group := parameters.get("work_group"):
@@ -286,14 +309,37 @@ class AthenaEngineSpec(BaseEngineSpec):
         # (it rendered in full under 1.4); render_as_string(hide_password=
         # False) is required here since this URI is stored/used to actually
         # connect, not just displayed.
+        host, port = cls._build_host(parameters["region_name"])
         return URL.create(
             f"{cls.engine}+{cls.default_driver}",
             username=parameters.get("aws_access_key_id"),
             password=parameters.get("aws_secret_access_key"),
-            host=f"athena.{parameters['region_name']}.amazonaws.com",
+            host=host,
+            port=port,
             database=parameters.get("schema_name"),
             query=query,
         ).render_as_string(hide_password=False)
+
+    @staticmethod
+    def _build_host(region_name: str) -> tuple[str, Optional[int]]:
+        """
+        Return the URI host (and port) for the ``region_name`` parameter.
+
+        ``region_name`` is normally an AWS region code (``us-east-1``), from
+        which the standard regional Athena host is built (``.amazonaws.com.cn``
+        for China regions). Region codes never contain a dot or a colon, so a
+        value that does is a full host — e.g. a VPC/PrivateLink endpoint kept
+        verbatim by ``get_parameters_from_uri`` — and is used as-is, including
+        any ``:port`` suffix.
+        """
+        if "." not in region_name and ":" not in region_name:
+            suffix = ".cn" if region_name.startswith("cn-") else ""
+            return f"athena.{region_name}.amazonaws.com{suffix}", None
+
+        host, sep, port = region_name.rpartition(":")
+        if sep and port.isdigit():
+            return host, int(port)
+        return region_name, None
 
     @classmethod
     def get_parameters_from_uri(
@@ -308,9 +354,13 @@ class AthenaEngineSpec(BaseEngineSpec):
 
         host = url.host or ""
         if match := ATHENA_HOST_REGEX.match(host):
+            # PyAthena ignores the port, so a standard regional host reduces
+            # to just its region code.
             region_name = match["region_name"]
         else:
-            region_name = host
+            # Non-standard host (e.g. VPC/PrivateLink endpoint): keep it, and
+            # its port, verbatim so ``build_sqlalchemy_uri`` reproduces it.
+            region_name = f"{host}:{url.port}" if url.port else host
 
         parameters: AthenaParametersType = {
             "aws_access_key_id": url.username,
@@ -322,6 +372,12 @@ class AthenaEngineSpec(BaseEngineSpec):
             parameters["s3_staging_dir"] = query["s3_staging_dir"]
         if "work_group" in query:
             parameters["work_group"] = query["work_group"]
+        if extra_query := {
+            key: value
+            for key, value in query.items()
+            if key not in ATHENA_FORM_QUERY_PARAMS
+        }:
+            parameters["query"] = extra_query
         return parameters
 
     @classmethod

@@ -360,6 +360,7 @@ def test_parameters_json_schema() -> None:
         "s3_staging_dir",
         "schema_name",
         "work_group",
+        "query",
     }
     assert schema["required"] == ["region_name"]
 
@@ -470,3 +471,114 @@ def test_validate_parameters_valid() -> None:
         }
     )
     assert errors == []
+
+
+def test_parameters_round_trip_preserves_extra_query_params() -> None:
+    """
+    Re-saving a dynamic-form connection keeps every URI query parameter that is
+    not a dedicated form field (catalog, IAM role, custom endpoint).
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    uri = (
+        "awsathena+rest://AKIAIOSFODNN7EXAMPLE:secret@"
+        "athena.us-east-1.amazonaws.com/default"
+        "?s3_staging_dir=s3%3A%2F%2Fbucket%2F"
+        "&work_group=primary"
+        "&catalog_name=my_catalog"
+        "&role_arn=arn%3Aaws%3Aiam%3A%3A123456789012%3Arole%2Fathena"
+        "&endpoint_url=https%3A%2F%2Fathena.us-east-1.amazonaws.com"
+    )
+    parameters = AthenaEngineSpec.get_parameters_from_uri(uri)
+    assert parameters["query"] == {
+        "catalog_name": "my_catalog",
+        "role_arn": "arn:aws:iam::123456789012:role/athena",
+        "endpoint_url": "https://athena.us-east-1.amazonaws.com",
+    }
+    assert parameters["s3_staging_dir"] == "s3://bucket/"
+    assert parameters["work_group"] == "primary"
+
+    rebuilt = make_url(AthenaEngineSpec.build_sqlalchemy_uri(parameters))
+    assert dict(rebuilt.query) == dict(make_url(uri).query)
+    assert rebuilt.host == "athena.us-east-1.amazonaws.com"
+
+
+def test_parameters_round_trip_form_fields_win_over_query() -> None:
+    """
+    The dedicated S3/work group fields take precedence over a duplicate key in
+    the additional parameters, and empty values are left out of the URI.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    uri = AthenaEngineSpec.build_sqlalchemy_uri(
+        {
+            "region_name": "us-east-1",
+            "s3_staging_dir": "s3://form-bucket/",
+            "query": {
+                "s3_staging_dir": "s3://query-bucket/",
+                "catalog_name": "my_catalog",
+                "role_arn": None,
+            },
+        }
+    )
+    assert dict(make_url(uri).query) == {
+        "s3_staging_dir": "s3://form-bucket/",
+        "catalog_name": "my_catalog",
+    }
+
+
+@pytest.mark.parametrize(
+    "uri",
+    [
+        # VPC / PrivateLink endpoint, with and without an explicit port
+        "awsathena+rest://AKIA:secret@vpce-0123-abcd.athena.us-east-1"
+        ".vpce.amazonaws.com:443/default?s3_staging_dir=s3%3A%2F%2Fbucket%2F",
+        "awsathena+rest://AKIA:secret@vpce-0123-abcd.athena.us-east-1"
+        ".vpce.amazonaws.com/default?work_group=primary",
+        # China partition regional host
+        "awsathena+rest://AKIA:secret@athena.cn-north-1.amazonaws.com.cn/default"
+        "?work_group=primary",
+    ],
+)
+def test_parameters_round_trip_preserves_host(uri: str) -> None:
+    """
+    Non-standard hosts (and their port) survive a round trip instead of being
+    re-prefixed into a malformed ``athena.<host>.amazonaws.com`` endpoint.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    parameters = AthenaEngineSpec.get_parameters_from_uri(uri)
+    rebuilt = make_url(AthenaEngineSpec.build_sqlalchemy_uri(parameters))
+    original = make_url(uri)
+    assert rebuilt.host == original.host
+    assert rebuilt.port == original.port
+    assert rebuilt.database == original.database
+    assert dict(rebuilt.query) == dict(original.query)
+
+
+def test_get_parameters_from_uri_china_region() -> None:
+    """
+    A China-partition regional host reduces to its region code.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    parameters = AthenaEngineSpec.get_parameters_from_uri(
+        "awsathena+rest://athena.cn-north-1.amazonaws.com.cn/default"
+        "?work_group=primary"
+    )
+    assert parameters["region_name"] == "cn-north-1"
+
+
+def test_get_parameters_from_uri_standard_host_port_dropped() -> None:
+    """
+    PyAthena ignores the port of a standard regional host, so it reduces to
+    just the region code (the rebuilt URI connects identically).
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    parameters = AthenaEngineSpec.get_parameters_from_uri(
+        "awsathena+rest://athena.us-east-1.amazonaws.com:443/default"
+        "?work_group=primary"
+    )
+    assert parameters["region_name"] == "us-east-1"
+    assert "query" not in parameters
