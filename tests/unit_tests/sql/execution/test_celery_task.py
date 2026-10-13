@@ -1143,6 +1143,127 @@ def test_execute_sql_task_stopped(
     assert result["status"] == QueryStatusEnum.STOPPED
 
 
+@pytest.mark.parametrize("stop_intent", ["executor", "early", "status"])
+def test_cancelled_impala_cursor_is_not_finalized_as_success(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    stop_intent: str,
+) -> None:
+    """Cleared impyla description after a stop is not a successful DML result."""
+    impyla = pytest.importorskip("impala.hiveserver2")
+
+    from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+    from superset.sql.execution import celery_task
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_query.sql = "SELECT 1"
+    mock_query.database = mock_database
+    mock_database.db_engine_spec = ImpalaEngineSpec
+    mock_query.extra = {QUERY_CANCEL_KEY: "0123456789abcdef:fedcba9876543210"}
+    mock_query.set_extra_json_key.side_effect = (
+        lambda key, value: mock_query.extra.update({key: value})
+    )
+    cursor = impyla.HiveServer2Cursor(MagicMock())
+    operation = MagicMock(has_result_set=True)
+
+    def execute_async(sql: str) -> None:
+        """Publish a real impyla operation backed by mocked RPCs."""
+        cursor._last_operation = operation
+        cursor._last_operation_active = True
+
+    def stop_before_poll() -> str:
+        """Stop after dispatch, before handle_cursor checks the intent."""
+        if stop_intent == "executor":
+            assert SQLExecutor._cancel_query(mock_database, mock_query)
+        elif stop_intent == "early":
+            mock_query.extra[QUERY_EARLY_CANCEL_KEY] = True
+        else:
+            mock_query.status = QueryStatusEnum.STOPPED
+        return "RUNNING_STATE"
+
+    operation.get_status.side_effect = stop_before_poll
+    mocker.patch.object(cursor, "execute_async", side_effect=execute_async)
+    connection = mock_database.get_raw_connection.return_value.__enter__.return_value
+    connection.cursor.return_value = cursor
+    mocker.patch.object(ImpalaEngineSpec, "get_cancel_query_id", return_value=None)
+    mocker.patch(
+        "superset.sql.execution.celery_task._get_query", return_value=mock_query
+    )
+    finalize = mocker.spy(celery_task, "_finalize_successful_query")
+    store = mocker.patch("superset.sql.execution.celery_task._store_results_in_backend")
+    mocker.patch("superset.sql.execution.celery_task.results_backend", MagicMock())
+    post = mocker.patch("superset.db_engine_specs.impala.requests.post")
+
+    payload = celery_task._execute_sql_statements(123, "SELECT 1", None)
+
+    operation.cancel.assert_called_once_with()
+    operation.close.assert_called_once_with()
+    assert cursor.description is None
+    assert payload is not None
+    assert payload["status"] == QueryStatusEnum.STOPPED
+    assert mock_query.status == QueryStatusEnum.STOPPED
+    connection.commit.assert_not_called()
+    finalize.assert_not_called()
+    store.assert_not_called()
+    post.assert_not_called()
+
+
+@pytest.mark.parametrize("stop_intent", ["early", "status"])
+@pytest.mark.parametrize("stop_checkpoint", ["execution", "connection_exit"])
+def test_stop_with_partial_results_skips_success_finalization(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    stop_intent: str,
+    stop_checkpoint: str,
+) -> None:
+    """Partial results or a stop during connection cleanup must remain STOPPED."""
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.sql.execution import celery_task
+
+    mock_query.database = mock_database
+    mocker.patch.object(celery_task, "_get_query", return_value=mock_query)
+    finalize = mocker.spy(celery_task, "_finalize_successful_query")
+    store = mocker.patch.object(celery_task, "_store_results_in_backend")
+    mocker.patch.object(celery_task, "results_backend", MagicMock())
+
+    def record_stop(*args: Any, **kwargs: Any) -> None:
+        """Expose the stop intent at the selected execution boundary."""
+        if stop_intent == "early":
+            mock_query.extra[QUERY_EARLY_CANCEL_KEY] = True
+        else:
+            mock_query.status = QueryStatusEnum.STOPPED
+
+    results = [("SELECT * FROM users", None, 1.0, 0)]
+
+    def execute_with_partial_results(
+        **kwargs: Any,
+    ) -> list[tuple[str, None, float, int]]:
+        """Return completed work even if the last statement was stopped."""
+        if stop_checkpoint == "execution":
+            record_stop()
+        return results
+
+    mocker.patch.object(
+        celery_task, "execute_sql_with_cursor", side_effect=execute_with_partial_results
+    )
+    if stop_checkpoint == "connection_exit":
+        mock_database.get_raw_connection.return_value.__exit__.side_effect = record_stop
+
+    payload = celery_task._execute_sql_statements(123, mock_query.sql, None)
+
+    assert payload is not None
+    assert payload["status"] == QueryStatusEnum.STOPPED
+    assert mock_query.status == QueryStatusEnum.STOPPED
+    assert mock_query.end_time is not None
+    finalize.assert_not_called()
+    store.assert_not_called()
+
+
 def test_execute_sql_task_with_mutation(
     mocker: MockerFixture,
     app_context: None,
