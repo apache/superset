@@ -36,7 +36,7 @@ import { legendSection } from '../controls';
 const { labelType, numberFormat, showLabels, defaultTooltipLabel } =
   DEFAULT_FORM_DATA;
 
-// Funnel keeps legend type and drops orientation; the row is matched by name
+// Funnel keeps legend orientation and drops type; the row is matched by name
 // so inserting another legend control does not remove the wrong one.
 const funnelLegendSection = legendSection.filter(row => {
   const [control] = row;
