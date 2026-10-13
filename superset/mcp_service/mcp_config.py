@@ -18,7 +18,7 @@
 
 import logging
 import secrets
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any, Dict, Optional, Sequence
 
 from fastmcp.server.auth.providers.jwt import JWTVerifier
@@ -63,10 +63,30 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # user's Superset administrator and the Apache Superset issue tracker.
 MCP_BUG_REPORT_CONTACT: str | None = None
 
-# Optional dataset routing mode: effective role names -> registered dataset UUIDs.
-# None preserves the complete MCP tool surface; {} permits no datasets.
-# This only narrows access and is not a substitute for permissions or RLS.
-MCP_DATASET_ROLE_ALLOWLIST: dict[str, list[str]] | None = None
+# Optional dataset routing mode, narrowing MCP tools to a set of registered
+# dataset UUIDs (see SCOPED_TOOLS in dataset_scope.py). None preserves the
+# complete MCP tool surface. This only narrows access and is not a substitute
+# for permissions or RLS.
+#
+# Two forms:
+#   dict[str, list[str]] -- static effective role name -> dataset UUID list,
+#     validated at startup. A caller's allowed datasets are the union of
+#     their effective roles' lists; an unlisted role (including Admin)
+#     contributes nothing. {} permits no datasets. Suitable for single-
+#     tenant installs where roles and dataset UUIDs are fixed at deploy time.
+#   Callable[[user], Iterable[str] | None] -- resolves the allowed dataset
+#     UUIDs for the current request's user instead of a static mapping. Use
+#     this when role names and dataset UUIDs are not static -- e.g. one MCP
+#     deployment serving many per-workspace tenants, each with its own roles
+#     and datasets. Called on every tool call that needs routing enforcement,
+#     so it must be cheap and in-process (no slow network I/O per call).
+#     Fails CLOSED (denies every dataset for that request) if the callable
+#     raises, returns None, or returns a value that cannot be parsed as
+#     dataset UUIDs -- it never falls back to the unscoped (full tool
+#     surface) behavior that a bare `None` *config* means at the top level.
+MCP_DATASET_ROLE_ALLOWLIST: (
+    dict[str, list[str]] | Callable[[Any], Iterable[str] | None] | None
+) = None
 
 # Maximum admitted warehouse-capable tool calls per application/process. There
 # is no waiting queue: a saturated pool returns a server-busy error. Timed-out

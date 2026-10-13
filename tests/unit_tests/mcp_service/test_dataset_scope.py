@@ -114,6 +114,68 @@ def test_scope_is_unrestricted_without_an_app_context() -> None:
     assert get_dataset_scope() is None
 
 
+def test_callable_config_resolves_per_request(app: Flask) -> None:
+    """A callable resolves its own allowlist instead of a role union."""
+    resolver = Mock(return_value=[str(FIRST), str(SECOND)])
+    user = SimpleNamespace(id=1)
+    with app.app_context(), patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=resolver):
+        g.user = user
+        assert get_dataset_scope() == {FIRST, SECOND}
+        g.user = user
+        assert get_dataset_scope() == {FIRST, SECOND}
+    # Called once per request, not cached across calls.
+    assert resolver.call_count == 2
+    resolver.assert_called_with(user)
+
+
+def test_callable_config_accepts_uuid_objects_and_empty_result(app: Flask) -> None:
+    """UUID objects are accepted directly; an empty iterable denies all."""
+    with (
+        app.app_context(),
+        patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=lambda user: [FIRST]),
+    ):
+        g.user = SimpleNamespace(id=1)
+        assert get_dataset_scope() == {FIRST}
+    with (
+        app.app_context(),
+        patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=lambda user: []),
+    ):
+        g.user = SimpleNamespace(id=1)
+        assert get_dataset_scope() == frozenset()
+
+
+@pytest.mark.parametrize(
+    "resolver",
+    [
+        lambda user: None,
+        Mock(side_effect=RuntimeError("workspace lookup failed")),
+        lambda user: "not-a-list",  # a bare string is iterable but rejected
+        lambda user: 42,
+        lambda user: ["not-a-uuid"],
+        lambda user: [object()],
+    ],
+)
+def test_callable_config_fails_closed_never_unscoped(
+    app: Flask, resolver: object
+) -> None:
+    """A misbehaving callable denies every dataset; it never disables routing.
+
+    Unlike the top-level ``None`` config (which disables routing entirely), a
+    resolution failure for one request in a multi-tenant deployment must not
+    silently grant the caller the full, unrestricted tool surface.
+    """
+    with app.app_context(), patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=resolver):
+        g.user = SimpleNamespace(id=1)
+        assert get_dataset_scope() == frozenset()
+
+
+def test_callable_config_is_not_validated_at_startup() -> None:
+    """A callable's result depends on per-request state and can't be checked here."""
+    from superset.mcp_service.dataset_scope import parse_dataset_role_allowlist
+
+    assert parse_dataset_role_allowlist(lambda user: None) is None
+
+
 @pytest.mark.parametrize("config", [[], {"Readers": "*"}, {"Readers": ["bad"]}])
 def test_invalid_config_refuses(app: Flask, config: object) -> None:
     """Malformed config never disables the restriction."""

@@ -18,7 +18,8 @@
 """Optional MCP dataset routing constraints, independent of authorization."""
 
 import inspect
-from collections.abc import Mapping
+import logging
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any, TYPE_CHECKING
 from uuid import UUID
 
@@ -30,6 +31,8 @@ from superset import security_manager
 
 if TYPE_CHECKING:
     from sqlalchemy.orm.query import Query
+
+logger = logging.getLogger(__name__)
 
 CONFIG_KEY = "MCP_DATASET_ROLE_ALLOWLIST"
 
@@ -132,12 +135,19 @@ class DatasetScopeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
 
 def parse_dataset_role_allowlist(config: Any) -> dict[str, set[UUID]] | None:
-    """Validate the allowlist mapping; None means routing constraints are off.
+    """Validate the static allowlist mapping; None means nothing to validate.
 
     Split out from scope resolution so a deployment can fail at startup on a
     malformed mapping rather than on every subsequent tool call.
+
+    A callable ``config`` resolves its allowlist per request (see
+    ``get_dataset_scope``) and cannot be validated once at startup, so it is
+    treated here as "nothing to validate" rather than as an error. Callers
+    that need to distinguish "routing constraints are off" from "a callable
+    is configured" must check ``callable(config)`` themselves before calling
+    this function; ``get_dataset_scope`` does so.
     """
-    if config is None:
+    if config is None or callable(config):
         return None
     if not isinstance(config, dict):
         raise MCPDatasetScopeError(
@@ -187,19 +197,31 @@ def _coerce_dataset_uuid(role: str, identifier: Any) -> UUID:
 
 
 def get_dataset_scope() -> frozenset[UUID] | None:
-    """Union effective roles' UUID allowlists; None disables routing constraints.
+    """Resolve the caller's dataset allowlist; None disables routing constraints.
 
-    Missing roles contribute nothing, including Admin. Authorization is applied
-    separately by the dataset DAO and the normal query execution/RLS machinery.
-    No scope is cached across calls or users.
+    ``MCP_DATASET_ROLE_ALLOWLIST`` accepts two forms:
+
+    - A static ``dict[str, list[str]]`` mapping role name to dataset UUIDs,
+      validated at startup. Effective roles' allowlists are unioned; missing
+      roles (including Admin) contribute nothing.
+    - A callable resolving the allowlist for the current request's user (see
+      ``_resolve_callable_scope``), for deployments where roles and dataset
+      UUIDs are not static (e.g. per-workspace in a multi-tenant install).
+
+    Authorization is applied separately by the dataset DAO and the normal
+    query execution/RLS machinery. No scope is cached across calls or users.
     """
     if not has_app_context():
         # Reached only for FastMCP internal operations such as tool discovery,
         # which run without a Flask context and therefore touch no dataset data.
         return None
-    normalized = parse_dataset_role_allowlist(current_app.config.get(CONFIG_KEY))
-    if normalized is None:
+    config = current_app.config.get(CONFIG_KEY)
+    if config is None:
         return None
+    if callable(config):
+        return _resolve_callable_scope(config)
+    normalized = parse_dataset_role_allowlist(config)
+    assert normalized is not None  # config is neither None nor callable here
     if not getattr(g, "user", None):
         # Routing is enabled, but no user can contribute roles: deny every
         # dataset. None would disable routing rather than represent no grants.
@@ -209,6 +231,68 @@ def get_dataset_scope() -> frozenset[UUID] | None:
         for role in security_manager.get_user_roles()
         for identifier in normalized.get(role.name, set())
     )
+
+
+def _resolve_callable_scope(resolver: Callable[[Any], Any]) -> frozenset[UUID]:
+    """Call a configured ``MCP_DATASET_ROLE_ALLOWLIST`` resolver for this request.
+
+    Fails CLOSED -- denies every dataset for this request -- if the resolver
+    raises, returns ``None``, or returns something that cannot be parsed as
+    dataset UUIDs. This is deliberately different from a bare ``None``
+    *config* at the top level, which disables routing constraints entirely:
+    once an operator has configured dynamic routing, a resolution failure for
+    one request (an unresolvable workspace, a transient lookup error) must
+    deny access rather than silently fall back to the unrestricted tool
+    surface for that caller.
+    """
+    user = getattr(g, "user", None)
+    try:
+        result = resolver(user)
+    except Exception:  # noqa: BLE001 — operator-supplied callable may raise anything
+        logger.warning(
+            "%s callable raised while resolving dataset scope; failing "
+            "closed (denying all datasets) for this request",
+            CONFIG_KEY,
+            exc_info=True,
+        )
+        return frozenset()
+    if result is None:
+        return frozenset()
+    if isinstance(result, (str, bytes)) or not isinstance(result, Iterable):
+        logger.warning(
+            "%s callable returned %s, expected an iterable of dataset UUIDs "
+            "or None; failing closed (denying all datasets) for this request",
+            CONFIG_KEY,
+            type(result).__name__,
+        )
+        return frozenset()
+    coerced = _coerce_callable_scope_entries(result)
+    if coerced is None:
+        logger.warning(
+            "%s callable returned a value that is not a valid dataset UUID; "
+            "failing closed (denying all datasets) for this request",
+            CONFIG_KEY,
+        )
+        return frozenset()
+    return coerced
+
+
+def _coerce_callable_scope_entries(
+    identifiers: Iterable[Any],
+) -> frozenset[UUID] | None:
+    """Convert a resolver's returned identifiers to UUIDs, or None if invalid."""
+    coerced: set[UUID] = set()
+    for identifier in identifiers:
+        if isinstance(identifier, UUID):
+            coerced.add(identifier)
+            continue
+        if not isinstance(identifier, str):
+            return None
+        try:
+            coerced.add(UUID(identifier))
+        except ValueError:
+            return None
+    return frozenset(coerced)
 
 
 def enforce_call_dataset_scope(

@@ -2194,6 +2194,28 @@ contribute nothing; Admin has no routing exemption. `None` (the default) disable
 this feature; `{}` allows no datasets. Invalid entries cause a configuration
 error at startup rather than silently disabling the restriction.
 
+A static mapping cannot express per-tenant policy when one MCP deployment
+serves many workspaces with their own roles and dataset UUIDs. For that case,
+set `MCP_DATASET_ROLE_ALLOWLIST` to a callable instead of a dict:
+
+```python
+def resolve_dataset_scope(user):
+    workspace = lookup_workspace_for(user)  # cheap, in-process lookup only
+    return workspace.allowed_dataset_uuids if workspace else None
+
+MCP_DATASET_ROLE_ALLOWLIST = resolve_dataset_scope
+```
+
+The callable receives the current request's user and returns an iterable of
+dataset UUIDs (or `None`). It is called on every tool call that needs routing
+enforcement, so it must be cheap and in-process — no network I/O per call. It
+fails **closed**: if the callable raises, returns `None`, or returns a value
+that cannot be parsed as dataset UUIDs, that request is denied every dataset
+rather than falling back to the unscoped, full-tool-surface behavior that a
+bare `None` *config* means at the top level. The static mapping form keeps its
+startup validation; a configured callable is not validated until it runs,
+since its result depends on per-request state.
+
 Scoped mode supports the dataset tools that name a registered dataset —
 `list_datasets`, `get_dataset_info`, `query_dataset`, and, with a built-in
 dataset, `get_table`, `list_metrics`, `get_compatible_dimensions` and
