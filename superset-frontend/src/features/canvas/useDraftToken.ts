@@ -37,15 +37,16 @@ export function useDraftToken() {
   }, []);
 
   /** Open `next` on this page, so a plan started here is shareable by URL. */
-  const open = useCallback((next: string) => {
-    window.history.replaceState(
-      null,
-      '',
-      `${window.location.pathname}${window.location.search}#draft=${next}`,
-    );
-    // `replaceState` fires no `hashchange`, so the state is set here too.
-    setToken(next);
-  }, []);
+  const open = useCallback(
+    (next: string) => {
+      // Through the router, as `clear` does: a raw `window.history` call
+      // bypasses `ensureAppRoot` and breaks under subdirectory deployment.
+      history.replace({ ...history.location, hash: `#draft=${next}` });
+      // Replacing the hash fires no `hashchange`, so the state is set here too.
+      setToken(next);
+    },
+    [history],
+  );
 
   const clear = useCallback(() => {
     history.replace({ ...history.location, hash: '' });

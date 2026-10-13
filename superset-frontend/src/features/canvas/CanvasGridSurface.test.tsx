@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { ReactNode, useState } from 'react';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import CanvasGridSurface from './CanvasGridSurface';
 import type { GridPlacement, SpanConstraints } from './types';
@@ -40,6 +41,9 @@ const surface = (
   // Separate from `live`: a node can be a child of the grid without having a
   // resolved placement, and it must stay mounted when it does.
   childIds: string[] = Object.keys(live),
+  renderNode: (nodeId: string) => ReactNode = nodeId => (
+    <div>{`widget ${nodeId}`}</div>
+  ),
 ) => (
   <CanvasGridSurface
     childIds={childIds}
@@ -50,7 +54,7 @@ const surface = (
     constraints={constraints}
     editable={editable}
     onPlace={onPlace}
-    renderNode={nodeId => <div>{`widget ${nodeId}`}</div>}
+    renderNode={renderNode}
   />
 );
 
@@ -60,14 +64,27 @@ const renderSurface = ({
   constraints = {} as Record<string, SpanConstraints>,
   live = placements,
   childIds = Object.keys(placements),
+  renderNode,
+}: {
+  editable?: boolean;
+  onPlace?: jest.Mock;
+  constraints?: Record<string, SpanConstraints>;
+  live?: Record<string, GridPlacement>;
+  childIds?: string[];
+  renderNode?: (nodeId: string) => ReactNode;
 } = {}) => {
   const { rerender } = render(
-    surface(live, editable, onPlace, constraints, childIds),
+    surface(live, editable, onPlace, constraints, childIds, renderNode),
   );
   return Object.assign(onPlace, {
     /** Simulate a write landing while a gesture is still live. */
     replace: (next: Record<string, GridPlacement>) =>
-      rerender(surface(next, editable, onPlace, constraints, childIds)),
+      rerender(
+        surface(next, editable, onPlace, constraints, childIds, renderNode),
+      ),
+    /** Simulate editing being switched off, e.g. a publish starting. */
+    setEditable: (next: boolean) =>
+      rerender(surface(live, next, onPlace, constraints, childIds, renderNode)),
   });
 };
 
@@ -402,5 +419,97 @@ test('a second pointer cannot steal a live gesture', () => {
     row: 1,
     colSpan: 6,
     rowSpan: 4,
+  });
+});
+
+/** A widget holding its own state, as filter.select and tabs do. */
+const Stateful = ({ nodeId }: { nodeId: string }) => {
+  const [picked, setPicked] = useState('');
+  return (
+    <div>
+      <button type="button" onClick={() => setPicked('EMEA')}>
+        {`pick ${nodeId}`}
+      </button>
+      <span>{`${nodeId} picked=${picked}`}</span>
+    </div>
+  );
+};
+
+test('a widget keeps its own state when editing is switched off and back on', () => {
+  // Swapping the element type around a widget remounts it, losing state the
+  // widget owns: a filter would forget its selection while the charts stayed
+  // filtered. Publish flips `editable`, and flips it back when it fails.
+  const onPlace = renderSurface({
+    renderNode: nodeId => <Stateful nodeId={nodeId} />,
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: 'pick kpi' }));
+  expect(screen.getByText('kpi picked=EMEA')).toBeInTheDocument();
+
+  onPlace.setEditable(false);
+  expect(screen.getByText('kpi picked=EMEA')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Move widget' }),
+  ).not.toBeInTheDocument();
+
+  onPlace.setEditable(true);
+  expect(screen.getByText('kpi picked=EMEA')).toBeInTheDocument();
+  expect(handles('Move widget')).toHaveLength(2);
+});
+
+test('a gesture is released when editing stops mid-drag', () => {
+  // Its handle unmounts, so no up or cancel event can ever reach it. Left
+  // live, the one-gesture-at-a-time guard would block every later drag.
+  const onPlace = renderSurface();
+  pointer(handles('Move widget')[0], 'pointerdown', {
+    button: 0,
+    clientX: 0,
+    clientY: 0,
+  });
+  pointer(handles('Move widget')[0], 'pointermove', {
+    clientX: COL_PITCH * 4,
+    clientY: 0,
+  });
+  expect(screen.getByTestId('canvas-drop-preview')).toBeInTheDocument();
+
+  onPlace.setEditable(false);
+
+  expect(screen.queryByTestId('canvas-drop-preview')).not.toBeInTheDocument();
+
+  // Editing resumes and dragging still works, rather than being dead.
+  onPlace.setEditable(true);
+  drag(handles('Move widget')[0], COL_PITCH * 4, 0);
+
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 5,
+    row: 1,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+});
+
+test('a gesture is released when its node stops being placeable', () => {
+  const onPlace = renderSurface();
+  pointer(handles('Move widget')[0], 'pointerdown', {
+    button: 0,
+    clientX: 0,
+    clientY: 0,
+  });
+  pointer(handles('Move widget')[0], 'pointermove', {
+    clientX: COL_PITCH * 4,
+    clientY: 0,
+  });
+
+  // A draft poll removes 'kpi' from the resolved placements.
+  onPlace.replace({ trend: placements.trend });
+
+  expect(screen.queryByTestId('canvas-drop-preview')).not.toBeInTheDocument();
+  // The surviving widget is still draggable.
+  drag(handles('Move widget')[0], 0, ROW_PITCH);
+  expect(onPlace).toHaveBeenCalledWith('trend', {
+    col: 1,
+    row: 6,
+    colSpan: 24,
+    rowSpan: 8,
   });
 });

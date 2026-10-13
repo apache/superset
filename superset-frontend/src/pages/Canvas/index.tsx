@@ -26,28 +26,20 @@ import {
   EmptyState,
   Loading,
 } from '@superset-ui/core/components';
-import { Alert } from '@apache-superset/core/components';
 import { chat, setActiveCanvas, useChat } from 'src/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { useApiV1Resource } from 'src/hooks/apiResources';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import CanvasGrid, {
-  emptyScopeValues,
-  ScopeValues,
-} from 'src/features/canvas/CanvasGrid';
-import {
-  CanvasDefinitionResult,
-  CanvasMetadata,
-} from 'src/features/canvas/types';
+import { emptyScopeValues, ScopeValues } from 'src/features/canvas/CanvasGrid';
+import { CanvasMetadata } from 'src/features/canvas/types';
 import { useCanvasDefinition } from 'src/features/canvas/useCanvasDefinition';
-import DraftBanner from 'src/features/canvas/DraftBanner';
 import { useDraftToken } from 'src/features/canvas/useDraftToken';
 import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
-import { useCanvasLayout } from 'src/features/canvas/useCanvasLayout';
 import PlanModeButton from 'src/features/canvas/PlanModeButton';
+import CanvasBody from 'src/features/canvas/CanvasBody';
 
 registerBuiltinRenderers();
 
@@ -116,100 +108,6 @@ const notFound = (
     title={t('This canvas does not exist, or you do not have access to it')}
   />
 );
-
-interface CanvasBodyProps {
-  canvasId: number;
-  result: CanvasDefinitionResult;
-  reload: () => void;
-  values: ScopeValues;
-  onValueChange: (
-    kind: canvasApi.ScopeKind,
-    nodeId: string,
-    value: unknown,
-  ) => void;
-  refreshKeys: Record<string, number>;
-  /** Set while a draft is open; layout writes then go to the draft. */
-  draftToken?: string;
-  /** Leaves the draft, returning to the published canvas. */
-  onDraftClosed: () => void;
-  /** True when the canvas holds no widgets yet. */
-  isEmpty: boolean;
-}
-
-/**
- * The canvas itself, once its definition has loaded. Drag and resize persist
- * from here; a write that doesn't land says so and leaves the layout where the
- * server still has it.
- */
-function CanvasBody({
-  canvasId,
-  result,
-  reload,
-  values,
-  onValueChange,
-  refreshKeys,
-  draftToken,
-  onDraftClosed,
-  isEmpty,
-}: CanvasBodyProps) {
-  const layout = useCanvasLayout(canvasId, result, reload, draftToken);
-  // True while the draft is being published or discarded.
-  const [committing, setCommitting] = useState(false);
-  // Changes are made in a plan; the published canvas is read-only even for
-  // someone who may edit it. Editing also stops once a publish starts: the
-  // commit names a revision and then deletes the draft, so a change accepted
-  // after that read would be replayed by nothing. The single place this
-  // policy is decided.
-  const editable = result.canEdit && Boolean(draftToken) && !committing;
-  return (
-    <>
-      {draftToken && (
-        <DraftBanner
-          token={draftToken}
-          // The revision the layout writes have reached, not the one the
-          // definition was fetched at: a commit must name the draft's current
-          // revision, and dragging moves it on well before the next poll.
-          revision={layout.revision}
-          // Held while a drag or resize is still in flight or queued: a
-          // commit then would publish the older revision and delete the
-          // draft, silently dropping the move the user just made.
-          saving={layout.saving}
-          onBusyChange={setCommitting}
-          onClose={onDraftClosed}
-        />
-      )}
-      {layout.error && (
-        <Alert
-          type="warning"
-          closable
-          showIcon
-          message={layout.error}
-          onClose={layout.dismissError}
-          data-test="canvas-layout-error"
-        />
-      )}
-      {isEmpty ? (
-        <EmptyState
-          size="medium"
-          title={t('This canvas is empty')}
-          description={t('Ask the chat to add widgets to it.')}
-        />
-      ) : (
-        <CanvasGrid
-          canvasId={canvasId}
-          result={result}
-          values={values}
-          onValueChange={onValueChange}
-          refreshKeys={refreshKeys}
-          layout={layout}
-          editable={editable}
-          // Widgets read their data from the draft while one is open.
-          draftToken={draftToken}
-        />
-      )}
-    </>
-  );
-}
 
 function CanvasContent({ id }: { id: number }) {
   const metadata = useApiV1Resource<CanvasMetadata>(`/api/v1/canvas/${id}`);

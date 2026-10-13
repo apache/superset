@@ -347,6 +347,29 @@ export default function CanvasGridSurface({
     update(undefined);
   };
 
+  // Losing capture ends the gesture even when no up or cancel event arrives,
+  // which is what happens if the handle is unmounted mid-drag.
+  const onLostPointerCapture = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    const { current } = live;
+    if (!current || current.pointerId !== event.pointerId) return;
+    update(undefined);
+  };
+
+  // A gesture whose node stops being placeable, or that editing has stopped
+  // allowing, can never be released by its own handle: that handle is gone,
+  // so its up and cancel events never fire. Without this the gesture would
+  // persist, leaving the drop preview on screen and -- because only one
+  // gesture may be live at a time -- blocking every later drag and resize.
+  useEffect(() => {
+    const { current } = live;
+    if (!current) return;
+    if (!editable || !placements[current.nodeId]) {
+      update(undefined);
+    }
+  }, [editable, placements, update]);
+
   /**
    * Arrow keys do what dragging that handle does, one cell at a time, so the
    * layout is reachable without a pointer: the grip moves the widget, the
@@ -379,6 +402,7 @@ export default function CanvasGridSurface({
     onPointerMove,
     onPointerUp,
     onPointerCancel,
+    onLostPointerCapture,
   };
 
   const preview = gesture
@@ -427,33 +451,33 @@ export default function CanvasGridSurface({
             data-test="canvas-node"
             data-node-id={childId}
           >
-            {editable && placements[childId] ? (
-              <Interactive>
-                {renderNode(childId)}
-                <Grip
-                  type="button"
-                  className="canvas-handle"
-                  aria-label={t('Move widget')}
-                  data-test="canvas-drag-handle"
-                  onPointerDown={begin(childId, 'move')}
-                  onKeyDown={onKeyDown(childId, 'move')}
-                  {...handlers}
-                >
-                  <Icons.HolderOutlined iconSize="s" />
-                </Grip>
-                <ResizeCorner
-                  type="button"
-                  className="canvas-handle"
-                  aria-label={t('Resize widget')}
-                  data-test="canvas-resize-handle"
-                  onPointerDown={begin(childId, 'resize')}
-                  onKeyDown={onKeyDown(childId, 'resize')}
-                  {...handlers}
-                />
-              </Interactive>
-            ) : (
-              renderNode(childId)
-            )}
+            <Interactive>
+              {renderNode(childId)}
+              {editable && placements[childId] && (
+                <>
+                  <Grip
+                    type="button"
+                    className="canvas-handle"
+                    aria-label={t('Move widget')}
+                    data-test="canvas-drag-handle"
+                    onPointerDown={begin(childId, 'move')}
+                    onKeyDown={onKeyDown(childId, 'move')}
+                    {...handlers}
+                  >
+                    <Icons.HolderOutlined iconSize="s" />
+                  </Grip>
+                  <ResizeCorner
+                    type="button"
+                    className="canvas-handle"
+                    aria-label={t('Resize widget')}
+                    data-test="canvas-resize-handle"
+                    onPointerDown={begin(childId, 'resize')}
+                    onKeyDown={onKeyDown(childId, 'resize')}
+                    {...handlers}
+                  />
+                </>
+              )}
+            </Interactive>
           </GridItem>
         );
       })}
