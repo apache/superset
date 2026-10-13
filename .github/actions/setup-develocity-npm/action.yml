@@ -26,7 +26,7 @@ runs:
       id: check-agent
       shell: bash
       run: |
-        if [ -f /tmp/develocity-npm/@gradle-tech/develocity-agent/package.json ]; then
+        if [ -f /tmp/develocity-npm/@gradle-tech/develocity-agent/package.json ] && [ -f /tmp/develocity-npm/@gradle-tech/develocity-agent/dist/preload.js ]; then
           echo "installed=true" >> "$GITHUB_OUTPUT"
         else
           echo "::warning::Develocity npm agent not found, Build Scans disabled for this job"
