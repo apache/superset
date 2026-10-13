@@ -637,6 +637,60 @@ test('a temporal column stored as a number previews in its stored representation
   ).toEqual(['2026-01-15 00:00:00']);
 });
 
+test('a temporal column stored as formatted text previews in that format', () => {
+  // A `STRING` column flagged temporal with `%Y%m%d` compares `'20260115'`:
+  // `dttm_sql_literal` falls back to `python_date_format` when the engine's
+  // `convert_dttm` answers nothing. Previewing the ISO timestamp evaluated the
+  // transform on a sample no chart bound produces, so a working mapping --
+  // `PARSE_DATE('%Y%m%d', :value)` onto a `DATE` key -- reported as broken.
+  expect(
+    sampleValuesFor({
+      column_name: 'ds',
+      type: 'STRING',
+      is_dttm: true,
+      python_date_format: '%Y%m%d',
+    }),
+  ).toEqual(['20260115']);
+  expect(
+    sampleValuesFor({
+      column_name: 'ds',
+      type: 'VARCHAR(20)',
+      is_dttm: true,
+      python_date_format: '%Y-%m-%d %H:%M:%S',
+    }),
+  ).toEqual(['2026-01-15 00:00:00']);
+  expect(
+    sampleValuesFor({
+      column_name: 'ds',
+      type: 'TEXT',
+      is_dttm: true,
+      python_date_format: '%d/%m/%Y',
+    }),
+  ).toEqual(['15/01/2026']);
+
+  // A declared temporal type keeps the ISO sample: the engine renders its own
+  // literal, so the format never reaches the comparison.
+  expect(
+    sampleValuesFor({
+      column_name: 'event_time',
+      type: 'TIMESTAMP',
+      is_dttm: true,
+      python_date_format: '%Y%m%d',
+    }),
+  ).toEqual(['2026-01-15 00:00:00']);
+
+  // And a directive the renderer does not know falls back rather than sending
+  // a sample with a literal `%c` in it.
+  expect(
+    sampleValuesFor({
+      column_name: 'ds',
+      type: 'STRING',
+      is_dttm: true,
+      python_date_format: '%c',
+    }),
+  ).toEqual(['2026-01-15 00:00:00']);
+});
+
 test('"map a column" suggests a temporal column over whatever sorts first', () => {
   // The alternative lands on `revenue`, which nobody would mirror onto a
   // partition key.

@@ -308,6 +308,67 @@ const EPOCH_SAMPLES: Record<string, string> = {
   epoch_ms: '1768435200000',
 };
 
+/** The sample instant as ISO text, which is what an unformatted column gets. */
+const TIMESTAMP_SAMPLE = '2026-01-15 00:00:00';
+
+/**
+ * Declared types the engine renders a datetime for on its own.
+ *
+ * `python_date_format` only reaches the comparison when the engine's
+ * `convert_dttm` answers nothing (`dttm_sql_literal`), which is the case for a
+ * column flagged temporal whose *declared* type is not. A real `TIMESTAMP`
+ * column carrying a format still compares the engine's own literal, so it
+ * keeps the ISO sample.
+ */
+const TEMPORAL_TYPE_RE = /DATE|TIME|TIMESTAMP|DATETIME/i;
+
+/**
+ * Each `strftime` directive's value for the sample instant.
+ *
+ * A table rather than a date library because the instant is a constant: there
+ * is nothing to compute, and a partial `strftime` implementation that silently
+ * got a field wrong would be worse than not rendering at all.
+ */
+const STRFTIME_FIELDS: Record<string, string> = {
+  Y: '2026',
+  y: '26',
+  m: '01',
+  d: '15',
+  H: '00',
+  I: '12',
+  M: '00',
+  S: '00',
+  f: '000000',
+  j: '015',
+  p: 'AM',
+  '%': '%',
+};
+
+/**
+ * The sample instant rendered through a column's `python_date_format`.
+ *
+ * Returns `undefined` for a format carrying a directive the table above does
+ * not know, so the caller can fall back rather than send a string with a
+ * literal `%c` in it.
+ */
+function renderSampleWithFormat(format: string): string | undefined {
+  let rendered = '';
+  for (let i = 0; i < format.length; i += 1) {
+    if (format[i] !== '%') {
+      rendered += format[i];
+      continue;
+    }
+    const directive = format[i + 1];
+    const value = directive === undefined ? undefined : STRFTIME_FIELDS[directive];
+    if (value === undefined) {
+      return undefined;
+    }
+    rendered += value;
+    i += 1;
+  }
+  return rendered;
+}
+
 /**
  * Samples the preview evaluates the transform at.
  *
@@ -333,10 +394,25 @@ export function sampleValuesFor(
 ): string[] {
   const isNumeric = Boolean(column?.type && NUMERIC_TYPE_RE.test(column.type));
   if (column?.is_dttm) {
+    const format = column.python_date_format ?? '';
     if (!isNumeric) {
-      return ['2026-01-15 00:00:00'];
+      // A column flagged temporal whose declared type is not reaches the probe
+      // rendered through its own format: `dttm_sql_literal` falls back to
+      // `python_date_format` when the engine's `convert_dttm` answers nothing,
+      // so a `STRING` column stored as `%Y%m%d` compares `'20260115'`.
+      // Previewing the ISO timestamp evaluated the transform on a sample no
+      // chart bound produces and reported a working mapping as broken.
+      //
+      // Only a real `strftime` pattern: `epoch_s`/`epoch_ms` are Superset's
+      // own sentinels rather than formats, and are handled below for the
+      // numeric columns that can hold them.
+      const formatted =
+        format.includes('%') && !TEMPORAL_TYPE_RE.test(column.type ?? '')
+          ? renderSampleWithFormat(format)
+          : undefined;
+      return [formatted || TIMESTAMP_SAMPLE];
     }
-    const epochSample = EPOCH_SAMPLES[column.python_date_format ?? ''];
+    const epochSample = EPOCH_SAMPLES[format];
     if (epochSample) {
       return [epochSample];
     }
