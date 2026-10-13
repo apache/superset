@@ -22,12 +22,15 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.sql.parse import RLSMethod
 from superset.utils.core import GenericDataType
 
 
 class DynamoDBEngineSpec(BaseEngineSpec):
     engine = "dynamodb"
     engine_name = "Amazon DynamoDB"
+
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     metadata = {
         "description": (

@@ -197,8 +197,8 @@ def _make_datasource_with_real_rls(dataset_id: int) -> MagicMock:
     datasource = _make_datasource(dataset_id)
     # Bind real BaseDatasource method so RLS logic executes against mocked
     # security_manager rather than returning MagicMock auto-stub
-    datasource.get_sqla_row_level_filters = (
-        lambda **kwargs: BaseDatasource.get_sqla_row_level_filters(datasource, **kwargs)
+    datasource.get_sqla_row_level_filters = lambda **kwargs: (
+        BaseDatasource.get_sqla_row_level_filters(datasource, **kwargs)
     )
     return datasource
 
@@ -369,7 +369,7 @@ def _guest_rls_database(
     database.get_dialect.return_value = sqlite.dialect()
     database.get_default_catalog.return_value = None
     database.db_engine_spec.engine = "sqlite"
-    database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
+    database.db_engine_spec.rls_method = RLSMethod.AS_PREDICATE
     db = mocker.patch("superset.utils.rls.db")
     # SQLite folds unquoted identifiers, so datasets are looked up with ``all()``
     db.session.query().filter().all.return_value = [mock_pd]
@@ -576,7 +576,7 @@ def test_virtual_dataset_subquery_lookup_skipped_for_non_guest(
     from superset.utils.rls import apply_rls
 
     database = mocker.MagicMock()
-    database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
+    database.db_engine_spec.rls_method = RLSMethod.AS_PREDICATE
     mocker.patch(
         "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
         return_value=None,
@@ -619,7 +619,7 @@ def test_virtual_dataset_own_rls_applied_to_subquery(
 
     database = mocker.MagicMock()
     database.get_default_catalog.return_value = None
-    database.db_engine_spec.get_rls_method.return_value = RLSMethod.AS_PREDICATE
+    database.db_engine_spec.rls_method = RLSMethod.AS_PREDICATE
     mocker.patch(
         "superset.utils.rls.security_manager.get_current_guest_user_if_guest",
         return_value=_make_guest_user(rules=[]) if is_guest else None,

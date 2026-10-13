@@ -39,6 +39,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.sql.parse import RLSMethod
 
 # Regular expressions to catch custom errors
 
@@ -226,6 +227,8 @@ class OcientEngineSpec(BaseEngineSpec):
     engine_name = "Ocient"
     force_column_alias_quotes = True
     max_column_name_length = 30
+
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     allows_cte_in_subquery = False
     # Ocient does not support cte names starting with underscores

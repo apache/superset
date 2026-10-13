@@ -31,6 +31,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.sql.parse import RLSMethod
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
@@ -170,6 +171,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     allows_sql_comments = False
     supports_offset = False
     column_type_mappings = FIELD_TYPE_MAPPINGS
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     metadata = {
         "description": (

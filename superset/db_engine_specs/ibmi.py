@@ -16,6 +16,7 @@
 # under the License.
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import DatabaseCategory
+from superset.sql.parse import RLSMethod
 
 from .db2 import Db2EngineSpec
 
@@ -30,6 +31,7 @@ class IBMiEngineSpec(Db2EngineSpec):
     engine = "ibmi"
     engine_name = "IBM Db2 for i"
     max_column_name_length = 128
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     metadata = {
         "description": (
