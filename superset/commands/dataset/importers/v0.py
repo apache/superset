@@ -26,6 +26,9 @@ from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.commands.dataset.exceptions import DatasetInvalidError
 from superset.commands.exceptions import ImportFailedError
+from superset.commands.dataset.importers.v1.utils import (
+    _default_omitted_monotonic_declarations,
+)
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import (
     BaseDatasource,
@@ -289,6 +292,7 @@ class ImportDatasetsCommand(BaseCommand):
         imported: list[SqlaTable] = []
         for file_name, config in self._configs.items():
             logger.info("Importing dataset from file %s", file_name)
+            self._default_omitted_monotonic_declarations(config)
             if isinstance(config, dict):
                 imported.extend(import_from_dict(config, sync=self.sync))
             else:  # list
@@ -307,6 +311,36 @@ class ImportDatasetsCommand(BaseCommand):
                         imported.append(table)
 
         self._repair_partition_mappings(imported)
+
+    @classmethod
+    def _default_omitted_monotonic_declarations(cls, config: Any) -> None:
+        """
+        Materialize `partition_transform_is_monotonic` wherever a transform is
+        set, anywhere in a v0 config.
+
+        The v1 importer does this on its own raw config, and for the same
+        reason: an overwrite keeps whatever the bundle omits, including a
+        ``True`` left behind by the transform this bundle is replacing. A
+        non-monotonic transform declared monotonic enables range mirrors that
+        exclude rows the filter keeps -- ``abs(:value)`` inheriting a stored
+        ``True`` turns ``n >= -1`` into ``p >= 1`` and misses ``n = 0``.
+
+        Walked rather than addressed directly because a v0 bundle comes in two
+        shapes: a CLI export nests datasets under ``databases[].tables[]``,
+        while a UI export is a bare list of datasets. Only columns that supply
+        a transform are touched, so a re-import that says nothing about a
+        column stays idempotent.
+        """
+        if isinstance(config, list):
+            for entry in config:
+                cls._default_omitted_monotonic_declarations(entry)
+            return
+        if not isinstance(config, dict):
+            return
+        _default_omitted_monotonic_declarations(config.get("columns") or [])
+        for key in (DATABASES_KEY, "tables"):
+            for child in config.get(key) or []:
+                cls._default_omitted_monotonic_declarations(child)
 
     @staticmethod
     def _repair_partition_mappings(datasets: list[SqlaTable]) -> None:
@@ -338,6 +372,24 @@ class ImportDatasetsCommand(BaseCommand):
             DatasetDAO.clear_dangling_partition_mapping(
                 dataset, {column.column_name for column in dataset.columns}
             )
+            # The other reference a bundle can leave unsaveable, cleared the way
+            # the v1 importer clears it: an *explicit* self-mapping is blocking
+            # in `UpdateDatasetCommand`, so a bundle setting both references to
+            # the same existing column imported happily and then failed every
+            # later edit, including a description-only PUT. Dropping only the
+            # override leaves the mapping following `main_dttm_col`, which is
+            # the state a bundle omitting the field would have produced.
+            if (
+                dataset.partition_mapped_column
+                and dataset.partition_mapped_column == dataset.partition_column
+            ):
+                logger.warning(
+                    "Clearing the partition mapped column on dataset %s during "
+                    "import: it names the partition column itself, which no "
+                    "later save would accept",
+                    dataset.table_name,
+                )
+                dataset.partition_mapped_column = None
             DatasetDAO.clear_unmapped_partition_transforms(dataset)
 
     def validate(self) -> None:

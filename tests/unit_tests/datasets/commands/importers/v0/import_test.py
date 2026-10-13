@@ -166,3 +166,167 @@ def test_a_v0_database_bundle_repairs_its_datasets_too(mocker: MockerFixture) ->
 
     dangling.assert_called_once_with(dataset, {"ds"})
     unmapped.assert_called_once_with(dataset)
+
+
+def test_a_v0_import_clears_an_explicit_self_mapping(mocker: MockerFixture) -> None:
+    """
+    A dangling reference is not the only mapping a later save refuses: an
+    explicit self-mapping -- `partition_mapped_column` equal to
+    `partition_column` -- is blocking in `UpdateDatasetCommand`. A legacy
+    bundle setting both to the same existing column imported cleanly and then
+    failed every later edit, including a description-only PUT. The v1 importer
+    already clears it; this path did not.
+    """
+    from superset.commands.dataset.importers import v0
+    from superset.daos.dataset import DatasetDAO
+
+    dataset = mocker.MagicMock()
+    dataset.columns = [mocker.MagicMock(column_name="event_time")]
+    dataset.partition_column = "event_time"
+    dataset.partition_mapped_column = "event_time"
+    mocker.patch.object(v0.SqlaTable, "import_from_dict", return_value=dataset)
+    mocker.patch.object(v0.db.session, "flush")
+    mocker.patch.object(
+        v0.db.session, "query", return_value=mocker.MagicMock()
+    ).return_value.filter_by.return_value.one.return_value = mocker.MagicMock(id=1)
+    mocker.patch.object(DatasetDAO, "clear_dangling_partition_mapping")
+    mocker.patch.object(DatasetDAO, "clear_unmapped_partition_transforms")
+
+    command = v0.ImportDatasetsCommand({})
+    command._configs = {  # noqa: SLF001
+        "ds.yaml": [{"params": '{"database_name": "sample_db"}'}]
+    }
+    command.run()
+
+    # Only the override goes, which leaves the mapping following
+    # `main_dttm_col` -- the state a bundle omitting the field would produce.
+    assert dataset.partition_mapped_column is None
+    assert dataset.partition_column == "event_time"
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        # A UI export: a bare list of datasets.
+        [
+            {
+                "params": '{"database_name": "sample_db"}',
+                "columns": [
+                    {"column_name": "n", "partition_value_transform": "abs(:value)"}
+                ],
+            }
+        ],
+        # A CLI export: datasets nested under their database.
+        {
+            "databases": [
+                {
+                    "database_name": "sample_db",
+                    "tables": [
+                        {
+                            "table_name": "t",
+                            "columns": [
+                                {
+                                    "column_name": "n",
+                                    "partition_value_transform": "abs(:value)",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ]
+        },
+    ],
+    ids=["ui-export", "cli-export"],
+)
+def test_a_v0_import_defaults_an_omitted_monotonic_declaration(config: object) -> None:
+    """
+    An overwrite keeps whatever the bundle omits, including a `True` left
+    behind by the transform this bundle replaces. `abs(:value)` inheriting it
+    enables range mirrors that exclude rows the filter keeps: `n >= -1` becomes
+    `p >= 1` and misses `n = 0, p = 0`.
+
+    Both bundle shapes, because a v0 config nests datasets differently
+    depending on where it came from.
+    """
+    from superset.commands.dataset.importers import v0
+
+    v0.ImportDatasetsCommand._default_omitted_monotonic_declarations(  # noqa: SLF001
+        config
+    )
+
+    columns = (
+        config[0]["columns"]
+        if isinstance(config, list)
+        else config["databases"][0]["tables"][0]["columns"]
+    )
+    assert columns[0]["partition_transform_is_monotonic"] is False
+
+
+def test_a_v0_import_leaves_a_transformless_column_alone() -> None:
+    """
+    Only columns that supply a transform are touched, so a re-import that says
+    nothing about a column stays idempotent -- and an explicit declaration the
+    bundle does carry is not overwritten.
+    """
+    from superset.commands.dataset.importers import v0
+
+    config = [
+        {
+            "columns": [
+                {"column_name": "plain"},
+                {
+                    "column_name": "declared",
+                    "partition_value_transform": "unix_timestamp(:value)",
+                    "partition_transform_is_monotonic": True,
+                },
+            ]
+        }
+    ]
+
+    v0.ImportDatasetsCommand._default_omitted_monotonic_declarations(  # noqa: SLF001
+        config
+    )
+
+    assert "partition_transform_is_monotonic" not in config[0]["columns"][0]
+    assert config[0]["columns"][1]["partition_transform_is_monotonic"] is True
+
+
+def test_a_v0_import_normalizes_before_it_writes(mocker: MockerFixture) -> None:
+    """
+    The wiring, not the helper: the tests above call
+    `_default_omitted_monotonic_declarations` directly, so deleting its call
+    from `run()` would leave them green while the default never reached
+    storage. Asserted on the payload `import_from_dict` actually receives.
+    """
+    from superset.commands.dataset.importers import v0
+    from superset.daos.dataset import DatasetDAO
+
+    dataset = mocker.MagicMock()
+    dataset.columns = []
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
+    imported = mocker.patch.object(
+        v0.SqlaTable, "import_from_dict", return_value=dataset
+    )
+    mocker.patch.object(v0.db.session, "flush")
+    mocker.patch.object(
+        v0.db.session, "query", return_value=mocker.MagicMock()
+    ).return_value.filter_by.return_value.one.return_value = mocker.MagicMock(id=1)
+    mocker.patch.object(DatasetDAO, "clear_dangling_partition_mapping")
+    mocker.patch.object(DatasetDAO, "clear_unmapped_partition_transforms")
+
+    command = v0.ImportDatasetsCommand({})
+    command._configs = {  # noqa: SLF001
+        "ds.yaml": [
+            {
+                "params": '{"database_name": "sample_db"}',
+                "columns": [
+                    {"column_name": "n", "partition_value_transform": "abs(:value)"}
+                ],
+            }
+        ]
+    }
+    command.run()
+
+    written = imported.call_args.args[0]
+    assert written["columns"][0]["partition_transform_is_monotonic"] is False
