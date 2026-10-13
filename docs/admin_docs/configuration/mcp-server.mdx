@@ -2194,6 +2194,47 @@ contribute nothing; Admin has no routing exemption. `None` (the default) disable
 this feature; `{}` allows no datasets. Invalid entries cause a configuration
 error at startup rather than silently disabling the restriction.
 
+A static mapping cannot express per-tenant policy when one MCP deployment
+serves many workspaces with their own roles and dataset UUIDs. For that case,
+set `MCP_DATASET_ROLE_ALLOWLIST` to a callable instead of a dict:
+
+```python
+def resolve_dataset_scope(user):
+    # Import inside the callable: MCP modules cannot be imported while the
+    # config itself is loading.
+    from superset.mcp_service.dataset_scope import UNSCOPED
+
+    workspace = lookup_workspace_for(user)  # cheap, in-process lookup only
+    if workspace is None:
+        return None  # unknown tenant: deny every dataset
+    if not workspace.dataset_scoping_enabled:
+        return UNSCOPED  # tenant has not opted in: no routing constraints
+    return workspace.allowed_dataset_uuids
+
+MCP_DATASET_ROLE_ALLOWLIST = resolve_dataset_scope
+```
+
+The callable receives the current request's user and returns one of:
+
+- an iterable of dataset UUID strings or `UUID` objects — the caller is scoped
+  to those datasets (an empty iterable allows none);
+- `superset.mcp_service.dataset_scope.UNSCOPED` — the caller is not scoped:
+  the full MCP tool surface (including tools such as `execute_sql` that scoped
+  mode refuses) and no dataset filter, exactly as if the setting were `None`.
+  Use this when only some tenants of a shared deployment opt into scoping;
+- `None` — no grants: the caller is denied every dataset.
+
+It is called on every tool call that needs routing enforcement — sometimes
+more than once per call, for example when `list_datasets` both checks and
+filters by the scope — so it must be cheap, side-effect free and in-process,
+with no network I/O per call. It fails **closed**: if the callable raises
+(including while consuming a lazy iterable), returns `None` or an empty
+iterable, or returns a value that cannot be parsed as dataset UUIDs, that
+request is denied every dataset. Only the explicit `UNSCOPED` sentinel lifts
+the constraints, so a failed or missed lookup can never widen access. The
+static mapping form keeps its startup validation; a configured callable is not
+validated until it runs, since its result depends on per-request state.
+
 Scoped mode supports the dataset tools that name a registered dataset —
 `list_datasets`, `get_dataset_info`, `query_dataset`, and, with a built-in
 dataset, `get_table`, `list_metrics`, `get_compatible_dimensions` and

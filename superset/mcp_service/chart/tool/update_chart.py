@@ -927,6 +927,8 @@ async def update_chart(  # noqa: C901
     - Use numeric ID or UUID string to identify the chart (NOT chart name).
     - config is optional — omit it to rename a chart without changing its visualization
     - To append table columns without restating the existing list, use add_columns
+    - On a chart of the same type, leaving out xy 'kind', table 'viz_type' or
+      big_number 'show_trendline' keeps the saved value instead of the default
     - To rebind the chart, pass dataset_id (table dataset) OR view_id (semantic
       view), never both. Charts on a semantic view may only use the view's saved
       metrics and dimensions (no ad-hoc expressions).
