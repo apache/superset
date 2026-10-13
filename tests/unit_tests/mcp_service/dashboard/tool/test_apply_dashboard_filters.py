@@ -1419,7 +1419,7 @@ async def test_whitespace_match_beyond_a_truncated_page(
 
     assert data["error"] is None
     assert data["applied_filters"][0]["values"] == [stored]
-    assert dataset.values_for_column.call_args.kwargs["search"] == "AMERICA"
+    assert dataset.values_for_column.call_args.kwargs["search"] == "north"
 
 
 @pytest.mark.asyncio
@@ -1556,7 +1556,7 @@ async def test_value_beyond_a_truncated_first_page_is_found_by_search(
     assert data["error"] is None
     entry = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
     assert entry["extraFormData"]["filters"][0]["val"] == ["Oceania"]
-    assert dataset.values_for_column.call_args.kwargs["search"] == "oceania"
+    assert dataset.values_for_column.call_args.kwargs["search"] == "ocean"
 
 
 @pytest.mark.asyncio
@@ -3078,3 +3078,116 @@ async def test_range_boolean_bounds_are_rejected(
             },
         )
     create.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_active_dashboard_scope_does_not_read_unfiltered_options(
+    mcp_server: object,
+) -> None:
+    """A scope-neutral permalink tool must not return unscoped column data."""
+    from superset.mcp_service.dashboard_scope import DashboardScope
+
+    scope = DashboardScope(
+        dashboard_id=1,
+        chart_filters={
+            1: {"filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]}
+        },
+    )
+    dataset = _mock_values_dataset(["EMEA", "Outside scoped view"])
+    captured: dict[str, Any] = {}
+    with patch(
+        "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+        return_value=scope,
+    ):
+        data = await _apply_region(mcp_server, ["Mars"], dataset, captured)
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["values"] == ["Mars"]
+    dataset.values_for_column.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("requested", ["IND", "ind", "Ind"])
+async def test_truncated_search_tolerates_locale_sensitive_ascii_i(
+    mcp_server: object, requested: str
+) -> None:
+    """A Turkish-style SQL lower maps ASCII I to dotless ı, unlike Python."""
+    dataset = _mock_values_dataset(
+        ["APAC", "EMEA", "IND"],
+        search_results={"IND": [], "ind": [], "Ind": []},
+    )
+    captured: dict[str, Any] = {}
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(mcp_server, [requested], dataset, captured)
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["values"] == ["IND"]
+
+
+@pytest.mark.asyncio
+async def test_unconstrained_dashboard_scope_still_validates_values(
+    mcp_server: object,
+) -> None:
+    """An empty scope does not disable ordinary column-value validation."""
+    from superset.mcp_service.dashboard_scope import DashboardScope
+
+    dataset = _mock_values_dataset(REGION_VALUES)
+    captured: dict[str, Any] = {}
+    with patch(
+        "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+        return_value=DashboardScope(dashboard_id=1, chart_filters={}),
+    ):
+        data = await _apply_region(mcp_server, ["Mars"], dataset, captured)
+
+    assert "has no value 'Mars'" in data["error"]
+    assert "state" not in captured
+    dataset.values_for_column.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fail_search", [False, True])
+async def test_distinct_value_searches_have_a_per_filter_query_budget(
+    mcp_server: object,
+    fail_search: bool,
+) -> None:
+    """Many distinct selections must not issue one column scan per value."""
+    stored = [f"value{n:02}" for n in range(15)]
+    dataset = _mock_values_dataset(["APAC", "EMEA", *stored])
+    if fail_search:
+        first_page = dataset.values_for_column.side_effect
+
+        def query(*args: Any, **kwargs: Any) -> list[Any]:
+            """Failure still consumes the bounded search budget."""
+            if kwargs.get("search") is not None:
+                raise RuntimeError("search failed")
+            return first_page(*args, **kwargs)
+
+        dataset.values_for_column.side_effect = query
+    captured: dict[str, Any] = {}
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(
+            mcp_server, [value.upper() for value in stored], dataset, captured
+        )
+
+    assert data["error"] is None
+    assert dataset.values_for_column.call_count == 11
+    assert data["applied_filters"][0]["values"] == (
+        [value.upper() for value in stored]
+        if fail_search
+        else [*stored[:10], *(value.upper() for value in stored[10:])]
+    )
+
+
+@pytest.mark.asyncio
+async def test_zero_sql_row_cap_never_runs_an_unlimited_values_query(
+    mcp_server: object,
+) -> None:
+    """A zero effective limit means unchecked values, not an unbounded query."""
+    dataset = _mock_values_dataset(REGION_VALUES)
+    captured: dict[str, Any] = {}
+    with patch.dict(current_app.config, SQL_MAX_ROW=0):
+        data = await _apply_region(mcp_server, ["Mars"], dataset, captured)
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["values"] == ["Mars"]
+    dataset.values_for_column.assert_not_called()

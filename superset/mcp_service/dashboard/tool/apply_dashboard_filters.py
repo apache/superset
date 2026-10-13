@@ -82,6 +82,9 @@ _SINGLE_VALUE_MAXIMUM = 2
 # column cannot flood the reply.
 _MAX_VALUE_SUGGESTIONS = 10
 
+# Bound query attempts per filter, including failures, not only rows per query.
+_MAX_VALUE_SEARCHES = 10
+
 # Returned by _match_value when no column value matches; None is a real value.
 _NOT_FOUND = object()
 _AMBIGUOUS = object()
@@ -196,6 +199,8 @@ def _column_values(
     case-insensitively.
     """
     limit = apply_max_row_limit(current_app.config["FILTER_SELECT_ROW_LIMIT"])
+    if limit <= 0:
+        raise ValueError("Column-value validation requires a positive row limit")
     values = dataset.values_for_column(
         column_name=column,
         limit=limit,
@@ -373,17 +378,22 @@ def _search_value(
         # SQL lower() is not Python casefold(). ASCII k/s can be stored as
         # Kelvin sign/long s, and ff/fi/fl as ligatures. Exclude those pieces
         # so every casefold-equivalent value contains the searched substring.
+        # Locale-sensitive lower() can map ASCII I to dotless ı as well.
         # Splitting words also tolerates whitespace differences. If no safe
         # substring remains, reuse the unfiltered page rather than claiming
         # that a narrower query can establish absence or uniqueness.
         pieces = [
             part
             for word in value.split()
-            for part in re.split(r"k|s|ffi|ffl|ff|fi|fl", word, flags=re.IGNORECASE)
+            for part in re.split(r"k|s|ffi|ffl|ff|fi|fl|i", word, flags=re.IGNORECASE)
         ]
         term = max(pieces, key=len, default="")
         key = term.lower()
         if key not in cache:
+            if len(cache) - 1 >= _MAX_VALUE_SEARCHES:
+                return value, []
+            # Count failed attempts too, and reuse their unchecked result.
+            cache[key] = ([], False)
             cache[key] = _column_values(dataset, column, search=term)
         searched, complete = cache[key]
     except Exception:  # noqa: BLE001 pylint: disable=broad-except
@@ -418,10 +428,15 @@ def _verify_select_values(
     blocking the request.
     """
     from superset.exceptions import SupersetSecurityException
+    from superset.mcp_service.dashboard_scope import get_request_dashboard_scope
 
+    scope = get_request_dashboard_scope()
     try:
         dataset = _target_dataset(conf)
-        if dataset is None:
+        # This tool creates links and remains scope-neutral. Column options
+        # cannot be constrained by values_for_column to the active dashboard
+        # view, so preserve the request without exposing unscoped suggestions.
+        if dataset is None or (scope is not None and scope.has_constraints):
             return values
         # The column-values API gates on the same check before reading values.
         dataset.raise_for_access()

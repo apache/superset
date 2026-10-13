@@ -194,12 +194,17 @@ Missing values fail without creating a permalink, with bounded suggestions.
 Ambiguous values and normalized matches whose uniqueness cannot be established
 fail with exact alternatives, preserving their spelling and JSON type.
 Lookups respect `FILTER_SELECT_ROW_LIMIT` and `SQL_MAX_ROW`. On a truncated
-column, a bounded containment search checks text values beyond the first page.
+column, bounded containment searches check text values beyond the first page,
+with at most ten search-query attempts per filter (including failed attempts).
+Values needing additional searches are kept unchanged. A nonpositive effective
+row limit disables validation rather than issuing an unlimited query.
 Absence from another truncated page is not proof that a value is invalid. Values
 that cannot be verified (including query failures, unreadable datasets, native
 numbers/booleans, non-text columns, or non-ASCII text beyond a truncated page)
 are applied unchanged, not certified as present. Clearing a selection does not
-query the column. Clearing a required select
+query the column. When an active MCP dashboard scope restricts rows, select
+values are also kept unchanged: this scope-neutral permalink tool does not query
+or suggest unfiltered column options. Clearing a required select
 filter with `values: []` matches no rows, including when opening the returned
 permalink; an explicit clear does not restore its saved default.
 
