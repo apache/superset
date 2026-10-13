@@ -295,6 +295,8 @@ def _unknown_values_error(
     unknown: list[tuple[FilterSelectValue, list[Any]]],
     candidates: list[Any],
     complete: bool,
+    *,
+    suggest: bool = True,
 ) -> _FilterApplyError:
     """Build the error for requested values that are absent from the data."""
     name = conf.get("name") or conf.get("id")
@@ -304,6 +306,12 @@ def _unknown_values_error(
         f"in column '{column}'. Unknown selections can produce empty chart "
         "results. No filter values were applied."
     ]
+    if not suggest:
+        message.append(
+            "Tell the user the value was not found instead of reporting the "
+            "filter as applied."
+        )
+        return _FilterApplyError(" ".join(message))
     for value, suggestions in unknown:
         if suggestions:
             message.append(
@@ -333,8 +341,10 @@ def _unresolved_value_error(
     value: FilterSelectValue,
     candidates: Sequence[Any],
     match: Any,
+    *,
+    suggest: bool = True,
 ) -> _FilterApplyError:
-    """Offer typed exact alternatives without claiming an unresolved value absent."""
+    """Reject unresolved values, optionally offering typed exact alternatives."""
     alternatives = {
         (type(candidate), candidate): candidate
         for candidate in candidates
@@ -352,7 +362,8 @@ def _unresolved_value_error(
     return _FilterApplyError(
         f"Filter '{conf.get('name') or conf.get('id')}' value "
         f"{json.dumps(value)} {reason}. No filter values were applied. "
-        f"Exact column values include: {shown}. Ask the user to choose "
+        + (f"Exact column values include: {shown}. " if suggest else "")
+        + "Ask the user to choose "
         "an exact value, preserving its spelling and JSON type; do not "
         "report the value as absent or the filter as applied."
     )
@@ -436,18 +447,22 @@ def _verify_select_values(
     predicate on unknown values could silently empty chart results. When the
     values cannot be read (unresolvable or inaccessible dataset, query failure,
     unsupported datasource) they are applied unchecked, as before, rather than
-    blocking the request.
+    blocking the request. Active dashboard scope suppresses suggestions, not
+    membership validation: a value missing from the whole RLS-visible column
+    cannot occur in the scoped subset. A match does not establish that the
+    scoped subset contains rows for that value.
     """
     from superset.exceptions import SupersetSecurityException
     from superset.mcp_service.dashboard_scope import get_request_dashboard_scope
 
     scope = get_request_dashboard_scope()
+    suggest = scope is None or not scope.has_constraints
     try:
         dataset = _target_dataset(conf)
-        # This tool creates links and remains scope-neutral. Column options
-        # cannot be constrained by values_for_column to the active dashboard
-        # view, so preserve the request without exposing unscoped suggestions.
-        if dataset is None or (scope is not None and scope.has_constraints):
+        # Absence from the whole RLS-visible column also proves absence from
+        # any dashboard-scoped subset. Validate even with active constraints,
+        # but do not offer unscoped column options as scoped suggestions.
+        if dataset is None:
             return values
         # The column-values API gates on the same check before reading values.
         dataset.raise_for_access()
@@ -475,14 +490,21 @@ def _verify_select_values(
         if not complete and match != value:
             match, searched = _search_value(dataset, conf, column, value, searches)
         if match is _AMBIGUOUS or match is _UNRESOLVED:
-            raise _unresolved_value_error(conf, value, [*searched, *candidates], match)
+            raise _unresolved_value_error(
+                conf, value, [*searched, *candidates], match, suggest=suggest
+            )
         if match is _NOT_FOUND:
-            unknown.append((value, _suggest_values(value, [*searched, *candidates])))
+            suggestions = (
+                _suggest_values(value, [*searched, *candidates]) if suggest else []
+            )
+            unknown.append((value, suggestions))
         elif (type(match), match) not in seen:
             seen.add((type(match), match))
             resolved.append(match)
     if unknown:
-        raise _unknown_values_error(conf, column, unknown, candidates, complete)
+        raise _unknown_values_error(
+            conf, column, unknown, candidates, complete, suggest=suggest
+        )
     return resolved
 
 

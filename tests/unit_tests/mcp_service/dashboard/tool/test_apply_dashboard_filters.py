@@ -1668,6 +1668,23 @@ async def test_boolean_and_integer_values_stay_distinct(mcp_server: object) -> N
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "requested,stored",
+    [(True, [1, 0]), (1, [True, False]), (False, [1, 0]), (0, [True, False])],
+)
+async def test_boolean_and_integer_are_not_exact_matches(
+    mcp_server: object, requested: Any, stored: list[Any]
+) -> None:
+    """A boolean must not match the column's 1/0, or the reverse."""
+    captured: dict[str, Any] = {}
+    data = await _apply_region(
+        mcp_server, [requested], _mock_values_dataset(stored), captured
+    )
+    assert "has no value" in data["error"]
+    assert "state" not in captured
+
+
+@pytest.mark.asyncio
 async def test_failed_search_applies_the_value_unchecked(mcp_server: object) -> None:
     """A value that cannot be searched for is applied rather than refused."""
     captured: dict[str, Any] = {}
@@ -3122,29 +3139,107 @@ async def test_range_boolean_bounds_are_rejected(
 
 
 @pytest.mark.asyncio
-async def test_active_dashboard_scope_does_not_read_unfiltered_options(
-    mcp_server: object,
+@pytest.mark.parametrize(
+    "extra_form_data",
+    [
+        {"time_range": "Last week"},
+        {"filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]},
+        {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SQL",
+                    "clause": "WHERE",
+                    "sqlExpression": "region = 'EMEA'",
+                }
+            ]
+        },
+    ],
+)
+@pytest.mark.parametrize("requested", ["Mars", "Outside scoped vie"])
+@pytest.mark.parametrize("limit", [2, 100])
+async def test_active_dashboard_scope_rejects_unknown_values_without_suggestions(
+    mcp_server: object, extra_form_data: dict[str, Any], requested: str, limit: int
 ) -> None:
-    """A scope-neutral permalink tool must not return unscoped column data."""
+    """A scoped request still rejects missing values without unscoped options."""
     from superset.mcp_service.dashboard_scope import DashboardScope
 
-    scope = DashboardScope(
-        dashboard_id=1,
-        chart_filters={
-            1: {"filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]}
-        },
-    )
-    dataset = _mock_values_dataset(["EMEA", "Outside scoped view"])
+    scope = DashboardScope(dashboard_id=1, chart_filters={1: extra_form_data})
+    dataset = _mock_values_dataset(["EMEA", "Outside scoped view", "LATAM"])
+    captured: dict[str, Any] = {}
+    with (
+        patch(
+            "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+            return_value=scope,
+        ),
+        patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=limit),
+    ):
+        data = await _apply_region(mcp_server, [requested], dataset, captured)
+
+    assert "has no value" in data["error"]
+    assert data["permalink_key"] is None
+    assert data["applied_filters"] == []
+    assert "state" not in captured
+    assert "EMEA" not in data["error"]
+    assert "Outside scoped view" not in data["error"]
+    assert "LATAM" not in data["error"]
+    assert "Available values" not in data["error"]
+    assert "Closest matches" not in data["error"]
+    dataset.raise_for_access.assert_called_once_with()
+    assert dataset.values_for_column.called
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("limit", [2, 100])
+async def test_active_dashboard_scope_does_not_expose_ambiguous_alternatives(
+    mcp_server: object, limit: int
+) -> None:
+    """Ambiguous and truncated matches must not list unscoped alternatives."""
+    from superset.mcp_service.dashboard_scope import DashboardScope
+
+    dataset = _mock_values_dataset(["APAC", "APAC North", "apac"])
+    captured: dict[str, Any] = {}
+    with (
+        patch(
+            "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+            return_value=DashboardScope(
+                dashboard_id=1, chart_filters={1: {"time_range": "Last week"}}
+            ),
+        ),
+        patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=limit),
+    ):
+        data = await _apply_region(mcp_server, ["Apac"], dataset, captured)
+
+    assert "No filter values were applied" in data["error"]
+    assert "APAC" not in data["error"]
+    assert "apac" not in data["error"]
+    assert "Exact column values include" not in data["error"]
+    assert "state" not in captured
+
+
+@pytest.mark.asyncio
+async def test_active_dashboard_scope_allows_known_column_value(
+    mcp_server: object,
+) -> None:
+    """Column membership does not claim the value exists in the scoped subset."""
+    from superset.mcp_service.dashboard_scope import DashboardScope
+
+    dataset = _mock_values_dataset(["EMEA", "APAC"])
     captured: dict[str, Any] = {}
     with patch(
         "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
-        return_value=scope,
+        return_value=DashboardScope(
+            dashboard_id=1,
+            chart_filters={
+                1: {"filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]}
+            },
+        ),
     ):
-        data = await _apply_region(mcp_server, ["Mars"], dataset, captured)
+        data = await _apply_region(mcp_server, ["APAC"], dataset, captured)
 
     assert data["error"] is None
-    assert data["applied_filters"][0]["values"] == ["Mars"]
-    dataset.values_for_column.assert_not_called()
+    assert data["applied_filters"][0]["values"] == ["APAC"]
+    dataset.raise_for_access.assert_called_once_with()
+    dataset.values_for_column.assert_called_once()
 
 
 @pytest.mark.asyncio
