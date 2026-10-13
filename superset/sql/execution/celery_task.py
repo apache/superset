@@ -40,7 +40,7 @@ from superset import (
     security_manager,
 )
 from superset.common.db_query_status import QueryStatus
-from superset.constants import QUERY_CANCEL_KEY
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetErrorException,
@@ -376,7 +376,9 @@ def _make_check_stopped_fn(query: Query) -> Any:
 
     def check_stopped() -> bool:
         db.session.refresh(query)
-        return query.status == QueryStatus.STOPPED
+        return query.status == QueryStatus.STOPPED or bool(
+            query.extra.get(QUERY_EARLY_CANCEL_KEY)
+        )
 
     return check_stopped
 
@@ -425,6 +427,7 @@ def _execute_sql_statements(
     database = query.database
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
+    check_stopped = _make_check_stopped_fn(query)
 
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
@@ -458,7 +461,7 @@ def _execute_sql_statements(
                 statements=blocks,
                 query=query,
                 log_query_fn=_make_log_query_fn(database),
-                check_stopped_fn=_make_check_stopped_fn(query),
+                check_stopped_fn=check_stopped,
                 execute_fn=_make_execute_fn(query, db_engine_spec),
                 # `blocks` is a single un-split block when the engine runs multiple
                 # statements as one; otherwise each block is an individual statement.
@@ -481,14 +484,22 @@ def _execute_sql_statements(
                 )
             ) from ex
 
-        # Check if stopped
-        if not execution_results:
-            payload.update({"status": QueryStatus.STOPPED.value})
-            return payload
+        # Cancelling can clear cursor.description, leaving a nonempty result
+        # list that looks like successful DML. Check intent, not just results.
+        stopped = not execution_results or check_stopped()
 
         # Commit for mutations
-        if parsed_script.has_mutation() or query.select_as_cta:
+        if not stopped and (parsed_script.has_mutation() or query.select_as_cta):
             conn.commit()  # pylint: disable=consider-using-transaction
+
+    # Re-check after connection cleanup, before publishing success or results.
+    if stopped or check_stopped():
+        query.status = QueryStatus.STOPPED
+        if not query.end_time:
+            query.end_time = now_as_float()
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        payload.update({"status": QueryStatus.STOPPED.value})
+        return payload
 
     total_execution_time_ms = (now_as_float() - execution_start_time) * 1000
     _finalize_successful_query(

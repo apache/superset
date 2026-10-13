@@ -39,7 +39,7 @@ def test_stop_during_poll_does_not_fail_sync_fetch(
     mocker: MockerFixture, app_context: None, use_executor: bool
 ) -> None:
     """A worker seeing the committed stop intent must also see STOPPED."""
-    from impala.hiveserver2 import HiveServer2Cursor
+    impyla = pytest.importorskip("impala.hiveserver2")
 
     query = MagicMock(
         id=1,
@@ -53,7 +53,7 @@ def test_stop_during_poll_does_not_fail_sync_fetch(
     query.set_extra_json_key.side_effect = lambda key, value: query.extra.update(
         {key: value}
     )
-    cursor = HiveServer2Cursor(MagicMock())
+    cursor = impyla.HiveServer2Cursor(MagicMock())
     operation = MagicMock(has_result_set=True)
 
     def execute_async(sql: str) -> None:
@@ -268,11 +268,14 @@ def test_stop_before_cancel_id_is_published_uses_live_cursor(
 @pytest.mark.parametrize("extra", [{}, {QUERY_CANCEL_KEY: "abc"}])
 def test_prepare_cancel_query_flags_stop(extra: dict[str, str]) -> None:
     """Stop is flagged for the live cursor whether or not a handle is published."""
-    query: MagicMock = MagicMock(extra=extra)
+    query: MagicMock = MagicMock(extra=extra, status=QueryStatus.RUNNING)
+    committed_statuses: list[QueryStatus] = []
     with patch("superset.db_engine_specs.impala.db") as db:
+        db.session.commit.side_effect = lambda: committed_statuses.append(query.status)
         ImpalaEngineSpec.prepare_cancel_query(query)
     query.set_extra_json_key.assert_called_once_with(QUERY_EARLY_CANCEL_KEY, True)
     db.session.commit.assert_called_once_with()
+    assert committed_statuses == [QueryStatus.STOPPED]
 
 
 def test_pending_operation_polls_with_backoff() -> None:
