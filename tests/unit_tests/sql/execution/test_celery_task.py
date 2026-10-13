@@ -1213,6 +1213,7 @@ def test_cancelled_impala_cursor_is_not_finalized_as_success(
 
 @pytest.mark.parametrize("stop_intent", ["early", "status"])
 @pytest.mark.parametrize("stop_checkpoint", ["execution", "connection_exit"])
+@pytest.mark.parametrize("end_time", [None, 1234.5])
 def test_stop_with_partial_results_skips_success_finalization(
     mocker: MockerFixture,
     app_context: None,
@@ -1220,13 +1221,16 @@ def test_stop_with_partial_results_skips_success_finalization(
     mock_database: MagicMock,
     stop_intent: str,
     stop_checkpoint: str,
+    end_time: float | None,
 ) -> None:
-    """Partial results or a stop during connection cleanup must remain STOPPED."""
+    """Stops must skip success finalization and preserve recorded end times."""
     from superset.constants import QUERY_EARLY_CANCEL_KEY
     from superset.sql.execution import celery_task
 
     mock_query.database = mock_database
+    mock_query.end_time = end_time
     mocker.patch.object(celery_task, "_get_query", return_value=mock_query)
+    mocker.patch.object(celery_task, "now_as_float", return_value=5678.9)
     finalize = mocker.spy(celery_task, "_finalize_successful_query")
     store = mocker.patch.object(celery_task, "_store_results_in_backend")
     mocker.patch.object(celery_task, "results_backend", MagicMock())
@@ -1259,7 +1263,7 @@ def test_stop_with_partial_results_skips_success_finalization(
     assert payload is not None
     assert payload["status"] == QueryStatusEnum.STOPPED
     assert mock_query.status == QueryStatusEnum.STOPPED
-    assert mock_query.end_time is not None
+    assert mock_query.end_time == (end_time if end_time is not None else 5678.9)
     finalize.assert_not_called()
     store.assert_not_called()
 
