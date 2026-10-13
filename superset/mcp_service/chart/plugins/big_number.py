@@ -156,6 +156,21 @@ class BigNumberChartPlugin(BaseChartPlugin):
     ) -> dict[str, Any]:
         return map_big_number_config(config, dataset_id=dataset_id)
 
+    def apply_temporal_columns(
+        self,
+        config: Any,
+        form_data: dict[str, Any],
+        temporal_columns: set[str],
+    ) -> None:
+        """Reject an unpublished time-column type before saving its time filter."""
+        if config.temporal_column and not is_column_truly_temporal(
+            config.temporal_column, None, temporal_columns=temporal_columns
+        ):
+            raise ValueError(
+                f"Big Number temporal column '{config.temporal_column}' "
+                "is not temporal in the semantic view"
+            )
+
     def post_map_validate(
         self,
         config: Any,

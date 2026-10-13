@@ -160,3 +160,29 @@ test('prefers the semantic API error over a stale alert after datasource metadat
     screen.queryByText('Stale client-side rendering error'),
   ).not.toBeInTheDocument();
 });
+
+test('shows the semantic-layer disabled response while dashboard metadata is unavailable', () => {
+  render(
+    <Chart
+      {...baseProps}
+      chartStatus="failed"
+      chartAlert="Semantic layers are not enabled."
+      datasource={PLACEHOLDER_DATASOURCE}
+      datasetsStatus={ResourceStatus.Loading}
+      queriesResponse={[
+        {
+          errors: [
+            {
+              error_type: 'GENERIC_BACKEND_ERROR',
+              message: 'Semantic layers are not enabled.',
+              level: 'error',
+            },
+          ],
+        },
+      ]}
+    />,
+  );
+  expect(
+    screen.getByText('Semantic layers are not enabled.'),
+  ).toBeInTheDocument();
+});

@@ -2179,12 +2179,16 @@ class TestBuildUpdatePayloadDatasetId:
 
     def test_dataset_only_update_requires_config(self) -> None:
         """Changing the dataset without config returns an explicit error."""
-        request = UpdateChartRequest(identifier=1, dataset_id=42)
-        chart = Mock()
+        request: UpdateChartRequest = UpdateChartRequest(identifier=1, dataset_id=42)
+        chart: Mock = Mock()
         chart.id = 1
         chart.datasource_id = 10
+        chart.datasource_type = "table"
+        chart.params = json.dumps({"viz_type": "table", "datasource": "10__table"})
 
-        result = _build_update_payload(request, chart)
+        result: dict[str, Any] | GenerateChartResponse = _build_update_payload(
+            request, chart
+        )
 
         assert isinstance(result, GenerateChartResponse)
         assert result.success is False
@@ -2193,12 +2197,18 @@ class TestBuildUpdatePayloadDatasetId:
 
     def test_dataset_and_name_update(self) -> None:
         """A rename cannot bypass the complete-config rebind requirement."""
-        request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
-        chart = Mock()
+        request: UpdateChartRequest = UpdateChartRequest(
+            identifier=1, dataset_id=42, chart_name="Renamed"
+        )
+        chart: Mock = Mock()
         chart.id = 1
         chart.datasource_id = 10
+        chart.datasource_type = "table"
+        chart.params = json.dumps({"viz_type": "table", "datasource": "10__table"})
 
-        result = _build_update_payload(request, chart)
+        result: dict[str, Any] | GenerateChartResponse = _build_update_payload(
+            request, chart
+        )
 
         assert isinstance(result, GenerateChartResponse)
         assert result.success is False

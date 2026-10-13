@@ -69,6 +69,25 @@ Prompts provide interactive guidance and context to AI agents. They help agents 
 - Template generation helpers
 - Best practices recommendations
 
+## Finding charts by dataset
+
+Use `list_charts` with a `datasource_id` filter to find charts on a specific
+SQL dataset, rather than matching a potentially non-unique dataset name:
+
+```json
+{
+  "request": {
+    "filters": [{"col": "datasource_id", "opr": "eq", "value": 42}]
+  }
+}
+```
+
+`eq` and `ne` require a single integer dataset ID; `in` and `nin` require a list
+of integer IDs. Other operators are rejected for this column. Existing chart
+access and data-model metadata permissions still apply. Use
+`get_schema(request={"model_type": "chart"})` to discover filter columns and
+supported operators.
+
 ## Getting Started
 
 ## MCP Tools
