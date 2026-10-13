@@ -254,11 +254,11 @@ const AsyncSelect = forwardRef(
     const fullSelectOptions = useMemo(() => {
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
         .filter(opt => !hasOption(getValue(opt), selectOptions))
-        .map(opt =>
-          isLabeledValue(opt)
-            ? { value: opt.value, label: opt.label }
-            : { value: opt, label: String(opt) },
-        );
+        .map(opt => {
+          const val = getValue(opt) as RawValue;
+          const label = isLabeledValue(opt) ? opt.label : String(val);
+          return { value: val, label };
+        });
       return missingValues.length > 0
         ? missingValues.concat(selectOptions)
         : selectOptions;
