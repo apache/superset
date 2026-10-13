@@ -85,7 +85,7 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     return location
 
 
-class DatabricksBooleanEqualityMixin:
+class SparkSqlBooleanEqualityMixin:
     """
     Shared boolean-filter coercion for the Databricks and Spark SQL specs,
     whose dialects render bound Python booleans as integer literals in some
