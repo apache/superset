@@ -72,9 +72,13 @@ def df_columns_to_num(df: pd.DataFrame, columns: Collection[str]) -> None:
             # soft-convert a metric column to numeric only if all
             # non-null values look numeric (e.g. ClickHouse returns
             # SUM() results as strings). Leaves truly non-numeric
-            # columns unchanged.
+            # columns unchanged. "NaN" strings count as null, since Druid
+            # serializes NaN as the JSON string "NaN".
             converted = pd.to_numeric(df[col], errors="coerce")
-            if converted.notna().eq(df[col].notna()).all():
+            nan_strings = df[col].map(
+                lambda value: isinstance(value, str) and value.lower() == "nan"
+            )
+            if converted.notna().eq(df[col].notna() & ~nan_strings).all():
                 df[col] = converted
 
 

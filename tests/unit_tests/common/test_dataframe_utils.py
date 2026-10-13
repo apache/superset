@@ -73,3 +73,27 @@ def test_df_metrics_to_num_converts_string_numerics():
     assert df["text_col"].dtype == object, "text_col should remain object"
     # dim_col: not in metric_names -> should NOT be touched
     assert df["dim_col"].dtype == object, "dim_col should not be touched"
+
+
+def test_df_metrics_to_num_converts_nan_strings():
+    """
+    Test that a metric column containing "NaN" strings is converted.
+
+    Druid serializes NaN as the JSON string "NaN", and SupersetResultSet stringifies
+    the resulting mixed float/str column, so every value arrives as a string.
+    """
+    query_object = MagicMock()
+    query_object.metric_names = ["ratio_col", "mixed_col"]
+    df = pd.DataFrame(
+        {
+            "ratio_col": pd.Series(["0.034218042", "NaN", "0.5"], dtype=object),
+            "mixed_col": pd.Series(["NaN", "not_a_number", "3"], dtype=object),
+        }
+    )
+    dataframe_utils.df_metrics_to_num(df, query_object)
+    assert pd.api.types.is_numeric_dtype(df["ratio_col"]), "ratio_col should be numeric"
+    assert df["ratio_col"].iloc[0] == 0.034218042
+    assert pd.isna(df["ratio_col"].iloc[1])
+    assert df["ratio_col"].iloc[2] == 0.5
+    # mixed_col: has a non-numeric value besides "NaN" -> should NOT be converted
+    assert df["mixed_col"].dtype == object, "mixed_col should remain object"
