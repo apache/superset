@@ -430,7 +430,17 @@ const config: ControlPanelConfig = {
               freeForm: true,
               label: t('Row limit'),
               clearable: false,
+              shouldMapStateToProps: () => true,
               mapStateToProps: state => ({
+                paginationUnsupported: isServerPaginationUnsupported(state),
+                choices: formatSelectOptions(
+                  ROW_LIMIT_OPTIONS_TABLE.filter(
+                    value =>
+                      !isServerPaginationUnsupported(state) ||
+                      value <=
+                        (state?.common?.conf?.SQL_MAX_ROW || DEFAULT_MAX_ROW),
+                  ),
+                ),
                 maxValue: state?.common?.conf?.TABLE_VIZ_MAX_ROW_SERVER,
                 server_pagination: state?.form_data?.server_pagination,
                 maxValueWithoutServerPagination:
@@ -444,12 +454,24 @@ const config: ControlPanelConfig = {
                     state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
                   ),
                 (v, state) =>
-                  validateServerPagination(
-                    v,
-                    state?.server_pagination,
-                    state?.maxValueWithoutServerPagination || DEFAULT_MAX_ROW,
-                    state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
-                  ),
+                  state?.paginationUnsupported && !state?.server_pagination
+                    ? validateMaxValue(
+                        v,
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                      ) &&
+                      t(
+                        'Lower the row limit to SQL_MAX_ROW (%s) or less.',
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                      )
+                    : validateServerPagination(
+                        v,
+                        state?.server_pagination,
+                        state?.maxValueWithoutServerPagination ||
+                          DEFAULT_MAX_ROW,
+                        state?.maxValue || DEFAULT_MAX_ROW_TABLE_SERVER,
+                      ),
               ],
               // Re run the validations when this control value
               validationDependencies: ['server_pagination'],

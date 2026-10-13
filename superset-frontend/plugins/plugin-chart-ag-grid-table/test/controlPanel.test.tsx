@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ComponentProps } from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import { GenericDataType } from '@apache-superset/core/common';
 import { QueryFormData } from '@superset-ui/core';
 import {
@@ -382,7 +385,20 @@ test.each([
     expect(
       length.mapStateToProps?.(state, state.controls.server_page_length),
     ).toMatchObject({ disabled });
-    expect(state.controls.server_pagination.value).toBe(true);
+    render(
+      <CheckboxControl
+        name="server_pagination"
+        value={Boolean(state.controls.server_pagination.value)}
+        {...(panel.mapStateToProps?.(
+          state,
+          state.controls.server_pagination,
+        ) as Partial<ComponentProps<typeof CheckboxControl>>)}
+      />,
+    );
+    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.getByRole('checkbox').hasAttribute('disabled')).toBe(
+      disabled,
+    );
   },
 );
 
@@ -579,3 +595,99 @@ test.each([
     ).toMatchObject({ disabled });
   },
 );
+
+test.each([
+  ['semantic_view', [], false, true],
+  ['semantic_view', [], true, true],
+  ['semantic_view', ['ROW_OFFSET'], false, false],
+  ['semantic_view', ['ROW_OFFSET'], true, false],
+  ['table', [], false, false],
+  ['table', [], true, false],
+])(
+  'row-limit guidance for %s with %s and pagination %s',
+  (type, features, serverPagination, unsupported) => {
+    const rowLimit = getPaginationControl('row_limit');
+    const state: ControlPanelState = {
+      datasource: {
+        id: 1,
+        uid: 'provider-view',
+        type,
+        semantic_view_features: features,
+      } as Dataset,
+      form_data: {
+        datasource: `1__${type}`,
+        viz_type: 'table',
+        server_pagination: serverPagination,
+      },
+      controls: {},
+      slice: { slice_id: 1 },
+      common: {
+        conf: { SQL_MAX_ROW: 70000, TABLE_VIZ_MAX_ROW_SERVER: 500000 },
+      },
+    };
+    const mapped = rowLimit.mapStateToProps?.(state, {
+      ...rowLimit,
+      value: 200000,
+    });
+    const errors = rowLimit.validators?.map(validator =>
+      validator(200000, mapped as Parameters<typeof validator>[1]),
+    );
+    if (unsupported && !serverPagination) {
+      expect(errors).toContain(
+        'Lower the row limit to SQL_MAX_ROW (70000) or less.',
+      );
+      expect(errors).not.toContain(
+        'Server pagination needs to be enabled for values over 70000',
+      );
+    } else if (!serverPagination) {
+      expect(errors).toContain(
+        'Server pagination needs to be enabled for values over 70000',
+      );
+    } else {
+      expect(errors?.filter(Boolean)).toEqual([]);
+    }
+    const choices = (mapped?.choices ?? rowLimit.choices) as [number, string][];
+    expect(choices.some(([value]) => value > 70000)).toBe(!unsupported);
+    expect(choices.some(([value]) => value === 50000)).toBe(true);
+    expect(
+      rowLimit.validators
+        ?.map(validator =>
+          validator(70000, mapped as Parameters<typeof validator>[1]),
+        )
+        .filter(Boolean),
+    ).toEqual([]);
+  },
+);
+
+test('row-limit guidance uses the default SQL_MAX_ROW when configuration is absent', () => {
+  const rowLimit = getPaginationControl('row_limit');
+  const state: ControlPanelState = {
+    datasource: {
+      ...(createMockExplore(undefined).datasource as Dataset),
+      id: 1,
+      uid: 'provider-view',
+      type: 'semantic_view',
+      semantic_view_features: [],
+    } as Dataset,
+    form_data: {
+      datasource: '1__semantic_view',
+      viz_type: 'table',
+      server_pagination: false,
+    },
+    controls: {},
+    slice: { slice_id: 1 },
+    common: {},
+  };
+  const mapped = rowLimit.mapStateToProps?.(state, {
+    ...rowLimit,
+    value: 200000,
+  });
+  expect(
+    rowLimit.validators?.map(validator =>
+      validator(200000, mapped as Parameters<typeof validator>[1]),
+    ),
+  ).toContain('Lower the row limit to SQL_MAX_ROW (100000) or less.');
+  const choices = (mapped?.choices ?? rowLimit.choices) as [number, string][];
+  expect(choices.every(([value]) => value <= 100000)).toBe(true);
+  expect(mapped).not.toHaveProperty('value');
+});
