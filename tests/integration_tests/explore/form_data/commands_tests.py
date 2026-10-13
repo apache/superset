@@ -477,8 +477,7 @@ class TestCreateFormDataCommand(SupersetTestCase):
         "Create Chart" for that exact query, as long as they authored it.
 
         SupersetSecurityManager.raise_for_access grants a bypass to a SQL
-        Lab query's own author, mirroring the ownership bypass already
-        granted to dataset owners via is_editor -- unlike
+        Lab query's own author -- unlike
         test_create_form_data_command_schema_access_no_all_datasource_access
         above, this user has no schema_access grant of any kind; authorship
         alone is what lets this through.

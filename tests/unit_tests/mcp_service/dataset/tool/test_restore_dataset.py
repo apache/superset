@@ -23,7 +23,6 @@ autouse mock_auth fixture, matching the other dataset tool test files.
 
 from collections.abc import Iterator
 from datetime import datetime
-from typing import Any
 from unittest.mock import Mock, patch
 from uuid import UUID
 
@@ -291,35 +290,17 @@ def _forbidden() -> Exception:
     )
 
 
-@pytest.mark.parametrize("deleted", [True, False])
-@patch(_FIND)
+@patch(_FIND, return_value=None)
 @pytest.mark.asyncio
 async def test_restore_dataset_inaccessible_dataset_reads_as_not_found(
-    mock_find: Mock, mcp_server: object, deleted: bool
+    mock_find: Mock, mcp_server: object
 ) -> None:
-    """A dataset outside the caller's RBAC scope must not leak its existence or
-    name, whether it is in trash or not: the unfiltered restore lookup finds
-    it, the base-filtered re-lookup does not.
-
-    The mock keys on the ``skip_base_filter`` kwarg rather than call order, so
-    a re-lookup that wrongly keeps ``skip_base_filter=True`` is caught."""
-
-    def _find_side_effect(*args: Any, **kwargs: Any) -> Any | None:
-        if kwargs.get("skip_base_filter"):
-            return _mock_dataset(table_name="secret_orders", deleted=deleted)
-        return None
-
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
-    mock_find.side_effect = _find_side_effect
+    """A dataset outside the caller's RBAC scope must not leak its existence:
+    the restore lookup keeps the RBAC base filter, so it finds nothing and the
+    editorship gate is never reached."""
     command = Mock()
-    # What the real command does for a non-editor.
-    command.return_value.run.side_effect = DatasetForbiddenError()
     with (
-        patch(
-            "superset.security_manager.raise_for_editorship",
-            side_effect=_forbidden(),
-        ),
+        patch("superset.security_manager.raise_for_editorship") as editorship,
         patch(_COMMAND, command),
     ):
         async with Client(mcp_server) as client:
@@ -330,7 +311,9 @@ async def test_restore_dataset_inaccessible_dataset_reads_as_not_found(
     content = result.structured_content
     assert content["success"] is False
     assert content["error_type"] == "NotFound"
-    assert "secret_orders" not in (content["error"] or "")
+    assert mock_find.call_count == 1
+    assert mock_find.call_args.kwargs["skip_base_filter"] is False
+    editorship.assert_not_called()
     command.assert_not_called()
 
 
@@ -341,8 +324,7 @@ async def test_restore_dataset_visible_non_editor_gets_nameless_forbidden(
 ) -> None:
     """A caller who can see the dataset but cannot edit it gets a permission
     error naming the id only, never the table name."""
-    dataset = _mock_dataset(table_name="secret_orders")
-    mock_find.side_effect = [dataset, dataset]
+    mock_find.return_value = _mock_dataset(table_name="secret_orders")
     with patch(
         "superset.security_manager.raise_for_editorship", side_effect=_forbidden()
     ):

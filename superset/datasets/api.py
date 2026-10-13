@@ -1507,7 +1507,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             Report the charts and dashboards that depend on an archived
             dataset, with an impact token that must be echoed back on the
             purge request. Limited to owners and admins (same audience as
-            restore).
+            restore); without access to the dataset's data (a datasource,
+            schema, catalog or database grant) it reads as not found.
           parameters:
           - in: path
             schema:
@@ -1561,7 +1562,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
           summary: Permanently delete a soft-deleted dataset
           description: >-
             Irreversibly remove an archived dataset and its dependents. Limited
-            to owners and admins (same audience as restore).
+            to owners and admins (same audience as restore); without access to
+            the dataset's data (a datasource, schema, catalog or database
+            grant) it reads as not found.
           parameters:
           - in: path
             schema:

@@ -25188,7 +25188,7 @@
     },
     "/api/v1/dataset/{uuid}/purge": {
       "post": {
-        "description": "Irreversibly remove an archived dataset and its dependents. Limited to owners and admins (same audience as restore).",
+        "description": "Irreversibly remove an archived dataset and its dependents. Limited to owners and admins (same audience as restore); without access to the dataset's data (a datasource, schema, catalog or database grant) it reads as not found.",
         "parameters": [
           {
             "in": "path",
@@ -25291,7 +25291,7 @@
     },
     "/api/v1/dataset/{uuid}/purge-impact": {
       "get": {
-        "description": "Report the charts and dashboards that depend on an archived dataset, with an impact token that must be echoed back on the purge request. Limited to owners and admins (same audience as restore).",
+        "description": "Report the charts and dashboards that depend on an archived dataset, with an impact token that must be echoed back on the purge request. Limited to owners and admins (same audience as restore); without access to the dataset's data (a datasource, schema, catalog or database grant) it reads as not found.",
         "parameters": [
           {
             "in": "path",

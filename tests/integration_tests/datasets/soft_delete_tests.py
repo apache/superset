@@ -645,13 +645,15 @@ class TestDatasetArchiveListing(SupersetTestCase):
         db.session.commit()
         super().tearDown()
 
-    def _make(self, name: str) -> tuple[SqlaTable, Database]:
-        admin = self.get_user("admin")
+    def _make(
+        self, name: str, editor: User | None = None
+    ) -> tuple[SqlaTable, Database]:
+        editor = editor or self.get_user("admin")
         database = Database(database_name=f"db_{name}", sqlalchemy_uri="sqlite://")
         db.session.add(database)
         db.session.flush()
         dataset = SqlaTable(
-            table_name=name, database=database, editors=[_user_subject(admin)]
+            table_name=name, database=database, editors=[_user_subject(editor)]
         )
         db.session.add(dataset)
         db.session.commit()
@@ -939,3 +941,49 @@ class TestDatasetArchiveListing(SupersetTestCase):
 
         # Cleanup
         self._cleanup(dataset_id, database)
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_trash_actions_require_datasource_grant_for_editor(self) -> None:
+        """An editor with ``can_write`` on Dataset but no grant on the dataset
+        gets a 404 from ``purge-impact``, ``purge`` and ``restore``.
+
+        Editorship governs the dataset's definition, not access to its data,
+        so the trash lookups keep ``DatasourceFilter``. The same user passes
+        once granted ``datasource_access`` on the dataset, which pins the
+        404s to the missing grant rather than to the route permission.
+        """
+        gamma = self.get_user(GAMMA_USERNAME)
+        with self.temporary_user(
+            gamma, extra_pvms=[("can_write", "Dataset")], login=True
+        ) as editor:
+            dataset, database = self._make("arch_grant_ds", editor=editor)
+            dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+            db.session.commit()
+            dataset_id, dataset_uuid = dataset.id, str(dataset.uuid)
+
+            try:
+                rv = self.client.get(f"/api/v1/dataset/{dataset_uuid}/purge-impact")
+                assert rv.status_code == 404, rv.data
+                rv = self.client.post(
+                    f"/api/v1/dataset/{dataset_uuid}/purge",
+                    json={"confirmed_impact_token": "unused"},
+                )
+                assert rv.status_code == 404, rv.data
+                rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
+                assert rv.status_code == 404, rv.data
+
+                security_manager.add_permission_role(
+                    editor.roles[0],
+                    security_manager.add_permission_view_menu(
+                        "datasource_access", dataset.perm
+                    ),
+                )
+
+                rv = self.client.get(f"/api/v1/dataset/{dataset_uuid}/purge-impact")
+                assert rv.status_code == 200, rv.data
+                rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
+                assert rv.status_code == 200, rv.data
+            finally:
+                # Before ``temporary_user`` deletes the editor it references.
+                db.session.rollback()
+                self._cleanup(dataset_id, database)

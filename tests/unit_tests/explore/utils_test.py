@@ -464,25 +464,18 @@ def test_unsaved_query_explore_allows_the_query_author(
     ``superset/commands/explore/form_data/create.py``). That command calls
     this exact ``check_access`` function with ``chart_id=None``.
 
-    Unlike the TABLE path (``check_access`` -> ``can_access_datasource`` ->
-    ``raise_for_access(datasource=...)``), which grants access to a
-    dataset's *owners* via ``is_editor`` regardless of catalog/schema/table
-    permissions, the QUERY path had no equivalent "you authored this"
-    bypass: ``raise_for_access``'s ``query=`` branch
-    (``superset/security/manager.py``) only ever checked catalog/schema/
-    table-level ``datasource_access``, and never looked at ``Query.user_id``
-    at all. So a user who just ran this exact query in SQL Lab themselves
-    (and therefore has execution rights on the connection) but lacks that
-    dataset-level permission was denied here, even though the identical
-    underlying data becomes explorable to them the moment it's saved as a
-    dataset, since ``populate_owners()`` (``superset/commands/utils.py``)
-    would make them an owner at that point. That inconsistency, not a
-    missing owner field, was the crux of #39296.
+    The QUERY path had no "you authored this" bypass: ``raise_for_access``'s
+    ``query=`` branch (``superset/security/manager.py``) only ever checked
+    catalog/schema/table-level ``datasource_access``, and never looked at
+    ``Query.user_id`` at all. So a user who just ran this exact query in
+    SQL Lab themselves (and therefore has execution rights on the
+    connection) but lacks that dataset-level permission was denied here.
+    Saving the query as a dataset does not change that: dataset ownership
+    governs the dataset's definition, not access to its data.
 
     This test sets the query's ``user_id`` to match the current user (i.e.
     the user IS the query's own author) and asserts access is granted.
-    ``raise_for_access`` now grants a bypass for query authorship,
-    mirroring the ``is_editor`` bypass the TABLE path already had.
+    ``raise_for_access`` grants a bypass for query authorship.
     """
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
