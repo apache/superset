@@ -126,14 +126,12 @@ def test_validate_raises_forbidden_when_editorship_check_fails(
 
 def test_validate_calls_dao_with_both_bypasses(app_context: None) -> None:
     """The DAO load uses ``skip_visibility_filter=True`` (so the
-    soft-deleted row is visible), ``skip_base_filter=True``, and
-    ``id_column='uuid'``. The base-filter bypass is deliberate: an
-    entity's RBAC ``base_filter`` may have no editorship leg (charts and
-    datasets filter by datasource access), and ``raise_for_access``
-    counts editorship as datasource access — so a lost grant must not
-    hide a row from the one audience that can restore it. The restore
-    audience (editors or admin) is enforced by ``raise_for_editorship``
-    instead."""
+    soft-deleted row is visible), the default ``skip_base_filter=True``,
+    and ``id_column='uuid'``. The default bypass keeps an editor's trash
+    reachable for entities whose ``raise_for_access`` admits editors
+    (charts); entities whose editorship carries no data access (datasets)
+    opt out via the ``skip_base_filter`` ClassVar. The restore audience
+    (editors or admin) is enforced by ``raise_for_editorship``."""
     soft_deleted = MagicMock()
     soft_deleted.deleted_at = datetime(2026, 1, 1)
     cmd = _make_command(dao_find_result=soft_deleted)

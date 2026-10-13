@@ -40,6 +40,8 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
       - ``forbidden_exc``: raised when the caller doesn't have editorship
       - ``restore_failed_exc``: re-raised by the transactional wrapper
         when an underlying SQLAlchemy error aborts the commit
+      - ``skip_base_filter`` (optional, default ``True``): whether the
+        lookup bypasses the entity's RBAC ``base_filter``
 
     The transactional wrapper is applied by this class's ``run()``
     using ``restore_failed_exc`` as the rethrow type, so each subclass
@@ -58,6 +60,7 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
     not_found_exc: ClassVar[type[Exception]]
     forbidden_exc: ClassVar[type[Exception]]
     restore_failed_exc: ClassVar[type[Exception]]
+    skip_base_filter: ClassVar[bool] = True
 
     def __init__(self, model_uuid: str) -> None:
         self._model_uuid = model_uuid
@@ -74,19 +77,19 @@ class BaseRestoreCommand(BaseCommand, Generic[T]):
         _perform()
 
     def validate(self) -> T:  # type: ignore[override]
-        # Both bypasses are deliberate. ``skip_visibility_filter`` lets the
-        # lookup see the soft-deleted row at all. ``skip_base_filter`` keeps
-        # an editor's own trash reachable even when the entity's RBAC
-        # ``base_filter`` has no editorship leg (charts/datasets filter by
-        # datasource access): the security model's ``raise_for_access``
-        # counts editorship as datasource access, so a lost grant must not
-        # hide a row from the one audience that can restore it. The restore
-        # audience is enforced below by ``raise_for_editorship`` — editors or
-        # admin; anyone else holding a valid uuid gets 403.
+        # ``skip_visibility_filter`` lets the lookup see the soft-deleted row
+        # at all. ``skip_base_filter`` (on by default) keeps an editor's own
+        # trash reachable when the entity's ``base_filter`` filters by
+        # datasource access while ``raise_for_access`` still admits editors
+        # of the object itself (charts). Entities whose editorship carries no
+        # data access (datasets) turn it off so restore requires the same
+        # grant as editing the live row. The restore audience is enforced
+        # below by ``raise_for_editorship``: editors or admin; anyone else
+        # holding a valid uuid gets 403.
         model = self.dao.find_by_id(
             self._model_uuid,
             id_column="uuid",
-            skip_base_filter=True,
+            skip_base_filter=self.skip_base_filter,
             skip_visibility_filter=True,
         )
         if model is None:

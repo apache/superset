@@ -15,17 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Table access derives from a location grant, not from dataset editorship.
+"""Table and datasource access derive from grants, not dataset editorship.
 
-``SqlaTable.query_datasources_by_name`` matches a dataset to a table by
-database/table name/catalog/schema only, so a dataset can carry the natural key
-of any table. Table-level access must therefore come from a ``datasource_access``
-(or catalog/schema) grant on the table's location; editorship of a dataset row
-that happens to carry the key is not itself read access to the table.
+Access comes from a ``datasource_access`` (or catalog/schema/database) grant;
+editorship governs a dataset's definition only.
 
-Each test fixes the permission state (no grant anywhere) and varies only whether
-the caller edits a matching dataset. The first case in each pair is the control
-proving the harness denies by default.
+Each test fixes the permission state (no grant anywhere) and varies whether the
+caller edits the matching dataset.
 """
 
 from unittest.mock import MagicMock
@@ -78,13 +74,27 @@ def _database() -> MagicMock:
     return database
 
 
-def _claiming_dataset() -> MagicMock:
+def _physical_dataset() -> MagicMock:
     dataset = MagicMock()
     dataset.perm = f"[{SCHEMA}].[{TABLE}](id:2)"
+    dataset.sql = None
     return dataset
 
 
-# --- Table branch: SQL that references a table (SQL Lab path) ---------------
+@pytest.mark.parametrize("is_editor", [False, True])
+def test_table_branch_refuses_without_grant(
+    app_context: None, mocker: MockerFixture, is_editor: bool
+) -> None:
+    """SQL referencing a table claimed by a dataset is refused without a grant,
+    whether or not the caller edits that dataset (SQL Lab path)."""
+    mocker.patch.object(
+        SqlaTable, "query_datasources_by_name", return_value=[_physical_dataset()]
+    )
+    with pytest.raises(SupersetSecurityException):
+        _locked_out_manager(mocker, is_editor=is_editor).raise_for_access(
+            database=_database(),
+            sql=f"SELECT * FROM {SCHEMA}.{TABLE}",  # noqa: S608
+        )
 
 
 def test_table_branch_refuses_when_no_dataset_claims_the_table(
@@ -99,45 +109,13 @@ def test_table_branch_refuses_when_no_dataset_claims_the_table(
         )
 
 
-def test_table_branch_refuses_editor_of_a_claiming_dataset(
-    app_context: None, mocker: MockerFixture
+@pytest.mark.parametrize("is_editor", [False, True])
+def test_datasource_branch_refuses_without_grant(
+    app_context: None, mocker: MockerFixture, is_editor: bool
 ) -> None:
-    """Editing a dataset that names a table is not read access to the table."""
-    mocker.patch.object(
-        SqlaTable, "query_datasources_by_name", return_value=[_claiming_dataset()]
-    )
+    """Chart-data against a physical dataset is refused without a grant,
+    whether or not the caller edits that dataset."""
     with pytest.raises(SupersetSecurityException):
-        _locked_out_manager(mocker, is_editor=True).raise_for_access(
-            database=_database(),
-            sql=f"SELECT * FROM {SCHEMA}.{TABLE}",  # noqa: S608
-        )
-
-
-# --- Datasource branch: chart-data against a physical dataset ----------------
-
-
-def _physical_dataset() -> MagicMock:
-    dataset = MagicMock()
-    dataset.perm = f"[{SCHEMA}].[{TABLE}](id:2)"
-    dataset.sql = None
-    return dataset
-
-
-def test_datasource_branch_refuses_when_no_grant(
-    app_context: None, mocker: MockerFixture
-) -> None:
-    """Control: with no grant and no editorship, the datasource is refused."""
-    with pytest.raises(SupersetSecurityException):
-        _locked_out_manager(mocker, is_editor=False).raise_for_access(
-            datasource=_physical_dataset()
-        )
-
-
-def test_datasource_branch_refuses_editor_of_a_physical_dataset(
-    app_context: None, mocker: MockerFixture
-) -> None:
-    """Editing a dataset is not read access to the table it is bound to."""
-    with pytest.raises(SupersetSecurityException):
-        _locked_out_manager(mocker, is_editor=True).raise_for_access(
+        _locked_out_manager(mocker, is_editor=is_editor).raise_for_access(
             datasource=_physical_dataset()
         )

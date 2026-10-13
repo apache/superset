@@ -57,11 +57,10 @@ def test_restore_dataset_clears_deleted_at(app_context: None) -> None:
     mock_find.assert_called_once_with(
         _DATASET_UUID,
         id_column="uuid",
-        # Both bypasses are the lookup's contract: skip_base_filter keeps an
-        # editor's trash reachable when the RBAC base_filter has no editorship
-        # leg (audience is enforced by raise_for_editorship instead);
-        # skip_visibility_filter lets the lookup see soft-deleted rows.
-        skip_base_filter=True,
+        # Dataset editorship carries no data access, so the lookup keeps the
+        # datasource-access base_filter; skip_visibility_filter lets it see
+        # soft-deleted rows.
+        skip_base_filter=False,
         skip_visibility_filter=True,
     )
     dataset.restore.assert_called_once()

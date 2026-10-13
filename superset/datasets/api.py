@@ -155,6 +155,7 @@ _DATASET_PURGE_BINDING = SoftDeleteBinding(
     forbidden=DatasetForbiddenError,
     delete_failed=DatasetDeleteFailedError,
     impact_collector=collect_dataset_impact,
+    skip_base_filter=RestoreDatasetCommand.skip_base_filter,
 )
 
 
@@ -1494,9 +1495,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.purge_impact"
-        ),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge_impact",
         log_to_statsd=False,
     )
     def purge_impact(self, uuid: str) -> Response:

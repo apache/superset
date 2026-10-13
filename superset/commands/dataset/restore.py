@@ -47,6 +47,10 @@ class RestoreDatasetCommand(BaseRestoreCommand[SqlaTable]):
     not_found_exc = DatasetNotFoundError
     forbidden_exc = DatasetForbiddenError
     restore_failed_exc = DatasetRestoreFailedError
+    # Dataset editorship governs the definition, not data access, so the
+    # lookup keeps ``DatasourceFilter``: restoring needs the same grant as
+    # editing the live dataset.
+    skip_base_filter = False
 
     def validate(self) -> SqlaTable:  # type: ignore[override]
         model = super().validate()

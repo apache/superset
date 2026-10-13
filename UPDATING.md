@@ -24,6 +24,18 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dataset editorship no longer grants access to a dataset's data. Querying a
+  dataset (Explore, chart data, SQL Lab table references resolved through a
+  matching dataset) requires `datasource_access` on the dataset, or
+  `schema_access`/`catalog_access`/database access on its location. Editing and
+  deleting a dataset already required one of those grants alongside editorship;
+  soft-deleted datasets follow the same rule and are listed, restored and purged
+  only by editors who also hold one of those grants. Saving a virtual dataset does not create a grant on it, so roles
+  that relied on editorship alone (for example SQL Lab users who save virtual
+  datasets and hold only dataset-level grants) should be given
+  `datasource_access` on those datasets, or `schema_access` on the schema they
+  are saved in.
+
 - Malformed explicit `time_range` values are rejected with a validation error
   (HTTP 400 on chart-data requests) instead of silently producing an upper-bound-only
   scan. Update saved charts, dashboard filters, imports, and API callers to use

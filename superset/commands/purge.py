@@ -74,6 +74,9 @@ class SoftDeleteBinding:
     forbidden: type[Exception]
     delete_failed: type[Exception]
     impact_collector: ImpactCollector | None = None
+    #: Mirrors ``BaseRestoreCommand.skip_base_filter``: whether the trash
+    #: lookup bypasses the entity's RBAC ``base_filter``.
+    skip_base_filter: bool = True
 
 
 class PurgeArchivedCommand(BaseCommand):
@@ -180,16 +183,16 @@ class PurgeArchivedCommand(BaseCommand):
                 "Permanent delete is unavailable while soft delete is disabled"
             )
 
-        # Bypass the visibility filter *and* the RBAC base filter, matching
-        # BaseRestoreCommand: an editor whose base filter no longer admits the
-        # row (e.g. a chart editor who lost datasource access) must still be
-        # able to empty their own trash, not just fill it. Editorship is then
-        # verified explicitly below, which is what actually gates the action.
+        # Bypass the visibility filter and, unless the binding opts out, the
+        # RBAC base filter, matching BaseRestoreCommand: an editor whose base
+        # filter no longer admits the row (e.g. a chart editor who lost
+        # datasource access) must still be able to empty their own trash, not
+        # just fill it. Editorship is then verified explicitly below.
         model = self._binding.dao.find_by_id(
             self._model_uuid,
             id_column="uuid",
             skip_visibility_filter=True,
-            skip_base_filter=True,
+            skip_base_filter=self._binding.skip_base_filter,
         )
         if model is None:
             raise self._binding.not_found(f"No row with uuid={self._model_uuid!r}")

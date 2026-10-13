@@ -293,19 +293,15 @@ class TestDatasetSoftDelete(SupersetTestCase):
                 self._hard_delete_created(dataset_id, database)
 
     @with_feature_flags(SOFT_DELETE=True)
-    def test_deleted_state_list_shows_gamma_editor_without_datasource_grant(
+    def test_deleted_state_hides_gamma_editor_without_datasource_grant(
         self,
     ) -> None:
-        """An editor keeps sight of their own trash even without a datasource
-        grant.
+        """Editorship alone does not expose a soft-deleted dataset.
 
-        Gamma can edit the dataset but holds NO ``datasource_access`` on it, so
-        every access leg of ``DatasourceFilter`` fails — the editable-soft-deleted
-        leg is what makes the row reachable, mirroring ``raise_for_access``
-        counting editorship as datasource access. The live-row precondition
-        also pins the leg's inertness: while the dataset is live, gamma
-        (no grant) must NOT see it, because the leg requires
-        ``deleted_at IS NOT NULL``.
+        Gamma can edit the dataset but holds NO ``datasource_access`` on it.
+        Editorship governs the dataset's definition, not access to its data,
+        so ``DatasourceFilter`` treats trash like live rows and gamma cannot
+        enumerate the soft-deleted row.
         """
         gamma = self.get_user(GAMMA_USERNAME)
         gamma_subject = _user_subject(gamma)
@@ -321,8 +317,6 @@ class TestDatasetSoftDelete(SupersetTestCase):
 
         try:
             self.login(GAMMA_USERNAME)
-            # Precondition: no grant -> gamma cannot see the LIVE row (the
-            # owned-trash leg must not leak live rows).
             rv = self.client.get("/api/v1/dataset/?q=(page_size:200)")
             assert rv.status_code == 200
             assert dataset_id not in [r["id"] for r in json.loads(rv.data)["result"]], (
@@ -346,9 +340,9 @@ class TestDatasetSoftDelete(SupersetTestCase):
                 rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
                 assert rv.status_code == 200
                 ids = [r["id"] for r in json.loads(rv.data)["result"]]
-                assert dataset_id in ids, (
-                    "editor without a datasource grant must still enumerate "
-                    f"their own trash via dataset_deleted_state={value}"
+                assert dataset_id not in ids, (
+                    "editor without a datasource grant must not enumerate the "
+                    f"soft-deleted dataset via dataset_deleted_state={value}"
                 )
         finally:
             self._hard_delete_created(dataset_id, database)

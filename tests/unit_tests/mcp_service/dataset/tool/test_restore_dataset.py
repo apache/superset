@@ -148,7 +148,7 @@ async def test_restore_dataset_success_by_uuid(
     assert content["success"] is True
     assert content["restored_id"] == 10
     mock_find.assert_called_once_with(
-        str(_UUID), skip_base_filter=True, skip_visibility_filter=True
+        str(_UUID), skip_base_filter=False, skip_visibility_filter=True
     )
     mock_command.assert_called_once_with(str(_UUID))
 

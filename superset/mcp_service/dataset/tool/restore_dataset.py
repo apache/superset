@@ -44,19 +44,17 @@ logger = logging.getLogger(__name__)
 def _find_dataset_for_restore(identifier: int | str) -> Any | None:
     """Resolve a dataset by numeric ID or UUID, including soft-deleted rows.
 
-    Both bypasses mirror ``BaseRestoreCommand.validate``'s own lookup:
-    ``skip_visibility_filter`` unhides the soft-deleted row, and
-    ``skip_base_filter`` keeps an editor's own trash reachable even when the
-    dataset's datasource-access base_filter would hide it (a lost grant must
-    not hide a row from the one audience that can restore it). The restore
-    audience is enforced by ``RestoreDatasetCommand`` via
-    ``raise_for_editorship``.
+    Mirrors ``RestoreDatasetCommand``'s own lookup: ``skip_visibility_filter``
+    unhides the soft-deleted row, and the datasource-access base_filter is
+    kept, so a dataset the caller holds no grant on reads as not found. The
+    restore audience is then enforced via ``raise_for_editorship``.
     """
     from superset.daos.dataset import DatasetDAO
 
     return DatasetDAO.find_by_id_or_uuid(
         str(identifier),
-        skip_base_filter=True,
+        # Matches ``RestoreDatasetCommand.skip_base_filter``.
+        skip_base_filter=False,
         skip_visibility_filter=True,
     )
 
@@ -75,12 +73,11 @@ async def _deny_restore(
 ) -> RestoreDatasetResponse | None:
     """Return an error response unless the caller may restore ``dataset``.
 
-    ``_find_dataset_for_restore`` bypasses the RBAC base filter, so without
-    this gate iterating identifiers would disclose the existence and exact
-    name of datasets the caller cannot see (the web API answers 404 for
-    those). A dataset outside the caller's RBAC scope reads as not found; a
-    visible one the caller cannot edit gets a permission error naming only
-    its id.
+    Runs before any response embeds the dataset's name, so iterating
+    identifiers cannot disclose the existence and exact name of datasets the
+    caller cannot see (the web API answers 404 for those). A dataset outside
+    the caller's RBAC scope reads as not found; a visible one the caller
+    cannot edit gets a permission error naming only its id.
     """
     from superset import security_manager
     from superset.exceptions import SupersetSecurityException
@@ -145,7 +142,8 @@ async def restore_dataset(
     datasets that were soft-deleted (moved to trash while the ``SOFT_DELETE``
     feature flag was enabled) can be restored; permanently deleted datasets
     are unrecoverable. The caller must be an editor of the dataset (owners
-    and Admins qualify). Use list_datasets with deleted_state='only' to find
+    and Admins qualify) and hold access to its data (a datasource, schema,
+    catalog or database grant). Use list_datasets with deleted_state='only' to find
     trashed datasets.
 
     Restoring fails with ``error_type`` ``LogicalDuplicate`` when another
@@ -180,9 +178,8 @@ async def restore_dataset(
 
     dataset_id = dataset.id
 
-    # The lookup above deliberately bypasses the RBAC base filter, so enforce
-    # the restore audience *before* composing any response that embeds the
-    # dataset's name.
+    # Enforce the restore audience *before* composing any response that
+    # embeds the dataset's name.
     if (denied := await _deny_restore(dataset, request.identifier, ctx)) is not None:
         return denied
 

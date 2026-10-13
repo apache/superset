@@ -5088,10 +5088,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # A SQL Lab query's own author should be able to explore/chart
             # the exact query they already ran without an additional
             # dataset-level ``datasource_access`` grant on every table it
-            # happens to touch. This mirrors the ownership bypass already
-            # granted to dataset owners via ``is_editor`` further below in
-            # this same method; the query path had no equivalent authorship
-            # bypass.
+            # happens to touch.
             #
             # Gated on the explicit ``allow_query_authorship_bypass`` opt-in
             # rather than firing for every ``not force_dataset_match`` call:

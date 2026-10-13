@@ -43,7 +43,6 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
-from sqlalchemy import and_, or_
 from sqlalchemy.orm import Query
 from wtforms.fields.core import Field, UnboundField
 
@@ -939,29 +938,9 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             models.Database,
             models.Database.id == self.model.database_id,
         )
-        access_filter = get_dataset_access_filters(self.model)
-        # Editors keep sight of their own soft-deleted rows regardless of
-        # datasource grants: ``raise_for_access`` counts editorship as
-        # datasource access, and the restore audience is editors/admins.
-        # The leg is inert for live rows (``deleted_at IS NULL`` fails it)
-        # and only ever matters when a deleted-state rison filter has opted
-        # the request in to seeing soft-deleted rows — without that session
-        # bypass, no soft-deleted row reaches this query at all.
-        deleted_at = getattr(self.model, "deleted_at", None)
-        editors = getattr(self.model, "editors", None)
-        user_id = utils.get_user_id()
-        if deleted_at is not None and editors is not None and user_id:
-            from superset.subjects.models import Subject  # noqa: PLC0415
-            from superset.subjects.utils import (  # noqa: PLC0415
-                get_user_subject_ids_subquery,
-            )
-
-            editable_trash = and_(
-                deleted_at.is_not(None),
-                editors.any(Subject.id.in_(get_user_subject_ids_subquery(user_id))),
-            )
-            return query.filter(or_(access_filter, editable_trash))
-        return query.filter(access_filter)
+        # Soft-deleted rows get the same grant-based filter as live rows:
+        # editorship governs a dataset's definition, not access to its data.
+        return query.filter(get_dataset_access_filters(self.model))
 
 
 class CsvResponse(Response):
