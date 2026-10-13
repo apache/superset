@@ -178,7 +178,7 @@ def is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
         elif ip in _NAT64:
             ip = ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
         elif ip.sixtofour:
-            ip = ip.sixtofour
+            return False
     return ip.is_global and not any(ip in net for net in _SSRF_UNSAFE_NETWORKS)
 
 

@@ -24,7 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
-- Address validation refuses additional non-global address forms. Translation and 6to4 addresses are checked using their embedded IPv4 address; local-use translation, IPv4-compatible and Teredo forms are refused. Existing per-feature internal-host settings continue to control OAuth2, webhook, URL dataset import and Impala checks.
+- Address validation refuses additional non-global address forms. Translation addresses are checked using their embedded IPv4 address; local-use translation, IPv4-compatible, 6to4 and Teredo forms are refused. Existing per-feature internal-host settings continue to control OAuth2, webhook, URL dataset import and Impala checks.
 
 - Semantic-layer APIs are registered regardless of the `SEMANTIC_LAYERS` flag.
   The flag is evaluated at runtime for API requests and background queries.
