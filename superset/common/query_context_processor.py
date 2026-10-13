@@ -625,6 +625,7 @@ class QueryContextProcessor:
                     annotation_query_context.query_cache_key(query_object)
                     for query_object in annotation_query_context.queries
                 ]
+                annotation_datasource: Any = annotation_query_context.datasource
             else:
                 # Fall back to the RLS-clause identity when the chart has no
                 # saved query context to key on. resolved_datasource, not
@@ -636,29 +637,17 @@ class QueryContextProcessor:
                     return None
                 access = security_manager.can_access_datasource(datasource)
                 data_key = security_manager.get_rls_cache_key(datasource)
-            annotation_datasource: Datasource | None = chart.resolved_datasource
-            if isinstance(chart.query_context, str):
-                try:
-                    source: dict[str, Any] = json.loads(chart.query_context)[
-                        "datasource"
-                    ]
-                    annotation_datasource = DatasourceDAO.get_datasource(
-                        source["type"], source["id"]
-                    )
-                except (
-                    ValueError,
-                    TypeError,
-                    KeyError,
-                    DatasourceNotFound,
-                    DatasourceTypeNotSupportedError,
-                    DatasourceValueIsIncorrect,
-                ):
-                    annotation_datasource = None
-            metadata_version: str | None = None
-            result_discriminator: tuple[str, str] | None = None
+                annotation_datasource = datasource
+            scope: dict[str, Any] = {"access": access, "data_key": data_key}
+            # Semantic-view results are versioned by the layer's metadata
+            # generation and result discriminator, which the datasource-level
+            # key material above does not carry.
             if isinstance(annotation_datasource, SemanticView):
-                metadata_version = annotation_datasource.metadata_generation
-                result_discriminator = annotation_datasource.result_cache_discriminator
+                scope["metadata_version"] = annotation_datasource.metadata_generation
+                if (
+                    discriminator := annotation_datasource.result_cache_discriminator
+                ) is not None:
+                    scope["result_version"] = discriminator
         except Exception:  # noqa: BLE001  pylint: disable=broad-except
             # Derivation can fail well beyond SupersetException: the DAO
             # lookup and lazy ``datasource`` load are themselves live DB
@@ -676,12 +665,7 @@ class QueryContextProcessor:
                 exc_info=True,
             )
             return None
-        return {
-            "access": access,
-            "data_key": data_key,
-            "metadata_version": metadata_version,
-            "result_discriminator": result_discriminator,
-        }
+        return scope
 
     def _get_annotation_data_cached(
         self,
