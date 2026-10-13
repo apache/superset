@@ -19266,6 +19266,9 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
           "500": {
             "$ref": "#/components/responses/500"
           }
