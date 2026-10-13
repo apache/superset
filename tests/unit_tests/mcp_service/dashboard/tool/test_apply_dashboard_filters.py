@@ -1385,6 +1385,164 @@ async def test_case_insensitive_match_must_be_unambiguous(mcp_server: object) ->
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("candidates", [[1, "1"], ["1", 1]])
+async def test_same_label_with_different_types_is_ambiguous(
+    mcp_server: object, candidates: list[Any]
+) -> None:
+    """Numeric and text values must not collapse into one normalized match."""
+    captured: dict[str, Any] = {}
+
+    data = await _apply_region(
+        mcp_server, [" 1 "], _mock_values_dataset(candidates), captured
+    )
+
+    assert "state" not in captured
+    assert data["error"] is not None
+    assert data["applied_filters"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "stored", ["North America", "North  America", "North\tAmerica"]
+)
+async def test_whitespace_match_beyond_a_truncated_page(
+    mcp_server: object, stored: str
+) -> None:
+    """Searching must tolerate whitespace in both the request and stored value."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(["APAC", "EMEA", stored])
+
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(
+            mcp_server, ["  north   AMERICA "], dataset, captured
+        )
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["values"] == [stored]
+    assert dataset.values_for_column.call_args.kwargs["search"] == "AMERICA"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("requested", "first", "later"),
+    [("Apac", "APAC", "apac"), ("north america", "North America", "North  America")],
+)
+async def test_normalized_first_page_match_checks_for_later_ambiguity(
+    mcp_server: object, requested: str, first: str, later: str
+) -> None:
+    """A near match on an incomplete page does not establish uniqueness."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset([first, "EMEA", later])
+
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(mcp_server, [requested], dataset, captured)
+
+    assert "state" not in captured
+    assert data["error"] is not None
+    assert data["applied_filters"] == []
+    assert dataset.values_for_column.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_truncated_search_cannot_establish_normalized_uniqueness(
+    mcp_server: object,
+) -> None:
+    """Even the narrowed page may hide another normalized match."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(["APAC", "APAC North", "apac"])
+
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(mcp_server, ["Apac"], dataset, captured)
+
+    assert "state" not in captured
+    assert data["error"] is not None
+    assert dataset.values_for_column.call_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("requested", [1, "1"])
+async def test_exact_match_wins_over_same_label_with_different_types(
+    mcp_server: object, requested: int | str
+) -> None:
+    """Exact numeric and text matches retain the requested type."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset([1, "1"])
+
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(mcp_server, [requested], dataset, captured)
+
+    assert data["error"] is None
+    applied = data["applied_filters"][0]["values"][0]
+    assert applied == requested
+    assert type(applied) is type(requested)
+    dataset.values_for_column.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_exact_match_beyond_first_page_wins_over_normalized_match(
+    mcp_server: object,
+) -> None:
+    """A later exact spelling takes precedence over the first page's near match."""
+    captured: dict[str, Any] = {}
+    dataset = _mock_values_dataset(["APAC", "EMEA", "Apac"])
+
+    with patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2):
+        data = await _apply_region(mcp_server, ["Apac"], dataset, captured)
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["values"] == ["Apac"]
+    assert dataset.values_for_column.call_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "stored",
+    [
+        ["North America"],
+        ["North  America"],
+        ["North\tAmerica"],
+        ["North America", "North  America"],
+    ],
+)
+async def test_truncated_whitespace_matching_with_real_column_query(
+    mcp_server: object, tmp_path: Any, stored: list[str]
+) -> None:
+    """The real containment query finds whitespace variants without guessing."""
+    import sqlite3
+
+    from superset.connectors.sqla.models import TableColumn
+
+    path = tmp_path / "regions.db"
+    with sqlite3.connect(path) as conn:
+        conn.execute("CREATE TABLE sales (region TEXT)")
+        conn.executemany(
+            "INSERT INTO sales VALUES (?)", [(v,) for v in ["APAC", "EMEA", *stored]]
+        )
+    dataset = SqlaTable(
+        table_name="sales",
+        database=Database(database_name="regions", sqlalchemy_uri=f"sqlite:///{path}"),
+        columns=[TableColumn(column_name="region", type="TEXT")],
+    )
+    captured: dict[str, Any] = {}
+
+    with (
+        patch.dict(current_app.config, FILTER_SELECT_ROW_LIMIT=2),
+        patch.object(SqlaTable, "raise_for_access"),
+        patch.object(SqlaTable, "get_sqla_row_level_filters", return_value=[]),
+    ):
+        data = await _apply_region(
+            mcp_server, ["  north   AMERICA "], dataset, captured
+        )
+
+    if len(stored) == 1:
+        assert data["error"] is None
+        assert data["applied_filters"][0]["values"] == stored
+    else:
+        assert data["error"] is not None
+        assert "state" not in captured
+
+
+@pytest.mark.asyncio
 async def test_value_beyond_a_truncated_first_page_is_found_by_search(
     mcp_server: object,
 ) -> None:

@@ -225,7 +225,7 @@ def _match_value(value: FilterSelectValue, candidates: Sequence[Any]) -> Any:
         return _NOT_FOUND
     wanted = _normalize_value(value)
     matches = {
-        _value_label(candidate): candidate
+        (type(candidate), candidate): candidate
         for candidate in candidates
         if candidate is not None and _normalize_value(candidate) == wanted
     }
@@ -305,12 +305,16 @@ def _search_value(
     Returns the matched value (or ``_NOT_FOUND``) and the values the search
     returned, for suggestions. A value the search cannot settle (NULL, which
     a containment search cannot find, or a failed query) is kept as given:
-    absence from a truncated page proves nothing.
+    absence from a truncated page proves nothing. Normalized matches require
+    a complete search result to establish uniqueness; exact matches do not.
     """
     if value is None:
         return value, []
     try:
-        searched, _ = _column_values(dataset, column, search=_value_label(value))
+        # A whole phrase misses stored values with different whitespace. Every
+        # normalized match contains each word; use the longest to narrow the query.
+        term = max(_value_label(value).split(), key=len, default="")
+        searched, complete = _column_values(dataset, column, search=term)
     except Exception:  # noqa: BLE001 pylint: disable=broad-except
         logger.warning(
             "Could not search column %s for filter %s",
@@ -319,7 +323,12 @@ def _search_value(
             exc_info=True,
         )
         return value, []
-    return _match_value(value, searched), searched
+    match = _match_value(value, searched)
+    # Only an exact match is decisive when even the search results are truncated.
+    # A lone normalized match on that page does not establish uniqueness.
+    if not complete and match != value:
+        match = _NOT_FOUND
+    return match, searched
 
 
 def _verify_select_values(
@@ -362,7 +371,7 @@ def _verify_select_values(
     for value in values:
         match = _match_value(value, candidates)
         searched: list[Any] = []
-        if match is _NOT_FOUND and not complete:
+        if not complete and match != value:
             match, searched = _search_value(dataset, conf, column, value)
         if match is _NOT_FOUND:
             unknown.append((value, _suggest_values(value, [*searched, *candidates])))
