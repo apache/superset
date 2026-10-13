@@ -1407,3 +1407,109 @@ test('versioned suggestions are unavailable without a failure and allow manual i
   await userEvent.click(await screen.findByTitle('manual'));
   expect(onChange).toHaveBeenCalled();
 });
+
+test.each([
+  [undefined, false],
+  ['old-title-version', false],
+  ['cube-member-id-v1', false],
+  ['cube-member-id-v1', true],
+] as const)(
+  'suggestions carry only the selection provenance %s (external: %s)',
+  async (version, isExtra) => {
+    columnValuesResponse = { result: ['US'] };
+    setup({
+      semanticSelectionVersion: version,
+      adhocFilter: new AdhocFilter({
+        expressionType: ExpressionTypes.Simple,
+        subject: 'value',
+        operatorId: Operators.In,
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+        comparator: [],
+        clause: Clauses.Where,
+        isExtra,
+      }),
+      datasource: {
+        ...TestDataset,
+        type: 'semantic_view',
+        semantic_selection_version: 'cube-member-id-v1',
+        columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
+        filter_select: true,
+      },
+    });
+    await openComparator();
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT).length,
+      ).toBeGreaterThan(0),
+    );
+    const calls = fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT);
+    expect(
+      new URL(String(calls.at(-1)?.url)).searchParams.get(
+        'semantic_selection_version',
+      ),
+    ).toBe(isExtra ? null : (version ?? null));
+  },
+);
+
+test('late suggestions cannot repopulate a different selection version', async () => {
+  jest.spyOn(redux, 'useSelector').mockReturnValue({});
+  let finishOld: (value: {
+    json: { result: string[] };
+    response: Response;
+  }) => void = () => {};
+  const oldResponse = new Promise<{
+    json: { result: string[] };
+    response: Response;
+  }>(resolve => {
+    finishOld = resolve;
+  });
+  const get = jest
+    .spyOn(SupersetClient, 'get')
+    .mockReset()
+    .mockImplementationOnce(() => oldResponse)
+    .mockResolvedValue({
+      json: { result: [], suggestions_status: 'unavailable_versioned_view' },
+      response: new Response(),
+    });
+  try {
+    const props = {
+      adhocFilter: new AdhocFilter({
+        expressionType: ExpressionTypes.Simple,
+        subject: 'value',
+        operatorId: Operators.In,
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+        comparator: [],
+        clause: Clauses.Where,
+      }),
+      onChange: jest.fn(),
+      options,
+      validHandler: jest.fn(),
+      datasource: {
+        ...TestDataset,
+        type: 'semantic_view',
+        columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
+        filter_select: true,
+      },
+    } as unknown as Props;
+    const { rerender } = render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...props}
+        semanticSelectionVersion="cube-member-id-v1"
+      />,
+    );
+    await openComparator();
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+    rerender(<AdhocFilterEditPopoverSimpleTabContent {...props} />);
+    await openComparator();
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+    await act(async () =>
+      finishOld({
+        json: { result: ['wrong-generation-value'] },
+        response: new Response(),
+      }),
+    );
+    expect(screen.queryAllByText('wrong-generation-value')).toHaveLength(0);
+  } finally {
+    get.mockRestore();
+  }
+});
