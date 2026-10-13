@@ -15,12 +15,24 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Backwards-compatible re-export of the shared name validator.
+"""Shared name validation for MCP tools.
 
-The implementation now lives in ``superset.common.tabular_query`` so the REST
+The name-validator implementation lives in ``superset.common.tabular_query`` so the REST
 endpoint and the MCP tools cannot drift apart.
 """
 
 from superset.common.tabular_query import validate_names
 
-__all__ = ["validate_names"]
+__all__: list[str] = ["validate_names", "validate_selection_names"]
+
+
+def validate_selection_names(
+    selected_metrics: list[str],
+    selected_dimensions: list[str],
+    valid_metrics: set[str],
+    valid_dimensions: set[str],
+) -> list[str]:
+    """Report unknown selected members using the shared validation messages."""
+    return validate_names(selected_metrics, valid_metrics, "metric") + validate_names(
+        selected_dimensions, valid_dimensions, "dimension"
+    )
