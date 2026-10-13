@@ -554,41 +554,6 @@ test('renders and selects within a 500-metric runtime schema', async () => {
   ).toBeUndefined();
 });
 
-test('a persistently failing refresh retries once, not on every edit', async () => {
-  let refreshCount = 0;
-  mockLayerWithSchema(dynamicMetricsSchema, {
-    '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
-      if ((payload as { runtime_data?: unknown })?.runtime_data) {
-        refreshCount += 1;
-        return Promise.reject(new Error('refresh boom'));
-      }
-      return Promise.resolve({ json: { result: dynamicMetricsSchema } });
-    },
-  });
-  const props = createProps();
-  render(<AddSemanticViewModal {...props} />);
-  await selectOption('Semantic layer', 'Snowflake SL');
-
-  await pickFromSelect(/metrics/i, 'm1');
-  await waitFor(() => expect(refreshCount).toBe(1), { timeout: 10000 });
-
-  // One bounded retry for this dependency state, then no further attempts
-  // however many more edits the user makes during the outage.
-  await pickFromSelect(/dimensions/i, 'd1');
-  await waitFor(() => expect(refreshCount).toBe(2), { timeout: 10000 });
-  await pickFromSelect(/dimensions/i, 'd2');
-  await new Promise(resolve => {
-    setTimeout(resolve, 1200);
-  });
-  expect(refreshCount).toBe(2);
-  // And the user was told once, not once per attempt.
-  expect(
-    props.addDangerToast.mock.calls.filter(([msg]) =>
-      String(msg).includes('refreshing the runtime schema'),
-    ),
-  ).toHaveLength(1);
-});
-
 test('a superseded refresh response cannot toast or clobber a newer one', async () => {
   // Exercises schemaRefreshGenRef: when two refreshes overlap and the older
   // one settles last, its failure must be ignored — no error toast, and no
@@ -1070,4 +1035,39 @@ test('a dependency change cancels views queued for the previous dependency state
     );
   expect(staleViewRequests).toHaveLength(0);
   expect(pending).toHaveLength(2);
+});
+
+test('a persistently failing refresh retries once, not on every edit', async () => {
+  const { pending, props } = await openDependentSchemaForm();
+  await chooseDependentOption('Schema', 'shared');
+  await chooseDependentOption('Database', 'second');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(2);
+  await act(async () => {
+    pending[1].reject(new Error('refresh boom'));
+  });
+
+  const note = screen.getByRole('textbox', { name: 'Note' });
+  fireEvent.change(note, { target: { value: 'retry' } });
+  await act(async () => {
+    jest.advanceTimersByTime(10 + SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(3);
+  await act(async () => {
+    pending[2].reject(new Error('refresh boom'));
+  });
+
+  // More edits in the same dependency state must not schedule a third attempt.
+  fireEvent.change(note, { target: { value: 'another edit' } });
+  await act(async () => {
+    jest.advanceTimersByTime(10 + SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(3);
+  expect(
+    props.addDangerToast.mock.calls.filter(([msg]) =>
+      String(msg).includes('refreshing the runtime schema'),
+    ),
+  ).toHaveLength(1);
 });
