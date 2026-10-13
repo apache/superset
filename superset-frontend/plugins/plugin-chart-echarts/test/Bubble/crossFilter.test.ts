@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { GenericDataType } from '@apache-superset/core/common';
+import { getTimeFormatter } from '@superset-ui/core';
 import {
   formatBubbleValue,
   getBubbleCrossFilterDataMask,
@@ -71,6 +73,24 @@ test('getBubbleCrossFilterKey serializes bigint and Date values', () => {
   ).toBe('["2024-01-02T03:04:05.000Z"]');
 });
 
+test('getBubbleCrossFilterDataMask formats a temporal entity on the chip', () => {
+  const epoch = Date.parse('2024-01-02T00:00:00.000Z');
+  const { dataMask } = getBubbleCrossFilterDataMask({
+    entity: 'order_date',
+    datum: [1, 2, 3, epoch, null],
+    selectedKeys: [],
+    coltypeMapping: { order_date: GenericDataType.Temporal },
+    dateFormat: '%Y-%m-%d',
+  });
+  const label = getTimeFormatter('%Y-%m-%d')(new Date(epoch));
+
+  expect(dataMask.filterState.label).toBe(label);
+  expect(dataMask.filterState.label).not.toBe(String(epoch));
+  expect(dataMask.extraFormData.filters).toEqual([
+    { col: 'order_date', op: 'IN', val: [epoch] },
+  ]);
+});
+
 test('getBubbleCrossFilterDataMask stores bigint as a JSON-safe string', () => {
   const { dataMask } = getBubbleCrossFilterDataMask({
     entity: 'customer_name',
@@ -88,7 +108,7 @@ test('getBubbleCrossFilterDataMask stores bigint as a JSON-safe string', () => {
 
 test('formatBubbleValue formats null and empty string distinctly', () => {
   expect(formatBubbleValue(null)).toBe('<NULL>');
-  expect(formatBubbleValue('')).toBe('""');
+  expect(formatBubbleValue('')).toBe('<empty string>');
   expect(formatBubbleValue(0)).toBe('0');
   expect(formatBubbleValue(false)).toBe('false');
 });

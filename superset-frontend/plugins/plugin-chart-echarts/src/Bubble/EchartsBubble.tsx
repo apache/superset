@@ -109,6 +109,8 @@ export default function EchartsBubble(props: BubbleChartTransformedProps) {
         series: seriesColumn,
         datum,
         selectedKeys,
+        coltypeMapping,
+        dateFormat,
       });
 
     return {

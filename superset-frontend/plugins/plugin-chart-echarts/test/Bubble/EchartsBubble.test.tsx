@@ -218,8 +218,8 @@ test('click filters empty-string entity values with IN and a distinct label', ()
       filters: [{ col: 'customer_name', op: 'IN', val: [''] }],
     },
     filterState: {
-      label: '""',
-      value: '""',
+      label: '<empty string>',
+      value: '<empty string>',
       selectedValues: ['[""]'],
     },
   });

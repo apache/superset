@@ -18,10 +18,14 @@
  */
 import {
   DataRecordValue,
+  getColumnLabel,
+  getNumberFormatter,
+  getTimeFormatter,
   QueryFormColumn,
   QueryObjectFilterClause,
 } from '@superset-ui/core';
 import { NULL_STRING } from '../constants';
+import { formatSeriesName } from '../utils/series';
 
 /** Scatter point payload: [x, y, size, entity, series]. */
 export type BubbleDatum = [
@@ -35,8 +39,11 @@ export type BubbleDatum = [
 export const ENTITY_INDEX = 3;
 export const SERIES_INDEX = 4;
 
-/** Display text for an empty-string dimension value. */
-export const EMPTY_STRING = '""';
+/**
+ * Display text for an empty string. Matches `optionLabel` in
+ * `src/utils/common.ts`; this plugin cannot import that module.
+ */
+export const EMPTY_STRING = '<empty string>';
 
 /**
  * Human-readable text for a dimension value, used for series names, tooltips
@@ -83,16 +90,44 @@ export function getBubbleCrossFilterKey(
   return JSON.stringify(parts);
 }
 
-export function getBubbleCrossFilterLabel(
-  entityValue: DataRecordValue,
-  seriesValue: DataRecordValue | undefined,
-  hasSeries: boolean,
+type CrossFilterLabelFormat = {
+  coltypeMapping?: Record<string, number>;
+  timeFormatter?: ReturnType<typeof getTimeFormatter>;
+  numberFormatter?: ReturnType<typeof getNumberFormatter>;
+};
+
+/**
+ * Chip text for one dimension. An empty string is labeled before
+ * `formatSeriesName`, which would leave it blank. Temporal values use the
+ * same formatter as the drill filters.
+ */
+function formatCrossFilterPart(
+  col: QueryFormColumn,
+  value: DataRecordValue,
+  format: CrossFilterLabelFormat,
 ): string {
-  const entityPart = formatBubbleValue(entityValue);
-  if (!hasSeries) {
+  if (value === '') {
+    return EMPTY_STRING;
+  }
+  return formatSeriesName(value, {
+    timeFormatter: format.timeFormatter,
+    numberFormatter: format.numberFormatter,
+    coltype: format.coltypeMapping?.[getColumnLabel(col)],
+  });
+}
+
+export function getBubbleCrossFilterLabel(
+  entity: QueryFormColumn,
+  entityValue: DataRecordValue,
+  series: QueryFormColumn | undefined,
+  seriesValue: DataRecordValue | undefined,
+  format: CrossFilterLabelFormat,
+): string {
+  const entityPart = formatCrossFilterPart(entity, entityValue, format);
+  if (!series) {
     return entityPart;
   }
-  return `${entityPart}, ${formatBubbleValue(seriesValue ?? null)}`;
+  return `${entityPart}, ${formatCrossFilterPart(series, seriesValue ?? null, format)}`;
 }
 
 export function getSelectedBubbleKeys(selectedValues: unknown): string[] {
@@ -139,11 +174,15 @@ export function getBubbleCrossFilterDataMask({
   series,
   datum,
   selectedKeys,
+  coltypeMapping,
+  dateFormat,
 }: {
   entity: QueryFormColumn;
   series?: QueryFormColumn;
   datum: BubbleDatum;
   selectedKeys: string[];
+  coltypeMapping?: Record<string, number>;
+  dateFormat?: string;
 }) {
   const hasSeries = Boolean(series);
   const entityValue = datum[ENTITY_INDEX];
@@ -151,7 +190,17 @@ export function getBubbleCrossFilterDataMask({
   const key = getBubbleCrossFilterKey(entityValue, seriesValue, hasSeries);
   const isCurrentValueSelected = selectedKeys.includes(key);
   const nextKeys = isCurrentValueSelected ? [] : [key];
-  const label = getBubbleCrossFilterLabel(entityValue, seriesValue, hasSeries);
+  const label = getBubbleCrossFilterLabel(
+    entity,
+    entityValue,
+    hasSeries ? series : undefined,
+    seriesValue,
+    {
+      coltypeMapping,
+      timeFormatter: getTimeFormatter(dateFormat),
+      numberFormatter: getNumberFormatter(),
+    },
+  );
   const filters: QueryObjectFilterClause[] =
     nextKeys.length === 0
       ? []
