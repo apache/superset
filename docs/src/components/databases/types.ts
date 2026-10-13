@@ -83,6 +83,7 @@ export interface CompatibleDatabase {
   name: string;
   description?: string;
   logo?: string;
+  logo_dark?: string;
   homepage_url?: string;
   categories?: string[]; // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
   pypi_packages?: string[];
@@ -108,6 +109,7 @@ export interface CustomError {
 export interface DatabaseDocumentation {
   description?: string;
   logo?: string;
+  logo_dark?: string;
   homepage_url?: string;
   categories?: string[]; // Category classifications (e.g., ["TRADITIONAL_RDBMS", "OPEN_SOURCE"])
   pypi_packages?: string[];
