@@ -23,7 +23,7 @@ import hashlib
 import hmac
 import logging
 from dataclasses import dataclass, field
-from typing import Any, cast, NoReturn, TYPE_CHECKING
+from typing import Any, cast, NoReturn, TYPE_CHECKING, TypeAlias
 from uuid import uuid4
 
 from flask import current_app, g, has_request_context
@@ -122,6 +122,15 @@ def _install_namespace(engine: Engine) -> str:
         return namespace
 
 
+def effective_role_ids(user: Any) -> tuple[str, ...]:
+    """Canonicalize direct and group roles for both host execution contexts."""
+    return (
+        tuple(sorted({str(role.id) for role in security_manager.get_user_roles(user)}))
+        if user is not None
+        else ()
+    )
+
+
 def current_host_execution_context() -> SemanticExecutionContext:
     """Build identity only from server-authenticated users and effective roles."""
     user: Any = getattr(g, "user", None)
@@ -135,11 +144,7 @@ def current_host_execution_context() -> SemanticExecutionContext:
         and getattr(user, "id", None) is not None
         else None
     )
-    roles: tuple[str, ...] = (
-        tuple(sorted({str(role.id) for role in security_manager.get_user_roles(user)}))
-        if user is not None
-        else ()
-    )
+    roles: tuple[str, ...] = effective_role_ids(user)
     guest: bool = bool(user is not None and getattr(user, "is_guest_user", False))
     namespace: str = semantic_namespace()
     payload: bytes = json.dumps(
@@ -166,7 +171,7 @@ class Refused:
     reason: str
 
 
-MethodResolution = ExecutionMethod | Refused
+MethodResolution: TypeAlias = ExecutionMethod | Refused
 
 
 def resolve_method(
@@ -177,17 +182,23 @@ def resolve_method(
 
 
 def refuse(
-    layer: SemanticLayer, context: SemanticExecutionContext, reason: str
+    layer: SemanticLayer,
+    context: SemanticExecutionContext,
+    reason: str,
+    method: ExecutionMethod | None,
+    declared: tuple[str, ...],
 ) -> NoReturn:
     """Expose a generic error and log only non-secret operational identifiers."""
     logger.warning(
         "Semantic execution refused: connection=%s provider=%s "
-        "origin=%s reason=%s identity=%s",
+        "origin=%s reason=%s identity=%s method=%s declared=%s",
         layer.uuid,
         layer.type,
         context.origin.value,
         reason,
         context.identity_digest[:8],
+        method.value if method is not None else "unresolved",
+        declared,
     )
     raise SupersetSecurityException(
         SupersetError(
@@ -204,12 +215,21 @@ def check_execution_allowed(
 ) -> ExecutionMethod:
     """Refuse unsupported policy before constructing or reusing a provider."""
     resolution: MethodResolution = resolve_method(layer, context)
+    supported: frozenset[ExecutionMethod] = registry[
+        layer.type
+    ].supported_execution_methods
+    declared: tuple[str, ...] = tuple(sorted(method.value for method in supported))
     if isinstance(resolution, Refused):
-        refuse(layer, context, resolution.reason)
+        refuse(layer, context, resolution.reason, None, declared)
     method: ExecutionMethod = resolution
-    if method not in registry[layer.type].supported_execution_methods:
-        refuse(layer, context, "method_not_supported")
+    if method not in supported:
+        refuse(layer, context, "method_not_supported", method, declared)
     return method
+
+
+def _binding_owner(layer: SemanticLayer) -> object:
+    """Identify persisted and transient layers consistently within the memo."""
+    return layer.uuid or id(layer)
 
 
 @dataclass
@@ -234,7 +254,7 @@ class SemanticBindingMemo:
         """Invalidate every identity-bound instance for this connection."""
         key: tuple[object, SemanticExecutionContext, ExecutionMethod]
         for key in list(self.bindings):
-            if key[0] == (layer.uuid or id(layer)):
+            if key[0] == _binding_owner(layer):
                 del self.bindings[key]
 
     def bind(
@@ -244,7 +264,7 @@ class SemanticBindingMemo:
         context: SemanticExecutionContext = current_host_execution_context()
         method: ExecutionMethod = check_execution_allowed(layer, context)
         key: tuple[object, SemanticExecutionContext, ExecutionMethod] = (
-            layer.uuid or id(layer),
+            _binding_owner(layer),
             context,
             method,
         )

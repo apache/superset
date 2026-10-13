@@ -344,7 +344,7 @@ class SemanticLayer(AuditMixinNullable, Model):
                     sa.inspect(instance).dict.get("semantic_layer_uuid", self.uuid)
                     == self.uuid
                 ):
-                    instance._metadata_generation = None
+                    instance.reset_metadata_generation()
 
     @property
     def implementation(self) -> SemanticLayerABC[Any, SemanticViewABC]:
@@ -859,6 +859,10 @@ class SemanticView(AuditMixinNullable, Model):
     def forget_metadata(self) -> None:
         """Discard this view's implementation and captured generation together."""
         SemanticBindingMemo.for_layer(self.semantic_layer).forget(self.semantic_layer)
+        self.reset_metadata_generation()
+
+    def reset_metadata_generation(self) -> None:
+        """Forget the captured generation without loading relationships or providers."""
         self._metadata_generation = None
 
     @property

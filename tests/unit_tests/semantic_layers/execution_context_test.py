@@ -29,7 +29,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.semantic_layers.models import SemanticLayer, SemanticView
-from tests.unit_tests.semantic_layers.metadata_contract_test import LegacyLayer
+from tests.unit_tests.semantic_layers.conftest import LegacyLayer
 
 
 @pytest.fixture
@@ -130,6 +130,117 @@ def test_host_context_uses_trusted_identity(app: Any, mocker: MockerFixture) -> 
         assert first.role_ids == ("2", "3")
         assert first.origin == ExecutionOrigin.REQUEST
         assert current_host_execution_context() == first
+
+
+def test_binding_and_containment_include_effective_group_roles(
+    app: Any, mocker: MockerFixture
+) -> None:
+    """Both host contexts include group grants and invalidate on their removal."""
+    import hashlib
+
+    from flask import g
+    from flask_appbuilder.security.sqla.models import Group, Role, User
+    from superset_core.semantic_layers.context import SemanticExecutionContext
+    from superset_core.semantic_layers.layer import SemanticCacheExecutionContext
+
+    from superset.semantic_layers.cache_host import _execution_context
+    from superset.semantic_layers.execution import current_host_execution_context
+    from superset.utils import json
+
+    role: Role = Role(id=7, name="group-reader")
+    user: User = User(id=1, username="group-member", groups=[Group(roles=[role])])
+    datasource: MagicMock = MagicMock()
+    mocker.patch.dict(app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "test"})
+    mocker.patch(
+        "superset.semantic_layers.cache_host.security_manager.get_rls_cache_key",
+        return_value=[],
+    )
+    with app.test_request_context():
+        g.user = user
+        binding: SemanticExecutionContext = current_host_execution_context()
+        containment: SemanticCacheExecutionContext | None = _execution_context(
+            datasource
+        )
+        assert containment is not None
+        assert binding.role_ids == containment.role_ids == ("7",)
+        user.groups = []
+        revoked: SemanticCacheExecutionContext | None = _execution_context(datasource)
+        assert revoked is not None
+        assert revoked.role_ids == current_host_execution_context().role_ids == ()
+        assert revoked.host_identity != containment.host_identity
+        # A pre-upgrade group-only user was represented with no roles, even
+        # before revocation. Never reuse that older, ambiguous identity.
+        old_payload: str = json.dumps(
+            {"guest_token": None, "principal": "1", "rls": [], "roles": ()},
+            default=str,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        assert revoked.host_identity != hashlib.sha256(old_payload.encode()).hexdigest()
+
+
+@pytest.mark.parametrize("refused", [False, True])
+def test_refusal_log_includes_method_and_provider_declarations(
+    app: Any,
+    execution_view: SemanticView,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    refused: bool,
+) -> None:
+    """Operators can distinguish policy refusal from unsupported execution."""
+    from superset.exceptions import SupersetSecurityException
+    from superset.semantic_layers.execution import Refused
+
+    if refused:
+        mocker.patch(
+            "superset.semantic_layers.execution.resolve_method",
+            return_value=Refused("no_policy"),
+        )
+    else:
+        mocker.patch.object(LegacyLayer, "supported_execution_methods", frozenset())
+    with app.app_context(), pytest.raises(SupersetSecurityException):
+        _: Any = execution_view.implementation
+    assert (
+        "method=unresolved declared=('connection',)"
+        if refused
+        else "method=connection declared=()"
+    ) in caplog.text
+
+
+@pytest.mark.parametrize("theme_fails", [False, True])
+def test_namespace_bootstrap_failure_has_its_own_boundary(
+    mocker: MockerFixture, theme_fails: bool
+) -> None:
+    """Namespace failure stays fail-closed without masking theme diagnostics."""
+    from superset.app import SupersetApp
+    from superset.semantic_layers.execution import semantic_namespace
+
+    application: SupersetApp = SupersetApp(__name__)
+    mocker.patch.object(application, "_is_database_up_to_date", return_value=True)
+    mocker.patch("superset.tags.core.register_sqla_event_listeners")
+    mocker.patch(
+        "superset.semantic_layers.execution.bootstrap_semantic_namespace",
+        side_effect=ValueError("namespace failure"),
+    )
+    themes: MagicMock = mocker.patch(
+        "superset.commands.theme.seed.SeedSystemThemesCommand.run",
+        side_effect=ValueError("theme failure") if theme_fails else None,
+    )
+    logger: MagicMock = mocker.patch("superset.app.logger")
+    with application.app_context():
+        application.sync_config_to_db()
+        with pytest.raises(ValueError, match="was not initialized"):
+            semantic_namespace()
+    themes.assert_called_once()
+    assert any(
+        call.args[0] == "Failed to bootstrap semantic execution namespace: %s"
+        for call in logger.error.call_args_list
+    )
+    assert logger.error.call_count == (2 if theme_fails else 1)
+    assert all(
+        call.args[0] != "Configuration sync to database completed successfully"
+        for call in logger.info.call_args_list
+    )
 
 
 def test_validation_does_not_construct_provider() -> None:

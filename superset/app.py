@@ -202,14 +202,20 @@ class SupersetApp(Flask):
             # Defer model imports until initialization has configured SQLAlchemy.
             from superset.semantic_layers.execution import bootstrap_semantic_namespace
 
-            bootstrap_semantic_namespace()
+            namespace_ready: bool = True
+            try:
+                bootstrap_semantic_namespace()
+            except Exception as ex:
+                namespace_ready = False
+                logger.error("Failed to bootstrap semantic execution namespace: %s", ex)
 
             # Seed system themes from configuration
             from superset.commands.theme.seed import SeedSystemThemesCommand
 
             SeedSystemThemesCommand().run()
 
-            logger.info("Configuration sync to database completed successfully")
+            if namespace_ready:
+                logger.info("Configuration sync to database completed successfully")
 
         except Exception as e:
             logger.error("Failed to sync configuration to database: %s", e)

@@ -368,7 +368,7 @@ def test_clear_discards_reused_implementation_objects(
     view: SemanticView = SemanticView(name="view", semantic_layer=layer)
     session.add(view)
     session.commit()
-    from tests.unit_tests.semantic_layers.metadata_contract_test import LegacyLayer
+    from tests.unit_tests.semantic_layers.conftest import LegacyLayer
 
     with patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer}):
         previous_layer: Any = layer.implementation
@@ -568,7 +568,7 @@ def test_legacy_provider_keeps_host_invalidation(
     layer: SemanticLayer,
 ) -> None:
     """A None SDK token never opts a legacy provider out of host cache rotation."""
-    from tests.unit_tests.semantic_layers.metadata_contract_test import LegacyLayer
+    from tests.unit_tests.semantic_layers.conftest import LegacyLayer
 
     view: SemanticView = SemanticView(name="legacy", semantic_layer=layer)
     session.add(view)
@@ -602,7 +602,7 @@ def test_clear_preserves_loaded_views_of_other_layers(
     session.add(view)
     session.commit()
     assert view.semantic_layer_uuid == other.uuid
-    from tests.unit_tests.semantic_layers.metadata_contract_test import LegacyLayer
+    from tests.unit_tests.semantic_layers.conftest import LegacyLayer
 
     with patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer}):
         implementation: Any = view.implementation
