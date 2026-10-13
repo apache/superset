@@ -27,7 +27,7 @@ interface DataValue {
 }
 
 interface DataSeries {
-  key: string[];
+  key: string | string[];
   values: DataValue[];
 }
 
@@ -102,7 +102,7 @@ function HorizonChart({
       >
         {data.map(row => (
           <HorizonRow
-            key={row.key.join(',')}
+            key={ensureIsArray(row.key).join(',')}
             width={width}
             height={seriesHeight}
             title={ensureIsArray(row.key).join(', ')}

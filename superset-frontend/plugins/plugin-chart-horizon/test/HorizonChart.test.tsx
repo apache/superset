@@ -49,3 +49,10 @@ test('renders nothing but the container for empty data', () => {
 
   expect(container.querySelectorAll('.horizon-row')).toHaveLength(0);
 });
+
+test('renders ungrouped metric series returned by the query transform', () => {
+  const rows = [{ key: 'revenue', values: [{ y: 10 }, { y: 20 }] }];
+  const { container } = render(<HorizonChart data={rows} />);
+  expect(container.querySelectorAll('.horizon-row')).toHaveLength(1);
+  expect(screen.getByText('revenue')).toBeInTheDocument();
+});
