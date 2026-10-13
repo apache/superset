@@ -69,31 +69,51 @@ def test_pending_operation_is_polled_without_progress() -> None:
 
 
 @pytest.mark.parametrize("use_executor", [False, True])
-def test_stop_with_cancel_id_uses_http(use_executor: bool) -> None:
-    """Stop must reach Impala even when no worker is polling the live cursor."""
+def test_stop_running_query_uses_live_cursor(use_executor: bool) -> None:
+    """
+    Stopping a running query with a published cancel handle cancels it through
+    the live cursor only. An HTTP cancel would invalidate the handle the worker
+    is still polling, failing the run instead of stopping it.
+    """
     app: Flask = Flask(__name__)
-    app.config["IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"] = True
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"impala": 0}
     cancel_id: str = "0123456789abcdef:fedcba9876543210"
-    query: MagicMock = MagicMock(extra={QUERY_CANCEL_KEY: cancel_id})
+    query: MagicMock = MagicMock(
+        id=1,
+        extra={QUERY_CANCEL_KEY: cancel_id, QUERY_DISPATCHED_KEY: True},
+        status="running",
+        progress=0,
+    )
     query.database.db_engine_spec = ImpalaEngineSpec
     query.database.url_object.host = "impala.example.com"
 
+    def set_extra_json_key(key: str, value: bool) -> None:
+        """Record the early-cancel flag in query.extra."""
+        query.extra[key] = value
+
+    query.set_extra_json_key.side_effect = set_extra_json_key
     post: MagicMock
     with (
         app.app_context(),
+        patch("superset.db_engine_specs.impala.db") as db,
         patch("superset.db_engine_specs.impala.requests.post") as post,
     ):
-        post.return_value.status_code = 200
         if use_executor:
             assert SQLExecutor._cancel_query(query.database, query)
         else:
             assert cancel_query(query)
+        db.session.commit.assert_called_once_with()
 
-    post.assert_called_once_with(
-        f"http://impala.example.com:25000/cancel_query?query_id={cancel_id}",
-        timeout=3,
-        allow_redirects=False,
-    )
+        cursor: Mock = Mock()
+        cursor.status.return_value = "RUNNING_STATE"
+        ImpalaEngineSpec.handle_cursor(cursor, query)
+
+    assert query.extra[QUERY_EARLY_CANCEL_KEY] is True
+    post.assert_not_called()
+    cursor.get_log.assert_not_called()
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
 
 
 def test_stopped_status_cancels_pending_operation() -> None:
@@ -175,13 +195,14 @@ def test_stop_before_cancel_id_is_published_uses_live_cursor(
     cursor.cancel_operation.assert_called_once_with()
 
 
-def test_prepare_cancel_query_keeps_a_published_cancel_id() -> None:
-    """Once the handle is published, Stop goes through the HTTP cancel."""
-    query: MagicMock = MagicMock(extra={QUERY_CANCEL_KEY: "abc"})
+@pytest.mark.parametrize("extra", [{}, {QUERY_CANCEL_KEY: "abc"}])
+def test_prepare_cancel_query_flags_stop(extra: dict[str, str]) -> None:
+    """Stop is flagged for the live cursor whether or not a handle is published."""
+    query: MagicMock = MagicMock(extra=extra)
     with patch("superset.db_engine_specs.impala.db") as db:
         ImpalaEngineSpec.prepare_cancel_query(query)
-    query.set_extra_json_key.assert_not_called()
-    db.session.commit.assert_not_called()
+    query.set_extra_json_key.assert_called_once_with(QUERY_EARLY_CANCEL_KEY, True)
+    db.session.commit.assert_called_once_with()
 
 
 def test_pending_operation_polls_with_backoff() -> None:
