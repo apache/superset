@@ -55,12 +55,30 @@ _SCRIPT_PATH = (
     Path(__file__).resolve().parents[4] / "scripts" / "translations" / "babel_update.sh"
 )
 
-# The Python-Unit workflow installs gettext, so on CI a missing msgcat is a
-# broken runner and the tests below must fail rather than skip.
-_needs_msgcat = pytest.mark.skipif(
-    shutil.which("msgcat") is None and not os.environ.get("CI"),
-    reason="gettext's msgcat is not installed on this machine",
-)
+
+def _require_msgcat() -> None:
+    """
+    Skip the calling test when gettext's ``msgcat`` is missing, or fail it.
+
+    Most environments treat gettext as optional: a bare local ``pytest`` run,
+    or a CI job that never installs gettext, should skip these tests rather
+    than fail.
+
+    The Python-Unit and Python-Nightly-Canary workflows install gettext and
+    set SUPERSET_GETTEXT_STRICT, because there msgcat is not optional. A
+    missing msgcat there means the job is misconfigured, and the tests should
+    fail loudly instead of silently reporting a misleadingly green, skipped
+    result. The same pattern guards the testcontainers drivers
+    (tests/testcontainers/db_engine_specs/_driver.py).
+    """
+    if shutil.which("msgcat"):
+        return
+    if os.environ.get("SUPERSET_GETTEXT_STRICT"):
+        pytest.fail(
+            "SUPERSET_GETTEXT_STRICT is set, but gettext's msgcat is not on "
+            "PATH: install gettext in this job"
+        )
+    pytest.skip("gettext's msgcat is not installed on this machine")
 
 
 def _add_interpreter_shims(stub_dir: Path) -> None:
@@ -196,15 +214,14 @@ def test_normalization_precedes_pybabel_update() -> None:
     )
 
 
-@_needs_msgcat
 def test_normalization_sorts_unwraps_and_drops_locations(tmp_path: Path) -> None:
     """Run the script's own msgcat command against an ugly fixture."""
+    _require_msgcat()
+    msgcat = shutil.which("msgcat")
+    assert msgcat, "guaranteed present by _require_msgcat above"
     src = tmp_path / "messages.pot"
     out = tmp_path / "normalized.pot"
     src.write_text(_UGLY_POT, encoding="utf-8")
-
-    msgcat = shutil.which("msgcat")
-    assert msgcat, "install gettext: CI must run this test, not skip it"
 
     # Reuse the script's flags verbatim; only the paths are ours.
     flags = [token for token in _msgcat_line().split() if token.startswith("--")]
@@ -313,7 +330,6 @@ def test_a_failing_msgcat_stops_the_script_before_pybabel_update(
 _PYBABEL_SHAPED_CATALOG = 'msgid ""\nmsgstr ""\n\nmsgid "zebra"\nmsgstr ""\n\n'
 
 
-@_needs_msgcat
 def test_the_trailing_line_strip_keeps_the_last_entry_intact(
     tmp_path: Path,
 ) -> None:
@@ -324,6 +340,7 @@ def test_the_trailing_line_strip_keeps_the_last_entry_intact(
     entry's ``msgstr`` instead, leaving a template gettext rejects with
     ``missing 'msgstr' section``. Only a trailing *blank* line may be removed.
     """
+    _require_msgcat()
     root = tmp_path / "repo"
     script = _stage_script(root)
     catalog_dir = root / "superset" / "translations" / "xx" / "LC_MESSAGES"
@@ -354,7 +371,7 @@ def test_the_trailing_line_strip_keeps_the_last_entry_intact(
     bash = shutil.which("bash")
     msgcat = shutil.which("msgcat")
     assert bash, "bash is required to run the script under test"
-    assert msgcat, "install gettext: CI must run this test, not skip it"
+    assert msgcat, "guaranteed present by _require_msgcat above"
 
     proc = subprocess.run(  # noqa: S603
         [bash, str(script)],
