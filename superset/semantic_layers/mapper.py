@@ -71,6 +71,7 @@ from superset.semantic_layers.dimension_resolution import (
     DimensionUsage,
     resolve_dimensions,
 )
+from superset.semantic_layers.members import members_by_key
 from superset.superset_typing import AdhocColumn, Column
 from superset.utils.core import (
     FilterOperator,
@@ -132,6 +133,9 @@ class ValidatedQueryObject(QueryObject):
     filter: list[ValidatedQueryObjectFilterClause]  # type: ignore[assignment]
     series_columns: Sequence[str]  # type: ignore[assignment]
     series_limit_metric: str | None
+    # ``_validate_metrics`` rejects adhoc metrics, so by this point every entry
+    # is a member name that can key the mapping built by ``members_by_key``.
+    metrics: list[str] | None  # type: ignore[assignment]
 
 
 @dataclass(frozen=True)
@@ -418,7 +422,7 @@ def _map_query_object(
     view_metrics: tuple[Metric, ...] = metadata.metrics
     view_dimensions: tuple[Dimension, ...] = metadata.dimensions
 
-    all_metrics = {metric.name: metric for metric in view_metrics}
+    all_metrics: dict[str, Metric] = members_by_key(view_metrics)
     all_dimensions: dict[str, Dimension] = resolve_dimensions(
         view_dimensions, usage=DimensionUsage.FILTER
     )

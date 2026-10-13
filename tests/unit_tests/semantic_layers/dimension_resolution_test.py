@@ -125,9 +125,12 @@ def test_same_identity_with_conflicting_semantics_is_rejected(
     first: Dimension = Dimension(
         "day", "event_time", pa.timestamp("us"), grain=Grains.DAY
     )
-    second: Dimension = replace(
-        first,
-        **{changed_field: pa.date32() if changed_field == "type" else "different"},
+    second: Dimension = (
+        replace(first, type=pa.date32())
+        if changed_field == "type"
+        else replace(first, definition="different")
+        if changed_field == "definition"
+        else replace(first, description="different")
     )
     for ordering in permutations((first, second)):
         with pytest.raises(QueryObjectValidationError, match="ambiguous"):
