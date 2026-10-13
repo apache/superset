@@ -60,9 +60,14 @@ export default function IntervalColorsControl({
   const schemeColors =
     getCategoricalSchemeRegistry().get(colorScheme)?.colors ?? [];
 
+  // Once `interval_colors` is populated the renderer ignores the legacy
+  // indices and falls back to the scheme's positional color for any missing
+  // entry, so the display must do the same to avoid persisting a different
+  // color into an untouched band.
+  const hasExplicitColors = Array.isArray(value) && value.length > 0;
   const colorAt = (index: number): string =>
     value?.[index] ||
-    legacyColors[index] ||
+    (hasExplicitColors ? '' : legacyColors[index]) ||
     schemeColors[index % (schemeColors.length || 1)] ||
     '';
 

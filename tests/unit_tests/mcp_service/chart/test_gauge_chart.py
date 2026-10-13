@@ -1328,3 +1328,33 @@ def test_gauge_preview_honors_explicit_interval_colors() -> None:
     colors = prepared[1]["interval_colors"]
     assert colors[0] == "#ff0000"
     assert colors[1] != ""
+
+
+def test_gauge_preview_sizes_colors_by_interval_bounds() -> None:
+    bounds = ",".join(str(10 * i) for i in range(1, 10))
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": bounds,
+        "interval_colors": [f"#00000{i}" for i in range(1, 10)],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    assert prepared[1]["interval_colors"] == [f"#00000{i}" for i in range(1, 10)]
+
+
+def test_gauge_preview_keeps_explicit_colors_over_legacy_indices() -> None:
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": "30,60,100",
+        "interval_color_indices": "1,2,3",
+        "interval_colors": ["#111111", "#222222", "#333333"],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    assert prepared[1]["interval_colors"] == ["#111111", "#222222", "#333333"]

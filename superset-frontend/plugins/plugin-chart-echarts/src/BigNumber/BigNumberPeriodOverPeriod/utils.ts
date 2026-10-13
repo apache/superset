@@ -106,12 +106,16 @@ export const resolveComparisonColorKeys = (
   decreaseColor: string | undefined,
 ): { increaseColor: string; decreaseColor: string } => {
   const legacyReversed = comparisonColorScheme === ColorSchemeEnum.Red;
+  // Same-named controls in other charts (e.g. Waterfall) hold `{r, g, b, a}`
+  // objects; only string values are valid here.
+  const asColor = (value: unknown): string | undefined =>
+    typeof value === 'string' && value !== '' ? value : undefined;
   return {
     increaseColor:
-      increaseColor ??
+      asColor(increaseColor) ??
       (legacyReversed ? ColorSchemeEnum.Red : ColorSchemeEnum.Green),
     decreaseColor:
-      decreaseColor ??
+      asColor(decreaseColor) ??
       (legacyReversed ? ColorSchemeEnum.Green : ColorSchemeEnum.Red),
   };
 };
