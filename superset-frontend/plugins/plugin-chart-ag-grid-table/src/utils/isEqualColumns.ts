@@ -69,6 +69,14 @@ export default function isEqualColumns(
     verboseMap: isEqual(a.datasource?.verboseMap, b.datasource?.verboseMap),
     currencyCodeColumn:
       a.datasource?.currencyCodeColumn === b.datasource?.currencyCodeColumn,
+    knownColumnNames: isEqualArray(
+      (a.datasource?.columns ?? []).map(col => col.column_name),
+      (b.datasource?.columns ?? []).map(col => col.column_name),
+    ),
+    knownMetricNames: isEqualArray(
+      (a.datasource?.metrics ?? []).map(metric => metric.metric_name),
+      (b.datasource?.metrics ?? []).map(metric => metric.metric_name),
+    ),
     detectedCurrency:
       a.queriesData?.[0]?.detected_currency ===
       b.queriesData?.[0]?.detected_currency,
