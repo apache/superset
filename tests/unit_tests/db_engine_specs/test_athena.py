@@ -563,8 +563,7 @@ def test_get_parameters_from_uri_china_region() -> None:
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
     parameters = AthenaEngineSpec.get_parameters_from_uri(
-        "awsathena+rest://athena.cn-north-1.amazonaws.com.cn/default"
-        "?work_group=primary"
+        "awsathena+rest://athena.cn-north-1.amazonaws.com.cn/default?work_group=primary"
     )
     assert parameters["region_name"] == "cn-north-1"
 
@@ -577,8 +576,7 @@ def test_get_parameters_from_uri_standard_host_port_dropped() -> None:
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
     parameters = AthenaEngineSpec.get_parameters_from_uri(
-        "awsathena+rest://athena.us-east-1.amazonaws.com:443/default"
-        "?work_group=primary"
+        "awsathena+rest://athena.us-east-1.amazonaws.com:443/default?work_group=primary"
     )
     assert parameters["region_name"] == "us-east-1"
     assert "query" not in parameters
