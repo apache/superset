@@ -28,6 +28,33 @@ import SelectControl from './controls/SelectControl';
 
 const description = 'This control filters the whole chart.';
 
+test('instant-effect notice requires hover while description help remains available', () => {
+  const { rerender } = render(
+    <ControlHeader
+      name="my-control"
+      label="My control"
+      description={description}
+      renderTrigger
+      hovered={false}
+    />,
+  );
+  expect(screen.queryByTestId('info-tooltip-icon')).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
+  rerender(
+    <ControlHeader
+      name="my-control"
+      label="My control"
+      description={description}
+      renderTrigger
+      hovered
+    />,
+  );
+  expect(screen.getByTestId('info-tooltip-icon')).toBeInTheDocument();
+  expect(screen.getByTestId('my-control-description-icon')).toBeInTheDocument();
+});
+
 test('noninteractive labels do not add a dead keyboard stop', () => {
   render(<ControlHeader name="time_range" label="Date Range" />);
 

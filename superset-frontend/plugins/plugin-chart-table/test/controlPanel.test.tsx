@@ -827,6 +827,18 @@ test('disables dependent page length without hiding or resetting saved state', (
   expect(state.controls.server_pagination.value).toBe(true);
 });
 
+test.each(['semantic_view', 'table'])(
+  'checked enabled %s pagination has no unsupported-control reset button',
+  type => {
+    renderPagination(panelState(['ROW_OFFSET'], type, true));
+    expect(screen.getByRole('checkbox')).toBeEnabled();
+    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(
+      screen.queryByRole('button', { name: 'Turn off server pagination' }),
+    ).not.toBeInTheDocument();
+  },
+);
+
 test('saved true survives datasource changes until an explicit keyboard edit', async () => {
   const saved = Object.freeze({ server_pagination: true });
   const onEdit = jest.fn();
