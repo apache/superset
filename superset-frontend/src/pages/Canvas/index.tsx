@@ -197,6 +197,8 @@ function CanvasBody({
           refreshKeys={refreshKeys}
           layout={layout}
           editable={editable}
+          // Widgets read their data from the draft while one is open.
+          draftToken={draftToken}
         />
       )}
     </>

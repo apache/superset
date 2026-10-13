@@ -44,6 +44,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 class TestSemanticMetadataAuthorization(SupersetTestCase):
     """Exercise the chart-data route with a provider that records metadata calls."""
 
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_denied_chart_data_skips_provider_metadata(self) -> None:
         """A denied request should not load dimensions or metrics."""
         self.login("gamma")
@@ -79,6 +80,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_denied_legacy_query_api_skips_provider_metadata(self) -> None:
         """The legacy ``/api/v1/query/`` route also denies before metadata."""
         self.login("gamma")
@@ -121,6 +123,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_allowed_chart_data_uses_provider_metadata(self) -> None:
         """An entitled role still builds and validates a semantic query."""
         self.login("gamma")
@@ -176,6 +179,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_payload_based_access_bypass_still_sees_queries(self) -> None:
         """An operator bypass hook keeps receiving the request's real queries."""
         self.login("gamma")
@@ -221,6 +225,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_overridden_access_check_still_sees_queries(self) -> None:
         """A custom security manager's raise_for_access keeps receiving the
         request's real queries, so the preflight does not run for it."""
@@ -289,7 +294,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
-    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_feature_flags(ENABLE_VIEWERS=True, SEMANTIC_LAYERS=True)
     def test_denied_viewer_filter_skips_provider_metadata(self) -> None:
         """A denied ordinary dashboard filter must not load provider metadata."""
         self.login("gamma")
@@ -363,7 +368,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
-    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_feature_flags(ENABLE_VIEWERS=True, SEMANTIC_LAYERS=True)
     def test_allowed_viewer_filter_forwards_form_data(self) -> None:
         """A dashboard-only native filter grant survives the metadata preflight."""
         self.login("gamma")
@@ -447,7 +452,7 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
-    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    @with_feature_flags(EMBEDDED_SUPERSET=True, SEMANTIC_LAYERS=True)
     def test_guest_dashboard_filter_access_is_unchanged(self) -> None:
         """A guest can still use a dashboard-scoped semantic native filter."""
         self.login("gamma")
@@ -531,10 +536,12 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             db.session.delete(layer)
             db.session.commit()
 
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_instance_wrapped_access_check_still_sees_queries(self) -> None:
         """An instance wrapper receives only the completed query context."""
         self._assert_wrapped_access_check_still_sees_queries("instance")
 
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_class_wrapped_access_check_still_sees_queries(self) -> None:
         """A reassigned base-class method receives only the completed context."""
         self._assert_wrapped_access_check_still_sees_queries("class")

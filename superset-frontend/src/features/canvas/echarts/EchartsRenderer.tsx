@@ -26,8 +26,9 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import { applyStructuredChrome, EchartsChromeValue } from './chrome';
-import { DataBinding, fetchRows, withFilters } from './chartData';
-import { DataRow, resolveOption } from './resolveBindings';
+import { useWidgetRows } from '../useWidgetRows';
+import WithQuery from '../WithQuery';
+import { resolveOption } from './resolveBindings';
 import { themedOption, withLabelColors } from './themedOption';
 
 const Chart = styled.div`
@@ -61,39 +62,28 @@ const describe = async (error: unknown): Promise<string> => {
  * filled from the widget's query and styled by the Superset theme and the
  * canvas's color scheme. ECharts is loaded on first use.
  */
-export default function EchartsRenderer({
-  props,
-  refreshKey,
-  colors,
-  filters,
-  crossFilters,
-}: canvasApi.CanvasWidgetProps) {
+export default function EchartsRenderer(widget: canvasApi.CanvasWidgetProps) {
+  const { props, refreshKey, colors, filters, crossFilters } = widget;
   const theme = useTheme();
   const container = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
-  const bound = props?.dataBinding as DataBinding | undefined;
-  const binding = bound && withFilters(bound, [...filters, ...crossFilters]);
+  const data = useWidgetRows(widget, [...filters, ...crossFilters], refreshKey);
   const option = (props?.echartsOptions ?? {}) as Record<string, unknown>;
-  const bindingKey = JSON.stringify(binding ?? null);
   const optionKey = JSON.stringify([option, props?.chrome ?? null]);
   const { scheme } = colors;
   const labelColorsKey = JSON.stringify(colors.labelColors);
 
   useEffect(() => {
+    if (data.loading || data.error) return undefined;
     let disposed = false;
     let chart: { dispose: () => void; resize: () => void } | undefined;
     let observer: ResizeObserver | undefined;
     (async () => {
       try {
-        const [echarts, rows] = await Promise.all([
-          import('echarts'),
-          binding?.datasetId
-            ? fetchRows(binding)
-            : Promise.resolve<DataRow[]>([]),
-        ]);
+        const echarts = await import('echarts');
         if (disposed || !container.current) return;
         const resolved = resolveOption(option, {
-          rows,
+          rows: data.rows,
           theme: theme as unknown as Record<string, unknown>,
         });
         const palette =
@@ -127,10 +117,20 @@ export default function EchartsRenderer({
     };
     // Keys stand in for the objects, which are recreated on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bindingKey, optionKey, refreshKey, theme, scheme, labelColorsKey]);
+  }, [data, optionKey, theme, scheme, labelColorsKey]);
 
-  if (error) {
-    return <Message>{t('This chart could not be drawn: %s', error)}</Message>;
-  }
-  return <Chart ref={container} data-test="canvas-echarts" />;
+  const message = data.error ?? error;
+  return (
+    <WithQuery
+      query={data.query}
+      language={data.language}
+      datasource={data.datasource}
+    >
+      {message ? (
+        <Message>{t('This chart could not be drawn: %s', message)}</Message>
+      ) : (
+        <Chart ref={container} data-test="canvas-echarts" />
+      )}
+    </WithQuery>
+  );
 }

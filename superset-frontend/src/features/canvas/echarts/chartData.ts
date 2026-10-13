@@ -17,10 +17,11 @@
  * under the License.
  */
 
-import { buildQueryContext, SupersetClient } from '@superset-ui/core';
-import type { QueryFormData } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { DRAFT_TOKEN_HEADER } from '../useCanvasDefinition';
 import type { DataRow } from './resolveBindings';
 
+/** A widget's `dataBinding` prop: the query the server runs for it. */
 export interface DataBinding {
   datasetId: number;
   metrics: unknown[];
@@ -28,22 +29,6 @@ export interface DataBinding {
   filters?: Record<string, unknown>[];
   rowLimit?: number;
   orderBy?: { field: string; descending?: boolean }[];
-}
-
-const metricLabel = (metric: unknown): string | undefined =>
-  typeof metric === 'string'
-    ? metric
-    : typeof metric === 'object' && metric !== null
-      ? ((metric as { label?: string }).label ?? undefined)
-      : undefined;
-
-// A sort key names a metric by its label or a dimension by its column; the
-// query wants the metric itself.
-function orderby(binding: DataBinding): [unknown, boolean][] {
-  return (binding.orderBy ?? []).map(({ field, descending }) => [
-    binding.metrics.find(metric => metricLabel(metric) === field) ?? field,
-    !descending,
-  ]);
 }
 
 /** The value a `filter.select` widget publishes to the widgets in its scope. */
@@ -56,58 +41,57 @@ export interface SelectFilterValue {
 const isSelectFilterValue = (value: unknown): value is SelectFilterValue =>
   typeof value === 'object' &&
   value !== null &&
+  typeof (value as SelectFilterValue).datasetId === 'number' &&
   typeof (value as SelectFilterValue).column === 'string' &&
   Array.isArray((value as SelectFilterValue).values);
 
 /**
- * A binding narrowed by the filter values that reach its widget: each
- * `filter.select` on the same dataset adds an IN clause.
+ * The select filter values reaching a widget, sent with its data request.
+ * The server applies those on the binding's own dataset.
  */
-export function withFilters(
-  binding: DataBinding,
+export function runtimeFilters(
   filters: { value: unknown }[],
-): DataBinding {
-  const clauses = filters
+): SelectFilterValue[] {
+  return filters
     .map(filter => filter.value)
     .filter(isSelectFilterValue)
-    .filter(
-      value => value.datasetId === binding.datasetId && value.values.length,
-    )
-    .map(value => ({
-      expressionType: 'SIMPLE',
-      clause: 'WHERE',
-      subject: value.column,
-      operator: 'IN',
-      comparator: value.values,
-    }));
-  if (!clauses.length) return binding;
-  return { ...binding, filters: [...(binding.filters ?? []), ...clauses] };
+    .filter(value => value.values.length > 0)
+    .map(({ datasetId, column, values }) => ({ datasetId, column, values }));
+}
+
+export interface PlacementData {
+  rows: DataRow[];
+  /** The query that ran; only for users who can view queries. */
+  query?: string;
+  language?: string;
 }
 
 /**
- * Rows for a widget's `dataBinding`, through the existing chart data API.
- * Stands in for SIP-231's widget data route until it exists.
+ * A placement's data. The server builds the query from the placement's
+ * stored binding, so the page, MCP tools and reports run the same query.
  */
-export async function fetchRows(binding: DataBinding): Promise<DataRow[]> {
-  const formData = {
-    datasource: `${binding.datasetId}__table`,
-    viz_type: 'table',
-    metrics: binding.metrics.filter(metric => metric != null && metric !== ''),
-    groupby: (binding.dimensions ?? []).filter(Boolean),
-    adhoc_filters: binding.filters ?? [],
-    row_limit: binding.rowLimit ?? 1000,
-    result_format: 'json',
-    result_type: 'full',
-  } as unknown as QueryFormData;
+export async function fetchPlacementData({
+  canvasId,
+  placementId,
+  draftToken,
+  filters,
+}: {
+  canvasId: number;
+  placementId: string;
+  draftToken?: string;
+  filters: SelectFilterValue[];
+}): Promise<PlacementData> {
   const { json } = await SupersetClient.post({
-    endpoint: '/api/v1/chart/data',
-    jsonPayload: buildQueryContext(formData, baseQueryObject => [
-      { ...baseQueryObject, orderby: orderby(binding) as never },
-    ]),
+    endpoint: `/api/v1/canvas/${canvasId}/placement/${encodeURIComponent(
+      placementId,
+    )}/data`,
+    headers: draftToken ? { [DRAFT_TOKEN_HEADER]: draftToken } : undefined,
+    jsonPayload: { runtime_filters: filters },
   });
-  const result = json?.result?.[0];
-  if (!result || result.error) {
-    throw new Error(result?.error ?? 'The data request returned no result');
-  }
-  return result.data ?? [];
+  const dataset = json?.result?.datasets?.[0];
+  return {
+    rows: dataset?.inline_data ?? [],
+    query: dataset?.query,
+    language: dataset?.language,
+  };
 }

@@ -25,6 +25,7 @@ import { useWidgetRenderers } from 'src/core';
 import CanvasGridSurface from './CanvasGridSurface';
 import type { CanvasLayout } from './useCanvasLayout';
 import { CanvasDefinitionResult } from './types';
+import { CanvasDraftContext } from './useWidgetRows';
 
 /** Current values set by nodes, per scope kind, by node id. */
 export type ScopeValues = Record<canvasApi.ScopeKind, Record<string, unknown>>;
@@ -98,6 +99,8 @@ export interface CanvasGridProps {
    * editing happens in a plan, and the published canvas is read-only.
    */
   editable: boolean;
+  /** The draft being shown; widgets read their data from it. */
+  draftToken?: string;
 }
 
 /**
@@ -113,6 +116,7 @@ export default function CanvasGrid({
   refreshKeys = {},
   layout,
   editable,
+  draftToken,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
   const {
@@ -243,8 +247,10 @@ export default function CanvasGrid({
   }
 
   return (
-    <div data-test="canvas-grid">
-      {renderGrid(definition.root.children, columns, renderNode)}
-    </div>
+    <CanvasDraftContext.Provider value={draftToken}>
+      <div data-test="canvas-grid">
+        {renderGrid(definition.root.children, columns, renderNode)}
+      </div>
+    </CanvasDraftContext.Provider>
   );
 }

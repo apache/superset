@@ -28,6 +28,7 @@ from flask import current_app
 from mcp.types import ImageContent, TextContent
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.canvas.data import run_binding, RuntimeFilter
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.versions import DefinitionVersionError
 from superset.commands.canvas.draft import load_draft
@@ -37,6 +38,7 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
 )
 from superset.daos.canvas import CanvasDAO
+from superset.extensions import security_manager
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import NOT_FOUND
 from superset.utils import json
@@ -48,68 +50,6 @@ RENDER_TIMEOUT_SECONDS = 15
 # The canvas page's content width and grid, for sizing a placement in pixels.
 PAGE_WIDTH = 1360
 GAP = 16
-
-
-def _query_payload(binding: dict[str, Any]) -> dict[str, Any]:
-    """A chart data request for a widget's ``dataBinding``, as the canvas
-    page sends it."""
-    metrics = [m for m in binding.get("metrics") or [] if m not in (None, "")]
-    filters: list[dict[str, Any]] = []
-    where: list[str] = []
-    for adhoc in binding.get("filters") or []:
-        if adhoc.get("expressionType") == "SQL":
-            if adhoc.get("sqlExpression"):
-                where.append(f"({adhoc['sqlExpression']})")
-        elif adhoc.get("subject"):
-            filters.append(
-                {
-                    "col": adhoc["subject"],
-                    "op": adhoc.get("operator"),
-                    "val": adhoc.get("comparator"),
-                }
-            )
-
-    def label(metric: Any) -> Any:
-        return metric.get("label") if isinstance(metric, dict) else metric
-
-    orderby = [
-        [
-            next((m for m in metrics if label(m) == key["field"]), key["field"]),
-            not key.get("descending", False),
-        ]
-        for key in binding.get("orderBy") or []
-    ]
-    return {
-        "datasource": {"id": binding["datasetId"], "type": "table"},
-        "queries": [
-            {
-                "columns": [d for d in binding.get("dimensions") or [] if d],
-                "metrics": metrics,
-                "filters": filters,
-                "extras": {"where": " AND ".join(where)} if where else {},
-                "orderby": orderby,
-                "row_limit": binding.get("rowLimit") or 1000,
-            }
-        ],
-        "result_format": "json",
-        "result_type": "full",
-    }
-
-
-def _fetch_rows(binding: dict[str, Any]) -> list[dict[str, Any]]:
-    """The widget's rows, queried as the caller: dataset access and row level
-    security apply as on the canvas page."""
-    from superset.charts.schemas import ChartDataQueryContextSchema
-    from superset.commands.chart.data.get_data_command import ChartDataCommand
-
-    query_context = ChartDataQueryContextSchema().load(_query_payload(binding))
-    command = ChartDataCommand(query_context)
-    command.validate()
-    result = command.run()
-    query = result["queries"][0]
-    if query.get("error"):
-        raise ValueError(query["error"])
-    return query.get("data") or []
 
 
 def _pixel_size(definition: dict[str, Any], placement_id: str) -> tuple[int, int]:
@@ -154,15 +94,24 @@ def _render(
     return response.json()
 
 
-def _with_rows(result: dict[str, Any], props: dict[str, Any]) -> list[dict[str, Any]]:
+def _with_rows(
+    result: dict[str, Any],
+    props: dict[str, Any],
+    runtime_filters: list[RuntimeFilter] | None = None,
+) -> list[dict[str, Any]]:
     """Run the widget's query, if it has one, and record what came back."""
     binding = props.get("dataBinding")
     if not isinstance(binding, dict) or not binding.get("datasetId"):
         return []
-    rows = _fetch_rows(binding)
+    data = run_binding(binding, runtime_filters)
+    rows = data.rows
     result["row_count"] = len(rows)
     result["columns"] = list(rows[0]) if rows else []
     result["sample_rows"] = rows[:SAMPLE_ROWS]
+    # Classic charts gate "View query" on the same permission.
+    if data.query and security_manager.can_access("can_view_query", "Dashboard"):
+        result["query"] = data.query
+        result["query_language"] = data.language
     if not rows:
         result["warnings"] = ["The widget's query returned no rows"]
     return rows
@@ -218,6 +167,7 @@ def _preview_widget_impl(
     placement_id: str,
     dark: bool,
     draft_token: str | None = None,
+    runtime_filters: list[RuntimeFilter] | None = None,
 ) -> tuple[dict[str, Any], str | None]:
     definition = _definition(canvas_id, draft_token)
     if isinstance(definition, str):
@@ -235,7 +185,7 @@ def _preview_widget_impl(
         result["error"] = "Previews cover inline widgets; this placement is saved"
         return result, None
     try:
-        rows = _with_rows(result, props)
+        rows = _with_rows(result, props, runtime_filters)
     except Exception as ex:  # pylint: disable=broad-except
         result["error"] = f"The widget's query failed: {ex}"
         return result, None
@@ -262,6 +212,7 @@ def preview_widget(
     placement_id: str,
     dark: bool = False,
     draft_token: str | None = None,
+    filters: list[RuntimeFilter] | None = None,
 ) -> PreviewWidgetResponse:
     """Check a widget the way a viewer will see it, after adding or changing it.
 
@@ -272,8 +223,15 @@ def preview_widget(
     placement's size; ``dark`` renders it with the dark theme. Fix what it
     reports with ``apply_canvas_draft_ops`` and preview again. With
     ``draft_token``, previews the placement as it is in that draft.
+
+    Also returns ``query``, the query that ran, when the user can view
+    queries: use it when asked what a chart computes. ``filters`` narrows the
+    query the way the canvas's filters do, one ``{datasetId, column, values}``
+    per filter value; filters on other datasets don't apply.
     """
-    result, image = _preview_widget_impl(canvas_id, placement_id, dark, draft_token)
+    result, image = _preview_widget_impl(
+        canvas_id, placement_id, dark, draft_token, filters
+    )
     response = PreviewWidgetResponse.model_validate(result)
     if image is None:
         return response

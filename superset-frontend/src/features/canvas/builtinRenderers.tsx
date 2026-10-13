@@ -27,6 +27,7 @@ import type { DataBinding } from './echarts/chartData';
 import { renderTemplate } from './markdownTemplate';
 import { MetricTileRenderer, TableRenderer } from './dataRenderers';
 import { useWidgetRows } from './useWidgetRows';
+import WithQuery from './WithQuery';
 import FilterSelectRenderer from './FilterSelectRenderer';
 
 type Props = canvasApi.CanvasWidgetProps;
@@ -92,23 +93,30 @@ const Markdown = styled.div`
   `}
 `;
 
-const MarkdownRenderer = ({ props, filters, refreshKey }: Props) => {
+const MarkdownRenderer = (widget: Props) => {
+  const { props, filters, refreshKey } = widget;
   const binding = props?.dataBinding as DataBinding | undefined;
-  const { rows, error } = useWidgetRows(binding, filters, refreshKey);
+  const { rows, error, query, language, datasource } = useWidgetRows(
+    widget,
+    filters,
+    refreshKey,
+  );
 
   const content = text(props?.content);
   return (
-    <Markdown>
-      <SafeMarkdown
-        source={
-          error
-            ? `${t('Data unavailable')}: ${error}`
-            : binding?.datasetId
-              ? renderTemplate(content, rows)
-              : content
-        }
-      />
-    </Markdown>
+    <WithQuery query={query} language={language} datasource={datasource}>
+      <Markdown>
+        <SafeMarkdown
+          source={
+            error
+              ? `${t('Data unavailable')}: ${error}`
+              : binding?.datasetId
+                ? renderTemplate(content, rows)
+                : content
+          }
+        />
+      </Markdown>
+    </WithQuery>
   );
 };
 

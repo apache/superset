@@ -87,6 +87,16 @@ class CanvasDraftNotFoundError(ObjectNotFoundError):
         super().__init__("Canvas draft")
 
 
+class CanvasPlacementNotFoundError(ObjectNotFoundError):
+    def __init__(self) -> None:
+        super().__init__("Canvas placement")
+
+
+class CanvasPlacementUnboundError(CommandException):
+    status = 422
+    message = _("This placement has no data binding.")
+
+
 class DraftConflictError(CommandException):
     """
     A draft write based on an older draft revision, or a commit of a draft

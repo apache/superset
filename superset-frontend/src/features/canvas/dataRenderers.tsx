@@ -27,8 +27,8 @@ import {
   TableSize,
   Typography,
 } from '@superset-ui/core/components';
-import type { DataBinding } from './echarts/chartData';
 import { useWidgetRows } from './useWidgetRows';
+import WithQuery from './WithQuery';
 
 type Props = canvasApi.CanvasWidgetProps;
 
@@ -55,9 +55,13 @@ const text = (value: unknown): string =>
   typeof value === 'string' ? value : '';
 
 /** The first row's value of the tile's metric, as a big number. */
-export function MetricTileRenderer({ props, filters, refreshKey }: Props) {
-  const binding = props?.dataBinding as DataBinding | undefined;
-  const { rows, loading, error } = useWidgetRows(binding, filters, refreshKey);
+export function MetricTileRenderer(widget: Props) {
+  const { props, filters, refreshKey } = widget;
+  const { rows, loading, error, query, language, datasource } = useWidgetRows(
+    widget,
+    filters,
+    refreshKey,
+  );
   if (loading) return <Loading position="inline-centered" />;
   if (error) return <Typography.Text type="danger">{error}</Typography.Text>;
   const row = rows[0] ?? {};
@@ -65,19 +69,21 @@ export function MetricTileRenderer({ props, filters, refreshKey }: Props) {
   const value = column ? (row[column] as number) : undefined;
   const decimals = typeof props?.decimals === 'number' ? props.decimals : 0;
   return (
-    <Tile>
-      <BigNumber>
-        {value === undefined
-          ? '–'
-          : `${text(props?.prefix)}${value.toLocaleString(undefined, {
-              minimumFractionDigits: decimals,
-              maximumFractionDigits: decimals,
-            })}${text(props?.suffix)}`}
-      </BigNumber>
-      <Typography.Text type="secondary">
-        {text(props?.label) || column}
-      </Typography.Text>
-    </Tile>
+    <WithQuery query={query} language={language} datasource={datasource}>
+      <Tile>
+        <BigNumber>
+          {value === undefined
+            ? '–'
+            : `${text(props?.prefix)}${value.toLocaleString(undefined, {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals,
+              })}${text(props?.suffix)}`}
+        </BigNumber>
+        <Typography.Text type="secondary">
+          {text(props?.label) || column}
+        </Typography.Text>
+      </Tile>
+    </WithQuery>
   );
 }
 
@@ -87,9 +93,13 @@ interface ColumnDef {
 }
 
 /** The query's rows as a table; `columnDefs` picks and names the columns. */
-export function TableRenderer({ props, filters, refreshKey }: Props) {
-  const binding = props?.dataBinding as DataBinding | undefined;
-  const { rows, loading, error } = useWidgetRows(binding, filters, refreshKey);
+export function TableRenderer(widget: Props) {
+  const { props, filters, refreshKey } = widget;
+  const { rows, loading, error, query, language, datasource } = useWidgetRows(
+    widget,
+    filters,
+    refreshKey,
+  );
   const defs = (props?.columnDefs ?? []) as ColumnDef[];
   const columns = useMemo(() => {
     const fields = defs.length
@@ -107,16 +117,22 @@ export function TableRenderer({ props, filters, refreshKey }: Props) {
   }, [defs, rows]);
   if (error) return <Typography.Text type="danger">{error}</Typography.Text>;
   if (!loading && rows.length === 0) {
-    return <Empty description={t('No data')} />;
+    return (
+      <WithQuery query={query} language={language} datasource={datasource}>
+        <Empty description={t('No data')} />
+      </WithQuery>
+    );
   }
   return (
-    <Table
-      data={rows.map((row, index) => ({ key: index, ...row }))}
-      columns={columns}
-      loading={loading}
-      size={TableSize.Small}
-      usePagination={false}
-      sticky
-    />
+    <WithQuery query={query} language={language} datasource={datasource}>
+      <Table
+        data={rows.map((row, index) => ({ key: index, ...row }))}
+        columns={columns}
+        loading={loading}
+        size={TableSize.Small}
+        usePagination={false}
+        sticky
+      />
+    </WithQuery>
   );
 }

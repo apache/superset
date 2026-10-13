@@ -16,30 +16,56 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { withFilters } from './chartData';
+import fetchMock from 'fetch-mock';
+import { fetchPlacementData, runtimeFilters } from './chartData';
 
-const binding = { datasetId: 13, metrics: ['count'] };
-
-test('adds an IN clause per select filter on the same dataset', () => {
+test('sends the select filter values that have a selection', () => {
   expect(
-    withFilters(binding, [
+    runtimeFilters([
       {
         value: { datasetId: 13, column: 'country', values: ['USA', 'France'] },
       },
-      { value: { datasetId: 7, column: 'country', values: ['USA'] } },
+      { value: { datasetId: 7, column: 'deal_size', values: [] } },
       { value: null },
-    ]).filters,
-  ).toEqual([
-    {
-      expressionType: 'SIMPLE',
-      clause: 'WHERE',
-      subject: 'country',
-      operator: 'IN',
-      comparator: ['USA', 'France'],
-    },
-  ]);
+      { value: 'not a select filter' },
+    ]),
+  ).toEqual([{ datasetId: 13, column: 'country', values: ['USA', 'France'] }]);
 });
 
-test('leaves a binding without matching filters unchanged', () => {
-  expect(withFilters(binding, [])).toBe(binding);
+test('reads the placement data route, with the draft token in a header', async () => {
+  const endpoint = 'glob:*/api/v1/canvas/7/placement/revenue%2F1/data';
+  fetchMock.post(endpoint, {
+    result: {
+      datasets: [
+        {
+          name: 'main',
+          row_count: 1,
+          inline_data: [{ revenue: 3 }],
+          query: 'SELECT 1',
+          language: 'sql',
+        },
+      ],
+    },
+  });
+
+  const data = await fetchPlacementData({
+    canvasId: 7,
+    placementId: 'revenue/1',
+    draftToken: 'abc',
+    filters: [{ datasetId: 13, column: 'country', values: ['USA'] }],
+  });
+
+  expect(data).toEqual({
+    rows: [{ revenue: 3 }],
+    query: 'SELECT 1',
+    language: 'sql',
+  });
+  const call = fetchMock.callHistory.lastCall(endpoint);
+  expect(
+    new Headers(call?.options.headers as HeadersInit).get('X-Canvas-Draft'),
+  ).toBe('abc');
+  expect(JSON.parse(call?.options.body as string)).toEqual({
+    runtime_filters: [{ datasetId: 13, column: 'country', values: ['USA'] }],
+  });
+  fetchMock.removeRoutes();
 });

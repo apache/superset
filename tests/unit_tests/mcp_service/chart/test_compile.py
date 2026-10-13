@@ -1015,6 +1015,49 @@ def test_compile_sample_skips_rolling_and_forecast(
     }
 
 
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_sample_skips_forecast_for_grouped_series_on_one_timestamp(
+    mock_factory: Mock, mock_command: Mock, mock_seed: Mock
+) -> None:
+    """Two grouped sample rows on one day must not reach the Prophet step."""
+    from superset.utils import pandas_postprocessing as pp
+
+    form_data = {
+        "viz_type": "echarts_timeseries_line",
+        "x_axis": "ds",
+        "metrics": ["revenue"],
+        "groupby": ["region"],
+        "time_grain_sqla": "P1D",
+        "forecastEnabled": True,
+        "forecastPeriods": 10,
+        "forecastInterval": 0.8,
+    }
+
+    def run_sample() -> dict[str, Any]:
+        """Execute the real query operators against the bounded sample."""
+        query = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+        assert query["row_limit"] == 2
+        frame = pd.DataFrame(
+            {
+                "ds": [pd.Timestamp("2026-01-01")] * 2,
+                "region": ["East", "West"],
+                "revenue": [1.0, 2.0],
+            }
+        )
+        for step in query["post_processing"]:
+            frame = getattr(pp, step["operation"])(frame, **step.get("options", {}))
+        return chart_data_command_result(frame.to_dict("records"))
+
+    mock_command.return_value.run.side_effect = run_sample
+    result = _compile_chart(form_data, 7)
+
+    assert result.success, result.error
+    sampled = mock_factory.return_value.create.call_args.kwargs["queries"][0]
+    assert "prophet" not in {step["operation"] for step in sampled["post_processing"]}
+
+
 @pytest.mark.parametrize("run_compile_check", [False, True])
 @pytest.mark.parametrize(
     "clause,subject,error_code",

@@ -27,6 +27,8 @@ const KPI: GridPlacement = { col: 1, row: 1, colSpan: 6, rowSpan: 4 };
 const TREND: GridPlacement = { col: 1, row: 5, colSpan: 24, rowSpan: 8 };
 const MOVED: GridPlacement = { col: 7, row: 1, colSpan: 6, rowSpan: 4 };
 const QUEUED: GridPlacement = { col: 1, row: 14, colSpan: 24, rowSpan: 8 };
+/** What the server resolves a queued placement to, after its push-down. */
+const SETTLED: GridPlacement = { col: 1, row: 18, colSpan: 24, rowSpan: 8 };
 
 const resultAt = (
   revision: number,
@@ -235,7 +237,10 @@ test('a gesture queued behind a write is not undone by that write landing', asyn
             result: {
               revision: 5,
               ops: [],
-              placements: { kpi: MOVED, trend: QUEUED },
+              // The server pushed trend down to fit, so this differs from the
+              // optimistic QUEUED: the assertions below can only pass if the
+              // follow-up's response was actually consumed.
+              placements: { kpi: MOVED, trend: SETTLED },
             },
           }),
           { headers: { 'Content-Type': 'application/json' } },
@@ -274,8 +279,18 @@ test('a gesture queued behind a write is not undone by that write landing', asyn
   expect(result.current.placements.trend).toEqual(QUEUED);
   expect(result.current.placements.kpi).toEqual(MOVED);
 
+  // Not yet acknowledged, so the revision is still the first write's.
+  expect(result.current.revision).toBe(4);
+
   releaseFollowUp();
-  await waitFor(() => expect(result.current.placements.trend).toEqual(QUEUED));
+
+  // The follow-up's acknowledgement is consumed: its own placement for trend
+  // replaces the optimistic one, and its revision becomes the base the next
+  // write will use. Leaving `confirmed` stale here is what made later writes
+  // conflict, so the revision is the real assertion.
+  await waitFor(() => expect(result.current.revision).toBe(5));
+  expect(result.current.placements.trend).toEqual(SETTLED);
+  expect(result.current.placements.kpi).toEqual(MOVED);
 });
 
 test('with a draft open, the write goes to the draft and not the canvas', async () => {
