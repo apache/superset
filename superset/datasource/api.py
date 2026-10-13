@@ -45,6 +45,9 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager
+from superset.semantic_layers.access import (
+    SemanticLayersDisabledError,
+)
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
@@ -202,7 +205,7 @@ class DatasourceRestApi(BaseSupersetApi):
             )
         except DatasourceTypeNotSupportedError as ex:
             return self.response(400, message=ex.message)
-        except DatasourceNotFound as ex:
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             return self.response(404, message=ex.message)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
@@ -448,7 +451,7 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(400, message=str(ex))
         except DatasourceTypeNotSupportedError as ex:
             return self.response(400, message=ex.message)
-        except DatasourceNotFound as ex:
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             return self.response(404, message=ex.message)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
@@ -584,7 +587,7 @@ class DatasourceRestApi(BaseSupersetApi):
             )
         except DatasourceTypeNotSupportedError as ex:
             return self.response(400, message=ex.message)
-        except DatasourceNotFound as ex:
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             return self.response(404, message=ex.message)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
@@ -640,10 +643,6 @@ class DatasourceRestApi(BaseSupersetApi):
         self, datasource_type: str, datasource_id: int, payload: dict[str, Any]
     ) -> ResolvedExplorable:
         """Resolve + authorize, translating DAO/security errors to HTTP."""
-        if DatasourceType(
-            datasource_type
-        ) == DatasourceType.SEMANTIC_VIEW and not is_feature_enabled("SEMANTIC_LAYERS"):
-            raise _HttpError(404, "Semantic views are not enabled.")
         try:
             return resolve_explorable(
                 datasource_type,
@@ -653,7 +652,7 @@ class DatasourceRestApi(BaseSupersetApi):
             )
         except DatasourceTypeNotSupportedError as ex:
             raise _HttpError(400, ex.message) from ex
-        except DatasourceNotFound as ex:
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             raise _HttpError(404, ex.message) from ex
         except SupersetSecurityException as ex:
             raise _HttpError(403, ex.message) from ex

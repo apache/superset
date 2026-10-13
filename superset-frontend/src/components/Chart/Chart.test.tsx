@@ -198,3 +198,29 @@ test('shows a dataset metadata error and clears it after datasource replacement'
   expect(screen.queryByText(message)).not.toBeInTheDocument();
   expect(screen.getByRole('status')).toBeInTheDocument();
 });
+
+test('shows the semantic-layer disabled response while dashboard metadata is unavailable', () => {
+  render(
+    <Chart
+      {...baseProps}
+      chartStatus="failed"
+      chartAlert="Semantic layers are not enabled."
+      datasource={PLACEHOLDER_DATASOURCE}
+      datasetsStatus={ResourceStatus.Loading}
+      queriesResponse={[
+        {
+          errors: [
+            {
+              error_type: 'GENERIC_BACKEND_ERROR',
+              message: 'Semantic layers are not enabled.',
+              level: 'error',
+            },
+          ],
+        },
+      ]}
+    />,
+  );
+  expect(
+    screen.getByText('Semantic layers are not enabled.'),
+  ).toBeInTheDocument();
+});
