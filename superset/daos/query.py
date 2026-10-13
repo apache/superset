@@ -83,6 +83,13 @@ class QueryDAO(BaseDAO[Query]):
         if not sql_lab.cancel_query(query):
             raise SupersetCancelQueryException("Could not cancel query")
 
+        if query.status in sql_lab.FINISHED_QUERY_STATUSES:
+            # Preparing the stop can observe the worker's terminal commit.
+            logger.warning(
+                "Query with client_id could not be stopped: query already complete",
+            )
+            return
+
         # cancel_query() may have staged an early-cancel flag on query.extra
         # without committing it (see its docstring/comments); the
         # @transaction decorator commits it together with status=STOPPED

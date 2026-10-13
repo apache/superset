@@ -340,3 +340,74 @@ def test_query_dao_stop_query_wrong_user(
 
     query = db.session.query(Query).one()
     assert query.status == QueryStatus.RUNNING
+
+
+@pytest.mark.parametrize(
+    "finished_status",
+    ["success", "failed", "timed_out"],
+)
+def test_query_dao_stop_query_keeps_status_when_impala_finishes_first(
+    mocker: MockerFixture, app: Any, session: Session, finished_status: str
+) -> None:
+    """
+    A stop that loses the race with the worker's terminal commit must not
+    cancel through the coordinator or relabel the finished query as STOPPED.
+    """
+    from sqlalchemy import update
+
+    from superset import db
+    from superset.common.db_query_status import QueryStatus
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+
+    engine = db.session.get_bind()
+    Query.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    query_obj = Query(
+        client_id="foo",
+        database=database,
+        sql="select * from bar",
+        status=QueryStatus.RUNNING,
+        end_time=1.0,
+        extra_json=f'{{"{QUERY_CANCEL_KEY}": "0123456789abcdef:0123456789abcdef"}}',
+    )
+    db.session.add(database)
+    db.session.add(query_obj)
+    db.session.commit()
+
+    mocker.patch.object(
+        Database,
+        "db_engine_spec",
+        new_callable=mocker.PropertyMock,
+        return_value=ImpalaEngineSpec,
+    )
+    http_cancel = mocker.patch.object(
+        ImpalaEngineSpec, "cancel_query", return_value=True
+    )
+    prepare = ImpalaEngineSpec.prepare_cancel_query
+
+    def finish_then_prepare(query: Query) -> None:
+        # The worker commits its terminal status after the stop request read
+        # the query as running, but before the stop is claimed.
+        db.session.execute(
+            update(Query)
+            .where(Query.id == query.id)
+            .values(status=QueryStatus(finished_status))
+        )
+        prepare(query)
+
+    mocker.patch.object(
+        ImpalaEngineSpec, "prepare_cancel_query", side_effect=finish_then_prepare
+    )
+
+    from superset.daos.query import QueryDAO
+
+    QueryDAO.stop_query(query_obj.client_id)
+
+    http_cancel.assert_not_called()
+    query = db.session.query(Query).one()
+    assert query.status == QueryStatus(finished_status)
+    assert query.end_time == 1.0

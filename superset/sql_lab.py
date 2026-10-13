@@ -870,6 +870,13 @@ def execute_sql_statements(  # noqa: C901
     return None
 
 
+FINISHED_QUERY_STATUSES = (
+    QueryStatus.SUCCESS,
+    QueryStatus.FAILED,
+    QueryStatus.TIMED_OUT,
+)
+
+
 def cancel_query(query: Query) -> bool:
     """
     Cancel a running query.
@@ -886,6 +893,11 @@ def cancel_query(query: Query) -> bool:
 
     # Some databases may need to make preparations for query cancellation
     query.database.db_engine_spec.prepare_cancel_query(query)
+
+    if query.status in FINISHED_QUERY_STATUSES:
+        # The query finished while the stop was being prepared, so there is
+        # nothing left to cancel and its terminal status must be kept.
+        return True
 
     if query.extra.get(QUERY_EARLY_CANCEL_KEY):
         # Query has been cancelled prior to being able to set the cancel key.
