@@ -28,7 +28,7 @@ from flask import g
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import false, text, true, types
+from sqlalchemy import text, types
 from sqlalchemy.engine.default import DefaultDialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -40,7 +40,7 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     DatabaseCategory,
 )
-from superset.db_engine_specs.hive import HiveEngineSpec
+from superset.db_engine_specs.hive import HiveEngineSpec, SparkSqlBooleanEqualityMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error
 from superset.utils import json
@@ -250,7 +250,7 @@ time_grain_expressions: dict[str | None, str] = {
 }
 
 
-class DatabricksBaseEngineSpec(BaseEngineSpec):
+class DatabricksBaseEngineSpec(SparkSqlBooleanEqualityMixin, BaseEngineSpec):
     """Base engine specification for Databricks flavors and connection methods."""
 
     _time_grain_expressions = time_grain_expressions
@@ -259,27 +259,6 @@ class DatabricksBaseEngineSpec(BaseEngineSpec):
     # backticks, not the inherited ANSI double quotes.
     identifier_quote_start: str = "`"
     identifier_quote_end: str = "`"
-
-    # Databricks SQL applies strict type checking: comparing a boolean column
-    # against an integer literal (or a bound Python boolean that the
-    # Hive/Databricks driver renders as 0/1) fails with
-    # DATATYPE_MISMATCH.DATA_DIFF_TYPES (see #36765). Enabling equality
-    # operators ensures boolean filters compile as 'col = true' / 'col = false'.
-    use_equality_for_boolean_filters: bool = True
-
-    @classmethod
-    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
-        """
-        Render Python booleans as explicit boolean keywords.
-
-        The Hive/Databricks SQLAlchemy dialects render Python booleans as
-        integer literals (0/1) in some binding paths, so emit sqlalchemy
-        true()/false() instead: they always compile to the TRUE/FALSE keywords
-        and never reach the driver as bind parameters (#36765).
-        """
-        if value is None:
-            return None
-        return true() if value else false()
 
     @classmethod
     def convert_dttm(
@@ -1167,7 +1146,7 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
 # ambiguous-driver fallback in `get_engine_spec` picks the first backend-matching
 # spec by definition order, and this spec's inherited `HiveEngineSpec.execute()`
 # crashes on the `databricks.sql.client.Cursor` used by unrecognized-driver URIs.
-class DatabricksHiveEngineSpec(HiveEngineSpec):
+class DatabricksHiveEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
     """Databricks engine spec using Hive connector for Interactive Clusters."""
 
     engine_name = "Databricks Interactive Cluster"
@@ -1204,18 +1183,6 @@ class DatabricksHiveEngineSpec(HiveEngineSpec):
     # Note: Primary metadata is in DatabricksPythonConnectorEngineSpec which
     # consolidates all Databricks connection methods. This spec exists for
     # backwards compatibility with Interactive Cluster connections.
-
-    # Databricks Interactive Clusters apply the same strict type checking as
-    # Databricks SQL, so boolean filters need equality against boolean keywords.
-    use_equality_for_boolean_filters: bool = True
-
-    @classmethod
-    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
-        # Same rationale as DatabricksBaseEngineSpec: the Hive driver renders
-        # Python booleans as 0/1 in some binding paths (#36765).
-        if value is None:
-            return None
-        return true() if value else false()
 
     _show_functions_column = "function"
 
