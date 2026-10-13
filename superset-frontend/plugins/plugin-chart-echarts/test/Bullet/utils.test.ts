@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  getColorLuminance,
   isRangesInputComplete,
   tokenizeToNumericArray,
 } from '../../src/Bullet/utils';
@@ -62,4 +63,16 @@ test('isRangesInputComplete is false when a blank token precedes the tolerated t
   // ',' -- after dropping the tolerated trailing blank, the only
   // remaining token is itself blank.
   expect(isRangesInputComplete(',')).toBe(false);
+});
+
+test('getColorLuminance distinguishes dark and light opaque colors', () => {
+  expect(getColorLuminance('#000000')).toBe(0);
+  expect(getColorLuminance('#fff')).toBeCloseTo(1);
+  expect(getColorLuminance('rgb(0, 0, 0)')).toBe(0);
+});
+
+test('getColorLuminance returns null for translucent or unparseable colors', () => {
+  expect(getColorLuminance('#00000080')).toBeNull();
+  expect(getColorLuminance('rgba(0, 0, 0, 0.5)')).toBeNull();
+  expect(getColorLuminance('not-a-color')).toBeNull();
 });

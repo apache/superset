@@ -58,6 +58,14 @@ test('resolveComparisonColorKeys honors the new increase_color/decrease_color co
   });
 });
 
+test('resolveComparisonColorKeys ignores non-string values carried over from other charts', () => {
+  const rgbObject = { r: 90, g: 193, b: 137, a: 1 } as unknown as string;
+  expect(resolveComparisonColorKeys(undefined, rgbObject, rgbObject)).toEqual({
+    increaseColor: 'Green',
+    decreaseColor: 'Red',
+  });
+});
+
 test('resolveComparisonColorKeys falls back to the legacy Green comparison_color_scheme', () => {
   // legacy default: "Green for increase, red for decrease"
   expect(resolveComparisonColorKeys('Green', undefined, undefined)).toEqual({
