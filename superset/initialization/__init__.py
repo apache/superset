@@ -296,14 +296,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
-        if feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"):
-            from superset.semantic_layers.api import (
-                SemanticLayerRestApi,
-                SemanticViewRestApi,
-            )
+        from superset.semantic_layers.api import (
+            SemanticLayerRestApi,
+            SemanticViewRestApi,
+        )
 
-            appbuilder.add_api(SemanticLayerRestApi)
-            appbuilder.add_api(SemanticViewRestApi)
+        appbuilder.add_api(SemanticLayerRestApi)
+        appbuilder.add_api(SemanticViewRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
@@ -1321,6 +1320,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         register_session_invalidation_events(appbuilder.sm.user_model)
+
+        from superset.models.dashboard import (
+            register_dashboard_copy_events,
+        )
+
+        register_dashboard_copy_events(appbuilder.sm.user_model)
 
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
