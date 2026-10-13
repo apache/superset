@@ -165,9 +165,9 @@ class SQLSafeDict(dict[Any, Any]):  # noqa: FURB189
 
 
 def _normalize_postgresql_backslash_escapes(dialect: Dialect) -> None:
-    """Correct a PostgreSQL dialect instance's ``_backslash_escapes`` default
-    in place so backslashes round-trip unchanged when the dialect is used to
-    render literals without a live connection.
+    """Correct a dialect instance's ``_backslash_escapes`` default in place so
+    backslashes round-trip unchanged when the dialect is used to render
+    literals without a live connection.
 
     A dialect built without a live connection (as ``Database.get_dialect()``
     does) defaults ``_backslash_escapes`` to ``True``, which would double
@@ -175,11 +175,19 @@ def _normalize_postgresql_backslash_escapes(dialect: Dialect) -> None:
     the backslash as a plain character by default
     (``standard_conforming_strings`` has been on since PostgreSQL 9.1). Left
     uncorrected, a value like ``C:\\Users`` would be rewritten to
-    ``C:\\\\Users`` and silently fail to match the original value. Other
-    dialects (for example MySQL/MariaDB, which do treat the backslash as an
-    escape character) are left untouched.
+    ``C:\\\\Users`` and silently fail to match the original value.
+
+    DuckDB is in the same boat for a different reason: duckdb-engine
+    subclasses the psycopg2 PostgreSQL dialect and inherits the class-level
+    ``_backslash_escapes = True``, but unlike PostgreSQL it has no
+    ``standard_conforming_strings`` knob, so the initialize-time probe that
+    would turn the flag off never runs. DuckDB has no escape character at
+    all, so the inherited default is simply wrong.
+
+    Other dialects (for example MySQL/MariaDB, which do treat the backslash
+    as an escape character) are left untouched.
     """
-    if dialect.name == "postgresql":
+    if dialect.name in {"postgresql", "duckdb"}:
         dialect._backslash_escapes = False
 
 

@@ -449,3 +449,32 @@ def test_backslash_filter_value_compiles_verbatim_and_matches() -> None:
             )
         ).fetchall()
         assert [row[0] for row in rows] == [value]
+
+
+def test_where_in_jinja_backslash_preserved_on_fresh_dialect() -> None:
+    """A DuckDB virtual dataset using the ``where_in`` Jinja filter must not
+    double backslashes. The Jinja helpers compile against
+    ``Database.get_dialect()`` — a fresh dialect instance where
+    ``_backslash_escapes`` is back to ``True`` — so the shared normalizer in
+    ``jinja_context`` has to cover DuckDB too, not just PostgreSQL (#38453).
+    """
+    from duckdb_engine import Dialect as DuckDBDialect
+
+    from superset.jinja_context import WhereInMacro
+
+    where_in = WhereInMacro(DuckDBDialect())
+    assert where_in([r"C:\Users"]) == r"('C:\Users')"
+    assert where_in(["name\\email"]) == r"('name\email')"
+
+
+def test_extra_cache_escape_value_backslash_preserved_on_fresh_dialect() -> None:
+    """The value-escaping path in ``ExtraCache`` uses the same fresh-dialect
+    compilation (``current_username`` / ``url_param`` / guest attributes), so
+    a backslash in a viewer-controlled macro must also round-trip verbatim.
+    """
+    from duckdb_engine import Dialect as DuckDBDialect
+
+    from superset.jinja_context import ExtraCache
+
+    cache = ExtraCache(dialect=DuckDBDialect())
+    assert cache._escape_value(r"C:\Users") == r"C:\Users"
