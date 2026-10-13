@@ -44,7 +44,6 @@ class DimensionUsage(Enum):
     METADATA = "metadata"
     COMPATIBILITY = "compatibility"
     FILTER = "filter"
-    TIME_BOUND = "time_bound"
     GROUP = "group"
     ORDER = "order"
     SERIES_LIMIT = "series_limit"

@@ -1169,6 +1169,30 @@ def test_map_query_object_preserves_order_while_deduplicating_columns(
     assert result[0].dimensions == [category, month if selected_grain else raw]
 
 
+@pytest.mark.parametrize(
+    "columns", [["region", "category"], ["region", "category", "region"]]
+)
+def test_map_query_object_keeps_requested_non_temporal_column_order(
+    mock_datasource: MagicMock,
+    columns: list[str | AdhocColumn],
+) -> None:
+    """Caller order wins over catalog order for distinct non-temporal columns."""
+    category: Dimension = Dimension("category", "category", pa.string())
+    region: Dimension = Dimension("region", "region", pa.string())
+    mock_datasource.implementation = AbcOnlyView(
+        OrderedDimensions((category, region)), set()
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=[],
+        columns=columns,
+    )
+
+    result: list[SemanticQuery] = map_query_object(query)
+
+    assert result[0].dimensions == [region, category]
+
+
 def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
     """
     Test mapping with time offsets.
