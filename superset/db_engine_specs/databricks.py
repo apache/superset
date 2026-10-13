@@ -932,6 +932,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine_name = "Databricks (legacy)"
     drivers = {"connector": "Native all-purpose driver"}
     default_driver = "connector"
+    default_catalog = "hive_metastore"
 
     parameters_schema = DatabricksNativeSchema()
     properties_schema = DatabricksNativePropertiesSchema()
@@ -1027,28 +1028,40 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         catalog: str | None = None,
         schema: str | None = None,
     ) -> tuple[URL, dict[str, Any]]:
+        adjusted_connect_args = connect_args.copy()
+
         effective_catalog = (
-            catalog or connect_args.get("catalog") or uri.query.get("catalog")
+            catalog
+            or adjusted_connect_args.get("catalog")
+            or uri.query.get("catalog")
+            or cls.default_catalog
         )
         effective_schema = (
             schema
+            or adjusted_connect_args.get("schema")
             or uri.query.get("schema")
             or (uri.database if uri.database else None)
+        )
+        effective_http_path = (
+            adjusted_connect_args.get("http_path")
+            or uri.query.get("http_path")
         )
 
         query_params: dict[str, str] = {}
         if effective_catalog:
             query_params["catalog"] = effective_catalog
+            adjusted_connect_args["catalog"] = effective_catalog
         if effective_schema:
             query_params["schema"] = effective_schema
-        if http_path := connect_args.get("http_path"):
-            if "http_path" not in uri.query:
-                query_params["http_path"] = http_path
+            adjusted_connect_args["schema"] = effective_schema
+        if effective_http_path:
+            query_params["http_path"] = effective_http_path
+            adjusted_connect_args["http_path"] = effective_http_path
 
         if query_params:
             uri = uri.update_query_dict(query_params)
 
-        return uri, connect_args
+        return uri, adjusted_connect_args
 
     @classmethod
     def get_parameters_from_uri(  # type: ignore

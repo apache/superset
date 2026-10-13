@@ -83,28 +83,31 @@ def test_dialect_supports_installed_sqlalchemy(mocker: MockerFixture) -> None:
             "database": "default",
         }
     )
-    native_url, _ = DatabricksNativeEngineSpec.adjust_engine_params(
+    native_url, native_connect_args = DatabricksNativeEngineSpec.adjust_engine_params(
         make_url(native_uri_str),
         connect_args={"http_path": "/sql/1.0/warehouses/test"},
-        catalog="main",
-        schema="default",
     )
-    connector_engine = create_engine(native_url)
+    connector_engine = create_engine(native_url, connect_args=native_connect_args)
     try:
         assert isinstance(connector_engine.dialect, dialect.DatabricksDialect)
-        _, connector_connect_args = connector_engine.dialect.create_connect_args(
+        _, connector_dialect_args = connector_engine.dialect.create_connect_args(
             connector_engine.url
         )
-        assert connector_connect_args["http_path"] == "/sql/1.0/warehouses/test"
-        assert connector_connect_args["catalog"] == "main"
-        assert connector_connect_args["schema"] == "default"
+        assert connector_dialect_args["http_path"] == "/sql/1.0/warehouses/test"
+        assert connector_dialect_args["catalog"] == "hive_metastore"
+        assert connector_dialect_args["schema"] == "default"
+        assert native_connect_args["http_path"] == "/sql/1.0/warehouses/test"
+        assert native_connect_args["catalog"] == "hive_metastore"
+        assert native_connect_args["schema"] == "default"
+        assert connector_engine.dialect.catalog == "hive_metastore"
+        assert connector_engine.dialect.schema == "default"
     finally:
         connector_engine.dispose()
     socket.assert_not_called()
 
 
 def test_databricks_native_adjust_engine_params() -> None:
-    """Test that DatabricksNativeEngineSpec translates catalog and schema to query params."""
+    """Test that DatabricksNativeEngineSpec translates catalog/schema and syncs connect_args."""
     uri_str = DatabricksNativeEngineSpec.build_sqlalchemy_uri(
         {
             "access_token": "test-token",
@@ -115,8 +118,21 @@ def test_databricks_native_adjust_engine_params() -> None:
     )
     assert uri_str == "databricks+connector://token:test-token@localhost:443/default"
 
+    # Test default resolution when no catalog is supplied: resolves hive_metastore
+    # and keeps URL and connect_args in full agreement
+    url_default, args_default = DatabricksNativeEngineSpec.adjust_engine_params(
+        make_url(uri_str),
+        connect_args={"http_path": "/sql/1.0/warehouses/test"},
+    )
+    assert url_default.query["catalog"] == "hive_metastore"
+    assert url_default.query["schema"] == "default"
+    assert url_default.query["http_path"] == "/sql/1.0/warehouses/test"
+    assert args_default["catalog"] == "hive_metastore"
+    assert args_default["schema"] == "default"
+    assert args_default["http_path"] == "/sql/1.0/warehouses/test"
+
     # Test explicit catalog and schema with http_path in connect_args
-    adjusted_url, _ = DatabricksNativeEngineSpec.adjust_engine_params(
+    adjusted_url, adjusted_args = DatabricksNativeEngineSpec.adjust_engine_params(
         make_url(uri_str),
         connect_args={"http_path": "/sql/1.0/warehouses/test"},
         catalog="main",
@@ -125,14 +141,37 @@ def test_databricks_native_adjust_engine_params() -> None:
     assert adjusted_url.query["catalog"] == "main"
     assert adjusted_url.query["schema"] == "custom_schema"
     assert adjusted_url.query["http_path"] == "/sql/1.0/warehouses/test"
+    assert adjusted_args["catalog"] == "main"
+    assert adjusted_args["schema"] == "custom_schema"
+    assert adjusted_args["http_path"] == "/sql/1.0/warehouses/test"
+
+    # Test reconciling conflicting schema in connect_args with passed schema
+    reconciled_url, reconciled_args = (
+        DatabricksNativeEngineSpec.adjust_engine_params(
+            make_url(uri_str),
+            connect_args={
+                "catalog": "connect_arg_cat",
+                "schema": "stale_schema",
+            },
+            schema="reconciled_schema",
+        )
+    )
+    assert reconciled_url.query["catalog"] == "connect_arg_cat"
+    assert reconciled_url.query["schema"] == "reconciled_schema"
+    assert reconciled_args["catalog"] == "connect_arg_cat"
+    assert reconciled_args["schema"] == "reconciled_schema"
 
     # Test catalog from connect_args and fallback schema from URI database
-    adjusted_url_fallback, _ = DatabricksNativeEngineSpec.adjust_engine_params(
-        make_url(uri_str),
-        connect_args={"catalog": "connect_arg_cat"},
+    adjusted_url_fallback, adjusted_args_fallback = (
+        DatabricksNativeEngineSpec.adjust_engine_params(
+            make_url(uri_str),
+            connect_args={"catalog": "connect_arg_cat"},
+        )
     )
     assert adjusted_url_fallback.query["catalog"] == "connect_arg_cat"
     assert adjusted_url_fallback.query["schema"] == "default"
+    assert adjusted_args_fallback["catalog"] == "connect_arg_cat"
+    assert adjusted_args_fallback["schema"] == "default"
 
 
 def test_databricks_connector_dialect_registration() -> None:
