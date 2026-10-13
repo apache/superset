@@ -17,14 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { SupersetTheme } from '@apache-superset/core/theme';
-import { Switch } from '@superset-ui/core/components/Switch';
-import {
-  InfoTooltip,
-  LabeledErrorBoundInput as ValidatedInput,
-} from '@superset-ui/core/components';
 import { FieldPropTypes } from '../../types';
-import { toggleStyle, infoTooltip } from '../styles';
+import {
+  forceSSLField as ForceSSLField,
+  portField as PortField,
+} from './CommonParameters';
 
 /**
  * Druid-specific variants of the common connection form fields.
@@ -32,61 +29,23 @@ import { toggleStyle, infoTooltip } from '../styles';
  * Superset connects to Druid's SQL endpoint on the broker (port 8082 by
  * default) or the router (8888), and the encryption toggle switches the pydruid
  * dialect from `druid://` (HTTP) to `druid+https://` rather than setting a
- * Postgres-style SSL mode.
+ * Postgres-style SSL mode. Only the text differs, so these render the common
+ * fields rather than duplicating them.
  */
 export const DRUID_ENGINE = 'druid';
 
-export const druidPortField = ({
-  required,
-  changeMethods,
-  getValidation,
-  validationErrors,
-  db,
-  isValidating,
-}: FieldPropTypes) => (
-  <ValidatedInput
-    id="port"
-    name="port"
-    type="number"
-    isValidating={isValidating}
-    required={required}
-    value={db?.parameters?.port as number}
-    validationMethods={{ onBlur: getValidation }}
-    errorMessage={validationErrors?.port}
-    placeholder={t('e.g. 8082 (8888 for the router)')}
-    className="form-group-w-50"
-    label={t('Port')}
-    onChange={changeMethods.onParametersChange}
+export const druidPortField = (props: FieldPropTypes) => (
+  <PortField
+    {...props}
+    portPlaceholder={t('e.g. 8082 (8888 for the router)')}
   />
 );
 
-export const druidEncryptionField = ({
-  isEditMode,
-  changeMethods,
-  db,
-  sslForced,
-}: FieldPropTypes) => (
-  <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-    <Switch
-      disabled={sslForced && !isEditMode}
-      checked={db?.parameters?.encryption || sslForced}
-      onChange={changed => {
-        changeMethods.onParametersChange({
-          target: {
-            type: 'toggle',
-            name: 'encryption',
-            checked: true,
-            value: changed,
-          },
-        });
-      }}
-    />
-    <span css={toggleStyle}>{t('SSL')}</span>
-    <InfoTooltip
-      tooltip={t('HTTPS will be used to connect to the Druid SQL endpoint.')}
-      placement="right"
-    />
-  </div>
+export const druidEncryptionField = (props: FieldPropTypes) => (
+  <ForceSSLField
+    {...props}
+    sslTooltip={t('HTTPS will be used to connect to the Druid SQL endpoint.')}
+  />
 );
 
 export const DRUID_FORM_FIELD_MAP = {

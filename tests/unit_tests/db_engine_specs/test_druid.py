@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from types import ModuleType
 from typing import Any, cast, Optional
 from unittest import mock
 
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 from sqlalchemy import column
-from sqlalchemy.engine.url import make_url
+from sqlalchemy.engine.url import make_url, URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import SupersetResultSet
@@ -435,10 +437,10 @@ def test_default_driver_matches_pydruid_dialects() -> None:
     ``/available`` only returns form parameters when the spec's default driver is
     among the detected drivers, so it must match what pydruid's dialects report.
     """
-    sqlalchemy_dialect = pytest.importorskip("pydruid.db.sqlalchemy")
+    sqlalchemy_dialect: ModuleType = pytest.importorskip("pydruid.db.sqlalchemy")
     from superset.db_engine_specs.druid import DruidEngineSpec
 
-    detected = {
+    detected: set[str] = {
         sqlalchemy_dialect.DruidHTTPDialect.driver,
         sqlalchemy_dialect.DruidHTTPSDialect.driver,
     }
@@ -471,8 +473,8 @@ def test_existing_uris_resolve_to_druid_spec(uri: str) -> None:
     from superset.db_engine_specs import get_engine_spec
     from superset.db_engine_specs.druid import DruidEngineSpec
 
-    url = make_url(uri)
-    driver = url.drivername.split("+")[1] if "+" in url.drivername else "rest"
+    url: URL = make_url(uri)
+    driver: str = url.drivername.split("+")[1] if "+" in url.drivername else "rest"
 
     assert get_engine_spec(url.get_backend_name(), driver) is DruidEngineSpec
 
@@ -486,7 +488,7 @@ def test_existing_uris_resolve_to_druid_spec(uri: str) -> None:
     ],
 )
 def test_available_engine_specs_druid_denylist(
-    mocker: Any, denylist: dict[str, set[str]], expect_available: bool
+    mocker: MockerFixture, denylist: dict[str, set[str]], expect_available: bool
 ) -> None:
     """``DBS_AVAILABLE_DENYLIST`` disables Druid by its "rest" driver name."""
     from superset.db_engine_specs import get_available_engine_specs
@@ -497,9 +499,9 @@ def test_available_engine_specs_druid_denylist(
         return_value=[DruidEngineSpec],
     )
     mocker.patch("superset.db_engine_specs.entry_points", return_value=[])
-    app = mocker.patch("superset.db_engine_specs.app")
+    app: mock.MagicMock = mocker.patch("superset.db_engine_specs.app")
     app.config = {"DBS_AVAILABLE_DENYLIST": dict(denylist)}
 
-    available = get_available_engine_specs()
+    available: dict[type[BaseEngineSpec], set[str]] = get_available_engine_specs()
 
     assert (DruidEngineSpec in available) is expect_available
