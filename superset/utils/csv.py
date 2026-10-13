@@ -17,6 +17,7 @@
 import logging
 import urllib.request
 from contextlib import closing
+from decimal import Decimal
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
@@ -83,6 +84,15 @@ def escape_value(value: str) -> str:
         value = "'" + value
 
     return value
+
+
+def format_decimal(value: Any) -> Any:
+    """Return finite decimals as exact fixed-point text; preserve other values."""
+    return (
+        format(value, "f")
+        if isinstance(value, Decimal) and value.is_finite()
+        else value
+    )
 
 
 def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:

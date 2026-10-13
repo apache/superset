@@ -30,5 +30,11 @@ export const cacheWrapper =
     }
     const result = fn(...args);
     cache.set(key, result);
+    Promise.resolve(result).catch(() => {
+      // A newer request may have replaced this entry while the first was pending.
+      if (cache.get(key) === result) {
+        cache.delete(key);
+      }
+    });
     return result;
   };

@@ -124,7 +124,6 @@ class TestCore(SupersetTestCase):
         def assert_admin_view_menus_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
-            assert_func("ResetPasswordView", view_menus)
             assert_func("RoleRestAPI", view_menus)
             assert_func("Security", view_menus)
             assert_func("SQL Lab", view_menus)
@@ -132,6 +131,35 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Admin", self.assertIn)
         assert_admin_view_menus_in("Alpha", self.assertNotIn)
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
+
+    def test_legacy_fab_password_views_are_gone(self):
+        """The legacy FAB reset routes are not registered and no role holds
+        their permissions. ``test_disable_legacy_password_reset_launchers``
+        covers the user-view buttons being dead ends rather than 500s."""
+        rules = {rule.rule for rule in current_app.url_map.iter_rules()}
+        endpoints = {rule.endpoint for rule in current_app.url_map.iter_rules()}
+        assert "/resetpassword/form" not in rules
+        assert "/resetmypassword/form" not in rules
+        assert not {
+            endpoint
+            for endpoint in endpoints
+            if endpoint.startswith(("ResetPasswordView.", "ResetMyPasswordView."))
+        }
+
+        for role_name in ("Admin", "Alpha", "Gamma"):
+            role = security_manager.find_role(role_name)
+            perms = {(p.permission.name, p.view_menu.name) for p in role.permissions}
+            assert not {
+                view_menu
+                for _, view_menu in perms
+                if view_menu in ("ResetPasswordView", "ResetMyPasswordView")
+            }, role_name
+            assert ("resetpasswords", "UserDBModelView") not in perms, role_name
+            assert ("resetmypassword", "UserDBModelView") not in perms, role_name
+
+        self.login(ADMIN_USERNAME)
+        assert self.client.get("/resetpassword/form?pk=1").status_code == 404
+        assert self.client.get("/resetmypassword/form").status_code == 404
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_save_slice(self):

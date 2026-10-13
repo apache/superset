@@ -200,6 +200,11 @@ when authorization is denied or callback state is missing or invalid. Provider
 error text is not echoed in the response; authorization denials use the message
 "The OAuth2 provider denied the request". Restart the OAuth2 flow to retry.
 
+When a database rejects an OAuth2 access token, connection and metadata
+inspection attempt one forced refresh and retry. Reopening a connection inside
+that query retry does not trigger another exchange. If the replacement token is
+also rejected, Superset asks the user to sign in again.
+
 #### Data Exploration
 
 <details>

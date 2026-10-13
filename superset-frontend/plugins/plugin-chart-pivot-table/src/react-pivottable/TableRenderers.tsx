@@ -81,6 +81,8 @@ interface TableOptions {
   colTotals?: boolean;
   rowSubTotals?: boolean;
   colSubTotals?: boolean;
+  /** Collapse every row group until the viewer expands it. Requires row subtotals. */
+  collapseRows?: boolean;
   clickCallback?: ClickCallback;
   clickColumnHeaderCallback?: HeaderClickCallback;
   clickRowHeaderCallback?: HeaderClickCallback;
@@ -160,6 +162,35 @@ const parseLabel = (value: unknown): string | number => {
   }
   return String(value);
 };
+
+const NO_COLLAPSIBLE_PREFIXES: ReadonlySet<string> = new Set();
+
+/**
+ * Whether a row prefix is collapsed. An explicit toggle wins. Otherwise the
+ * prefix is collapsed only when default collapse is on and a subtotal row for
+ * that prefix will actually render. Prefixes with no subtotal (for example the
+ * metric pseudo-dimension) stay expanded, so their descendants are not hidden
+ * with no arrow left to open them. The empty prefix is always expanded,
+ * because the ancestor walk visits it for every key.
+ *
+ * `Object.hasOwn` ignores `Object.prototype`, so a group named `constructor`
+ * or `toString` is not treated as collapsed.
+ */
+function isEffectivelyCollapsed(
+  key: string[],
+  collapsed: Record<string, boolean>,
+  collapseByDefault: boolean,
+  collapsiblePrefixes: ReadonlySet<string>,
+): boolean {
+  if (key.length === 0) {
+    return false;
+  }
+  const keyId = flatKey(key);
+  if (Object.hasOwn(collapsed, keyId)) {
+    return Boolean(collapsed[keyId]);
+  }
+  return collapseByDefault && collapsiblePrefixes.has(keyId);
+}
 
 function displayCell(value: unknown, allowRenderHtml?: boolean): ReactNode {
   if (allowRenderHtml && typeof value === 'string') {
@@ -364,6 +395,19 @@ export function TableRenderer(props: TableRendererProps) {
   const [activeSortColumn, setActiveSortColumn] = useState<number | null>(null);
   const [sortedRowKeys, setSortedRowKeys] = useState<string[][] | null>(null);
 
+  // Default collapse only applies while row subtotals are on. Without them
+  // there is no subtotal row to show and no arrow to expand a hidden group.
+  const collapseRowsByDefault = Boolean(
+    tableOptions.collapseRows && tableOptions.rowSubTotals,
+  );
+
+  // Manual expands live in this state and would otherwise outlive the
+  // checkbox. Resetting on each flip makes the Explore preview match a chart
+  // that opens with the new setting.
+  useEffect(() => {
+    setCollapsedRows({});
+  }, [collapseRowsByDefault]);
+
   const sortCacheRef = useRef(new Map<string, string[][]>());
 
   const clickHandler = useCallback(
@@ -476,13 +520,16 @@ export function TableRenderer(props: TableRendererProps) {
   );
 
   const toggleRowKey = useCallback(
-    (flatRowKey: string) => (e: MouseEvent<HTMLButtonElement>) => {
-      e.stopPropagation();
-      setCollapsedRows(state => ({
-        ...state,
-        [flatRowKey]: !state[flatRowKey],
-      }));
-    },
+    (flatRowKey: string, collapsedByDefault: boolean) =>
+      (e: MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        setCollapsedRows(state => ({
+          ...state,
+          [flatRowKey]: !(Object.hasOwn(state, flatRowKey)
+            ? state[flatRowKey]
+            : collapsedByDefault),
+        }));
+      },
     [],
   );
 
@@ -729,17 +776,25 @@ export function TableRenderer(props: TableRendererProps) {
       collapsed: Record<string, boolean>,
       numAttrs: number,
       subtotalDisplay: SubtotalDisplay,
+      collapseByDefault: boolean,
+      collapsiblePrefixes: ReadonlySet<string>,
     ) =>
       keys.filter(
         (key: string[]) =>
           // Is the key hidden by one of its parents?
-          !key.some(
-            (_k: string, j: number) => collapsed[flatKey(key.slice(0, j))],
+          !key.some((_k: string, j: number) =>
+            isEffectivelyCollapsed(
+              key.slice(0, j),
+              collapsed,
+              collapseByDefault,
+              collapsiblePrefixes,
+            ),
           ) &&
           // Leaf key.
           (key.length === numAttrs ||
             // Children hidden. Must show total.
-            flatKey(key) in collapsed ||
+            Object.hasOwn(collapsed, flatKey(key)) ||
+            (collapseByDefault && collapsiblePrefixes.has(flatKey(key))) ||
             // Don't hide totals.
             !subtotalDisplay.hideOnExpand),
       ),
@@ -788,6 +843,19 @@ export function TableRenderer(props: TableRendererProps) {
 
   const rowKeys = effectiveRowKeys;
 
+  // Subtotal rows are the only prefixes default collapse may hide children
+  // under. A shorter key that was never produced (metric-only rollups are
+  // omitted for metrics-on-rows) must stay expanded.
+  const collapsibleRowPrefixes = useMemo(() => {
+    const prefixes = new Set<string>();
+    basePivotSettings.rowKeys.forEach(key => {
+      if (key.length > 0 && key.length < basePivotSettings.rowAttrs.length) {
+        prefixes.add(flatKey(key));
+      }
+    });
+    return prefixes;
+  }, [basePivotSettings]);
+
   // Need to account for exclusions to compute the effective row
   // and column keys.
   const visibleRowKeys = visibleKeys(
@@ -795,12 +863,16 @@ export function TableRenderer(props: TableRendererProps) {
     collapsedRows,
     rowAttrs.length,
     rowSubtotalDisplay,
+    collapseRowsByDefault,
+    collapsibleRowPrefixes,
   );
   const visibleColKeys = visibleKeys(
     colKeys,
     collapsedCols,
     colAttrs.length,
     colSubtotalDisplay,
+    false,
+    NO_COLLAPSIBLE_PREFIXES,
   );
 
   const pivotSettings: PivotSettings = {
@@ -1270,7 +1342,11 @@ export function TableRenderer(props: TableRendererProps) {
             settingsRowSubtotalDisplay.enabled === true &&
             i !== settingsRowAttrs.length - 1;
           const onArrowClick = needRowToggle
-            ? toggleRowKey(flatRowKeySlice)
+            ? toggleRowKey(
+                flatRowKeySlice,
+                collapseRowsByDefault &&
+                  collapsibleRowPrefixes.has(flatRowKeySlice),
+              )
             : null;
 
           const headerFormatterValue = toDateFormatterInput(r);
@@ -1305,7 +1381,14 @@ export function TableRenderer(props: TableRendererProps) {
             >
               {displayHeaderCell(
                 needRowToggle,
-                collapsedRows[flatRowKeySlice] ? arrowCollapsed : arrowExpanded,
+                isEffectivelyCollapsed(
+                  rowKey.slice(0, i + 1),
+                  collapsedRows,
+                  collapseRowsByDefault,
+                  collapsibleRowPrefixes,
+                )
+                  ? arrowCollapsed
+                  : arrowExpanded,
                 onArrowClick,
                 headerCellFormattedValue,
                 namesMapping,
@@ -1410,6 +1493,8 @@ export function TableRenderer(props: TableRendererProps) {
       clickHeaderHandler,
       rows,
       collapsedRows,
+      collapseRowsByDefault,
+      collapsibleRowPrefixes,
     ],
   );
 

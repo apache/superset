@@ -138,6 +138,10 @@ class ResultSetColumnType(TypedDict):
     # identifier.
     expression: NotRequired[Any]
 
+    # Set on columns an engine spec expanded from a nested type (e.g. a STRUCT
+    # member); such a column never replaces a calculated column of its name.
+    nested_field: NotRequired[bool]
+
 
 CacheConfig: TypeAlias = dict[str, Any]
 DbapiDescriptionRow: TypeAlias = tuple[
@@ -160,6 +164,15 @@ Granularity: TypeAlias = str | dict[str, str | float]
 Column: TypeAlias = AdhocColumn | str
 Metric: TypeAlias = AdhocMetric | str
 OrderBy: TypeAlias = tuple[Metric | Column, bool]
+
+
+class FetchedRows(list[tuple[Any, ...]]):
+    """List-compatible engine results carrying fetch truncation metadata."""
+
+    def __init__(self, rows: list[tuple[Any, ...]], *, truncated: bool) -> None:
+        """Keep engine truncation with the rows, independent of Flask context."""
+        super().__init__(rows)
+        self.truncated = truncated
 
 
 class QueryObjectDict(TypedDict, total=False):
@@ -207,9 +220,11 @@ class QueryObjectDict(TypedDict, total=False):
 
     # Core fields from QueryObject.to_dict()
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     extras: dict[str, Any]
     filter: list["QueryObjectFilterClause"]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
     inner_from_dttm: datetime | None
@@ -300,6 +315,8 @@ class ExplorableData(TypedDict, total=False):
         always_filter_main_dttm: Whether to always filter on main datetime
         normalize_columns: Whether to normalize column names
     """
+
+    semantic_selection_version: str | None
 
     # Core fields from BaseDatasource.data
     id: int | str  # String for UUID-based explorables like SemanticView

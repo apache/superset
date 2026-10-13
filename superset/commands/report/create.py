@@ -21,6 +21,7 @@ from typing import Any
 from flask import g
 from marshmallow import ValidationError
 
+from superset import is_feature_enabled
 from superset.commands.base import CreateMixin
 from superset.commands.report.base import BaseReportScheduleCommand
 from superset.commands.report.exceptions import (
@@ -30,6 +31,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleCreationMethodUniquenessValidationError,
     ReportScheduleInvalidError,
     ReportScheduleNameUniquenessValidationError,
+    ReportScheduleRunAlertQueryAsNotAllowedError,
     ReportScheduleUserEmailNotFoundError,
 )
 from superset.commands.utils import populate_subjects
@@ -90,6 +92,44 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
             self._properties,
             exceptions,
             include_viewers=False,
+        )
+
+    def _validate_executors(
+        self, report_type: str, exceptions: list[ValidationError]
+    ) -> None:
+        """
+        Resolve the "Run As" fields (SIP-209).
+
+        The ids are always removed from the payload; when the dynamic executor
+        feature is disabled nothing is stored and the legacy resolution applies.
+        When enabled, an omitted ``run_as`` defaults to the current user; an
+        admin can explicitly set null to use the legacy application setting.
+        An alert's omitted ``run_alert_query_as`` inherits its ``run_as``
+        identity at execution.
+        """
+        has_run_as = "run_as" in self._properties or "run_as_type" in self._properties
+        run_as_id = self._properties.pop("run_as", None)
+        run_alert_query_as_id = self._properties.pop("run_alert_query_as", None)
+        if not is_feature_enabled("ALERT_REPORT_DYNAMIC_EXECUTOR"):
+            self._properties.pop("run_as_type", None)
+            self._properties.pop("run_alert_query_as_type", None)
+            return
+
+        self.validate_run_as(
+            "run_as", run_as_id, exceptions, default_to_current_user=not has_run_as
+        )
+        if report_type == ReportScheduleType.REPORT:
+            if (
+                run_alert_query_as_id is not None
+                or self._properties.get("run_alert_query_as_type") is not None
+            ):
+                exceptions.append(ReportScheduleRunAlertQueryAsNotAllowedError())
+            return
+        self.validate_run_as(
+            "run_alert_query_as",
+            run_alert_query_as_id,
+            exceptions,
+            default_to_current_user=True,
         )
 
     def validate(self) -> None:
@@ -165,6 +205,12 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
             )
 
         self._populate_subjects(exceptions)
+
+        self.validate_report_format(
+            report_type, self._properties.get("report_format"), exceptions
+        )
+        self.validate_recipients_policy(exceptions)
+        self._validate_executors(report_type, exceptions)
 
         if exceptions:
             raise ReportScheduleInvalidError(exceptions=exceptions)

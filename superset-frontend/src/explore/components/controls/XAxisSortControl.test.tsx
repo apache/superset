@@ -17,41 +17,64 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import XAxisSortControl from './XAxisSortControl';
+import XAxisSortControl from 'src/explore/components/controls/XAxisSortControl';
 
-const choices: [string, string][] = [
-  ['metric_a', 'Metric A'],
-  ['metric_b', 'Metric B'],
-];
-
-const setup = (overrides: { shouldReset?: boolean } = {}) => {
-  const onChange = jest.fn();
-  const utils = render(
-    <XAxisSortControl
-      name="x_axis_sort"
-      choices={choices}
-      value="metric_a"
-      shouldReset={false}
-      onChange={onChange}
-      {...overrides}
-    />,
-  );
-  return { onChange, ...utils };
+const defaultProps = {
+  name: 'x_axis_sort',
+  onChange: jest.fn(),
+  shouldReset: false,
+  value: null as string | null,
+  label: 'Sort X Axis By',
+  choices: [
+    ['ascending', 'Ascending'],
+    ['descending', 'Descending'],
+  ] as [string, string][],
 };
 
-test('renders the selected sort option', () => {
-  setup();
-  expect(screen.getByText('Metric A')).toBeInTheDocument();
-});
+// antd renders the selected option's label, not its value.
+const ascending = () => screen.queryByText('Ascending');
+const descending = () => screen.queryByText('Descending');
 
-test('does not reset the value when shouldReset is false', () => {
-  const { onChange } = setup();
-  expect(onChange).not.toHaveBeenCalled();
-  expect(screen.getByText('Metric A')).toBeInTheDocument();
-});
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('XAxisSortControl', () => {
+  test('renders the value it was given', () => {
+    render(<XAxisSortControl {...defaultProps} value="ascending" />);
+    expect(ascending()).toBeInTheDocument();
+  });
 
-test('clears the value and notifies the parent when shouldReset is true', () => {
-  const { onChange } = setup({ shouldReset: true });
-  expect(screen.queryByText('Metric A')).not.toBeInTheDocument();
-  expect(onChange).toHaveBeenCalledWith(undefined);
+  test('follows the value prop when it changes', () => {
+    const { rerender: rerenderControl } = render(
+      <XAxisSortControl {...defaultProps} value="ascending" />,
+    );
+
+    expect(ascending()).toBeInTheDocument();
+
+    rerenderControl(<XAxisSortControl {...defaultProps} value="descending" />);
+
+    expect(descending()).toBeInTheDocument();
+    expect(ascending()).not.toBeInTheDocument();
+  });
+
+  test('clears the value when shouldReset turns true', () => {
+    const onChange = jest.fn();
+    const { rerender: rerenderControl } = render(
+      <XAxisSortControl
+        {...defaultProps}
+        value="ascending"
+        onChange={onChange}
+      />,
+    );
+
+    rerenderControl(
+      <XAxisSortControl
+        {...defaultProps}
+        value="ascending"
+        shouldReset
+        onChange={onChange}
+      />,
+    );
+
+    expect(ascending()).not.toBeInTheDocument();
+    expect(onChange).toHaveBeenCalledWith(undefined);
+  });
 });

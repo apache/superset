@@ -117,3 +117,26 @@ test('only the slope slider applies to the LINEAR shape', () => {
   expect(slope).toHaveAttribute('aria-disabled', 'false');
   expect(exponent).toHaveAttribute('aria-disabled', 'true');
 });
+
+test.each([
+  { shape: 'FIXED' as const, slider: 0, field: 'width' as const },
+  { shape: 'FIXED' as const, slider: 1, field: 'height' as const },
+  { shape: 'LINEAR' as const, slider: 2, field: 'slope' as const },
+  { shape: 'EXP' as const, slider: 3, field: 'exponent' as const },
+])(
+  'editing $field emits new configs without mutating the incoming value',
+  ({ shape, slider, field }) => {
+    const value = makeValue(shape);
+    const original = value.configs[field];
+    Object.freeze(value.configs);
+    const { onChange } = setup(value);
+    const target = screen.getAllByRole('slider')[slider];
+    fireEvent.keyDown(target, { key: 'ArrowRight', keyCode: 39 });
+    fireEvent.keyUp(target, { key: 'ArrowRight', keyCode: 39 });
+    expect(value.configs[field]).toBe(original);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const emitted = onChange.mock.calls[0][0] as ZoomConfigs;
+    expect(emitted.configs).not.toBe(value.configs);
+    expect(emitted.configs[field]).not.toBe(original);
+  },
+);

@@ -212,6 +212,42 @@ class AnnotationType(StrEnum):
     TIME_SERIES = "TIME_SERIES"
 
 
+# Annotation source types whose ``value`` field references another Chart
+# (resolved to a local Slice.id on import / serialised back to UUID on export).
+# Add new chart-referencing source types here; all consumers pick them up
+# automatically via this single definition.
+ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE: frozenset[str] = frozenset(
+    {
+        "table",
+        "line",
+    }
+)
+
+
+def get_annotation_layer_lists(
+    params: Any, query_context: Any
+) -> list[list[dict[str, Any]]]:
+    """
+    Return every ``annotation_layers`` list of a chart: the one in ``params``
+    plus those in ``query_context["queries"]`` and ``query_context["form_data"]``.
+
+    The lists are returned by reference so callers can rewrite them in place.
+    Containers that are missing or malformed are skipped.
+    """
+    containers: list[Any] = [params]
+    if isinstance(query_context, dict):
+        queries = query_context.get("queries")
+        if isinstance(queries, list):
+            containers.extend(queries)
+        containers.append(query_context.get("form_data"))
+    return [
+        container["annotation_layers"]
+        for container in containers
+        if isinstance(container, dict)
+        and isinstance(container.get("annotation_layers"), list)
+    ]
+
+
 class GenericDataType(IntEnum):
     """
     Generic database column type that fits both frontend and backend.
@@ -1512,6 +1548,10 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                             "col": adhoc_filter.get("subject"),
                             "op": adhoc_filter.get("operator"),
                             "val": adhoc_filter.get("comparator"),
+                            # keep dashboard provenance for semantic-view reporting
+                            **(
+                                {"isExtra": True} if adhoc_filter.get("isExtra") else {}
+                            ),
                         }
                     )
             elif expression_type == "SQL":
@@ -1598,14 +1638,18 @@ def override_user(user: User | None, force: bool = True) -> Iterator[Any]:
         if force or g.user is None:
             current = g.user
             g.user = user
-            yield
-            g.user = current
+            try:
+                yield
+            finally:
+                g.user = current
         else:
             yield
     else:
         g.user = user
-        yield
-        delattr(g, "user")
+        try:
+            yield
+        finally:
+            delattr(g, "user")
 
 
 def parse_ssl_cert(certificate: str) -> Certificate:

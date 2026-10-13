@@ -105,8 +105,21 @@ test('meta-click on Open in SQL Lab posts a form to open a new tab', async () =>
     metaKey: true,
   });
   expect(postForm).toHaveBeenCalledWith('/sqllab/', {
-    datasourceKey: '7__table',
-    sql: 'SELECT 1',
+    form_data: JSON.stringify({ datasourceKey: '7__table', sql: 'SELECT 1' }),
+  });
+  expect(window.location.pathname).toBe('/explore/');
+});
+
+test('ctrl-click on Open in SQL Lab posts a form to open a new tab', async () => {
+  const postForm = jest
+    .spyOn(SupersetClient, 'postForm')
+    .mockResolvedValue(undefined);
+  setup();
+  fireEvent.click(screen.getByRole('button', { name: 'Open in SQL Lab' }), {
+    ctrlKey: true,
+  });
+  expect(postForm).toHaveBeenCalledWith('/sqllab/', {
+    form_data: JSON.stringify({ datasourceKey: '7__table', sql: 'SELECT 1' }),
   });
   expect(window.location.pathname).toBe('/explore/');
 });

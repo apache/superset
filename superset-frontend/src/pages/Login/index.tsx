@@ -31,7 +31,12 @@ import {
 } from '@superset-ui/core/components';
 import { useState, useEffect, useMemo } from 'react';
 import { capitalize } from 'lodash/fp';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import {
+  addDangerToast,
+  addInfoToast,
+  addSuccessToast,
+  addWarningToast,
+} from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
@@ -115,25 +120,31 @@ export default function Login() {
   const authRegistration: boolean =
     bootstrapData.common.conf.AUTH_USER_REGISTRATION;
 
-  // TODO: This is a temporary solution for showing login errors after form submission.
-  // Should be replaced with proper SPA-style authentication (JSON API with error responses)
-  // when Flask-AppBuilder is updated or we implement a custom login endpoint.
+  // Flashed auth messages (failed logins, session invalidation, forced
+  // password change) are drained by the login view into the bootstrap
+  // payload - surface them here, once, on mount.
+  const authMessages = bootstrapData.auth_messages ?? [];
   useEffect(() => {
-    const loginAttempted = sessionStorage.getItem('login_attempted');
-
-    if (loginAttempted === 'true') {
-      sessionStorage.removeItem('login_attempted');
-      dispatch(addDangerToast(t('Invalid username or password')));
-      // Clear password field for security
-      form.setFieldsValue({ password: '' });
-    }
+    authMessages.forEach(([category, message]) => {
+      if (category === 'success') {
+        dispatch(addSuccessToast(message));
+      } else if (category === 'info' || category === 'message') {
+        dispatch(addInfoToast(message));
+      } else if (category === 'warning') {
+        dispatch(addWarningToast(message));
+      } else {
+        dispatch(addDangerToast(message));
+      }
+      // Clear the password field on auth failures, independent of toast color
+      if (['warning', 'danger', 'error'].includes(category)) {
+        form.setFieldsValue({ password: '' });
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, form]);
 
   const onFinish = (values: LoginForm) => {
     setLoading(true);
-
-    // Mark that we're attempting login (for error detection after redirect)
-    sessionStorage.setItem('login_attempted', 'true');
 
     // Use standard form submission for Flask-AppBuilder compatibility
     SupersetClient.postForm(ensureAppRoot(loginEndpoint), values, '');

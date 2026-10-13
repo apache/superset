@@ -46,7 +46,6 @@ import {
 } from 'antd/es/select';
 import { debounce, isEqual, uniq } from 'lodash-es';
 import { Constants, Icons } from '@superset-ui/core/components';
-import { Space } from '../Space';
 import {
   getValue,
   hasOption,
@@ -904,7 +903,7 @@ const AsyncSelect = forwardRef(
           }
           onClear={handleClear}
           options={fullSelectOptions}
-          optionRender={option => <Space>{option.label || option.value}</Space>}
+          optionRender={option => option.label || option.value}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           tokenSeparators={quoteAwareTokenSeparators}

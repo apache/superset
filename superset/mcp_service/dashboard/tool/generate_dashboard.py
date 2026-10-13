@@ -22,11 +22,11 @@ This tool creates a new dashboard with specified charts and layout configuration
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Annotated, Any, Dict, List
 
 from fastmcp import Context
 from flask import g
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -198,7 +198,19 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
     ),
 )
 def generate_dashboard(  # noqa: C901
-    request: GenerateDashboardRequest, ctx: Context
+    request: Annotated[
+        GenerateDashboardRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {"chart_ids": [1], "dashboard_title": "New"}}. '
+                "Charts must exist and be accessible. NEW dashboards only; "
+                "use add_chart_to_existing_dashboard for existing ones. "
+                "Never use as a fallback if that fails. "
+                "position_json overrides the default grid."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> GenerateDashboardResponse:
     """Create a NEW dashboard from chart IDs.
 
