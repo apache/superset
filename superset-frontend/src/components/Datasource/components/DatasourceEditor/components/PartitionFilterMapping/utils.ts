@@ -359,7 +359,8 @@ function renderSampleWithFormat(format: string): string | undefined {
       continue;
     }
     const directive = format[i + 1];
-    const value = directive === undefined ? undefined : STRFTIME_FIELDS[directive];
+    const value =
+      directive === undefined ? undefined : STRFTIME_FIELDS[directive];
     if (value === undefined) {
       return undefined;
     }

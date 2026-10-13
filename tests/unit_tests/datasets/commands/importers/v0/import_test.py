@@ -16,6 +16,8 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument
 
+from typing import Any
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -238,7 +240,9 @@ def test_a_v0_import_clears_an_explicit_self_mapping(mocker: MockerFixture) -> N
     ],
     ids=["ui-export", "cli-export"],
 )
-def test_a_v0_import_defaults_an_omitted_monotonic_declaration(config: object) -> None:
+def test_a_v0_import_defaults_an_omitted_monotonic_declaration(
+    config: list[dict[str, Any]] | dict[str, Any],
+) -> None:
     """
     An overwrite keeps whatever the bundle omits, including a `True` left
     behind by the transform this bundle replaces. `abs(:value)` inheriting it
@@ -259,6 +263,7 @@ def test_a_v0_import_defaults_an_omitted_monotonic_declaration(config: object) -
         if isinstance(config, list)
         else config["databases"][0]["tables"][0]["columns"]
     )
+    assert isinstance(columns, list)
     assert columns[0]["partition_transform_is_monotonic"] is False
 
 
@@ -270,25 +275,22 @@ def test_a_v0_import_leaves_a_transformless_column_alone() -> None:
     """
     from superset.commands.dataset.importers import v0
 
-    config = [
+    columns: list[dict[str, Any]] = [
+        {"column_name": "plain"},
         {
-            "columns": [
-                {"column_name": "plain"},
-                {
-                    "column_name": "declared",
-                    "partition_value_transform": "unix_timestamp(:value)",
-                    "partition_transform_is_monotonic": True,
-                },
-            ]
-        }
+            "column_name": "declared",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": True,
+        },
     ]
+    config = [{"columns": columns}]
 
     v0.ImportDatasetsCommand._default_omitted_monotonic_declarations(  # noqa: SLF001
         config
     )
 
-    assert "partition_transform_is_monotonic" not in config[0]["columns"][0]
-    assert config[0]["columns"][1]["partition_transform_is_monotonic"] is True
+    assert "partition_transform_is_monotonic" not in columns[0]
+    assert columns[1]["partition_transform_is_monotonic"] is True
 
 
 def test_a_v0_import_normalizes_before_it_writes(mocker: MockerFixture) -> None:

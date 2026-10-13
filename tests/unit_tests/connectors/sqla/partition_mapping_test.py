@@ -2806,9 +2806,7 @@ def test_a_transform_reading_a_sequence_is_refused(
     probe ran. On a cache schedule, from a dataset editor holding neither SQL
     Lab nor a DML grant.
     """
-    database = Database(
-        database_name="probe_db", sqlalchemy_uri=f"{backend}://u@h/d"
-    )
+    database = Database(database_name="probe_db", sqlalchemy_uri=f"{backend}://u@h/d")
 
     with app.app_context():
         reason = stored_expression_error(database, None, None, transform)
@@ -2982,7 +2980,9 @@ def test_an_echo_of_a_stored_transform_is_not_dropped() -> None:
             "partition_transform_is_monotonic": True,
         }
     ]
-    stored = {"event_time": ("unix_timestamp(:value)", True)}
+    stored: dict[str, tuple[str | None, bool]] = {
+        "event_time": ("unix_timestamp(:value)", True)
+    }
 
     # `event_time2` is the newly chosen default, so `event_time` is no longer
     # the mapped column -- and its transform is nonetheless an echo.
