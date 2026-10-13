@@ -699,6 +699,13 @@ async def _get_chart_data(  # noqa: C901
             # Use the chart's saved query_context - this is the key!
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
+            #
+            # Without one, the fallback below builds a generic query from
+            # form_data and skips the frontend's buildQuery logic, so the
+            # numbers can diverge from the chart. That is surfaced in the
+            # response's ``insights`` as well as via ctx.warning, which is an
+            # MCP log notification and does not reach the client's tool result.
+            query_context_accuracy_warning: str | None = None
             query_context_json = None
             if using_unsaved_state and cached_form_data_dict is not None:
                 form_data = cached_form_data_dict
@@ -791,11 +798,12 @@ async def _get_chart_data(  # noqa: C901
             if query_context_json is None and not using_unsaved_state:
                 # Fallback: Chart has no saved query_context
                 # This can happen with older charts that haven't been re-saved
-                await ctx.warning(
+                query_context_accuracy_warning = (
                     "Chart has no saved query_context. "
                     "Data may not match the chart visualization exactly. "
                     "Consider re-saving the chart to enable full data retrieval."
                 )
+                await ctx.warning(query_context_accuracy_warning)
                 # Try to construct from form_data as a fallback
                 effective_form_data = canonicalize_operation_form_data(
                     effective_form_data,
@@ -1049,6 +1057,8 @@ async def _get_chart_data(  # noqa: C901
 
             # Generate insights and recommendations
             insights = []
+            if query_context_accuracy_warning:
+                insights.append(query_context_accuracy_warning)
             if len(data) > 100:
                 insights.append(
                     "Large dataset - consider filtering for better performance"
