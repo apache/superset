@@ -68,3 +68,38 @@ export function isRangesInputComplete(value?: string): boolean {
     )
   );
 }
+
+/**
+ * Relative luminance (0-1) of an opaque `#rgb` / `#rrggbb` / `rgb()` color, or
+ * `null` when the value is translucent or cannot be parsed.
+ */
+export function getColorLuminance(color: string): number | null {
+  const value = color.trim().toLowerCase();
+  let channels: number[] | null = null;
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/.exec(value);
+  if (hex) {
+    const digits =
+      hex[1].length === 3
+        ? hex[1]
+            .split('')
+            .map(c => c + c)
+            .join('')
+        : hex[1];
+    if (digits.length === 8 && digits.slice(6) !== 'ff') return null;
+    channels = [0, 2, 4].map(i => parseInt(digits.slice(i, i + 2), 16));
+  } else {
+    const rgb =
+      /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/.exec(
+        value,
+      );
+    if (rgb && (rgb[4] === undefined || Number(rgb[4]) === 1)) {
+      channels = [rgb[1], rgb[2], rgb[3]].map(Number);
+    }
+  }
+  if (!channels) return null;
+  const [r, g, b] = channels.map(channel => {
+    const c = channel / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}

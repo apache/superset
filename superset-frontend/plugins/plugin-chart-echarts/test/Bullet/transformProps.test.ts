@@ -440,6 +440,21 @@ test('applies custom range_colors to their bands, matched by original (pre-sort)
   expect(bandColors).toEqual(['#0000ff', '#00ff00', '#ff0000']);
 });
 
+test('picks a contrasting label color for custom range fills', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ showLabels: true, rangeColors: ['#000000', '#ffffff', ''] }),
+  );
+  const labelColors = (echartOptions as any).series[0].markArea.data.map(
+    (d: any) => d[0].label.color,
+  );
+  // bands are drawn largest-threshold-first: unset, white, black
+  expect(labelColors).toEqual([
+    supersetTheme.colorTextSecondary,
+    supersetTheme.colorText,
+    supersetTheme.colorTextLightSolid,
+  ]);
+});
+
 test('falls back to the default theme-token ramp when range_colors is absent (backward compatibility)', () => {
   const { echartOptions } = transformProps(chartProps());
   const { series } = echartOptions as any;

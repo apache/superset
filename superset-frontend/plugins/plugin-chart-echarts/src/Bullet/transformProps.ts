@@ -28,7 +28,11 @@ import { t } from '@apache-superset/core/translation';
 import type { EChartsCoreOption } from 'echarts/core';
 import { Refs } from '../types';
 import { EchartsBulletChartProps, BulletChartTransformedProps } from './types';
-import { tokenizeToNumericArray, tokenizeToStringArray } from './utils';
+import {
+  getColorLuminance,
+  tokenizeToNumericArray,
+  tokenizeToStringArray,
+} from './utils';
 import { estimateWrappedLegendRowCount } from '../utils/legendLayout';
 
 const MEASURE_BAR_FRACTION = 0.28;
@@ -117,6 +121,11 @@ export default function transformProps(
   // Each band's label sits inside its own top-right corner: the visible strip
   // of a nested band ends at its threshold, so the label lands inside the
   // range it names and the rightmost label cannot clip at the chart edge.
+  const getBandLabelColor = (fill?: string): string => {
+    const luminance = fill ? getColorLuminance(fill) : null;
+    if (luminance === null) return theme.colorTextSecondary;
+    return luminance < 0.4 ? theme.colorTextLightSolid : theme.colorText;
+  };
   const bands = sortedRanges.map(({ value, label, color }, i) => ({
     name: label,
     itemStyle: {
@@ -129,7 +138,9 @@ export default function transformProps(
       show: Boolean(showLabels) && Boolean(label),
       position: 'insideTopRight',
       distance: theme.sizeUnit,
-      color: theme.colorTextSecondary,
+      // Labels sit inside the band, so a custom fill needs a foreground that
+      // contrasts with it; theme-ramp fills keep the default label color.
+      color: getBandLabelColor(color),
       formatter: () => label ?? '',
     },
     // markArea item: [{start}, {end}]
