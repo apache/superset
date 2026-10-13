@@ -17,36 +17,38 @@
  * under the License.
  */
 
-import { formatLocale } from 'd3-format';
+import { formatLocale, FormatLocaleDefinition } from 'd3-format';
 import NumberFormatter from '../NumberFormatter';
 import NumberFormats from '../NumberFormats';
 import { DEFAULT_D3_FORMAT } from '../D3FormatConfig';
 
-const locale = formatLocale(DEFAULT_D3_FORMAT);
-const siFormatter = locale.format(`.3~s`);
-const float2PointFormatter = locale.format(`.2~f`);
-const float4PointFormatter = locale.format(`.4~f`);
+function createValueFormatter(locale: Partial<FormatLocaleDefinition> = {}) {
+  const d3Locale = formatLocale({ ...DEFAULT_D3_FORMAT, ...locale });
+  const siFormatter = d3Locale.format(`.3~s`);
+  const float2PointFormatter = d3Locale.format(`.2~f`);
+  const float4PointFormatter = d3Locale.format(`.4~f`);
 
-function formatValue(value: number) {
-  if (value === 0) {
-    return '0';
-  }
-  const absoluteValue = Math.abs(value);
-  if (absoluteValue >= 1000) {
-    // Normal human being are more familiar
-    // with billion (B) that giga (G)
-    return siFormatter(value).replace('G', 'B');
-  }
-  if (absoluteValue >= 1) {
-    return float2PointFormatter(value);
-  }
-  if (absoluteValue >= 0.001) {
-    return float4PointFormatter(value);
-  }
-  if (absoluteValue > 0.000001) {
-    return `${siFormatter(value * 1000000)}µ`;
-  }
-  return siFormatter(value);
+  return (value: number) => {
+    if (value === 0) {
+      return '0';
+    }
+    const absoluteValue = Math.abs(value);
+    if (absoluteValue >= 1000) {
+      // Normal human being are more familiar
+      // with billion (B) that giga (G)
+      return siFormatter(value).replace('G', 'B');
+    }
+    if (absoluteValue >= 1) {
+      return float2PointFormatter(value);
+    }
+    if (absoluteValue >= 0.001) {
+      return float4PointFormatter(value);
+    }
+    if (absoluteValue > 0.000001) {
+      return `${siFormatter(value * 1000000)}µ`;
+    }
+    return siFormatter(value);
+  };
 }
 
 export default function createSmartNumberFormatter(
@@ -55,10 +57,12 @@ export default function createSmartNumberFormatter(
     signed?: boolean;
     id?: string;
     label?: string;
+    locale?: Partial<FormatLocaleDefinition>;
   } = {},
 ) {
-  const { description, signed = false, id, label } = config;
+  const { description, signed = false, id, label, locale } = config;
   const getSign = signed ? (value: number) => (value > 0 ? '+' : '') : () => '';
+  const formatValue = createValueFormatter(locale);
 
   return new NumberFormatter({
     description,

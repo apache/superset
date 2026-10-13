@@ -156,4 +156,18 @@ describe('createSmartNumberFormatter(options)', () => {
       });
     });
   });
+  describe('with a locale', () => {
+    const formatter = createSmartNumberFormatter({
+      locale: { decimal: ',', thousands: '\u202F' },
+    });
+    test('uses its decimal separator', () => {
+      expect(formatter(10.23432)).toBe('10,23');
+      expect(formatter(0.0023)).toBe('0,0023');
+      expect(formatter(4560000000)).toBe('4,56B');
+      expect(formatter(10100)).toBe('10,1k');
+    });
+    test('keeps the ASCII hyphen-minus of the default locale', () => {
+      expect(formatter(-10.5)).toBe('-10,5');
+    });
+  });
 });
