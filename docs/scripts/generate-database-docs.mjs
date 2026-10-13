@@ -369,6 +369,13 @@ for filename in sorted(os.listdir(specs_dir)):
             # back to whatever the nearest ancestor defines, same as a plain
             # Python class-attribute lookup).
             ext_agg_keys = None
+            # Set when \`_extended_aggregations\` is a plain \`Assign\` that just
+            # points at another class's dict by reference (e.g.
+            # \`_extended_aggregations = DatabricksBaseEngineSpec._extended_aggregations\`),
+            # rather than defining its own dict literal. That class may not be
+            # one of this class's own \`bases\`, so it has to be resolved
+            # directly instead of via the inheritance walk below.
+            ext_agg_ref = None
 
             for item in node.body:
                 if isinstance(item, ast.Assign):
@@ -392,6 +399,13 @@ for filename in sorted(os.listdir(specs_dir)):
                             else:
                                 # Unevaluable expression — defer to JS fallback.
                                 unresolved_cap_attrs.add(target.id)
+                        elif (
+                            target.id == '_extended_aggregations'
+                            and isinstance(item.value, ast.Attribute)
+                            and item.value.attr == '_extended_aggregations'
+                            and isinstance(item.value.value, ast.Name)
+                        ):
+                            ext_agg_ref = item.value.value.id
                 elif isinstance(item, ast.AnnAssign):
                     # \`_extended_aggregations\` is declared with a type
                     # annotation (\`dict[str, Callable[...]] = {...}\`), so it's
@@ -443,6 +457,7 @@ for filename in sorted(os.listdir(specs_dir)):
                 'unresolved_cap_attrs': unresolved_cap_attrs,
                 'direct_methods': direct_methods,
                 'ext_agg_keys': ext_agg_keys,
+                'ext_agg_ref': ext_agg_ref,
             }
     except Exception as e:
         errors.append(f"{filename}: {str(e)}")
@@ -553,6 +568,9 @@ def resolve_extended_aggregations(class_name, visited=None):
 
     if info['ext_agg_keys'] is not None:
         return set(info['ext_agg_keys'])
+
+    if info['ext_agg_ref'] is not None:
+        return resolve_extended_aggregations(info['ext_agg_ref'], visited.copy())
 
     for base_name in info['bases']:
         result = resolve_extended_aggregations(base_name, visited.copy())
