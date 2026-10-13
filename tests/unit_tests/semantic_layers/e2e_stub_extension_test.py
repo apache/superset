@@ -18,7 +18,7 @@
 """The Playwright semantic stub loads as an extension and serves host queries."""
 
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 from unittest.mock import PropertyMock
@@ -28,6 +28,15 @@ import pytest
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.layer import SemanticLayer
+from superset_core.semantic_layers.types import (
+    Dimension,
+    Filter,
+    Metric,
+    Operator,
+    PredicateType,
+    SemanticQuery,
+    SemanticResult,
+)
 from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 from werkzeug.test import TestResponse
 
@@ -182,3 +191,62 @@ def test_unsupported_operator_fails_loudly(
     )
     assert response.status_code >= 400
     assert "does not support" in str(response.json)
+
+
+class _OrderedFilters(set[Filter]):
+    """Exercise both legal set iteration orders without depending on hash seeds."""
+
+    def __init__(self, filters: tuple[Filter, ...]) -> None:
+        super().__init__(filters)
+        self._ordered: tuple[Filter, ...] = filters
+
+    def __iter__(self) -> Iterator[Filter]:
+        return iter(self._ordered)
+
+
+@pytest.mark.parametrize("entrypoint", ["table", "values", "row_count"])
+@pytest.mark.parametrize("invalid_first", [False, True])
+@pytest.mark.parametrize("invalid_kind", ["operator", "predicate", "column"])
+def test_unsupported_filter_is_rejected_even_when_other_filter_matches_no_rows(
+    stub_view: SemanticViewABC,
+    entrypoint: str,
+    invalid_first: bool,
+    invalid_kind: str,
+) -> None:
+    """Empty results must not hide an unsupported predicate in any filter order."""
+    dimensions: dict[str, Dimension] = {d.id: d for d in stub_view.get_dimensions()}
+    metric: Metric = next(iter(stub_view.get_metrics()))
+    empty: Filter = Filter(
+        PredicateType.WHERE, dimensions["region"], Operator.IN, ("North",)
+    )
+    invalid: Filter = Filter(
+        PredicateType.HAVING if invalid_kind == "predicate" else PredicateType.WHERE,
+        metric if invalid_kind == "column" else dimensions["category"],
+        Operator.LIKE if invalid_kind == "operator" else Operator.EQUALS,
+        "B%",
+    )
+    filters: set[Filter] = _OrderedFilters(
+        (invalid, empty) if invalid_first else (empty, invalid)
+    )
+    query: SemanticQuery = SemanticQuery(
+        metrics=[metric], dimensions=[dimensions["category"]], filters=filters
+    )
+    execute: Callable[[], SemanticResult] = {
+        "values": lambda: stub_view.get_values(dimensions["category"], filters),
+        "row_count": lambda: stub_view.get_row_count(query),
+        "table": lambda: stub_view.get_table(query),
+    }[entrypoint]
+    with pytest.raises(ValueError, match="The E2E stub"):
+        execute()
+
+
+def test_supported_filter_can_return_an_empty_result(
+    client: FlaskClient, full_api_access: None, stub_view: SemanticViewABC
+) -> None:
+    """The host still accepts a supported predicate that matches no stub rows."""
+    response: TestResponse = _chart_data(
+        client, [{"col": "region", "op": "IN", "val": ["North"]}]
+    )
+    assert response.status_code == 200, response.json
+    assert response.json is not None
+    assert response.json["result"][0]["data"] == []

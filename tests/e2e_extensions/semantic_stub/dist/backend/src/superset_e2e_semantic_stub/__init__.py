@@ -95,12 +95,15 @@ class StubConfiguration(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-def _matches(row: dict[str, Any], filter_: Filter) -> bool:
+def _validate_filter(filter_: Filter) -> None:
     if filter_.type != PredicateType.WHERE or not isinstance(filter_.column, Dimension):
         raise ValueError("The E2E stub only supports WHERE filters on dimensions")
     if filter_.operator not in SUPPORTED_OPERATORS:
         raise ValueError(f"The E2E stub does not support {filter_.operator.value}")
 
+
+def _matches(row: dict[str, Any], filter_: Filter) -> bool:
+    assert isinstance(filter_.column, Dimension)
     actual: Any = row[filter_.column.id]
     values: frozenset[FilterValues] = (
         frozenset(filter_.value)
@@ -113,7 +116,11 @@ def _matches(row: dict[str, Any], filter_: Filter) -> bool:
 
 
 def _filtered_rows(filters: set[Filter] | None) -> list[dict[str, Any]]:
-    return [row for row in ROWS if all(_matches(row, f) for f in filters or set())]
+    predicates: set[Filter] = filters or set()
+    filter_: Filter
+    for filter_ in predicates:
+        _validate_filter(filter_)
+    return [row for row in ROWS if all(_matches(row, f) for f in predicates)]
 
 
 def _aggregate(metric: Metric, rows: list[dict[str, Any]]) -> int:
