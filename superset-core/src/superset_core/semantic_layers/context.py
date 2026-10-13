@@ -22,7 +22,7 @@ from enum import Enum
 
 
 class ExecutionOrigin(str, Enum):
-    """Server-established entry point for an operation."""
+    """Server-established entry point; providers must reject unrecognized origins."""
 
     REQUEST = "request"
     MCP = "mcp"
@@ -40,7 +40,12 @@ class ExecutionMethod(str, Enum):
 
 @dataclass(frozen=True, kw_only=True)
 class SemanticExecutionContext:
-    """One trusted binding identity; per-view RLS is separate cache material."""
+    """One trusted binding identity; per-view RLS is separate cache material.
+
+    For unchanged identity inputs, identity_digest is stable within an installation
+    across processes and requests. It is non-reversible, rotates with the host
+    secret, and is only an opaque partition token, never a durable user identifier.
+    """
 
     principal_id: str | None
     role_ids: tuple[str, ...]

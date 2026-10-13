@@ -33,6 +33,11 @@ provider's Pydantic `configuration_class`, without constructing a provider.
 The frozen context contains the server-authenticated `principal_id`, sorted
 `role_ids` (including group roles), `origin`, `is_guest`, `namespace`, and an
 opaque `identity_digest`. It contains no tokens, passwords or Flask objects.
+For unchanged identity inputs, the digest is stable within an installation across
+processes and requests, is non-reversible, and rotates with the host `SECRET_KEY`.
+Use it only as an opaque partition token, not as a durable user identifier or an
+upstream credential. Providers must treat an unrecognized origin as unsupported;
+they must not substitute `REQUEST` or silently fall back to a supported origin.
 The digest excludes per-view RLS and origin. The host binds a layer and its views
 in one session memo, with distinct bindings for different contexts. Providers
 must retain the supplied context and metadata token with their bound instance.
@@ -59,6 +64,14 @@ The existing containment `semantic_cache_scope`, context-identity and
 provider-identity hooks remain in effect. Providers must supply complete,
 secret-free identity material or bypass containment. A dbt manifest or compiled
 catalog is still provider metadata and follows the same token partitioning rule.
+Both host contexts derive role IDs from effective roles, including group grants.
+The host's containment context identity (`SemanticCacheExecutionContext.host_identity`)
+includes an effective-role derivation marker, so context-scoped containment keys
+change even when the role list is empty. This
+prevents reuse of direct-only identities after group grants are revoked and causes
+a cold context-scoped containment cache; connection-scoped keys are unchanged.
+The SDK `identity_digest` is unchanged. The two SDK context types coexist and
+will be unified before any `superset-core` release.
 `get_configuration_schema` and `get_runtime_schema` remain class methods outside
 this instance-binding contract.
 
