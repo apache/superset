@@ -60,7 +60,7 @@ def test_get_column_spec(
     is_dttm: bool,
 ) -> None:
     from superset.db_engine_specs.oceanbase import (
-        OceanBaseEngineSpec as spec,
+        OceanBaseEngineSpec as spec,  # noqa: N813
     )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
