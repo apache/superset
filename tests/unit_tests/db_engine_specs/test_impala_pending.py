@@ -331,6 +331,47 @@ def test_prepare_cancel_query_keeps_finished_status(
         assert stored.extra.get(QUERY_EARLY_CANCEL_KEY) is (True if stopped else None)
 
 
+@pytest.mark.parametrize("use_executor", [False, True])
+@pytest.mark.parametrize(
+    "finished_status", [QueryStatus.SUCCESS, QueryStatus.FAILED, QueryStatus.TIMED_OUT]
+)
+def test_finished_query_stop_bypasses_repeatable_read_snapshot(
+    mocker: MockerFixture, use_executor: bool, finished_status: QueryStatus
+) -> None:
+    """A declined stop must reload current state, not the earlier RUNNING snapshot."""
+    query = MagicMock(
+        id=1,
+        status=QueryStatus.RUNNING,
+        extra={QUERY_CANCEL_KEY: "0123456789abcdef:fedcba9876543210"},
+    )
+    query.database.db_engine_spec = ImpalaEngineSpec
+    session = mocker.patch("superset.db_engine_specs.impala.db.session")
+    # The conditional UPDATE sees the worker's terminal commit, even though
+    # the stop request's earlier SELECT established a RUNNING snapshot.
+    session.query.return_value.filter.return_value.update.return_value = 0
+
+    def refresh(refreshed: MagicMock, with_for_update: bool = False) -> None:
+        """Model InnoDB's current locking read versus a consistent snapshot read."""
+        refreshed.status = finished_status if with_for_update else QueryStatus.RUNNING
+
+    session.refresh.side_effect = refresh
+    http_cancel = mocker.patch.object(
+        ImpalaEngineSpec, "cancel_query", return_value=True
+    )
+    get_engine = mocker.patch.object(query.database, "get_sqla_engine")
+
+    if use_executor:
+        assert SQLExecutor._cancel_query(query.database, query) is False
+    else:
+        assert cancel_query(query) is True
+
+    assert query.status == finished_status
+    query.set_extra_json_key.assert_not_called()
+    session.commit.assert_not_called()
+    get_engine.assert_not_called()
+    http_cancel.assert_not_called()
+
+
 def test_pending_operation_polls_with_backoff() -> None:
     """A pending operation is polled quickly, backing off to the poll interval."""
     app: Flask = Flask(__name__)

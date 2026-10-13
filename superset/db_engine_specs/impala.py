@@ -270,7 +270,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 .update({Query.status: QueryStatus.STOPPED}, synchronize_session=False)
             )
         if not claimed:
-            db.session.refresh(query)
+            # The UPDATE sees current state, but a plain refresh can still read
+            # the earlier RUNNING snapshot under REPEATABLE READ. A locking
+            # read keeps callers from cancelling an already finished operation.
+            db.session.refresh(query, with_for_update=True)
             return
         query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
         query.status = QueryStatus.STOPPED
