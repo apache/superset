@@ -802,6 +802,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
         metadata = json.loads(data["json_metadata"])
         old_to_new_slice_ids: dict[int, int] = {}
         if data.get("duplicate_slices"):
+            from superset.commands.dashboard.importers.v1.utils import (
+                update_cross_filter_scoping,
+            )
+
             # Copy-with-charts deliberately does not share archived originals.
             # Query their IDs independently of the relationship's load state:
             # a fresh collection hides them; an already-loaded one may not.
@@ -857,6 +861,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
                             ]
                         )
                     value["meta"]["chartId"] = new_id
+
+            update_cross_filter_scoping({"metadata": metadata}, old_to_new_slice_ids)
         else:
             dash.slices = original_dash.slices
 
