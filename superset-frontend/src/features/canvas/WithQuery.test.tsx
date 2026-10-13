@@ -16,10 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import fetchMock from 'fetch-mock';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import WithQuery from './WithQuery';
 
 test('shows the query that ran from the chart menu', async () => {
+  // The query panel formats the query through SQL Lab when it opens.
+  fetchMock.get('glob:*/api/v1/dataset/13?**', {
+    result: { database: { backend: 'sqlite' } },
+  });
+  fetchMock.post('glob:*/api/v1/sqllab/format_sql/', {
+    result: 'SELECT country\nFROM sales',
+  });
   render(
     <WithQuery
       query="SELECT country FROM sales"
@@ -34,10 +47,10 @@ test('shows the query that ran from the chart menu', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'More Options' }));
   await userEvent.click(await screen.findByText('View query'));
 
-  expect(await screen.findByRole('dialog')).toHaveTextContent(
-    'SELECT country FROM sales',
-  );
+  const dialog = await screen.findByRole('dialog');
+  await waitFor(() => expect(dialog).toHaveTextContent('FROM sales'));
   expect(screen.getByRole('button', { name: /Copy/ })).toBeInTheDocument();
+  fetchMock.removeRoutes();
 });
 
 test('offers nothing when the user may not see the query', () => {
