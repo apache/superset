@@ -492,7 +492,7 @@ async def test_layout_tabs_only_large_tree(
     mock_find: Mock, mcp_server: FastMCP, large_tabbed_layout: str
 ) -> None:
     """All tabs fit comfortably under the guard without any chart positions."""
-    from fastmcp.tools.tool import ToolResult
+    from fastmcp.tools import ToolResult
 
     from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
 
@@ -1075,7 +1075,7 @@ async def test_layout_oversized_guard_hint(
     from unittest.mock import AsyncMock
 
     from fastmcp.exceptions import ToolError
-    from fastmcp.tools.tool import ToolResult
+    from fastmcp.tools import ToolResult
     from mcp.types import TextContent
 
     from superset.mcp_service.dashboard.schemas import dashboard_layout_serializer
