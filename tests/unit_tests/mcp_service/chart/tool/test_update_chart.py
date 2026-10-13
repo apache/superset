@@ -3149,6 +3149,16 @@ def test_table_rebind_without_viz_type_keeps_interactive_table() -> None:
     assert params["metrics"][0]["label"] == "SUM(revenue)"
 
 
+def test_table_update_without_viz_type_defaults_to_table_for_another_chart_type() -> (
+    None
+):
+    saved = {"viz_type": "pie", "groupby": ["region"], "metric": "count"}
+
+    params = _saved_variant_update_params(saved, _TABLE_VARIANT_CONFIG)
+
+    assert params["viz_type"] == "table"
+
+
 def test_table_update_with_viz_type_replaces_interactive_table() -> None:
     saved = {"viz_type": "ag-grid-table", "query_mode": "raw", "all_columns": ["a"]}
 
@@ -3263,6 +3273,20 @@ def test_big_number_update_with_show_trendline_false_removes_trendline() -> None
     )
 
     assert params["viz_type"] == "big_number_total"
+
+
+def test_big_number_total_update_without_show_trendline_stays_total() -> None:
+    """A temporal column on a saved plain big number is not a trendline."""
+    saved = {
+        "viz_type": "big_number_total",
+        "metric": "count",
+        "granularity_sqla": "ds",
+    }
+
+    params = _saved_variant_update_params(saved, _BIG_NUMBER_VARIANT_CONFIG)
+
+    assert params["viz_type"] == "big_number_total"
+    assert "show_trend_line" not in params
 
 
 def test_big_number_rebind_does_not_inherit_saved_temporal_column() -> None:
