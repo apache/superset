@@ -603,6 +603,11 @@ class SavedQuery(
         }
 
     @property
+    def type(self) -> str:
+        """Datasource type discriminator, mirroring ``Query.type``."""
+        return "saved_query"
+
+    @property
     def name(self) -> str:
         """
         Expose ``label`` as ``name`` so callers that treat a ``SavedQuery`` as
