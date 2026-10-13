@@ -1101,3 +1101,85 @@ def test_save_preserves_detached_empty_copy_slot(
         "code": "This chart no longer exists.",
     }
     assert saved["CHART-trapped"]["parents"][:2] == ["ROOT_ID", "GRID_ID"]
+
+
+@pytest.mark.parametrize("duplicate_slices", [False, True])
+def test_copy_dashboard_preserves_cross_filter_scoping(
+    session: Session, duplicate_slices: bool
+) -> None:
+    first, second = _make_charts(session)
+    metadata = {
+        "chart_configuration": {
+            str(first.id): {
+                "id": first.id,
+                "crossFilters": {
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": [first.id]},
+                    "chartsInScope": [second.id],
+                },
+            },
+            str(second.id): {
+                "id": second.id,
+                "crossFilters": {"scope": "global", "chartsInScope": [first.id]},
+            },
+        },
+        "global_chart_configuration": {
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": [second.id]},
+            "chartsInScope": [first.id],
+        },
+    }
+    original = Dashboard(
+        dashboard_title="source",
+        slices=[first, second],
+        json_metadata=json.dumps(metadata),
+    )
+    db.session.add(original)
+    db.session.flush()
+    source_metadata = original.json_metadata
+    source_changed_on = original.changed_on
+    source_changed_by = original.changed_by_fk
+    positions = _position_with_trapped_chart(first.id, second.id)
+    positions.pop("COLUMN-orphan")
+    positions.pop("ROW-orphan")
+    positions["ROW-a"]["children"].append("CHART-trapped")
+    positions["CHART-trapped"]["parents"] = ["ROOT_ID", "GRID_ID", "ROW-a"]
+    data = {
+        "dashboard_title": "copy",
+        "duplicate_slices": duplicate_slices,
+        "json_metadata": json.dumps({**metadata, "positions": positions}),
+    }
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch("superset.daos.dashboard.g") as mock_g,
+    ):
+        mock_g.user = None
+        copied = DashboardDAO.copy_dashboard(original, data)
+
+    positions = json.loads(copied.position_json)
+    copied_first = positions["CHART-placed"]["meta"]["chartId"]
+    copied_second = positions["CHART-trapped"]["meta"]["chartId"]
+    if duplicate_slices:
+        assert {copied_first, copied_second}.isdisjoint({first.id, second.id})
+    else:
+        assert (copied_first, copied_second) == (first.id, second.id)
+    config = copied.params_dict
+    assert config["chart_configuration"] == {
+        str(copied_first): {
+            "id": copied_first,
+            "crossFilters": {
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": [copied_first]},
+                "chartsInScope": [copied_second],
+            },
+        },
+        str(copied_second): {
+            "id": copied_second,
+            "crossFilters": {"scope": "global", "chartsInScope": [copied_first]},
+        },
+    }
+    assert config["global_chart_configuration"] == {
+        "scope": {"rootPath": ["ROOT_ID"], "excluded": [copied_second]},
+        "chartsInScope": [copied_first],
+    }
+    assert original.json_metadata == source_metadata
+    assert original.changed_on == source_changed_on
+    assert original.changed_by_fk == source_changed_by
