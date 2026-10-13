@@ -24,17 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
-- Semantic value suggestions classify typed provider rejections as HTTP 400 with
-  host-owned guidance, and provider faults as HTTP 500 with generic text. A failed
-  server-side search no longer retries without its narrowing filter. Providers
-  should use `SemanticQueryRejectedError` only for positively identified input
-  validation failures; existing manual filter-value entry remains available.
-
-- Semantic chart-query execution classifies provider-raised `SupersetTimeoutException`
-  (formerly HTTP 408), `SupersetGenericDBErrorException` and
-  `SupersetTemplateParamsErrorException` (formerly HTTP 400) as generic HTTP 500
-  failures. Worker control timeouts and host input-validation errors retain their
-  existing handling. See the [provider error contract](docs/developer_docs/semantic-query-errors.md).
+- `SEMANTIC_LAYER_CONTAINMENT_CACHE` is off by default; opted-in providers can
+  reuse cached semantic-view results for narrower queries. Containment keys include
+  the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
+  `SEMANTIC_LAYERS`; configure shared persistent `DATA_CACHE_CONFIG` and Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every web/worker process.
 
 - Address validation refuses additional non-global address forms. Addresses in
   the well-known NAT64 prefix `64:ff9b::/96` are checked using their embedded IPv4
@@ -194,6 +187,21 @@ reattached to a reachable container by layout repair.
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
 
+### Graph null category colors
+
+Graph charts label SQL `NULL` categories as `<NULL>` and share their colors with
+other charts using that label. Move any `label_colors["N/A"]` setting intended for
+SQL NULL to `label_colors["<NULL>"]`; `N/A` continues to identify the literal value.
+
+The literal string `<NULL>` is quoted as `"<NULL>"` to keep it separate from SQL
+NULL. Quoted forms of that literal are also escaped to avoid collisions; other
+quoted labels keep their existing display and color keys. Use the displayed
+label as the custom color key, for example:
+
+```json
+{"<NULL>": "#e53935", "\"<NULL>\"": "#123456"}
+```
+
 ### Alerts & Reports: runtime configuration and per-schedule "Run As" executor (SIP-209)
 
 - The migration creates an empty versioned document in the existing `key_value` table
@@ -249,6 +257,19 @@ reattached to a reachable container by layout repair.
   before starting this code, with scheduling paused and active work/queued retries drained
   as described below. Keep web and worker versions aligned. Before rollback, replace `NONE`
   formats with a supported format and account for losing explicit executor/policy settings.
+
+### Semantic provider error handling
+
+Semantic chart-query execution and value suggestions return HTTP 400 with
+host-owned guidance for typed provider rejections, and generic HTTP 500 responses
+for provider faults. In chart execution this includes provider-raised
+`SupersetTimeoutException` (formerly 408), `SupersetGenericDBErrorException` and
+`SupersetTemplateParamsErrorException` (formerly 400). Host input validation and
+worker control exceptions retain their existing handling. Failed server-side
+value searches no longer retry without their narrowing filter; manual filter-value
+entry remains available. Providers should raise `SemanticQueryRejectedError` only
+for positively identified input-validation failures. See the
+[provider error contract](docs/developer_docs/semantic-query-errors.md).
 
 ### Semantic-view Table charts without a temporal axis
 
