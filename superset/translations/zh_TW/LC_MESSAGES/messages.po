@@ -1965,6 +1965,9 @@ msgstr "维度"
 msgid "All filters"
 msgstr "所有過濾器"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "應用於所有面板"
 
@@ -2080,6 +2083,12 @@ msgstr ""
 #, fuzzy
 msgid "Always filter main datetime column"
 msgstr "主日期列"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 #, fuzzy
 msgid "An Error Occurred"
@@ -3016,6 +3025,8 @@ msgstr "返回"
 msgid "Back to all"
 msgstr "返回到列表"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "後端"
 
@@ -3272,6 +3283,9 @@ msgstr "氣泡尺寸"
 #, fuzzy
 msgid "Bubble size number format"
 msgstr "氣泡尺寸數字格式"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "桶分割點"
@@ -4672,6 +4686,9 @@ msgstr "要讀取的列"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "列標題提示"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "整合指標"
@@ -7895,6 +7912,9 @@ msgstr "標題行"
 msgid "Expand settings"
 msgstr "展開設定"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -7915,6 +7935,12 @@ msgstr "實驗"
 #, fuzzy
 msgid "Expired"
 msgstr "探索"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "探索"
@@ -8935,6 +8961,13 @@ msgstr "GeoJSON 列"
 msgid "GeoJson Settings"
 msgstr "GeoJSON 設定"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -9053,6 +9086,9 @@ msgstr "群組名稱"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "將剩餘項目分組為「其他」"
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"
@@ -9189,6 +9225,8 @@ msgstr "水平對齊"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "主機"
 
@@ -9233,11 +9271,17 @@ msgstr "如何顯示時間偏移：作為單獨的行顯示；作為主時間序
 msgid "Huge"
 msgstr "巨大"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 代碼"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 #, fuzzy
 msgid "Icon URL"
@@ -10161,6 +10205,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -10194,6 +10243,9 @@ msgstr "左值"
 
 msgid "Legacy"
 msgstr "傳统"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "圖例"
@@ -10719,6 +10771,11 @@ msgstr "標記大小"
 
 msgid "Markers"
 msgstr "標記"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Markup 類型"
@@ -11289,6 +11346,12 @@ msgid ""
 "details"
 msgstr "接受多種格式，查看 geopy.points 庫以獲取更多細節"
 
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
+
 #, fuzzy
 msgid "Multiplier"
 msgstr "倍數"
@@ -11850,6 +11913,10 @@ msgstr ""
 #, fuzzy
 msgid "Not in"
 msgstr "Not In"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "非空"
@@ -13462,6 +13529,12 @@ msgstr "刷新圖表"
 #, fuzzy
 msgid "Refreshing columns"
 msgstr "刷新列"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 #, fuzzy
 msgid "Register"
@@ -15225,6 +15298,7 @@ msgstr "選擇所有者"
 msgid "Select values"
 msgstr "選擇所有者"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -15972,6 +16046,7 @@ msgstr "線性"
 msgid "Slider and range input"
 msgstr "滑桿和範圍輸入"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -17240,6 +17315,11 @@ msgstr "要作為邊的目標的欄位。"
 
 msgid "The column was deleted or renamed in the database."
 msgstr "該列已在資料庫中删除或重命名。"
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -19983,6 +20063,17 @@ msgstr "從結果面板取消固定"
 msgid "Unpin from top"
 msgstr "從頂部取消固定"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -20002,6 +20093,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "不支持的條款類型: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]

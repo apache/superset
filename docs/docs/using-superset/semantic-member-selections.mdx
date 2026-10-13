@@ -60,7 +60,24 @@ Custom SQL `WHERE` and `HAVING` clauses are not supported on semantic views.
 Remove those clauses or use semantic dimension filters instead. Chart-data API
 requests with these clauses return HTTP 400 before querying the provider.
 
-For versioned semantic views, Matrixify **All** mode with **A to Z** or **Z to A**
-sorting cannot populate or refresh dimension values from suggestions. Existing
-saved values are preserved. For a new selection, switch to **Members** and enter
-values manually; the control displays this guidance when suggestions are unavailable.
+Filter-value suggestions and Matrixify **Members** and alphabetically sorted
+**All** modes use the identity version stored with the chart's selections. After
+**Start field selection** and explicit reselection, these controls can load
+suggested values. Old selections cannot borrow the version from freshly fetched
+datasource metadata, even when an old title exactly matches a current member ID.
+
+If provenance is missing or stale, suggestions remain unavailable and saved values
+are preserved. Enter values manually in the filter or Matrixify **Members** mode,
+or reset and reselect the fields to restore suggestions.
+
+The column-values API accepts `semantic_selection_version` as a query parameter.
+Missing or stale versions on versioned views return an empty `result` and
+`suggestions_status: "unavailable_versioned_view"` before reading cached values
+or requesting provider values. A matching version enables the existing retrieval
+and search behavior. Tables and unversioned views keep their existing behavior.
+
+The version is recorded once per chart, not per filter. A filter column added by
+editing saved form data directly inherits the chart's version, so suggestions are
+a usability aid for compatible selections, not a guarantee about each filter's
+provenance. The marker is not an authorization check; access to the datasource is
+verified separately.

@@ -178,6 +178,7 @@ async def test_get_compatible_metrics_builtin_unknown_selection(
     assert "Unknown dimension: 'bogus_dim'" in data["error"]
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 @pytest.mark.parametrize("version", [None, "cube-member-id-v1"])
 async def test_get_compatible_metrics_external_happy_path(
@@ -206,6 +207,7 @@ async def test_get_compatible_metrics_external_happy_path(
     mock_view.get_compatible_metrics.assert_called_once_with([], ["country_name"])
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_compatible_metrics_mutual_exclusion_validation(
     mcp_server: FastMCP,
@@ -253,6 +255,7 @@ async def test_get_compatible_metrics_privacy_check(mcp_server: FastMCP) -> None
     assert data["error_type"] == "DataModelMetadataRestricted"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_compatible_metrics_external_access_denied(
     mcp_server: FastMCP,
@@ -320,6 +323,7 @@ async def test_get_compatible_metrics_builtin_empty_selection(
     assert names == {"count", "revenue"}
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_get_compatible_metrics_external_empty_selection(
     mcp_server: FastMCP,

@@ -138,6 +138,10 @@ class ResultSetColumnType(TypedDict):
     # identifier.
     expression: NotRequired[Any]
 
+    # Set on columns an engine spec expanded from a nested type (e.g. a STRUCT
+    # member); such a column never replaces a calculated column of its name.
+    nested_field: NotRequired[bool]
+
 
 CacheConfig: TypeAlias = dict[str, Any]
 DbapiDescriptionRow: TypeAlias = tuple[
@@ -216,9 +220,11 @@ class QueryObjectDict(TypedDict, total=False):
 
     # Core fields from QueryObject.to_dict()
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     extras: dict[str, Any]
     filter: list["QueryObjectFilterClause"]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
     inner_from_dttm: datetime | None
