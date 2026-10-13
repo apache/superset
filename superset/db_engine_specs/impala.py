@@ -249,7 +249,29 @@ class ImpalaEngineSpec(BaseEngineSpec):
         Publish STOPPED with the flag in the same transaction: the worker can
         close the cursor as soon as it observes the flag, and synchronous fetch
         must recognise the resulting driver error as a stop.
+
+        A query that already finished keeps its terminal status. The conditional
+        write holds the row lock until commit, so it serialises with the worker's
+        guarded terminal commit instead of overwriting its result.
         """
+        with db.session.no_autoflush:
+            claimed = (
+                db.session.query(Query)
+                .filter(
+                    Query.id == query.id,
+                    Query.status.notin_(
+                        [
+                            QueryStatus.SUCCESS,
+                            QueryStatus.FAILED,
+                            QueryStatus.TIMED_OUT,
+                        ]
+                    ),
+                )
+                .update({Query.status: QueryStatus.STOPPED}, synchronize_session=False)
+            )
+        if not claimed:
+            db.session.refresh(query)
+            return
         query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
         query.status = QueryStatus.STOPPED
         db.session.commit()  # pylint: disable=consider-using-transaction

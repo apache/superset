@@ -16,6 +16,7 @@
 # under the License.
 
 from contextlib import nullcontext
+from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -276,6 +277,58 @@ def test_prepare_cancel_query_flags_stop(extra: dict[str, str]) -> None:
     query.set_extra_json_key.assert_called_once_with(QUERY_EARLY_CANCEL_KEY, True)
     db.session.commit.assert_called_once_with()
     assert committed_statuses == [QueryStatus.STOPPED]
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        QueryStatus.RUNNING,
+        QueryStatus.SUCCESS,
+        QueryStatus.FAILED,
+        QueryStatus.TIMED_OUT,
+    ],
+)
+def test_prepare_cancel_query_keeps_finished_status(
+    mocker: MockerFixture, tmp_path: Path, status: QueryStatus
+) -> None:
+    """A late stop must not relabel a finished query, which would hide its result."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'stop.db'}")
+    Query.__table__.create(engine)
+    with Session(engine) as session:
+        session.add(
+            Query(
+                id=1,
+                client_id="late-stop",
+                database_id=1,
+                sql="SELECT 1",
+                status=status,
+                extra_json="{}",
+            )
+        )
+        session.commit()
+
+    with Session(engine) as session:
+        mocker.patch("superset.db_engine_specs.impala.db", Mock(session=session))
+        query = session.get(Query, 1)
+        assert query is not None
+        # The stop caller read the query before the worker's terminal commit.
+        query.status = QueryStatus.RUNNING
+        ImpalaEngineSpec.prepare_cancel_query(query)
+        assert query.status == (
+            QueryStatus.STOPPED if status == QueryStatus.RUNNING else status
+        )
+
+    with Session(engine) as session:
+        stored = session.get(Query, 1)
+        assert stored is not None
+        stopped = status == QueryStatus.RUNNING
+        assert stored.status == (QueryStatus.STOPPED if stopped else status)
+        assert stored.extra.get(QUERY_EARLY_CANCEL_KEY) is (True if stopped else None)
 
 
 def test_pending_operation_polls_with_backoff() -> None:
