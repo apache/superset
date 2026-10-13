@@ -249,16 +249,21 @@ def _resolve_callable_scope(
     surface for that caller.
     """
     user = getattr(g, "user", None)
+    # Log the numeric id rather than the username so a failing tenant can be
+    # traced without writing identity claims to the log.
+    user_id = getattr(user, "id", None)
     try:
         result = resolver(user)
         if result is None:
             return frozenset()
         if isinstance(result, (str, bytes)) or not isinstance(result, Iterable):
             logger.warning(
-                "%s callable returned %s, expected an iterable of dataset UUIDs "
-                "or None; failing closed (denying all datasets) for this request",
+                "%s callable returned %s for user_id=%s, expected an iterable of "
+                "dataset UUIDs or None; failing closed (denying all datasets) for "
+                "this request",
                 CONFIG_KEY,
                 type(result).__name__,
+                user_id,
             )
             return frozenset()
         # A lazy result can raise during iteration or UUID conversion, not just
@@ -266,17 +271,19 @@ def _resolve_callable_scope(
         coerced = _coerce_callable_scope_entries(result)
     except Exception:  # noqa: BLE001 — operator-supplied callable may raise anything
         logger.warning(
-            "%s callable raised while resolving dataset scope; failing "
-            "closed (denying all datasets) for this request",
+            "%s callable raised while resolving dataset scope for user_id=%s; "
+            "failing closed (denying all datasets) for this request",
             CONFIG_KEY,
+            user_id,
             exc_info=True,
         )
         return frozenset()
     if coerced is None:
         logger.warning(
-            "%s callable returned a value that is not a valid dataset UUID; "
-            "failing closed (denying all datasets) for this request",
+            "%s callable returned a value that is not a valid dataset UUID for "
+            "user_id=%s; failing closed (denying all datasets) for this request",
             CONFIG_KEY,
+            user_id,
         )
         return frozenset()
     return coerced

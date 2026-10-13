@@ -80,7 +80,8 @@ MCP_BUG_REPORT_CONTACT: str | None = None
 #     this when role names and dataset UUIDs are not static -- e.g. one MCP
 #     deployment serving many per-workspace tenants, each with its own roles
 #     and datasets. Called on every tool call that needs routing enforcement,
-#     so it must be cheap and in-process (no slow network I/O per call).
+#     possibly more than once per call, so it must be cheap, side-effect free
+#     and in-process (no slow network I/O per call).
 #     Fails CLOSED (denies every dataset for that request) if the callable
 #     raises (including during iteration), returns None or an empty iterable,
 #     or returns a value that cannot be parsed as dataset UUIDs -- it never

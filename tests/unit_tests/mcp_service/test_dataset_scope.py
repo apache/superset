@@ -222,6 +222,27 @@ def test_callable_config_fails_closed_on_iteration_error(
         assert get_dataset_scope() == frozenset()
 
 
+@pytest.mark.parametrize(
+    "resolver",
+    [
+        Mock(side_effect=RuntimeError("workspace lookup failed")),
+        lambda user: 42,
+        lambda user: ["not-a-uuid"],
+    ],
+)
+def test_callable_config_failure_logs_user_id(
+    app: Flask, resolver: object, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Fail-closed warnings name the user id so one tenant's failure is traceable."""
+    with app.app_context(), patch.dict(app.config, MCP_DATASET_ROLE_ALLOWLIST=resolver):
+        g.user = SimpleNamespace(id=4242, username="tenant-user")
+        with caplog.at_level("WARNING", logger="superset.mcp_service.dataset_scope"):
+            assert get_dataset_scope() == frozenset()
+    assert "user_id=4242" in caplog.text
+    assert "failing closed" in caplog.text
+    assert "tenant-user" not in caplog.text
+
+
 def test_callable_config_is_not_validated_at_startup() -> None:
     """A callable's result depends on per-request state and can't be checked here."""
     from superset.mcp_service.dataset_scope import parse_dataset_role_allowlist

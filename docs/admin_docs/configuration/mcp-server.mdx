@@ -2208,8 +2208,9 @@ MCP_DATASET_ROLE_ALLOWLIST = resolve_dataset_scope
 
 The callable receives the current request's user and returns an iterable of
 dataset UUID strings or `UUID` objects (or `None`). It is called on every tool
-call that needs routing enforcement, so it must be cheap and in-process — no
-network I/O per call. It fails **closed**: if the callable raises (including while consuming a lazy
+call that needs routing enforcement — sometimes more than once per call, for
+example when `list_datasets` both checks and filters by the scope — so it must
+be cheap, side-effect free and in-process, with no network I/O per call. It fails **closed**: if the callable raises (including while consuming a lazy
 iterable), returns `None` or an empty iterable, or returns a value
 that cannot be parsed as dataset UUIDs, that request is denied every dataset
 rather than falling back to the unscoped, full-tool-surface behavior that a
