@@ -16,6 +16,7 @@
 # under the License.
 
 from collections.abc import Callable, Iterator
+from dataclasses import replace
 from datetime import date, datetime, time, timezone
 from itertools import permutations
 from typing import Any
@@ -54,6 +55,7 @@ from superset.common.query_object_factory import QueryObjectFactory
 from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.semantic_layers import mapper
+from superset.semantic_layers.cache import SemanticCacheOutcome
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -1140,6 +1142,31 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
             group_limit=None,
         )
     ]
+
+
+@pytest.mark.parametrize("selected_grain", [None, "P1M"])
+def test_map_query_object_preserves_order_while_deduplicating_columns(
+    mock_datasource: MagicMock,
+    selected_grain: str | None,
+) -> None:
+    """Requested order survives deterministic raw/explicit grain selection."""
+    category: Dimension = Dimension("category", "category", pa.string())
+    raw: Dimension = Dimension("date.raw", "event_time", pa.timestamp("us"))
+    month: Dimension = replace(raw, id="date.month", grain=Grains.MONTH)
+    mock_datasource.implementation = AbcOnlyView(
+        OrderedDimensions((month, raw, category)), set()
+    )
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=[],
+        columns=["category", "event_time", "category"],
+        granularity="event_time",
+        extras={"time_grain_sqla": selected_grain},
+    )
+
+    result: list[SemanticQuery] = map_query_object(query_object)
+
+    assert result[0].dimensions == [category, month if selected_grain else raw]
 
 
 def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
@@ -4911,6 +4938,78 @@ def test_no_raw_variant_bounds_use_finest_grain(
             ),
             Filter(PredicateType.WHERE, day, Operator.LESS_THAN, datetime(2026, 1, 1)),
         }
+
+
+def _offset_query_object(mock_datasource: MagicMock) -> ValidatedQueryObject:
+    return ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=["1 week ago"],
+        cache_timeout=60,
+    )
+
+
+def _outcome(cache_hit: bool) -> SemanticCacheOutcome:
+    frame: pd.DataFrame = pd.DataFrame({"category": ["Books"], "total_sales": [1.0]})
+    return SemanticCacheOutcome(
+        SemanticResult(
+            requests=[SemanticRequest(type="SQL", definition="Q")],
+            results=pa.Table.from_pandas(frame),
+        ),
+        cache_hit=cache_hit,
+    )
+
+
+@pytest.mark.parametrize(
+    ("main_hit", "offset_hit", "expected_status"),
+    [
+        (True, True, "HIT"),
+        (False, False, "MISS"),
+        (True, False, "MIXED"),
+        (False, True, "MIXED"),
+    ],
+)
+def test_get_results_reports_provenance_across_offset_queries(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+    main_hit: bool,
+    offset_hit: bool,
+    expected_status: str,
+) -> None:
+    """A time-comparison chart dispatches one semantic query per offset; the
+    reported provenance must cover all of them, not only the main query."""
+    mock_datasource.implementation.get_table = mocker.Mock()
+    dispatch: MagicMock = mocker.patch(
+        "superset.semantic_layers.mapper._dispatch_semantic_query",
+        side_effect=[_outcome(main_hit), _outcome(offset_hit)],
+    )
+
+    result: QueryResult = get_results(_offset_query_object(mock_datasource))
+
+    assert result.semantic_cache_status == expected_status
+    assert dispatch.call_count == 2
+
+
+def test_get_results_passes_resolved_cache_timeout_to_every_dispatch(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    mock_datasource.implementation.get_table = mocker.Mock()
+    dispatch: MagicMock = mocker.patch(
+        "superset.semantic_layers.mapper._dispatch_semantic_query",
+        side_effect=[_outcome(False), _outcome(False)],
+    )
+
+    get_results(_offset_query_object(mock_datasource))
+
+    assert [call.kwargs["cache_timeout"] for call in dispatch.call_args_list] == [
+        60,
+        60,
+    ]
 
 
 @pytest.mark.parametrize("entrypoint", ["results", "validate", "map"])
