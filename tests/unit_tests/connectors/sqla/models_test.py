@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Mapping, Sequence
 from datetime import datetime
+from types import SimpleNamespace
 from unittest.mock import MagicMock, PropertyMock
 
 import pandas as pd
@@ -55,7 +57,11 @@ from superset.models.helpers import (
 from superset.sql.parse import Table
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
-from superset.superset_typing import AdhocMetric, QueryObjectDict
+from superset.superset_typing import (
+    AdhocMetric,
+    QueryObjectDict,
+    ResultSetColumnType,
+)
 from superset.utils import json
 
 
@@ -944,7 +950,7 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
 
 def _table_for_fetch_metadata(
     mocker: MockerFixture,
-    source_columns: list[dict[str, str]],
+    source_columns: Sequence[Mapping[str, object]],
     existing: list[dict[str, str]] | None = None,
 ) -> SqlaTable:
     """Build a SqlaTable whose ``fetch_metadata`` reads *source_columns*."""
@@ -1172,6 +1178,83 @@ def test_fetch_metadata_keeps_dotted_calculated_column(
     assert "revenue.usd" in result.removed
     assert any(col.column_name == "revenue.usd" for col in table.columns)
     assert table.changed_on == original_changed_on
+
+
+def _bigquery_struct_source_columns() -> list[ResultSetColumnType]:
+    """Columns of ``SELECT calendar`` as BigQuery expands them for a virtual dataset."""
+    from google.cloud.bigquery import SchemaField
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    schema = [
+        SchemaField(
+            "calendar",
+            "RECORD",
+            fields=[SchemaField("day", "STRING"), SchemaField("year", "INTEGER")],
+        )
+    ]
+    cursor = SimpleNamespace(_query_rows=SimpleNamespace(schema=schema))
+    return BigQueryEngineSpec.expand_nested_columns(
+        cursor,
+        [
+            ResultSetColumnType(
+                name="calendar", column_name="calendar", type="RECORD", is_dttm=False
+            )
+        ],
+    )
+
+
+def test_fetch_metadata_keeps_calculated_column_named_like_struct_field(
+    mocker: MockerFixture,
+) -> None:
+    """An expanded STRUCT member never replaces a calculated column of its name.
+
+    Such calculated columns were the way to reach STRUCT fields on virtual
+    datasets before the fields were listed, so a refresh must keep them.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=_bigquery_struct_source_columns(),
+        existing=[
+            {"column_name": "calendar", "type": "RECORD"},
+            {
+                "column_name": "calendar.day",
+                "type": "STRING",
+                "expression": "UPPER(calendar.day)",
+            },
+        ],
+    )
+    result = table.fetch_metadata()
+
+    names = [col.column_name for col in table.columns]
+    assert sorted(names) == ["calendar", "calendar.day", "calendar.year"]
+    calculated = next(col for col in table.columns if col.column_name == "calendar.day")
+    assert calculated.expression == "UPPER(calendar.day)"
+    assert result.added == ["calendar.year"]
+    assert result.modified == []
+
+
+def test_fetch_metadata_source_column_replaces_calculated_column(
+    mocker: MockerFixture,
+) -> None:
+    """A source column that is not an expanded nested field still wins its name."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "calendar.day", "type": "STRING"}],
+        existing=[
+            {
+                "column_name": "calendar.day",
+                "type": "STRING",
+                "expression": "UPPER(calendar.day)",
+            },
+        ],
+    )
+
+    result = table.fetch_metadata()
+
+    assert [col.column_name for col in table.columns] == ["calendar.day"]
+    assert table.columns[0].expression == ""
+    assert result.modified == ["calendar.day"]
 
 
 @pytest.mark.parametrize(
