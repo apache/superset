@@ -204,9 +204,10 @@ MAX_TRANSFORM_LENGTH = 1024
 #: Matched with word boundaries so ``:values`` is not mistaken for it.
 VALUE_PLACEHOLDER_RE = re.compile(r":value\b")
 
-#: Balanced Jinja blocks. The probe would render these in a different context
-#: at a different time from the chart query, so they are rejected at save time.
-JINJA_BLOCK_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
+#: The opening and closing delimiters of each kind of Jinja block. The probe
+#: would render these in a different context at a different time from the chart
+#: query, so a transform holding one is rejected at save time.
+JINJA_BLOCK_DELIMITERS = (("{{", "}}"), ("{%", "%}"), ("{#", "#}"))
 
 #: MySQL and MariaDB "executable comments": ``/*!50000 ... */`` and
 #: ``/*M!50000 ... */`` are comments to every other reader and *statement text*
@@ -652,8 +653,25 @@ def references_sequence_pseudo_column(statement: SQLStatement) -> bool:
 
 
 def contains_jinja(transform: str | None) -> bool:
-    """Whether the transform contains a balanced Jinja block."""
-    return bool(transform) and JINJA_BLOCK_RE.search(transform or "") is not None
+    """
+    Whether the transform contains a balanced Jinja block.
+
+    A block is an opening delimiter followed, anywhere later, by its closing
+    one -- the same thing ``{{.*?}}`` and its two siblings match under
+    ``re.DOTALL``. Scanned with `str.find` rather than that pattern, because a
+    lazy match retried from every opening delimiter is quadratic in a run of
+    them, and this runs on stored transforms with no length bound of its own:
+    `is_transform_active` reads whatever the column holds. The earliest opening
+    delimiter is the only one worth trying, since any closing delimiter after a
+    later one is also after it.
+    """
+    if not transform:
+        return False
+    for opening, closing in JINJA_BLOCK_DELIMITERS:
+        start = transform.find(opening)
+        if start != -1 and transform.find(closing, start + len(opening)) != -1:
+            return True
+    return False
 
 
 def parse_skeleton(transform: str, standin: str = _PARSE_STANDIN) -> str:

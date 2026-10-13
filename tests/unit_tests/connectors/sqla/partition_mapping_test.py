@@ -695,6 +695,39 @@ def test_contains_jinja(transform: str, expected: bool) -> None:
     assert contains_jinja(transform) is expected
 
 
+def test_contains_jinja_answers_as_the_block_pattern_does() -> None:
+    """
+    The scan has to agree with the lazy, ``DOTALL`` pattern it stands in for
+    on every input, including overlapping and unclosed delimiters, so that no
+    stored transform changes verdict. Every string of up to seven characters
+    over the delimiter characters, a newline and a filler is checked.
+    """
+    import itertools
+    import re
+
+    pattern = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
+    for length in range(8):
+        for chars in itertools.product("{}%#\na", repeat=length):
+            text = "".join(chars)
+            assert contains_jinja(text) is (pattern.search(text) is not None), text
+
+
+@pytest.mark.parametrize("opening", ["{{", "{%", "{#"])
+def test_contains_jinja_is_linear_in_a_run_of_opening_delimiters(
+    opening: str,
+) -> None:
+    """
+    A run of opening delimiters with no closing one made the lazy pattern retry
+    from every position, which is quadratic. Stored transforms are not
+    length-bounded here, so a long run has to stay cheap.
+    """
+    import time
+
+    started = time.monotonic()
+    assert contains_jinja(opening * 200_000) is False
+    assert time.monotonic() - started < 1
+
+
 @pytest.mark.parametrize(
     ("transform", "expected"),
     [
