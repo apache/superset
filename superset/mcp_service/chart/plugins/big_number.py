@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from copy import deepcopy
 from typing import Any, ClassVar
 
 from superset.mcp_service.chart.chart_utils import (
@@ -217,9 +218,7 @@ class BigNumberChartPlugin(BaseChartPlugin):
         return self._with_context(what, context)
 
     def resolve_viz_type(self, config: Any) -> str:
-        show_trendline = getattr(config, "show_trendline", False)
-        temporal_column = getattr(config, "temporal_column", None)
-        if show_trendline and temporal_column:
+        if getattr(config, "trendline_time_column", None):
             return self.TRENDLINE_VIZ_TYPE
         return "big_number_total"
 
@@ -252,16 +251,12 @@ class BigNumberChartPlugin(BaseChartPlugin):
         saved_column = saved_columns[0] if saved_columns else None
         if saved_column is None:
             return config
-        # An adhoc SQL x_axis has no column name the typed config can carry,
-        # so mapping this update would drop the trendline the caller never
-        # mentioned. Make the caller choose instead.
+        # An adhoc SQL x_axis has no column name 'temporal_column' can carry,
+        # so the saved expression rides along as inherited context.
         if not isinstance(saved_column, str):
-            raise ValueError(
-                "The saved trendline uses a SQL expression as its time column, "
-                "which a Big Number config cannot carry. Set 'temporal_column' "
-                "to a dataset column to keep a trendline, or set "
-                "'show_trendline' to false to remove it."
-            )
+            resolved = config.model_copy()
+            resolved._inherited_time_column = deepcopy(saved_column)
+            return resolved
         resolved = config.model_copy(
             update={"show_trendline": True, "temporal_column": saved_column}
         )
@@ -305,6 +300,7 @@ class BigNumberChartPlugin(BaseChartPlugin):
         normalized = BigNumberChartConfig.model_validate(config_dict)
         if inherited_temporal_column:
             normalized.__pydantic_fields_set__.discard("temporal_column")
+        normalized._inherited_time_column = deepcopy(config._inherited_time_column)
         return normalized
 
     def schema_error_hint(self) -> ChartGenerationError | None:

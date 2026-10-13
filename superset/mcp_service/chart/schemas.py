@@ -3431,6 +3431,17 @@ class HandlebarsChartConfig(BaseChartConfig):
 class BigNumberChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore")
 
+    # A saved SQL expression time column is inherited update context, never
+    # typed authoring input: 'temporal_column' only names dataset columns.
+    _inherited_time_column: dict[str, Any] | None = PrivateAttr(default=None)
+
+    @property
+    def trendline_time_column(self) -> str | dict[str, Any] | None:
+        """Return the authored trendline column or the inherited native one."""
+        if self.show_trendline and self.temporal_column:
+            return self.temporal_column
+        return self._inherited_time_column
+
     chart_type: Literal["big_number"] = Field(
         ...,
         description=(

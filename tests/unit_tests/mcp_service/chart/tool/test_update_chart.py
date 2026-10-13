@@ -1554,6 +1554,7 @@ class TestUpdateChartSaveWithConfig:
     @patch.object(
         update_chart_module, "_validate_update_against_dataset", return_value=None
     )
+    @patch.object(update_chart_module, "_create_preview_url", new_callable=Mock)
     @patch(
         "superset.commands.chart.update.UpdateChartCommand",
         new_callable=Mock,
@@ -1566,18 +1567,24 @@ class TestUpdateChartSaveWithConfig:
     @patch("superset.db.session")
     @pytest.mark.asyncio
     @pytest.mark.parametrize("generate_preview", [False, True])
-    async def test_sql_trendline_is_not_dropped_by_an_update_that_omits_it(
+    async def test_sql_trendline_is_kept_by_an_update_that_omits_it(
         self,
         mock_db_session,
         mock_find_by_id,
         mock_check_access,
         mock_update_cmd_cls,
+        mock_create_preview,
         unused_validate_mock,
         unused_find_dataset_mock,
         mcp_server,
         generate_preview: bool,
     ):
-        """A saved SQL expression trendline is refused, not silently removed."""
+        """An update that only changes the metric keeps a SQL trendline column."""
+        sql_time_column = {
+            "expressionType": "SQL",
+            "sqlExpression": "DATE(ds)",
+            "label": "day",
+        }
         mock_chart = Mock()
         mock_chart.id = 77
         mock_chart.datasource_id = 10
@@ -1589,11 +1596,8 @@ class TestUpdateChartSaveWithConfig:
             {
                 "viz_type": "big_number",
                 "metric": "count",
-                "x_axis": {
-                    "expressionType": "SQL",
-                    "sqlExpression": "DATE(ds)",
-                    "label": "day",
-                },
+                "x_axis": sql_time_column,
+                "compare_lag": 7,
             }
         )
         mock_find_by_id.return_value = mock_chart
@@ -1605,6 +1609,11 @@ class TestUpdateChartSaveWithConfig:
         )
         mock_update_cmd_cls.return_value.run.return_value = Mock(
             id=77, slice_name="Daily signups", viz_type="big_number", uuid="uuid-77"
+        )
+        mock_create_preview.return_value = (
+            "http://localhost:8088/explore/?form_data_key=preview_key&slice_id=77",
+            "preview_key",
+            [],
         )
 
         async with Client(mcp) as client:
@@ -1623,11 +1632,18 @@ class TestUpdateChartSaveWithConfig:
             )
 
         data = result.structured_content
-        assert data["success"] is False, data
-        assert data["error"]["error_type"] == "ValidationError"
-        assert data["error"]["message"] == "Invalid Big Number update configuration"
-        assert "SQL expression" in data["error"]["details"]
-        mock_update_cmd_cls.assert_not_called()
+        assert data["success"] is True, data
+        form_data = data["form_data"]
+        assert form_data["viz_type"] == "big_number"
+        assert form_data["x_axis"] == sql_time_column
+        assert form_data["metric"]["label"] == "SUM(revenue)"
+        assert form_data["compare_lag"] == 7
+        if generate_preview:
+            mock_update_cmd_cls.assert_not_called()
+            return
+        payload = mock_update_cmd_cls.call_args[0][1]
+        assert payload["viz_type"] == "big_number"
+        assert json.loads(payload["params"])["x_axis"] == sql_time_column
 
 
 class TestUpdateChartErrorPaths:
@@ -3331,22 +3347,27 @@ _BIG_NUMBER_SQL_TRENDLINE: dict[str, Any] = {
         "label": "day",
     },
     "compare_lag": 7,
+    "adhoc_filters": [_BIG_NUMBER_TIME_RANGE_FILTER],
 }
 
 
-def test_big_number_update_rejects_dropping_a_sql_trendline_column() -> None:
+@_SAVE_AND_PREVIEW
+def test_big_number_update_keeps_a_sql_trendline_column(preview: bool) -> None:
     """A SQL expression x_axis has no column name the typed config can carry.
 
-    Mapping the update would turn the chart into a plain big number, so the
-    update is refused until the caller says what to do with the trendline.
+    The update inherits the saved expression as it is, so the chart keeps its
+    trendline and the settings that depend on it.
     """
-    with pytest.raises(ValueError, match="SQL expression") as excinfo:
-        _saved_variant_update_params(
-            _BIG_NUMBER_SQL_TRENDLINE, _BIG_NUMBER_VARIANT_CONFIG
-        )
+    params = _saved_variant_update_params(
+        _BIG_NUMBER_SQL_TRENDLINE, _BIG_NUMBER_VARIANT_CONFIG, preview=preview
+    )
 
-    assert "temporal_column" in str(excinfo.value)
-    assert "show_trendline" in str(excinfo.value)
+    assert params["viz_type"] == "big_number"
+    assert params["metric"]["label"] == "SUM(revenue)"
+    assert params["x_axis"] == _BIG_NUMBER_SQL_TRENDLINE["x_axis"]
+    assert "granularity_sqla" not in params
+    assert params["compare_lag"] == 7
+    assert params["adhoc_filters"] == [_BIG_NUMBER_TIME_RANGE_FILTER]
 
 
 def test_big_number_update_replaces_a_sql_trendline_column() -> None:
@@ -3359,6 +3380,7 @@ def test_big_number_update_replaces_a_sql_trendline_column() -> None:
 
     assert params["viz_type"] == "big_number"
     assert resolve_big_number_columns(params) == ["order_date"]
+    assert "x_axis" not in params
     assert params["compare_lag"] == 7
 
 

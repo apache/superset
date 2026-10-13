@@ -1797,7 +1797,7 @@ def test_gantt_validation_error_includes_response_versions(mock_auth: Mock) -> N
 @patch.object(update_chart_preview_module, "generate_explore_link")
 @patch.object(update_chart_preview_module, "_get_previous_form_data")
 @patch.object(update_chart_preview_module, "_find_dataset")
-def test_cached_sql_trendline_is_not_dropped_by_an_update_that_omits_it(
+def test_cached_sql_trendline_is_kept_by_an_update_that_omits_it(
     mock_find_dataset: Mock,
     mock_get_previous_form_data: Mock,
     mock_generate_explore_link: Mock,
@@ -1807,7 +1807,12 @@ def test_cached_sql_trendline_is_not_dropped_by_an_update_that_omits_it(
     mock_validate_and_compile: Mock,
     mock_auth: Mock,
 ) -> None:
-    """A cached SQL expression trendline is refused, not silently removed."""
+    """An update that only changes the metric keeps a cached SQL trendline."""
+    sql_time_column = {
+        "expressionType": "SQL",
+        "sqlExpression": "DATE(ds)",
+        "label": "day",
+    }
     mock_find_dataset.return_value = _mock_dataset(id=99)
     mock_generate_explore_link.return_value = (
         "http://localhost:8088/explore/?form_data_key=new_key"
@@ -1819,11 +1824,8 @@ def test_cached_sql_trendline_is_not_dropped_by_an_update_that_omits_it(
         "viz_type": "big_number",
         "datasource": "99__table",
         "metric": "count",
-        "x_axis": {
-            "expressionType": "SQL",
-            "sqlExpression": "DATE(ds)",
-            "label": "day",
-        },
+        "x_axis": sql_time_column,
+        "compare_lag": 7,
     }
     request = UpdateChartPreviewRequest(
         form_data_key="old_key",
@@ -1839,8 +1841,9 @@ def test_cached_sql_trendline_is_not_dropped_by_an_update_that_omits_it(
         update_chart_preview_module.update_chart_preview(request=request, ctx=Mock())
     )
 
-    assert result["success"] is False, result
-    assert result["error"]["error_type"] == "ValidationError"
-    assert result["error"]["message"] == "Invalid Big Number update configuration"
-    assert "SQL expression" in result["error"]["details"]
-    mock_generate_explore_link.assert_not_called()
+    assert result["success"] is True, result
+    generated = mock_generate_explore_link.call_args.args[1]
+    assert generated["viz_type"] == "big_number"
+    assert generated["x_axis"] == sql_time_column
+    assert generated["metric"]["label"] == "COUNT(ds)"
+    assert generated["compare_lag"] == 7
