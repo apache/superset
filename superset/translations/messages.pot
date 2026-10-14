@@ -15410,6 +15410,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr ""
 
