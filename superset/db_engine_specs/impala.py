@@ -191,6 +191,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
         try:
             status = cursor.status()
             while status in unfinished_states:
+                # End the read transaction first. Under REPEATABLE READ, refreshing
+                # inside one long transaction keeps returning the first snapshot,
+                # so a Stop committed by another request would never be seen.
+                db.session.commit()  # pylint: disable=consider-using-transaction
                 db.session.refresh(query)
                 # Stop was requested: either before a cancel handle was published
                 # (early-cancel flag) or through SQL Lab's stop, which persists

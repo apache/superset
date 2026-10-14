@@ -95,7 +95,8 @@ def test_stop_during_poll_does_not_fail_sync_fetch(
     with pytest.raises(SqlLabQueryStoppedException):
         execute_query(query, cursor)
 
-    assert committed_stops == [QueryStatus.STOPPED]
+    # The Stop commit, then the poll's transaction boundary, both carry STOPPED.
+    assert committed_stops == [QueryStatus.STOPPED, QueryStatus.STOPPED]
     operation.cancel.assert_called_once_with()
     operation.close.assert_called_once_with()
     assert cursor.description is None
@@ -213,7 +214,8 @@ def test_non_progress_logs_keep_polling(log: str) -> None:
         ImpalaEngineSpec.handle_cursor(cursor, query)
     assert cursor.status.call_count == 2
     assert query.progress == 0
-    db.session.commit.assert_not_called()
+    # Only the poll's transaction boundary commits; no progress is written.
+    db.session.commit.assert_called_once_with()
 
 
 def test_failed_cancel_still_releases_the_operation() -> None:
@@ -486,6 +488,42 @@ def test_pending_refresh_observes_stop() -> None:
 
     assert db.session.refresh.call_count == 2
     db.session.query.assert_not_called()
+    cursor.cancel_operation.assert_called_once_with()
+    cursor.close_operation.assert_called_once_with()
+    cursor.close.assert_called_once_with()
+
+
+def test_poll_sees_stop_committed_after_its_snapshot() -> None:
+    """
+    Each poll starts a new transaction, so a Stop committed after the first
+    poll is seen under REPEATABLE READ instead of the first poll's snapshot.
+    """
+    app: Flask = Flask(__name__)
+    app.config["DB_POLL_INTERVAL_SECONDS"] = {"impala": 0}
+    query: Mock = Mock(id=1, extra={}, status="running", progress=0)
+    cursor: Mock = Mock()
+    cursor.status.side_effect = ["PENDING_STATE"] * 3 + ["FINISHED_STATE"]
+    snapshot: dict[str, str] = {}
+    committed: dict[str, str] = {"status": "running"}
+
+    def commit() -> None:
+        """Ending the transaction drops the snapshot."""
+        snapshot.clear()
+
+    def refresh(refreshed_query: Mock) -> None:
+        """Reads within one transaction return its first snapshot."""
+        if not snapshot:
+            snapshot.update(committed)
+        refreshed_query.status = snapshot["status"]
+        # Another request commits Stop after the worker's first poll.
+        committed["status"] = "stopped"
+
+    with app.app_context(), patch("superset.db_engine_specs.impala.db") as db:
+        db.session.commit.side_effect = commit
+        db.session.refresh.side_effect = refresh
+        ImpalaEngineSpec.handle_cursor(cursor, query)
+
+    assert db.session.refresh.call_count == 2
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
     cursor.close.assert_called_once_with()
