@@ -192,6 +192,7 @@ def test_direct_semantic_entry_rejects_non_dimension_filter(
     entry_point: Callable[[ValidatedQueryObject], object] = (
         validate_query_object if entry == "validation" else map_query_object
     )
+    raised: pytest.ExceptionInfo[QueryObjectValidationError]
     with pytest.raises(QueryObjectValidationError, match=error) as raised:
         entry_point(query)
     assert column in str(raised.value)
