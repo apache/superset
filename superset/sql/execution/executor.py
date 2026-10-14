@@ -922,7 +922,7 @@ class SQLExecutor:
         if script.statements:
             script.statements[-1].cap_limit_value(
                 effective_limit,
-                self.database.db_engine_spec.limit_method,
+                self.database.db_engine_spec.get_limit_method(self.database),
             )
 
     def _try_get_cached_result(
