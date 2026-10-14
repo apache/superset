@@ -233,6 +233,7 @@ def _store_results_in_backend(
     query: Query,
     payload: dict[str, Any],
     database: Any,
+    durable: bool = False,
 ) -> None:
     """Store query results in the results backend."""
     with db.session.no_autoflush:
@@ -279,7 +280,7 @@ def _store_results_in_backend(
             logger.debug("*** compressed payload size: %i", len(compressed))
 
             write_success = results_backend.set(key, compressed, cache_timeout)
-            if _make_check_stopped_fn(query, preserve_pending=True)():
+            if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
                 return
             if not write_success:
                 logger.error(
@@ -294,7 +295,9 @@ def _store_results_in_backend(
                     "Failed to store query results in the results backend. "
                     "Please try again or contact your administrator."
                 )
-                if not _commit_query_unless_stopped(query):
+                if durable:
+                    db.session.commit()  # pylint: disable=consider-using-transaction
+                elif not _commit_query_unless_stopped(query):
                     return
                 raise SupersetErrorException(
                     SupersetError(
@@ -549,8 +552,15 @@ def _execute_sql_statements(
         stopped = not execution_results or check_stopped()
 
         # Commit for mutations
+        committed = False
         if not stopped and (parsed_script.has_mutation() or query.select_as_cta):
             conn.commit()  # pylint: disable=consider-using-transaction
+            committed = True
+
+    # A committed mutation or CTAS is durable, so a stop recorded after the
+    # pre-commit check lost the race and must not mask the committed result.
+    if committed:
+        check_stopped = _never_stopped
 
     # Re-check after connection cleanup, before publishing success or results.
     if stopped or check_stopped():
@@ -568,13 +578,27 @@ def _execute_sql_statements(
         return _stopped_query_payload(query)
 
     if results_backend:
-        _store_results_in_backend(query, payload, database)
+        _store_results_in_backend(query, payload, database, durable=committed)
 
-    return _publish_query_result(query, payload)
+    return _publish_query_result(query, payload, durable=committed)
 
 
-def _publish_query_result(query: Query, payload: dict[str, Any]) -> dict[str, Any]:
+def _never_stopped() -> bool:
+    """Stop check for work whose effects are already committed."""
+    return False
+
+
+def _publish_query_result(
+    query: Query, payload: dict[str, Any], durable: bool = False
+) -> dict[str, Any]:
     """Publish terminal metadata only if no stop has won the finalization race."""
+    if durable:
+        # Committed effects outrank a stop recorded after the commit check.
+        if query.status != QueryStatus.FAILED:
+            query.status = QueryStatus.SUCCESS
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        return payload
+
     # Serialization and backend writes can outlive the last execution check.
     if _make_check_stopped_fn(query, preserve_pending=True)():
         return _stopped_query_payload(query)
