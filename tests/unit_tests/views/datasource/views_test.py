@@ -888,33 +888,61 @@ def test_samples_proceeds_for_supported_datasource_type(
     view.json_response.assert_called_once_with({"result": {"rows": []}})
 
 
-@patch("superset.views.datasource.views.redact_sensitive_query_fields")
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.DashboardDAO")
+@patch("superset.views.datasource.views.DatasetDAO")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
-def test_samples_redacts_query_fields_before_responding(
-    mock_security_manager: MagicMock,
+def test_samples_guest_response_is_redacted_by_the_real_helper(
+    mock_view_security_manager: MagicMock,
+    mock_dataset_dao: MagicMock,
+    mock_dashboard_dao: MagicMock,
     mock_get_samples: MagicMock,
-    mock_redact: MagicMock,
+    mock_global_security_manager: MagicMock,
 ) -> None:
-    """The samples payload is passed through guest redaction before it is
-    returned, so an embedded guest without "can view query on Dashboard" does
-    not receive the generated SQL the chart-data endpoint already withholds
-    (CVE-2025-55673 parity for Drill to detail)."""
-    mock_security_manager.is_guest_user.return_value = False
-    rv = {"query": "SELECT 1", "data": []}
+    """An embedded guest without "can view query on Dashboard" gets the generated
+    SQL stripped from the actual samples response.
+
+    Exercises the real ``redact_sensitive_query_fields`` (not a mock) through the
+    guest branch, so a regression that made the redaction a no-op for guests
+    would fail here. ``mock_view_security_manager`` drives the view's guest-access
+    checks; ``mock_global_security_manager`` is the ``from superset import
+    security_manager`` the helper resolves (guest, lacking the permission)."""
+    mock_view_security_manager.is_guest_user.return_value = True
+    mock_view_security_manager.can_drill_dataset_via_dashboard_access.return_value = (
+        True
+    )
+    # The helper's principal: a guest without "can view query on Dashboard".
+    mock_global_security_manager.is_guest_user.return_value = True
+    mock_global_security_manager.can_access.return_value = False
+
+    rv = {
+        "query": "SELECT secret_col FROM private_table",
+        "stacktrace": "Traceback (most recent call last): ...",
+        "data": [{"id": 1}],
+        "colnames": ["id"],
+        "total_count": 1,
+    }
     mock_get_samples.return_value = rv
 
     view = _view_self()
     app = Flask(__name__)
     with app.test_request_context(
-        "/datasource/samples?datasource_type=query&datasource_id=1",
+        "/datasource/samples?datasource_type=table&datasource_id=1&dashboard_id=5",
         method="POST",
         json={},
     ):
         _get_view_func("samples")(view)
 
-    # The result dict is redacted in place, then returned under ``result``.
-    mock_redact.assert_called_once_with([rv])
+    # The real helper redacted the generated SQL and stacktrace in place before
+    # the response was built, while the rendering fields were left intact.
+    assert "query" not in rv
+    assert "stacktrace" not in rv
+    assert rv["data"] == [{"id": 1}]
+    mock_global_security_manager.can_access.assert_called_once_with(
+        "can_view_query", "Dashboard"
+    )
     view.json_response.assert_called_once_with({"result": rv})
 
 

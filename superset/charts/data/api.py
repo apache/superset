@@ -68,7 +68,6 @@ from superset.utils.core import (
 )
 from superset.utils.decorators import logs_context
 from superset.utils.error_sanitization import (
-    is_sanitization_required,
     redact_sensitive_query_fields,
     sanitize_error_message,
 )
@@ -554,21 +553,17 @@ class ChartDataRestApi(ChartRestApi):
                 ):
                     query["timing"] = query_result.timing.as_public_dict()
 
-            # Resolve the redaction decision once so the stacktrace pop and the
-            # error-message sanitization below stay consistent: the guarded
-            # ``is_sanitization_required`` fails closed for a guest whose
-            # principal can't be resolved, so the block never half-redacts
-            # (popping ``stacktrace`` while leaking the raw ``error``).
-            if sanitize_required := is_sanitization_required():
-                # Guests may see the generated SQL only when the role attached to
-                # their guest token has been granted "can view query on Dashboard",
-                # mirroring the permission the frontend uses to expose the
-                # "View query" action. Stacktraces and driver errors stay redacted
-                # regardless, as those leak details of the deployment itself. The
-                # same helper redacts the ``/datasource/samples`` (Drill to
-                # detail) response so the two guest-facing endpoints cannot
-                # diverge.
-                redact_sensitive_query_fields(queries, required=sanitize_required)
+            # Redact the generated SQL, stacktraces and raw driver errors from
+            # guest (embedded) responses. Guests see the SQL only when their
+            # guest-token role has "can view query on Dashboard" (the permission
+            # the frontend uses to expose the "View query" action); stacktraces
+            # and driver errors stay redacted regardless, as those leak details
+            # of the deployment itself. The helper resolves the guest-sanitization
+            # decision (failing closed when the principal can't be resolved) and
+            # is a no-op otherwise, so it can be called unconditionally. The same
+            # helper redacts the ``/datasource/samples`` (Drill to detail)
+            # response so the two guest-facing endpoints cannot diverge.
+            redact_sensitive_query_fields(queries)
 
             payload: dict[str, Any] = {"result": queries}
             if dashboard_filter_context is not None:
