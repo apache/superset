@@ -258,6 +258,14 @@ label as the custom color key, for example:
   as described below. Keep web and worker versions aligned. Before rollback, replace `NONE`
   formats with a supported format and account for losing explicit executor/policy settings.
 
+### Semantic provider error handling
+
+Semantic chart-query execution classifies provider-raised `SupersetTimeoutException`
+(formerly HTTP 408), `SupersetGenericDBErrorException` and
+`SupersetTemplateParamsErrorException` (formerly HTTP 400) as generic HTTP 500
+failures. Worker control timeouts and host input-validation errors retain their
+existing handling. See the [provider error contract](docs/developer_docs/semantic-query-errors.md).
+
 ### Semantic-view Table charts without a temporal axis
 
 Semantic-view Table charts omit recognized dormant time grains from
