@@ -657,6 +657,21 @@ def test_partial_config_override_keeps_defaults(
     assert password_recovery.rate_limit() == "5 per 15 minutes"
 
 
+def test_non_dict_config_is_treated_as_unset(
+    app: Flask, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """``AUTH_PASSWORD_RECOVERY = True``, written like the neighbouring
+    ``AUTH_*`` booleans, must not take every page down: the bootstrap payload
+    asks ``is_enabled()`` on each request, so the typo is logged and the
+    defaults apply instead."""
+    monkeypatch.setitem(app.config, "AUTH_TYPE", AUTH_DB)
+    monkeypatch.setitem(app.config, "AUTH_PASSWORD_RECOVERY", True)
+
+    assert password_recovery.is_enabled() is False
+    assert password_recovery.token_ttl_minutes() == 30
+    assert "AUTH_PASSWORD_RECOVERY must be a dict" in caplog.text
+
+
 def test_email_body_escapes_the_username(app: Flask) -> None:
     _subject, html = password_recovery.build_email(
         "<script>alert(1)</script>", "https://x.example/#token=t", 30

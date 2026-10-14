@@ -12937,6 +12937,9 @@ msgstr ""
 msgid "Something went wrong."
 msgstr ""
 
+msgid "Something went wrong. Please try again later."
+msgstr ""
+
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
 msgstr ""

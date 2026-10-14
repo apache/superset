@@ -459,10 +459,13 @@ AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
 # settings, and links are built from ``base_url`` (falling back to
 # WEBDRIVER_BASEURL_USER_FRIENDLY), never from the request, so set it to the
 # public HTTPS address users reach Superset at before enabling.
+# - token_ttl_minutes: capped at 24 hours (1440); a value that is not a
+#   positive whole number falls back to the default.
 # - rate_limit: Flask-Limiter limit for both endpoints, per client address
 #   (enforced only when RATELIMIT_ENABLED is on).
 # - resend_cooldown_seconds: minimum time between two emails to one address.
-# Keys left out of an override fall back to these defaults.
+# Keys left out of an override fall back to these defaults; a value that is not
+# a dict at all is logged and treated as unset.
 AUTH_PASSWORD_RECOVERY: dict[str, Any] = {
     "enabled": False,
     "token_ttl_minutes": 30,

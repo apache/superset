@@ -45,11 +45,11 @@ export default function ForgotPassword() {
   const [form] = Form.useForm<ForgotPasswordForm>();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [rateLimited, setRateLimited] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const onFinish = async ({ email }: ForgotPasswordForm) => {
     setLoading(true);
-    setRateLimited(false);
+    setErrorMessage(null);
     try {
       await SupersetClient.post({
         endpoint: PASSWORD_RECOVERY_ENDPOINT,
@@ -57,15 +57,16 @@ export default function ForgotPassword() {
       });
       setSubmitted(true);
     } catch (response) {
-      // The outcome must never reveal whether the email belongs to an
-      // account, so every failure ends on the same generic confirmation.
-      // Rate limiting is the one exception: it is keyed on the client, not
-      // on the submitted address, and retrying is the only useful action.
-      if ((response as Partial<Response>)?.status === 429) {
-        setRateLimited(true);
-      } else {
-        setSubmitted(true);
-      }
+      // Only a 2xx reaches the confirmation. The endpoint answers 200 for
+      // known and unknown addresses alike, so a failed request carries no
+      // account information, and showing one as a success would leave the
+      // user waiting for an email that was never sent. Nothing the server
+      // says is shown either way.
+      setErrorMessage(
+        (response as Partial<Response>)?.status === 429
+          ? t('Too many requests. Please wait and try again.')
+          : t('Something went wrong. Please try again later.'),
+      );
     } finally {
       setLoading(false);
     }
@@ -118,12 +119,8 @@ export default function ForgotPassword() {
               'Enter the email address of your account and we will send you a link to reset your password.',
             )}
           </Typography.Text>
-          {rateLimited && (
-            <Alert
-              type="warning"
-              showIcon
-              message={t('Too many requests. Please wait and try again.')}
-            />
+          {errorMessage && (
+            <Alert type="error" showIcon message={errorMessage} />
           )}
           <Form
             layout="vertical"

@@ -267,6 +267,22 @@ test('shows the invalid link state without calling the API when the link has no 
   expect(fetchMock.callHistory.calls(endpoint)).toHaveLength(0);
 });
 
+test('asks the user to retry later when rate limited', async () => {
+  // Flask-Limiter answers with a plain-text body, not JSON.
+  fetchMock.post(endpoint, {
+    status: 429,
+    body: 'Too Many Requests: 5 per 15 minutes',
+  });
+  renderResetPassword();
+  await fillAndSubmit('N3w-Passw0rd!');
+
+  expect(
+    await screen.findByText('Too many requests. Please wait and try again.'),
+  ).toBeInTheDocument();
+  expect(screen.getByTestId('reset-password-form')).toBeInTheDocument();
+  expect(screen.getByTestId('reset-password-button')).toBeEnabled();
+});
+
 test('shows a generic error, not the server text, on unexpected failures', async () => {
   fetchMock.post(endpoint, {
     status: 500,

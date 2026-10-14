@@ -98,9 +98,18 @@ def get_config() -> dict[str, Any]:
     """Return ``AUTH_PASSWORD_RECOVERY`` merged over the defaults.
 
     Operators usually override the whole dict, so any key they leave out falls
-    back to its default instead of raising ``KeyError`` at request time.
+    back to its default instead of raising ``KeyError`` at request time. A
+    value that is not a dict at all (``AUTH_PASSWORD_RECOVERY = True``, written
+    like the neighbouring ``AUTH_*`` booleans) is treated as unset rather than
+    raised: ``is_enabled()`` runs while building the bootstrap payload of every
+    page, so a typo here must not take the whole UI down.
     """
     configured = current_app.config.get("AUTH_PASSWORD_RECOVERY") or {}
+    if not isinstance(configured, dict):
+        logger.warning(
+            "AUTH_PASSWORD_RECOVERY must be a dict; using the defaults instead"
+        )
+        configured = {}
     return {**DEFAULT_CONFIG, **configured}
 
 

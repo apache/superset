@@ -66,4 +66,6 @@ def test_reset_endpoint_is_rate_limited_per_client(app: Any) -> None:
         ).status_code
         for i in range(3)
     ]
-    assert statuses[-1] == 429
+    # Each route has its own budget: the request endpoint's three calls above
+    # must not count here, so an invalid token is still answered twice.
+    assert statuses == [400, 400, 429]

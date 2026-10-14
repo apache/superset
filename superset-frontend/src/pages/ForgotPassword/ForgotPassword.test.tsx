@@ -47,13 +47,11 @@ test('posts the email to the password recovery endpoint', async () => {
   });
 });
 
-test.each([
-  ['a success', { status: 200, body: { message: 'Server says sent' } }],
-  ['a malformed-request error', { status: 400, body: { message: 'Bad' } }],
-  ['a disabled feature', { status: 404, body: { message: 'Not found' } }],
-  ['a server error', { status: 500, body: { message: 'SMTP exploded' } }],
-])('shows the same generic confirmation after %s', async (_, response) => {
-  fetchMock.post(endpoint, response);
+test('shows the confirmation after a successful request', async () => {
+  fetchMock.post(endpoint, {
+    status: 200,
+    body: { message: 'Server says sent' },
+  });
   await submitEmail('jane@example.com');
 
   expect(await screen.findByText('Check your email')).toBeInTheDocument();
@@ -61,14 +59,80 @@ test.each([
   expect(
     screen.getByText(/If an account exists for that email address/),
   ).toBeInTheDocument();
-  // Nothing the server says is shown, so no response can leak whether
-  // the account exists or what went wrong internally.
-  expect(screen.queryByText(response.body.message)).not.toBeInTheDocument();
+  // The server's own text is never shown; the confirmation reads the same
+  // for every address.
+  expect(screen.queryByText('Server says sent')).not.toBeInTheDocument();
   expect(screen.getByTestId('back-to-login-button')).toHaveAttribute(
     'href',
     '/login/',
   );
 });
+
+test.each([
+  [
+    'a malformed-request error',
+    { status: 400, body: { message: 'Bad' } },
+    'Bad',
+  ],
+  [
+    'a disabled feature',
+    { status: 404, body: { message: 'Not found' } },
+    'Not found',
+  ],
+  [
+    'a server error',
+    { status: 500, body: { message: 'SMTP exploded' } },
+    'SMTP exploded',
+  ],
+])(
+  'keeps the form and shows a generic error after %s',
+  async (_, response, serverText) => {
+    fetchMock.post(endpoint, response, { repeat: 1 });
+    fetchMock.post(endpoint, { status: 200, body: {} });
+    await submitEmail('jane@example.com');
+
+    // No email went out, so the confirmation would leave the user waiting
+    // for a link that never arrives. The endpoint answers 200 for known and
+    // unknown addresses alike, so a failure carries no account information
+    // and can be shown as such; the server's own text still stays hidden.
+    expect(
+      await screen.findByText('Something went wrong. Please try again later.'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('forgot-password-form')).toBeInTheDocument();
+    expect(screen.queryByText('Check your email')).not.toBeInTheDocument();
+    expect(screen.queryByText(serverText)).not.toBeInTheDocument();
+
+    // The address is still in the field, so the user can simply retry.
+    await userEvent.click(screen.getByTestId('send-reset-link-button'));
+    expect(await screen.findByText('Check your email')).toBeInTheDocument();
+    expect(fetchMock.callHistory.calls(endpoint)).toHaveLength(2);
+  },
+);
+
+test('keeps the form and shows a generic error when the request never reaches the server', async () => {
+  // SupersetClient retries a thrown fetch three times, a second apart,
+  // before giving up, so every attempt has to fail for the error to surface.
+  fetchMock.post(
+    endpoint,
+    { throws: new TypeError('Failed to fetch') },
+    { repeat: 4 },
+  );
+  fetchMock.post(endpoint, { status: 200, body: {} });
+  await submitEmail('jane@example.com');
+
+  expect(
+    await screen.findByText(
+      'Something went wrong. Please try again later.',
+      {},
+      { timeout: 6000 },
+    ),
+  ).toBeInTheDocument();
+  expect(screen.getByTestId('forgot-password-form')).toBeInTheDocument();
+  expect(screen.queryByText('Check your email')).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByTestId('send-reset-link-button'));
+  expect(await screen.findByText('Check your email')).toBeInTheDocument();
+}, 15000);
 
 test('asks the user to retry later when rate limited', async () => {
   fetchMock.post(endpoint, { status: 429, body: {} });
