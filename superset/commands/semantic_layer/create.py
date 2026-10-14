@@ -21,6 +21,7 @@ from functools import partial
 from typing import Any
 
 from flask_appbuilder.models.sqla import Model
+from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
@@ -118,20 +119,23 @@ class CreateSemanticViewCommand(BaseCommand):
             if isinstance(raw_configuration, str)
             else raw_configuration
         )
+        try:
+            view: SemanticViewABC | None = layer.implementation.get_semantic_view(
+                name, configuration
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning("Semantic view lookup failed: %s", type(ex).__name__)
+            view = None
+        if view is None:
+            raise SemanticViewInvalidError(
+                _(
+                    "Couldn't validate this semantic view: it may not exist, "
+                    "or the semantic layer is unreachable."
+                )
+            ) from None
+
         if not SemanticViewDAO.validate_uniqueness(name, layer_uuid, configuration):
             raise ValueError(
                 f"Semantic view '{name}' already exists for this layer"
-                " and configuration"
-            )
-
-        try:
-            views: set[SemanticViewABC] = layer.implementation.get_semantic_views(
-                configuration
-            )
-        except Exception as ex:  # pylint: disable=broad-except
-            raise SemanticViewCreateFailedError() from ex
-        if not any(view.name == name for view in views):
-            raise SemanticViewInvalidError(
-                f"Semantic view '{name}' is not available for this layer"
                 " and configuration"
             )

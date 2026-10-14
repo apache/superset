@@ -62,7 +62,8 @@ optional dependency can load choices for the empty state instead. Semantic
 views listed for an earlier dependency are discarded, and views cannot be added
 while dependent choices are loading.
 
-When adding a semantic view, Superset checks that the provider still lists the
-selected view for the submitted configuration before saving it. An unavailable
-view or a provider discovery failure prevents that view from being added; other
-valid views in the same request can still be added.
+When adding a semantic view, Superset asks the provider to look up its name with
+the submitted configuration before saving it. If lookup fails or returns no view,
+Superset reports that the view may not exist or the semantic layer may be
+unreachable, and does not add it. Other valid views in the same request can still
+be added. This check does not guarantee that later queries will succeed.
