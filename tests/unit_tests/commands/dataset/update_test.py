@@ -39,6 +39,7 @@ from superset.commands.dataset.update import (
 from superset.datasets.schemas import FolderSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
 from tests.unit_tests.conftest import with_feature_flags
@@ -95,6 +96,7 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.partition_column = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
@@ -140,6 +142,7 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.partition_column = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
@@ -203,6 +206,7 @@ def test_update_dataset_database_id_change_checks_new_database_access(
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.partition_column = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_new_database
@@ -259,6 +263,7 @@ def test_update_dataset_database_id_change_allowed_with_access(
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
+    mock_dataset.partition_column = None  # No partition filter mapping
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_new_database
@@ -308,6 +313,7 @@ def test_update_dataset_physical_repoint_requires_table_access(
     mock_dataset.table_name = "allowed_table"
     mock_dataset.sql = None  # physical dataset
     mock_dataset.editors = []
+    mock_dataset.partition_column = None
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -501,6 +507,7 @@ def test_update_dataset_rejects_malicious_expression(
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.partition_column = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -550,6 +557,7 @@ def test_update_dataset_accepts_benign_expression(mocker: MockerFixture) -> None
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.partition_column = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -591,6 +599,7 @@ def test_update_dataset_accepts_jinja_expression(mocker: MockerFixture) -> None:
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.partition_column = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -1352,6 +1361,7 @@ def test_update_dataset_rejects_malicious_fetch_values_predicate(
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = None
+    mock_dataset.partition_column = None  # No partition filter mapping
     mock_dataset_dao.find_by_id.return_value = mock_dataset
     mock_dataset_dao.get_database_by_id.return_value = mock_database
     mock_dataset_dao.validate_update_uniqueness.return_value = True
@@ -1366,3 +1376,294 @@ def test_update_dataset_rejects_malicious_fetch_values_predicate(
         and "fetch_values_predicate" in (exc.field_name or "")
         for exc in excinfo.value._exceptions
     )
+
+
+def _mapping_command(
+    mocker: MockerFixture,
+    transform: str | None,
+    *,
+    partition_mapped_column: str | None = None,
+    main_dttm_col: str = "event_time",
+    database: Database | None = None,
+) -> UpdateDatasetCommand:
+    """
+    A command whose stored dataset maps `event_time` onto `dt_epoch`.
+
+    `database` takes a real one, for the gates that read more of it than
+    `backend` -- the function denylist is keyed on the engine spec's own name,
+    which a mock cannot supply.
+    """
+    mapped_column = mocker.MagicMock()
+    mapped_column.column_name = "event_time"
+    mapped_column.partition_value_transform = transform
+    partition_column = mocker.MagicMock()
+    partition_column.column_name = "dt_epoch"
+    # The partition column is the target of a mapping, never the source of one.
+    partition_column.partition_value_transform = None
+
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    if database is not None:
+        mock_dataset.database = database
+    else:
+        mock_dataset.database.backend = "sqlite"
+    mock_dataset.catalog = None
+    mock_dataset.schema = "main"
+    mock_dataset.columns = [mapped_column, partition_column]
+    mock_dataset.main_dttm_col = main_dttm_col
+    mock_dataset.partition_column = "dt_epoch"
+    mock_dataset.partition_mapped_column = partition_mapped_column
+
+    command = UpdateDatasetCommand(1, {})
+    command._model = mock_dataset
+    return command
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_unparseable_transform_does_not_block_the_save(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An unparseable transform is a Tier-2 issue: the mapping saves and stays
+    inactive. `validate_stored_expression` rejects anything it cannot parse, so
+    running it here would turn that into a blocking error and cost the owner the
+    rest of their edits.
+    """
+    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value")
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_parseable_transform_still_goes_through_the_stored_expression_gate(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The gate that governs every other stored expression still runs -- now the
+    same `stored_expression_error` preview, import and the legacy save path
+    use, so the function denylist applies here too.
+    """
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error", return_value=None
+    )
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_called_once()
+    assert gate.call_args.args[-1] == "unix_timestamp(:value)"
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "unix_timestamp(:value) UNION ALL SELECT password FROM ab_user",
+        "unix_timestamp(:value); DROP TABLE ab_user",
+        "password || :value FROM ab_user",
+    ],
+    ids=["set-operation", "multi-statement", "bare-from"],
+)
+def test_a_transform_that_is_the_wrong_sql_still_reaches_the_gate(
+    mocker: MockerFixture, transform: str
+) -> None:
+    """
+    The companion to the test above, and the reason the skip condition is "not
+    SQL yet" rather than "does not parse". All three of these fail to parse as
+    a single statement, exactly as a half-typed transform does -- so a skip
+    keyed on parseability would have waved them through. None of them is on the
+    way to a valid transform.
+    """
+    command = _mapping_command(mocker, transform)
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    # Reported rather than silently accepted the way an unfinished transform is.
+    assert exceptions
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_transform_calling_a_denied_function_is_refused_on_save(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A normal PUT was the one door into this field that skipped the function
+    denylist: preview, import and the legacy save path all ran
+    `stored_expression_error`, while this ran only the narrower parser gate. So
+    an owner could store what preview had just refused, and the probe would run
+    it on the next chart load.
+    """
+    command = _mapping_command(
+        mocker,
+        "schema_to_xml('public') || :value",
+        database=Database(database_name="pfm_pg", sqlalchemy_uri="postgresql://u@h/d"),
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]
+    assert "schema_to_xml" in str(exceptions[0].messages)
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_jinja_transform_is_still_rejected(mocker: MockerFixture) -> None:
+    """
+    Skipping the gate for unparseable transforms is not a hole for templating:
+    Jinja is a blocking issue of its own, reported before the gate is reached.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp({{ current_user_id() }})")
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_description_only_put_survives_an_implicit_self_mapping(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `fetch_metadata` could choose the partition column as the default datetime
+    column without anyone asking, and a blocking self-mapping error then made
+    the dataset unsaveable forever -- including by the very write that would
+    have set the override that fixes it, and including a write that changes
+    nothing but the description.
+
+    The mapping is inert in that state either way, since
+    `resolve_partition_mapping` bails out on it, so the issue is reported
+    rather than blocking.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", main_dttm_col="dt_epoch"
+    )
+    command._properties["description"] = "a new description"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_self_mapping_is_rejected_while_the_feature_is_on(
+    mocker: MockerFixture,
+) -> None:
+    """A column cannot stand in for itself: that is a Tier-1 blocking issue."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["partition_mapped_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=False)
+def test_no_mapping_validation_runs_while_the_feature_is_off(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With the flag off nothing mirrors, so a stored mapping can never be
+    consumed. Rejecting the save over it would hand the owner a validation
+    error they have no way to act on -- and every path that reads a mapping is
+    gated the same way.
+    """
+    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["partition_mapped_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_sync_that_drops_the_mapped_column_is_not_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    `update_columns` clears a mapping whose columns the payload dropped, but
+    that runs later, during `run()`. Validating the pre-cleanup state would
+    reject the very sync the cleanup exists to absorb -- an `override_columns`
+    resync whose source table no longer has the mapped column.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_mapped_column="event_time"
+    )
+    command._properties["columns"] = [{"column_name": "dt_epoch"}]
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_sync_that_drops_the_partition_column_is_not_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Losing the partition column drops the whole mapping, not just the half."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_mapped_column="event_time"
+    )
+    command._properties["columns"] = [{"column_name": "event_time"}]
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_mapping_onto_a_column_the_same_request_omits_is_still_rejected(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Only a *stored* reference is forgiven. Asking in this request to map onto a
+    column the same request does not define is a mistake worth reporting, not
+    something to quietly clean up.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["columns"] = [{"column_name": "dt_epoch"}]
+    command._properties["partition_mapped_column"] = "event_time"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_mapped_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_self_mapping_is_still_rejected_alongside_a_column_payload(
+    mocker: MockerFixture,
+) -> None:
+    """Forgiving a dropped column does not forgive the checks that remain."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["columns"] = [
+        {"column_name": "dt_epoch"},
+        {"column_name": "event_time"},
+    ]
+    command._properties["partition_mapped_column"] = "dt_epoch"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]

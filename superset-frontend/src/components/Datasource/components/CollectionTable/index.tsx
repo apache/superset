@@ -99,6 +99,9 @@ export default function CRUDCollection({
   pagination = false,
   filterTerm,
   filterFields,
+  rowClassName,
+  expandItemWhere,
+  expandItemNonce,
 }: CRUDCollectionProps) {
   const [expandedColumns, setExpandedColumns] = useState<
     Record<PropertyKey, boolean>
@@ -204,39 +207,6 @@ export default function CRUDCollection({
     [onChange],
   );
 
-  const changeCollection = useCallback(
-    (
-      newCollection: Record<PropertyKey, CollectionItem>,
-      currentCollectionArray: CollectionItem[],
-    ) => {
-      // Preserve existing order instead of recreating from Object.keys()
-      const existingIds = new Set(currentCollectionArray.map(item => item.id));
-      const newCollectionArray: CollectionItem[] = [];
-
-      // First pass: preserve existing order and update items
-      for (const existingItem of currentCollectionArray) {
-        if (newCollection[existingItem.id]) {
-          newCollectionArray.push(newCollection[existingItem.id]);
-        }
-      }
-
-      // Second pass: add new items
-      for (const item of Object.values(newCollection)) {
-        if (!existingIds.has(item.id)) {
-          newCollectionArray.push(item);
-        }
-      }
-
-      setCollection(newCollection);
-      setCollectionArray(newCollectionArray);
-
-      if (onChange) {
-        onChange(newCollectionArray);
-      }
-    },
-    [onChange],
-  );
-
   const deleteItem = useCallback(
     (id: string | number) => {
       setCollection(prevCollection => {
@@ -292,15 +262,49 @@ export default function CRUDCollection({
 
   const onFieldsetChange = useCallback(
     (item: CollectionItem) => {
-      changeCollection(
-        {
-          ...collection,
-          [item.id]: item,
-        },
-        collectionArray,
-      );
+      // Functional updaters, like every other mutator here -- and for a
+      // sharper reason than consistency. A fieldset's edits are committed on a
+      // debounce, and each expanded row renders its own `Fieldset`, so the
+      // collection a closure captured at the keystroke is older than the real
+      // one by the time the timer fires. Writing that snapshot back as an
+      // absolute value reverted whatever a *different* row had committed in
+      // between: edit one column's value transform and another's description
+      // within a debounce interval and one of the two was silently lost.
+      //
+      // Both structures, not just the array: `onSortChange` restores the
+      // pre-sort order by reading `collection[id]`, so a keyed entry left
+      // behind here would resurface as a stale row the moment a sort is
+      // cleared.
+      //
+      // `onChange` inside an updater is impure and double-fires under
+      // StrictMode in development -- as it already does in `onCellChange`,
+      // `deleteItem` and `onAddItem`, so matching them beats inventing a
+      // fourth shape here.
+      setCollection(prevCollection => ({
+        ...prevCollection,
+        [item.id]: item,
+      }));
+
+      setCollectionArray(prevCollectionArray => {
+        // A fieldset only ever edits a row that already exists; the append is
+        // a safety net, and mapping in place is also what preserves order,
+        // which the previous two-pass rebuild was doing by hand.
+        const newCollectionArray = prevCollectionArray.some(
+          existing => existing.id === item.id,
+        )
+          ? prevCollectionArray.map(existing =>
+              existing.id === item.id ? item : existing,
+            )
+          : [...prevCollectionArray, item];
+
+        if (onChange) {
+          onChange(newCollectionArray);
+        }
+
+        return newCollectionArray;
+      });
     },
-    [changeCollection, collection, collectionArray],
+    [onChange],
   );
 
   const getLabel = useCallback(
@@ -325,6 +329,36 @@ export default function CRUDCollection({
       [id]: !prev[id],
     }));
   }, []);
+
+  // Read through a ref, and keyed on the nonce alone, because callers pass an
+  // inline arrow: an effect depending on the predicate's identity would run on
+  // every render and reopen a row the user had just collapsed, which is the
+  // opposite of the additive behaviour the prop documents.
+  const expandItemWhereRef = useRef(expandItemWhere);
+  expandItemWhereRef.current = expandItemWhere;
+
+  // The collection is read through its ref too, and deliberately not a
+  // dependency: it is replaced wholesale on every cell edit, delete, add and
+  // props sync, so depending on it re-asserted the expansion afterwards and
+  // reopened a row the user had collapsed on their next edit to any row.
+  //
+  // The cost is that a nonce arriving before its target row exists never
+  // retries. Nothing can do that today -- the reveal links are rendered inside
+  // the already-loaded editor and change only the search term and the nonce,
+  // never the collection -- so widening these deps again would trade a
+  // documented behaviour for a case that cannot happen.
+  useEffect(() => {
+    const matches = expandItemWhereRef.current;
+    if (!matches || expandItemNonce === undefined) {
+      return;
+    }
+    const target = collectionArrayRef.current.find(matches);
+    if (!target) {
+      return;
+    }
+    // Merged rather than replaced, so rows the user opened stay open.
+    setExpandedColumns(prev => ({ ...prev, [target.id]: true }));
+  }, [expandItemNonce]);
 
   const handleTableChange = useCallback(
     (
@@ -620,6 +654,7 @@ export default function CRUDCollection({
           `
         }
         expandable={expandableConfig}
+        rowClassName={rowClassName}
         size={TableSize.Middle}
         tableLayout="auto"
       />

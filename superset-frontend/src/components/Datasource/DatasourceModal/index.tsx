@@ -172,6 +172,12 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     };
   }, [datasource.id, etag, show]);
   const baselineSql = seededSql ?? datasource.sql;
+  // A physical dataset has no SQL, and the API reports that as `null` while the
+  // editor normalises it to `''` on every change -- so a raw `!==` reads the
+  // first edit of a physical dataset as a SQL change, offers to sync its
+  // columns from a query that does not exist, and pre-ticks the offer. The two
+  // spellings of "no SQL" are the same state.
+  const sqlChanged = (baselineSql ?? '') !== (currentDatasource.sql ?? '');
 
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
@@ -190,6 +196,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       currency_code_column: datasource.currency_code_column ?? null,
       normalize_columns: datasource.normalize_columns,
       always_filter_main_dttm: datasource.always_filter_main_dttm,
+      partition_column: datasource.partition_column ?? null,
+      partition_mapped_column: datasource.partition_mapped_column ?? null,
       offset: datasource.offset,
       default_endpoint: datasource.default_endpoint,
       cache_timeout:
@@ -238,6 +246,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           is_active: column.is_active,
           is_dttm: column.is_dttm,
           python_date_format: column.python_date_format || null,
+          partition_value_transform: column.partition_value_transform || null,
+          partition_transform_is_monotonic: Boolean(
+            column.partition_transform_is_monotonic,
+          ),
           uuid: column.uuid,
           extra: buildExtraJsonObject(column),
         }),
@@ -346,7 +358,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 here may affect other charts
                 in undesirable ways.`)}
         />
-        {baselineSql !== currentDatasource.sql && (
+        {sqlChanged && (
           <div
             css={theme => ({
               marginBottom: theme.marginMD,
@@ -380,14 +392,15 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         {t('Are you sure you want to save and apply changes?')}
       </div>
     ),
-    [currentDatasource.sql, baselineSql, syncColumns],
+    [sqlChanged, syncColumns],
   );
 
   useEffect(() => {
-    if (baselineSql !== currentDatasource.sql) {
+    // No `else`: an owner who unticks the box stays unticked.
+    if (sqlChanged) {
       setSyncColumns(true);
     }
-  }, [baselineSql, currentDatasource.sql]);
+  }, [sqlChanged]);
 
   const onClickSave = () => {
     setConfirmModalOpen(true);

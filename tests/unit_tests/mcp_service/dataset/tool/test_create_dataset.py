@@ -75,6 +75,8 @@ def _make_mock_dataset(
     dataset.database.database_name = database_name
     dataset.sql = None
     dataset.main_dttm_col = None
+    dataset.partition_column = None
+    dataset.partition_mapped_column = None
     dataset.offset = 0
     dataset.cache_timeout = 0
     dataset.params = {}

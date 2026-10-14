@@ -1,0 +1,641 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""
+The partition mapping has to survive every layer it passes through.
+
+``always_filter_main_dttm`` is the template these follow: a dataset-level
+setting that names a column and appears in the ORM, the export fields, the
+``data`` payload, the API schemas and the frontend types. A field missing from
+any one of them is dropped silently, which is exactly the failure mode these
+tests exist to catch.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+from unittest.mock import patch
+
+import pytest
+from flask import Flask
+from marshmallow import ValidationError
+
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.partition_mapping import MAX_TRANSFORM_LENGTH
+from superset.datasets.schemas import (
+    DatasetColumnsPutSchema,
+    DatasetPutSchema,
+    ImportV1ColumnSchema,
+    ImportV1DatasetSchema,
+)
+from superset.models.core import Database
+
+DATASET_FIELDS = ["partition_column", "partition_mapped_column"]
+COLUMN_FIELDS = ["partition_value_transform", "partition_transform_is_monotonic"]
+
+
+@pytest.fixture(autouse=True)
+def enable_partition_filter_mapping(app: Flask) -> Any:
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+    yield
+    del app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"]
+
+
+def _table() -> SqlaTable:
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    column = TableColumn(column_name="event_time", is_dttm=True, type="TIMESTAMP")
+    column.partition_value_transform = "unix_timestamp(:value)"
+    column.partition_transform_is_monotonic = True
+    table = SqlaTable(
+        table_name="web_events",
+        database=database,
+        main_dttm_col="event_time",
+        columns=[column, TableColumn(column_name="dt_epoch", type="BIGINT")],
+    )
+    table.partition_column = "dt_epoch"
+    table.partition_mapped_column = None
+    return table
+
+
+@pytest.mark.parametrize("field", DATASET_FIELDS)
+def test_dataset_fields_are_exported(field: str) -> None:
+    """
+    Being in ``export_fields`` is what makes the mapping travel in dataset YAML,
+    and what makes ``update_from_object`` write it back on import.
+    """
+    assert field in SqlaTable.export_fields
+
+
+@pytest.mark.parametrize("field", COLUMN_FIELDS)
+def test_column_fields_are_exported(field: str) -> None:
+    assert field in TableColumn.export_fields
+
+
+@pytest.mark.parametrize("field", DATASET_FIELDS)
+def test_dataset_fields_reach_the_explore_payload(app: Flask, field: str) -> None:
+    with app.app_context():
+        data = _table().data
+    assert field in data
+
+
+@pytest.mark.parametrize("field", COLUMN_FIELDS)
+def test_column_fields_reach_the_explore_payload(app: Flask, field: str) -> None:
+    with app.app_context():
+        data = _table().data
+    assert field in data["columns"][0]
+
+
+def test_the_mapping_summary_survives_dashboard_payload_pruning(app: Flask) -> None:
+    """
+    ``data_for_slices`` prunes columns no chart references, and the partition
+    column is typically referenced by none of them. The Explore indicator
+    therefore reads a self-contained dataset-level dict rather than looking the
+    column up inside ``datasource.columns``.
+    """
+    with app.app_context():
+        data = _table().data_for_slices([])
+
+    assert data["partition_filter_mapping"] == {
+        "partition_column": "dt_epoch",
+        "mapped_column": "event_time",
+        "active": True,
+        # Nothing has probed this transform, which is not the same as its
+        # having failed -- see `known_mirror_verdict`.
+        "evaluable": None,
+        # Which transform `evaluable` is a verdict about. The dataset editor
+        # applies a stored refusal only while the box still holds this text.
+        "evaluated_transform": "unix_timestamp(:value)",
+        "is_monotonic": True,
+        # SQLite renders a timestamp with ``timespec="seconds"``.
+        "literal_resolution": "second",
+        "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
+    }
+
+
+def test_the_mapping_summary_reports_the_engine_s_literal_resolution(
+    app: Flask,
+) -> None:
+    """
+    The one gate the Explore indicator cannot work out for itself. A `DATE`
+    column is compared on its date part alone, so an `=` carrying a time of day
+    is declined by the query path -- and without this the glyph would promise
+    the pruning that decline gives up.
+    """
+    table = _table()
+    table.columns[0].type = "DATE"
+
+    with app.app_context():
+        with patch.object(
+            table.database.db_engine_spec,
+            "convert_dttm",
+            classmethod(
+                lambda cls, target_type, dttm, db_extra=None: (
+                    f"DATE '{dttm.date().isoformat()}'"
+                )
+            ),
+        ):
+            summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["literal_resolution"] == "day"
+
+
+def test_the_mapping_summary_calls_a_text_mapping_full_resolution(
+    app: Flask,
+) -> None:
+    """
+    A text mapping -- ``country`` onto ``region_key``, the half of this feature
+    that has nothing to do with time -- has no resolution to report, and the
+    answer has to be the one that withholds nothing.
+
+    Asking the engine without a value gets it wrong: SQLite's ``convert_dttm``
+    renders for ``types.String`` as well as for the date types, so a `VARCHAR`
+    mapped column measured against a reference instant comes back
+    second-resolution. The glyph would then read `country = 'US'` as a value the
+    server cannot place and go quiet on a filter the query mirrors.
+    """
+    table = _table()
+    country = TableColumn(column_name="country", type="VARCHAR")
+    country.partition_value_transform = "lower(:value)"
+    country.partition_transform_is_monotonic = False
+    table.columns.append(country)
+    table.partition_mapped_column = "country"
+    table.partition_column = "region_key"
+    table.columns.append(TableColumn(column_name="region_key", type="VARCHAR"))
+
+    with app.app_context():
+        summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["literal_resolution"] == "full"
+
+
+def test_the_mapping_summary_stops_claiming_a_mirror_a_probe_refused(
+    app: Flask,
+) -> None:
+    """
+    `active` is a parse, and a misspelled function parses happily, so a
+    transform the database rejects was reported active -- and the editor's
+    banner and Explore's glyph both promised a speed-up the query path silently
+    gives up. The second, weaker claim is what the UI reads for that.
+    """
+    table = _table()
+    table.columns[0].partition_value_transform = "no_such_fn(:value)"
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.models.known_mirror_verdict",
+            return_value=False,
+        ):
+            summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    # Still active: the save path has no quarrel with it, and the editor has to
+    # go on naming the columns so the owner can fix them.
+    assert summary["active"] is True
+    assert summary["evaluable"] is False
+
+
+def test_the_mapping_summary_reports_inactive_without_a_transform(
+    app: Flask,
+) -> None:
+    table = _table()
+    table.columns[0].partition_value_transform = None
+
+    with app.app_context():
+        summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["active"] is False
+
+
+def test_the_mapping_summary_narrows_the_operators_without_monotonicity(
+    app: Flask,
+) -> None:
+    """
+    The indicator has to tell a mirrored filter from one that merely names the
+    mapped column, and range operators only mirror under a monotonic transform.
+    Shipping the operator list keeps that matrix in one place -- here -- rather
+    than restating it on the client, where it would drift.
+    """
+    table = _table()
+    table.columns[0].partition_transform_is_monotonic = False
+
+    with app.app_context():
+        summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["is_monotonic"] is False
+    assert summary["mirrorable_operators"] == ["==", "IN"]
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        # Missing the placeholder, so there is no filter value to substitute.
+        "unix_timestamp(event_time)",
+        # Unparseable, so nothing can be emitted from it.
+        "unix_timestamp(:value",
+        # Blocking on PUT, but create and import do not validate the mapping,
+        # so it can still be read back.
+        "{{ current_username() }}",
+    ],
+)
+def test_the_mapping_summary_reports_inactive_for_an_invalid_transform(
+    app: Flask,
+    transform: str,
+) -> None:
+    """
+    A transform that fails validation is saved inactive on purpose. The
+    indicator has to say the same thing, or it advertises a mapping that will
+    never mirror a filter.
+    """
+    table = _table()
+    table.columns[0].partition_value_transform = transform
+
+    with app.app_context():
+        summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["active"] is False
+
+
+def test_the_mapping_summary_reports_inactive_for_an_advanced_data_type(
+    app: Flask,
+) -> None:
+    """
+    `translate_filter` builds its own predicate shape from translated values, so
+    `resolve_partition_mapping` refuses these columns entirely.
+    """
+    table = _table()
+    table.columns[0].advanced_data_type = "port"
+
+    with app.app_context():
+        advanced_data_types = app.config["ADVANCED_DATA_TYPES"]
+        app.config["DEFAULT_FEATURE_FLAGS"]["ENABLE_ADVANCED_DATA_TYPES"] = True
+        app.config["ADVANCED_DATA_TYPES"] = {"port": object()}
+        try:
+            summary = table.data["partition_filter_mapping"]
+        finally:
+            del app.config["DEFAULT_FEATURE_FLAGS"]["ENABLE_ADVANCED_DATA_TYPES"]
+            app.config["ADVANCED_DATA_TYPES"] = advanced_data_types
+
+    assert summary is not None
+    assert summary["active"] is False
+
+
+def test_the_mapping_summary_still_names_the_columns_when_inactive(
+    app: Flask,
+) -> None:
+    """
+    An inactive mapping is exactly the one worth naming: the editor has to tell
+    the owner which columns to fix.
+    """
+    table = _table()
+    table.columns[0].partition_value_transform = "unix_timestamp(event_time)"
+
+    with app.app_context():
+        summary = table.data["partition_filter_mapping"]
+
+    assert summary == {
+        "partition_column": "dt_epoch",
+        "mapped_column": "event_time",
+        "active": False,
+        # Nothing has probed this transform, which is not the same as its
+        # having failed -- see `known_mirror_verdict`.
+        "evaluable": None,
+        # An inactive mapping has no verdict, so there is no transform for one
+        # to be about -- `None` rather than the stored text.
+        "evaluated_transform": None,
+        "is_monotonic": True,
+        # SQLite renders a timestamp with ``timespec="seconds"``.
+        "literal_resolution": "second",
+        "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
+    }
+
+
+def test_there_is_no_mapping_summary_without_a_partition_column(
+    app: Flask,
+) -> None:
+    table = _table()
+    table.partition_column = None
+
+    with app.app_context():
+        assert table.data["partition_filter_mapping"] is None
+
+
+@pytest.mark.parametrize("field", DATASET_FIELDS)
+def test_put_schema_accepts_the_dataset_fields(field: str) -> None:
+    loaded = DatasetPutSchema().load({field: "dt_epoch"})
+    assert loaded[field] == "dt_epoch"
+
+
+def test_put_schema_accepts_the_column_fields() -> None:
+    loaded = DatasetColumnsPutSchema().load(
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": True,
+        }
+    )
+    assert loaded["partition_value_transform"] == "unix_timestamp(:value)"
+    assert loaded["partition_transform_is_monotonic"] is True
+
+
+def test_put_schema_leaves_out_a_monotonic_flag_the_payload_omits() -> None:
+    """
+    `DatasetDAO.update_columns` applies the loaded payload field by field onto
+    the stored column, so a default here would let a partial column update clear
+    a monotonic flag the request never mentioned -- and silently stop mirroring
+    range filters. Contrast `ImportV1ColumnSchema`, which does default it.
+    """
+    loaded = DatasetColumnsPutSchema().load({"column_name": "event_time"})
+    assert "partition_transform_is_monotonic" not in loaded
+
+
+def test_put_schema_allows_clearing_the_mapping() -> None:
+    """Removing a mapping is a null, not an omission."""
+    loaded = DatasetPutSchema().load({"partition_column": None})
+    assert loaded["partition_column"] is None
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [DatasetColumnsPutSchema, ImportV1ColumnSchema],
+    ids=["put", "import"],
+)
+def test_a_transform_longer_than_the_bound_is_rejected(schema: Any) -> None:
+    """
+    `is_transform_active` parses the stored transform on every Explore load, so
+    an unbounded string would make that parse the expensive part of rendering a
+    chart. Every door into the field enforces the same bound.
+    """
+    with pytest.raises(ValidationError) as excinfo:
+        schema().load(
+            {
+                "column_name": "event_time",
+                "partition_value_transform": "x" * (MAX_TRANSFORM_LENGTH + 1),
+            }
+        )
+
+    assert "partition_value_transform" in excinfo.value.messages
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [DatasetColumnsPutSchema, ImportV1ColumnSchema],
+    ids=["put", "import"],
+)
+def test_a_transform_at_the_bound_is_accepted(schema: Any) -> None:
+    transform = "x" * MAX_TRANSFORM_LENGTH
+    loaded = schema().load(
+        {"column_name": "event_time", "partition_value_transform": transform}
+    )
+    assert loaded["partition_value_transform"] == transform
+
+
+def test_import_schema_round_trips_the_mapping() -> None:
+    loaded = ImportV1DatasetSchema().load(
+        {
+            "table_name": "web_events",
+            "uuid": "00000000-0000-0000-0000-000000000001",
+            "database_uuid": "00000000-0000-0000-0000-000000000002",
+            "version": "1.0.0",
+            "partition_column": "dt_epoch",
+            "partition_mapped_column": "event_time",
+        }
+    )
+    assert loaded["partition_column"] == "dt_epoch"
+    assert loaded["partition_mapped_column"] == "event_time"
+
+
+def test_import_column_schema_round_trips_the_transform() -> None:
+    loaded = ImportV1ColumnSchema().load(
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": True,
+        }
+    )
+    assert loaded["partition_value_transform"] == "unix_timestamp(:value)"
+    assert loaded["partition_transform_is_monotonic"] is True
+
+
+def test_import_column_schema_defaults_the_monotonic_flag_to_false() -> None:
+    """
+    The flag gates range mirroring. A dataset imported from a bundle that
+    predates the field must not silently claim its transform preserves ordering.
+    """
+    loaded = ImportV1ColumnSchema().load({"column_name": "event_time"})
+    assert loaded["partition_transform_is_monotonic"] is False
+
+
+def test_import_column_schema_accepts_the_null_the_export_emits() -> None:
+    """
+    The column is nullable on purpose -- the legacy datasource editor writes
+    NULL for every field its payload omits -- and export emits each field
+    unconditionally, so an untouched export of such a dataset carries an
+    explicit null. Refusing it here makes the dataset unimportable, which is to
+    say it makes the export worthless.
+    """
+    loaded = ImportV1ColumnSchema().load(
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": None,
+        }
+    )
+    assert loaded["partition_transform_is_monotonic"] is None
+    # Both readers coerce, so a loaded null is "does not preserve ordering"
+    # rather than a third state the operator matrix would have to reason about.
+    assert bool(loaded["partition_transform_is_monotonic"]) is False
+
+
+def test_a_null_monotonic_flag_survives_the_export_import_round_trip() -> None:
+    """
+    The pairing that shipped broken: the PUT schema accepts a null, the model
+    stores it, export writes it out, and import used to reject the file it had
+    just produced.
+    """
+    put_loaded = DatasetColumnsPutSchema().load(
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": None,
+        }
+    )
+    column = TableColumn(column_name="event_time")
+    for key, value in put_loaded.items():
+        setattr(column, key, value)
+    assert column.partition_transform_is_monotonic is None
+
+    exported = {
+        "column_name": column.column_name,
+        "partition_value_transform": column.partition_value_transform,
+        "partition_transform_is_monotonic": column.partition_transform_is_monotonic,
+    }
+    reloaded = ImportV1ColumnSchema().load(exported)
+    assert reloaded["partition_value_transform"] == "unix_timestamp(:value)"
+
+
+@pytest.mark.parametrize("field", DATASET_FIELDS)
+def test_the_api_exposes_and_accepts_the_dataset_fields(field: str) -> None:
+    from superset.datasets.api import DatasetRestApi
+
+    assert field in DatasetRestApi.show_select_columns
+    assert field in DatasetRestApi.edit_columns
+
+
+# ---------------------------------------------------------------------------
+# §10 — a column sync can pull the partition column out from under the mapping
+# ---------------------------------------------------------------------------
+
+
+def test_a_sync_that_removes_the_partition_column_clears_the_mapping() -> None:
+    """
+    An API-driven ``override_columns=true`` sync must not leave a dangling
+    mapping. This is the authoritative path -- the client-side sync clears the
+    mapping too, but a caller can bypass the editor entirely.
+    """
+    from superset.daos.dataset import DatasetDAO
+
+    table = _table()
+    DatasetDAO.clear_dangling_partition_mapping(table, {"event_time"})
+
+    assert table.partition_column is None
+    assert table.partition_mapped_column is None
+
+
+def test_a_sync_that_removes_the_mapped_column_clears_only_the_override() -> None:
+    """
+    The partition column is still real, so the designation survives; the mapping
+    falls back to "no mapped column" and goes inactive until one is chosen.
+    """
+    from superset.daos.dataset import DatasetDAO
+
+    table = _table()
+    table.partition_mapped_column = "event_time"
+
+    DatasetDAO.clear_dangling_partition_mapping(table, {"dt_epoch"})
+
+    assert table.partition_column == "dt_epoch"
+    assert table.partition_mapped_column is None
+
+
+def test_a_sync_that_keeps_both_columns_leaves_the_mapping_alone() -> None:
+    from superset.daos.dataset import DatasetDAO
+
+    table = _table()
+    DatasetDAO.clear_dangling_partition_mapping(table, {"event_time", "dt_epoch"})
+
+    assert table.partition_column == "dt_epoch"
+
+
+@pytest.mark.parametrize("field", COLUMN_FIELDS)
+def test_column_fields_tolerate_a_null_write(field: str) -> None:
+    """
+    The legacy datasource editor saves through `update_from_object`, which does
+    `setattr(self, attr, obj.get(attr))` for every field in
+    `update_from_object_fields` -- so any field its payload omits is written as
+    NULL. A NOT NULL column here makes that save fail with an IntegrityError
+    (surfacing as a 422), which is how this was found.
+    """
+    column = TableColumn.__table__.columns[field]
+    assert column.nullable, f"{field} must be nullable for the legacy save path"
+
+
+@pytest.mark.parametrize("field", DATASET_FIELDS)
+def test_dataset_fields_tolerate_a_null_write(field: str) -> None:
+    assert SqlaTable.__table__.columns[field].nullable
+
+
+@pytest.mark.parametrize("field", DATASET_FIELDS)
+def test_dataset_fields_are_readable_over_the_api(field: str) -> None:
+    """
+    The editor loads the dataset over the REST API, so a field the API does not
+    serialize reads back as empty -- and the next save writes that emptiness in.
+    """
+    from superset.datasets.api import DatasetRestApi
+
+    assert field in DatasetRestApi.show_columns
+
+
+@pytest.mark.parametrize("field", COLUMN_FIELDS)
+def test_column_fields_are_readable_over_the_api(field: str) -> None:
+    """
+    Related-model fields have to appear in `show_columns`, not only in
+    `show_select_columns`: the latter drives the query, the former drives what
+    is serialized. `columns.advanced_data_type` is listed in both for exactly
+    this reason.
+    """
+    from superset.datasets.api import DatasetRestApi
+
+    assert f"columns.{field}" in DatasetRestApi.show_columns
+
+
+def test_the_engine_transform_default_is_readable_over_the_api() -> None:
+    """The editor pre-fills from this; unexposed, it silently never pre-fills."""
+    from superset.datasets.api import DatasetRestApi
+
+    assert "partition_value_transform_default" in DatasetRestApi.show_columns
+
+
+def test_the_show_endpoint_exposes_the_mapping_summary() -> None:
+    """
+    Saving a dataset from Explore reloads `GET /api/v1/dataset/<pk>` and
+    replaces the chart's datasource with the response -- a replacement, not a
+    merge -- so a summary this payload omits is lost on an unrelated save and
+    the pruning glyphs vanish until the page is reloaded.
+    """
+    from superset.datasets.api import DatasetRestApi
+
+    assert "partition_filter_mapping" in DatasetRestApi.show_columns
+
+
+def test_the_summary_is_reachable_under_the_name_the_payload_uses() -> None:
+    """
+    FAB resolves a `show_columns` entry as an attribute name, and the key the
+    indicator reads is `partition_filter_mapping` -- the editor spreads the
+    result straight onto the datasource, so the two have to be one name.
+    """
+    assert hasattr(SqlaTable, "partition_filter_mapping")
+
+
+def test_the_summary_alias_and_the_property_agree(app: Flask) -> None:
+    table = _table()
+
+    with app.app_context():
+        assert table.partition_filter_mapping == table.partition_filter_mapping_summary
+        assert table.partition_filter_mapping is not None
+
+
+def test_the_mapping_summary_is_gated_on_the_feature_flag(app: Flask) -> None:
+    """
+    With the flag off nothing is mirrored, so an "active" summary would have the
+    Explore indicator promise a predicate the query never carries -- worse than
+    showing nothing at all.
+    """
+    table = _table()
+
+    with app.app_context():
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = False
+        assert table.partition_filter_mapping_summary is None
+
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+        summary = table.partition_filter_mapping_summary
+
+    assert summary is not None
+    assert summary["active"] is True

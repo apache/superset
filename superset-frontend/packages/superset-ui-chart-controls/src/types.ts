@@ -98,12 +98,46 @@ export interface Dataset {
   database?: Record<string, unknown>;
   normalize_columns?: boolean;
   always_filter_main_dttm?: boolean;
+  partition_column?: string | null;
+  partition_mapped_column?: string | null;
+  // Self-contained summary for the partition pruning indicator. Kept separate
+  // from `columns` because the dashboard payload prunes columns no chart
+  // references, and the partition column is typically referenced by none.
+  partition_filter_mapping?: PartitionFilterMapping | null;
   extra?: object | string;
   /**
    * Stable string values of the features a semantic view's provider declares.
    * Only present for semantic views; absent elsewhere.
    */
   semantic_view_features?: string[];
+}
+
+export interface PartitionFilterMapping {
+  partition_column: string;
+  mapped_column: string | null;
+  active: boolean;
+  /**
+   * Whether the last probe of this transform produced a mirror. `active` is a
+   * parse, which a misspelled function clears happily, so this is the weaker
+   * claim that only the engine can answer. `null`/absent means nothing has
+   * probed yet -- honest on a cold cache, and deliberately not `false`.
+   */
+  evaluable?: boolean | null;
+  /** Whether the owner declared the value transform order-preserving. */
+  is_monotonic: boolean;
+  /**
+   * Backend `FilterOperator` values (`==`, `IN`, `TEMPORAL_RANGE`, ...) whose
+   * predicates this mapping mirrors. Computed server-side from
+   * `is_monotonic` so the operator matrix lives in one place.
+   */
+  mirrorable_operators: string[];
+  /**
+   * How much of a filter's value this engine compares on the mapped column.
+   * `day` means a `DATE`-typed column whose comparison drops the time of day,
+   * so an `=` or `IN` carrying one is declined server-side -- see
+   * `hasMirrorableValue`.
+   */
+  literal_resolution?: 'full' | 'second' | 'day';
 }
 
 export interface ControlPanelState {
@@ -271,6 +305,16 @@ export interface BaseControlConfig<
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
   error?: ReactNode;
+  /**
+   * Names of *other* controls whose value this control's validation or
+   * `mapStateToProps` depends on. When one of them changes, the explore reducer
+   * rebuilds this control against the new form data.
+   *
+   * A control must not name itself: the rebuild reuses the value held before
+   * the action, so a self-naming control overwrites the value that action just
+   * set. Use `shouldMapStateToProps` to recompute a control's own props.
+   */
+  validationDependencies?: string[];
   /**
    * Add additional props to chart control.
    */
