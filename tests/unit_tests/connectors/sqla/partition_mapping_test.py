@@ -1183,6 +1183,45 @@ def test_the_probe_reads_the_from_suffix_off_the_engine_spec(
     assert probe_sql_is_evaluable(sql, spec.engine, 1, suffix) is True
 
 
+@pytest.mark.parametrize(
+    ("transform", "expected"),
+    [
+        (":value || ':suffix'", "SELECT 'us' || ':suffix' AS v0"),
+        ("concat(:value, ':x')", "SELECT concat('us', ':x') AS v0"),
+        ("replace(:value, ':a', ':b')", "SELECT replace('us', ':a', ':b') AS v0"),
+        # The separator shape, which is the ordinary reason to write one.
+        ("concat(:value, ':', 'x')", "SELECT concat('us', ':', 'x') AS v0"),
+        # A time format carries two.
+        (
+            "to_char(:value, 'HH24:MI:SS')",
+            "SELECT to_char('us', 'HH24:MI:SS') AS v0",
+        ),
+        # And the placeholder itself still binds.
+        ("lower(:value)", "SELECT lower('us') AS v0"),
+    ],
+)
+def test_a_colon_in_a_literal_is_not_read_as_a_bind(
+    transform: str, expected: str
+) -> None:
+    """
+    `text()` reads any `:word` as a bind parameter, including inside a string
+    literal, and an unbound one renders as `NULL` under literal binds rather
+    than raising. So `:value || ':suffix'` compiled to `'us' || 'NULL'`: the
+    mirror asked for a partition value no row holds and the chart dropped
+    rows, with no error for `_probe` to swallow.
+    """
+    assert build_probe_sql(transform, ["us"]) == expected
+
+
+def test_a_colon_literal_survives_the_unbindable_path_too() -> None:
+    """
+    The other branch substitutes textually through `parse_skeleton` and never
+    hands the transform to `text()`, so it was never affected -- pinned so the
+    escaping added for the bound path cannot leak into it as a stray backslash.
+    """
+    assert build_probe_sql(":value::bigint", [7]) == "SELECT 7::bigint AS v0"
+
+
 @pytest.mark.parametrize("dialect", [mysql.dialect(), postgresql.dialect()])
 def test_the_probe_select_does_not_double_percent_signs(dialect: Any) -> None:
     """

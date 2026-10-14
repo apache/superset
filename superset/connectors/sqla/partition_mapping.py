@@ -1462,6 +1462,36 @@ def _placeholder_is_bindable(transform: str) -> bool:
     return True
 
 
+def escape_foreign_colons(transform: str) -> str:
+    """
+    ``transform`` with every colon but the ``:value`` placeholder escaped.
+
+    `sqlalchemy.text` reads any ``:word`` as a bind parameter, including one
+    inside a string literal, and an unbound parameter renders as ``NULL``
+    under literal binds rather than raising. So ``:value || \':suffix\'``
+    compiled to ``'us' || 'NULL'``: the mirror asked for a partition value no
+    row holds and the chart dropped rows, with no error for `_probe` to
+    swallow and nothing on screen to say so.
+
+    Escaped rather than refused, because a colon in a literal is ordinary --
+    ``concat(:value, \':\', region)`` builds a composite key -- and the
+    placeholder is the only colon this module means to interpret. `text()`
+    reads ``\\:`` as a literal colon.
+
+    Only the bound path needs this. A `RawProbeValue` or an unbindable
+    placeholder is substituted as text by `parse_skeleton`, which never hands
+    the transform to `text()` at all.
+    """
+    pieces: list[str] = []
+    cursor = 0
+    for match in VALUE_PLACEHOLDER_RE.finditer(transform):
+        pieces.append(transform[cursor : match.start()].replace(":", r"\:"))
+        pieces.append(match.group(0))
+        cursor = match.end()
+    pieces.append(transform[cursor:].replace(":", r"\:"))
+    return "".join(pieces)
+
+
 def build_probe_sql(
     transform: str,
     values: list[Any],
@@ -1498,7 +1528,12 @@ def build_probe_sql(
             # and would undouble percent signs the owner typed on purpose.
             rendered = parse_skeleton(transform, value.sql)
         elif bindable:
-            clause = sa.text(transform).bindparams(sa.bindparam("value", value=value))
+            # Every other colon escaped first: `text()` would read one inside a
+            # string literal as a second bind parameter and render it `NULL`.
+            # See `escape_foreign_colons`.
+            clause = sa.text(escape_foreign_colons(transform)).bindparams(
+                sa.bindparam("value", value=value)
+            )
             rendered = _compile_literal(clause, dialect)
         else:
             # `text()` cannot see the placeholder (see
