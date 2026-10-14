@@ -186,7 +186,28 @@ Inverse-selection configurations are rejected.
 Select filters configured for contains, starts-with, or ends-with matching are
 rejected rather than silently applying exact matching. A single-select filter
 accepts at most one value; a longer list is rejected rather than stored as a
-selection the control cannot render. Clearing a required select
+selection the control cannot render.
+Select values are checked against the target column's distinct values under the
+caller's dataset permissions and row-level security. Exact values are preserved;
+a unique match ignoring case and whitespace uses the stored column value.
+Missing values fail without creating a permalink, with bounded suggestions.
+Ambiguous values and normalized matches whose uniqueness cannot be established
+fail with exact alternatives, preserving their spelling and JSON type.
+Lookups respect `FILTER_SELECT_ROW_LIMIT` and `SQL_MAX_ROW`. On a truncated
+column, bounded containment searches check text values beyond the first page,
+with at most ten search-query attempts per filter (including failed attempts).
+Values needing additional searches are kept unchanged. A nonpositive effective
+row limit disables validation rather than issuing an unlimited query.
+Absence from another truncated page is not proof that a value is invalid. Values
+that cannot be verified (including query failures, unreadable datasets, native
+numbers/booleans, non-text columns, or non-ASCII text beyond a truncated page)
+are applied unchanged, not certified as present. Clearing a selection does not
+query the column. An active MCP dashboard scope, including a time range alone,
+does not disable select-value validation: absence from the whole RLS-visible
+column also proves absence from any scoped subset. Errors omit suggestions and
+exact alternatives while scope restricts rows, since column options are not
+queried within the active dashboard view. A known column value does not guarantee
+matching rows in that view. Clearing a required select
 filter with `values: []` matches no rows, including when opening the returned
 permalink; an explicit clear does not restore its saved default.
 
@@ -1444,7 +1465,8 @@ while True:
 - **Per-user and live**: every call reads through the same DAO visibility filters as the matching list tool, as the calling user. Nothing is cached or stored, and the tool is always excluded from MCP response caching, so a revoked grant is reflected on the next call. This also applies through the tool-search `call_tool` proxy (including a custom `call_tool_name`): proxy responses are never cached, leaving cache policy to the target tool.
 - **Field allowlist**: each item has only `id`, `uuid`, `name`, `description`, `changed_on`, and `url`. SQL, `extra`, template parameters, metric expressions, and connection details are never read or returned.
 - **Restricted marker**: users without data-model metadata access receive `restricted: true` with no items for `databases` and `datasets`.
-- **Bounded**: `page_size` is at most 100, and each response stays under 32 KiB. Pages use an opaque keyset `next_cursor`, bound to the asset type and search term, that stays stable when assets are added or removed between pages. `truncated: true` means the page ended early to fit the size bound, or a long name or description was shortened.
+- **Bounded**: `page_size` is at most 100, and each response stays under 32 KiB. Pages use an opaque keyset `next_cursor`, bound to the asset type and search term, that stays stable when assets are added or removed between pages. `truncated: true` means byte-bound pagination held entries back, not that fields were shortened; otherwise `truncated` is `false`. Use `next_cursor` as the continuation signal: pass it back as `cursor` to fetch the next page, or stop when it is `null`.
+- **Field shortening**: `fields_shortened: true` means a long name or description was shortened, or a URL longer than 2,048 characters was returned as `null` rather than shortened into an unusable link. It does not mean entries are missing.
 
 ```python
 page = mcp.get_catalog(request={"asset_type": "dashboards", "page_size": 50})
@@ -2158,6 +2180,13 @@ offers this routing guidance without establishing whether a semantic view
 exists or is accessible. Numeric IDs can overlap across source types; do not
 reuse a semantic-view ID as a SQL-dataset ID or substitute another source.
 All tool permissions, feature flags, and datasource access checks still apply.
+
+`get_compatible_metrics` and `get_compatible_dimensions` reject unknown selected
+metric or dimension names with a `ValidationError` naming the invalid fields,
+rather than returning suggestions for a reduced selection. This applies to both
+SQL datasets and external semantic views. Use names returned by discovery,
+not display labels or provider IDs. `get_table` also validates filter names
+before running a query.
 
 `list_datasets` searches table name, **description**, schema, and SQL using
 escaped, case-insensitive substring matching. Write descriptions with business
