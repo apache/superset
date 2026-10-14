@@ -750,6 +750,24 @@ def test_request_endpoint_does_not_hold_the_connection_for_smtp(
     assert delivered == [users["db"].email]
 
 
+def test_request_endpoint_send_outlives_the_worker(
+    recovery_enabled: None,
+    users: dict[str, User],
+    client: Any,
+) -> None:
+    """The send thread is not a daemon, so a worker that exits right after
+    answering (``max_requests``, a graceful restart) waits for the email
+    instead of dropping it; the token and cooldown are already committed."""
+    seen: list[bool] = []
+
+    def record(to: str, subject: str, html_content: str) -> None:
+        seen.append(threading.current_thread().daemon)
+
+    with patch.object(password_recovery, "send_email", side_effect=record):
+        _request(client, users["db"].email)
+    assert seen == [False]
+
+
 def test_request_endpoint_rejects_a_malformed_body(
     recovery_enabled: None, client: Any
 ) -> None:
@@ -807,6 +825,53 @@ def test_reset_endpoint_signs_out_existing_sessions(
         assert response.status_code == 200
 
         assert victim.get("/login/").status_code == 200
+
+
+def test_recovery_stays_reachable_for_a_flagged_session(
+    recovery_enabled: None,
+    users: dict[str, User],
+    sent_emails: list[dict[str, str]],
+    app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A browser still signed in to an account that must change its password
+    can use the recovery pages and endpoints like an anonymous one: recovery
+    is how that change gets made, so the forced-change redirect must not
+    intercept it."""
+    user = users["db"]
+    set_password_must_change(user.id)
+    token = _issue_token(user, sent_emails)
+    _clear_cooldowns()
+    monkeypatch.setitem(app.config, "ENABLE_FORCE_PASSWORD_CHANGE", True)
+
+    client = app.test_client()
+    with patch(
+        "superset.views.auth.BaseSupersetView.render_app_template",
+        return_value="<html></html>",
+    ):
+        with client.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+            session["_fresh"] = True
+            session["_login_at"] = time.time() - 5
+
+        # Enforcement is live for this session.
+        blocked = client.get("/")
+        assert blocked.status_code == 302
+        assert blocked.headers["Location"].endswith("/user_info/")
+
+        for page in ("/login/forgot_password/", "/login/reset_password/"):
+            assert client.get(page).status_code == 200, page
+
+        requested = client.post(REQUEST_URL, json={"email": user.email})
+        _close(requested)
+        assert requested.status_code == 200
+        assert requested.json == {"message": GENERIC_MESSAGE}
+
+        reset = client.post(RESET_URL, json={"token": token, "password": NEW_PASSWORD})
+        assert reset.status_code == 200
+
+    assert not password_change_required(user)
+    assert _password_works(user.username, NEW_PASSWORD)
 
 
 def test_reset_endpoint_rejects_a_weak_password_without_burning_the_token(

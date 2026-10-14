@@ -519,6 +519,13 @@ def _defer_until_response_closed(task: Callable[[], None]) -> None:
     connection, and the worker only takes its next request, once that callback
     returns. Failures are logged, never surfaced: the client has already been
     answered.
+
+    The thread is deliberately not a daemon. By the time it runs, the token and
+    the resend cooldown are committed, so a lost email locks the user out of
+    another link until the cooldown ends. Python waits for non-daemon threads
+    before the process exits, so a worker that stops right after answering
+    (``max_requests``, a graceful restart) finishes the send first, within the
+    server's own shutdown timeout. A worker killed outright still loses it.
     """
     app = current_app._get_current_object()  # pylint: disable=protected-access
 
@@ -533,7 +540,7 @@ def _defer_until_response_closed(task: Callable[[], None]) -> None:
     def _register(response: Response) -> Response:
         response.call_on_close(
             threading.Thread(
-                target=_run, name=RECOVERY_EMAIL_THREAD_NAME, daemon=True
+                target=_run, name=RECOVERY_EMAIL_THREAD_NAME, daemon=False
             ).start
         )
         return response
