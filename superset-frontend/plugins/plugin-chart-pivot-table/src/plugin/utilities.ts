@@ -195,6 +195,15 @@ export function splitGroupingSetsResult(
  * A full-length prefix (the leaf level) is always emitted; when a dimension
  * list is empty, `[]` *is* the full level and is therefore always kept.
  *
+ * The metric pseudo-dimension sits first on the axis chosen by `metricsLayout`
+ * (`[metric, ...dims]`), so on that axis the fully collapsed level is the key
+ * `[metric]`, which the renderer draws as each metric group's "Subtotal" line
+ * (and also reuses as the opposite axis's Total). That level is therefore also
+ * requested by the metric axis's own subtotal toggle (rowSubTotals when metrics
+ * are on rows, colSubTotals when on columns). With `combineMetric` the metric
+ * is the innermost key, no such subtotal is drawn, and the level is not
+ * requested for it.
+ *
  * A "% of row/column/grand total" `showValuesAs` selection needs its
  * denominator level even when the corresponding Total/subtotal display
  * toggle is off (that toggle only controls whether the totals row/column is
@@ -229,15 +238,28 @@ export default function buildGroupbyCombinations(
     formData.showValuesAs === ShowValuesAsEnum.PERCENT_OF_ROW ||
     formData.showValuesAs === ShowValuesAsEnum.PERCENT_OF_TOTAL;
 
+  // The collapsed level on the metric axis is the `[metric]` key, drawn as a
+  // per-metric Subtotal line. Not applicable when metrics are combined.
+  const metricsOnRows = formData.metricsLayout === MetricsLayoutEnum.ROWS;
+  const needsMetricRowSubtotal =
+    !formData.combineMetric && !!formData.rowSubTotals && metricsOnRows;
+  const needsMetricColSubtotal =
+    !formData.combineMetric && !!formData.colSubTotals && !metricsOnRows;
+
   const rowPrefixNeeded = (prefix: QueryFormColumn[]): boolean => {
     if (prefix.length === rows.length) return true; // leaf / full level
-    if (prefix.length === 0) return !!formData.colTotals || needsRowsCollapsed; // bottom Total row
+    if (prefix.length === 0)
+      return (
+        !!formData.colTotals || needsRowsCollapsed || needsMetricRowSubtotal
+      ); // bottom Total row, or the metric group Subtotal line
     return !!formData.rowSubTotals; // row subtotal
   };
   const colPrefixNeeded = (prefix: QueryFormColumn[]): boolean => {
     if (prefix.length === columns.length) return true; // leaf / full level
     if (prefix.length === 0)
-      return !!formData.rowTotals || needsColumnsCollapsed; // right Total column
+      return (
+        !!formData.rowTotals || needsColumnsCollapsed || needsMetricColSubtotal
+      ); // right Total column, or the metric group Subtotal line
     return !!formData.colSubTotals; // column subtotal
   };
 
