@@ -16,8 +16,10 @@
 # under the License.
 import inspect
 
+import pytest
 from pandas import DataFrame
 
+from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing import (
     escape_separator,
     pivot,
@@ -188,6 +190,33 @@ def test_append_columns_with_empty_mapping_returns_a_copy():
     assert post_df is not base_df
     assert post_df.columns.tolist() == ["y"]
     assert series_to_list(post_df["y"]) == [1.0, 2.0]
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [
+        pytest.param({"y": "z", "z": "z"}, id="target already in base_df"),
+        pytest.param({"y": "w", "z": "w"}, id="target not in base_df"),
+    ],
+)
+def test_append_columns_rejects_two_sources_mapped_to_one_target(columns):
+    """
+    Two sources cannot both be written to one target.
+
+    Splitting the mapping by whether the target exists sends this case down
+    either half, and neither can serve it: the in-place write is handed a
+    duplicate label, which pandas refuses with `ValueError: Setting with
+    non-unique columns is not allowed`, and the append goes through `pd.concat`,
+    which returns the target label twice. Reporting it as an invalid request
+    instead keeps the chart data response a 400 rather than a 500, and the two
+    geography callers wrap `ValueError` in a message about the source string,
+    which would name the wrong cause.
+    """
+    base_df = DataFrame({"y": [1.0, 2.0], "z": [3.0, 4.0]})
+    append_df = DataFrame({"y": [10.0, 20.0], "z": [30.0, 40.0]})
+
+    with pytest.raises(InvalidPostProcessingError, match="same target"):
+        _append_columns(base_df, append_df, columns)
 
 
 def test_scalar_to_sequence() -> None:

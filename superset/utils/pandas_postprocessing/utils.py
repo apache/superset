@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections import Counter
 from collections.abc import Sequence
 from functools import partial, wraps
 from typing import Any, Callable
@@ -257,6 +258,21 @@ def _append_columns(
         # Nothing to combine, but still hand back a new DataFrame so that a
         # caller which mutates the result does not reach `base_df`.
         return base_df.copy()
+
+    # Two sources cannot both be written to one target. Rejecting that up front
+    # keeps the in-place write below from being handed a duplicate label, which
+    # pandas refuses, and keeps the append half from quietly returning a frame
+    # that carries the target label twice.
+    duplicate_targets = sorted(
+        {target for target, count in Counter(columns.values()).items() if count > 1}
+    )
+    if duplicate_targets:
+        raise InvalidPostProcessingError(
+            _(
+                "Columns mapped to the same target: %(columns)s",
+                columns=", ".join(duplicate_targets),
+            )
+        )
 
     appended = {
         key: value
