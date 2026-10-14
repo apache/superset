@@ -3154,6 +3154,56 @@ def test_get_sqla_query_in_filter_without_value_raises_validation_error(
         )
 
 
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "ip", "op": "IN"}, id="in-missing-val"),
+        pytest.param({"col": "ip", "op": "NOT IN"}, id="not-in-missing-val"),
+        pytest.param({"col": "ip", "op": "IN", "val": None}, id="in-val-none"),
+        pytest.param({"col": "ip", "op": "NOT IN", "val": None}, id="not-in-val-none"),
+    ],
+)
+def test_get_sqla_query_in_filter_without_value_advanced_data_type(
+    mocker: MockerFixture,
+    database: Database,
+    flt: dict[str, Any],
+) -> None:
+    """
+    With ENABLE_ADVANCED_DATA_TYPES on, an IN / NOT IN filter with no value on an
+    advanced-data-type column must raise a QueryObjectValidationError rather than
+    passing ``None`` to ``translate_type`` (a TypeError, i.e. a 500).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    mocker.patch(
+        "superset.models.helpers.feature_flag_manager.is_feature_enabled",
+        side_effect=lambda feature: feature == "ENABLE_ADVANCED_DATA_TYPES",
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(
+                column_name="ip",
+                type="VARCHAR(255)",
+                advanced_data_type="internet_address",
+            ),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="ip"):
+        table.get_sqla_query(
+            columns=["ip"],
+            filter=[flt],  # type: ignore[list-item]
+            extras={},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+
 @pytest.mark.parametrize("op", ["IN", "NOT IN"])
 def test_get_sqla_query_in_filter_with_value_builds_query(
     database: Database,
