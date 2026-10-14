@@ -595,3 +595,100 @@ def test_factory_server_respects_structured_output_setting(enabled: bool) -> Non
         assert middleware == [*core_middleware, custom_middleware]
     finally:
         os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+@pytest.mark.parametrize("use_factory_config", [False, True])
+@pytest.mark.parametrize(
+    ("flask_config", "expected"),
+    [
+        # Compatibility mode (the default) serves search results instead.
+        ({}, None),
+        (
+            {"MCP_NATIVE_TOOL_LIST_CONFIG": {"compact": True}},
+            None,
+        ),
+        # Native mode passes the configured listing settings through.
+        (
+            {"MCP_TOOL_SEARCH_CONFIG": {"enabled": False}},
+            {"compact": False, "max_description_length": 300},
+        ),
+        (
+            {
+                "MCP_TOOL_SEARCH_CONFIG": {"enabled": False},
+                "MCP_NATIVE_TOOL_LIST_CONFIG": {
+                    "compact": True,
+                    "max_description_length": 500,
+                },
+            },
+            {"compact": True, "max_description_length": 500},
+        ),
+    ],
+)
+def test_run_server_applies_native_list_config_only_in_native_mode(
+    flask_config: dict[str, Any],
+    expected: dict[str, Any] | None,
+    use_factory_config: bool,
+) -> None:
+    """The compact listing setting reaches the native server only."""
+    from superset.mcp_service import server
+    from superset.mcp_service.server import run_server
+
+    port = 59905
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    try:
+        with (
+            _run_server_dependencies(flask_config=flask_config) as (
+                mcp_instance,
+                _mock_build_middleware_list,
+            ),
+            patch.object(server, "get_mcp_factory_config", return_value={}),
+            patch.object(server, "create_mcp_app", return_value=mcp_instance),
+            patch("superset.mcp_service.session_scope.install_mcp_session_scoping"),
+            patch.object(server, "_apply_tool_search_transform") as search,
+            patch.object(server, "_apply_compact_tool_list_transform") as compact,
+        ):
+            run_server(
+                host="127.0.0.1", port=port, use_factory_config=use_factory_config
+            )
+
+        if expected is None:
+            search.assert_called_once_with(
+                mcp_instance,
+                flask_config.get(
+                    "MCP_TOOL_SEARCH_CONFIG", server.MCP_TOOL_SEARCH_CONFIG
+                ),
+            )
+            compact.assert_not_called()
+        else:
+            search.assert_not_called()
+            compact.assert_called_once_with(mcp_instance, expected)
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+def test_authlib_jose_deprecation_warning_suppressed_at_package_init():
+    """authlib.jose's warning stays silent when imported after the package.
+
+    authlib.deprecate installs ``simplefilter("always", ...)`` on first import,
+    which would override an earlier ``ignore`` filter. Run in a fresh
+    interpreter so that import order is the one production sees.
+    """
+    import subprocess
+    import sys
+
+    authlib = pytest.importorskip("authlib")
+    # The module-level deprecation warning only exists in authlib >= 1.7.
+    if tuple(int(x) for x in authlib.__version__.split(".")[:2]) < (1, 7):
+        pytest.skip("authlib.jose does not warn before authlib 1.7")
+    result = subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            "-c",
+            "import superset.mcp_service; import authlib.jose",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "AuthlibDeprecationWarning" not in result.stderr, result.stderr

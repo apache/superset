@@ -40,7 +40,7 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     DatabaseCategory,
 )
-from superset.db_engine_specs.hive import HiveEngineSpec
+from superset.db_engine_specs.hive import HiveEngineSpec, SparkSqlBooleanEqualityMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error
 from superset.utils import json
@@ -250,7 +250,9 @@ time_grain_expressions: dict[str | None, str] = {
 }
 
 
-class DatabricksBaseEngineSpec(BaseEngineSpec):
+class DatabricksBaseEngineSpec(SparkSqlBooleanEqualityMixin, BaseEngineSpec):
+    """Base engine specification for Databricks flavors and connection methods."""
+
     _time_grain_expressions = time_grain_expressions
 
     # Databricks SQL is Spark SQL under the hood: identifiers are quoted with
@@ -1144,7 +1146,7 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
 # ambiguous-driver fallback in `get_engine_spec` picks the first backend-matching
 # spec by definition order, and this spec's inherited `HiveEngineSpec.execute()`
 # crashes on the `databricks.sql.client.Cursor` used by unrecognized-driver URIs.
-class DatabricksHiveEngineSpec(HiveEngineSpec):
+class DatabricksHiveEngineSpec(SparkSqlBooleanEqualityMixin, HiveEngineSpec):
     """Databricks engine spec using Hive connector for Interactive Clusters."""
 
     engine_name = "Databricks Interactive Cluster"
