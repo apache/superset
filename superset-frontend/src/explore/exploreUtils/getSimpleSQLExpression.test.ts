@@ -17,7 +17,7 @@
  * under the License.
  */
 import { cleanup } from 'spec/helpers/testing-library';
-import { EMPTY_STRING, NULL_STRING } from 'src/utils/common';
+import { EMPTY_STRING, NULL_STRING } from '@superset-ui/core';
 import { getSimpleSQLExpression } from '.';
 import { Operators } from '../constants';
 

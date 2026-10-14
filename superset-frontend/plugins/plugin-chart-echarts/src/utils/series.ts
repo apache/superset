@@ -25,9 +25,11 @@ import {
   DataRecordValue,
   DTTM_ALIAS,
   ensureIsArray,
+  getConstantLabel,
   isTimeseriesAnnotationLayer,
   LegendState,
   normalizeTimestamp,
+  NULL_STRING,
   NumberFormats,
   NumberFormatter,
   TimeFormatter,
@@ -41,7 +43,6 @@ import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
 import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
 import {
-  NULL_STRING,
   ONE_DAY_MS,
   StackControlsValue,
   TIMEGRAIN_TO_TIMESTAMP,
@@ -730,7 +731,7 @@ export function extractSeries(
     });
     normalized[xAxis] =
       datum[xAxis] === null && xAxisType === AxisType.Category
-        ? NULL_STRING
+        ? getConstantLabel(NULL_STRING)
         : normalized[xAxis];
     return normalized;
   });
@@ -819,7 +820,7 @@ export function formatSeriesName(
   } = {},
 ): string {
   if (name === undefined || name === null) {
-    return NULL_STRING;
+    return getConstantLabel(NULL_STRING);
   }
   if (typeof name === 'boolean' || typeof name === 'bigint') {
     return name.toString();

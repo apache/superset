@@ -18,21 +18,16 @@
  */
 import {
   SupersetClient,
+  getConstantLabel,
   getTimeFormatter,
+  EMPTY_STRING,
+  FALSE_STRING,
+  NULL_STRING,
+  TRUE_STRING,
   TimeFormats,
   ensureIsArray,
   JsonObject,
 } from '@superset-ui/core';
-
-// ATTENTION: If you change any constants, make sure to also change constants.py
-
-export const EMPTY_STRING = '<empty string>';
-// Keep in sync with EMPTY_FILTER_SQL_EXPRESSION in superset/constants.py.
-export const EMPTY_FILTER_SQL_EXPRESSION = '1 = 0';
-
-export const NULL_STRING = '<NULL>';
-export const TRUE_STRING = 'TRUE';
-export const FALSE_STRING = 'FALSE';
 
 // dayjs time format strings
 export const SHORT_DATE = 'MMM D, YYYY';
@@ -68,16 +63,16 @@ export function storeQuery(query: JsonObject): Promise<string> {
 
 export function optionLabel(opt: OptionValue): string {
   if (opt === null) {
-    return NULL_STRING;
+    return getConstantLabel(NULL_STRING);
   }
   if (opt === '') {
-    return EMPTY_STRING;
+    return getConstantLabel(EMPTY_STRING);
   }
   if (opt === true) {
-    return TRUE_STRING;
+    return getConstantLabel(TRUE_STRING);
   }
   if (opt === false) {
-    return FALSE_STRING;
+    return getConstantLabel(FALSE_STRING);
   }
   if (typeof opt !== 'string' && typeof opt === 'number') {
     return opt.toString();

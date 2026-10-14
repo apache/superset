@@ -18,10 +18,13 @@
  */
 
 import {
+  FALSE_STRING,
   getNumberFormatter,
   getTimeFormatter,
+  NULL_STRING,
   NumberFormats,
   TimeFormats,
+  TRUE_STRING,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -29,7 +32,6 @@ import {
   getRangeExtraFormData,
   getSelectExtraFormData,
 } from 'src/filters/utils';
-import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Filter utils', () => {

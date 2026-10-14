@@ -22,6 +22,7 @@ import {
   DataRecord,
   getNumberFormatter,
   getTimeFormatter,
+  NULL_STRING,
   TimeGranularity,
 } from '@superset-ui/core';
 import { supersetTheme as theme } from '@apache-superset/core/theme';
@@ -59,7 +60,6 @@ import {
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import {
-  NULL_STRING,
   ONE_DAY_MS,
   StackControlsValue,
   TIMEGRAIN_TO_TIMESTAMP,

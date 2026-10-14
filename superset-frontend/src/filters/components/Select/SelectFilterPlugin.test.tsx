@@ -23,6 +23,7 @@ import {
   ChartProps,
   type DataMask,
   type FilterState,
+  NULL_STRING,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
@@ -33,7 +34,6 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { NULL_STRING } from 'src/utils/common';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';

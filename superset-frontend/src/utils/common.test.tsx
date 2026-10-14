@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { NULL_STRING, TRUE_STRING, FALSE_STRING } from '@superset-ui/core';
 import {
   applyFormattingToTabularData,
   optionFromValue,
   prepareCopyToClipboardTabularData,
-  NULL_STRING,
-  TRUE_STRING,
-  FALSE_STRING,
   TabularDataRow,
   ColumnDefinition,
 } from 'src/utils/common';

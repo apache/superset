@@ -25,7 +25,7 @@ test('should return NULL for null cell data', () => {
     useCellContentParser({ columnKeys: [], expandedColumns: [] }),
   );
   const parser = result.current;
-  expect(parser({ cellData: null, columnKey: '' })).toBe('NULL');
+  expect(parser({ cellData: null, columnKey: '' })).toBe('<NULL>');
 });
 
 test('should return truncated string for complex columns', () => {

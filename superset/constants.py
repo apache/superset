@@ -21,12 +21,30 @@
 from collections.abc import Iterable
 from enum import Enum
 
+from superset.translations.utils import N_
 from superset.utils.backports import StrEnum
 
 DEFAULT_USER_AGENT = "Apache Superset"
 
-NULL_STRING = "<NULL>"
-EMPTY_STRING = "<empty string>"
+# Shared (back/front) constants registry.
+# Keep in sync with @superset-ui/core/src/utils/sharedConstants.ts.
+
+EMPTY_STRING = N_("<empty string>")
+FALSE_STRING = N_("FALSE")
+NULL_STRING = N_("<NULL>")
+TRUE_STRING = N_("TRUE")
+
+# select-filter masks and dataMask hydration use this exact predicate to recognize
+# an explicit clear.
+EMPTY_FILTER_SQL_EXPRESSION = "1 = 0"
+
+# Structure: {CONSTANT_NAME: is_label}
+SHARED_CONSTANT_LABELS: set[str] = {
+    EMPTY_STRING,
+    FALSE_STRING,
+    NULL_STRING,
+    TRUE_STRING,
+}
 
 CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"  # noqa: S105
 CHANGE_ME_GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
@@ -49,10 +67,6 @@ EPOCH_FORMATS: dict[str, int] = {
 }
 
 NO_TIME_RANGE = "No filter"
-
-# Keep in sync with superset-frontend/src/utils/common.ts; select-filter masks
-# and dataMask hydration use this exact predicate to recognize an explicit clear.
-EMPTY_FILTER_SQL_EXPRESSION = "1 = 0"
 
 QUERY_CANCEL_KEY = "cancel_query"
 QUERY_EARLY_CANCEL_KEY = "early_cancel_query"

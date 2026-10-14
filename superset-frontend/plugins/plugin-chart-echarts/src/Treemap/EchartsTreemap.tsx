@@ -19,13 +19,14 @@
 import {
   DataRecordValue,
   BinaryQueryObjectFilterClause,
+  getConstantLabel,
   getTimeFormatter,
   getColumnLabel,
   getNumberFormatter,
+  NULL_STRING,
 } from '@superset-ui/core';
 import { useCallback } from 'react';
 import Echart from '../components/Echart';
-import { NULL_STRING } from '../constants';
 import { EventHandlers, TreePathInfo } from '../types';
 import { extractTreePathInfo } from './constants';
 import { TreemapTransformedProps } from './types';
@@ -124,7 +125,7 @@ export default function EchartsTreemap({
           const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
           const drillByFilters: BinaryQueryObjectFilterClause[] = [];
           treePath.forEach((path, i) => {
-            const val = path === 'null' ? NULL_STRING : path;
+            const val = path === 'null' ? getConstantLabel(NULL_STRING) : path;
             drillToDetailFilters.push({
               col: groupby[i],
               op: '==',

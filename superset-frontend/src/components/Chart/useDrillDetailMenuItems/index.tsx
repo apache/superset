@@ -31,6 +31,8 @@ import {
   BinaryQueryObjectFilterClause,
   extractQueryFields,
   getChartMetadataRegistry,
+  getConstantLabel,
+  NULL_STRING,
   QueryFormData,
   removeHTMLTags,
 } from '@superset-ui/core';
@@ -38,7 +40,6 @@ import { css, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { type ItemType } from '@superset-ui/core/components/Menu';
 import { RootState } from 'src/dashboard/types';
-import { NULL_STRING } from 'src/utils/common';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { TruncatedMenuLabel } from '../MenuItemWithTruncation';
@@ -239,7 +240,7 @@ export const useDrillDetailMenuItems = ({
               const isNullVal =
                 filter.val === null || filter.formattedVal === NULL_STRING;
               const formattedVal = isNullVal
-                ? NULL_STRING
+                ? getConstantLabel(NULL_STRING)
                 : filter.formattedVal;
               return {
                 key: `drill-detail-filter-${i}`,
