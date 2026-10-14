@@ -95,9 +95,12 @@ assists people when migrating to a new version.
 
 - `GET /api/v1/datasource/` now applies the `editors` (`rel_m_m`), `changed_by`
   (`rel_o_m`) and certification (`id` with `dataset_is_certified`) filters that the
-  Datasets page sends, and answers HTTP 400 for a filter column it cannot apply,
-  as `GET /api/v1/dataset/` does, instead of ignoring it. API callers that send other
-  columns to this endpoint must stop sending them.
+  Datasets page sends, and answers HTTP 400, as `GET /api/v1/dataset/` does, for a
+  filter column it cannot apply and for an operator or value it does not apply
+  (`table_name` with `ct`, `schema` with `eq`, `sql` with
+  `dataset_is_null_or_empty`, `database` with `rel_o_m`, `source_type` and
+  `semantic_layer_uuid` with `eq`), instead of ignoring the filter. API callers that
+  send other columns or operators to this endpoint must stop sending them.
 
 - Malformed explicit `time_range` values are rejected with a validation error
   (HTTP 400 on chart-data requests) instead of silently producing an upper-bound-only

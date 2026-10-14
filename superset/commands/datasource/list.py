@@ -41,13 +41,15 @@ _semantic_view_schema = SemanticViewListSchema()
 _EDITORS_COLUMN = "editors"
 _CHANGED_BY_COLUMN = "changed_by"
 _CERTIFIED_COLUMN = "id"
-_LEGACY_COLUMNS = {
-    "source_type",
-    "table_name",
-    "sql",
-    "database",
-    "semantic_layer_uuid",
-    "schema",
+# The columns the combined list has filtered on from the start, with the one
+# operator each is applied with.
+_LEGACY_OPERATORS = {
+    "source_type": "eq",
+    "table_name": "ct",
+    "sql": "dataset_is_null_or_empty",
+    "database": "rel_o_m",
+    "semantic_layer_uuid": "eq",
+    "schema": "eq",
 }
 _RELATION_OPERATORS = {
     _EDITORS_COLUMN: "rel_m_m",
@@ -365,33 +367,37 @@ class GetCombinedDatasourceListCommand(BaseCommand):
     def _parse_legacy_filter(
         col: str, opr: Any, value: Any, current: dict[str, Any]
     ) -> dict[str, Any]:
-        """Parse the columns the combined list supported from the start.
+        """Parse the columns the combined list has filtered on from the start.
 
-        These stay lenient: an operator that is not the expected one is ignored
-        rather than rejected. ``current`` carries the fields parsed so far, for
-        the ``sql`` filter that updates two of them at once.
+        An operator other than the one the column is applied with, or a value
+        that cannot be read, raises instead of being dropped: a dropped filter
+        returns an unfiltered list that looks filtered. A ``None`` value is
+        "no filter", as the Datasets page never sends one. ``current`` carries
+        the fields parsed so far, for the ``sql`` filter that updates two of
+        them at once.
         """
+        if opr != _LEGACY_OPERATORS[col]:
+            raise ValueError(f"Filter operation: {opr} not allowed on column: {col}")
         if col == "source_type":
             return {"source_type": value or "all"}
-        if col == "table_name" and opr == "ct":
+        if value is None:
+            return {}
+        if col == "table_name":
             return {"name_filter": value}
-        if col == "sql" and opr == "dataset_is_null_or_empty":
+        if col == "sql":
+            if value != "semantic_view" and not isinstance(value, bool):
+                raise ValueError(f"Invalid value for filter column: {col}")
             type_filter, sql_filter = (
                 GetCombinedDatasourceListCommand._apply_sql_null_filter(
                     value, current.get("type_filter"), current.get("sql_filter")
                 )
             )
             return {"type_filter": type_filter, "sql_filter": sql_filter}
-        if col == "database" and value is not None:
-            try:
-                return {"database_id": int(value)}
-            except (TypeError, ValueError):
-                return {}
-        if col == "semantic_layer_uuid" and value is not None:
+        if col == "database":
+            return {"database_id": _relation_id(col, value)}
+        if col == "semantic_layer_uuid":
             return {"semantic_layer_uuid": str(value)}
-        if col == "schema" and opr == "eq" and value is not None:
-            return {"schema_filter": str(value)}
-        return {}
+        return {"schema_filter": str(value)}
 
     @staticmethod
     def _parse_relation_filter(col: str, opr: Any, value: Any) -> dict[str, Any]:
@@ -415,9 +421,9 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         Translate raw rison filter dicts into a typed ``_Filters``.
 
         Raises ``ValueError`` (answered as 400) for a column the endpoint cannot
-        filter on, and for an operator or value the relation filters do not
-        accept. The canonical ``/api/v1/dataset/`` rejects the same inputs;
-        dropping them here would return an unfiltered list that looks filtered.
+        filter on, and for an operator or value it does not apply. The canonical
+        ``/api/v1/dataset/`` rejects the same inputs; dropping them here would
+        return an unfiltered list that looks filtered.
         """
         fields: dict[str, Any] = {}
         for f in filters:
@@ -428,7 +434,7 @@ class GetCombinedDatasourceListCommand(BaseCommand):
                         col, f.get("opr"), f.get("value")
                     )
                 )
-            elif col in _LEGACY_COLUMNS:
+            elif col in _LEGACY_OPERATORS:
                 fields.update(
                     GetCombinedDatasourceListCommand._parse_legacy_filter(
                         col, f.get("opr"), f.get("value"), fields

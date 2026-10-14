@@ -29,11 +29,12 @@ from superset.commands.datasource.list import (
 
 
 def test_parse_filters_semantic_view_requires_dataset_operator() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
-        [{"col": "sql", "opr": "eq", "value": "semantic_view"}]
-    )
-
-    assert filters == _Filters()
+    # ``sql`` only means something with ``dataset_is_null_or_empty``; any other
+    # operator would be dropped and the list would look filtered when it is not.
+    with pytest.raises(ValueError, match="not allowed on column: sql"):
+        GetCombinedDatasourceListCommand._parse_filters(
+            [{"col": "sql", "opr": "eq", "value": "semantic_view"}]
+        )
 
 
 def test_parse_filters_semantic_view_with_dataset_operator() -> None:
@@ -51,11 +52,10 @@ def test_parse_filters_semantic_view_with_dataset_operator() -> None:
 
 
 def test_parse_filters_sql_bool_requires_dataset_operator() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
-        [{"col": "sql", "opr": "eq", "value": True}]
-    )
-
-    assert filters == _Filters()
+    with pytest.raises(ValueError, match="not allowed on column: sql"):
+        GetCombinedDatasourceListCommand._parse_filters(
+            [{"col": "sql", "opr": "eq", "value": True}]
+        )
 
 
 def test_parse_filters_extracts_schema() -> None:
@@ -66,12 +66,11 @@ def test_parse_filters_extracts_schema() -> None:
     assert filters == _Filters(schema_filter="main")
 
 
-def test_parse_filters_ignores_schema_with_wrong_operator() -> None:
-    filters = GetCombinedDatasourceListCommand._parse_filters(
-        [{"col": "schema", "opr": "ct", "value": "main"}]
-    )
-
-    assert filters.schema_filter is None
+def test_parse_filters_rejects_schema_with_wrong_operator() -> None:
+    with pytest.raises(ValueError, match="not allowed on column: schema"):
+        GetCombinedDatasourceListCommand._parse_filters(
+            [{"col": "schema", "opr": "ct", "value": "main"}]
+        )
 
 
 def test_parse_filters_schema_boundary_values() -> None:
@@ -594,7 +593,6 @@ def test_parse_filters_rejects_boolean_relation_id() -> None:
         {"col": "editors", "opr": "rel_m_m", "value": None},
         {"col": "changed_by", "opr": "rel_o_m", "value": None},
         {"col": "id", "opr": "dataset_is_certified", "value": None},
-        {"col": "database", "opr": "rel_o_m", "value": "not-an-id"},
         {"col": "database", "opr": "rel_o_m", "value": None},
         {"col": "semantic_layer_uuid", "opr": "eq", "value": None},
     ],
@@ -603,3 +601,42 @@ def test_parse_filters_ignores_unset_values(unset_filter: dict[str, Any]) -> Non
     filters = GetCombinedDatasourceListCommand._parse_filters([unset_filter])
 
     assert filters == _Filters()
+
+
+@pytest.mark.parametrize(
+    ("col", "opr"),
+    [
+        ("source_type", "ct"),
+        ("table_name", "eq"),
+        ("table_name", "sw"),
+        ("sql", "eq"),
+        ("database", "eq"),
+        ("semantic_layer_uuid", "ct"),
+        ("schema", "sw"),
+    ],
+)
+def test_parse_filters_rejects_wrong_operator_on_every_known_column(
+    col: str, opr: str
+) -> None:
+    # A column that is filterable but sent with an operator the endpoint does
+    # not apply used to be dropped, giving an unfiltered list that looks
+    # filtered. The canonical /api/v1/dataset/ answers 400 for it.
+    with pytest.raises(ValueError, match=f"not allowed on column: {col}"):
+        GetCombinedDatasourceListCommand._parse_filters(
+            [{"col": col, "opr": opr, "value": "x"}]
+        )
+
+
+@pytest.mark.parametrize(
+    "bad_filter",
+    [
+        {"col": "database", "opr": "rel_o_m", "value": "not-an-id"},
+        {"col": "database", "opr": "rel_o_m", "value": True},
+        {"col": "sql", "opr": "dataset_is_null_or_empty", "value": "maybe"},
+    ],
+)
+def test_parse_filters_rejects_malformed_values_on_known_columns(
+    bad_filter: dict[str, Any],
+) -> None:
+    with pytest.raises(ValueError, match="Invalid value for filter column"):
+        GetCombinedDatasourceListCommand._parse_filters([bad_filter])
