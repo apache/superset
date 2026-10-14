@@ -648,6 +648,141 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         app_context.pop()
 
 
+@pytest.mark.parametrize("ctas", [False, True], ids=["mutation", "ctas"])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        None,
+        "backend_write_false",
+        "backend_set_raises",
+        "serialize_raises",
+        "payload_too_large",
+        "returned_payload_too_large",
+        "connection_close_raises",
+    ],
+)
+def test_get_sql_results_keeps_committed_work_when_stop_races_commit(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    app_context: None,
+    tmp_path: Any,
+    ctas: bool,
+    failure: str | None,
+) -> None:
+    """
+    Test that a stop committed while the target database commits a mutation
+    or CTAS does not mask the committed work: the query ends SUCCESS, or
+    FAILED when a later step fails, never STOPPED.
+    """
+    from contextlib import contextmanager
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine
+
+    from superset import sql_lab
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'commit.db'}")
+    Query.__table__.create(engine)
+
+    database = MagicMock()
+    database.db_engine_spec = SqliteEngineSpec
+    database.allow_dml = True
+    database.allow_run_async = False
+    database.cache_timeout = 100
+    database.get_default_schema_for_query.return_value = "main"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    database.select_star.return_value = "SELECT * FROM tmp_table"
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+
+    def deliver_stop() -> None:
+        """Commit the stop after the last per-block check, mid target commit."""
+        with Session(engine) as stop_session:
+            stopped_query = stop_session.get(Query, 123)
+            assert stopped_query is not None
+            stopped_query.status = QueryStatus.STOPPED
+            stopped_query.end_time = 1234.5
+            stop_session.commit()
+
+    conn = MagicMock()
+    conn.commit.side_effect = deliver_stop
+
+    @contextmanager
+    def raw_connection(*args: Any, **kwargs: Any) -> Any:
+        yield conn
+        if failure == "connection_close_raises":
+            raise RuntimeError("Connection close failed")
+
+    database.get_raw_connection = raw_connection
+
+    store_results = failure in {
+        "backend_write_false",
+        "backend_set_raises",
+        "serialize_raises",
+        "payload_too_large",
+    }
+    backend = MagicMock()
+    backend.set.return_value = failure != "backend_write_false"
+    if failure == "backend_set_raises":
+        backend.set.side_effect = RuntimeError("Backend unavailable")
+    mocker.patch.object(sql_lab, "results_backend", backend)
+    serialize = mocker.patch.object(sql_lab, "_serialize_payload")
+    serialize.return_value = b"x" * (2 * 1024 * 1024)
+    if failure == "serialize_raises":
+        serialize.side_effect = RuntimeError("Cannot serialize")
+    mocker.patch.object(
+        sql_lab, "_serialize_and_expand_data", return_value=([], [], [], [])
+    )
+    result_set = MagicMock(size=1, columns=[])
+    mocker.patch.object(sql_lab, "execute_query", return_value=result_set)
+    mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
+    mocker.patch.dict(
+        app.config,
+        {
+            "STATS_LOGGER": MagicMock(),
+            "SQLLAB_PAYLOAD_MAX_MB": (
+                1
+                if failure in {"payload_too_large", "returned_payload_too_large"}
+                else None
+            ),
+        },
+    )
+
+    sql = "SELECT 1" if ctas else "INSERT INTO users VALUES (1)"
+    with Session(engine, expire_on_commit=False) as session:
+        query = Query(
+            id=123,
+            client_id="commit-race",
+            database_id=1,
+            sql=sql,
+            select_as_cta=ctas,
+            ctas_method="TABLE",
+            tmp_table_name="tmp_table",
+            status=QueryStatus.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(sql_lab.db, "session", session)
+
+        payload = get_sql_results(
+            123,
+            sql,
+            return_results=not store_results,
+            store_results=store_results,
+        )
+
+        conn.commit.assert_called_once_with()
+        expected = QueryStatus.SUCCESS if failure is None else QueryStatus.FAILED
+        assert payload is not None
+        assert payload["status"] == expected
+        session.refresh(query)
+        assert query.status == expected
+        assert query.results_key is None
+    engine.dispose()
+
+
 def _capture_execution_context(mocker: MockerFixture) -> dict[str, Any]:
     """
     Stub out ``execute_sql_statements`` and record the context it runs under.

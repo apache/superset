@@ -20,6 +20,7 @@ import logging
 import sys
 import traceback
 import uuid
+from collections.abc import Callable
 from contextlib import closing, nullcontext
 from datetime import datetime
 from sys import getsizeof
@@ -101,8 +102,15 @@ def handle_query_error(
     query: Query,
     payload: Optional[dict[str, Any]] = None,
     prefix_message: str = "",
+    durable: bool = False,
 ) -> dict[str, Any]:
-    """Local method handling error while processing the SQL"""
+    """
+    Local method handling error while processing the SQL
+
+    :param durable: the target database already committed the query's effects,
+        so a stop recorded after that commit lost the race and must not mask
+        the failure
+    """
     payload = payload or {}
 
     # A stop request may have already committed STOPPED status while this
@@ -131,11 +139,12 @@ def handle_query_error(
     # beforehand, and leaves other pending attributes exactly as dirty as
     # they were (to be flushed normally by this function's own commit()
     # below, once we're past the STOPPED check).
-    with db.session.no_autoflush:
-        db.session.refresh(query, attribute_names=["status"])
-    if query.status == QueryStatus.STOPPED:
-        payload.update({"status": query.status})
-        return payload
+    if not durable:
+        with db.session.no_autoflush:
+            db.session.refresh(query, attribute_names=["status"])
+        if query.status == QueryStatus.STOPPED:
+            payload.update({"status": query.status})
+            return payload
 
     msg = f"{prefix_message} {str(ex)}".strip()
     query.error_message = msg
@@ -239,6 +248,12 @@ def get_sql_results(  # pylint: disable=too-many-arguments
     # empty one -- breaking RLS clauses whose Jinja macros read ``flask.session``.
     with nullcontext() if has_request_context() else app.test_request_context():
         with override_user(security_manager.find_user(username)):
+            committed = False
+
+            def mark_committed() -> None:
+                nonlocal committed
+                committed = True
+
             try:
                 return execute_sql_statements(
                     query_id,
@@ -248,13 +263,16 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                     start_time=start_time,
                     expand_data=expand_data,
                     log_params=log_params,
+                    on_commit=mark_committed,
                 )
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 query = get_query(query_id=query_id)
-                return handle_query_error(ex, query)
+                # Failures after the target commit (result serialization, the
+                # results backend, closing the connection) cannot undo it.
+                return handle_query_error(ex, query, durable=committed)
 
 
 S = TypeVar("S", bound=BaseSQLStatement[Any])
@@ -446,8 +464,13 @@ def execute_sql_statements(  # noqa: C901
     start_time: Optional[float],
     expand_data: bool,
     log_params: Optional[dict[str, Any]],
+    on_commit: Optional[Callable[[], None]] = None,
 ) -> Optional[dict[str, Any]]:
-    """Executes the sql query returns the results."""
+    """
+    Executes the sql query returns the results.
+
+    :param on_commit: called once the target database commits a mutation or CTAS
+    """
     if store_results and start_time:
         # only asynchronous queries
         stats_logger = app.config["STATS_LOGGER"]
@@ -628,8 +651,12 @@ def execute_sql_statements(  # noqa: C901
                 return payload
 
         # Commit the connection so CTA queries will create the table and any DML.
+        committed = False
         if parsed_script.has_mutation() or query.select_as_cta:
             conn.commit()
+            committed = True
+            if on_commit:
+                on_commit()
 
     # A stop request may have landed after the last per-block check but
     # before the final statement finished (there's no next iteration to
@@ -660,9 +687,12 @@ def execute_sql_statements(  # noqa: C901
     # query.executed_sql, set just before execute_query() ran) would be
     # silently discarded and reloaded back to its previous committed value
     # instead of surviving to the function's own later commits.
+    #
+    # A committed mutation or CTAS is durable, so a stop recorded after the
+    # commit lost the race and must not mask the committed result.
     db.session.flush()
     db.session.refresh(query)
-    if query.status == QueryStatus.STOPPED:
+    if query.status == QueryStatus.STOPPED and not committed:
         payload.update({"status": query.status})
         return payload
 
@@ -770,7 +800,7 @@ def execute_sql_statements(  # noqa: C901
                     # this branch's own commit below.
                     db.session.flush()
                     db.session.refresh(query)
-                    if query.status == QueryStatus.STOPPED:
+                    if query.status == QueryStatus.STOPPED and not committed:
                         # A fresh, minimal payload -- not `payload.update()`.
                         # By this point `payload` already has the full
                         # SUCCESS shape baked in from earlier (result data, a
@@ -825,7 +855,9 @@ def execute_sql_statements(  # noqa: C901
     # unit-test suite driving this fix never exercised.
     db.session.flush()
     db.session.refresh(query)
-    if query.status not in (QueryStatus.FAILED, QueryStatus.STOPPED):
+    if query.status != QueryStatus.FAILED and (
+        committed or query.status != QueryStatus.STOPPED
+    ):
         query.status = QueryStatus.SUCCESS
     db.session.commit()
 
