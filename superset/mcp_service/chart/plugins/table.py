@@ -128,6 +128,26 @@ class TableChartPlugin(BaseChartPlugin):
     def resolve_viz_type(self, config: Any) -> str:
         return getattr(config, "viz_type", "table")
 
+    def resolve_update_config(
+        self,
+        config: Any,
+        existing_form_data: dict[str, Any],
+        *,
+        dataset_rebind: bool,
+    ) -> Any:
+        """Keep the saved table variant when the update does not name one."""
+        if (
+            not isinstance(config, TableChartConfig)
+            or "viz_type" in config.model_fields_set
+        ):
+            return config
+        saved_viz_type = existing_form_data.get("viz_type")
+        if saved_viz_type not in self.native_viz_types:
+            return config
+        # model_copy marks the viz_type as set, which carries it through the
+        # exclude_unset rebuild in normalize_column_refs.
+        return config.model_copy(update={"viz_type": saved_viz_type})
+
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         # Preserve which nested column formatting fields were explicitly supplied.
         # Round-tripping them through model_dump/model_validate would materialize
