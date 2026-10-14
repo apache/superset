@@ -263,22 +263,26 @@ const AsyncSelect = forwardRef(
             ? { value: opt.value, label: opt.label }
             : { value: opt, label: String(opt) },
         );
-      const combined = missingValues.length > 0
-        ? missingValues.concat(selectOptions)
-        : selectOptions;
+      const combined =
+        missingValues.length > 0
+          ? missingValues.concat(selectOptions)
+          : selectOptions;
 
       if (caseSensitiveNewOptionMatching) {
         return combined;
       }
 
-      return combined.filter(opt => {
-        if (!opt.isNewOption) return true;
-        const optLabel = String(opt.label).trim().toLowerCase();
-        return !combined.some(
-          other => !other.isNewOption &&
-            String(other.label).trim().toLowerCase() === optLabel
-        );
-      });
+      const serverLabels = new Set(
+        combined
+          .filter(option => !option.isNewOption)
+          .map(option => normalizeOptionLabel(option.label)),
+      );
+      return combined.filter(
+        option =>
+          !option.isNewOption ||
+          hasOption(option.value, selectValue) ||
+          !serverLabels.has(normalizeOptionLabel(option.label)),
+      );
     }, [caseSensitiveNewOptionMatching, selectOptions, selectValue]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
@@ -395,9 +399,9 @@ const AsyncSelect = forwardRef(
         if (data && Array.isArray(data) && data.length) {
           // unique option values should always be case sensitive so don't lowercase
           const dataValues = new Set(data.map(opt => opt.value));
-          const dataLabels = new Set(
-            data.map(option => normalizeOptionLabel(option.label)),
-          );
+          const dataLabels = caseSensitiveNewOptionMatching
+            ? undefined
+            : new Set(data.map(option => normalizeOptionLabel(option.label)));
           // merges with existing and creates unique options
           setSelectOptions(prevOptions => {
             mergedData = prevOptions
@@ -406,7 +410,7 @@ const AsyncSelect = forwardRef(
                   !dataValues.has(previousOption.value) &&
                   (!previousOption.isNewOption ||
                     hasOption(previousOption.value, selectValueRef.current) ||
-                    !dataLabels.has(
+                    !dataLabels?.has(
                       normalizeOptionLabel(previousOption.label),
                     )),
               )
@@ -424,7 +428,7 @@ const AsyncSelect = forwardRef(
         }
         return mergedData;
       },
-      [sortComparatorForNoSearch],
+      [caseSensitiveNewOptionMatching, sortComparatorForNoSearch],
     );
 
     const fetchPage = useMemo(
@@ -625,8 +629,7 @@ const AsyncSelect = forwardRef(
                       normalizedSearch !== undefined &&
                       normalizeOptionLabel(option.label) === normalizedSearch,
                   );
-              const newOption =
-                unquotedSearch &&
+              const newOption = unquotedSearch &&
                 !hasMatchingOption && {
                   label: unquotedSearch,
                   value: unquotedSearch,

@@ -105,12 +105,6 @@ export interface BaseSelectProps extends AntdExposedProps {
    * */
   allowNewOptions?: boolean;
   /**
-   * Whether labels are matched exactly before creating a new option.
-   * Set to false when the backing resource treats labels case-insensitively.
-   * True by default.
-   */
-  caseSensitiveNewOptionMatching?: boolean;
-  /**
    * Accept values pasted into the Select even when they are not part of the
    * currently loaded options and `allowNewOptions` is false. Useful for
    * selects whose full option set is searched server-side and only partially
@@ -249,6 +243,12 @@ export type SelectOptionsPagePromise = (
 ) => Promise<SelectOptionsTypePage>;
 
 export interface AsyncSelectProps extends BaseSelectProps {
+  /**
+   * Whether labels are matched exactly before creating a new option.
+   * Set to false when the backing resource treats labels case-insensitively.
+   * True by default.
+   */
+  caseSensitiveNewOptionMatching?: boolean;
   /**
    * It fires a request against the server after
    * the first interaction and not on render.
