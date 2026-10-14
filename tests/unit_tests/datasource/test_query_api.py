@@ -19,6 +19,7 @@
 
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import pytest
 from marshmallow import ValidationError
@@ -171,6 +172,29 @@ def test_arrow_serializer_round_trips() -> None:
     assert isinstance(payload, bytes)
     restored = pa.ipc.open_stream(payload).read_all().to_pandas()
     pd.testing.assert_frame_equal(restored, df)
+
+
+@pytest.mark.parametrize("scalar", [int, np.int64], ids=["python-int", "numpy-int64"])
+def test_to_arrow_ipc_object_big_integers_int64(scalar: type) -> None:
+    """Nullable integers kept as exact objects serialize as int64 across the
+    signed range, with nulls preserved."""
+    import pyarrow as pa
+
+    from superset.common.query_context_processor import QueryContextProcessor
+
+    values = [2**63 - 1, None, -(2**63), 2**53 + 1, 7]
+    frame = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [None if v is None else scalar(v) for v in values], dtype=object
+            )
+        }
+    )
+
+    table = pa.ipc.open_stream(QueryContextProcessor._to_arrow_ipc(frame)).read_all()
+
+    assert table.schema.field("value").type == pa.int64()
+    assert table.column("value").to_pylist() == values
 
 
 def test_chart_data_schema_rejects_arrow() -> None:
