@@ -134,19 +134,22 @@ def test_databricks_native_adjust_engine_params() -> None:
     assert args_default["schema"] == "default"
     assert args_default["http_path"] == "/sql/1.0/warehouses/test"
 
-    # Test catalog override without schema: URI-database schema fallback is omitted
-    # and the catalog's default schema ("default") is resolved instead
-    url_cat_override, args_cat_override = (
-        DatabricksNativeEngineSpec.adjust_engine_params(
-            make_url("databricks+connector://token:test-token@localhost:443/finance"),
-            connect_args={"http_path": "/sql/1.0/warehouses/test"},
-            catalog="main",
-        )
+    # Test catalog on a connection with no configured catalog (dataset creation
+    # with the server default catalog from `get_default_catalog`): the URI
+    # database is kept as schema, so reflection targets `main.finance.<table>`
+    url_no_cat, args_no_cat = DatabricksNativeEngineSpec.adjust_engine_params(
+        make_url(
+            "databricks+connector://token:test-token@localhost:443/finance"
+            "?http_path=/sql/1.0/warehouses/test"
+        ),
+        connect_args={},
+        catalog="main",
+        schema=None,
     )
-    assert url_cat_override.query["catalog"] == "main"
-    assert url_cat_override.query["schema"] == "default"
-    assert args_cat_override["catalog"] == "main"
-    assert args_cat_override["schema"] == "default"
+    assert url_no_cat.query["catalog"] == "main"
+    assert url_no_cat.query["schema"] == "finance"
+    assert args_no_cat["catalog"] == "main"
+    assert args_no_cat["schema"] == "finance"
 
     # Test catalog override when URI already contains ?catalog=main&schema=finance
     # Switching to a different catalog resolves the catalog's default schema
@@ -167,23 +170,33 @@ def test_databricks_native_adjust_engine_params() -> None:
     assert args_query_cat_override["schema"] == "default"
     assert args_query_cat_override["http_path"] == "/sql/1.0/warehouses/test"
 
-    # Test catalog override matching existing catalog in URI with schema=None
-    # (dataset creation scenario): preserves the URI-defined schema ("default")
-    url_cat_match, args_cat_match = (
-        DatabricksNativeEngineSpec.adjust_engine_params(
-            make_url(
-                "databricks+connector://token:test-token@localhost:443/default"
-                "?catalog=main&http_path=/sql/1.0/warehouses/test"
-            ),
-            connect_args={"http_path": "/sql/1.0/warehouses/test"},
-            catalog="main",
-            schema=None,
-        )
+    # Test catalog matching the catalog configured in the URI with schema=None
+    # (dataset creation scenario): preserves the URI-defined schema ("finance")
+    url_cat_match, args_cat_match = DatabricksNativeEngineSpec.adjust_engine_params(
+        make_url(
+            "databricks+connector://token:test-token@localhost:443/finance"
+            "?catalog=main&http_path=/sql/1.0/warehouses/test"
+        ),
+        connect_args={},
+        catalog="main",
+        schema=None,
     )
     assert url_cat_match.query["catalog"] == "main"
-    assert url_cat_match.query["schema"] == "default"
+    assert url_cat_match.query["schema"] == "finance"
     assert args_cat_match["catalog"] == "main"
-    assert args_cat_match["schema"] == "default"
+    assert args_cat_match["schema"] == "finance"
+
+    # Test switching away from a catalog configured in connect_args without a
+    # schema: the saved schema belongs to the old catalog, so "default" is used
+    url_cat_switch, args_cat_switch = DatabricksNativeEngineSpec.adjust_engine_params(
+        make_url("databricks+connector://token:test-token@localhost:443/finance"),
+        connect_args={"catalog": "main"},
+        catalog="other",
+    )
+    assert url_cat_switch.query["catalog"] == "other"
+    assert url_cat_switch.query["schema"] == "default"
+    assert args_cat_switch["catalog"] == "other"
+    assert args_cat_switch["schema"] == "default"
 
     # Test explicit catalog and schema with http_path in connect_args
     adjusted_url, adjusted_args = DatabricksNativeEngineSpec.adjust_engine_params(
@@ -200,15 +213,13 @@ def test_databricks_native_adjust_engine_params() -> None:
     assert adjusted_args["http_path"] == "/sql/1.0/warehouses/test"
 
     # Test reconciling conflicting schema in connect_args with passed schema
-    reconciled_url, reconciled_args = (
-        DatabricksNativeEngineSpec.adjust_engine_params(
-            make_url(uri_str),
-            connect_args={
-                "catalog": "connect_arg_cat",
-                "schema": "stale_schema",
-            },
-            schema="reconciled_schema",
-        )
+    reconciled_url, reconciled_args = DatabricksNativeEngineSpec.adjust_engine_params(
+        make_url(uri_str),
+        connect_args={
+            "catalog": "connect_arg_cat",
+            "schema": "stale_schema",
+        },
+        schema="reconciled_schema",
     )
     assert reconciled_url.query["catalog"] == "connect_arg_cat"
     assert reconciled_url.query["schema"] == "reconciled_schema"

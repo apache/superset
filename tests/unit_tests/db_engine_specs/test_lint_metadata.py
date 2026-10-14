@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import io
 from pathlib import Path
 from textwrap import dedent
 
 import pytest
 
-import io
 from superset.db_engine_specs.lint_metadata import (
     get_all_engine_specs_ast,
     main,
@@ -161,6 +161,7 @@ def test_get_all_engine_specs_ast_set_and_unary_minus(
         "negative_float": -3.14,
     }
 
+
 def test_main_ascii_stdout_utf8_reconfigure(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -241,4 +242,3 @@ def test_main_ascii_stdout_markdown_report(
 
     decoded = buffer.getvalue().decode("utf-8")
     assert "ASCII MD Engine" in decoded
-
