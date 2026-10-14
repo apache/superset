@@ -123,6 +123,7 @@ const AsyncSelect = forwardRef(
     {
       allowClear,
       allowNewOptions = false,
+      caseSensitiveNewOptionMatching = true,
       ariaLabel,
       autoClearSearchValue = true,
       fetchOnlyOnSearch,
@@ -262,10 +263,23 @@ const AsyncSelect = forwardRef(
             ? { value: opt.value, label: opt.label }
             : { value: opt, label: String(opt) },
         );
-      return missingValues.length > 0
+      const combined = missingValues.length > 0
         ? missingValues.concat(selectOptions)
         : selectOptions;
-    }, [selectOptions, selectValue]);
+
+      if (caseSensitiveNewOptionMatching) {
+        return combined;
+      }
+
+      return combined.filter(opt => {
+        if (!opt.isNewOption) return true;
+        const optLabel = String(opt.label).trim().toLowerCase();
+        return !combined.some(
+          other => !other.isNewOption &&
+            String(other.label).trim().toLowerCase() === optLabel
+        );
+      });
+    }, [caseSensitiveNewOptionMatching, selectOptions, selectValue]);
 
     const handleOnSelect: SelectProps['onSelect'] = (selectedItem, option) => {
       if (isSingleMode) {
@@ -491,6 +505,7 @@ const AsyncSelect = forwardRef(
               // typed when the server returns no match.
               setSelectOptions(prevOptions => {
                 const dataValues = new Set(data.map(opt => opt.value));
+<<<<<<< HEAD
                 const dataLabels = new Set(
                   data.map(option => normalizeOptionLabel(option.label)),
                 );
@@ -500,6 +515,18 @@ const AsyncSelect = forwardRef(
                     (hasOption(opt.value, selectValueRef.current) ||
                       (!dataValues.has(opt.value) &&
                         !dataLabels.has(normalizeOptionLabel(opt.label)))),
+=======
+                const preservedNew = prevOptions.filter(
+                  opt =>
+                    opt.isNewOption &&
+                    !dataValues.has(opt.value) &&
+                    (caseSensitiveNewOptionMatching ||
+                      !data.some(
+                        item =>
+                          String(item.label).trim().toLowerCase() ===
+                          String(opt.label).trim().toLowerCase(),
+                      )),
+>>>>>>> 174f4cfa12 (fix(AsyncSelect): scope dashboard duplicate matching)
                 );
                 return preservedNew
                   .concat(data)
@@ -537,6 +564,7 @@ const AsyncSelect = forwardRef(
       },
       [
         allValuesLoaded,
+        caseSensitiveNewOptionMatching,
         fetchOnlyOnSearch,
         mergeData,
         internalOnError,
@@ -553,6 +581,11 @@ const AsyncSelect = forwardRef(
 
     const searchStateRef = useRef({
       allowNewOptions,
+<<<<<<< HEAD
+=======
+      caseSensitiveNewOptionMatching,
+      fullSelectOptions,
+>>>>>>> 174f4cfa12 (fix(AsyncSelect): scope dashboard duplicate matching)
       selectValue,
       allValuesLoaded,
       loadingEnabled,
@@ -564,6 +597,11 @@ const AsyncSelect = forwardRef(
     useEffect(() => {
       searchStateRef.current = {
         allowNewOptions,
+<<<<<<< HEAD
+=======
+        caseSensitiveNewOptionMatching,
+        fullSelectOptions,
+>>>>>>> 174f4cfa12 (fix(AsyncSelect): scope dashboard duplicate matching)
         selectValue,
         allValuesLoaded,
         loadingEnabled,
@@ -578,6 +616,11 @@ const AsyncSelect = forwardRef(
         debounce((search: string) => {
           const {
             allowNewOptions,
+<<<<<<< HEAD
+=======
+            caseSensitiveNewOptionMatching,
+            fullSelectOptions,
+>>>>>>> 174f4cfa12 (fix(AsyncSelect): scope dashboard duplicate matching)
             selectValue,
             allValuesLoaded,
             loadingEnabled,
@@ -591,6 +634,7 @@ const AsyncSelect = forwardRef(
           if (allowNewOptions) {
             const unquotedSearch = stripSurroundingQuotes(searchValue);
             setSelectOptions(prevOptions => {
+<<<<<<< HEAD
               const cleanOptions = prevOptions.filter(
                 option =>
                   !option.isNewOption || hasOption(option.value, selectValue),
@@ -617,6 +661,32 @@ const AsyncSelect = forwardRef(
                 },
                 ...cleanOptions,
               ];
+=======
+              const optionsToCheck = caseSensitiveNewOptionMatching
+                ? fullSelectOptions
+                : [...fullSelectOptions, ...prevOptions];
+              const hasMatchingOption = caseSensitiveNewOptionMatching
+                ? hasOption(unquotedSearch, optionsToCheck, true)
+                : optionsToCheck.some(
+                    option =>
+                      String(option.label).trim().toLowerCase() ===
+                      unquotedSearch.toLowerCase(),
+                  );
+              const newOption =
+                unquotedSearch &&
+                !hasMatchingOption && {
+                  label: unquotedSearch,
+                  value: unquotedSearch,
+                  isNewOption: true,
+                };
+              const cleanSelectOptions = fullSelectOptions.filter(
+                option =>
+                  !option.isNewOption || hasOption(option.value, selectValue),
+              );
+              return newOption
+                ? [newOption, ...cleanSelectOptions]
+                : cleanSelectOptions;
+>>>>>>> 174f4cfa12 (fix(AsyncSelect): scope dashboard duplicate matching)
             });
           }
 

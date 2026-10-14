@@ -1195,6 +1195,33 @@ test('preserves new option entry across search fetch when allowNewOptions is on'
   expect(screen.queryByText('Option 0')).not.toBeInTheDocument();
 });
 
+test('does not preserve a new option when a case-insensitive match is returned', async () => {
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: [], totalCount: 1 };
+    }
+    return {
+      data: [{ label: 'Test Dashboard', value: 1 }],
+      totalCount: 1,
+    };
+  });
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={loadOptions}
+      allowNewOptions
+      caseSensitiveNewOptionMatching={false}
+    />,
+  );
+  await open();
+  await type('test dashboard');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+  expect(await findSelectOption('Test Dashboard')).toBeInTheDocument();
+  expect(await findAllSelectOptions()).toHaveLength(1);
+});
+
 test('restores base options when search is cleared', async () => {
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Option ${i}`,

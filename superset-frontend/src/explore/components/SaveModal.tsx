@@ -804,6 +804,7 @@ const SaveModal = ({
         <AsyncSelect
           allowClear
           allowNewOptions
+          caseSensitiveNewOptionMatching={false}
           ariaLabel={t('Select a dashboard')}
           options={loadDashboards}
           onChange={onDashboardChange}
