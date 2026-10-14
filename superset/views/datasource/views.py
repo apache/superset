@@ -460,6 +460,15 @@ class Datasource(BaseSupersetView):
             # So an unchanged echo of stored configuration survives: this
             # endpoint's own client does GET-then-POST, which is exactly the
             # shape that looked like a value being parked.
+            #
+            # Only while the flag is off, which is the window the exemption is
+            # for. With it on, the REST path has a model-level pass after the
+            # write that clears a transform the mapping no longer mirrors; this
+            # endpoint has none, so exempting an echo here leaves the old
+            # mapped column holding its transform -- and clearing the override
+            # through this same endpoint later re-arms it. With the flag off
+            # there is no model-level pass on either path, so nothing else
+            # would preserve the owner's configuration.
             stored_by_name=None
             if is_feature_enabled("PARTITION_FILTER_MAPPING")
             else {

@@ -1408,3 +1408,112 @@ def test_samples_authenticated_dataset_access_denied_returns_403_before_fetch(
     )
     mock_json_error_response.assert_called_once_with("Forbidden", status=403)
     mock_get_samples.assert_not_called()
+
+
+def _save_echoing_transform(
+    app: Flask,
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    *,
+    flag_on: bool,
+) -> list[dict[str, Any]]:
+    """
+    Drive ``save`` with a payload that echoes `event_time`'s stored transform
+    while moving the default datetime column away from it, and report the
+    columns the request would write.
+
+    This is the GET-then-POST shape the editor produces: every column comes
+    back exactly as it arrived.
+    """
+    from superset.models.core import Database
+
+    stored_column = MagicMock()
+    stored_column.column_name = "event_time"
+    stored_column.partition_value_transform = "unix_timestamp(:value)"
+    stored_column.partition_transform_is_monotonic = True
+
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    mock_orm.table_name = "my_table"
+    mock_orm.schema = "public"
+    mock_orm.catalog = None
+    mock_orm.columns = [stored_column]
+    mock_orm.data = {"id": 1}
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_editorship.return_value = None
+
+    payload_columns: list[dict[str, Any]] = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": True,
+        },
+        {"column_name": "event_time2"},
+        {"column_name": "dt_epoch"},
+    ]
+
+    raw_save = _get_view_func("save")
+    original = app.config["DEFAULT_FEATURE_FLAGS"].get("PARTITION_FILTER_MAPPING")
+    app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = flag_on
+    try:
+        with app.test_request_context(
+            "/datasource/save/",
+            method="POST",
+            data={
+                "data": superset_json.dumps(
+                    {
+                        "id": 1,
+                        "type": "table",
+                        "database": {"id": 1},
+                        # Moved away from the column holding the transform.
+                        "main_dttm_col": "event_time2",
+                        "partition_column": "dt_epoch",
+                        "columns": payload_columns,
+                    }
+                )
+            },
+        ):
+            raw_save(_view_self())
+    finally:
+        if original is None:
+            del app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"]
+        else:
+            app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
+
+    written = mock_orm.update_from_object.call_args.args[0]
+    return written["columns"]
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_keeps_an_echoed_transform_only_while_the_flag_is_off(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    With the flag **off** the echo survives: nothing else would preserve it,
+    since neither path runs a model-level pass and the editor hides the fields.
+
+    With the flag **on** it is dropped. This endpoint has no model-level pass
+    after the write -- the REST path does -- so exempting the echo here left
+    the old mapped column holding its transform, and clearing the override
+    through this same endpoint later re-armed it.
+    """
+    off = _save_echoing_transform(
+        app, mock_get_datasource, mock_security_manager, flag_on=False
+    )
+    assert off[0]["partition_value_transform"] == "unix_timestamp(:value)"
+    assert off[0]["partition_transform_is_monotonic"] is True
+
+    on = _save_echoing_transform(
+        app, mock_get_datasource, mock_security_manager, flag_on=True
+    )
+    assert on[0]["partition_value_transform"] is None
+    assert on[0]["partition_transform_is_monotonic"] is False
