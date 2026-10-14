@@ -125,7 +125,7 @@ const dragFirstWidget = (dx: number) => {
   ].forEach(event => fireEvent(handle, event));
 };
 
-const renderBody = () =>
+const renderWith = (draftToken?: string) =>
   render(
     <CanvasBody
       canvasId={7}
@@ -134,12 +134,17 @@ const renderBody = () =>
       values={emptyScopeValues()}
       onValueChange={jest.fn()}
       refreshKeys={{}}
-      draftToken="tok-123"
+      draftToken={draftToken}
       onDraftClosed={jest.fn()}
       isEmpty={false}
     />,
     { useRedux: true },
   );
+
+/** In a plan, which is where editing happens. */
+const renderBody = () => renderWith('tok-123');
+/** On the published canvas, with no plan open. */
+const renderPublished = () => renderWith(undefined);
 
 const publishButton = () => screen.getByRole('button', { name: /Publish/ });
 
@@ -235,4 +240,23 @@ test('a failed commit gives the handles back', async () => {
       2,
     ),
   );
+});
+
+test('the published canvas has no handles, even for someone who may edit', () => {
+  // `canEdit` is true here: permission alone must not make the canvas
+  // editable, since changes are made in a plan. With no draft token there is
+  // no banner either.
+  renderPublished();
+
+  expect(
+    screen.queryByRole('button', { name: 'Move widget' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Resize widget' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: /Publish/ }),
+  ).not.toBeInTheDocument();
+  // The widgets themselves still render.
+  expect(screen.getAllByText('widget')).toHaveLength(2);
 });

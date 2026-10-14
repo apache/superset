@@ -29,9 +29,12 @@ interface DraftBannerProps {
   revision: number;
   onClose: () => void;
   /**
-   * Whether a change to the draft is still being saved. Publishing names a
-   * revision, so committing mid-save would publish the draft as it was before
-   * those changes landed and then delete it, losing them.
+   * Whether a change to the draft is still being saved. Both actions wait on
+   * it. Publishing names a revision, so committing mid-save would publish the
+   * draft as it was before those changes landed and then delete it, losing
+   * them. Discarding deletes the draft, and a save that is mid-flight writes
+   * the draft back to the cache afterwards -- recreating what was just
+   * discarded, under a token the user was told no longer works.
    */
   saving?: boolean;
   /**
@@ -110,7 +113,13 @@ export default function DraftBanner({
           >
             {t('Publish')}
           </Button>
-          <Button buttonSize="small" disabled={busy} onClick={discard}>
+          <Button
+            buttonSize="small"
+            disabled={busy || saving}
+            onClick={discard}
+            tooltip={saving ? t('Saving your changes…') : undefined}
+            data-test="canvas-draft-discard"
+          >
             {t('Discard')}
           </Button>
         </Space>

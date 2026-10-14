@@ -156,7 +156,13 @@ const Grip = styled.button`
   ${({ theme }) => css`
     position: absolute;
     top: ${theme.sizeUnit}px;
-    right: ${theme.sizeUnit}px;
+    /*
+     * Clear of a widget's own controls, which sit at the top right corner and
+     * are 8 units wide (see WithQuery's .canvas-widget-controls): the grip is
+     * above them in the stack, so overlapping would swallow clicks meant for
+     * the menu.
+     */
+    right: ${theme.sizeUnit * 9}px;
     z-index: 3;
     display: flex;
     align-items: center;

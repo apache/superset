@@ -137,3 +137,18 @@ test('busy is reported false again when a commit fails', async () => {
   // Otherwise a rejected publish would leave the canvas uneditable.
   await waitFor(() => expect(onBusyChange).toHaveBeenCalledWith(false));
 });
+
+test('discarding is held while a layout change is still saving', () => {
+  // A discard landing between a save's read and its write-back would delete
+  // the draft and then have it recreated by that save, so the token still
+  // opens changes the user was told were discarded.
+  fetchMock.delete('glob:*/api/v1/canvas/draft', { result: 'deleted' });
+  renderBanner(true);
+
+  const discard = screen.getByRole('button', { name: 'Discard' });
+  expect(discard).toBeDisabled();
+
+  fireEvent.click(discard);
+
+  expect(fetchMock.callHistory.calls()).toHaveLength(0);
+});

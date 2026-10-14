@@ -57,6 +57,9 @@ test('opening a draft exposes its token straight away', () => {
   act(() => result.current.open('tok-456'));
 
   expect(result.current.token).toBe('tok-456');
+  // And in the url, which is what makes a plan shareable and survive a
+  // refresh: hook state alone would be lost on reload.
+  expect(window.location.hash).toBe('#draft=tok-456');
 });
 
 test('clearing closes the draft', () => {
