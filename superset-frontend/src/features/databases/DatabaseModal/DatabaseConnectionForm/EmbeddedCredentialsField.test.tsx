@@ -81,6 +81,9 @@ test('does not show input fields until the collapse trigger is clicked', () => {
 
   expect(getByTestId('embedded-credentials-username')).toBeInTheDocument();
   expect(getByTestId('embedded-credentials-password')).toBeInTheDocument();
+  expect(
+    queryByTestId('embedded-credentials-private-key'),
+  ).not.toBeInTheDocument();
 });
 
 test('renders the stored username and the masked password', () => {
@@ -128,9 +131,76 @@ test('reports changes as an object so the parent can encrypt it', () => {
         value: {
           username: 'other_svc',
           password: 'XXXXXXXXXX',
+          auth_method: 'password',
         },
       },
     }),
+  );
+});
+
+test('uses a PEM key without requiring the embedded password', () => {
+  const { getByText, getByTestId, queryByTestId } = render(
+    <EmbeddedCredentialsField {...defaultProps} />,
+  );
+
+  fireEvent.click(getByText('Embedded guest credentials'));
+  fireEvent.click(getByText('Key pair'));
+
+  expect(
+    queryByTestId('embedded-credentials-password'),
+  ).not.toBeInTheDocument();
+  fireEvent.change(getByTestId('embedded-credentials-private-key'), {
+    target: {
+      value: '-----BEGIN PRIVATE KEY-----\nexample\n-----END PRIVATE KEY-----',
+    },
+  });
+
+  expect(mockChangeMethods.onParametersChange).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      target: expect.objectContaining({
+        name: 'embedded_credentials',
+        value: expect.objectContaining({
+          username: 'embedded_svc',
+          auth_method: 'keypair',
+          privatekey_body:
+            '-----BEGIN PRIVATE KEY-----\nexample\n-----END PRIVATE KEY-----',
+        }),
+      }),
+    }),
+  );
+  expect(
+    mockChangeMethods.onParametersChange.mock.lastCall?.[0].target.value,
+  ).not.toHaveProperty('password');
+});
+
+test('reuses a masked embedded PEM key and passphrase on edit', () => {
+  const props = {
+    ...defaultProps,
+    db: {
+      ...defaultProps.db,
+      masked_encrypted_extra: JSON.stringify({
+        embedded_credentials: {
+          username: 'embedded_svc',
+          auth_method: 'keypair',
+          privatekey_body: 'XXXXXXXXXX',
+          privatekey_pass: 'XXXXXXXXXX',
+        },
+      }),
+    },
+  };
+  const { getByText, getByTestId, queryByTestId } = render(
+    <EmbeddedCredentialsField {...props} />,
+  );
+
+  fireEvent.click(getByText('Embedded guest credentials'));
+  expect(
+    queryByTestId('embedded-credentials-password'),
+  ).not.toBeInTheDocument();
+  expect(getByTestId('embedded-credentials-private-key')).toHaveValue(
+    'XXXXXXXXXX',
+  );
+  expect(getByTestId('embedded-credentials-key-passphrase')).toHaveValue(
+    'XXXXXXXXXX',
   );
 });
 

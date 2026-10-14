@@ -3038,6 +3038,99 @@ def test_embedded_fallback_credential_is_used_for_a_guest(
     assert "authenticator" not in url.query
 
 
+@pytest.mark.parametrize("passphrase", ["", "key-passphrase"])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_keypair_is_used_only_for_a_guest(
+    mocker: MockerFixture, passphrase: str
+) -> None:
+    """A guest uses the PEM key while a logged-in user stays on OAuth2."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    from superset.models.core import _ENGINE_CACHE
+
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    encryption = (
+        serialization.BestAvailableEncryption(passphrase.encode())
+        if passphrase
+        else serialization.NoEncryption()
+    )
+    pem = private_key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        encryption,
+    ).decode()
+    expected_der = private_key.private_bytes(
+        serialization.Encoding.DER,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    )
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = {
+        "username": "embedded_svc",
+        "auth_method": "keypair",
+        "privatekey_body": pem,
+        "privatekey_pass": passphrase,
+    }
+    extra["auth_method"] = "keypair"
+    extra["auth_params"] = {"privatekey_body": "not-the-embedded-key"}
+    database.encrypted_extra = json.dumps(extra)
+    database.id = 1
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        side_effect=lambda *a, **kw: create_engine("sqlite://"),
+    )
+    _stub_driver_dependent_uri_validation(mocker)
+    _ENGINE_CACHE.clear()
+
+    _become_guest(mocker, username="ACCOUNTADMIN")
+    database._get_sqla_engine(nullpool=False)
+    guest_url = create_engine_mock.call_args[0][0]
+    guest_kwargs = create_engine_mock.call_args[1]
+    assert guest_url.username == "embedded_svc"
+    assert guest_url.password is None
+    assert "authenticator" not in guest_url.query
+    assert guest_kwargs["connect_args"]["private_key"] == expected_der
+
+    mocker.patch(
+        "superset.models.core.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    with current_app.test_request_context("/dashboard/"):
+        database._get_sqla_engine(nullpool=False)
+    user_url = create_engine_mock.call_args[0][0]
+    user_kwargs = create_engine_mock.call_args[1]
+    assert user_url.query["authenticator"] == "oauth"
+    assert "private_key" not in user_kwargs["connect_args"]
+    assert len(_ENGINE_CACHE) == 2
+    _ENGINE_CACHE.clear()
+
+
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        {"username": "embedded_svc", "auth_method": "keypair"},
+        {"auth_method": "keypair", "privatekey_body": "PEM"},
+        {"username": "embedded_svc", "auth_method": "keypair", "password": "pw"},
+        {"username": "embedded_svc", "auth_method": "unknown", "password": "pw"},
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_incomplete_embedded_keypair_is_ignored(
+    mocker: MockerFixture, credentials: dict[str, str]
+) -> None:
+    """An incomplete or unknown fallback method cannot authenticate a guest."""
+    _become_guest(mocker)
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = credentials
+    database.encrypted_extra = json.dumps(extra)
+
+    assert database.get_embedded_fallback_credentials() is None
+
+
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_guest_username_from_the_token_never_reaches_the_connection(
     mocker: MockerFixture,

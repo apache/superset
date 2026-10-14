@@ -128,7 +128,8 @@ Must be `True` to enable the embedded SDK and the guest token endpoint. Without 
 ### `EMBEDDED_CREDENTIAL_FALLBACK`
 
 Allows a database connection that authenticates logged-in users per-user via OAuth2 to
-also carry a single username and password used **only** for embedded guest requests.
+also carry a single Snowflake username with either a password or a PEM key pair, used
+**only** for embedded guest requests.
 
 This exists because the two authentication models do not meet. An embedded viewer signs
 in with a guest token rather than a Superset account, so there is no per-user OAuth2
@@ -145,9 +146,14 @@ FEATURE_FLAGS = {
 ```
 
 With both flags on, engines that support it (currently Snowflake) show an **Embedded
-guest credentials** section in the connection dialog. The credential is stored
-encrypted; the password is masked on read, and the username stays visible so an
-administrator can see which database user embedded queries run as.
+guest credentials** section in the connection dialog. Choose **Password** or **Key pair**.
+For key-pair authentication, enter the Snowflake username, its PEM private key, and an
+optional passphrase; register the corresponding public key with that Snowflake user.
+The credential is stored encrypted. Passwords, private keys, and passphrases are masked
+on read, while the username stays visible so an administrator can see which database
+user embedded queries run as. A key pair supplied here applies only to embedded guests;
+the connection's ordinary credential is still used for connection tests and background
+work.
 
 Understand what this grants before enabling it:
 
