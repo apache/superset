@@ -207,6 +207,58 @@ test('uses a new link opened in the same tab instead of the one it replaced', as
   ]);
 });
 
+test.each([
+  ['succeeds', { status: 200, body: {} }],
+  [
+    'rejects the token',
+    {
+      status: 400,
+      body: {
+        message: {
+          token: ['This password reset link is invalid or has expired.'],
+        },
+      },
+    },
+  ],
+])(
+  'ignores a late response for a link replaced while it was in flight (%s)',
+  async (_, lateResponse) => {
+    const NEW_TOKEN = 'newTOKEN456_-abc';
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    fetchMock.post(endpoint, () => gate.then(() => lateResponse), {
+      repeat: 1,
+    });
+    fetchMock.post(endpoint, { status: 200, body: {} });
+    const router = renderResetPassword();
+    await fillAndSubmit('N3w-Passw0rd!');
+
+    act(() => {
+      router.history?.push(`/login/reset_password/#token=${NEW_TOKEN}`);
+    });
+    await act(async () => {
+      release();
+      await gate;
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    // The first link's answer must not decide the page for the second one.
+    expect(screen.getByTestId('reset-password-form')).toBeInTheDocument();
+    expect(screen.getByTestId('reset-password-button')).toBeEnabled();
+
+    await fillAndSubmit('N3w-Passw0rd!');
+    expect(
+      await screen.findByText('Your password has been reset'),
+    ).toBeInTheDocument();
+    expect(sentPayloads()).toEqual([
+      { token: TOKEN, password: 'N3w-Passw0rd!' },
+      { token: NEW_TOKEN, password: 'N3w-Passw0rd!' },
+    ]);
+  },
+);
+
 test('shows the invalid link state without calling the API when the link has no token', () => {
   fetchMock.post(endpoint, { status: 200, body: {} });
   renderResetPassword('/login/reset_password/');

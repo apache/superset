@@ -92,23 +92,37 @@ export default function ResetPassword() {
       tokenRef.current = token;
       form.resetFields();
       setErrorMessage(null);
+      setLoading(false);
       setStatus('form');
     }
     history.replace({ pathname: location.pathname, search: location.search });
   }, [form, history, location]);
 
   const onFinish = async ({ password }: ResetPasswordForm) => {
+    // If another link is opened in this tab while the request is in flight,
+    // the page belongs to that link by the time the answer arrives, so the
+    // answer for this one is dropped instead of overwriting its state.
+    const submittedToken = tokenRef.current;
+    let superseded = false;
     setLoading(true);
     setErrorMessage(null);
     try {
       await SupersetClient.post({
         endpoint: PASSWORD_RESET_ENDPOINT,
-        jsonPayload: { token: tokenRef.current, password },
+        jsonPayload: { token: submittedToken, password },
       });
+      superseded = tokenRef.current !== submittedToken;
+      if (superseded) {
+        return;
+      }
       tokenRef.current = '';
       setStatus('success');
     } catch (response) {
       const errorData = await getClientErrorObject(response as Response);
+      superseded = tokenRef.current !== submittedToken;
+      if (superseded) {
+        return;
+      }
       const message: unknown = errorData.message;
       const passwordErrors = getFieldErrors(message, 'password');
       if (getFieldErrors(message, 'token').length > 0) {
@@ -127,7 +141,9 @@ export default function ResetPassword() {
         );
       }
     } finally {
-      setLoading(false);
+      if (!superseded) {
+        setLoading(false);
+      }
     }
   };
 
