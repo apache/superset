@@ -433,7 +433,7 @@ def _filter_clause(
 
 def _in_list_clause(sqla_col: Any, op: Any, value: Any, name: str) -> Any:
     """IN / NOT IN with the dataset path's NULL handling (``IN (x, NULL)``
-    matches NULL rows)."""
+    matches NULL rows; ``NOT IN (x)`` without NULL keeps NULL rows)."""
     import sqlalchemy as sa
 
     from superset.utils.core import FilterOperator
@@ -445,13 +445,18 @@ def _in_list_clause(sqla_col: Any, op: Any, value: Any, name: str) -> Any:
             _SQL_GUIDANCE,
         )
     non_null = [item for item in values if item is not None]
+    is_not_in = op == FilterOperator.NOT_IN
     if not non_null:
         condition = sqla_col.is_(None)
     elif len(non_null) < len(values):
         condition = sa.or_(sqla_col.is_(None), sqla_col.in_(non_null))
     else:
         condition = sqla_col.in_(non_null)
-    return ~condition if op == FilterOperator.NOT_IN else condition
+        if is_not_in:
+            # ``NULL NOT IN (...)`` is not true, so keep NULL rows explicitly;
+            # only the listed values are excluded.
+            return sa.or_(sqla_col.is_(None), ~condition)
+    return ~condition if is_not_in else condition
 
 
 def _time_clause(

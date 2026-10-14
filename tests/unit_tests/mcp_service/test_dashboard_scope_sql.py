@@ -338,6 +338,35 @@ def test_null_aware_in_list_matches_the_dataset_path(
     ) == [(1030,)]
 
 
+@pytest.mark.parametrize(
+    "op,values,expected_total",
+    [
+        # NOT IN without NULL excludes only the listed values and keeps NULL rows
+        ("NOT IN", ["A"], 1300),
+        ("NOT IN", ["A", "B"], 1000),
+        # NOT IN with NULL excludes the NULL rows too
+        ("NOT IN", ["A", None], 300),
+        ("NOT IN", [None], 330),
+        # IN is unchanged
+        ("IN", ["A"], 30),
+        ("IN", ["A", None], 1030),
+    ],
+)
+def test_in_list_null_handling(
+    database: Any,
+    warehouse: sa.engine.Engine,
+    op: str,
+    values: list[Any],
+    expected_total: int,
+) -> None:
+    constraints = DashboardConstraints(
+        ({"col": "client", "op": op, "val": values},), None, None
+    )
+    assert run(
+        warehouse, scoped(database, "SELECT SUM(amount) FROM orders", constraints)
+    ) == [(expected_total,)]
+
+
 def test_time_range_is_applied_to_the_resolved_datetime_column(
     database: Any, warehouse: sa.engine.Engine
 ) -> None:

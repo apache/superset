@@ -6092,6 +6092,8 @@ def test_not_in_filter_keeps_null_rows(
     [
         (["CA", None], {"NY", "TX"}),
         ([None], {"CA", "NY", "TX"}),
+        # the NULL placeholder is coerced to NULL before the condition is built
+        (["CA", "<NULL>"], {"NY", "TX"}),
     ],
 )
 def test_not_in_filter_with_null_operand_excludes_null_rows(
@@ -6114,3 +6116,48 @@ def test_not_in_filter_excludes_selected_values(database: Database) -> None:
     assert "CA" not in result
     assert "NY" not in result
     assert "TX" in result
+
+
+@pytest.mark.parametrize(
+    "selected,expected",
+    [
+        (["1"], {2, 3, None}),
+        ([1, 2], {3, None}),
+        ([1, None], {2, 3}),
+    ],
+)
+def test_not_in_filter_on_numeric_column_keeps_null_rows(
+    database: Database,
+    selected: list[Any],
+    expected: set[Any],
+) -> None:
+    """
+    The NULL handling of ``NOT IN`` also applies to numeric columns, where the
+    selected values are coerced before the condition is built.
+    """
+    from sqlalchemy import text
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    with database.get_sqla_engine() as engine, engine.begin() as connection:
+        connection.execute(text("CREATE TABLE nums (n INTEGER)"))
+        for number in (1, 2, 3, None):
+            connection.execute(text("INSERT INTO nums VALUES (:n)"), {"n": number})
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="nums",
+        columns=[TableColumn(column_name="n", type="INTEGER")],
+    )
+    query = table.get_sqla_query(
+        columns=["n"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "n", "op": FilterOperator.NOT_IN, "val": selected}],
+        granularity=None,
+        is_timeseries=False,
+    )
+    sql = database.compile_sqla_query(query.sqla_query)
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        assert {row[0] for row in connection.execute(text(sql))} == expected
