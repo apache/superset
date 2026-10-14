@@ -538,6 +538,19 @@ export default function AddSemanticViewModal({
   // Modal open / close
   // =========================================================================
 
+  // A parent can unmount the modal without first setting show to false.
+  // Cancel queued schema/view work and invalidate in-flight responses.
+  useEffect(
+    () => () => {
+      fetchGenRef.current += 1;
+      schemaRefreshGenRef.current += 1;
+      viewsGenRef.current += 1;
+      if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
+      if (viewsTimerRef.current) clearTimeout(viewsTimerRef.current);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (show) {
       fetchLayers();

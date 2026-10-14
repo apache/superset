@@ -62,6 +62,23 @@ const selectOption = async (name: string, optionLabel: string) => {
   await userEvent.click(await screen.findByText(optionLabel));
 };
 
+async function chooseDependentOption(name: string | RegExp, value: string) {
+  fireEvent.mouseDown(await screen.findByRole('combobox', { name }));
+  const option = await waitFor(() => {
+    const item = document.querySelector(
+      `.ant-select-item-option[title="${value}"]`,
+    );
+    if (!item) throw new Error(`Missing option ${value}`);
+    return item;
+  });
+  fireEvent.click(option);
+  // JSON Forms emits onChange after its own 10 ms debounce; the modal's
+  // 500 ms schema-fetch debounce must not have elapsed at this point.
+  await act(async () => {
+    jest.advanceTimersByTime(10);
+  });
+}
+
 beforeEach(() => {
   mockedGet.mockReset();
   mockedPost.mockReset();
@@ -419,7 +436,8 @@ test('a const array default does not loop updates', async () => {
 });
 
 test('a failed array-only refresh keeps views and Add usable with a bounded retry', async () => {
-  let refreshCount = 0;
+  jest.useFakeTimers();
+  const refreshCounts = new Map<string, number>();
   const schemaWithMode = {
     ...dynamicMetricsSchema,
     properties: {
@@ -435,41 +453,67 @@ test('a failed array-only refresh keeps views and Add usable with a bounded retr
   };
   mockLayerWithSchema(schemaWithMode, {
     '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
-      if ((payload as { runtime_data?: unknown })?.runtime_data) {
-        refreshCount += 1;
+      const data = (payload as { runtime_data?: Record<string, unknown> })
+        ?.runtime_data;
+      if (data) {
+        const snapshot = JSON.stringify([
+          data.metrics ?? [],
+          data.mode ?? null,
+        ]);
+        refreshCounts.set(snapshot, (refreshCounts.get(snapshot) ?? 0) + 1);
         return Promise.reject(new Error('refresh boom'));
       }
       return Promise.resolve({ json: { result: schemaWithMode } });
     },
   });
+  // Flush refresh, retry, JSON Forms, and views timers with microtasks
+  // between ticks rather than depending on the runner's wall clock.
+  const settleRefreshes = async () => {
+    for (let tick = 0; tick < 8; tick += 1) {
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(SCHEMA_REFRESH_DEBOUNCE_MS);
+      });
+    }
+  };
   const props = createProps();
   render(<AddSemanticViewModal {...props} />);
-  await selectOption('Semantic layer', 'Snowflake SL');
+  await chooseDependentOption('Semantic layer', 'Snowflake SL');
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(10);
+  });
+  await chooseDependentOption(/metrics/i, 'm1');
+  await settleRefreshes();
 
-  await pickFromSelect(/metrics/i, 'm1');
-  await waitFor(
-    () => {
-      expect(props.addDangerToast).toHaveBeenCalledWith(
-        'An error occurred while refreshing the runtime schema',
-      );
-    },
-    { timeout: 10000 },
+  expect(props.addDangerToast).toHaveBeenCalledWith(
+    'An error occurred while refreshing the runtime schema',
   );
-  expect(refreshCount).toBeGreaterThanOrEqual(1);
-  // The user's selection is untouched by the failure (spec FR-005).
   expect(selectedTag('m1')).toBeTruthy();
-  await waitFor(
-    () => {
-      expect(
-        screen.getByRole('combobox', { name: 'Semantic views' }),
-      ).toBeEnabled();
-    },
-    { timeout: 10000 },
-  );
-  await selectOption('Semantic views', 'orders');
+  expect(
+    screen.getByRole('combobox', { name: 'Semantic views' }),
+  ).toBeEnabled();
+  await chooseDependentOption('Semantic views', 'orders');
   expect(screen.getByRole('button', { name: /Add 1 view/ })).toBeEnabled();
-  await pickFromSelect(/metrics/i, 'm2');
-  await waitFor(() => expect(refreshCount).toBe(2), { timeout: 10000 });
+
+  await chooseDependentOption(/metrics/i, 'm2');
+  await settleRefreshes();
+  expect(selectedTag('m1')).toBeTruthy();
+  expect(selectedTag('m2')).toBeTruthy();
+  expect(
+    screen.getByRole('combobox', { name: 'Semantic views' }),
+  ).toBeEnabled();
+  const attemptedMetrics = [...refreshCounts.keys()].map(
+    snapshot => JSON.parse(snapshot)[0],
+  );
+  expect(attemptedMetrics).toEqual(
+    expect.arrayContaining([['m1'], ['m1', 'm2']]),
+  );
+  // Initial empty input and subsequent picks are distinct dependency
+  // states. Each permits one attempt plus at most one retry.
+  expect([...refreshCounts.values()].every(count => count <= 2)).toBe(true);
+  expect(props.addDangerToast).toHaveBeenCalledTimes(1);
+  const settledCounts = [...refreshCounts.entries()];
+  await settleRefreshes();
+  expect([...refreshCounts.entries()]).toEqual(settledCounts);
 });
 
 test('the save payload carries every selected metric', async () => {
@@ -607,23 +651,6 @@ type PendingSchema = {
   reject: (error: Error) => void;
 };
 
-async function chooseDependentOption(name: string, value: string) {
-  fireEvent.mouseDown(await screen.findByRole('combobox', { name }));
-  const option = await waitFor(() => {
-    const item = document.querySelector(
-      `.ant-select-item-option[title="${value}"]`,
-    );
-    if (!item) throw new Error(`Missing option ${value}`);
-    return item;
-  });
-  fireEvent.click(option);
-  // JSON Forms emits onChange after its own 10 ms debounce; the modal's
-  // 500 ms schema-fetch debounce must not have elapsed at this point.
-  await act(async () => {
-    jest.advanceTimersByTime(10);
-  });
-}
-
 async function openDependentSchemaForm(
   makeSchema: typeof databaseSchema = databaseSchema,
 ) {
@@ -644,7 +671,7 @@ async function openDependentSchemaForm(
     },
   });
   const props = createProps();
-  const { rerender } = render(<AddSemanticViewModal {...props} />);
+  const { rerender, unmount } = render(<AddSemanticViewModal {...props} />);
   await chooseDependentOption('Semantic layer', 'Snowflake SL');
   // Let JSON Forms emit its mount-time change before selecting a database.
   // Otherwise that delayed event can reset the dependency snapshot mid-pick.
@@ -659,7 +686,7 @@ async function openDependentSchemaForm(
   await act(async () => {
     pending[0].resolve(initial);
   });
-  return { pending, props, rerender };
+  return { pending, props, rerender, unmount };
 }
 
 const viewsRequests = () =>
@@ -669,6 +696,42 @@ const viewsRequests = () =>
       ({ endpoint }: { endpoint: string }) =>
         endpoint === '/api/v1/semantic_layer/layer-1/views',
     );
+
+test('unmount cancels a queued runtime schema refresh', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  await chooseDependentOption('Database', 'second');
+  expect(pending).toHaveLength(1);
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(1);
+});
+
+test('unmount cancels queued view discovery', async () => {
+  const { unmount } = await openDependentSchemaForm();
+  await chooseDependentOption('Schema', 'shared');
+  expect(viewsRequests()).toHaveLength(0);
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  expect(viewsRequests()).toHaveLength(0);
+});
+
+test('unmount invalidates an in-flight schema refresh failure', async () => {
+  const { pending, props, unmount } = await openDependentSchemaForm();
+  await chooseDependentOption('Database', 'second');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(pending).toHaveLength(2);
+  unmount();
+  await act(async () => {
+    pending[1].reject(new Error('request completed after unmount'));
+  });
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
 
 test.each(['shared', 'old_only'])(
   'dependent options are unavailable through debounce/loading and validate selection %s',
