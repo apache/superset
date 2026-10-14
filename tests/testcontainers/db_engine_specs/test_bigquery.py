@@ -20,7 +20,7 @@ bigquery.py's ``_monkeypatch_bigquery_string_literal``) against a real
 GoogleSQL query engine, spun up on demand via testcontainers. Run via
 .github/workflows/testcontainers.yml.
 
-sc-120493-adjacent investigation: an apostrophe in a filter value used to
+Background: an apostrophe in a filter value used to
 break BigQuery queries (apache/superset#35857 / #38835, doubled single
 quotes -- BigQuery rejects ``'Armando''s'`` as two adjacent string literals
 needing whitespace between them). The current fix backslash-escapes instead.
@@ -120,6 +120,7 @@ def _insert_and_find(engine: Engine, value: str) -> list[str]:
 def test_apostrophe_value_round_trips(engine: Engine) -> None:
     """Regression test for apache/superset#35857: an apostrophe in a filter
     value must not corrupt the compiled query or fail to match."""
+    assert _compiled_literal(sa.literal("O'Brien")) == "'O\\'Brien'"
     assert _insert_and_find(engine, "O'Brien") == ["O'Brien"]
 
 
@@ -147,15 +148,15 @@ def test_combined_percent_and_apostrophe_round_trips(engine: Engine) -> None:
 
 def test_doubled_percent_value_is_collapsed_by_bigquery_dbapi(engine: Engine) -> None:
     """
-    Documents a BigQuery-DBAPI-level limitation, not something Superset's
-    literal_processor can fix: when a data value itself contains two
-    consecutive percent signs, google.cloud.bigquery.dbapi.cursor.
-    _format_operation unconditionally runs `operation.replace("%%", "%")`
-    whenever it is called with no `parameters` (which is always true for
-    Superset's cursor.execute(query) path), so one of the two percent signs
-    is silently lost. This is unrelated to the apostrophe/percent escaping
-    this module otherwise tests -- it exists only to pin the actually-shipped
-    (lossy) behavior rather than leave it undocumented.
+    Pins a lossy interaction between Superset's literal_processor, which
+    does not double `%`, and google.cloud.bigquery.dbapi.cursor.
+    _format_operation, which runs `operation.replace("%%", "%")` whenever
+    it is called with no `parameters` (always true for Superset's
+    cursor.execute(query) path), so one of two consecutive percent signs
+    is silently lost. It depends on the escaping under test: with
+    _monkeypatch_bigquery_string_literal removed, upstream doubles `%` and
+    this test fails. The full Superset path also collapses `%%` in
+    Database.compile_sqla_query; see _compiled_literal.
     """
     assert _insert_and_find(engine, "a%%b") == ["a%b"]
 
