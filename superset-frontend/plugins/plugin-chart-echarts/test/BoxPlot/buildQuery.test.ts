@@ -59,4 +59,28 @@ describe('BoxPlot buildQuery', () => {
     expect(isPostProcessingBoxplot(rule)).toEqual(true);
     expect((rule as PostProcessingBoxplot)?.options?.groupby).toEqual(['bar']);
   });
+
+  test('omits a saved semantic limit when there are no series columns', () => {
+    const {
+      queries: [semanticQuery],
+    } = buildQuery({
+      ...formData,
+      datasource: '5__semantic_view',
+      granularity_sqla: undefined,
+      groupby: [],
+      series_limit: 2,
+    });
+    const {
+      queries: [sqlQuery],
+    } = buildQuery({
+      ...formData,
+      granularity_sqla: undefined,
+      groupby: [],
+      series_limit: 2,
+    });
+
+    expect(semanticQuery.series_columns).toEqual([]);
+    expect(semanticQuery.series_limit).toBe(0);
+    expect(sqlQuery.series_limit).toBe(2);
+  });
 });

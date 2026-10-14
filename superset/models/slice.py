@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator, Sequence
 from typing import Any, TYPE_CHECKING
 from urllib import parse
 
@@ -45,6 +46,7 @@ from superset.legacy import update_time_range
 from superset.models.helpers import (
     AuditMixinNullable,
     ImportExportMixin,
+    skip_visibility_filter,
     SoftDeleteMixin,
 )
 from superset.security.manager import get_extra_editor_subject_ids
@@ -284,6 +286,57 @@ class Slice(  # pylint: disable=too-many-public-methods
         # letting the access check crash on it.
         return resolved if hasattr(resolved, "perm") else None
 
+    @staticmethod
+    def iter_resolved_datasources(
+        slices: Sequence[Slice],
+    ) -> Iterator[Datasource | None]:
+        """Resolve unique member references in order, batching each fallback type.
+
+        Relationship-backed references retain their existing resolver. A fallback
+        batch is loaded only when its first member is reached, so callers can
+        short-circuit before any fallback query. All batch state is call-local.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.datasource import DatasourceDAO
+        from superset.daos.exceptions import DatasourceTypeNotSupportedError
+
+        seen: set[tuple[str | None, int | None]] = set()
+        batches: dict[str, dict[int, Datasource]] = {}
+        for slc in slices:
+            key: tuple[str | None, int | None] = (
+                slc.datasource_type,
+                slc.datasource_id,
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            if not slc.datasource_id or slc.datasource_type in (
+                utils.DatasourceType.TABLE,
+                utils.DatasourceType.SEMANTIC_VIEW,
+            ):
+                yield slc.resolved_datasource
+                continue
+            datasource_type: str = slc.datasource_type
+            if datasource_type not in batches:
+                ids: set[int] = {
+                    member.datasource_id
+                    for member in slices
+                    if member.datasource_type == datasource_type
+                    and member.datasource_id is not None
+                }
+                try:
+                    batches[datasource_type] = DatasourceDAO.get_datasources_by_ids(
+                        datasource_type, ids
+                    )
+                except DatasourceTypeNotSupportedError:
+                    batches[datasource_type] = {}
+            resolved: Datasource | None = batches[datasource_type].get(
+                slc.datasource_id
+            )
+            yield (
+                resolved if resolved is not None and hasattr(resolved, "perm") else None
+            )
+
     def clone(self) -> Slice:
         return Slice(
             slice_name=self.slice_name,
@@ -522,12 +575,22 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
         target.catalog_perm = None
         target.schema_perm = None
         return
+    ds: Datasource | None = None
     if id_ := target.datasource_id:
-        ds = db.session.query(src_class).filter_by(id=int(id_)).first()
-        if ds:
-            target.perm = ds.perm
-            target.catalog_perm = ds.catalog_perm
-            target.schema_perm = ds.schema_perm
+        # A soft-deleted datasource is restorable, not missing: resolve it so
+        # its charts keep their perms through trash and restore.
+        with skip_visibility_filter(db.session, src_class):
+            ds = db.session.query(src_class).filter_by(id=int(id_)).first()
+    if ds is None:
+        # A missing datasource (hard-deleted, or no ``datasource_id``) fails
+        # closed like an unknown type, rather than keeping the stale perm.
+        target.perm = None
+        target.catalog_perm = None
+        target.schema_perm = None
+        return
+    target.perm = getattr(ds, "perm", None)
+    target.catalog_perm = getattr(ds, "catalog_perm", None)
+    target.schema_perm = getattr(ds, "schema_perm", None)
 
 
 def event_after_chart_changed(

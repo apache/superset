@@ -28,6 +28,29 @@ const basicFormData: TableChartFormData = {
   metrics: ['count'],
 };
 
+test('preserves saved semantic pagination offsets and ordering', () => {
+  const saved: TableChartFormData = Object.freeze({
+    ...basicFormData,
+    datasource: '1__semantic_view',
+    server_pagination: true,
+    server_page_length: 2,
+  });
+  const ownState = Object.freeze({
+    currentPage: 1,
+    pageSize: 2,
+    sortBy: [{ key: 'state', desc: false }],
+  });
+  const { queries } = buildQueryUncached(saved, { ownState });
+  expect(queries[0]).toMatchObject({
+    row_offset: 2,
+    row_limit: 2,
+    orderby: [['state', true]],
+  });
+  expect(queries[1]).toMatchObject({ is_rowcount: true, row_offset: 0 });
+  expect(saved.server_pagination).toBe(true);
+  expect(ownState.currentPage).toBe(1);
+});
+
 const createAdhocColumn = (
   sqlExpression: string,
   label: string,

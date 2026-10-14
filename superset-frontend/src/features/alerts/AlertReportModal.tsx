@@ -18,6 +18,7 @@
  */
 import {
   ChangeEvent,
+  ComponentProps,
   FunctionComponent,
   useState,
   useEffect,
@@ -27,6 +28,7 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -58,6 +60,7 @@ import {
   Checkbox,
   Collapse,
   CollapseLabelInModal,
+  Flex,
   Form as AntdForm,
   InfoTooltip,
   Input,
@@ -97,6 +100,7 @@ import {
   ExtraNativeFilter,
   NativeFilterObject,
   DashboardTabsResponse,
+  RunAsUser,
 } from 'src/features/alerts/types';
 import { StatusMessage } from 'src/filters/components/common';
 import { useSelector } from 'react-redux';
@@ -106,10 +110,21 @@ import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { StandardModal, ModalFormField } from 'src/components/Modal';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
+import { useReportConfiguration } from './hooks/useReportConfiguration';
+
+const EXECUTOR_TYPE_OPTIONS = [
+  { value: 'fixed_user', label: t('Specific user') },
+];
+
+const CONTENT_EXECUTOR_TYPE_OPTIONS = [
+  { value: 'legacy', label: t('Application default') },
+  ...EXECUTOR_TYPE_OPTIONS,
+];
 
 const TIMEOUT_MIN = 1;
 const COLLAPSE_ANIMATION_DURATION = 220;
@@ -138,7 +153,9 @@ export interface AlertReportModalProps {
 }
 
 type AlertFormState = Partial<
-  Omit<AlertObject, 'editors'> & {
+  Omit<AlertObject, 'editors' | 'run_as' | 'run_alert_query_as'> & {
+    run_as?: MetaObject | null;
+    run_alert_query_as?: MetaObject | null;
     editors?: SubjectPickerValue[];
   }
 >;
@@ -244,6 +261,25 @@ const FORMAT_OPTIONS = {
 
 type FORMAT_OPTIONS_KEY = keyof typeof FORMAT_OPTIONS;
 
+type RelatedUserOption = {
+  value: number;
+  text: string;
+  extra?: { email?: string; active?: boolean };
+};
+
+const userToOption = (
+  user?: RunAsUser | MetaObject | null,
+): MetaObject | undefined => {
+  if (!user) {
+    return undefined;
+  }
+  if ('value' in user && user.value !== undefined) {
+    return user as MetaObject;
+  }
+  const { id, first_name: firstName, last_name: lastName } = user as RunAsUser;
+  return { value: id, label: `${firstName} ${lastName}`.trim() };
+};
+
 // Apply to final text input components of each collapse panel
 const noMarginBottom = css`
   margin-bottom: 0;
@@ -251,7 +287,11 @@ const noMarginBottom = css`
 
 // StyledModal replaced with StandardModal from shared components
 // Additional styles for inline containers
-const AdditionalStyles = css`
+const AdditionalStyles = (theme: SupersetTheme) => css`
+  [data-test='info-tooltip-icon'] {
+    margin-left: ${theme.sizeUnit}px;
+  }
+
   .inline-container {
     display: flex;
     flex-direction: row;
@@ -279,7 +319,7 @@ const AdditionalStyles = css`
     & > div:last-child {
       flex: 0 0 auto !important;
       width: auto !important;
-      margin-left: var(--open-btn-gap, 8px);
+      margin-left: ${theme.sizeUnit}px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -473,6 +513,7 @@ export const TRANSLATIONS = {
   // Error text
   NAME_ERROR_TEXT: t('name'),
   EDITORS_ERROR_TEXT: t('editors'),
+  RUN_AS_ERROR_TEXT: t('run as'),
   CONTENT_ERROR_TEXT: t('content type'),
   DATABASE_ERROR_TEXT: t('database'),
   SQL_ERROR_TEXT: t('sql'),
@@ -559,6 +600,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     setIsScreenshot(reportFormat === 'PNG' || reportFormat === 'PDF');
   }, [reportFormat]);
+  const isNoAttachment = reportFormat === 'NONE';
 
   // Dropdown options
   const [conditionNotNull, setConditionNotNull] = useState<boolean>(false);
@@ -636,10 +678,47 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const reportOrAlert = isReport ? 'report' : 'alert';
   const isEditMode = alert !== null;
-  const formatOptionEnabled =
-    isFeatureEnabled(FeatureFlag.AlertsAttachReports) || isReport;
+  // Global Alerts & Reports configuration (SIP-209). While it loads, fall back
+  // to the legacy feature flag so the form renders the same as before.
+  const { configuration: reportConfiguration } = useReportConfiguration(show);
+  const attachmentsEnabledForAlerts = reportConfiguration
+    ? Boolean(reportConfiguration.alerts_attach_reports)
+    : isFeatureEnabled(FeatureFlag.AlertsAttachReports);
+  const formatOptionEnabled = attachmentsEnabledForAlerts || isReport;
+  const attachmentControlsVisible =
+    isReport || (attachmentsEnabledForAlerts && reportFormat !== 'NONE');
+  const [previousAttachmentFormat, setPreviousAttachmentFormat] = useState(
+    DEFAULT_NOTIFICATION_FORMAT,
+  );
   const tabsEnabled = isFeatureEnabled(FeatureFlag.AlertReportTabs);
   const filtersEnabled = isFeatureEnabled(FeatureFlag.AlertReportsFilter);
+  const dynamicExecutorEnabled = isFeatureEnabled(
+    FeatureFlag.AlertReportDynamicExecutor,
+  );
+  const isAdmin = isUserAdmin(currentUser);
+  const [runAsSelf, setRunAsSelf] = useState(false);
+  useEffect(() => setRunAsSelf(false), [show, alert?.id]);
+  const restrictedExecutor =
+    dynamicExecutorEnabled &&
+    !isAdmin &&
+    isEditMode &&
+    !runAsSelf &&
+    (currentAlert?.run_as_type !== 'fixed_user' ||
+      !currentAlert?.run_as ||
+      currentAlert.run_as.value !== currentUser.userId ||
+      (currentAlert.run_as_type != null &&
+        currentAlert.run_as_type !== 'fixed_user') ||
+      (currentAlert.run_alert_query_as != null &&
+        currentAlert.run_alert_query_as.value !== currentUser.userId) ||
+      (currentAlert?.run_alert_query_as_type != null &&
+        (currentAlert.run_alert_query_as_type !== 'fixed_user' ||
+          !currentAlert.run_alert_query_as)));
+  const currentUserOption: MetaObject | undefined = currentUser?.userId
+    ? {
+        value: currentUser.userId,
+        label: `${currentUser.firstName} ${currentUser.lastName}`.trim(),
+      }
+    : undefined;
 
   const [notificationAddState, setNotificationAddState] =
     useState<NotificationAddStatus>('active');
@@ -694,6 +773,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     ALERT_REPORTS_DEFAULT_CRON_VALUE,
     ALERT_REPORTS_DEFAULT_RETENTION,
+    ALERT_REPORTS_RUN_AS_TOOLTIP,
   } = useSelector<any, AlertsReportsConfig>(state => {
     const conf = state.common?.conf;
     return {
@@ -703,10 +783,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         conf?.ALERT_REPORTS_DEFAULT_CRON_VALUE ?? DEFAULT_CRON_VALUE,
       ALERT_REPORTS_DEFAULT_RETENTION:
         conf?.ALERT_REPORTS_DEFAULT_RETENTION ?? DEFAULT_RETENTION,
+      ALERT_REPORTS_RUN_AS_TOOLTIP: conf?.ALERT_REPORTS_RUN_AS_TOOLTIP ?? null,
     };
   });
 
-  const defaultAlert = {
+  const defaultAlert: AlertFormState = {
     active: true,
     creation_method: 'alerts_reports',
     crontab: ALERT_REPORTS_DEFAULT_CRON_VALUE,
@@ -723,6 +804,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     force_screenshot: false,
     include_cta: true,
     grace_period: undefined,
+    ...(dynamicExecutorEnabled && {
+      run_as_type: 'fixed_user',
+      run_alert_query_as_type: null,
+      run_as: currentUserOption,
+      run_alert_query_as: undefined,
+    }),
     ...(isFeatureEnabled(FeatureFlag.AlertReportsRetry) && {
       retry_on_failure: false,
       retry_max_attempts: 3,
@@ -985,8 +1072,61 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
     };
 
+    if (!isReport && !attachmentControlsVisible && !isEditMode) {
+      data.report_format = 'NONE';
+    }
+    if (!attachmentControlsVisible && isEditMode) {
+      // Hidden settings stay stored; only the format controls attachment delivery.
+      delete data.chart;
+      delete data.dashboard;
+      delete data.extra;
+      delete data.custom_width;
+      delete data.force_screenshot;
+    }
+
     if (data.recipients && !data.recipients.length) {
       delete data.recipients;
+    }
+
+    // Preserve existing identities unless an admin chooses or the user takes over.
+    delete data.run_as;
+    delete data.run_alert_query_as;
+    delete data.run_as_type;
+    delete data.run_alert_query_as_type;
+    if (dynamicExecutorEnabled && isAdmin) {
+      data.run_as_type = currentAlert?.run_as_type ?? null;
+      data.run_as =
+        data.run_as_type === 'fixed_user'
+          ? (currentAlert?.run_as?.value ?? null)
+          : null;
+      if (
+        isEditMode &&
+        !isReport &&
+        (!attachmentsEnabledForAlerts || reportFormat === 'NONE') &&
+        currentAlert?.run_alert_query_as_type &&
+        currentAlert?.run_as?.value === resource?.run_as?.id &&
+        currentAlert?.run_as_type === resource?.run_as_type
+      ) {
+        delete data.run_as;
+        delete data.run_as_type;
+      }
+      if (!isReport) {
+        data.run_alert_query_as_type =
+          currentAlert?.run_alert_query_as_type ?? null;
+        data.run_alert_query_as =
+          data.run_alert_query_as_type === 'fixed_user'
+            ? (currentAlert?.run_alert_query_as?.value ?? null)
+            : null;
+      }
+    }
+
+    if (dynamicExecutorEnabled && !isAdmin && runAsSelf) {
+      data.run_as = currentUser.userId;
+      data.run_as_type = 'fixed_user';
+      if (!isReport) {
+        data.run_alert_query_as = currentUser.userId;
+        data.run_alert_query_as_type = 'fixed_user';
+      }
     }
 
     data.context_markdown = 'string';
@@ -1087,6 +1227,41 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         });
       },
     [],
+  );
+
+  const loadRunAsOptions = useMemo(
+    () =>
+      (relation: 'run_as' | 'run_alert_query_as') =>
+      (input = '', page: number, pageSize: number) => {
+        const query = rison.encode_uri({
+          filter: input,
+          page,
+          page_size: pageSize,
+          order_column: 'first_name',
+          order_direction: 'asc',
+        });
+        return SupersetClient.get({
+          endpoint: `/api/v1/report/related/${relation}?q=${query}`,
+        }).then(response => {
+          const results = (response.json?.result ?? []) as RelatedUserOption[];
+          const list = results
+            .filter(user => user.extra?.active !== false)
+            .map(({ value, text, extra }) => ({
+              value,
+              label: extra?.email ? `${text} <${extra.email}>` : text,
+            }));
+          return { data: list, totalCount: response.json?.count ?? 0 };
+        });
+      },
+    [],
+  );
+  const loadRunAsUserOptions = useMemo(
+    () => loadRunAsOptions('run_as'),
+    [loadRunAsOptions],
+  );
+  const loadRunAlertQueryAsUserOptions = useMemo(
+    () => loadRunAsOptions('run_alert_query_as'),
+    [loadRunAsOptions],
   );
 
   const dashboard = currentAlert?.dashboard;
@@ -1382,6 +1557,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onEditorsChange = (value: SubjectPickerValue[]) => {
     updateAlertState('editors', value || []);
+  };
+
+  const onRunAsChange: NonNullable<
+    ComponentProps<typeof AsyncSelect>['onChange']
+  > = value => {
+    updateAlertState('run_as', value || null);
+  };
+
+  const onRunAlertQueryAsChange: NonNullable<
+    ComponentProps<typeof AsyncSelect>['onChange']
+  > = value => {
+    updateAlertState('run_alert_query_as', value || null);
   };
 
   const onSourceChange = (value: Array<SelectValue>) => {
@@ -1782,10 +1969,34 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (!currentAlert?.editors?.length) {
       errors.push(TRANSLATIONS.EDITORS_ERROR_TEXT);
     }
+    const needsContentExecutor =
+      isReport ||
+      (attachmentsEnabledForAlerts && reportFormat !== 'NONE') ||
+      !currentAlert?.run_alert_query_as_type;
+    const contentExecutorChanged =
+      !isEditMode ||
+      currentAlert?.run_as_type !== resource?.run_as_type ||
+      currentAlert?.run_as?.value !== resource?.run_as?.id;
+    if (
+      dynamicExecutorEnabled &&
+      isAdmin &&
+      (((needsContentExecutor || contentExecutorChanged) &&
+        currentAlert?.run_as_type === 'fixed_user' &&
+        !currentAlert?.run_as?.value) ||
+        (!isReport &&
+          currentAlert?.run_alert_query_as_type === 'fixed_user' &&
+          !currentAlert?.run_alert_query_as?.value))
+    ) {
+      errors.push(TRANSLATIONS.RUN_AS_ERROR_TEXT);
+    }
     updateValidationStatus(Sections.General, errors);
   };
   const validateContentSection = () => {
-    const errors = [];
+    const errors: string[] = [];
+    if (!attachmentControlsVisible) {
+      updateValidationStatus(Sections.Content, errors);
+      return;
+    }
     if (
       !(
         (contentType === ContentType.Dashboard && !!currentAlert?.dashboard) ||
@@ -1921,6 +2132,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       !isEditMode &&
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
+      setReportFormat(DEFAULT_NOTIFICATION_FORMAT);
+      setPreviousAttachmentFormat(DEFAULT_NOTIFICATION_FORMAT);
       setCurrentAlert({
         ...defaultAlert,
         editors: currentUserEditor ? [currentUserEditor] : [],
@@ -1981,6 +2194,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         resource.chart ? ContentType.Chart : ContentType.Dashboard,
       );
       setReportFormat(resource.report_format || DEFAULT_NOTIFICATION_FORMAT);
+      setPreviousAttachmentFormat(
+        resource.report_format && resource.report_format !== 'NONE'
+          ? resource.report_format
+          : DEFAULT_NOTIFICATION_FORMAT,
+      );
       const validatorConfig =
         typeof resource.validator_config_json === 'string'
           ? JSON.parse(resource.validator_config_json)
@@ -2016,6 +2234,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         editors: mapSubjectsToPickerValues(
           (resource.editors || []) as Subject[],
         ),
+        run_as_type: resource.run_as_type,
+        run_alert_query_as_type: resource.run_alert_query_as_type,
+        run_as: userToOption(resource.run_as),
+        run_alert_query_as: userToOption(resource.run_alert_query_as),
         validator_config_json:
           resource.validator_type === 'not null'
             ? {
@@ -2034,6 +2256,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   }, [
     currentAlertSafe.name,
     currentAlertSafe.editors,
+    currentAlertSafe.run_as,
+    currentAlertSafe.run_as_type,
+    currentAlertSafe.run_alert_query_as,
+    currentAlertSafe.run_alert_query_as_type,
     currentAlertSafe.database,
     currentAlertSafe.sql,
     currentAlertSafe.validator_config_json,
@@ -2042,6 +2268,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     currentAlertSafe.dashboard,
     currentAlertSafe.chart,
     contentType,
+    attachmentControlsVisible,
+    reportFormat,
     nativeFilterData,
     notificationSettings,
     conditionNotNull,
@@ -2094,10 +2322,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       width={500}
       wrapProps={{ 'data-test': 'alert-report-modal' }}
     >
-      <div
-        css={AdditionalStyles}
-        style={{ ['--open-btn-gap' as any]: `${theme.sizeUnit}px` }}
-      >
+      <div css={AdditionalStyles(theme)}>
         <Collapse
           expandIconPosition="end"
           activeKey={activeCollapsePanel}
@@ -2209,6 +2434,66 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     ),
                     children: (
                       <div>
+                        {dynamicExecutorEnabled && isAdmin && (
+                          <ModalFormField
+                            label={t('Run alert query as')}
+                            tooltip={t(
+                              'The user whose database credentials are used to run the alert condition query. Defaults to the "Run as" user.',
+                            )}
+                            testId="run-alert-query-as-field"
+                          >
+                            <Flex vertical gap={theme.sizeUnit * 2}>
+                              <Select
+                                ariaLabel={t('Run alert query as type')}
+                                options={[
+                                  {
+                                    value: 'inherit',
+                                    label: t('Same as "Run as"'),
+                                  },
+                                  ...EXECUTOR_TYPE_OPTIONS,
+                                ]}
+                                value={
+                                  currentAlert?.run_alert_query_as_type ??
+                                  'inherit'
+                                }
+                                disabled={!isAdmin}
+                                onChange={value =>
+                                  updateAlertState(
+                                    'run_alert_query_as_type',
+                                    value === 'inherit' ? null : value,
+                                  )
+                                }
+                              />
+                              {currentAlert?.run_alert_query_as_type ===
+                                'fixed_user' && (
+                                <AsyncSelect
+                                  ariaLabel={t('Run alert query as')}
+                                  name="run_alert_query_as"
+                                  allowClear={isAdmin}
+                                  disabled={!isAdmin}
+                                  placeholder={t('Same as "Run as"')}
+                                  value={
+                                    currentAlert?.run_alert_query_as?.value !==
+                                      undefined &&
+                                    currentAlert?.run_alert_query_as?.value !==
+                                      null
+                                      ? {
+                                          value:
+                                            currentAlert.run_alert_query_as
+                                              .value,
+                                          label:
+                                            currentAlert.run_alert_query_as
+                                              .label,
+                                        }
+                                      : undefined
+                                  }
+                                  options={loadRunAlertQueryAsUserOptions}
+                                  onChange={onRunAlertQueryAsChange}
+                                />
+                              )}
+                            </Flex>
+                          </ModalFormField>
+                        )}
                         <StyledInputContainer>
                           <div className="control-label">
                             {t('Database')}
@@ -2327,293 +2612,446 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               ),
               children: (
                 <>
-                  <StyledInputContainer>
-                    <div className="control-label">
-                      {t('Content type')}
-                      <span className="required">*</span>
-                    </div>
-                    <Select
-                      ariaLabel={t('Select content type')}
-                      onChange={onContentTypeChange}
-                      value={contentType}
-                      options={CONTENT_TYPE_OPTIONS}
-                      placeholder={t('Select content type')}
-                    />
-                  </StyledInputContainer>
-                  <StyledInputContainer>
-                    {contentType === ContentType.Chart ? (
-                      <>
-                        <div className="control-label">
-                          {t('Select chart')}
-                          <span className="required">*</span>
-                        </div>
-                        <div className="input-container select-with-open-btn">
-                          <div>
-                            <AsyncSelect
-                              ariaLabel={t('Chart')}
-                              name="chart"
-                              allowClear
-                              value={
-                                currentAlert?.chart?.label &&
-                                currentAlert?.chart?.value
-                                  ? {
-                                      value: currentAlert.chart.value,
-                                      label: currentAlert.chart.label,
-                                    }
-                                  : undefined
-                              }
-                              options={loadChartOptions}
-                              onChange={onChartChange}
-                              placeholder={t('Select chart to use')}
-                            />
-                          </div>
-                          <div>
-                            <Tooltip title={t('Open chart in new tab')}>
-                              <Button
-                                aria-label={t('Open chart in new tab')}
-                                onClick={() =>
-                                  openChartInNewTab(currentAlert?.chart?.value)
-                                }
-                                icon={<Icons.LinkOutlined iconSize="s" />}
-                                buttonSize="small"
-                                disabled={!currentAlert?.chart?.value}
-                              />
-                            </Tooltip>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="control-label">
-                          {t('Select dashboard')}
-                          <span className="required">*</span>
-                        </div>
-                        <div className="input-container select-with-open-btn">
-                          <div>
-                            <AsyncSelect
-                              ariaLabel={t('Dashboard')}
-                              name="dashboard"
-                              value={
-                                currentAlert?.dashboard?.label &&
-                                currentAlert?.dashboard?.value
-                                  ? {
-                                      value: currentAlert.dashboard.value,
-                                      label: currentAlert.dashboard.label,
-                                    }
-                                  : undefined
-                              }
-                              options={loadDashboardOptions}
-                              onChange={onDashboardChange}
-                              placeholder={t('Select dashboard to use')}
-                            />
-                          </div>
-                          <div>
-                            <Tooltip title={t('Open dashboard in new tab')}>
-                              <Button
-                                aria-label={t('Open dashboard in new tab')}
-                                onClick={() =>
-                                  openDashboardInNewTab(
-                                    currentAlert?.dashboard?.value,
+                  {dynamicExecutorEnabled && !isAdmin && (
+                    <Alert
+                      type={restrictedExecutor ? 'warning' : 'info'}
+                      showIcon
+                      message={
+                        restrictedExecutor
+                          ? t('Content and recipient edits are restricted')
+                          : t('Content and permissions')
+                      }
+                      description={
+                        restrictedExecutor ? (
+                          <>
+                            <p>
+                              {isReport
+                                ? t(
+                                    'You can edit the name and schedule, but changing the delivered content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
                                   )
-                                }
-                                icon={<Icons.LinkOutlined iconSize="s" />}
-                                buttonSize="small"
-                                disabled={!currentAlert?.dashboard?.value}
-                              />
-                            </Tooltip>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </StyledInputContainer>
-                  <StyledInputContainer
-                    css={
-                      ['PDF', 'TEXT', 'CSV', 'XLSX'].includes(reportFormat) &&
-                      noMarginBottom
-                    }
-                  >
-                    {formatOptionEnabled && (
-                      <>
+                                : t(
+                                    'You can edit the name and schedule. Changing the alert condition requires its query to execute with your permissions. Changing the attachment content or recipients requires updating it to execute with your permissions. Only admins can select other users.',
+                                  )}
+                            </p>
+                            <Button
+                              disabled={!currentUserOption}
+                              onClick={() => {
+                                setRunAsSelf(true);
+                                setCurrentAlert(previous =>
+                                  previous
+                                    ? {
+                                        ...previous,
+                                        run_as: currentUserOption,
+                                        run_as_type: 'fixed_user',
+                                        run_alert_query_as: isReport
+                                          ? null
+                                          : currentUserOption,
+                                        run_alert_query_as_type: isReport
+                                          ? null
+                                          : 'fixed_user',
+                                      }
+                                    : previous,
+                                );
+                              }}
+                            >
+                              {t('Execute using my permissions')}
+                            </Button>
+                          </>
+                        ) : (
+                          t(
+                            'This schedule will use your permissions. You need access to its content and, for alerts, its condition query. Changes take effect when you save.',
+                          )
+                        )
+                      }
+                    />
+                  )}
+                  {dynamicExecutorEnabled && isAdmin && (
+                    <ModalFormField
+                      label={t('Run as')}
+                      required={
+                        isAdmin && currentAlert?.run_as_type === 'fixed_user'
+                      }
+                      tooltip={
+                        ALERT_REPORTS_RUN_AS_TOOLTIP ||
+                        t(
+                          'The user whose permissions and database credentials are used to render this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins can pick another user.',
+                          reportOrAlert,
+                        )
+                      }
+                      testId="run-as-field"
+                    >
+                      <Flex vertical gap={theme.sizeUnit * 2}>
+                        <Select
+                          ariaLabel={t('Run as type')}
+                          options={CONTENT_EXECUTOR_TYPE_OPTIONS}
+                          value={currentAlert?.run_as_type ?? 'legacy'}
+                          disabled={!isAdmin}
+                          onChange={value =>
+                            updateAlertState(
+                              'run_as_type',
+                              value === 'legacy' ? null : value,
+                            )
+                          }
+                        />
+                        {currentAlert?.run_as_type === 'fixed_user' && (
+                          <AsyncSelect
+                            ariaLabel={t('Run as')}
+                            name="run_as"
+                            allowClear={isAdmin}
+                            disabled={!isAdmin}
+                            placeholder={t('Select user')}
+                            value={
+                              currentAlert?.run_as?.value !== undefined &&
+                              currentAlert?.run_as?.value !== null
+                                ? {
+                                    value: currentAlert.run_as.value,
+                                    label: currentAlert.run_as.label,
+                                  }
+                                : undefined
+                            }
+                            options={loadRunAsUserOptions}
+                            onChange={onRunAsChange}
+                          />
+                        )}
+                      </Flex>
+                    </ModalFormField>
+                  )}
+                  {!isReport && attachmentsEnabledForAlerts && (
+                    <StyledSwitchContainer>
+                      <Switch
+                        aria-label={t('Include attachment')}
+                        checked={reportFormat !== 'NONE'}
+                        onChange={checked => {
+                          if (checked) {
+                            setReportFormat(previousAttachmentFormat);
+                          } else {
+                            setPreviousAttachmentFormat(reportFormat);
+                            setReportFormat('NONE');
+                          }
+                        }}
+                      />
+                      <div className="switch-label">
+                        {t('Include attachment')}
+                      </div>
+                    </StyledSwitchContainer>
+                  )}
+                  {!attachmentControlsVisible && (
+                    <p>
+                      {t(
+                        'No attachment will be generated. Saved attachment settings are retained.',
+                      )}
+                    </p>
+                  )}
+                  {attachmentControlsVisible && (
+                    <>
+                      <StyledInputContainer>
                         <div className="control-label">
-                          {t('Content format')}
+                          {t('Content type')}
                           <span className="required">*</span>
                         </div>
                         <Select
-                          ariaLabel={t('Select format')}
-                          onChange={onFormatChange}
-                          value={reportFormat}
-                          options={
-                            contentType === ContentType.Dashboard
-                              ? ['pdf', 'png'].map(
-                                  key =>
-                                    FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
-                                )
-                              : /* If chart is of text based viz type: show text
-                  format option */
-                                TEXT_BASED_VISUALIZATION_TYPES.includes(
-                                    chartVizType,
-                                  )
-                                ? Object.values(FORMAT_OPTIONS)
-                                : ['pdf', 'png', 'csv', 'xlsx'].map(
-                                    key =>
-                                      FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
-                                  )
-                          }
-                          placeholder={t('Select format')}
+                          ariaLabel={t('Select content type')}
+                          onChange={onContentTypeChange}
+                          value={contentType}
+                          options={CONTENT_TYPE_OPTIONS}
+                          placeholder={t('Select content type')}
                         />
-                      </>
-                    )}
-                  </StyledInputContainer>
-                  {tabsEnabled && contentType === ContentType.Dashboard && (
-                    <StyledInputContainer>
-                      <>
-                        <div className="control-label">{t('Select tab')}</div>
-                        <StyledTreeSelect
-                          disabled={tabOptions?.length === 0}
-                          treeData={tabOptions}
-                          value={currentAlert?.extra?.dashboard?.anchor}
-                          onSelect={updateAnchorState}
-                          placeholder={t('Select a tab')}
-                        />
-                      </>
-                    </StyledInputContainer>
-                  )}
-                  {filtersEnabled && contentType === ContentType.Dashboard && (
-                    <StyledInputContainer>
-                      <AntdForm
-                        className="filters"
-                        name="form"
-                        autoComplete="off"
+                      </StyledInputContainer>
+                      <StyledInputContainer>
+                        {contentType === ContentType.Chart ? (
+                          <>
+                            <div className="control-label">
+                              {t('Select chart')}
+                              <span className="required">*</span>
+                            </div>
+                            <div className="input-container select-with-open-btn">
+                              <div>
+                                <AsyncSelect
+                                  ariaLabel={t('Chart')}
+                                  name="chart"
+                                  allowClear
+                                  value={
+                                    currentAlert?.chart?.label &&
+                                    currentAlert?.chart?.value
+                                      ? {
+                                          value: currentAlert.chart.value,
+                                          label: currentAlert.chart.label,
+                                        }
+                                      : undefined
+                                  }
+                                  options={loadChartOptions}
+                                  onChange={onChartChange}
+                                  placeholder={t('Select chart to use')}
+                                />
+                              </div>
+                              <div>
+                                <Tooltip title={t('Open chart in new tab')}>
+                                  <Button
+                                    aria-label={t('Open chart in new tab')}
+                                    onClick={() =>
+                                      openChartInNewTab(
+                                        currentAlert?.chart?.value,
+                                      )
+                                    }
+                                    icon={<Icons.LinkOutlined iconSize="s" />}
+                                    buttonSize="small"
+                                    disabled={!currentAlert?.chart?.value}
+                                  />
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="control-label">
+                              {t('Select dashboard')}
+                              <span className="required">*</span>
+                            </div>
+                            <div className="input-container select-with-open-btn">
+                              <div>
+                                <AsyncSelect
+                                  ariaLabel={t('Dashboard')}
+                                  name="dashboard"
+                                  value={
+                                    currentAlert?.dashboard?.label &&
+                                    currentAlert?.dashboard?.value
+                                      ? {
+                                          value: currentAlert.dashboard.value,
+                                          label: currentAlert.dashboard.label,
+                                        }
+                                      : undefined
+                                  }
+                                  options={loadDashboardOptions}
+                                  onChange={onDashboardChange}
+                                  placeholder={t('Select dashboard to use')}
+                                />
+                              </div>
+                              <div>
+                                <Tooltip title={t('Open dashboard in new tab')}>
+                                  <Button
+                                    aria-label={t('Open dashboard in new tab')}
+                                    onClick={() =>
+                                      openDashboardInNewTab(
+                                        currentAlert?.dashboard?.value,
+                                      )
+                                    }
+                                    icon={<Icons.LinkOutlined iconSize="s" />}
+                                    buttonSize="small"
+                                    disabled={!currentAlert?.dashboard?.value}
+                                  />
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </StyledInputContainer>
+                      <StyledInputContainer
+                        css={
+                          ['PDF', 'TEXT', 'CSV', 'XLSX', 'NONE'].includes(
+                            reportFormat,
+                          ) && noMarginBottom
+                        }
                       >
-                        <AntdForm.List
-                          name="filters"
-                          initialValue={nativeFilterData} // only show one filter field on create
-                        >
-                          {(fields, { add, remove }) => (
-                            <div>
-                              {fields.map(({ key, name: idx }) => (
-                                <div className="filters-container" key={key}>
-                                  <div className="filters-dash-container">
-                                    <div className="control-label">
-                                      <span className="label-with-tooltip">
-                                        {t('Dashboard Filter')}
-                                      </span>
-                                      <InfoTooltip
-                                        tooltip={t(
-                                          'Choose from existing dashboard filters and select a value to refine your report results.',
+                        {formatOptionEnabled && (
+                          <>
+                            <div className="control-label">
+                              {t('Content format')}
+                              <span className="required">*</span>
+                            </div>
+                            <Select
+                              ariaLabel={t('Select format')}
+                              onChange={onFormatChange}
+                              value={reportFormat}
+                              options={
+                                contentType === ContentType.Dashboard
+                                  ? ['pdf', 'png'].map(
+                                      key =>
+                                        FORMAT_OPTIONS[
+                                          key as FORMAT_OPTIONS_KEY
+                                        ],
+                                    )
+                                  : /* If chart is of text based viz type: show text
+                                     format option */
+                                    TEXT_BASED_VISUALIZATION_TYPES.includes(
+                                        chartVizType,
+                                      )
+                                    ? Object.values(FORMAT_OPTIONS)
+                                    : ['pdf', 'png', 'csv', 'xlsx'].map(
+                                        key =>
+                                          FORMAT_OPTIONS[
+                                            key as FORMAT_OPTIONS_KEY
+                                          ],
+                                      )
+                              }
+                              placeholder={t('Select format')}
+                            />
+                          </>
+                        )}
+                      </StyledInputContainer>
+                      {tabsEnabled && contentType === ContentType.Dashboard && (
+                        <StyledInputContainer>
+                          <>
+                            <div className="control-label">
+                              {t('Select tab')}
+                            </div>
+                            <StyledTreeSelect
+                              disabled={tabOptions?.length === 0}
+                              treeData={tabOptions}
+                              value={currentAlert?.extra?.dashboard?.anchor}
+                              onSelect={updateAnchorState}
+                              placeholder={t('Select a tab')}
+                            />
+                          </>
+                        </StyledInputContainer>
+                      )}
+                      {filtersEnabled &&
+                        contentType === ContentType.Dashboard && (
+                          <StyledInputContainer>
+                            <AntdForm
+                              className="filters"
+                              name="form"
+                              autoComplete="off"
+                            >
+                              <AntdForm.List
+                                name="filters"
+                                initialValue={nativeFilterData} // only show one filter field on create
+                              >
+                                {(fields, { add, remove }) => (
+                                  <div>
+                                    {fields.map(({ key, name: idx }) => (
+                                      <div
+                                        className="filters-container"
+                                        key={key}
+                                      >
+                                        <div className="filters-dash-container">
+                                          <div className="control-label">
+                                            <span className="label-with-tooltip">
+                                              {t('Dashboard Filter')}
+                                            </span>
+                                            <InfoTooltip
+                                              tooltip={t(
+                                                'Choose from existing dashboard filters and select a value to refine your report results.',
+                                              )}
+                                            />
+                                          </div>
+                                          <Select
+                                            disabled={
+                                              nativeFilterOptions?.length < 1 &&
+                                              !nativeFilterData[idx]?.filterName
+                                            }
+                                            ariaLabel={t('Select Filter')}
+                                            placeholder={t('Select Filter')}
+                                            value={
+                                              nativeFilterData[idx]
+                                                ?.nativeFilterId
+                                            }
+                                            options={filterNativeFilterOptions(
+                                              idx,
+                                            )}
+                                            onChange={value =>
+                                              onChangeDashboardFilter(
+                                                idx,
+                                                String(value),
+                                              )
+                                            }
+                                            onClear={() => {
+                                              const updatedFilters = [
+                                                ...nativeFilterData,
+                                              ];
+                                              updatedFilters[idx] = {
+                                                nativeFilterId: null,
+                                                columnLabel: '',
+                                                columnName: '',
+                                                filterName: '',
+                                                filterValues: [],
+                                              };
+                                              setNativeFilterData(
+                                                updatedFilters,
+                                              );
+                                            }}
+                                            css={css`
+                                              flex: 1;
+                                            `}
+                                            oneLine
+                                            allowClear
+                                          />
+                                        </div>
+                                        <div className="filters-dashvalue-container">
+                                          <div className="control-label">
+                                            {t('Value')}
+                                          </div>
+                                          {renderFilterValueSelect(
+                                            nativeFilterData[idx],
+                                            idx,
+                                          )}
+                                        </div>
+                                        {(idx !== 0 || isEditMode) && (
+                                          <div className="filters-delete">
+                                            <Icons.DeleteOutlined
+                                              iconSize="xl"
+                                              className="filters-trashcan"
+                                              onClick={() => {
+                                                handleRemoveFilterField(idx);
+                                                remove(idx);
+                                              }}
+                                            />
+                                          </div>
                                         )}
-                                      />
-                                    </div>
-                                    <Select
-                                      disabled={
-                                        nativeFilterOptions?.length < 1 &&
-                                        !nativeFilterData[idx]?.filterName
-                                      }
-                                      ariaLabel={t('Select Filter')}
-                                      placeholder={t('Select Filter')}
-                                      value={
-                                        nativeFilterData[idx]?.nativeFilterId
-                                      }
-                                      options={filterNativeFilterOptions(idx)}
-                                      onChange={value =>
-                                        onChangeDashboardFilter(
-                                          idx,
-                                          String(value),
-                                        )
-                                      }
-                                      onClear={() => {
-                                        const updatedFilters = [
-                                          ...nativeFilterData,
-                                        ];
-                                        updatedFilters[idx] = {
-                                          nativeFilterId: null,
-                                          columnLabel: '',
-                                          columnName: '',
-                                          filterName: '',
-                                          filterValues: [],
-                                        };
-                                        setNativeFilterData(updatedFilters);
-                                      }}
-                                      css={css`
-                                        flex: 1;
-                                      `}
-                                      oneLine
-                                      allowClear
-                                    />
-                                  </div>
-                                  <div className="filters-dashvalue-container">
-                                    <div className="control-label">
-                                      {t('Value')}
-                                    </div>
-                                    {renderFilterValueSelect(
-                                      nativeFilterData[idx],
-                                      idx,
+                                      </div>
+                                    ))}
+                                    {filterNativeFilterOptions().length > 0 && (
+                                      <Button
+                                        buttonStyle="link"
+                                        onClick={() => {
+                                          handleAddFilterField();
+                                          add();
+                                        }}
+                                      >
+                                        + {t('Apply another dashboard filter')}
+                                      </Button>
                                     )}
                                   </div>
-                                  {(idx !== 0 || isEditMode) && (
-                                    <div className="filters-delete">
-                                      <Icons.DeleteOutlined
-                                        iconSize="xl"
-                                        className="filters-trashcan"
-                                        onClick={() => {
-                                          handleRemoveFilterField(idx);
-                                          remove(idx);
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                              {filterNativeFilterOptions().length > 0 && (
-                                <Button
-                                  buttonStyle="link"
-                                  onClick={() => {
-                                    handleAddFilterField();
-                                    add();
-                                  }}
-                                >
-                                  + {t('Apply another dashboard filter')}
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </AntdForm.List>
-                      </AntdForm>
-                    </StyledInputContainer>
-                  )}
-                  {isScreenshot && (
-                    <StyledInputContainer
-                      css={
-                        !isReport &&
-                        contentType === ContentType.Chart &&
-                        noMarginBottom
-                      }
-                    >
-                      <div className="control-label">
-                        {t('Screenshot width')}
-                      </div>
-                      <div className="input-container">
-                        <InputNumber
-                          name="custom_width"
-                          value={currentAlert?.custom_width || undefined}
-                          min={600}
-                          max={2400}
-                          placeholder={t('Input custom width in pixels')}
-                          onChange={onCustomWidthChange}
-                        />
-                      </div>
-                    </StyledInputContainer>
-                  )}
-                  {(isReport || contentType === ContentType.Dashboard) && (
-                    <div className="inline-container">
-                      <Checkbox
-                        data-test="bypass-cache"
-                        checked={forceScreenshot}
-                        onChange={onForceScreenshotChange}
-                      >
-                        {t('Ignore cache when generating report')}
-                      </Checkbox>
-                    </div>
+                                )}
+                              </AntdForm.List>
+                            </AntdForm>
+                          </StyledInputContainer>
+                        )}
+                      {isScreenshot && (
+                        <StyledInputContainer
+                          css={
+                            !isReport &&
+                            contentType === ContentType.Chart &&
+                            noMarginBottom
+                          }
+                        >
+                          <div className="control-label">
+                            {t('Screenshot width')}
+                          </div>
+                          <div className="input-container">
+                            <InputNumber
+                              name="custom_width"
+                              value={currentAlert?.custom_width || undefined}
+                              min={600}
+                              max={2400}
+                              placeholder={t('Input custom width in pixels')}
+                              onChange={onCustomWidthChange}
+                            />
+                          </div>
+                        </StyledInputContainer>
+                      )}
+                      {(isReport || contentType === ContentType.Dashboard) &&
+                        !isNoAttachment && (
+                          <div className="inline-container">
+                            <Checkbox
+                              data-test="bypass-cache"
+                              checked={forceScreenshot}
+                              onChange={onForceScreenshotChange}
+                            >
+                              {t('Ignore cache when generating report')}
+                            </Checkbox>
+                          </div>
+                        )}
+                    </>
                   )}
                   <div className="inline-container">
                     <Checkbox

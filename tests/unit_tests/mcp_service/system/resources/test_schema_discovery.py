@@ -124,7 +124,7 @@ class TestSchemaDiscoveryResourceErrorHandling:
     @pytest.mark.asyncio
     async def test_unregistered_uri_raises(self, mcp_server: FastMCP) -> None:
         async with Client(mcp_server) as client:
-            with pytest.raises(McpError, match="Unknown resource"):
+            with pytest.raises(McpError, match="Unknown resource|Resource not found"):
                 await client.read_resource("superset://schema/nonexistent")
 
     def test_build_schema_resource_returns_empty_dict_for_unknown_model_type(

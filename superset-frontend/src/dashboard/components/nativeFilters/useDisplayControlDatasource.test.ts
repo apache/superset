@@ -143,12 +143,8 @@ test('structure failure yields error and empty columns with no cross-type fallba
 // ('switching from a failed binding to a healthy one never toasts ...'), which
 // fails if the gate is removed.
 
-test('dataset-branch failure evicts the cache so a retry re-issues the request', async () => {
-  // cachedSupersetGet caches the in-flight promise and never evicts a
-  // rejected one; without eviction a single 500 poisons the endpoint for the
-  // whole page session. A fresh consumer for the same id must hit the network
-  // again rather than re-await the cached rejected promise.
-  fetchMock.get('glob:*/api/v1/dataset/405', 500);
+test('dataset-branch failure retries and recovers for a fresh consumer', async () => {
+  fetchMock.getOnce('glob:*/api/v1/dataset/405', 500);
 
   const first = renderHook(() => useDisplayControlDatasource(405));
   await waitFor(() => expect(first.result.current.error).toBeDefined());
@@ -156,11 +152,15 @@ test('dataset-branch failure evicts the cache so a retry re-issues the request',
     'glob:*/api/v1/dataset/405',
   ).length;
 
-  renderHook(() => useDisplayControlDatasource(405));
-  await waitFor(() =>
-    expect(
-      fetchMock.callHistory.calls('glob:*/api/v1/dataset/405').length,
-    ).toBeGreaterThan(callsAfterFirst),
+  fetchMock.get('glob:*/api/v1/dataset/405', {
+    result: { table_name: 'Recovered', columns: [{ column_name: 'city' }] },
+  });
+  const second = renderHook(() => useDisplayControlDatasource(405));
+  await waitFor(() => expect(second.result.current.loading).toBe(false));
+  expect(second.result.current.name).toBe('Recovered');
+  expect(second.result.current.columns).toEqual([{ column_name: 'city' }]);
+  expect(fetchMock.callHistory.calls('glob:*/api/v1/dataset/405').length).toBe(
+    callsAfterFirst + 1,
   );
 });
 
