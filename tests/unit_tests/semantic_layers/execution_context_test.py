@@ -223,7 +223,15 @@ def test_background_context_has_separate_binding(
 )
 @pytest.mark.parametrize(
     "endpoint",
-    ["column", "compatible", "views", "schema/runtime", "structure"],
+    [
+        "column",
+        "compatible",
+        "views",
+        "schema/runtime",
+        "structure",
+        "chart_data",
+        "saved_chart_data",
+    ],
 )
 def test_execution_refusal_survives_api_boundary(
     client: Any,
@@ -253,6 +261,25 @@ def test_execution_refusal_survives_api_boundary(
         response = client.post("/api/v1/datasource/semantic_view/1/compatible", json={})
     elif endpoint == "structure":
         response = client.get("/api/v1/semantic_view/1/structure")
+    elif endpoint in {"chart_data", "saved_chart_data"}:
+        from superset.charts.data.api import ChartDataRestApi
+        from superset.utils import json
+
+        payload: dict[str, Any] = {
+            "datasource": {"id": 1, "type": "semantic_view"},
+            "queries": [{"columns": [], "metrics": []}],
+            "result_type": "full",
+            "result_format": "json",
+        }
+        if endpoint == "chart_data":
+            response = client.post("/api/v1/chart/data", json=payload)
+        else:
+            mocker.patch.object(
+                ChartDataRestApi.datamodel,
+                "get",
+                return_value=MagicMock(query_context=json.dumps(payload)),
+            )
+            response = client.get("/api/v1/chart/1/data/")
     else:
         response = client.post(
             f"/api/v1/semantic_layer/{execution_view.semantic_layer.uuid}/{endpoint}",
@@ -265,6 +292,88 @@ def test_execution_refusal_survives_api_boundary(
     assert response.json["errors"][0]["extra"]["reason"] == "method_not_supported"
     cache.get.assert_not_called()
     factory.assert_not_called()
+
+
+@pytest.mark.parametrize("saved", [False, True])
+def test_chart_data_keeps_unrelated_denial_details_private(
+    client: Any,
+    full_api_access: None,
+    execution_view: SemanticView,
+    mocker: MockerFixture,
+    saved: bool,
+) -> None:
+    """Semantic refusal handling must not expose other validation denials."""
+    from superset.charts.data.api import ChartDataRestApi
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.utils import json
+
+    payload: dict[str, Any] = {
+        "datasource": {"id": 1, "type": "semantic_view"},
+        "queries": [{"columns": [], "metrics": []}],
+        "result_type": "full",
+        "result_format": "json",
+    }
+    mocker.patch(
+        "superset.charts.data.api.ChartDataCommand.validate",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="You need access to private_schema.private_table",
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"tables": ["private_schema.private_table"]},
+            )
+        ),
+    )
+    response: Any
+    if saved:
+        mocker.patch.object(
+            ChartDataRestApi.datamodel,
+            "get",
+            return_value=MagicMock(query_context=json.dumps(payload)),
+        )
+        response = client.get("/api/v1/chart/1/data/")
+    else:
+        response = client.post("/api/v1/chart/data", json=payload)
+    assert response.status_code == 403
+    assert response.json == {"message": "Forbidden"}
+
+
+def test_guest_digest_does_not_partition_token_claims(
+    app: Any, mocker: MockerFixture
+) -> None:
+    """D14 keeps guest restrictions outside the binding identity digest."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import Role
+    from superset_core.semantic_layers.context import SemanticExecutionContext
+
+    from superset.security.guest_token import (
+        GuestToken,
+        GuestTokenResourceType,
+        GuestUser,
+    )
+    from superset.semantic_layers.execution import current_host_execution_context
+
+    mocker.patch.dict(app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "test-workspace"})
+    role: Role = Role(id=7, name="Guest")
+    contexts: list[SemanticExecutionContext] = []
+    username: str
+    for username in ("alice", "bob"):
+        token: GuestToken = {
+            "iat": 1,
+            "exp": 2,
+            "user": {"username": username},
+            "resources": [{"type": GuestTokenResourceType.DASHBOARD, "id": username}],
+            "rls_rules": [{"dataset": "1", "clause": f"tenant = '{username}'"}],
+        }
+        with app.test_request_context():
+            g.user = GuestUser(token, [role])
+            contexts.append(current_host_execution_context())
+    assert contexts[0].is_guest
+    assert contexts[1].is_guest
+    assert contexts[0].principal_id is contexts[1].principal_id is None
+    assert contexts[0].role_ids == contexts[1].role_ids == ("7",)
+    assert contexts[0].identity_digest == contexts[1].identity_digest
 
 
 def test_binding_and_containment_include_effective_group_roles(

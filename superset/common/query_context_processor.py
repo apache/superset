@@ -54,6 +54,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SemanticResultCompletenessError,
     SupersetException,
+    SupersetSecurityException,
     SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
@@ -1014,6 +1015,7 @@ class QueryContextProcessor:
             SemanticLayerQueryRejectedError,
             SemanticLayerExecutionError,
             SemanticResultCompletenessError,
+            SupersetSecurityException,
         ):
             raise
         except SupersetException as ex:

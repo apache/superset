@@ -42,6 +42,15 @@ The digest excludes per-view RLS and origin. The host binds a layer and its view
 in one session memo, with distinct bindings for different contexts. Providers
 must retain the supplied context and metadata token with their bound instance.
 
+The digest partitions installation, principal, roles and guest status, **not
+individual guest tokens**. Guests with the same roles and namespace share a
+digest even if their token's user, resources or row rules differ. It must not be
+used as a guest partition key. Semantic views refuse guest row rules; connection
+mode uses the same upstream account for every guest. Any future support for guest
+restrictions must include them in result-cache restriction material, not the
+provider catalog key. Non-connection methods remain disabled; enabling them must
+preserve the requirement to refuse guests.
+
 `ExecutionMethod.CONNECTION` is the only enabled method. Providers declare
 `supported_execution_methods` (default: connection only). Under this method,
 results and catalogs must not vary with the context: discovery and execution use

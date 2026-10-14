@@ -45,6 +45,9 @@ class SemanticExecutionContext:
     For unchanged identity inputs, identity_digest is stable within an installation
     across processes and requests. It is non-reversible, rotates with the host
     secret, and is only an opaque partition token, never a durable user identifier.
+    It partitions installation, principal, roles and guest status, not individual
+    guest tokens, and must not be used as a guest partition key. Guest restrictions,
+    if supported, belong in result-cache restriction material, not catalog keys.
     """
 
     principal_id: str | None

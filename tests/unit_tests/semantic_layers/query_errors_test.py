@@ -337,7 +337,8 @@ def test_host_validation_keeps_400(
 
 
 @pytest.mark.parametrize(
-    "failure,status", [("fault", 500), ("rejection", 400), ("completeness", 400)]
+    "failure,status",
+    [("fault", 500), ("rejection", 400), ("completeness", 400), ("refusal", 403)],
 )
 def test_annotation_preserves_semantic_failure(
     app_context: None, mocker: MockerFixture, failure: str, status: int
@@ -346,7 +347,12 @@ def test_annotation_preserves_semantic_failure(
     from superset_core.semantic_layers.errors import SemanticQueryErrorCode
 
     from superset.common.query_context_processor import QueryContextProcessor
-    from superset.exceptions import SemanticResultCompletenessError, SupersetException
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import (
+        SemanticResultCompletenessError,
+        SupersetException,
+        SupersetSecurityException,
+    )
     from superset.semantic_layers.exceptions import (
         SemanticLayerExecutionError,
         SemanticLayerQueryRejectedError,
@@ -358,6 +364,14 @@ def test_annotation_preserves_semantic_failure(
             SemanticQueryErrorCode.INVALID_QUERY
         ),
         "completeness": SemanticResultCompletenessError("incomplete"),
+        "refusal": SupersetSecurityException(
+            SupersetError(
+                message="This data source can't be queried in the current context.",
+                error_type=SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"reason": "method_not_supported"},
+            )
+        ),
     }[failure]
     chart: MagicMock = MagicMock()
     chart.get_query_context.return_value.queries = []
