@@ -39,6 +39,9 @@ class SemanticViewFeature(enum.Enum):
     ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
     GROUP_LIMIT = "GROUP_LIMIT"
     GROUP_OTHERS = "GROUP_OTHERS"
+    # Non-negative row offsets with a positive finite limit. Providers retain
+    # responsibility for ordering and rejecting unsupported query shapes.
+    ROW_OFFSET = "ROW_OFFSET"
 
 
 class SemanticView(ABC):
@@ -60,8 +63,8 @@ class SemanticView(ABC):
       must not be ordered by name.
     - **NULL in filters.** ``None`` is never a comparison operand; splitting
       nullness into ``IS_NULL``/``IS_NOT_NULL`` is the host's responsibility.
-      Until the host does so, keep handling ``None``; see
-      :class:`~superset_core.semantic_layers.types.Operator`.
+      Mixed positive membership uses grouped OR predicates, which every
+      provider must render; see :class:`~superset_core.semantic_layers.types.Operator`.
     - **Ordering before limit.** ``order`` is applied to the full result set
       before ``offset`` and ``limit``. See
       :class:`~superset_core.semantic_layers.types.SemanticQuery`.

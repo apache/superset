@@ -535,6 +535,7 @@ class QueryContextProcessor:
         context: dict[str, Any] = {
             "user_id": get_user_id(),
             "source_rls": source_rls,
+            "semantic_filter_protocol": "semantic-null-filters-v1",
             "source_versions": metadata_versions,
         }
         if source_versions:

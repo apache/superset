@@ -253,7 +253,11 @@ export function areDependenciesSatisfied(
  * TextControl with ``inputProps.suffix`` doesn't reach the underlying Select.
  */
 export function DynamicFieldControl(props: ControlProps) {
-  const { refreshingSchema, formData: cfgData } = props.config ?? {};
+  const {
+    refreshingSchema,
+    staleSchemaOptions,
+    formData: cfgData,
+  } = props.config ?? {};
   const schema = props.schema as Record<string, unknown>;
   const deps = schema?.['x-dependsOn'];
   const refreshing =
@@ -264,6 +268,13 @@ export function DynamicFieldControl(props: ControlProps) {
       (cfgData as Record<string, unknown>) ?? {},
       props.rootSchema,
     );
+  // A field is never stale because of its own value: a self-dependent field
+  // (e.g. MetricFlow's mode picker) must stay selectable to satisfy itself.
+  const fieldName: string = props.path.split('.').pop() ?? props.path;
+  const stale =
+    !!staleSchemaOptions &&
+    Array.isArray(deps) &&
+    (deps as string[]).some(dep => dep !== fieldName);
 
   const enumValues = Array.isArray(schema.enum)
     ? (schema.enum as unknown[])
@@ -303,7 +314,8 @@ export function DynamicFieldControl(props: ControlProps) {
           value={(props.data as string | number | undefined) ?? undefined}
           onChange={value => props.handleChange(props.path, value)}
           options={options}
-          disabled={!props.enabled}
+          // Disabling closes the menu without discarding a still-valid value.
+          disabled={!props.enabled || stale}
           loading={refreshing}
           allowClear
           placeholder={refreshing ? t('Loading...') : placeholder}
