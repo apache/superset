@@ -85,7 +85,10 @@ def test_dialect_supports_installed_sqlalchemy(mocker: MockerFixture) -> None:
     )
     native_url, native_connect_args = DatabricksNativeEngineSpec.adjust_engine_params(
         make_url(native_uri_str),
-        connect_args={"http_path": "/sql/1.0/warehouses/test"},
+        connect_args={
+            "http_path": "/sql/1.0/warehouses/test",
+            "catalog": "hive_metastore",
+        },
     )
     connector_engine = create_engine(native_url, connect_args=native_connect_args)
     try:
@@ -118,18 +121,31 @@ def test_databricks_native_adjust_engine_params() -> None:
     )
     assert uri_str == "databricks+connector://token:test-token@localhost:443/default"
 
-    # Test default resolution when no catalog is supplied: resolves hive_metastore
-    # and keeps URL and connect_args in full agreement
+    # Test default resolution when no catalog is supplied: catalog is omitted
+    # so server default applies, while URI database is preserved as schema
     url_default, args_default = DatabricksNativeEngineSpec.adjust_engine_params(
         make_url(uri_str),
         connect_args={"http_path": "/sql/1.0/warehouses/test"},
     )
-    assert url_default.query["catalog"] == "hive_metastore"
+    assert "catalog" not in url_default.query
     assert url_default.query["schema"] == "default"
     assert url_default.query["http_path"] == "/sql/1.0/warehouses/test"
-    assert args_default["catalog"] == "hive_metastore"
+    assert "catalog" not in args_default
     assert args_default["schema"] == "default"
     assert args_default["http_path"] == "/sql/1.0/warehouses/test"
+
+    # Test catalog override without schema: URI-database schema fallback is omitted
+    url_cat_override, args_cat_override = (
+        DatabricksNativeEngineSpec.adjust_engine_params(
+            make_url("databricks+connector://token:test-token@localhost:443/finance"),
+            connect_args={"http_path": "/sql/1.0/warehouses/test"},
+            catalog="main",
+        )
+    )
+    assert url_cat_override.query["catalog"] == "main"
+    assert "schema" not in url_cat_override.query
+    assert args_cat_override["catalog"] == "main"
+    assert "schema" not in args_cat_override
 
     # Test explicit catalog and schema with http_path in connect_args
     adjusted_url, adjusted_args = DatabricksNativeEngineSpec.adjust_engine_params(

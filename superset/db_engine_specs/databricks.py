@@ -932,7 +932,6 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine_name = "Databricks (legacy)"
     drivers = {"connector": "Native all-purpose driver"}
     default_driver = "connector"
-    default_catalog = "hive_metastore"
 
     parameters_schema = DatabricksNativeSchema()
     properties_schema = DatabricksNativePropertiesSchema()
@@ -1030,17 +1029,17 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     ) -> tuple[URL, dict[str, Any]]:
         adjusted_connect_args = connect_args.copy()
 
+        is_catalog_overridden = catalog is not None
         effective_catalog = (
             catalog
             or adjusted_connect_args.get("catalog")
             or uri.query.get("catalog")
-            or cls.default_catalog
         )
         effective_schema = (
             schema
-            or adjusted_connect_args.get("schema")
-            or uri.query.get("schema")
-            or (uri.database if uri.database else None)
+            or (adjusted_connect_args.get("schema") if not is_catalog_overridden else None)
+            or (uri.query.get("schema") if not is_catalog_overridden else None)
+            or (uri.database if uri.database and not is_catalog_overridden else None)
         )
         effective_http_path = (
             adjusted_connect_args.get("http_path")
@@ -1051,9 +1050,15 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         if effective_catalog:
             query_params["catalog"] = effective_catalog
             adjusted_connect_args["catalog"] = effective_catalog
+        else:
+            adjusted_connect_args.pop("catalog", None)
+
         if effective_schema:
             query_params["schema"] = effective_schema
             adjusted_connect_args["schema"] = effective_schema
+        else:
+            adjusted_connect_args.pop("schema", None)
+
         if effective_http_path:
             query_params["http_path"] = effective_http_path
             adjusted_connect_args["http_path"] = effective_http_path
