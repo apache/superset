@@ -31,6 +31,7 @@ import {
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Dashboard } from 'src/views/CRUD/types';
 import { assetUrl } from 'src/utils/assetUrl';
+import { deleteActionLabel } from 'src/utils/softDeleteCopy';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { KebabMenuButton } from 'src/components';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
@@ -163,7 +164,7 @@ function DashboardCard({
             onClick={allowEdit ? () => onDelete(dashboard) : undefined}
             data-test="dashboard-card-option-delete-button"
           >
-            <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
+            <Icons.DeleteOutlined iconSize="l" /> {deleteActionLabel()}
           </button>
         </Tooltip>
       ),
