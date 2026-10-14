@@ -783,6 +783,103 @@ def test_get_sql_results_keeps_committed_work_when_stop_races_commit(
     engine.dispose()
 
 
+@pytest.mark.parametrize("ctas", [False, True], ids=["mutation", "ctas"])
+def test_get_sql_results_stop_before_target_commit_stays_stopped(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    app_context: None,
+    tmp_path: Any,
+    ctas: bool,
+) -> None:
+    """
+    Test that a stop committed after the last statement ran but before the
+    target database commit ends STOPPED: the mutation or CTAS is not committed
+    and the stop is not relabeled SUCCESS.
+    """
+    from contextlib import contextmanager
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine
+
+    from superset import sql_lab
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'precommit.db'}")
+    Query.__table__.create(engine)
+
+    database = MagicMock()
+    database.db_engine_spec = SqliteEngineSpec
+    database.allow_dml = True
+    database.allow_run_async = False
+    database.get_default_schema_for_query.return_value = "main"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    database.select_star.return_value = "SELECT * FROM tmp_table"
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+
+    conn = MagicMock()
+
+    @contextmanager
+    def raw_connection(*args: Any, **kwargs: Any) -> Any:
+        yield conn
+
+    database.get_raw_connection = raw_connection
+
+    def execute_then_stop(*args: Any, **kwargs: Any) -> MagicMock:
+        """Finish the last statement, then commit a stop from another session."""
+        with Session(engine) as stop_session:
+            stopped_query = stop_session.get(Query, 123)
+            assert stopped_query is not None
+            stopped_query.status = QueryStatus.STOPPED
+            stopped_query.end_time = 1234.5
+            stop_session.commit()
+        return MagicMock(size=1, columns=[])
+
+    mocker.patch.object(sql_lab, "execute_query", side_effect=execute_then_stop)
+    mocker.patch.object(sql_lab, "results_backend", None)
+    mocker.patch.object(
+        sql_lab, "_serialize_and_expand_data", return_value=([], [], [], [])
+    )
+    mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
+    on_commit = MagicMock()
+
+    sql = "SELECT 1" if ctas else "INSERT INTO users VALUES (1)"
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="precommit-stop",
+            database_id=1,
+            sql=sql,
+            select_as_cta=ctas,
+            ctas_method="TABLE",
+            tmp_table_name="tmp_table",
+            status=QueryStatus.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(sql_lab.db, "session", session)
+
+        payload = sql_lab.execute_sql_statements(
+            123,
+            sql,
+            True,
+            False,
+            None,
+            False,
+            None,
+            on_commit=on_commit,
+        )
+
+        assert payload is not None
+        assert payload["status"] == QueryStatus.STOPPED
+        session.refresh(query)
+        assert query.status == QueryStatus.STOPPED
+        conn.commit.assert_not_called()
+        on_commit.assert_not_called()
+    engine.dispose()
+
+
 def _capture_execution_context(mocker: MockerFixture) -> dict[str, Any]:
     """
     Stub out ``execute_sql_statements`` and record the context it runs under.

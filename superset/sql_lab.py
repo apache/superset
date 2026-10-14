@@ -653,6 +653,18 @@ def execute_sql_statements(  # noqa: C901
         # Commit the connection so CTA queries will create the table and any DML.
         committed = False
         if parsed_script.has_mutation() or query.select_as_cta:
+            # A stop recorded before the target commit wins: skip the commit
+            # so the transaction is discarded with the connection, and report
+            # STOPPED. Only a stop that lands during or after the commit loses
+            # to the committed work. Reload only the status, without flushing:
+            # a flush would hold the query row's write lock across the target
+            # commit and block a concurrent stop request until this function's
+            # last metadata commit.
+            with db.session.no_autoflush:
+                db.session.refresh(query, attribute_names=["status"])
+            if query.status == QueryStatus.STOPPED:
+                payload.update({"status": query.status})
+                return payload
             conn.commit()
             committed = True
             if on_commit:
