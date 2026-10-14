@@ -22,6 +22,7 @@ from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset.commands.base import BaseCommand
 from superset.commands.semantic_layer.exceptions import (
@@ -30,6 +31,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticLayerNotFoundError,
     SemanticViewCreateFailedError,
     SemanticViewForbiddenError,
+    SemanticViewInvalidError,
 )
 from superset.commands.semantic_layer.utils import validate_configuration
 from superset.commands.utils import current_user_can_modify_object
@@ -108,9 +110,28 @@ class CreateSemanticViewCommand(BaseCommand):
             raise SemanticViewForbiddenError()
 
         name: str = self._properties.get("name", "")
-        configuration: dict[str, Any] = self._properties.get("configuration") or {}
+        raw_configuration: dict[str, Any] | str = (
+            self._properties.get("configuration") or {}
+        )
+        configuration: dict[str, Any] = (
+            json.loads(raw_configuration)
+            if isinstance(raw_configuration, str)
+            else raw_configuration
+        )
         if not SemanticViewDAO.validate_uniqueness(name, layer_uuid, configuration):
             raise ValueError(
                 f"Semantic view '{name}' already exists for this layer"
+                " and configuration"
+            )
+
+        try:
+            views: set[SemanticViewABC] = layer.implementation.get_semantic_views(
+                configuration
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            raise SemanticViewCreateFailedError() from ex
+        if not any(view.name == name for view in views):
+            raise SemanticViewInvalidError(
+                f"Semantic view '{name}' is not available for this layer"
                 " and configuration"
             )

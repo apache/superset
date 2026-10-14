@@ -61,3 +61,8 @@ keeps dependent choices unavailable until that source is filled. Clearing an
 optional dependency can load choices for the empty state instead. Semantic
 views listed for an earlier dependency are discarded, and views cannot be added
 while dependent choices are loading.
+
+When adding a semantic view, Superset checks that the provider still lists the
+selected view for the submitted configuration before saving it. An unavailable
+view or a provider discovery failure prevents that view from being added; other
+valid views in the same request can still be added.

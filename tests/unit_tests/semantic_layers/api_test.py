@@ -3276,3 +3276,48 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
         {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
     )
     dao.update.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("provider_failure", [False, True])
+def test_post_semantic_view_provider_validation(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    provider_failure: bool,
+) -> None:
+    """Provider validation failures remain per-item errors and never persist."""
+    layer: MagicMock = MagicMock()
+    layer.implementation.get_semantic_views.return_value = []
+    if provider_failure:
+        layer.implementation.get_semantic_views.side_effect = ConnectionError("secret")
+    mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO.find_by_uuid",
+        return_value=layer,
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO"
+    )
+    response: TestResponse = client.post(
+        "/api/v1/semantic_view/",
+        json={
+            "views": [
+                {
+                    "name": "orders",
+                    "semantic_layer_uuid": str(uuid_lib.uuid4()),
+                    "configuration": {"db": "prod"},
+                }
+            ]
+        },
+    )
+    assert response.status_code == 422
+    assert response.json is not None
+    assert response.json["result"]["created"] == []
+    assert response.json["result"]["errors"][0]["name"] == "orders"
+    assert "secret" not in response.get_data(as_text=True)
+    dao.create.assert_not_called()
+    layer.implementation.get_semantic_views.assert_called_once_with({"db": "prod"})
