@@ -63,8 +63,8 @@ class SemanticView(ABC):
       must not be ordered by name.
     - **NULL in filters.** ``None`` is never a comparison operand; splitting
       nullness into ``IS_NULL``/``IS_NOT_NULL`` is the host's responsibility.
-      Until the host does so, keep handling ``None``; see
-      :class:`~superset_core.semantic_layers.types.Operator`.
+      Mixed positive membership uses grouped OR predicates, which every
+      provider must render; see :class:`~superset_core.semantic_layers.types.Operator`.
     - **Ordering before limit.** ``order`` is applied to the full result set
       before ``offset`` and ``limit``. See
       :class:`~superset_core.semantic_layers.types.SemanticQuery`.
