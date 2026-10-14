@@ -1163,8 +1163,8 @@ def test_cancelled_impala_cursor_is_not_finalized_as_success(
     mock_query.database = mock_database
     mock_database.db_engine_spec = ImpalaEngineSpec
     mock_query.extra = {QUERY_CANCEL_KEY: "0123456789abcdef:fedcba9876543210"}
-    mock_query.set_extra_json_key.side_effect = (
-        lambda key, value: mock_query.extra.update({key: value})
+    mock_query.set_extra_json_key.side_effect = lambda key, value: (
+        mock_query.extra.update({key: value})
     )
     cursor = impyla.HiveServer2Cursor(MagicMock())
     operation = MagicMock(has_result_set=True)
