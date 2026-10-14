@@ -34118,6 +34118,62 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic layer has dependent assets"
+          },
           "422": {
             "$ref": "#/components/responses/422"
           }
@@ -34447,6 +34503,62 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A semantic view has dependent assets"
+          },
           "422": {
             "$ref": "#/components/responses/422"
           }
@@ -34552,6 +34664,62 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic view has dependent assets"
           },
           "422": {
             "$ref": "#/components/responses/422"
