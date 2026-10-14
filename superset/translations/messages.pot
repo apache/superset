@@ -1926,9 +1926,6 @@ msgstr ""
 msgid "An error occurred while pruning logs "
 msgstr ""
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -4127,6 +4124,9 @@ msgid "Could not load metadata for this configuration; showing the default form.
 msgstr ""
 
 msgid "Could not parse the CSS to convert @import rules. Check for syntax errors and try again."
+msgstr ""
+
+msgid "Could not refresh metadata. Check the connection details and your permissions."
 msgstr ""
 
 #, python-format
@@ -7536,6 +7536,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr ""
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr ""
 
@@ -8360,6 +8363,9 @@ msgstr ""
 msgid "Loaded from cache"
 msgstr ""
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr ""
 
@@ -8462,6 +8468,10 @@ msgid "Lower Threshold"
 msgstr ""
 
 msgid "Lower bound of the color scale. When both start and end are set, the legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -8924,6 +8934,9 @@ msgid "Missing URL parameters"
 msgstr ""
 
 msgid "Mixed Chart"
+msgstr ""
+
+msgid "Mixed cache"
 msgstr ""
 
 msgid "Modified"
@@ -12224,6 +12237,9 @@ msgstr ""
 msgid "Semantic Views"
 msgstr ""
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr ""
 
@@ -14941,6 +14957,9 @@ msgstr ""
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
 msgid "This session has encountered an interruption, and some controls may not work as intended. If you are the developer of this app, please check that the guest token is being generated correctly."
 msgstr ""
 
@@ -15389,6 +15408,9 @@ msgid "Tuesday"
 msgstr ""
 
 msgid "Tukey"
+msgstr ""
+
+msgid "Turn off server pagination"
 msgstr ""
 
 msgid "Turn off the logarithmic axis before stacking bars"
@@ -18016,4 +18038,22 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then try "
+"again."
+msgstr ""
+
+msgid "The semantic query is invalid. Check its fields and options, then try again."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off pagination"
+" or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
 msgstr ""

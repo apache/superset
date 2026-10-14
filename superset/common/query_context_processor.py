@@ -59,6 +59,10 @@ from superset.exceptions import (
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.semantic_layers.exceptions import (
+    SemanticLayerExecutionError,
+    SemanticLayerQueryRejectedError,
+)
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel, json
@@ -272,6 +276,12 @@ class QueryContextProcessor:
             self._resolve_forced_query(query_obj, cache_key)
             or timeout == CACHE_DISABLED_TIMEOUT
         )
+        if query_obj:
+            # Datasources that run their own caching (semantic containment)
+            # must honor the same resolved chart/custom timeout and force
+            # decision as the result cache, not the datasource-level default.
+            query_obj.force_query = force_query
+            query_obj.cache_timeout = timeout
         query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
 
         cache_resolution_start_ns = time.perf_counter_ns()
@@ -416,6 +426,7 @@ class QueryContextProcessor:
             "annotation_data": cache.annotation_data,
             "error": cache.error_message,
             "is_cached": cache.is_cached,
+            "semantic_cache_status": getattr(cache, "semantic_cache_status", None),
             "query": cache.query,
             "status": cache.status,
             "stacktrace": cache.stacktrace,
@@ -524,6 +535,7 @@ class QueryContextProcessor:
         context: dict[str, Any] = {
             "user_id": get_user_id(),
             "source_rls": source_rls,
+            "semantic_filter_protocol": "semantic-null-filters-v1",
             "source_versions": metadata_versions,
         }
         if source_versions:
@@ -679,6 +691,12 @@ class QueryContextProcessor:
             return
 
         totals_query = self._query_context.queries[totals_idx]
+        totals_timeout: int = self.get_cache_timeout()
+        totals_query.cache_timeout = totals_timeout
+        totals_query.force_query = (
+            self._resolve_forced_query(totals_query, self.query_cache_key(totals_query))
+            or totals_timeout == CACHE_DISABLED_TIMEOUT
+        )
 
         result = self._query_context.get_query_result(totals_query)
         df = result.df
@@ -992,7 +1010,11 @@ class QueryContextProcessor:
             command.validate()
             payload = command.run()
             return {"records": payload["queries"][0]["data"]}
-        except SemanticResultCompletenessError:
+        except (
+            SemanticLayerQueryRejectedError,
+            SemanticLayerExecutionError,
+            SemanticResultCompletenessError,
+        ):
             raise
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
