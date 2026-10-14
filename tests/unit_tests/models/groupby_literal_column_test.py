@@ -30,6 +30,7 @@ from typing import Any
 
 import pytest
 import sqlglot
+from sqlalchemy import create_engine
 from sqlalchemy.orm.session import Session
 from sqlglot import expressions as exp
 
@@ -42,16 +43,13 @@ def _adhoc(sql_expression: str, label: str = "bucket") -> dict[str, str]:
     return {"label": label, "sqlExpression": sql_expression, "expressionType": "SQL"}
 
 
-@pytest.fixture
-def table(session: Session) -> SqlaTable:
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
+def _make_table(session: Session, uri: str) -> SqlaTable:
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.models.core import Database
 
     SqlaTable.metadata.create_all(session.get_bind())
     return SqlaTable(
-        database=Database(
-            database_name="db", sqlalchemy_uri="postgresql://user:pass@host/db"
-        ),
+        database=Database(database_name="db", sqlalchemy_uri=uri),
         schema=None,
         table_name="orders",
         columns=[
@@ -59,10 +57,16 @@ def table(session: Session) -> SqlaTable:
             TableColumn(column_name="amount", type="FLOAT"),
             TableColumn(column_name="constant_col", type="TEXT", expression="'Other'"),
         ],
+        metrics=[SqlMetric(metric_name="constant_metric", expression="42")],
     )
 
 
-def _compile(table: SqlaTable, **overrides: Any) -> tuple[exp.Select, str]:
+@pytest.fixture
+def table(session: Session) -> SqlaTable:
+    return _make_table(session, "postgresql://user:pass@host/db")
+
+
+def _compile_sql(table: SqlaTable, **overrides: Any) -> str:
     query_obj: dict[str, Any] = {
         "metrics": METRICS,
         "is_timeseries": False,
@@ -74,11 +78,15 @@ def _compile(table: SqlaTable, **overrides: Any) -> tuple[exp.Select, str]:
     query_obj.update(overrides)
     sqla_query = table.get_sqla_query(**query_obj).sqla_query
     with table.database.get_sqla_engine() as engine:
-        sql = str(
+        return str(
             sqla_query.compile(
                 dialect=engine.dialect, compile_kwargs={"literal_binds": True}
             )
         )
+
+
+def _compile(table: SqlaTable, **overrides: Any) -> tuple[exp.Select, str]:
+    sql = _compile_sql(table, **overrides)
     select = sqlglot.parse_one(sql, dialect="postgres")
     assert isinstance(select, exp.Select)
     return select, sql
@@ -173,10 +181,19 @@ def test_group_by_is_unchanged_without_constant_keys(table: SqlaTable) -> None:
     assert _group_keys(select) == ["region"], sql
 
 
-def test_all_constant_keys_with_a_metric_omit_group_by(table: SqlaTable) -> None:
+def test_all_constant_keys_with_a_metric_keep_group_by(table: SqlaTable) -> None:
     select, sql = _compile(table, columns=[_adhoc("'Other'")])
-    assert select.named_selects == ["bucket", "total"], sql
-    assert select.args.get("group") is None, sql
+    assert _group_keys(select) == ["'Other'"], sql
+
+
+@pytest.mark.parametrize("expression", ["1", "'Other'"])
+def test_all_constant_keys_with_a_non_aggregate_metric_keep_group_by(
+    table: SqlaTable, expression: str
+) -> None:
+    select, sql = _compile(
+        table, metrics=["constant_metric"], columns=[_adhoc(expression)]
+    )
+    assert _group_keys(select) == [expression], sql
 
 
 def test_all_constant_keys_without_a_metric_keep_group_by(table: SqlaTable) -> None:
@@ -205,3 +222,67 @@ def test_constant_dimension_is_omitted_from_series_limit_group_by(
     assert _constant_keys(inner) == [], sql
     assert _group_keys(inner) == ["region"], sql
     assert _constant_keys(select) == [], sql
+
+
+def test_series_limit_with_non_aggregate_metric_keeps_a_real_key(
+    table: SqlaTable,
+) -> None:
+    dimensions = [_adhoc("'Other'"), "region"]
+    select, sql = _compile(
+        table,
+        metrics=["constant_metric", *METRICS],
+        columns=dimensions,
+        groupby=dimensions,
+        series_columns=["bucket", "region"],
+        series_limit=3,
+    )
+    inner = next(
+        sub for sub in select.find_all(exp.Subquery) if sub.alias == "series_limit"
+    ).this
+    assert isinstance(inner, exp.Select)
+    assert _group_keys(inner) == ["region"], sql
+
+
+def test_series_limit_keeps_keys_when_every_dimension_is_constant(
+    table: SqlaTable,
+) -> None:
+    dimensions = [_adhoc("'Other'")]
+    select, sql = _compile(
+        table,
+        columns=dimensions,
+        groupby=dimensions,
+        series_columns=["bucket"],
+        series_limit=3,
+    )
+    inner = next(
+        sub for sub in select.find_all(exp.Subquery) if sub.alias == "series_limit"
+    ).this
+    assert isinstance(inner, exp.Select)
+    assert _group_keys(inner) == ["'Other'"], sql
+    assert _group_keys(select) == ["'Other'"], sql
+
+
+def test_sqlite_boolean_keyword_dimension_resolves_to_the_column(
+    session: Session,
+) -> None:
+    """
+    SQLite has no boolean literals: ``TRUE`` is an identifier that resolves to a
+    same-named column, so ``(TRUE)`` is a real grouping key there, not a constant.
+    """
+    table = _make_table(session, "sqlite://")
+    sql = _compile_sql(table, columns=[_adhoc("(TRUE)", "flag"), "region"])
+
+    with create_engine("sqlite://").begin() as connection:
+        connection.exec_driver_sql(
+            'CREATE TABLE orders (region TEXT, "TRUE" TEXT, amount FLOAT)'
+        )
+        connection.exec_driver_sql(
+            "INSERT INTO orders VALUES ('west', 'A', 2), ('west', 'B', 3), "
+            "('west', 'A', 4)"
+        )
+        rows = connection.exec_driver_sql(sql).fetchall()
+
+    assert sorted((flag, total) for flag, _region, total in rows) == [
+        ("A", 6),
+        ("B", 3),
+    ], sql
