@@ -39,11 +39,11 @@ from superset.connectors.sqla.partition_mapping import (
 from superset.constants import EPOCH_FORMATS
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db, feature_flag_manager
-from superset.jinja_context import _UNSET, _Unset
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql.parse import SQLScript, Table
+from superset.utils.class_utils import _Unset
 from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 
@@ -933,8 +933,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     def get_table_by_catalog_schema_and_name(
         table_name: str,
         database_id: int | None = None,
-        schema: str | _Unset | None = _UNSET,
-        catalog: str | _Unset | None = _UNSET,
+        schema: str | type[_Unset] | None = _Unset,
+        catalog: str | type[_Unset] | None = _Unset,
         skip_base_filter: bool = False,
         *,
         database_name: str | None = None,
@@ -961,14 +961,14 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 SqlaTable.database.has(Database.database_name == database_name)
             )
 
-        if catalog is not _UNSET:
+        if catalog is not _Unset:
             query = query.filter(
                 SqlaTable.catalog.is_(None)
                 if catalog is None
                 else SqlaTable.catalog == catalog
             )
 
-        if schema is not _UNSET:
+        if schema is not _Unset:
             query = query.filter(
                 SqlaTable.schema.is_(None)
                 if schema is None

@@ -53,6 +53,7 @@ from superset.extensions import feature_flag_manager
 from superset.sql.parse import Table
 from superset.superset_typing import Column, QueryObjectDict
 from superset.utils import json
+from superset.utils.class_utils import _Unset
 from superset.utils.core import (
     AdhocFilterClause,
     convert_legacy_filters_into_adhoc,
@@ -70,13 +71,6 @@ if TYPE_CHECKING:
     from superset.security.guest_token import GuestToken
 
 logger = logging.getLogger(__name__)
-
-
-class _Unset:
-    """Sentinel indicating that no filter should be applied."""
-
-
-_UNSET: _Unset = _Unset()
 
 
 class UndefinedTemplateFunctionException(SupersetTemplateException):
@@ -1518,8 +1512,8 @@ def dataset_macro(
     dataset_id: int | None = None,
     include_metrics: bool = False,
     columns: list[str] | None = None,
-    schema: str | _Unset | None = _UNSET,
-    catalog: str | _Unset | None = _UNSET,
+    schema: str | type[_Unset] | None = _Unset,
+    catalog: str | type[_Unset] | None = _Unset,
     database_id: int | None = None,
     alias: str | None = None,
     *,
@@ -1559,9 +1553,9 @@ def dataset_macro(
             filters["database_id"] = database_id
         if database_name is not None:
             filters["database_name"] = database_name
-        if catalog is not _UNSET:
+        if catalog is not _Unset:
             filters["catalog"] = catalog
-        if schema is not _UNSET:
+        if schema is not _Unset:
             filters["schema"] = schema
 
         criteria = [
