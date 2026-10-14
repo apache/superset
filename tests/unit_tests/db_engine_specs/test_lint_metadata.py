@@ -20,7 +20,11 @@ from textwrap import dedent
 
 import pytest
 
-from superset.db_engine_specs.lint_metadata import get_all_engine_specs_ast
+import io
+from superset.db_engine_specs.lint_metadata import (
+    get_all_engine_specs_ast,
+    main,
+)
 
 
 def _write_spec(directory: Path, filename: str, code: str) -> Path:
@@ -156,4 +160,85 @@ def test_get_all_engine_specs_ast_set_and_unary_minus(
         "default_port": -1,
         "negative_float": -3.14,
     }
+
+def test_main_ascii_stdout_utf8_reconfigure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Ensure main() reconfigures an ASCII stdout stream to UTF-8 without raising
+    UnicodeEncodeError when outputting Unicode symbols in reports.
+    """
+    _write_spec(
+        tmp_path,
+        "_tmp_ascii_spec.py",
+        """\
+        from typing import Any
+        from superset.db_engine_specs.base import BaseEngineSpec
+
+        class AsciiConsoleBaseEngineSpec(BaseEngineSpec):
+            engine: str = "ascii_engine"
+            engine_name: str = "ASCII Engine"
+            metadata: dict[str, Any] = {
+                "description": "An engine spec for ascii console testing",
+            }
+        """,
+    )
+
+    monkeypatch.setattr(
+        "superset.db_engine_specs.lint_metadata.SPECS_DIR",
+        str(tmp_path),
+    )
+    monkeypatch.setattr("sys.argv", ["lint_metadata"])
+
+    buffer = io.BytesIO()
+    ascii_stdout = io.TextIOWrapper(buffer, encoding="ascii", write_through=True)
+    monkeypatch.setattr("sys.stdout", ascii_stdout)
+
+    ret = main()
+    assert ret == 0
+
+    decoded = buffer.getvalue().decode("utf-8")
+    assert "ASCII Engine" in decoded
+
+
+def test_main_ascii_stdout_markdown_report(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Ensure main() with --markdown output on an ASCII stream completes
+    without UnicodeEncodeError and produces valid UTF-8 output.
+    """
+    _write_spec(
+        tmp_path,
+        "_tmp_ascii_md_spec.py",
+        """\
+        from typing import Any
+        from superset.db_engine_specs.base import BaseEngineSpec
+
+        class AsciiMarkdownBaseEngineSpec(BaseEngineSpec):
+            engine: str = "ascii_md_engine"
+            engine_name: str = "ASCII MD Engine"
+            metadata: dict[str, Any] = {
+                "description": "An engine spec for ascii markdown testing",
+            }
+        """,
+    )
+
+    monkeypatch.setattr(
+        "superset.db_engine_specs.lint_metadata.SPECS_DIR",
+        str(tmp_path),
+    )
+    monkeypatch.setattr("sys.argv", ["lint_metadata", "--markdown"])
+
+    buffer = io.BytesIO()
+    ascii_stdout = io.TextIOWrapper(buffer, encoding="ascii", write_through=True)
+    monkeypatch.setattr("sys.stdout", ascii_stdout)
+
+    ret = main()
+    assert ret == 0
+
+    decoded = buffer.getvalue().decode("utf-8")
+    assert "ASCII MD Engine" in decoded
 

@@ -1029,18 +1029,30 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     ) -> tuple[URL, dict[str, Any]]:
         adjusted_connect_args = connect_args.copy()
 
-        is_catalog_overridden = catalog is not None
-        effective_catalog = (
-            catalog
-            or adjusted_connect_args.get("catalog")
-            or uri.query.get("catalog")
+        original_catalog = (
+            adjusted_connect_args.get("catalog") or uri.query.get("catalog")
         )
-        effective_schema = (
-            schema
-            or (adjusted_connect_args.get("schema") if not is_catalog_overridden else None)
-            or (uri.query.get("schema") if not is_catalog_overridden else None)
-            or (uri.database if uri.database and not is_catalog_overridden else None)
+        is_catalog_changing = (
+            catalog is not None
+            and (original_catalog is None or catalog != original_catalog)
         )
+
+        effective_catalog = catalog or original_catalog
+        if schema:
+            effective_schema = schema
+        elif not is_catalog_changing:
+            effective_schema = (
+                adjusted_connect_args.get("schema")
+                or uri.query.get("schema")
+                or uri.database
+                or "default"
+            )
+        else:
+            # Catalog is overridden to a new or different catalog without an
+            # explicit schema. Resolve the catalog's default schema ("default")
+            # to prevent reflection from generating invalid queries like
+            # `catalog`.`None`.`table`.
+            effective_schema = "default"
         effective_http_path = (
             adjusted_connect_args.get("http_path")
             or uri.query.get("http_path")
