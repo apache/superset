@@ -103,6 +103,7 @@ def handle_query_error(
     payload: Optional[dict[str, Any]] = None,
     prefix_message: str = "",
     durable: bool = False,
+    unpublished_results_key: Optional[str] = None,
 ) -> dict[str, Any]:
     """
     Local method handling error while processing the SQL
@@ -110,6 +111,8 @@ def handle_query_error(
     :param durable: the target database already committed the query's effects,
         so a stop recorded after that commit lost the race and must not mask
         the failure
+    :param unpublished_results_key: key of results stored in the results
+        backend that no committed query row references, deleted if a stop wins
     """
     payload = payload or {}
 
@@ -143,6 +146,7 @@ def handle_query_error(
         with db.session.no_autoflush:
             db.session.refresh(query, attribute_names=["status"])
         if query.status == QueryStatus.STOPPED:
+            _discard_unpublished_results(query, unpublished_results_key)
             payload.update({"status": query.status})
             return payload
 
@@ -178,6 +182,33 @@ def handle_query_error(
     if troubleshooting_link := app.config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
+
+
+def _discard_unpublished_results(query: Query, key: Optional[str]) -> None:
+    """
+    Delete results stored for a stopped query whose key was never committed.
+
+    Nothing can read the blob before it expires. A failed delete is logged and
+    does not change the STOPPED outcome.
+    """
+    if not key or not results_backend:
+        return
+    try:
+        deleted = results_backend.delete(key)
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "Query %s: Failed to delete results of stopped query, key: %s",
+            str(query.id),
+            key,
+            exc_info=True,
+        )
+        return
+    if not deleted:
+        logger.warning(
+            "Query %s: Results of stopped query were not deleted, key: %s",
+            str(query.id),
+            key,
+        )
 
 
 def get_query_backoff_handler(details: dict[Any, Any]) -> None:
@@ -254,6 +285,12 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 nonlocal committed
                 committed = True
 
+            unpublished_results_key: Optional[str] = None
+
+            def track_results_key(key: Optional[str]) -> None:
+                nonlocal unpublished_results_key
+                unpublished_results_key = key
+
             try:
                 return execute_sql_statements(
                     query_id,
@@ -264,6 +301,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                     expand_data=expand_data,
                     log_params=log_params,
                     on_commit=mark_committed,
+                    on_results_key=track_results_key,
                 )
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception("Query %d: %s", query_id, ex)
@@ -272,7 +310,12 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 query = get_query(query_id=query_id)
                 # Failures after the target commit (result serialization, the
                 # results backend, closing the connection) cannot undo it.
-                return handle_query_error(ex, query, durable=committed)
+                return handle_query_error(
+                    ex,
+                    query,
+                    durable=committed,
+                    unpublished_results_key=unpublished_results_key,
+                )
 
 
 S = TypeVar("S", bound=BaseSQLStatement[Any])
@@ -465,11 +508,14 @@ def execute_sql_statements(  # noqa: C901
     expand_data: bool,
     log_params: Optional[dict[str, Any]],
     on_commit: Optional[Callable[[], None]] = None,
+    on_results_key: Optional[Callable[[Optional[str]], None]] = None,
 ) -> Optional[dict[str, Any]]:
     """
     Executes the sql query returns the results.
 
     :param on_commit: called once the target database commits a mutation or CTAS
+    :param on_results_key: called with the key of results written to the
+        results backend, then with None once the query row commits that key
     """
     if store_results and start_time:
         # only asynchronous queries
@@ -844,6 +890,8 @@ def execute_sql_statements(  # noqa: C901
             else:
                 # Write succeeded - set results_key in database
                 query.results_key = key
+                if on_results_key:
+                    on_results_key(key)
                 logger.info(
                     "Query %s: Successfully stored results in backend, key: %s",
                     str(query_id),
@@ -872,6 +920,8 @@ def execute_sql_statements(  # noqa: C901
     ):
         query.status = QueryStatus.SUCCESS
     db.session.commit()
+    if on_results_key:
+        on_results_key(None)
 
     if return_results:
         # since we're returning results we need to create non-arrow data
