@@ -539,14 +539,17 @@ export default function AddSemanticViewModal({
 
   // Closing the modal clears the debounce timers below, but unmounting it
   // while open does not go through that path. Without this, a pending schema
-  // refresh or views fetch, or a JSON Forms change delivered late, would
-  // still post for a component that no longer exists.
+  // refresh or views fetch, a request already in flight, or a JSON Forms
+  // change delivered late would still post or toast for a component that no
+  // longer exists.
   useEffect(() => {
     // Reset on mount too: StrictMode runs this cleanup once in development
     // and then mounts again.
     unmountedRef.current = false;
     return () => {
       unmountedRef.current = true;
+      // Drop in-flight continuations, as closing the modal does.
+      fetchGenRef.current += 1;
       if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
       if (viewsTimerRef.current) clearTimeout(viewsTimerRef.current);
     };

@@ -720,6 +720,43 @@ test('a debounced refresh scheduled before unmount never fires', async () => {
   expect(viewsRequests()).toHaveLength(viewsBefore);
 });
 
+test('a views fetch scheduled before unmount never fires', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  const viewsBefore = viewsRequests().length;
+  // A complete form queues a views fetch behind the modal's debounce.
+  await chooseDependentOption('Schema', 'shared');
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  expect(pending).toHaveLength(1);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+});
+
+test('a runtime schema response delivered after unmount fetches no views', async () => {
+  let finishSchema: (() => void) | undefined;
+  mockLayerWithSchema(
+    {},
+    {
+      '/api/v1/semantic_layer/layer-1/schema/runtime': () =>
+        new Promise(resolve => {
+          finishSchema = () => resolve({ json: { result: {} } });
+        }),
+    },
+  );
+  const props = createProps();
+  const { unmount } = render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Snowflake SL');
+  await waitFor(() => expect(finishSchema).toBeDefined());
+  unmount();
+  // A schema with no properties would otherwise fetch views right away.
+  await act(async () => {
+    finishSchema?.();
+  });
+  expect(viewsRequests()).toHaveLength(0);
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
 test('a form change delivered after unmount schedules no refresh', async () => {
   const { pending, unmount } = await openDependentSchemaForm();
   const viewsBefore = viewsRequests().length;
