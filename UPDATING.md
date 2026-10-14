@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Large nullable-integer dimensions stay exact in chart data.** In a plain chart
+  query (no post-processing or time offsets, and not a report's client-processed
+  result), a dimension column of nullable integers that holds a value beyond
+  `2**53 - 1` is no longer rounded to a float. JSON responses carry such values as
+  strings (the existing contract for large integers), and CSV, Excel and Arrow
+  exports carry the exact integer. Consumers that parsed these values as JSON
+  numbers receive a string for them. Metric columns are unchanged, and results
+  cached before the upgrade keep the old values until they expire.
+
 - MCP `get_dashboard_data` reports `total_rows=null` and `truncated=true` when
   row-collapsing post-processing leaves input coverage unverified, not only when
   truncation is observed. Output row counts do not prove complete input coverage.
