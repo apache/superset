@@ -1720,6 +1720,191 @@ def _assert_stored_results_outcome(
     assert ("Failed to delete results of stopped query" in log_text) is delete_fails
 
 
+@pytest.mark.parametrize("delete_fails", [False, True], ids=["deleted", "delete_error"])
+@pytest.mark.parametrize("stop", ["none", "with_failure", "error_commit"])
+@pytest.mark.parametrize("failure", ["write_timing", "publish_update"])
+def test_error_after_results_write_deletes_stored_results_when_stopped(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    failure: str,
+    stop: str,
+    delete_fails: bool,
+) -> None:
+    """
+    Test that results stored before a task error are deleted when the error
+    handler finds the query stopped, and that a failed delete still ends STOPPED.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'error-stored.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+
+    def deliver_stop() -> None:
+        """Commit the stop in an independent transaction."""
+        with Session(engine) as stop_session:
+            stopped_query = stop_session.get(Query, 123)
+            assert stopped_query is not None
+            stopped_query.status = QueryStatusEnum.STOPPED
+            stopped_query.end_time = 1234.5
+            stop_session.commit()
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    def delete(key: str) -> bool:
+        """Remove the blob."""
+        return stored.pop(key, None) is not None
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = (
+        RuntimeError("Backend unavailable") if delete_fails else delete
+    )
+    mocker.patch.object(celery_task, "results_backend", backend)
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", None, 1.0, 0)],
+    )
+    failed = False
+
+    def fail_after_write() -> None:
+        """Raise once the results are stored, with the stop landing first."""
+        nonlocal failed
+        assert stored
+        failed = True
+        if stop == "with_failure":
+            deliver_stop()
+        raise RuntimeError("Metrics or metadata database unavailable")
+
+    _fail_after_results_write(
+        mocker, engine, failure, lambda: bool(stored) and not failed, fail_after_write
+    )
+
+    original_make_check = celery_task._make_check_stopped_fn
+
+    def make_check(query: Query, preserve_pending: bool = False) -> Callable[[], bool]:
+        """Deliver the stop after the error handler's own stop check."""
+        check = original_make_check(query, preserve_pending)
+
+        def check_then_stop() -> bool:
+            stopped = check()
+            if stop == "error_commit" and failed and preserve_pending:
+                deliver_stop()
+            return stopped
+
+        return check_then_stop
+
+    mocker.patch.object(celery_task, "_make_check_stopped_fn", side_effect=make_check)
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="error-stored",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        with caplog.at_level("WARNING", logger=celery_task.logger.name):
+            payload = celery_task.execute_sql_task(123, query.sql)
+
+        session.refresh(query)
+        assert failed
+        _assert_error_results_outcome(
+            payload, query, backend, stored, caplog.text, stop, delete_fails
+        )
+    engine.dispose()
+
+
+def _fail_after_results_write(
+    mocker: MockerFixture,
+    engine: Any,
+    failure: str,
+    armed: Callable[[], bool],
+    fail: Callable[[], None],
+) -> None:
+    """Raise from the write timing metric or the guarded publish UPDATE."""
+    from sqlalchemy import event
+
+    if failure == "write_timing":
+        stats_logger = MagicMock()
+
+        def timing(key: str, value: float) -> None:
+            """Fail emitting the results backend write timing."""
+            if key == "sqllab.query.results_backend_write" and armed():
+                fail()
+
+        stats_logger.timing.side_effect = timing
+        mocker.patch.dict(current_app.config, {"STATS_LOGGER": stats_logger})
+        return
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def fail_publish(  # noqa: PLR0913
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Fail the guarded publish UPDATE, after the results are stored."""
+        guarded_update = statement.lstrip().startswith("UPDATE") and (
+            "status !=" in statement
+        )
+        if guarded_update and armed():
+            fail()
+
+
+def _assert_error_results_outcome(
+    payload: dict[str, Any] | None,
+    query: Any,
+    backend: MagicMock,
+    stored: dict[str, bytes],
+    log_text: str,
+    stop: str,
+    delete_fails: bool,
+) -> None:
+    """Check the query, payload and results backend after the task error."""
+    backend.set.assert_called_once()
+    key = backend.set.call_args.args[0]
+    if stop == "none":
+        # Not a stop: the failure is reported and the row keeps its key.
+        assert payload is not None
+        assert payload["status"] == QueryStatusEnum.FAILED
+        assert query.status == QueryStatusEnum.FAILED
+        assert query.results_key == key
+        assert key in stored
+        backend.delete.assert_not_called()
+        return
+
+    assert payload == {"query_id": 123, "status": QueryStatusEnum.STOPPED}
+    assert query.status == QueryStatusEnum.STOPPED
+    assert query.end_time == Decimal("1234.5")
+    assert query.results_key is None
+    backend.delete.assert_called_once_with(key)
+    assert (key in stored) is delete_fails
+    assert ("Failed to delete results of stopped query" in log_text) is delete_fails
+
+
 @pytest.mark.parametrize("stopped", [False, True])
 def test_finalization_stop_check_preserves_pending_metadata(
     mocker: MockerFixture, app_context: None, stopped: bool

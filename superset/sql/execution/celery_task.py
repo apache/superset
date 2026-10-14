@@ -95,7 +95,11 @@ def _handle_query_error(
         if query.status == QueryStatus.TIMED_OUT
         else QueryStatus.FAILED
     )
+    # Results stored before the failure are unpublished; a stop reloads the row
+    # and drops their pending key, so read it first.
+    stored_key = query.results_key
     if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
+        _discard_stored_results(query, stored_key)
         return _stopped_query_payload(query)
 
     with db.session.no_autoflush:
@@ -116,6 +120,7 @@ def _handle_query_error(
         if durable:
             db.session.commit()  # pylint: disable=consider-using-transaction
         elif not _commit_query_unless_stopped(query):
+            _discard_stored_results(query, stored_key)
             return _stopped_query_payload(query)
         payload.update({"status": status.value, "error": msg, "errors": errors_payload})
         if app.config.get("SHOW_STACKTRACE"):
