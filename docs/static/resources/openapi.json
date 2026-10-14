@@ -25041,6 +25041,7 @@
                             "operator",
                             "resolution",
                             "offset",
+                            "escaping",
                             "engine",
                             "type"
                           ],
