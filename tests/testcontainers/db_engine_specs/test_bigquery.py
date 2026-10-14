@@ -41,6 +41,7 @@ pytestmark = pytest.mark.testcontainers
 from ._driver import require_driver  # noqa: E402
 
 require_driver("testcontainers.core.container")
+require_driver("sqlalchemy_bigquery")
 
 from google.cloud import bigquery  # noqa: E402
 from sqlalchemy_bigquery import BigQueryDialect  # noqa: E402
@@ -79,7 +80,13 @@ def _compiled_literal(expr: sa.ColumnElement) -> str:
     """Render ``expr`` exactly as Superset's actual code path does: compiled
     with ``literal_binds=True``, then executed as a plain string with no
     separate bind parameters (superset.db_engine_specs.base.BaseEngineSpec
-    .execute() calls ``cursor.execute(query)``, nothing else)."""
+    .execute() calls ``cursor.execute(query)``, nothing else).
+
+    This does not replicate ``Database.compile_sqla_query``'s ``%%`` -> ``%``
+    undo (applied because the BigQuery dialect doubles percents), so values
+    containing consecutive percent signs can differ from the full Superset
+    path; ``test_doubled_percent_value_is_collapsed_by_bigquery_dbapi`` pins
+    the behavior of this helper only."""
     return str(
         expr.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
     )

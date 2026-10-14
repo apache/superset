@@ -47,7 +47,10 @@ class BigQueryContainer(DockerContainer):
 
     def __init__(
         self,
-        image: str = "ghcr.io/goccy/bigquery-emulator:latest",
+        image: str = (
+            "ghcr.io/goccy/bigquery-emulator@sha256:"
+            "f4e428d265a93dc5ce36c294e1c584c7c9b384117d47ab8ddbb63d8d50b7f393"
+        ),
         project: str = "test-project",
         port: int = 9050,
         grpc_port: int = 9060,
