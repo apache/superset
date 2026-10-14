@@ -35,6 +35,7 @@ from superset.mcp_service.mcp_core import (
     ModelGetInfoCore,
     ModelListCore,
 )
+from superset.utils.class_utils import _Unset
 
 
 class _FakeOutput(BaseModel):
@@ -46,10 +47,6 @@ class _FakeError(BaseModel):
     error: str
     error_type: str
     timestamp: datetime
-
-
-class _Unset:
-    """Sentinel meaning "DAO has no title_column attribute at all"."""
 
 
 @pytest.fixture(autouse=True)
