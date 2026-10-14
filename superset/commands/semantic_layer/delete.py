@@ -90,6 +90,11 @@ class DeleteSemanticViewCommand(BaseCommand):
         self._model = SemanticViewDAO.find_by_id(self._pk, id_column="id")
         if not self._model:
             raise SemanticViewNotFoundError()
+        try:
+            self._model.raise_for_access()
+        except SupersetSecurityException as ex:
+            raise SemanticViewForbiddenError() from ex
+
         if not current_user_can_modify_object(self._model):
             raise SemanticViewForbiddenError()
 
@@ -115,5 +120,10 @@ class BulkDeleteSemanticViewCommand(BaseCommand):
         if len(self._models) != len(self._model_ids):
             raise SemanticViewNotFoundError()
         for model in self._models:
+            try:
+                model.raise_for_access()
+            except SupersetSecurityException as ex:
+                raise SemanticViewForbiddenError() from ex
+
             if not current_user_can_modify_object(model):
                 raise SemanticViewForbiddenError()
