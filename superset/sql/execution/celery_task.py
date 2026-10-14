@@ -170,9 +170,8 @@ def _finalize_successful_query(
     execution_results: list[tuple[str, SupersetResultSet | None, float, int]],
     payload: dict[str, Any],
     total_execution_time_ms: float,
-    check_stopped_fn: Callable[[], bool] | None = None,
-) -> bool:
-    """Update metadata and payload unless stopped during result serialization."""
+) -> None:
+    """Update query metadata and payload after successful execution."""
     # Calculate total rows across all statements
     total_rows = 0
     statements_data: list[dict[str, Any]] = []
@@ -219,9 +218,6 @@ def _finalize_successful_query(
                 }
             )
 
-    if check_stopped_fn and check_stopped_fn():
-        return False
-
     with db.session.no_autoflush:
         query.rows = total_rows
         query.progress = 100
@@ -240,7 +236,6 @@ def _finalize_successful_query(
             }
         )
         payload["query"]["state"] = QueryStatus.SUCCESS.value
-        return True
 
 
 def _store_results_in_backend(
@@ -587,35 +582,28 @@ def _execute_sql_statements(
             if on_commit:
                 on_commit()
 
-    # A committed mutation or CTAS is durable, so a stop recorded after the
+    if stopped:
+        return _stopped_query_payload(query)
+
+    # A stop that lands from here on is caught after the results backend write
+    # and by the guarded publish, so serialization does not re-read the row. A
+    # committed mutation or CTAS is durable: a stop recorded after the
     # pre-commit check lost the race and must not mask the committed result.
-    if committed:
-        check_stopped = _never_stopped
-
-    # Re-check after connection cleanup, before publishing success or results.
-    if stopped or check_stopped():
-        return _stopped_query_payload(query)
-
+    #
+    # Engines that autocommit each statement (Impala, Hive, Trino) make DML and
+    # CTAS permanent when the statement finishes, and ``conn.commit()`` does
+    # nothing. A stop that lands between statement completion and the
+    # pre-commit check therefore still ends STOPPED, with the rows or table
+    # already written.
     total_execution_time_ms = (now_as_float() - execution_start_time) * 1000
-    if not _finalize_successful_query(
-        query,
-        original_script,
-        execution_results,
-        payload,
-        total_execution_time_ms,
-        check_stopped_fn=check_stopped,
-    ):
-        return _stopped_query_payload(query)
+    _finalize_successful_query(
+        query, original_script, execution_results, payload, total_execution_time_ms
+    )
 
     if results_backend:
         _store_results_in_backend(query, payload, database, durable=committed)
 
     return _publish_query_result(query, payload, durable=committed)
-
-
-def _never_stopped() -> bool:
-    """Stop check for work whose effects are already committed."""
-    return False
 
 
 def _publish_query_result(

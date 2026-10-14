@@ -1222,7 +1222,11 @@ def test_stop_with_partial_results_skips_success_finalization(
     stop_checkpoint: str,
     end_time: float | None,
 ) -> None:
-    """Stops must skip success finalization and preserve recorded end times."""
+    """
+    A stop seen by the pre-commit check skips success finalization and keeps
+    the recorded end time. A stop during connection cleanup is caught by the
+    guarded publish instead, after the results are prepared.
+    """
     from superset.constants import QUERY_EARLY_CANCEL_KEY
     from superset.sql.execution import celery_task
 
@@ -1259,12 +1263,15 @@ def test_stop_with_partial_results_skips_success_finalization(
 
     payload = celery_task._execute_sql_statements(123, mock_query.sql, None)
 
-    assert payload is not None
-    assert payload["status"] == QueryStatusEnum.STOPPED
+    assert payload == {"query_id": 123, "status": QueryStatusEnum.STOPPED}
     assert mock_query.status == QueryStatusEnum.STOPPED
-    assert mock_query.end_time == (end_time if end_time is not None else 5678.9)
-    finalize.assert_not_called()
-    store.assert_not_called()
+    if stop_checkpoint == "execution":
+        assert mock_query.end_time == (end_time if end_time is not None else 5678.9)
+        finalize.assert_not_called()
+        store.assert_not_called()
+    else:
+        finalize.assert_called_once()
+        store.assert_called_once()
 
 
 def test_execute_sql_task_with_mutation(
@@ -1471,7 +1478,7 @@ def test_execute_sql_task_with_failed_status_before_final_commit(
     )
 
     # Mock _store_results_in_backend to set status to FAILED without raising
-    def mock_store_results(query, payload, database):
+    def mock_store_results(query, payload, database, durable=False):
         query.status = QueryStatusEnum.FAILED
 
     mocker.patch("superset.sql.execution.celery_task.results_backend", MagicMock())
@@ -1493,6 +1500,7 @@ def test_execute_sql_task_with_failed_status_before_final_commit(
 
     # Verify query status remains FAILED and is not changed to SUCCESS
     assert result is not None
+    assert "error" not in result
     assert mock_query.status == QueryStatusEnum.FAILED
 
 
@@ -1503,6 +1511,7 @@ def test_execute_sql_task_with_failed_status_before_final_commit(
 def test_stop_during_result_finalization_stays_stopped(
     mocker: MockerFixture,
     app_context: None,
+    mock_db_session: MagicMock,
     mock_query: MagicMock,
     mock_database: MagicMock,
     mock_result_set: MagicMock,
@@ -1521,10 +1530,19 @@ def test_stop_during_result_finalization_stays_stopped(
     backend = mocker.patch.object(celery_task, "results_backend", MagicMock())
     mocker.patch.object(celery_task, "_serialize_payload", return_value=b"results")
 
+    committed: dict[str, Any] = {}
+
     def record_stop() -> None:
         """Another request commits a stop after the post-execution check."""
+        committed.update(status=QueryStatusEnum.STOPPED, end_time=1234.5)
         mock_query.status = QueryStatusEnum.STOPPED
-        mock_query.end_time = 1234.5
+
+    def refresh(query: MagicMock, *args: Any, **kwargs: Any) -> None:
+        """A refresh reloads the committed stop over pending success fields."""
+        for key, value in committed.items():
+            setattr(query, key, value)
+
+    mock_db_session.refresh.side_effect = refresh
 
     def serialize(result_set: MagicMock) -> tuple[list[object], list[object]]:
         """Stop while preparing the success payload."""
@@ -1550,10 +1568,8 @@ def test_stop_during_result_finalization_stays_stopped(
     assert mock_query.status == QueryStatusEnum.STOPPED
     assert mock_query.end_time == 1234.5
     assert mock_query.results_key is None
-    if stop_checkpoint == "serialization":
-        backend.set.assert_not_called()
-    else:
-        backend.set.assert_called_once()
+    # A stop during serialization is caught after the backend write.
+    backend.set.assert_called_once()
 
 
 @pytest.mark.parametrize("stopped", [False, True])
@@ -2053,34 +2069,110 @@ def test_failure_after_stop_raced_commit_reports_failed_not_stopped(
 def test_publish_query_result_preserves_failure(
     mocker: MockerFixture,
     app_context: None,
-    mock_query: MagicMock,
+    tmp_path: Path,
     durable: bool,
-    status: str,
+    status: QueryStatusEnum,
 ) -> None:
-    """Publishing preserves backend failures for reads and committed mutations."""
+    """
+    Publishing keeps a committed backend failure for reads and committed
+    mutations, and otherwise publishes SUCCESS.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
     from superset.sql.execution import celery_task
 
-    mock_query.status = status
-    payload = {"status": status, "query_id": 123}
-    session = mocker.patch.object(celery_task.db, "session")
-    check_stopped = mocker.patch.object(
-        celery_task, "_make_check_stopped_fn", return_value=lambda: False
-    )
-    conditional_commit = mocker.patch.object(
-        celery_task, "_commit_query_unless_stopped", return_value=True
-    )
+    engine = create_engine(f"sqlite:///{tmp_path / 'publish.db'}")
+    Query.__table__.create(engine)
+    with Session(engine) as session:
+        query = Query(
+            id=123, client_id="publish", database_id=1, sql="SELECT 1", status=status
+        )
+        session.add(query)
+        # _store_results_in_backend commits FAILED before publishing can run.
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+        query.rows = 1
+        payload = {"status": QueryStatusEnum.SUCCESS.value, "query_id": 123}
 
-    assert celery_task._publish_query_result(mock_query, payload, durable) is payload
-    assert mock_query.status == (
-        QueryStatusEnum.FAILED
-        if status == QueryStatusEnum.FAILED
-        else QueryStatusEnum.SUCCESS
+        assert celery_task._publish_query_result(query, payload, durable) is payload
+
+        session.expire_all()
+        assert query.status == (
+            QueryStatusEnum.FAILED
+            if status == QueryStatusEnum.FAILED
+            else QueryStatusEnum.SUCCESS
+        )
+        assert query.rows == 1
+
+
+def test_successful_select_reads_stop_state_once_per_checkpoint(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """
+    A successful SELECT reads stop state before results are serialized, after
+    the results backend write and in the guarded publish, not again in between.
+    """
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'task-reads.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+    result_set = MagicMock(size=1, truncated=False, columns=[])
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", result_set, 1.0, 1)],
     )
-    if durable:
-        session.commit.assert_called_once_with()
-        check_stopped.assert_not_called()
-        conditional_commit.assert_not_called()
-    else:
-        session.commit.assert_not_called()
-        check_stopped.assert_called_once_with(mock_query, preserve_pending=True)
-        conditional_commit.assert_called_once_with(mock_query)
+    mocker.patch.object(celery_task, "_serialize_result_set", return_value=([], []))
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    backend = MagicMock()
+    backend.set.return_value = True
+    mocker.patch.object(celery_task, "results_backend", backend)
+
+    with Session(engine) as session:
+        session.add(
+            Query(
+                id=123,
+                client_id="task-reads",
+                database_id=1,
+                sql="SELECT 1",
+                status=QueryStatusEnum.PENDING,
+            )
+        )
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+        statements: list[str] = []
+        event.listen(
+            engine,
+            "before_cursor_execute",
+            lambda conn, cursor, statement, *args: statements.append(statement),
+        )
+
+        payload = celery_task.execute_sql_task(123, "SELECT 1")
+
+        assert payload is not None
+        assert payload["status"] == QueryStatusEnum.SUCCESS
+        full_refreshes = [
+            sql
+            for sql in statements
+            if sql.startswith('SELECT "query".id, "query".client_id')
+        ]
+        status_reads = [
+            sql for sql in statements if sql.startswith('SELECT "query".status')
+        ]
+        # One refresh before the pre-commit decision; status-only reads after
+        # the backend write and before the guarded publish.
+        assert len(full_refreshes) == 1
+        assert len(status_reads) == 2
