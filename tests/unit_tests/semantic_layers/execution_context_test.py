@@ -67,7 +67,7 @@ def test_connection_credentials_keys_unchanged(
     execution_view: SemanticView,
     mocker: MockerFixture,
 ) -> None:
-    """Golden result keys recorded on the approved containment base."""
+    """Connection credentials preserve upstream result-cache identity."""
     cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
     cache.get.return_value = ["cached"]
     keys: list[str] = []
@@ -101,7 +101,9 @@ def test_connection_credentials_keys_unchanged(
     assert keys == [
         "col_values:eb5d43a7322c2a03556fc53bc62d54fbbe0b3d26d561d18a0e385c7457abd822",
         "compatible:d073f97791e47e1308e077288564234b3e01e7452a065ba9dd52df2005463762",
-        "a949254794149c0cadbc6298aac03dee51b00e7faf42c80925ed65f23c9cc271",
+        # Recorded on master ffee0a843f: #45133 adds semantic-null-filters-v1
+        # to chart keys; the execution-context contract adds no discriminator.
+        "80b906df8cf7f4837b95d21c32c6f71bd6c810fcf7c1896dbeca74a5023ea961",
     ]
 
 
@@ -166,6 +168,54 @@ def test_identity_digest_properties(mocker: MockerFixture) -> None:
     assert digest(principal=8) != baseline
     assert digest(roles=(2,)) != baseline
     assert digest(guest=True) != baseline
+
+
+def test_background_context_has_separate_binding(
+    execution_view: SemanticView, mocker: MockerFixture
+) -> None:
+    """Origin separates provider bindings, not the same principal's digest."""
+    from flask import g
+    from superset_core.semantic_layers.context import (
+        ExecutionOrigin,
+        SemanticExecutionContext,
+    )
+    from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
+    from superset_core.semantic_layers.view import SemanticView as ProviderView
+
+    from superset.app import SupersetApp
+    from superset.semantic_layers.execution import (
+        current_host_execution_context,
+        SemanticBindingMemo,
+    )
+
+    application: SupersetApp = SupersetApp(__name__)
+    application.config.update(
+        SECRET_KEY="test-secret",  # noqa: S106 -- deterministic test-only key
+        SEMANTIC_LAYER_CACHE_NAMESPACE="test-workspace",
+    )
+    user: MagicMock = MagicMock(id=7, is_anonymous=False, is_guest_user=False)
+    mocker.patch(
+        "superset.semantic_layers.execution.security_manager.get_user_roles",
+        return_value=[MagicMock(id=2)],
+    )
+    memo: SemanticBindingMemo = SemanticBindingMemo()
+    with application.test_request_context():
+        g.user = user
+        request: SemanticExecutionContext = current_host_execution_context()
+        request_binding: tuple[
+            ProviderLayer[Any, Any], dict[tuple[str, str], ProviderView]
+        ] = memo.bind(execution_view.semantic_layer)
+    with application.app_context():
+        g.user = user
+        background: SemanticExecutionContext = current_host_execution_context()
+        background_binding: tuple[
+            ProviderLayer[Any, Any], dict[tuple[str, str], ProviderView]
+        ] = memo.bind(execution_view.semantic_layer)
+    assert request.origin == ExecutionOrigin.REQUEST
+    assert background.origin == ExecutionOrigin.BACKGROUND
+    assert background.identity_digest == request.identity_digest
+    assert background_binding is not request_binding
+    assert len(memo.bindings) == 2
 
 
 @pytest.mark.parametrize(
@@ -314,7 +364,7 @@ def test_namespace_bootstrap_failure_has_its_own_boundary(
     logger: MagicMock = mocker.patch("superset.app.logger")
     with application.app_context():
         application.sync_config_to_db()
-        with pytest.raises(ValueError, match="was not initialized"):
+        with pytest.raises(ValueError, match="namespace failure"):
             semantic_namespace()
     themes.assert_called_once()
     assert any(
@@ -687,17 +737,25 @@ def test_configured_namespace_precedes_bootstrap_memory(
     assert semantic_namespace() == (namespace() if callable(namespace) else namespace)
 
 
-def test_namespace_without_startup_sync_fails_without_database_access(
+def test_namespace_retry_failure_does_not_publish_identity(
+    session: Any,
     mocker: MockerFixture,
 ) -> None:
-    """An unavailable startup identity fails closed without request-time writes."""
+    """A failed retry leaves initialization available to a subsequent access."""
     from superset.app import SupersetApp
     from superset.semantic_layers.execution import semantic_namespace
 
     app: SupersetApp = SupersetApp(__name__)
-    mocker.patch("superset.semantic_layers.execution.db", new=None)
-    with app.app_context(), pytest.raises(ValueError, match="was not initialized"):
+    mocker.patch(
+        "superset.semantic_layers.execution._install_namespace",
+        side_effect=ValueError("invalid persisted identity"),
+    )
+    with (
+        app.app_context(),
+        pytest.raises(ValueError, match="invalid persisted identity"),
+    ):
         semantic_namespace()
+    assert "semantic_execution_namespace" not in app.extensions
 
 
 def test_namespace_bootstraps_before_migration_head(
@@ -790,6 +848,35 @@ def test_namespace_missing_table_defers_without_error_log(
         application.sync_config_to_db()
     assert not [record for record in caplog.records if record.levelno >= logging.ERROR]
     assert "namespace initialization deferred" in caplog.text
+    assert "semantic access will retry (OperationalError)" in caplog.text
+
+
+def test_namespace_recovers_after_fresh_install_upgrade(
+    session: Any, mocker: MockerFixture
+) -> None:
+    """A web process started before Helm's upgrade recovers without restarting."""
+    from sqlalchemy.exc import OperationalError
+
+    from superset.app import SupersetApp
+    from superset.key_value.models import KeyValueEntry
+    from superset.semantic_layers.execution import semantic_namespace
+
+    application: SupersetApp = SupersetApp(__name__)
+    mocker.patch.object(application, "_is_database_up_to_date", return_value=False)
+    with application.app_context():
+        application.sync_config_to_db()
+    assert "semantic_execution_namespace" not in application.extensions
+    # Requests before the upgrade still fail closed; they must not poison recovery.
+    with application.test_request_context(), pytest.raises(OperationalError):
+        semantic_namespace()
+    KeyValueEntry.__table__.create(session.get_bind())
+    with application.test_request_context():
+        namespace: str = semantic_namespace()
+        assert UUID(namespace)
+    with application.test_request_context():
+        mocker.patch("superset.semantic_layers.execution._install_namespace", new=None)
+        assert semantic_namespace() == namespace
+    assert session.query(KeyValueEntry).count() == 1
 
 
 def test_static_namespace_skips_bootstrap_database_access(

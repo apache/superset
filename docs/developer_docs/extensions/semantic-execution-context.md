@@ -53,8 +53,15 @@ Include `cache_token` in metadata-cache keys before any lookup or eager discover
 never use secrets as cache keys. Views echo the captured token in
 `metadata_cache_token`. The context namespace uses `SEMANTIC_LAYER_CACHE_NAMESPACE`
 when set, otherwise an installation UUID read or created during app initialization
-and held in app memory. Namespace resolution never queries the database during a
-request; if bootstrap was skipped or failed, an unconfigured namespace fails closed.
+and held in app memory. If startup precedes database creation (for example, Helm's
+post-install upgrade), semantic access retries initialization once per access until
+it succeeds. Failed attempts remain fail-closed; no temporary identity is used.
+After successful initialization, namespace resolution needs no database access.
+An initialization retry uses an independent metadata-database connection in
+addition to any held by the caller. During repeated initialization failures or
+concurrent first access, a saturated pool can therefore time out; it never falls
+back to a temporary identity. Operators can configure a stable namespace to avoid
+the persisted fallback, or restart workers after the database upgrade completes.
 Callable tenant namespaces are evaluated at binding time and override the startup
 fallback. This is distinct from the
 existing metadata-generation namespace; chart, column-values and compatible-member

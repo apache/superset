@@ -70,7 +70,7 @@ def configured_namespace() -> str:
 
 
 def bootstrap_semantic_namespace() -> None:
-    """Load deployment identity before requests can hold metadata connections."""
+    """Load durable deployment identity at startup or after a deferred upgrade."""
     configured: Any = current_app.config.get("SEMANTIC_LAYER_CACHE_NAMESPACE", "")
     if isinstance(configured, str) and configured:
         return
@@ -81,12 +81,16 @@ def bootstrap_semantic_namespace() -> None:
 
 
 def semantic_namespace() -> str:
-    """Resolve identity from configuration or startup memory, without database I/O."""
+    """Resolve identity, retrying initialization after a deferred database upgrade."""
     namespace: str | None = configured_namespace() or current_app.extensions.get(
         "semantic_execution_namespace"
     )
     if namespace is None:
-        raise ValueError("Semantic execution namespace was not initialized")
+        # Helm can start web workers before its post-install migration creates
+        # key_value. Retry once per access until initialization succeeds; never
+        # publish a process-local fallback or commit the caller's transaction.
+        bootstrap_semantic_namespace()
+        namespace = current_app.extensions["semantic_execution_namespace"]
     return namespace
 
 

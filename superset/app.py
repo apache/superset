@@ -201,7 +201,8 @@ class SupersetApp(Flask):
                 else:
                     logger.info(
                         "Semantic execution namespace initialization deferred until "
-                        "database upgrade and restart"
+                        "database upgrade; semantic access will retry (%s)",
+                        type(ex).__name__,
                     )
 
             # Check if database is up-to-date with migrations
