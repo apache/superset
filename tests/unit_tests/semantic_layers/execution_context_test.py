@@ -132,6 +132,91 @@ def test_host_context_uses_trusted_identity(app: Any, mocker: MockerFixture) -> 
         assert current_host_execution_context() == first
 
 
+def test_identity_digest_properties(mocker: MockerFixture) -> None:
+    """The partition is stable across apps and sensitive to each trusted input."""
+    from flask import g
+
+    from superset.app import SupersetApp
+    from superset.semantic_layers.execution import current_host_execution_context
+
+    def digest(
+        secret: str = "first-secret",  # noqa: S107 -- deterministic test-only key
+        namespace: str = "workspace",
+        principal: int = 7,
+        roles: tuple[int, ...] = (2, 3),
+        guest: bool = False,
+    ) -> str:
+        application: SupersetApp = SupersetApp(__name__)
+        application.config.update(
+            SECRET_KEY=secret, SEMANTIC_LAYER_CACHE_NAMESPACE=namespace
+        )
+        mocker.patch(
+            "superset.semantic_layers.execution.security_manager.get_user_roles",
+            return_value=[MagicMock(id=role) for role in roles],
+        )
+        with application.test_request_context():
+            g.user = MagicMock(id=principal, is_anonymous=False, is_guest_user=guest)
+            return current_host_execution_context().identity_digest
+
+    baseline: str = digest()
+    assert digest() == baseline
+    assert digest(roles=(3, 2, 3)) == baseline
+    assert digest(secret="second-secret") != baseline  # noqa: S106 -- test-only key
+    assert digest(namespace="another-workspace") != baseline
+    assert digest(principal=8) != baseline
+    assert digest(roles=(2,)) != baseline
+    assert digest(guest=True) != baseline
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
+)
+@pytest.mark.parametrize(
+    "endpoint",
+    ["column", "compatible", "views", "schema/runtime", "structure"],
+)
+def test_execution_refusal_survives_api_boundary(
+    client: Any,
+    full_api_access: None,
+    execution_view: SemanticView,
+    mocker: MockerFixture,
+    endpoint: str,
+) -> None:
+    """A real provider-policy refusal retains its type and reason over HTTP."""
+    mocker.patch.object(LegacyLayer, "supported_execution_methods", frozenset())
+    mocker.patch.object(SemanticLayer, "raise_for_access")
+    mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid",
+        return_value=execution_view.semantic_layer,
+    )
+    mocker.patch(
+        "superset.semantic_layers.api.db.session.query"
+    ).return_value.filter_by.return_value.first.return_value = execution_view
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    factory: MagicMock = mocker.spy(LegacyLayer, "from_configuration")
+    response: Any
+    if endpoint == "column":
+        response = client.get(
+            "/api/v1/datasource/semantic_view/1/column/category/values/"
+        )
+    elif endpoint == "compatible":
+        response = client.post("/api/v1/datasource/semantic_view/1/compatible", json={})
+    elif endpoint == "structure":
+        response = client.get("/api/v1/semantic_view/1/structure")
+    else:
+        response = client.post(
+            f"/api/v1/semantic_layer/{execution_view.semantic_layer.uuid}/{endpoint}",
+            json={},
+        )
+    assert response.status_code == 403
+    assert (
+        response.json["errors"][0]["error_type"] == "SEMANTIC_EXECUTION_REFUSED_ERROR"
+    )
+    assert response.json["errors"][0]["extra"]["reason"] == "method_not_supported"
+    cache.get.assert_not_called()
+    factory.assert_not_called()
+
+
 def test_binding_and_containment_include_effective_group_roles(
     app: Any, mocker: MockerFixture
 ) -> None:
@@ -333,7 +418,7 @@ def test_startup_namespace_needs_no_request_pool_checkout(
                 caller.add(
                     KeyValueEntry(
                         uuid=SEMANTIC_INSTALL_ID_KEY,
-                        resource=KeyValueResource.APP.value,
+                        resource=KeyValueResource.SEMANTIC_EXECUTION.value,
                         value=JsonKeyValueCodec().encode({"namespace": "persisted-id"}),
                     )
                 )
@@ -471,7 +556,7 @@ def test_startup_namespace_rejects_invalid_persisted_identity(
             writer.add(
                 KeyValueEntry(
                     uuid=SEMANTIC_INSTALL_ID_KEY,
-                    resource=KeyValueResource.APP.value,
+                    resource=KeyValueResource.SEMANTIC_EXECUTION.value,
                     value=encoded,
                 )
             )
@@ -602,10 +687,10 @@ def test_configured_namespace_precedes_bootstrap_memory(
     assert semantic_namespace() == (namespace() if callable(namespace) else namespace)
 
 
-def test_namespace_without_bootstrap_fails_without_database_access(
+def test_namespace_without_startup_sync_fails_without_database_access(
     mocker: MockerFixture,
 ) -> None:
-    """Skipped initialization cannot silently turn a request into bootstrap."""
+    """An unavailable startup identity fails closed without request-time writes."""
     from superset.app import SupersetApp
     from superset.semantic_layers.execution import semantic_namespace
 
@@ -613,6 +698,98 @@ def test_namespace_without_bootstrap_fails_without_database_access(
     mocker.patch("superset.semantic_layers.execution.db", new=None)
     with app.app_context(), pytest.raises(ValueError, match="was not initialized"):
         semantic_namespace()
+
+
+def test_namespace_bootstraps_before_migration_head(
+    app: Any,
+    session: Any,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    execution_view: SemanticView,
+) -> None:
+    """Pending migrations must not strand a worker's subsequent provider access."""
+    from superset.key_value.models import KeyValueEntry
+
+    KeyValueEntry.__table__.create(session.get_bind())
+    mocker.patch.dict(app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": ""})
+    monkeypatch.delitem(app.extensions, "semantic_execution_namespace", raising=False)
+    mocker.patch.object(app, "_is_database_up_to_date", return_value=False)
+    themes: MagicMock = mocker.patch(
+        "superset.commands.theme.seed.SeedSystemThemesCommand.run"
+    )
+    with app.app_context():
+        app.sync_config_to_db()
+    # The request resolves a real provider without retrying database initialization.
+    with app.test_request_context():
+        provider: Any = execution_view.implementation
+        assert provider is not None
+        assert UUID(app.extensions["semantic_execution_namespace"])
+    themes.assert_not_called()
+    assert session.query(KeyValueEntry).count() == 1
+
+
+def test_namespace_survives_historic_pickle_migration(
+    session: Any,
+    mocker: MockerFixture,
+) -> None:
+    """A pre-upgrade install ID must not enter the old app-resource pickle scan."""
+    import pickle
+    from importlib import import_module
+    from types import ModuleType
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from superset.key_value.models import KeyValueEntry
+    from superset.key_value.types import JsonKeyValueCodec, SEMANTIC_INSTALL_ID_KEY
+    from superset.semantic_layers.execution import _install_namespace
+
+    migration: ModuleType = import_module(
+        "superset.migrations.versions."
+        "2023-05-01_12-03_9c2a5681ddfd_convert_key_value_entries_to_json"
+    )
+    KeyValueEntry.__table__.create(session.get_bind())
+    namespace: str = _install_namespace(session.get_bind())
+    session.add(KeyValueEntry(resource="app", value=pickle.dumps({"legacy": True})))
+    session.commit()
+    with Session(session.get_bind()) as migration_session:
+        mocker.patch.object(migration.op, "get_bind", return_value=session.get_bind())
+        mocker.patch.object(migration.db, "Session", return_value=migration_session)
+        migration.upgrade()
+        assert (
+            session.scalar(
+                select(KeyValueEntry.value).where(KeyValueEntry.resource == "app")
+            )
+            == b'{"legacy": true}'
+        )
+        migration.downgrade()
+    assert JsonKeyValueCodec().decode(
+        session.scalar(
+            select(KeyValueEntry.value).where(
+                KeyValueEntry.uuid == SEMANTIC_INSTALL_ID_KEY
+            )
+        )
+    ) == {"namespace": namespace}
+    assert _install_namespace(session.get_bind()) == namespace
+
+
+def test_namespace_missing_table_defers_without_error_log(
+    session: Any,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """First-install CLI startup must not report an expected absent table as ERROR."""
+    import logging
+
+    from superset.app import SupersetApp
+
+    application: SupersetApp = SupersetApp(__name__)
+    mocker.patch.object(application, "_is_database_up_to_date", return_value=False)
+    caplog.set_level(logging.INFO, logger="superset.app")
+    with application.app_context():
+        application.sync_config_to_db()
+    assert not [record for record in caplog.records if record.levelno >= logging.ERROR]
+    assert "namespace initialization deferred" in caplog.text
 
 
 def test_static_namespace_skips_bootstrap_database_access(

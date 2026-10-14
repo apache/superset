@@ -76,6 +76,7 @@ class KeyValueResource(StrEnum):
     METASTORE_CACHE = "superset_metastore_cache"
     LOCK = "lock"
     PKCE_CODE_VERIFIER = "pkce_code_verifier"
+    SEMANTIC_EXECUTION = "semantic_execution"
     SQLLAB_PERMALINK = "sqllab_permalink"
 
 

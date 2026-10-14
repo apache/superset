@@ -96,14 +96,15 @@ def _install_namespace(engine: Engine) -> str:
     with Session(engine) as session:
         statement: Select = select(KeyValueEntry.value).where(
             KeyValueEntry.uuid == SEMANTIC_INSTALL_ID_KEY,
-            KeyValueEntry.resource == KeyValueResource.APP.value,
+            KeyValueEntry.resource == KeyValueResource.SEMANTIC_EXECUTION.value,
         )
         value: bytes | None = session.scalar(statement)
         if value is None:
             session.add(
                 KeyValueEntry(
                     uuid=SEMANTIC_INSTALL_ID_KEY,
-                    resource=KeyValueResource.APP.value,
+                    # Keep JSON identity out of historic app-resource pickle migrations.
+                    resource=KeyValueResource.SEMANTIC_EXECUTION.value,
                     value=codec.encode({"namespace": str(uuid4())}),
                 )
             )

@@ -271,6 +271,14 @@ from my_extension.view import MySemanticView
 class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
     configuration_class = MyConfig
 
+    def __init__(
+        self, configuration: MyConfig, *, cache_token: str,
+        context: SemanticExecutionContext,
+    ) -> None:
+        self.configuration: MyConfig = configuration
+        self.cache_token: str = cache_token
+        self.context: SemanticExecutionContext = context
+
     @classmethod
     def from_configuration(
         cls, configuration: dict[str, Any], *, cache_token: str,

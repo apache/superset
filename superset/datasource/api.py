@@ -218,7 +218,12 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        return self._column_values_response(datasource, datasource_type, column_name)
+        try:
+            return self._column_values_response(
+                datasource, datasource_type, column_name
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
     def _column_values_response(
         self, datasource: BaseDatasource, datasource_type: str, column_name: str
@@ -617,6 +622,16 @@ class DatasourceRestApi(BaseSupersetApi):
         selected_metrics = body.get("selected_metrics", [])
         selected_dimensions = body.get("selected_dimensions", [])
 
+        try:
+            datasource_uid: str = datasource.uid
+            metadata_version: str | None = (
+                datasource.metadata_generation
+                if isinstance(datasource, SemanticView)
+                else None
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
+
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
         cache_key = (
@@ -624,12 +639,8 @@ class DatasourceRestApi(BaseSupersetApi):
             + hashlib.sha256(
                 json.dumps(
                     {
-                        "uid": datasource.uid,
-                        "metadata_version": (
-                            datasource.metadata_generation
-                            if isinstance(datasource, SemanticView)
-                            else None
-                        ),
+                        "uid": datasource_uid,
+                        "metadata_version": metadata_version,
                         "m": sorted(selected_metrics),
                         "d": sorted(selected_dimensions),
                     },

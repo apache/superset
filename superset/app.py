@@ -184,8 +184,28 @@ class SupersetApp(Flask):
         app startup.
         """
         try:
+            database_ready: bool = self._is_database_up_to_date()
+            # key_value predates the pending migrations. Initialize deployment
+            # identity even when theme/tag synchronization must wait for head.
+            from superset.semantic_layers.execution import bootstrap_semantic_namespace
+
+            namespace_ready: bool = True
+            try:
+                bootstrap_semantic_namespace()
+            except Exception as ex:
+                namespace_ready = False
+                if database_ready:
+                    logger.error(
+                        "Failed to bootstrap semantic execution namespace: %s", ex
+                    )
+                else:
+                    logger.info(
+                        "Semantic execution namespace initialization deferred until "
+                        "database upgrade and restart"
+                    )
+
             # Check if database is up-to-date with migrations
-            if not self._is_database_up_to_date():
+            if not database_ready:
                 logger.info("Pending database migrations: run 'superset db upgrade'")
                 return
 
@@ -198,16 +218,6 @@ class SupersetApp(Flask):
             from superset.tags.core import register_sqla_event_listeners
 
             register_sqla_event_listeners()
-
-            # Defer model imports until initialization has configured SQLAlchemy.
-            from superset.semantic_layers.execution import bootstrap_semantic_namespace
-
-            namespace_ready: bool = True
-            try:
-                bootstrap_semantic_namespace()
-            except Exception as ex:
-                namespace_ready = False
-                logger.error("Failed to bootstrap semantic execution namespace: %s", ex)
 
             # Seed system themes from configuration
             from superset.commands.theme.seed import SeedSystemThemesCommand
