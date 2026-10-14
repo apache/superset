@@ -801,7 +801,9 @@ async def _get_chart_data(  # noqa: C901
                 query_context_accuracy_warning = (
                     "Chart has no saved query_context. "
                     "Data may not match the chart visualization exactly. "
-                    "Consider re-saving the chart to enable full data retrieval."
+                    "Open and save the chart in Explore to enable full data "
+                    "retrieval; saving it via an MCP tool does not store a "
+                    "query_context."
                 )
                 await ctx.warning(query_context_accuracy_warning)
                 # Try to construct from form_data as a fallback
