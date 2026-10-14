@@ -30,6 +30,7 @@ export const TABS_TYPE = 'TABS';
 export const TAB_TYPE = 'TAB';
 // Dynamic type proposes lazy loading of custom dashboard components that can be added in separate repository
 export const DYNAMIC_TYPE = 'DYNAMIC';
+export const FILTER_TYPE = 'FILTER';
 
 export default {
   CHART_TYPE,
@@ -45,4 +46,5 @@ export default {
   TABS_TYPE,
   TAB_TYPE,
   DYNAMIC_TYPE,
+  FILTER_TYPE,
 };

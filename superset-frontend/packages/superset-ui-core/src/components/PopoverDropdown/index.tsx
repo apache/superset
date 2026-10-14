@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Key } from 'react';
+import React, { Key, CSSProperties } from 'react';
 import cx from 'classnames';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -29,7 +29,7 @@ export interface OptionProps {
 }
 
 export type OnChangeHandler = (key: Key) => void;
-export type RenderElementHandler = (option: OptionProps) => JSX.Element;
+export type RenderElementHandler = (option: OptionProps) => React.ReactNode;
 
 export interface PopoverDropdownProps {
   id: string;
@@ -38,6 +38,7 @@ export interface PopoverDropdownProps {
   value: string;
   renderButton?: RenderElementHandler;
   renderOption?: RenderElementHandler;
+  overlayStyle?: CSSProperties;
 }
 
 interface HandleSelectProps {
@@ -83,6 +84,7 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
     renderOption = (option: OptionProps) => (
       <div className={option.className}>{option.label}</div>
     ),
+    overlayStyle,
   } = props;
 
   const theme = useTheme();
@@ -90,7 +92,7 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
   return (
     <Dropdown
       trigger={['click']}
-      overlayStyle={{ zIndex: theme.zIndexBase }}
+      overlayStyle={overlayStyle}
       menu={{
         onClick: ({ key }: HandleSelectProps) => onChange(key),
         items: options.map(option => ({
