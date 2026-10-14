@@ -24,6 +24,21 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Dataset editorship no longer authorizes raw SQL on the underlying table.
+  Under the strict dataset-match scoping used by SQL Lab raw queries, MetaDB,
+  and the MCP `execute_sql` tool (`raise_for_access(force_dataset_match=True)`,
+  introduced in #40409), access to a referenced table now requires
+  `datasource_access` on a registered dataset for that table — being an
+  *editor* (owner) of such a dataset is no longer sufficient. A principal who
+  can create datasets could previously make themselves an editor of a dataset
+  named after any table and thereby run raw SQL on it, and that access
+  outlived revocation of every real database/catalog/schema/datasource grant.
+  The dataset-owner "explore your own dataset" grant (#20382) is unchanged for
+  chart-data, dataset CRUD, `/table_metadata/`, and `/select_star/`; only the
+  raw-row strict path is affected. If you relied on dataset editorship alone to
+  run SQL Lab or MCP queries against a table, grant the role explicit
+  `datasource_access` on the dataset instead.
+
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
   which every semantic provider must render; previously NULL rows could be

@@ -5363,10 +5363,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     catalog=effective_catalog,
                 )
                 for datasource_ in datasources:
+                    # ``datasource_access`` on a registered dataset is always
+                    # sufficient. Editorship of the dataset is accepted only on
+                    # the non-strict path (chart-data, dataset CRUD,
+                    # ``/table_metadata/``, ``/select_star/``), where it is the
+                    # dataset-owner "explore your own dataset" grant from
+                    # #20382. Under strict scoping (SQL Lab raw queries, MetaDB,
+                    # MCP ``execute_sql``) editorship is deliberately excluded:
+                    # returning raw rows from the underlying warehouse table
+                    # must follow the user's live data-access grants, not
+                    # editorship of a same-named dataset. Any principal able to
+                    # create a dataset can make themselves an editor of one
+                    # named after an arbitrary table, so accepting editorship
+                    # here would let dataset creation stand in for data access
+                    # and would outlive revocation of every real grant.
                     if self.can_access(
                         "datasource_access",
                         datasource_.perm or "",
-                    ) or self.is_editor(datasource_):
+                    ) or (not force_dataset_match and self.is_editor(datasource_)):
                         # access to any datasource is sufficient
                         break
                 else:
