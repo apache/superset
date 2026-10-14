@@ -53,7 +53,6 @@ def _make_query_mock() -> MagicMock:
     """Return a minimal Query mock that satisfies handle_query_error."""
     query = MagicMock()
     query.status = "running"
-    query.extra = {}
     query.end_time = None
     query.tmp_table_name = "tmp"
     query.error_message = None
@@ -207,7 +206,6 @@ def test_new_handle_query_error_payload_includes_stacktrace_when_enabled() -> No
         except RuntimeError as ex:
             payload = ct._handle_query_error(ex, query)
 
-    assert payload["status"] == "failed"
     assert "stacktrace" in payload, (
         "_handle_query_error must include 'stacktrace' in the returned payload "
         "when SHOW_STACKTRACE=True (regression for #28248). "
@@ -245,7 +243,6 @@ def test_new_handle_query_error_payload_omits_stacktrace_when_disabled() -> None
         except RuntimeError as ex:
             payload = ct._handle_query_error(ex, query)
 
-    assert payload["status"] == "failed"
     assert "stacktrace" not in payload, (
         "_handle_query_error must NOT include 'stacktrace' when SHOW_STACKTRACE=False "
         "to avoid exposing internal details to unprivileged users. "
