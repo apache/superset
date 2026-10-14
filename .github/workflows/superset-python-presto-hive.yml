@@ -81,6 +81,8 @@ jobs:
           submodules: recursive
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
       - name: Setup Postgres
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
@@ -154,6 +156,8 @@ jobs:
         run: docker compose -f scripts/databases/hive/docker-compose.yml up -d
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
       - name: Setup Postgres
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
