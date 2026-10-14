@@ -6032,3 +6032,85 @@ def test_get_query_result_wraps_post_processing_type_error(
         pytest.raises(QueryObjectValidationError),
     ):
         table.get_query_result(query_object)
+
+
+def _run_state_filter(database: Database, op: FilterOperator, val: Any) -> set[Any]:
+    """
+    Build a query through ``get_sqla_query`` for a single filter on a ``state``
+    column that holds a NULL row, execute it, and return the distinct values.
+    """
+    from sqlalchemy import text
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    with database.get_sqla_engine() as engine, engine.begin() as connection:
+        connection.execute(text("CREATE TABLE states (state TEXT)"))
+        for state in ("CA", "NY", "TX", None):
+            connection.execute(text("INSERT INTO states VALUES (:s)"), {"s": state})
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="states",
+        columns=[TableColumn(column_name="state", type="TEXT")],
+    )
+    query = table.get_sqla_query(
+        columns=["state"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "state", "op": op, "val": val}],
+        granularity=None,
+        is_timeseries=False,
+    )
+    sql = database.compile_sqla_query(query.sqla_query)
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        return {row[0] for row in connection.execute(text(sql))}
+
+
+@pytest.mark.parametrize(
+    "selected,expected",
+    [
+        (["CA"], {"NY", "TX", None}),
+        (["CA", "NY"], {"TX", None}),
+    ],
+)
+def test_not_in_filter_keeps_null_rows(
+    database: Database,
+    selected: list[str],
+    expected: set[Any],
+) -> None:
+    """
+    A ``NOT IN`` list without NULL only excludes the listed values, so rows whose
+    value is NULL must still be returned (SQL three-valued logic would otherwise
+    drop them, since ``NULL NOT IN (...)`` is not true).
+    """
+    assert _run_state_filter(database, FilterOperator.NOT_IN, selected) == expected
+
+
+@pytest.mark.parametrize(
+    "selected,expected",
+    [
+        (["CA", None], {"NY", "TX"}),
+        ([None], {"CA", "NY", "TX"}),
+    ],
+)
+def test_not_in_filter_with_null_operand_excludes_null_rows(
+    database: Database,
+    selected: list[str | None],
+    expected: set[Any],
+) -> None:
+    """
+    A ``NOT IN`` list that contains NULL explicitly excludes the NULL rows.
+    """
+    assert _run_state_filter(database, FilterOperator.NOT_IN, selected) == expected
+
+
+def test_not_in_filter_excludes_selected_values(database: Database) -> None:
+    """
+    Values named in a ``NOT IN`` list are never returned.
+    """
+    result = _run_state_filter(database, FilterOperator.NOT_IN, ["CA", "NY"])
+
+    assert "CA" not in result
+    assert "NY" not in result
+    assert "TX" in result
