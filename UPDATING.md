@@ -73,9 +73,14 @@ assists people when migrating to a new version.
   as rejected, so the chart renders with an **Incompatible** filter indicator.
   A chart-defined filter on a column the semantic view no longer has also
   returns a client error naming the column, instead of being skipped (which
-  widened the result); edit the chart's filters and reselect a dimension. This
-  differs from SQL datasets, which skip and report such filters. Valid dimension
-  filters are reported as applied.
+  widened the result); edit the chart's filters and select a dimension. This
+  differs from SQL datasets, which skip and report such filters. Scheduled
+  reports, alerts and thumbnails for such charts fail until the chart is edited.
+  A "No filter" time range is not refused. Reload open dashboards after deploying:
+  older browser bundles do not mark dashboard filters with `isExtra`, so their
+  incompatible dashboard filters would be refused as chart filters. A dashboard
+  filter carried into a new chart (such as drill-by "Edit chart") becomes a chart
+  filter. Valid dimension filters are reported as applied.
 
 - Dashboard-applied filters now carry `isExtra` in chart-data requests, including
   MCP chart tools that accept `extra_form_data` (chart data, SQL and previews, for

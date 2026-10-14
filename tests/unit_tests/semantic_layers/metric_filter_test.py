@@ -179,7 +179,7 @@ def test_invalid_filter_is_rejected_before_result_cache(
 
 @pytest.mark.parametrize(("column", "error"), REFUSED_CHART_FILTERS)
 @pytest.mark.parametrize("entry", ["validation", "mapping"])
-def test_direct_semantic_entry_rejects_metric_filter(
+def test_direct_semantic_entry_rejects_non_dimension_filter(
     metric_view: tuple[SemanticView, MagicMock], entry: str, column: str, error: str
 ) -> None:
     """Direct mapper callers receive the same column-specific validation error."""
@@ -232,22 +232,18 @@ def test_dimension_filters_still_reach_provider(
     }
 
 
-@pytest.mark.parametrize(
-    ("column", "external"),
-    [("country", True), ("total_amount", True), ("missing_column", True)],
-)
+@pytest.mark.parametrize("column", ["country", "total_amount", "missing_column"])
 @pytest.mark.parametrize("mixed", [False, True])
 def test_incompatible_filter_is_reported_without_breaking_chart(
     client: FlaskClient,
     full_api_access: None,
     metric_view: tuple[SemanticView, MagicMock],
     column: str,
-    external: bool,
     mixed: bool,
 ) -> None:
     """Dashboard filters on columns the view lacks are skipped and reported."""
     filters: list[QueryObjectFilterClause] = [
-        {"col": column, "op": "IN", "val": ["US"], "isExtra": external},
+        {"col": column, "op": "IN", "val": ["US"], "isExtra": True},
     ]
     if mixed:
         filters.append({"col": "category", "op": "==", "val": "Books"})
@@ -301,3 +297,20 @@ def test_filter_reporting_survives_result_cache_hit(
         [{"column": column}] if column == "category" else []
     )
     metric_view[1].get_table.assert_not_called()
+
+
+@pytest.mark.parametrize("value", ["No filter", None])
+def test_chart_no_op_time_range_on_missing_column_is_not_refused(
+    client: FlaskClient,
+    full_api_access: None,
+    metric_view: tuple[SemanticView, MagicMock],
+    value: str | None,
+) -> None:
+    """Saving from a dashboard can store a "No filter" range on a foreign column;
+    it constrains nothing, so it must not break the chart."""
+    filters: list[QueryObjectFilterClause] = [
+        {"col": "ds", "op": "TEMPORAL_RANGE", "val": value},
+    ]
+    response: TestResponse = client.post("/api/v1/chart/data", json=_request(filters))
+    assert response.status_code == 200, response.json
+    metric_view[1].get_table.assert_called_once()

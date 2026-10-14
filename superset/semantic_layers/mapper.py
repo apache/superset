@@ -443,7 +443,8 @@ def map_semantic_result_to_query_result(
         # Template filters - not applicable to semantic layers
         # (semantic layers don't use Jinja templates)
         applied_template_filters=None,
-        # Match SQL datasets: unknown columns are rejected, not silently applied.
+        # Dashboard (isExtra) filters on columns the view lacks are reported
+        # as rejected; chart-defined ones were refused during validation.
         applied_filter_columns=[
             column
             for column in filter_columns
@@ -1395,7 +1396,8 @@ def validate_filter_columns(
     """Refuse chart-defined predicates on metrics or on columns the view lacks.
 
     Dashboard (``isExtra``) filters are not refused: incompatible ones are
-    skipped and reported, so a dashboard filter cannot break the chart.
+    skipped and reported, so a dashboard filter cannot break the chart. A
+    "No filter" time range constrains nothing, so its column is not checked.
     """
     for filter_ in filters:
         column: Column = filter_["col"]
@@ -1403,23 +1405,33 @@ def validate_filter_columns(
             not isinstance(column, str)
             or column in dimension_names
             or filter_.get("isExtra")
+            or _is_no_op_time_range(filter_)
         ):
             continue
         if column in metric_names:
             raise QueryObjectValidationError(
                 _(
                     "Filter column '%(column)s' is a metric; semantic views only "
-                    "filter on dimensions",
+                    "filter on dimensions. Select a dimension or remove the filter.",
                     column=column,
                 )
             )
         raise QueryObjectValidationError(
             _(
-                "Filter column '%(column)s' is not in this semantic view. Edit the "
-                "chart's filters and reselect a dimension, then save the chart.",
+                "Filter column '%(column)s' is not in this semantic view. Select a "
+                "dimension or remove the filter.",
                 column=column,
             )
         )
+
+
+def _is_no_op_time_range(
+    filter_: QueryObjectFilterClause | ValidatedQueryObjectFilterClause,
+) -> bool:
+    """Whether a filter is a time range that applies no bounds."""
+    return filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value and filter_.get(
+        "val"
+    ) in (None, NO_TIME_RANGE)
 
 
 def _validate_filters(
