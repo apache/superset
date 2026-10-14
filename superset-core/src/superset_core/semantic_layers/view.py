@@ -39,6 +39,9 @@ class SemanticViewFeature(enum.Enum):
     ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
     GROUP_LIMIT = "GROUP_LIMIT"
     GROUP_OTHERS = "GROUP_OTHERS"
+    # Non-negative row offsets with a positive finite limit. Providers retain
+    # responsibility for ordering and rejecting unsupported query shapes.
+    ROW_OFFSET = "ROW_OFFSET"
 
 
 class SemanticView(ABC):
@@ -60,8 +63,8 @@ class SemanticView(ABC):
       must not be ordered by name.
     - **NULL in filters.** ``None`` is never a comparison operand; splitting
       nullness into ``IS_NULL``/``IS_NOT_NULL`` is the host's responsibility.
-      Until the host does so, keep handling ``None``; see
-      :class:`~superset_core.semantic_layers.types.Operator`.
+      Mixed positive membership uses grouped OR predicates, which every
+      provider must render; see :class:`~superset_core.semantic_layers.types.Operator`.
     - **Ordering before limit.** ``order`` is applied to the full result set
       before ``offset`` and ``limit``. See
       :class:`~superset_core.semantic_layers.types.SemanticQuery`.
@@ -142,12 +145,19 @@ class SemanticView(ABC):
         when the result is incomplete or its completeness cannot be verified;
         never return a partial result instead.
         Do not drop ``filters`` and retry when a filtered request is incomplete.
+
+        ``SemanticQueryRejectedError`` is not part of this method's contract: the
+        host treats a search filter as best-effort and retries without it, so a
+        rejection would not reach the user.
         """
 
     @abstractmethod
     def get_table(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a semantic query and return the results.
+
+        Raise SemanticQueryRejectedError for deliberate input rejection.
+        Leave operational and unexpected failures unclassified.
 
         Sort by ``query.order`` before applying ``query.offset`` and
         ``query.limit``; truncating before sorting returns the wrong rows. Name
@@ -162,6 +172,8 @@ class SemanticView(ABC):
     def get_row_count(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a query and return the number of rows the result would have.
+
+        Raise SemanticQueryRejectedError for deliberate input rejection.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;

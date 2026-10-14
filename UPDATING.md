@@ -24,6 +24,20 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
+  UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
+  which every semantic provider must render; previously NULL rows could be
+  omitted. Update provider adapters before, or together with, the host/SDK
+  upgrade. Adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
+  members (`Filter | OrFilter`) before reading leaf attributes; `get_values`
+  remains `set[Filter] | None`. Empty membership and invalid NULL comparison
+  operands return query validation errors. Semantic result keys include a
+  filter-protocol version, and chart-backed annotation results also receive a new
+  cache discriminator: expect a one-time cold cache after upgrading. See the
+  [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
+  for NULL value typing, mandatory `OrFilter` rendering and guarded loading on
+  older SDKs.
+
 - `SEMANTIC_LAYER_CONTAINMENT_CACHE` is off by default; opted-in providers can
   reuse cached semantic-view results for narrower queries. Containment keys include
   the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
@@ -187,6 +201,16 @@ reattached to a reachable container by layout repair.
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
 
+### Table and AG Grid server pagination for semantic views
+
+Table and AG Grid Table charts backed by semantic views require the optional `ROW_OFFSET`
+capability to enable Server pagination. Missing capability metadata disables
+the control with an explanation; SQL datasets are unchanged. Saved pagination
+settings are not rewritten. Users can explicitly turn off an unsupported
+saved setting; provider errors remain authoritative until that edit.
+Extension providers must use a compatible core version before declaring the
+new capability.
+
 ### Graph null category colors
 
 Graph charts label SQL `NULL` categories as `<NULL>` and share their colors with
@@ -257,6 +281,14 @@ label as the custom color key, for example:
   before starting this code, with scheduling paused and active work/queued retries drained
   as described below. Keep web and worker versions aligned. Before rollback, replace `NONE`
   formats with a supported format and account for losing explicit executor/policy settings.
+
+### Semantic provider error handling
+
+Semantic chart-query execution classifies provider-raised `SupersetTimeoutException`
+(formerly HTTP 408), `SupersetGenericDBErrorException` and
+`SupersetTemplateParamsErrorException` (formerly HTTP 400) as generic HTTP 500
+failures. Worker control timeouts and host input-validation errors retain their
+existing handling. See the [provider error contract](docs/developer_docs/semantic-query-errors.md).
 
 ### Semantic-view Table charts without a temporal axis
 

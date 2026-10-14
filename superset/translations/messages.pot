@@ -4103,6 +4103,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr ""
 
@@ -8470,6 +8474,10 @@ msgstr ""
 msgid "Lower bound of the color scale. When both start and end are set, the legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
+msgstr ""
+
 msgid "Lower threshold must be lower than upper threshold"
 msgstr ""
 
@@ -12263,6 +12271,12 @@ msgstr ""
 msgid "Semantic layer updated"
 msgstr ""
 
+#, python-format
+msgid "Semantic source is used by %(count)s dependent asset and cannot be deleted."
+msgid_plural "Semantic source is used by %(count)s dependent assets and cannot be deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Semantic view could not be created."
 msgstr ""
 
@@ -14953,6 +14967,9 @@ msgstr ""
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
 msgid "This session has encountered an interruption, and some controls may not work as intended. If you are the developer of this app, please check that the guest token is being generated correctly."
 msgstr ""
 
@@ -15401,6 +15418,9 @@ msgid "Tuesday"
 msgstr ""
 
 msgid "Tukey"
+msgstr ""
+
+msgid "Turn off server pagination"
 msgstr ""
 
 msgid "Turn off the logarithmic axis before stacking bars"
@@ -18028,4 +18048,22 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then try "
+"again."
+msgstr ""
+
+msgid "The semantic query is invalid. Check its fields and options, then try again."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off pagination"
+" or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
 msgstr ""

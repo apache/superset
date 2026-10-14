@@ -45,3 +45,19 @@ generic fallback when no reason is available. Saved secrets remain masked while
 editing; configuration changes may require re-entering masked values, as explained
 by the server's validation message. Changing connection dependencies can clear
 dependent selections, so check those fields before saving.
+
+## Dependent source selectors
+
+In **Add Semantic View**, changing a selected Database makes its dependent
+Schema choices unavailable while fresh options load, including the debounce
+interval. A matching response preserves selections that remain valid and clears
+those no longer offered. If loading fails, the form retains your selections but
+keeps stale choices unavailable; a later form edit can retry once for that
+dependency state. Changing the Database requests choices for the new state.
+After a failed refresh, saving stays blocked only while a single-choice dependent
+field has choices loaded.
+If no dependent field has its prerequisites filled, clearing a required source
+keeps dependent choices unavailable until that source is filled. Clearing an
+optional dependency can load choices for the empty state instead. Semantic
+views listed for an earlier dependency are discarded, and views cannot be added
+while dependent choices are loading.

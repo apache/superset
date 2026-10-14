@@ -247,6 +247,9 @@ class SemanticCacheRepository:
     ) -> bool:
         """Store a TTL-bounded value and register its bounded descriptor.
 
+        Preserve grouped predicates in the descriptor; the policy requires their
+        canonical identities to match before any leaf-only containment proof.
+
         With ``replace`` false, a value that another request already stored
         and registered under the same identity is left alone: the identical
         provider result is already discoverable, and skipping saves this
