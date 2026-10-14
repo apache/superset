@@ -58,9 +58,10 @@ chart-data requests receive HTTP 400 instead of HTTP 500. This conversion does
 not surround provider metadata discovery or query execution. Malformed timezone
 metadata remains a server error rather than a query validation refusal.
 
-An asynchronous query whose payload is marked FAILED fails its task with that
-payload's error. It does not publish a cache key for dependent contribution
-queries to read as if totals had been successfully cached.
+An asynchronous totals-prerequisite query whose payload is marked FAILED fails
+its task with that payload's error. It does not publish a cache key for dependent
+contribution queries to read as if totals had been successfully cached. Other
+asynchronous chart queries retain their structured-error readback behavior.
 
 Host-classified client errors (`QueryObjectValidationError` and subclasses) keep
 their status. The shared SDK module also defines `SemanticResultCompletenessError`
