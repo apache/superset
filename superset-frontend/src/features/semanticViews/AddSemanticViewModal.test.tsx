@@ -24,6 +24,7 @@ import {
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
+import { StrictMode } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 
 import {
@@ -626,6 +627,7 @@ async function chooseDependentOption(name: string, value: string) {
 
 async function openDependentSchemaForm(
   makeSchema: typeof databaseSchema = databaseSchema,
+  { strict = false }: { strict?: boolean } = {},
 ) {
   jest.useFakeTimers();
   const pending: PendingSchema[] = [];
@@ -644,7 +646,10 @@ async function openDependentSchemaForm(
     },
   });
   const props = createProps();
-  const { rerender, unmount } = render(<AddSemanticViewModal {...props} />);
+  const modal = <AddSemanticViewModal {...props} />;
+  const { rerender, unmount } = render(
+    strict ? <StrictMode>{modal}</StrictMode> : modal,
+  );
   await chooseDependentOption('Semantic layer', 'Snowflake SL');
   // Let JSON Forms emit its mount-time change before selecting a database.
   // Otherwise that delayed event can reset the dependency snapshot mid-pick.
@@ -718,6 +723,22 @@ test('a debounced refresh scheduled before unmount never fires', async () => {
   // gone, and in this file it would land in the next test's mocks.
   expect(pending).toHaveLength(1);
   expect(viewsRequests()).toHaveLength(viewsBefore);
+});
+
+test('StrictMode remounting keeps dependency refreshes and views fetches working', async () => {
+  // StrictMode mounts, runs the unmount cleanup, then mounts again in
+  // development. The opening helper already requires the Database change to
+  // post a schema refresh, which a stale unmounted flag would swallow.
+  const { pending } = await openDependentSchemaForm(databaseSchema, {
+    strict: true,
+  });
+  expect(pending).toHaveLength(1);
+  const viewsBefore = viewsRequests().length;
+  await chooseDependentOption('Schema', 'shared');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(viewsRequests().length).toBeGreaterThan(viewsBefore);
 });
 
 test('a views fetch scheduled before unmount never fires', async () => {
