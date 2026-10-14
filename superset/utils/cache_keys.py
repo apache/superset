@@ -38,6 +38,25 @@ def add_impersonation_cache_key_if_needed(
     Add a per-user cache-key when the DB connection is configured for
     per-user caching, no-op otherwise.
     """
+    # The embedded fallback credential replaces the connection identity *without*
+    # going through impersonation (`Database._get_sqla_engine`), so none of the
+    # conditions below would notice it. Its result must never share a DATA-cache
+    # entry -- nor, since the async `task_key` is the query cache key, a SHARED
+    # chart task -- with a logged-in user's per-user OAuth2 result. That is
+    # correctness rather than a caching preference, so it is checked ahead of, and
+    # independently of, the opt-in flags.
+    #
+    # The engine spec owns the key material -- see
+    # `BaseEngineSpec.get_embedded_credential_cache_key` for why it is keyed on the
+    # configured identity rather than on `g.user.username`.
+    if embedded_credentials := database.get_embedded_fallback_credentials():
+        cache_dict["impersonation_key"] = (
+            database.db_engine_spec.get_embedded_credential_cache_key(
+                embedded_credentials
+            )
+        )
+        return
+
     extra = json_loads(database.extra or "{}")
     if (
         (

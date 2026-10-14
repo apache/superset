@@ -146,14 +146,28 @@ FEATURE_FLAGS = {
 ```
 
 With both flags on, engines that support it (currently Snowflake) show an **Embedded
-guest credentials** section in the connection dialog. Choose **Password** or **Key pair**.
-For key-pair authentication, enter the Snowflake username, its PEM private key, and an
-optional passphrase; register the corresponding public key with that Snowflake user.
-The credential is stored encrypted. Passwords, private keys, and passphrases are masked
-on read, while the username stays visible so an administrator can see which database
-user embedded queries run as. A key pair supplied here applies only to embedded guests;
-the connection's ordinary credential is still used for connection tests and background
-work.
+guest credentials** section in the connection dialog — but only on a connection that
+actually uses OAuth2, either through per-connection client information or a
+deployment-wide client in `DATABASE_OAUTH2_CLIENTS`. On any other connection the
+section is hidden, because the credential would never be read.
+
+Choose **Password** or **Key pair**. For key-pair authentication, enter the Snowflake
+username, its PEM private key, and an optional passphrase; register the corresponding
+public key with that Snowflake user. The credential is stored encrypted. Passwords,
+private keys, and passphrases are masked on read, while the username stays visible so an
+administrator can see which database user embedded queries run as. A key pair supplied
+here applies only to embedded guests; the connection's ordinary credential is still used
+for connection tests and background work.
+
+The credential must be complete: a username with no password or private key, or the
+reverse, is rejected when the connection is saved rather than stored and silently
+ignored. Clearing every field removes the credential.
+
+Turn on **Impersonate logged in user** under *Advanced → Security* as well. The fallback
+works without it, but with it off logged-in users also query with the connection's own
+credential instead of their individual OAuth2 identity, which defeats the point of a
+per-user OAuth2 connection. The dialog warns when a credential is set and impersonation
+is off.
 
 Understand what this grants before enabling it:
 
@@ -166,6 +180,15 @@ Understand what this grants before enabling it:
   OAuth2 and have no route to the stored credential.
 - **The guest token's `username` claim is never used to connect.** Whoever mints the
   token controls that claim, so it is deliberately kept out of the connection identity.
+- **An embedded viewer never silently falls back to the connection's base credential.**
+  With this flag on, a guest on an OAuth2 connection that has no applicable credential —
+  none configured, or one that is incomplete — is refused with an error rather than
+  connected as whichever account the connection URL carries. Deployments that leave the
+  flag off keep their existing behaviour.
+- **Guest results are cached separately.** Queries run under the fallback credential get
+  their own cache identity, so an embedded viewer and a logged-in user never share a
+  cached result (or, with `GLOBAL_ASYNC_QUERIES`, a deduplicated query task) for the same
+  chart.
 - Turning the flag back off is a kill switch, not a deletion: the stored credential stops
   being offered and stops being used, but is preserved.
 

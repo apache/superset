@@ -46,13 +46,13 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelMissingCredentials,
 )
 from superset.commands.database.uploaders.base import UploadFileType
-from superset.constants import PASSWORD_MASK
+from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.databases.types import (  # pylint:disable=unused-import
+    encrypted_field_properties,  # noqa: F401
     EncryptedDict,  # noqa: F401
-    EncryptedField,
     EncryptedString,  # noqa: F401
 )
-from superset.databases.utils import make_url_safe
+from superset.databases.utils import embedded_credentials_incomplete, make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database
@@ -269,6 +269,38 @@ def masked_encrypted_extra_validator(value: str) -> None:
     if value == "{}":
         raise ValidationError([_("Field cannot be empty.")])
     encrypted_extra_validator(value)
+
+
+def api_encrypted_extra_validator(value: str | None) -> None:
+    """
+    Validate `masked_encrypted_extra` as posted to the database API.
+
+    Adds the embedded-credential completeness check on top of the shared JSON
+    checks. A half-filled credential is ignored at query time
+    (`Database.get_embedded_fallback_credentials`), so storing one leaves a
+    security-relevant setting that reads as configured and never applies.
+
+    Deliberately a separate function rather than a change to
+    `encrypted_extra_validator`, which also backs the import schemas: tightening
+    those would reject existing exports.
+    """
+    encrypted_extra_validator(value)
+
+    if not value:
+        return
+
+    if embedded_credentials_incomplete(json.loads(value).get(EMBEDDED_CREDENTIALS_KEY)):
+        raise ValidationError(
+            [
+                # Deliberately the same string the validate command returns:
+                # one translatable message for one condition.
+                _(
+                    "Embedded guest credentials are incomplete. Provide a username "
+                    "and either a password or a private key, or clear them to leave "
+                    "embedded viewers unconfigured."
+                )
+            ]
+        )
 
 
 def extra_validator(value: str) -> str:  # noqa: C901
@@ -501,7 +533,7 @@ class DatabaseValidateParametersSchema(Schema):
     )
     masked_encrypted_extra = fields.String(
         metadata={"description": encrypted_extra_description},
-        validate=encrypted_extra_validator,
+        validate=api_encrypted_extra_validator,
         allow_none=True,
     )
     server_cert = fields.String(
@@ -644,7 +676,7 @@ class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
     )
     masked_encrypted_extra = fields.String(
         metadata={"description": encrypted_extra_description},
-        validate=encrypted_extra_validator,
+        validate=api_encrypted_extra_validator,
         allow_none=True,
     )
     extra = fields.String(
@@ -704,7 +736,7 @@ class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
     masked_encrypted_extra = fields.String(
         metadata={"description": encrypted_extra_description},
         allow_none=True,
-        validate=encrypted_extra_validator,
+        validate=api_encrypted_extra_validator,
     )
     extra = fields.String(
         metadata={"description": extra_description}, validate=extra_validator
@@ -740,7 +772,7 @@ class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     )
     masked_encrypted_extra = fields.String(
         metadata={"description": encrypted_extra_description},
-        validate=encrypted_extra_validator,
+        validate=api_encrypted_extra_validator,
         allow_none=True,
     )
     server_cert = fields.String(
@@ -1182,14 +1214,6 @@ class ImportV1DatabaseSchema(Schema):
                     ]
                 }
             )
-
-
-def encrypted_field_properties(self, field: Any, **_) -> dict[str, Any]:  # type: ignore
-    ret = {}
-    if isinstance(field, EncryptedField):
-        if self.openapi_version.major > 2:
-            ret["x-encrypted-extra"] = True
-    return ret
 
 
 class DatabaseSchemaAccessForFileUploadResponse(Schema):

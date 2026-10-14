@@ -24,6 +24,7 @@ from sqlalchemy.exc import NoSuchTableError
 
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.sql.parse import Table
+from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.databases.schemas import (
@@ -160,3 +161,93 @@ def make_url_safe(raw_url: str | URL) -> URL:
 
     else:
         return raw_url
+
+
+def _is_present(value: Any) -> bool:
+    """Is a credential field actually filled in? Whitespace does not count."""
+    if isinstance(value, str):
+        return bool(value.strip())
+    return bool(value)
+
+
+def validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
+    """
+    Return a complete embedded fallback credential, or ``None``.
+
+    The canonical shape is ``{username, password}`` or ``{username, auth_method:
+    "keypair", privatekey_body, privatekey_pass}``; a half-filled credential is
+    ignored rather than half-applied. This is the single definition of what
+    "complete" means, reached from three directions: the query-time gate
+    (``BaseEngineSpec.validate_embedded_credentials``, which an engine may
+    override), the save-time check below, and the API schema validators. A second
+    copy of these rules would eventually reject a valid key pair for carrying no
+    password.
+    """
+    if not isinstance(credentials, dict):
+        return None
+
+    username = credentials.get("username")
+    if not isinstance(username, str) or not username:
+        return None
+
+    auth_method = credentials.get("auth_method", "password")
+    if auth_method == "keypair":
+        privatekey_body = credentials.get("privatekey_body")
+        privatekey_pass = credentials.get("privatekey_pass", "")
+        if (
+            not isinstance(privatekey_body, str)
+            or not privatekey_body
+            or not isinstance(privatekey_pass, str)
+        ):
+            return None
+        return {
+            "username": username,
+            "auth_method": "keypair",
+            "privatekey_body": privatekey_body,
+            "privatekey_pass": privatekey_pass,
+        }
+
+    password = credentials.get("password")
+    if auth_method != "password" or not isinstance(password, str) or not password:
+        return None
+    return {"username": username, "password": password}
+
+
+def embedded_credentials_incomplete(value: Any) -> bool:
+    """
+    Does ``value`` hold an ``embedded_credentials`` entry that is only half filled?
+
+    Asks :func:`validated_embedded_credentials` rather than restating its rules, so
+    the save-time check cannot drift from the query-time one.
+
+    A credential missing a half is ignored at query time, which is the right
+    behaviour there and the wrong one at authoring time: it saves and then silently
+    does nothing. So the configuration entry points reject it up front.
+
+    Absent and entirely blank values pass -- they mean "no credential configured".
+    Accepts the value as a dict or as the JSON string the connection dialog posts.
+
+    Deliberately engine-agnostic: it is reached from marshmallow field validators
+    that have no connection, and therefore no engine spec, in hand. An engine that
+    overrides ``validate_embedded_credentials`` to accept a shape the canonical rule
+    rejects must also relax its own ``validate_parameters``.
+    """
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            # Not our error to report: the surrounding JSON validators already
+            # reject undecodable payloads with a message about the real problem.
+            return False
+
+    if not isinstance(value, dict):
+        return False
+
+    # `auth_method` alone is not a credential -- the dialog writes it as soon as the
+    # selector renders, so an untouched sub-form must not count as half-filled.
+    if not any(
+        _is_present(field) for key, field in value.items() if key != "auth_method"
+    ):
+        return False
+
+    return validated_embedded_credentials(value) is None

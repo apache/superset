@@ -19,9 +19,16 @@
 
 import { ChangeEvent, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import { Input, Collapse, Form, FormItem } from '@superset-ui/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
-import { CustomParametersChangeType, FieldPropTypes } from '../../types';
+import {
+  CustomParametersChangeType,
+  DatabaseObject,
+  FieldPropTypes,
+} from '../../types';
+
+const PANEL_KEY = 'embedded-credentials';
 
 const LABELS = {
   USERNAME: t('Username'),
@@ -40,6 +47,13 @@ const HELP_TEXT = t(
     'individually via OAuth2.',
 );
 
+const IMPERSONATION_WARNING = t(
+  '"Impersonate logged in user" is off under Advanced → Security. Embedded ' +
+    'viewers will use the credential below, but logged-in users will query ' +
+    "with this connection's own credential instead of their individual OAuth2 " +
+    'identity.',
+);
+
 interface EmbeddedCredentials {
   username: string;
   password: string;
@@ -48,53 +62,154 @@ interface EmbeddedCredentials {
   privatekey_pass: string;
 }
 
-export const EmbeddedCredentialsField = ({
-  changeMethods,
-  db,
-}: FieldPropTypes) => {
-  const deriveEmbeddedCredentials = (): EmbeddedCredentials => {
-    // `masked_encrypted_extra` is backend-supplied and historically sometimes
-    // the string "null" -- JSON.parse('null') returns null, and malformed JSON
-    // throws. Defend against both so one bad value cannot crash the modal.
+/**
+ * Coerce a backend- or form-supplied value to a plain object.
+ *
+ * Both `masked_encrypted_extra` and the `parameters.*` entries arrive either as
+ * an object or as a JSON string -- the save-time merge in `DatabaseModal`
+ * re-serializes `parameters.*` in place -- and `masked_encrypted_extra` has
+ * historically been the literal string "null". `JSON.parse('null')` returns
+ * null and malformed JSON throws, so both are absorbed here rather than at each
+ * call site.
+ */
+const asObject = (value: unknown): Record<string, unknown> => {
+  if (typeof value === 'string') {
     let parsed: unknown;
     try {
-      parsed = JSON.parse(db?.masked_encrypted_extra || '{}');
+      parsed = JSON.parse(value || '{}');
     } catch (e) {
       // Only swallow JSON.parse's own SyntaxError; let real programmer errors
       // through.
       if (!(e instanceof SyntaxError)) throw e;
-      parsed = {};
+      return {};
     }
+    return asObject(parsed);
+  }
 
-    const encryptedExtra =
-      parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-        ? (parsed as { embedded_credentials?: Partial<EmbeddedCredentials> })
-        : {};
-    const credentials = encryptedExtra.embedded_credentials;
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+};
+
+const asString = (value: unknown): string =>
+  typeof value === 'string' ? value : '';
+
+/**
+ * Does this connection authenticate users individually via OAuth2?
+ *
+ * Mirrors `Database.is_oauth2_enabled` on the backend, which is condition 5 of
+ * the fallback gate: a credential saved on a connection that does not use
+ * OAuth2 would never be read. The per-connection half is live form state (the
+ * admin may be filling the OAuth2 section right now, so `parameters` is checked
+ * ahead of the stored blob); the deployment-wide half -- a client in
+ * `DATABASE_OAUTH2_CLIENTS` -- is knowable only server-side and arrives through
+ * the schema property's `default`.
+ */
+export const connectionUsesOAuth2 = (
+  db?: DatabaseObject,
+  defaultValue?: { engine_oauth2_client_configured?: boolean },
+): boolean => {
+  if (defaultValue?.engine_oauth2_client_configured) {
+    return true;
+  }
+
+  const fromForm = asObject(db?.parameters?.oauth2_client_info);
+  const fromStorage = asObject(
+    asObject(db?.masked_encrypted_extra).oauth2_client_info,
+  );
+
+  return !!(asString(fromForm.id) || asString(fromStorage.id));
+};
+
+export const EmbeddedCredentialsField = ({
+  changeMethods,
+  db,
+  default_value: defaultValue,
+  getValidation,
+  validationErrors,
+}: FieldPropTypes) => {
+  const deriveEmbeddedCredentials = (): EmbeddedCredentials => {
+    // The in-flight form value wins over the stored blob. Switching the
+    // configuration method to SQLAlchemy URI and back re-mounts this field
+    // while `parameters.embedded_credentials` still holds what was typed;
+    // seeding from `masked_encrypted_extra` alone would show empty inputs for
+    // a credential the save payload would nonetheless carry.
+    const typed = asObject(db?.parameters?.embedded_credentials);
+    const stored = asObject(
+      asObject(db?.masked_encrypted_extra).embedded_credentials,
+    );
+    const source = Object.keys(typed).length ? typed : stored;
 
     return {
-      username: credentials?.username || '',
-      auth_method:
-        credentials?.auth_method === 'keypair' ? 'keypair' : 'password',
-      // On edit this is the backend's mask. It is posted back verbatim and
-      // `unmask_encrypted_extra` restores the stored secrets.
-      password: credentials?.password || '',
-      privatekey_body: credentials?.privatekey_body || '',
-      privatekey_pass: credentials?.privatekey_pass || '',
+      username: asString(source.username),
+      auth_method: source.auth_method === 'keypair' ? 'keypair' : 'password',
+      // On edit these are the backend's masks. They are posted back verbatim
+      // and `unmask_encrypted_extra` restores the stored secrets.
+      password: asString(source.password),
+      privatekey_body: asString(source.privatekey_body),
+      privatekey_pass: asString(source.privatekey_pass),
     };
   };
 
   const [embeddedCredentials, setEmbeddedCredentials] =
     useState<EmbeddedCredentials>(deriveEmbeddedCredentials);
+  const [activeKeys, setActiveKeys] = useState<string[]>([]);
+
+  // Serialized so the effect below keys off the *value*: the reducer hands back
+  // a fresh object on every keystroke, which as a raw dependency would re-sync
+  // state with itself on each one.
+  const typedCredentials = JSON.stringify(
+    db?.parameters?.embedded_credentials ?? null,
+  );
 
   useEffect(() => {
     setEmbeddedCredentials(deriveEmbeddedCredentials());
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-sync only when
-    // the stored blob changes, mirroring OAuth2ClientField.
-  }, [db?.masked_encrypted_extra]);
+    // one of the two sources changes, mirroring OAuth2ClientField.
+  }, [db?.masked_encrypted_extra, typedCredentials]);
+
+  const errorMessage = asString(validationErrors?.embedded_credentials);
+
+  // The panel is collapsed by default, which would hide its own validation
+  // error. Open it when one arrives rather than leaving the user with a
+  // disabled Connect button and nothing to look at.
+  useEffect(() => {
+    if (errorMessage) {
+      setActiveKeys(keys =>
+        keys.includes(PANEL_KEY) ? keys : [...keys, PANEL_KEY],
+      );
+    }
+  }, [errorMessage]);
+
+  // Offering the field on a connection that does not use OAuth2 would be
+  // offering a setting the backend gate can never read. Placed after the hooks
+  // so hook order stays unconditional, as in OAuth2ClientField.
+  if (!connectionUsesOAuth2(db, defaultValue)) {
+    return null;
+  }
 
   const updateCredentials = (updated: EmbeddedCredentials) => {
     setEmbeddedCredentials(updated);
+
+    const isBlank = !(
+      updated.username ||
+      updated.password ||
+      updated.privatekey_body ||
+      updated.privatekey_pass
+    );
+
+    if (isBlank) {
+      // Everything cleared means "no embedded credential". The save-time merge
+      // treats any object as truthy, so reporting a shape full of empty
+      // strings would persist them instead of removing the key. `auth_method`
+      // alone is not a credential. Clear the in-flight parameter *and* the
+      // stored blob, as the gsheets public/private toggle does.
+      changeMethods.onParametersChange({
+        target: { name: 'embedded_credentials', value: '' },
+      });
+      changeMethods.onClearEncryptedExtraKey('embedded_credentials');
+      return;
+    }
 
     const selectedCredentials =
       updated.auth_method === 'keypair'
@@ -131,19 +246,63 @@ export const EmbeddedCredentialsField = ({
       updateCredentials(updated);
     };
 
+  const isKeypair = embeddedCredentials.auth_method === 'keypair';
+  const secret = isKeypair
+    ? embeddedCredentials.privatekey_body
+    : embeddedCredentials.password;
+  const hasCredential = !!(embeddedCredentials.username || secret);
+  const errorStatus = (field: string) =>
+    errorMessage && !field ? ('error' as const) : undefined;
+
   return (
     <Collapse
+      activeKey={activeKeys}
+      onChange={keys => setActiveKeys(Array.isArray(keys) ? keys : [keys])}
       items={[
         {
-          key: 'embedded-credentials',
+          key: PANEL_KEY,
           label: t('Embedded guest credentials'),
           children: (
             <Form layout="vertical">
-              <FormItem label={LABELS.USERNAME} help={HELP_TEXT}>
+              {errorMessage && (
+                <Alert
+                  type="error"
+                  closable={false}
+                  data-test="embedded-credentials-error"
+                >
+                  {errorMessage}
+                </Alert>
+              )}
+              {/*
+                The fallback is applied *instead of* impersonation, so the
+                credential still works with impersonation off -- but then
+                logged-in users fall back to the connection's own credential
+                too, which is the opposite of what this section promises. Warn
+                rather than block. During create the Advanced tab is not
+                rendered until after a successful connect and
+                `impersonate_user` starts undefined, so this reads "not yet
+                set" as off; that matches the default the connection will be
+                saved with.
+              */}
+              {hasCredential && !db?.impersonate_user && (
+                <Alert
+                  type="warning"
+                  closable={false}
+                  data-test="embedded-credentials-impersonation-warning"
+                >
+                  {IMPERSONATION_WARNING}
+                </Alert>
+              )}
+              <FormItem
+                label={LABELS.USERNAME}
+                help={HELP_TEXT}
+                validateStatus={errorStatus(embeddedCredentials.username)}
+              >
                 <Input
                   data-test="embedded-credentials-username"
                   value={embeddedCredentials.username}
                   onChange={handleChange('username')}
+                  onBlur={getValidation}
                 />
               </FormItem>
               <FormItem label={t('Authentication method')}>
@@ -160,13 +319,19 @@ export const EmbeddedCredentialsField = ({
                   <Radio value="keypair">{t('Key pair')}</Radio>
                 </Radio.Group>
               </FormItem>
-              {embeddedCredentials.auth_method === 'keypair' ? (
+              {isKeypair ? (
                 <>
-                  <FormItem label={LABELS.PRIVATE_KEY}>
+                  <FormItem
+                    label={LABELS.PRIVATE_KEY}
+                    validateStatus={errorStatus(
+                      embeddedCredentials.privatekey_body,
+                    )}
+                  >
                     <Input.TextArea
                       data-test="embedded-credentials-private-key"
                       value={embeddedCredentials.privatekey_body}
                       onChange={handleChange('privatekey_body')}
+                      onBlur={getValidation}
                     />
                   </FormItem>
                   <FormItem label={LABELS.PRIVATE_KEY_PASSPHRASE}>
@@ -175,16 +340,21 @@ export const EmbeddedCredentialsField = ({
                       type="password"
                       value={embeddedCredentials.privatekey_pass}
                       onChange={handleChange('privatekey_pass')}
+                      onBlur={getValidation}
                     />
                   </FormItem>
                 </>
               ) : (
-                <FormItem label={LABELS.PASSWORD}>
+                <FormItem
+                  label={LABELS.PASSWORD}
+                  validateStatus={errorStatus(embeddedCredentials.password)}
+                >
                   <Input
                     data-test="embedded-credentials-password"
                     type="password"
                     value={embeddedCredentials.password}
                     onChange={handleChange('password')}
+                    onBlur={getValidation}
                   />
                 </FormItem>
               )}

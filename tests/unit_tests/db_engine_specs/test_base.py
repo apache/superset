@@ -2148,3 +2148,152 @@ def test_start_oauth2_dance_rejects_a_principal_without_an_id(
         BaseEngineSpec.start_oauth2_dance(database)
 
     assert "authenticated user with an id" in excinfo.value.error.extra["error"]
+
+
+def test_apply_embedded_credentials_replaces_the_connection_identity(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the default implementation replaces, rather than merges, the identity.
+
+    ``URL.set`` ignores ``password=None``, so merging would leave a credential that
+    carries no password -- a key pair, say -- paired with the connection's own
+    password. Everything else about the URL has to survive: a dropped query
+    parameter here is a connection that silently loses its warehouse or role.
+    """
+    url = make_url(
+        "snowflake://svc_user:svc_pass@xy12345.us-east-2.aws:443/ANALYTICS_DB"
+        "?role=ANALYST&warehouse=COMPUTE_WH"
+    )
+    engine_kwargs: dict[str, Any] = {"connect_args": {}}
+
+    applied_url, applied_kwargs = BaseEngineSpec.apply_embedded_credentials(
+        mocker.MagicMock(),
+        {"username": "embedded_svc", "auth_method": "keypair"},
+        url,
+        engine_kwargs,
+    )
+
+    assert applied_url.username == "embedded_svc"
+    assert applied_url.password is None
+    assert applied_url.host == "xy12345.us-east-2.aws"
+    assert applied_url.port == 443
+    assert applied_url.database == "ANALYTICS_DB"
+    assert dict(applied_url.query) == {"role": "ANALYST", "warehouse": "COMPUTE_WH"}
+    # The base implementation has no opinion about engine kwargs.
+    assert applied_kwargs is engine_kwargs
+
+
+def test_apply_embedded_credentials_sets_a_password_on_the_url(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a password credential lands on the URL, not in ``connect_args``.
+
+    The per-process engine cache is keyed on the rendered URL and the engine kwargs.
+    Putting the credential on the URL is what keeps a guest's engine and a logged-in
+    user's engine on separate entries; moving it into ``connect_args`` would still be
+    in the key today, but the URL is where the rest of the stack expects a
+    connection's identity to be visible.
+    """
+    url = make_url("snowflake://svc_user:svc_pass@xy12345/DB")
+
+    applied_url, _ = BaseEngineSpec.apply_embedded_credentials(
+        mocker.MagicMock(),
+        {"username": "embedded_svc", "password": "embedded_pw"},
+        url,
+        {},
+    )
+
+    assert applied_url.username == "embedded_svc"
+    assert applied_url.password == "embedded_pw"  # noqa: S105
+
+
+@pytest.mark.parametrize(
+    "credentials,expected",
+    [
+        (
+            {"username": "u", "password": "p"},
+            {"username": "u", "password": "p"},
+        ),
+        (
+            {"username": "u", "auth_method": "keypair", "privatekey_body": "PEM"},
+            {
+                "username": "u",
+                "auth_method": "keypair",
+                "privatekey_body": "PEM",
+                "privatekey_pass": "",
+            },
+        ),
+        ({"username": "u"}, None),
+        ({"password": "p"}, None),
+        ({"username": "u", "auth_method": "keypair"}, None),
+        ({"username": "u", "auth_method": "unknown", "password": "p"}, None),
+        ("not a dict", None),
+        (None, None),
+    ],
+)
+def test_validate_embedded_credentials_default_rule(
+    credentials: Any,
+    expected: dict[str, str] | None,
+) -> None:
+    """
+    Test the canonical credential shape every engine inherits.
+
+    A half-filled credential resolves to ``None`` rather than being half-applied, so
+    that a connection cannot end up authenticating with a username and no secret.
+    """
+    assert BaseEngineSpec.validate_embedded_credentials(credentials) == expected
+
+
+def test_get_embedded_credential_cache_key_default() -> None:
+    """
+    Test that the default cache key is the configured identity.
+
+    Not the requesting principal's: a ``GuestUser`` carries whatever username the
+    guest token claims, so keying on that would let whoever mints the token choose
+    which cache entry they read.
+    """
+    assert (
+        BaseEngineSpec.get_embedded_credential_cache_key(
+            {"username": "embedded_svc", "password": "embedded_pw"}
+        )
+        == "embedded:embedded_svc"
+    )
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_opting_in_engine_gets_the_credential_field_without_an_override() -> None:
+    """
+    Test that opting a second engine in is a schema field, not a copied override.
+
+    The ``x-encrypted-extra`` tagging and the feature-flag gating both live in the
+    shared ``parameters_json_schema``, so an engine opts in by declaring the field
+    and flipping ``supports_embedded_credential_fallback``. When each engine carried
+    its own copy of that method, opting in meant duplicating all of it -- and the
+    copies drifted.
+    """
+    from marshmallow import fields as ma_fields, Schema as MarshmallowSchema
+
+    from superset.databases.types import EncryptedString
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    class OptedInParametersSchema(MarshmallowSchema):
+        host = ma_fields.Str()
+        embedded_credentials = EncryptedString(required=False, allow_none=True)
+
+    # Subclassing a spec that already mixes in `BasicParametersMixin`, which is how
+    # a dynamic-parameters engine reaches `parameters_json_schema`. The opt-in is
+    # the schema field plus the class attribute and nothing else.
+    class OptedInEngineSpec(PostgresEngineSpec):
+        engine = "optedin"
+        engine_name = "Opted In"
+        parameters_schema = OptedInParametersSchema()
+        supports_embedded_credential_fallback = True
+
+    field = OptedInEngineSpec.parameters_json_schema()["properties"][
+        "embedded_credentials"
+    ]
+
+    assert field["x-encrypted-extra"] is True
+    assert field["default"] == {"engine_oauth2_client_configured": False}

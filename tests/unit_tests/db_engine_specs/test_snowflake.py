@@ -993,10 +993,10 @@ def test_update_params_from_encrypted_extra_does_not_leak_the_oauth2_client(
     assert "client-secret" not in json.dumps(params, default=str)
 
 
-@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_parameters_json_schema_offers_embedded_credentials_when_enabled() -> None:
     """
-    Test that the guest-credential sub-form is offered when the flag is on.
+    Test that the guest-credential sub-form is offered when both flags are on.
     """
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
@@ -1007,15 +1007,7 @@ def test_parameters_json_schema_offers_embedded_credentials_when_enabled() -> No
     assert "embedded_credentials" not in schema.get("required", [])
 
 
-@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=False)
-def test_parameters_json_schema_hides_embedded_credentials_when_disabled() -> None:
-    """
-    Test that the sub-form disappears when the feature flag is off.
-
-    This payload is the only source of the fields the connection dialog renders, so
-    dropping the property is all that is needed to hide the UI -- no feature-flag
-    plumbing on the frontend.
-    """
+def _assert_embedded_credentials_hidden() -> None:
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
     schema = SnowflakeEngineSpec.parameters_json_schema()
@@ -1024,6 +1016,57 @@ def test_parameters_json_schema_hides_embedded_credentials_when_disabled() -> No
     assert "embedded_credentials" not in schema["properties"]
     # The OAuth2 client config is unrelated and must still be offered.
     assert "oauth2_client_info" in schema["properties"]
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=False, EMBEDDED_SUPERSET=True)
+def test_parameters_json_schema_hides_embedded_credentials_when_disabled() -> None:
+    """
+    Test that the sub-form disappears when the feature flag is off.
+
+    This payload is the only source of the fields the connection dialog renders, so
+    dropping the property is all that is needed to hide the UI -- no feature-flag
+    plumbing on the frontend.
+    """
+    _assert_embedded_credentials_hidden()
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=False)
+def test_parameters_json_schema_hides_embedded_credentials_without_embedding() -> None:
+    """
+    Test that the sub-form also disappears when embedding itself is off.
+
+    `Database.get_embedded_fallback_credentials` requires both flags, so offering
+    the field with only this one on would save a setting the gate then ignores --
+    the "saves and silently does nothing" shape the dialog must not produce.
+    """
+    _assert_embedded_credentials_hidden()
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_parameters_json_schema_reports_the_engine_level_oauth2_client(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the schema tells the dialog whether a deployment-wide client exists.
+
+    The sub-form is only useful on a connection that uses OAuth2, and half of
+    `Database.is_oauth2_enabled` -- a client in `DATABASE_OAUTH2_CLIENTS` -- is not
+    visible to the frontend. A property's `default` is the one channel the dialog
+    plumbs through to a field component, so the answer rides along there.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    mocker.patch.object(SnowflakeEngineSpec, "is_oauth2_enabled", return_value=False)
+    schema = SnowflakeEngineSpec.parameters_json_schema()
+    assert schema["properties"]["embedded_credentials"]["default"] == {
+        "engine_oauth2_client_configured": False,
+    }
+
+    mocker.patch.object(SnowflakeEngineSpec, "is_oauth2_enabled", return_value=True)
+    schema = SnowflakeEngineSpec.parameters_json_schema()
+    assert schema["properties"]["embedded_credentials"]["default"] == {
+        "engine_oauth2_client_configured": True,
+    }
 
 
 def test_mask_encrypted_extra_embedded_credentials() -> None:
@@ -1110,6 +1153,10 @@ def test_update_params_from_encrypted_extra_prefers_the_fallback_over_keypair(
     The fallback path skips impersonation, so `authenticator` is unset and this method
     still runs. Without the guard a connection carrying both would hand the driver a
     private key *and* a username/password, making which one wins a driver detail.
+
+    The guard asks `embedded_fallback_applies`, not for the credential itself: the
+    credential is applied by `apply_embedded_credentials`, and this method only has
+    to stay out of its way.
     """
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
@@ -1120,15 +1167,14 @@ def test_update_params_from_encrypted_extra_prefers_the_fallback_over_keypair(
             "auth_params": {"privatekey_body": "not-a-real-key"},
         }
     )
-    database.get_embedded_fallback_credentials.return_value = {
-        "username": "embedded_svc",
-        "password": "embedded_pw",
-    }
+    database.embedded_fallback_applies.return_value = True
 
     params: dict[str, Any] = {}
     SnowflakeEngineSpec.update_params_from_encrypted_extra(database, params)
 
     assert params == {}
+    # The credential itself is none of this method's business any more.
+    database.get_embedded_fallback_credentials.assert_not_called()
 
 
 def test_update_params_from_encrypted_extra_still_applies_keypair_for_a_user(
@@ -1146,7 +1192,7 @@ def test_update_params_from_encrypted_extra_still_applies_keypair_for_a_user(
             "auth_params": {"privatekey_body": "not-a-real-key"},
         }
     )
-    database.get_embedded_fallback_credentials.return_value = None
+    database.embedded_fallback_applies.return_value = False
 
     params: dict[str, Any] = {}
     # Reaching the PEM loader at all is the assertion: the method did not

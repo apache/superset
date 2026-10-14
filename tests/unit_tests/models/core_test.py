@@ -36,7 +36,7 @@ from sqlalchemy import (
     Table as SqlalchemyTable,
 )
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import make_url
+from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import Select
 
@@ -3339,3 +3339,261 @@ def test_embedded_fallback_credential_requires_engine_opt_in(
 
     assert not database.db_engine_spec.supports_embedded_credential_fallback
     assert database.get_embedded_fallback_credentials() is None
+
+
+@pytest.mark.parametrize(
+    "username,password",
+    [("embedded_svc", ""), ("", "embedded_pw"), ("", "")],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_guest_is_refused_rather_than_run_on_the_base_credential(
+    mocker: MockerFixture,
+    username: str,
+    password: str,
+) -> None:
+    """
+    Test that a guest with no applicable credential cannot reach the base one.
+
+    Falling through to the connection URL's own username and password is the
+    failure this feature exists to prevent: the embedded viewer would silently
+    query as whatever service account the connection was built with. Neither the
+    viewer nor the dashboard author can see that, so it is refused instead.
+    """
+    from superset.exceptions import SupersetErrorException
+
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    database = _embedded_snowflake_database(username=username, password=password)
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+    )
+    create_engine_mock.assert_not_called()
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_guest_is_refused_when_impersonation_is_off_and_nothing_is_configured(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the impersonation-off shape of the same refusal.
+
+    With impersonation off, `_get_sqla_engine` would take neither the fallback arm
+    nor the impersonation arm, leaving the base credential. That is the exact
+    configuration the connection dialog warns about, so the backend has to refuse
+    it rather than rely on the warning being read.
+    """
+    from superset.exceptions import SupersetErrorException
+
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    database = _embedded_snowflake_database(username="", password="")
+    database.impersonate_user = False
+
+    with pytest.raises(SupersetErrorException):
+        database._get_sqla_engine(nullpool=False)
+
+    create_engine_mock.assert_not_called()
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=False, EMBEDDED_SUPERSET=True)
+def test_a_guest_is_not_refused_when_the_feature_flag_is_off(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the refusal is scoped to deployments that opted in.
+
+    The flag is the whole opt-in: a deployment that has not turned it on keeps its
+    existing behaviour, including on connections this feature would otherwise have
+    an opinion about.
+    """
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    _embedded_snowflake_database(username="", password="")._get_sqla_engine(
+        nullpool=False
+    )
+
+    create_engine_mock.assert_called_once()
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_logged_in_user_is_not_refused_when_no_credential_is_configured(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the refusal applies to embedded guests only.
+
+    A logged-in user on an OAuth2 connection has their own per-user token path and
+    must keep it, whether or not a guest credential happens to be configured.
+    """
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    mocker.patch(
+        "superset.models.core.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    _stub_driver_dependent_uri_validation(mocker)
+
+    _embedded_snowflake_database(username="", password="")._get_sqla_engine(
+        nullpool=False
+    )
+
+    create_engine_mock.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        {"username": "embedded_svc", "auth_method": "keypair"},
+        {"auth_method": "keypair", "privatekey_body": "PEM"},
+        {"username": "embedded_svc", "auth_method": "unknown", "password": "pw"},
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_guest_is_refused_for_an_incomplete_keypair_too(
+    mocker: MockerFixture,
+    credentials: dict[str, str],
+) -> None:
+    """
+    Test that the refusal covers every auth method, not just passwords.
+
+    An incomplete key pair -- or an auth method this version does not know -- is
+    ignored by the gate exactly as a half-filled password is, so it must reach the
+    same refusal rather than quietly connecting as the URL's own user.
+    """
+    from superset.exceptions import SupersetErrorException
+
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = credentials
+    database.encrypted_extra = json.dumps(extra)
+
+    with pytest.raises(SupersetErrorException):
+        database._get_sqla_engine(nullpool=False)
+
+    create_engine_mock.assert_not_called()
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_engine_spec_can_change_how_the_credential_is_applied(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that applying the credential is the engine spec's decision, not the model's.
+
+    `Database._get_sqla_engine` owns *when* a fallback credential may be used and
+    delegates *how* it reaches the driver. That split is what lets an engine whose
+    driver does not take a username and password on the SQLAlchemy URL support the
+    fallback without the model learning anything about it -- and what keeps a
+    downstream fork's delta inside its own engine spec.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    class CustomSnowflakeEngineSpec(SnowflakeEngineSpec):
+        @classmethod
+        def apply_embedded_credentials(
+            cls,
+            database: Database,
+            credentials: dict[str, str],
+            url: URL,
+            engine_kwargs: dict[str, Any],
+        ) -> tuple[URL, dict[str, Any]]:
+            engine_kwargs.setdefault("connect_args", {})["token"] = credentials[
+                "password"
+            ]
+            return (
+                URL.create(
+                    drivername=url.drivername,
+                    username="custom_svc",
+                    host=url.host,
+                    database=url.database,
+                    query=url.query,
+                ),
+                engine_kwargs,
+            )
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+
+    database = _embedded_snowflake_database()
+    database.get_db_engine_spec = mocker.MagicMock(
+        return_value=CustomSnowflakeEngineSpec
+    )
+
+    database._get_sqla_engine(nullpool=False)
+
+    url = create_engine_mock.call_args[0][0]
+    engine_kwargs = create_engine_mock.call_args[1]
+    assert url.username == "custom_svc"
+    assert url.password is None
+    assert engine_kwargs["connect_args"]["token"] == "embedded_pw"  # noqa: S105
+    # Still the fallback arm, not impersonation: the override replaces how the
+    # credential is applied, not the decision to skip the OAuth2 authenticator.
+    assert "authenticator" not in url.query
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_engine_spec_can_change_what_counts_as_a_credential(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the credential's shape belongs to the engine spec too.
+
+    The canonical rule accepts a password or a PEM key pair, which covers the engines
+    in this repository. An engine whose driver authenticates some other way overrides
+    `validate_embedded_credentials` instead of widening the rule for everyone.
+    """
+    from superset.databases.utils import validated_embedded_credentials
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    class TokenCredentialEngineSpec(SnowflakeEngineSpec):
+        @classmethod
+        def validate_embedded_credentials(
+            cls, credentials: Any
+        ) -> dict[str, str] | None:
+            if isinstance(credentials, dict) and credentials.get("token"):
+                return {
+                    "username": credentials["username"],
+                    "token": credentials["token"],
+                }
+            return None
+
+    _become_guest(mocker)
+
+    credentials = {"username": "embedded_svc", "token": "t0ken"}
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = credentials
+    database.encrypted_extra = json.dumps(extra)
+
+    # The canonical rule rejects this shape, so the gate alone cannot be what
+    # accepts it.
+    assert validated_embedded_credentials(credentials) is None
+
+    database.get_db_engine_spec = mocker.MagicMock(
+        return_value=TokenCredentialEngineSpec
+    )
+
+    assert database.get_embedded_fallback_credentials() == credentials

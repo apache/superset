@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 21:38+0000\n"
+"POT-Creation-Date: 2026-10-14 19:13+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -144,6 +144,9 @@ msgstr ""
 
 #, python-format
 msgid "\"%s\" is now the system default theme"
+msgstr ""
+
+msgid "\"Impersonate logged in user\" is off under Advanced → Security. Embedded viewers will use the credential below, but logged-in users will query with this connection's own credential instead of their individual OAuth2 identity."
 msgstr ""
 
 #, no-python-format
@@ -2307,6 +2310,9 @@ msgid "Attribution"
 msgstr ""
 
 msgid "August"
+msgstr ""
+
+msgid "Authentication method"
 msgstr ""
 
 msgid "Authorization Request URI"
@@ -5805,6 +5811,9 @@ msgstr ""
 msgid "Embedded guest credentials"
 msgstr ""
 
+msgid "Embedded guest credentials are incomplete. Provide a username and either a password or a private key, or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr ""
 
@@ -7807,6 +7816,9 @@ msgid "Key"
 msgstr ""
 
 msgid "Key Prefix"
+msgstr ""
+
+msgid "Key pair"
 msgstr ""
 
 msgid "Keyboard shortcuts"
@@ -10331,6 +10343,12 @@ msgid "Private Key & Password"
 msgstr ""
 
 msgid "Private Key Password"
+msgstr ""
+
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
 msgstr ""
 
 msgid "Proceed"
@@ -14520,6 +14538,9 @@ msgid "This dashboard was saved successfully."
 msgstr ""
 
 msgid "This dashboard will be restored to the following version:"
+msgstr ""
+
+msgid "This dashboard's database connection authenticates users individually and has no credential configured for embedded viewers, so this query cannot run."
 msgstr ""
 
 msgid "This database does not allow creating tables from queries (CTAS). Please contact your administrator for more assistance."

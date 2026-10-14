@@ -894,3 +894,104 @@ def test_ssh_tunnel_missing_message_is_interpolated(
     assert missing_field_messages
     assert all("%(missing)s" not in msg for msg in missing_field_messages)
     assert any("server_port" in msg for msg in missing_field_messages)
+
+
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        {"username": "embedded_svc"},
+        {"password": "pw"},
+        {"username": "embedded_svc", "password": ""},
+        {"username": "embedded_svc", "auth_method": "keypair"},
+        {"auth_method": "keypair", "privatekey_body": "-----BEGIN-----"},
+    ],
+)
+def test_incomplete_embedded_credentials_from_the_dialog(
+    mocker: MockerFixture,
+    credentials: dict[str, str],
+) -> None:
+    """
+    An incomplete embedded credential is rejected rather than silently stored.
+
+    ``Database.get_embedded_fallback_credentials`` ignores a credential that is
+    not complete for its auth method, so saving one leaves a setting that reads as
+    configured and never applies. Snowflake is a bypass engine, so this has to be
+    collected alongside the database-name and SSH-tunnel errors rather than in
+    ``validate_parameters``.
+
+    The connection dialog validates before it folds ``x-encrypted-extra``
+    parameters into ``masked_encrypted_extra``, so the value arrives here under
+    ``parameters``.
+    """
+    mocker.patch("superset.commands.database.validate.DatabaseDAO")
+
+    properties = {
+        "engine": "snowflake",
+        "parameters": {"embedded_credentials": credentials},
+    }
+    command = ValidateDatabaseParametersCommand(properties)
+    with pytest.raises(InvalidParametersError) as excinfo:
+        command.run()
+
+    error = excinfo.value.errors[0]
+    assert error.error_type == SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR
+    # `INVALID_PAYLOAD_SCHEMA_ERROR` is on the blur-time allowlist in
+    # `useDatabaseValidation`, and `extra.invalid` is what maps the message onto
+    # the matching form field, so the user sees it before pressing Connect.
+    assert error.extra["invalid"] == ["embedded_credentials"]
+
+
+def test_incomplete_embedded_credentials_from_the_api(mocker: MockerFixture) -> None:
+    """
+    A direct API caller posts the credential inside ``masked_encrypted_extra``.
+    """
+    mocker.patch("superset.commands.database.validate.DatabaseDAO")
+
+    properties = {
+        "engine": "snowflake",
+        "masked_encrypted_extra": json.dumps(
+            {"embedded_credentials": {"username": "embedded_svc", "password": ""}}
+        ),
+    }
+    command = ValidateDatabaseParametersCommand(properties)
+    with pytest.raises(InvalidParametersError) as excinfo:
+        command.run()
+
+    assert excinfo.value.errors[0].extra["invalid"] == ["embedded_credentials"]
+
+
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        {"username": "embedded_svc", "password": "pw"},
+        # The edit flow posts the secrets back as the backend's mask.
+        {"username": "embedded_svc", "password": PASSWORD_MASK},
+        {
+            "username": "embedded_svc",
+            "auth_method": "keypair",
+            "privatekey_body": "-----BEGIN PRIVATE KEY-----",
+        },
+        {
+            "username": "embedded_svc",
+            "auth_method": "keypair",
+            "privatekey_body": PASSWORD_MASK,
+            "privatekey_pass": PASSWORD_MASK,
+        },
+        {},
+        None,
+    ],
+)
+def test_complete_or_absent_embedded_credentials_pass(
+    mocker: MockerFixture,
+    credentials: dict[str, str] | None,
+) -> None:
+    """
+    Complete, empty and absent credentials are all acceptable.
+    """
+    mocker.patch("superset.commands.database.validate.DatabaseDAO")
+
+    properties = {
+        "engine": "snowflake",
+        "parameters": {"embedded_credentials": credentials},
+    }
+    ValidateDatabaseParametersCommand(properties).run()

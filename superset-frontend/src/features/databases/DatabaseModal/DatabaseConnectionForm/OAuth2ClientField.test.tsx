@@ -265,6 +265,48 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-secret')).toHaveValue('');
   });
 
+  test('prefers an in-flight client over the stored blob', () => {
+    // After a switch to the SQLAlchemy URI form and back, this field re-mounts
+    // while the typed client still sits in `parameters.oauth2_client_info`.
+    // Seeding from `masked_encrypted_extra` alone would show empty inputs for
+    // a client the save payload would nonetheless carry.
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        parameters: {
+          oauth2_client_info: { id: 'typed-id', secret: 'typed-secret' },
+        },
+      } as DatabaseObject,
+    };
+
+    const { getByText, getByTestId } = render(<OAuth2ClientField {...props} />);
+    fireEvent.click(getByText('OAuth2 client information'));
+
+    expect(getByTestId('client-id')).toHaveValue('typed-id');
+    expect(getByTestId('client-secret')).toHaveValue('typed-secret');
+  });
+
+  test('reads an in-flight client that a save attempt has stringified', () => {
+    // `onSave` re-serializes every `x-encrypted-extra` parameter in place, so
+    // a second pass through this field sees a JSON string where the first saw
+    // an object.
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        parameters: {
+          oauth2_client_info: JSON.stringify({ id: 'stringified-id' }),
+        } as unknown as DatabaseObject['parameters'],
+      } as DatabaseObject,
+    };
+
+    const { getByText, getByTestId } = render(<OAuth2ClientField {...props} />);
+    fireEvent.click(getByText('OAuth2 client information'));
+
+    expect(getByTestId('client-id')).toHaveValue('stringified-id');
+  });
+
   test.each([
     ['the literal string "null"', 'null'],
     ['malformed JSON', 'not json'],

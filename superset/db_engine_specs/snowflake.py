@@ -23,8 +23,6 @@ from re import Pattern
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict
 from urllib import parse
 
-from apispec import APISpec
-from apispec.ext.marshmallow import MarshmallowPlugin
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from flask import current_app as app, has_request_context
@@ -40,14 +38,12 @@ from typing_extensions import NotRequired
 
 from superset import is_feature_enabled
 from superset.constants import TimeGrain
-from superset.databases.schemas import (
-    encrypted_field_properties,
-    EncryptedString,
-)
+from superset.databases.types import EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicPropertiesType,
+    build_parameters_json_schema,
     DatabaseCategory,
 )
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -403,6 +399,37 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return url, engine_kwargs
 
     @classmethod
+    def apply_embedded_credentials(
+        cls,
+        database: Database,
+        credentials: dict[str, str],
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Apply an embedded guest credential, by password or by key pair.
+
+        Called instead of :meth:`impersonate_user`, which above sets
+        ``authenticator=oauth`` whether or not a token exists -- skipping it is what
+        lets a stored credential authenticate at all, and is why this engine opts
+        into the fallback.
+
+        The base implementation puts the username and, for password authentication,
+        the password on the URL. A key pair cannot go there: the driver takes it as
+        DER bytes in ``connect_args``.
+        """
+        url, engine_kwargs = super().apply_embedded_credentials(
+            database, credentials, url, engine_kwargs
+        )
+
+        if credentials.get("auth_method") == "keypair":
+            engine_kwargs.setdefault("connect_args", {})["private_key"] = (
+                cls._load_private_key(credentials)
+            )
+
+        return url, engine_kwargs
+
+    @classmethod
     def get_oauth2_authorization_uri(
         cls,
         config: OAuth2ClientConfig,
@@ -669,37 +696,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     def parameters_json_schema(cls) -> Any:
         """
         Return configuration parameters as OpenAPI.
+
+        Delegates rather than inheriting: this spec is not a ``BasicParametersMixin``
+        user -- its ``build_sqlalchemy_uri`` takes ``SnowflakeParametersType``, which
+        the mixin's signature does not admit -- but it needs the same schema,
+        including the ``x-encrypted-extra`` tagging and the embedded-credential
+        gating.
         """
-        if not cls.parameters_schema:
-            return None
-
-        ma_plugin = MarshmallowPlugin()
-        spec = APISpec(
-            title="Database Parameters",
-            version="1.0.0",
-            openapi_version="3.0.0",
-            plugins=[ma_plugin],
-        )
-
-        # `APISpec` has already run `init_spec` for the plugin passed above, so the
-        # converter exists by now. This is what tags `EncryptedField` parameters with
-        # `x-encrypted-extra`, which is the signal the connection dialog uses both to
-        # render the field and to move its value into `masked_encrypted_extra` rather
-        # than posting it as a plain parameter.
-        ma_plugin.converter.add_attribute_function(encrypted_field_properties)
-
-        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
-        schema = spec.to_dict()["components"]["schemas"][cls.__name__]
-
-        # This payload is the sole source of the fields the connection dialog renders,
-        # so dropping the property here is all it takes to hide the sub-form -- no
-        # feature-flag plumbing is needed on the frontend. Note that this only stops
-        # the credential being *offered*: one already stored is left untouched, so
-        # turning the flag off is reversible rather than destructive.
-        if not is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK"):
-            schema["properties"].pop("embedded_credentials", None)
-
-        return schema
+        return build_parameters_json_schema(cls)
 
     @staticmethod
     def update_params_from_encrypted_extra(
@@ -718,14 +722,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         if connect_args.get("authenticator") == "oauth":
             return
 
-        # The guest path skips impersonation, leaving `authenticator` unset. Apply
-        # only its selected credential so a connection's ordinary key-pair auth is
-        # never layered on top of the embedded guest credential.
-        if embedded_credentials := database.get_embedded_fallback_credentials():
-            if embedded_credentials.get("auth_method") == "keypair":
-                params.setdefault("connect_args", {})["private_key"] = (
-                    SnowflakeEngineSpec._load_private_key(embedded_credentials)
-                )
+        # The guest path skips impersonation, leaving `authenticator` unset, so the
+        # check above does not catch it. Its credential has already been applied by
+        # `apply_embedded_credentials`; return before the connection's own
+        # `auth_params` can be layered on top of it.
+        if database.embedded_fallback_applies():
             return
 
         if not database.encrypted_extra:

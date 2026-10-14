@@ -31,8 +31,9 @@ from superset.commands.database.utils import (
     engine_params_changed,
     ssh_tunnel_endpoint_changed,
 )
+from superset.constants import EMBEDDED_CREDENTIALS_KEY
 from superset.daos.database import DatabaseDAO
-from superset.databases.utils import make_url_safe
+from superset.databases.utils import embedded_credentials_incomplete, make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import event_logger
@@ -62,6 +63,8 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             if database_name_error := self._get_database_name_error():
                 errors.append(database_name_error)
             errors.extend(self._get_ssh_tunnel_errors())
+            if embedded_credentials_error := self._get_embedded_credentials_error():
+                errors.append(embedded_credentials_error)
             if errors:
                 event_logger.log_with_context(action="validation_error", engine=engine)
                 raise InvalidParametersError(errors)
@@ -89,6 +92,9 @@ class ValidateDatabaseParametersCommand(BaseCommand):
 
         # Collect SSH tunnel errors
         errors.extend(self._get_ssh_tunnel_errors())
+
+        if embedded_credentials_error := self._get_embedded_credentials_error():
+            errors.append(embedded_credentials_error)
 
         if errors:
             event_logger.log_with_context(action="validation_error", engine=engine)
@@ -235,6 +241,43 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                     extra={"invalid": ["database_name"]},
                 )
         return None
+
+    def _get_embedded_credentials_error(self) -> Optional[SupersetError]:
+        """Reject an embedded fallback credential that is missing one of its halves.
+
+        `Database.get_embedded_fallback_credentials` ignores such a credential, so
+        saving one leaves a setting that reads as configured and never applies.
+
+        The connection dialog validates *before* it folds `x-encrypted-extra`
+        parameters into `masked_encrypted_extra`, so the value arrives under
+        `parameters` from the dialog and under `masked_encrypted_extra` from a direct
+        API caller. Both are checked.
+        """
+        parameters = self._properties.get("parameters") or {}
+        candidates = [parameters.get(EMBEDDED_CREDENTIALS_KEY)]
+
+        try:
+            encrypted_extra = json.loads(
+                self._properties.get("masked_encrypted_extra") or "{}"
+            )
+        except json.JSONDecodeError:
+            encrypted_extra = {}
+        if isinstance(encrypted_extra, dict):
+            candidates.append(encrypted_extra.get(EMBEDDED_CREDENTIALS_KEY))
+
+        if not any(embedded_credentials_incomplete(value) for value in candidates):
+            return None
+
+        return SupersetError(
+            message=__(
+                "Embedded guest credentials are incomplete. Provide a username "
+                "and either a password or a private key, or clear them to leave "
+                "embedded viewers unconfigured."
+            ),
+            error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"invalid": [EMBEDDED_CREDENTIALS_KEY]},
+        )
 
     def validate(self) -> None:
         """Load the model in preparation for run()."""

@@ -46,6 +46,7 @@ import sqlalchemy as sqla
 import sshtunnel
 from flask import current_app as app, g, has_app_context
 from flask_appbuilder import Model
+from flask_babel import gettext as __
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import (
     Boolean,
@@ -72,11 +73,16 @@ from superset_core.common.models import Database as CoreDatabase
 
 from superset import db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
-from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
+from superset.constants import (
+    EMBEDDED_CREDENTIALS_KEY,
+    LRU_CACHE_MAX_SIZE,
+    PASSWORD_MASK,
+)
 from superset.databases.error_provenance import mark_database_engine_error
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
-from superset.exceptions import SupersetGenericDBErrorException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException, SupersetGenericDBErrorException
 from superset.extensions import (
     cache_manager,
     encrypted_field_factory,
@@ -746,7 +752,28 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
-        if embedded_credentials := self.get_embedded_fallback_credentials():
+        if self.embedded_fallback_applies():
+            embedded_credentials = self.get_embedded_fallback_credentials()
+            if embedded_credentials is None:
+                # Falling through to the base credential here is the failure mode this
+                # whole feature exists to prevent: an embedded viewer would silently
+                # query as whichever user the connection URL carries. That happens on
+                # an OAuth2 connection with impersonation off, or with no (or a
+                # half-filled) credential configured -- none of which the viewer or
+                # the dashboard author can see. Refuse instead, with a message an
+                # administrator can act on.
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=__(
+                            "This dashboard's database connection authenticates users "
+                            "individually and has no credential configured for "
+                            "embedded viewers, so this query cannot run."
+                        ),
+                        error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                )
+
             # Deliberately *instead of* impersonation, not alongside it, and this is
             # load-bearing twice over. First, an engine spec that opts in sets its
             # OAuth2 authenticator during impersonation whether or not a token exists,
@@ -756,18 +783,17 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # through impersonation would let whoever mints the token choose the
             # connection identity.
             #
-            # The fallback username goes on the URL; the key-pair credential is
-            # attached to connect_args by the engine spec. Both URL and engine kwargs
-            # participate in the cache key below, keeping guest and OAuth engines
-            # separate even when they use the same Snowflake username.
-            sqlalchemy_url = URL.create(
-                drivername=sqlalchemy_url.drivername,
-                username=embedded_credentials["username"],
-                password=embedded_credentials.get("password"),
-                host=sqlalchemy_url.host,
-                port=sqlalchemy_url.port,
-                database=sqlalchemy_url.database,
-                query=sqlalchemy_url.query,
+            # How the credential reaches the driver is the engine's business -- a
+            # password on the URL, a PEM key in connect_args. Both the URL and the
+            # engine kwargs participate in the cache key below, keeping guest and
+            # OAuth engines separate even when they use the same database username.
+            sqlalchemy_url, engine_kwargs = (
+                self.db_engine_spec.apply_embedded_credentials(
+                    self,
+                    embedded_credentials,
+                    sqlalchemy_url,
+                    engine_kwargs,
+                )
             )
         elif self.impersonate_user:
             sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
@@ -1630,6 +1656,42 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         sqla_col.key = label_expected
         return sqla_col
 
+    def embedded_fallback_applies(self) -> bool:
+        """
+        Is this request one the embedded fallback credential governs?
+
+        True when every condition *except* the presence of a stored credential holds:
+
+        1. the deployment opted in via ``EMBEDDED_CREDENTIAL_FALLBACK``;
+        2. the engine opted in via ``supports_embedded_credential_fallback``;
+        3. the current principal is an embedded guest, and embedding is enabled;
+        4. the connection actually uses OAuth2, so that this stays a fallback for the
+           per-user flow rather than a second identity on an ordinary connection.
+
+        Split out from :meth:`get_embedded_fallback_credentials` so that the two
+        callers cannot drift: the credential lookup adds the stored-credential
+        condition on top, while ``_get_sqla_engine`` uses this to tell "no fallback
+        here, carry on" apart from "a guest this connection has no credential for",
+        which it refuses rather than serving on the base credential.
+        """
+        if not is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK"):
+            return False
+
+        if not self.db_engine_spec.supports_embedded_credential_fallback:
+            return False
+
+        # `get_current_guest_user_if_guest` is a bare isinstance check with no feature
+        # flag behind it. A `GuestUser` can only reach `g` via the guest-token request
+        # loader, which is itself gated -- but a security boundary should not rest on
+        # that implication, so the flag is checked explicitly.
+        if not is_feature_enabled("EMBEDDED_SUPERSET"):
+            return False
+
+        if security_manager.get_current_guest_user_if_guest() is None:
+            return False
+
+        return self.is_oauth2_enabled()
+
     def get_embedded_fallback_credentials(self) -> dict[str, str] | None:
         """
         Credentials to authenticate an embedded guest's queries, if any.
@@ -1640,70 +1702,23 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         connection carry a credential used *only* for those requests, while logged-in
         users continue to authenticate per-user via OAuth2.
 
-        Returns the credential only when all five conditions hold, so that there is no
-        route by which a logged-in user can reach it:
+        Returns the credential only when :meth:`embedded_fallback_applies` holds *and*
+        the engine spec recognises what the connection stores as a *complete*
+        credential -- a half-filled one is ignored rather than half-applied -- so that
+        there is no route by which a logged-in user can reach it.
 
-        1. the deployment opted in via ``EMBEDDED_CREDENTIAL_FALLBACK``;
-        2. the engine opted in via ``supports_embedded_credential_fallback``;
-        3. the connection stores a *complete* password or key-pair credential -- a
-           half-filled one is ignored rather than half-applied;
-        4. the current principal is an embedded guest, and embedding is enabled;
-        5. the connection actually uses OAuth2, so that this stays a fallback for the
-           per-user flow rather than a second identity on an ordinary connection.
+        What counts as complete, and how the credential is then applied to the
+        connection, belong to the engine:
+        :meth:`~superset.db_engine_specs.base.BaseEngineSpec.validate_embedded_credentials`
+        and
+        :meth:`~superset.db_engine_specs.base.BaseEngineSpec.apply_embedded_credentials`.
+        This method owns only *when* a credential may be used at all.
         """
-        if not is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK"):
+        if not self.embedded_fallback_applies():
             return None
 
-        if not self.db_engine_spec.supports_embedded_credential_fallback:
-            return None
-
-        # `get_current_guest_user_if_guest` is a bare isinstance check with no feature
-        # flag behind it. A `GuestUser` can only reach `g` via the guest-token request
-        # loader, which is itself gated -- but a security boundary should not rest on
-        # that implication, so the flag is checked explicitly.
-        if not is_feature_enabled("EMBEDDED_SUPERSET"):
-            return None
-
-        if security_manager.get_current_guest_user_if_guest() is None:
-            return None
-
-        if not self.is_oauth2_enabled():
-            return None
-
-        credentials = self.get_encrypted_extra().get("embedded_credentials")
-        return self._validated_embedded_credentials(credentials)
-
-    @staticmethod
-    def _validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
-        """Return a complete embedded password or key-pair credential."""
-        if not isinstance(credentials, dict):
-            return None
-
-        username = credentials.get("username")
-        if not isinstance(username, str) or not username:
-            return None
-
-        auth_method = credentials.get("auth_method", "password")
-        if auth_method == "keypair":
-            privatekey_body = credentials.get("privatekey_body")
-            privatekey_pass = credentials.get("privatekey_pass", "")
-            if (
-                not isinstance(privatekey_body, str)
-                or not privatekey_body
-                or not isinstance(privatekey_pass, str)
-            ):
-                return None
-            return {
-                "username": username,
-                "auth_method": "keypair",
-                "privatekey_body": privatekey_body,
-                "privatekey_pass": privatekey_pass,
-            }
-
-        password = credentials.get("password")
-        if auth_method != "password" or not isinstance(password, str) or not password:
-            return None
-        return {"username": username, "password": password}
+        credentials = self.get_encrypted_extra().get(EMBEDDED_CREDENTIALS_KEY)
+        return self.db_engine_spec.validate_embedded_credentials(credentials)
 
     def is_oauth2_enabled(self) -> bool:
         """

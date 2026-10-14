@@ -635,6 +635,97 @@ def test_encrypted_extra_validator_rejects_non_dict_top_level_value(
     assert "must be a mapping" in str(exc_info.value)
 
 
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        {"username": "embedded_svc"},
+        {"password": "pw"},
+        {"username": "embedded_svc", "password": ""},
+        {"username": "embedded_svc", "auth_method": "keypair"},
+        {"auth_method": "keypair", "privatekey_body": "-----BEGIN-----"},
+    ],
+)
+def test_masked_encrypted_extra_rejects_a_half_filled_embedded_credential(
+    credentials: dict[str, str],
+) -> None:
+    """
+    Test that a direct API caller cannot store an incomplete guest credential.
+
+    `Database.get_embedded_fallback_credentials` ignores one, so storing it leaves
+    a security-relevant setting that reads as configured and never applies. The
+    connection dialog is blocked by the validate command; this closes the same
+    hole for a POST/PUT that never goes near the dialog. Completeness is whatever
+    `superset.databases.utils.validated_embedded_credentials` accepts, for both
+    auth methods.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "masked_encrypted_extra": json.dumps(
+            {"embedded_credentials": credentials},
+        ),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    assert "Embedded guest credentials are incomplete" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    "encrypted_extra",
+    [
+        {"embedded_credentials": {"username": "embedded_svc", "password": "pw"}},
+        {
+            "embedded_credentials": {
+                "username": "embedded_svc",
+                "auth_method": "keypair",
+                "privatekey_body": "-----BEGIN PRIVATE KEY-----",
+            }
+        },
+        {"embedded_credentials": {}},
+        {"oauth2_client_info": {"id": "client-id"}},
+    ],
+)
+def test_masked_encrypted_extra_accepts_complete_or_absent_credentials(
+    encrypted_extra: dict[str, Any],
+) -> None:
+    """
+    Test that complete, empty and absent credentials all load.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    DatabasePostSchema().load(
+        {
+            "database_name": "test_db",
+            "masked_encrypted_extra": json.dumps(encrypted_extra),
+        }
+    )
+
+
+def test_import_accepts_a_half_filled_embedded_credential() -> None:
+    """
+    Test that import is deliberately not tightened.
+
+    The check lives on `masked_encrypted_extra_validator` rather than on
+    `encrypted_extra_validator`, which also backs the import schemas: rejecting
+    this on import would refuse existing exports.
+    """
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    ImportV1DatabaseSchema().load(
+        {
+            "database_name": "test_db",
+            "sqlalchemy_uri": "snowflake://user:pw@account/db",
+            "uuid": "e4b5b8a1-9c6f-4a2d-8f3e-1a2b3c4d5e6f",
+            "version": "1.0.0",
+            "encrypted_extra": json.dumps(
+                {"embedded_credentials": {"username": "embedded_svc"}},
+            ),
+        }
+    )
+
+
 def test_cache_timeout_rejects_values_below_minus_one() -> None:
     """
     Test that cache_timeout rejects values less than -1.

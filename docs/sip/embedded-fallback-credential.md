@@ -92,6 +92,47 @@ Condition 4 checks the feature flag explicitly rather than relying on
 can only reach `g` through the guest-token request loader, which is itself gated — but a
 security boundary should not rest on that implication.
 
+Conditions 1, 2, 4 and 5 — everything except the stored credential — are also exposed on
+their own as `Database.embedded_fallback_applies()`. That split is what lets
+`_get_sqla_engine` tell two cases apart that otherwise look identical: *this request has
+nothing to do with the fallback*, and *this is an embedded guest on a connection that has
+no credential for them*. See **Refusing rather than falling back** below.
+
+### Refusing rather than falling back
+
+`_get_sqla_engine` applies the fallback *instead of* impersonation. When neither arm is
+taken, the connection is made with the URL's own username and password — so an embedded
+viewer on an OAuth2 connection with impersonation off, or with no (or a half-filled)
+credential, would silently query as whatever service account the connection was built
+with. Neither the viewer nor the dashboard author can see that has happened.
+
+With `EMBEDDED_CREDENTIAL_FALLBACK` on, that case raises a
+`CONNECTION_ACCESS_DENIED_ERROR` instead. The refusal is scoped to the flag so that a
+deployment which has not opted in keeps its existing behaviour.
+
+The connection dialog removes the ways to reach that state in the first place: the
+section is offered only when both flags are on *and* the connection uses OAuth2, a
+half-filled credential is rejected on save, and a credential saved with impersonation
+off raises an inline warning. The backend refusal is the backstop for the paths that do
+not go through the dialog.
+
+### Cache identity
+
+The fallback changes the connection identity without going through impersonation, and
+the DATA cache key has no acting-user component of its own —
+`add_impersonation_cache_key_if_needed` only contributes one under `CACHE_IMPERSONATION`,
+`CACHE_QUERY_BY_USER` or `per_user_caching`. Left alone, an embedded guest and a
+logged-in user would compute the same `query_cache_key` for a physical dataset with no
+RLS and no Jinja, and read each other's rows. Because that key is also the `task_key` of
+the SHARED async chart task, they would additionally dedup onto one task, letting
+whichever arrived first choose the credential for both.
+
+So a guest-run query contributes `embedded:<configured username>` to the key,
+unconditionally — this is correctness, not a caching preference. The key comes from the
+stored credential rather than from `g.user.username`, which a guest token's minter
+controls. All guests on the connection share one entry, which is correct: they run as one
+database user, and guest-token RLS already separates them.
+
 ### Why impersonation is skipped, not extended
 
 On the fallback path `Database._get_sqla_engine` sets the configured username on the
@@ -137,6 +178,14 @@ What that does and does not mean:
   dashboard's configuration. This changes only which credential the query runs under.
 - **It is not reachable by a logged-in user.** Conditions 1–5 are evaluated on every
   engine creation, and the engine cache cannot leak a guest engine to a logged-in user.
+- **An embedded viewer cannot reach the base credential either.** Previously a guest on
+  an OAuth2 connection with no applicable credential connected with the URL's own
+  username and password. With the flag on, that is refused. See *Refusing rather than
+  falling back* above.
+- **Guest results do not cross into logged-in results.** The fallback contributes its own
+  cache identity, so a shared DATA-cache entry — or a shared async task — cannot serve a
+  logged-in user rows fetched under the guest credential, or the reverse. See *Cache
+  identity* above.
 - **The credential is never exposed.** The password, PEM private key, and optional
   passphrase are in Snowflake's `encrypted_extra_sensitive_fields`, so they mask to
   `XXXXXXXXXX` on read and are restored from storage when the mask is re-saved. The
@@ -153,19 +202,24 @@ does not let a token holder choose an identity.
 - **New feature flag** `EMBEDDED_CREDENTIAL_FALLBACK`, default `False`.
 - **New engine-spec attribute** `BaseEngineSpec.supports_embedded_credential_fallback`,
   default `False`; `SnowflakeEngineSpec` overrides it to `True`.
-- **New `Database` method** `get_embedded_fallback_credentials()`.
+- **New `Database` methods** `get_embedded_fallback_credentials()`,
+  `embedded_fallback_applies()` and `validated_embedded_credentials()`.
 - **New `encrypted_extra` key** `embedded_credentials`, supporting password and key-pair
   credentials, with their secrets added to Snowflake's sensitive-field paths.
-- **New connection-dialog field** for engines that opt in, rendered only when the
-  feature flag is on.
+- **New connection-dialog field** for engines that opt in, rendered only when both
+  `EMBEDDED_CREDENTIAL_FALLBACK` and `EMBEDDED_SUPERSET` are on and the connection uses
+  OAuth2.
+- **New validation** rejecting an incomplete `embedded_credentials` on
+  `POST`/`PUT /api/v1/database/` and on `validate_parameters`. Import is deliberately not
+  tightened, so existing exports still load.
 
 No database migration: the credential lives in the existing `encrypted_extra` column.
 
 ## Migration plan and compatibility
 
 Nothing changes for any existing deployment. The flag defaults to `False`; with it off,
-`parameters_json_schema` does not offer the field and the gate never returns a
-credential.
+`parameters_json_schema` does not offer the field, the gate never returns a credential,
+and the refusal above never fires.
 
 Turning the flag off again is a kill switch rather than a deletion: a stored credential
 stops being offered and stops being used, but is preserved, so the operation is
