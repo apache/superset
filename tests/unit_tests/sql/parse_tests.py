@@ -39,6 +39,7 @@ from superset.sql.parse import (
     extract_tables_from_statement,
     folds_unquoted_object_names,
     has_aggregate,
+    is_constant_expression,
     JinjaSQLResult,
     KQLTokenType,
     KustoKQLStatement,
@@ -7044,6 +7045,35 @@ def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
     that grant something to aggregates and must not grant it on a guess.
     """
     assert has_aggregate(expression, fail_open=False) is expected
+
+
+@pytest.mark.parametrize(
+    "expression,engine,expected",
+    [
+        ("'Other'", "postgresql", True),
+        ("('Other')", "postgresql", True),
+        ("42", "postgresql", True),
+        ("1.5", "postgresql", True),
+        ("NULL", "postgresql", True),
+        ("TRUE", "postgresql", True),
+        ('"Other"', "mysql", True),
+        ('"Other"', "postgresql", False),
+        ("region", "postgresql", False),
+        ("CASE WHEN 1=1 THEN 'x' END", "postgresql", False),
+        ("CAST('x' AS VARCHAR)", "postgresql", False),
+        ("UPPER('x')", "postgresql", False),
+        ("'a' || region", "postgresql", False),
+        ("1 + 1", "postgresql", False),
+        ("'a', 'b'", "postgresql", False),
+        (")(", "postgresql", False),
+    ],
+)
+def test_is_constant_expression(expression: str, engine: str, expected: bool) -> None:
+    """
+    Only a bare literal or ``NULL`` (optionally parenthesized) is constant; an
+    expression that merely contains one, or can't be parsed, is not.
+    """
+    assert is_constant_expression(expression, engine) is expected
 
 
 @pytest.mark.parametrize(

@@ -26,19 +26,29 @@ same literal is fine in the ``SELECT`` list.
 
 from __future__ import annotations
 
+from typing import Any
+
+import pytest
 import sqlglot
 from sqlalchemy.orm.session import Session
 from sqlglot import expressions as exp
 
+from superset.connectors.sqla.models import SqlaTable
 
-def test_literal_custom_sql_dimension_is_not_a_bare_constant_in_group_by(
-    session: Session,
-) -> None:
+METRICS = [{"expressionType": "SQL", "sqlExpression": "SUM(amount)", "label": "total"}]
+
+
+def _adhoc(sql_expression: str, label: str = "bucket") -> dict[str, str]:
+    return {"label": label, "sqlExpression": sql_expression, "expressionType": "SQL"}
+
+
+@pytest.fixture
+def table(session: Session) -> SqlaTable:
     from superset.connectors.sqla.models import SqlaTable, TableColumn
     from superset.models.core import Database
 
     SqlaTable.metadata.create_all(session.get_bind())
-    table = SqlaTable(
+    return SqlaTable(
         database=Database(
             database_name="db", sqlalchemy_uri="postgresql://user:pass@host/db"
         ),
@@ -47,32 +57,52 @@ def test_literal_custom_sql_dimension_is_not_a_bare_constant_in_group_by(
         columns=[
             TableColumn(column_name="region", type="TEXT"),
             TableColumn(column_name="amount", type="FLOAT"),
+            TableColumn(column_name="constant_col", type="TEXT", expression="'Other'"),
         ],
     )
 
-    sqla_query = table.get_sqla_query(
-        columns=[
-            {"label": "bucket", "sqlExpression": "'Other'", "expressionType": "SQL"},
-            "region",
-        ],
-        metrics=[
-            {"expressionType": "SQL", "sqlExpression": "SUM(amount)", "label": "total"}
-        ],
-        is_timeseries=False,
-        row_limit=100,
-        filter=[],
-        extras={},
-        orderby=[],
-    ).sqla_query
+
+def _compile(table: SqlaTable, **overrides: Any) -> tuple[exp.Select, str]:
+    query_obj: dict[str, Any] = {
+        "metrics": METRICS,
+        "is_timeseries": False,
+        "row_limit": 100,
+        "filter": [],
+        "extras": {},
+        "orderby": [],
+    }
+    query_obj.update(overrides)
+    sqla_query = table.get_sqla_query(**query_obj).sqla_query
     with table.database.get_sqla_engine() as engine:
         sql = str(
             sqla_query.compile(
                 dialect=engine.dialect, compile_kwargs={"literal_binds": True}
             )
         )
-
     select = sqlglot.parse_one(sql, dialect="postgres")
     assert isinstance(select, exp.Select)
+    return select, sql
+
+
+def _group_keys(select: exp.Select) -> list[str]:
+    group = select.args.get("group")
+    return [key.sql(dialect="postgres") for key in group.expressions] if group else []
+
+
+def _constant_keys(select: exp.Select) -> list[str]:
+    """GROUP BY keys that are a bare constant (an integer is a select ordinal)."""
+    group = select.args.get("group")
+    return [
+        key.sql(dialect="postgres")
+        for key in (group.expressions if group else [])
+        if isinstance(key.unnest(), (exp.Literal, exp.Null, exp.Boolean))
+    ]
+
+
+def test_literal_custom_sql_dimension_is_not_a_bare_constant_in_group_by(
+    table: SqlaTable,
+) -> None:
+    select, sql = _compile(table, columns=[_adhoc("'Other'"), "region"])
 
     # The literal dimension is still selected under its label ...
     assert "bucket" in select.named_selects, sql
@@ -91,3 +121,87 @@ def test_literal_custom_sql_dimension_is_not_a_bare_constant_in_group_by(
     assert any(
         isinstance(key, exp.Column) and key.name == "region" for key in group_keys
     ), sql
+
+
+@pytest.mark.parametrize(
+    "expression",
+    ["'Other'", "('Other')", "3", "1.5", "NULL", "TRUE"],
+)
+def test_constant_custom_sql_dimension_is_omitted_from_group_by(
+    table: SqlaTable, expression: str
+) -> None:
+    select, sql = _compile(table, columns=[_adhoc(expression), "region"])
+    assert select.named_selects == ["bucket", "region", "total"], sql
+    assert _group_keys(select) == ["region"], sql
+
+
+def test_constant_calculated_column_is_omitted_from_group_by(
+    table: SqlaTable,
+) -> None:
+    select, sql = _compile(table, columns=["constant_col", "region"])
+    assert "constant_col" in select.named_selects, sql
+    assert _group_keys(select) == ["region"], sql
+
+
+def test_constant_raw_string_dimension_is_omitted_from_group_by(
+    table: SqlaTable,
+) -> None:
+    select, sql = _compile(table, columns=["'Other'", "region"])
+    assert _group_keys(select) == ["region"], sql
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "CASE WHEN 1=1 THEN 'x' END",
+        "CAST('x' AS VARCHAR)",
+        "'a' || region",
+        "UPPER('x')",
+    ],
+)
+def test_expression_containing_a_constant_stays_a_group_by_key(
+    table: SqlaTable, expression: str
+) -> None:
+    select, sql = _compile(table, columns=[_adhoc(expression), "region"])
+    keys = _group_keys(select)
+    assert len(keys) == 2, sql
+    assert keys[-1] == "region", sql
+
+
+def test_group_by_is_unchanged_without_constant_keys(table: SqlaTable) -> None:
+    select, sql = _compile(table, columns=["region"])
+    assert _group_keys(select) == ["region"], sql
+
+
+def test_all_constant_keys_with_a_metric_omit_group_by(table: SqlaTable) -> None:
+    select, sql = _compile(table, columns=[_adhoc("'Other'")])
+    assert select.named_selects == ["bucket", "total"], sql
+    assert select.args.get("group") is None, sql
+
+
+def test_all_constant_keys_without_a_metric_keep_group_by(table: SqlaTable) -> None:
+    select, sql = _compile(table, metrics=[], columns=[_adhoc("'Other'")])
+    assert _group_keys(select) == ["'Other'"], sql
+
+
+@pytest.mark.parametrize("group_others", [False, True])
+def test_constant_dimension_is_omitted_from_series_limit_group_by(
+    table: SqlaTable, group_others: bool
+) -> None:
+    dimensions = [_adhoc("'Other'"), "region"]
+    select, sql = _compile(
+        table,
+        columns=dimensions,
+        groupby=dimensions,
+        series_columns=["bucket", "region"],
+        series_limit=3,
+        group_others_when_limit_reached=group_others,
+    )
+    subquery = next(
+        sub for sub in select.find_all(exp.Subquery) if sub.alias == "series_limit"
+    )
+    inner = subquery.this
+    assert isinstance(inner, exp.Select)
+    assert _constant_keys(inner) == [], sql
+    assert _group_keys(inner) == ["region"], sql
+    assert _constant_keys(select) == [], sql
