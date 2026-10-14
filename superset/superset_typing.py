@@ -138,6 +138,10 @@ class ResultSetColumnType(TypedDict):
     # identifier.
     expression: NotRequired[Any]
 
+    # Set on columns an engine spec expanded from a nested type (e.g. a STRUCT
+    # member); such a column never replaces a calculated column of its name.
+    nested_field: NotRequired[bool]
+
 
 CacheConfig: TypeAlias = dict[str, Any]
 DbapiDescriptionRow: TypeAlias = tuple[
@@ -154,7 +158,9 @@ DbapiDescription: TypeAlias = (
 )
 DbapiResult: TypeAlias = Sequence[list[Any] | tuple[Any, ...]]
 FilterValue: TypeAlias = bool | datetime | float | int | str
-FilterValues: TypeAlias = FilterValue | list[FilterValue] | tuple[FilterValue]
+FilterValues: TypeAlias = (
+    FilterValue | list[FilterValue | None] | tuple[FilterValue | None, ...]
+)
 FormData: TypeAlias = dict[str, Any]
 Granularity: TypeAlias = str | dict[str, str | float]
 Column: TypeAlias = AdhocColumn | str
@@ -216,9 +222,11 @@ class QueryObjectDict(TypedDict, total=False):
 
     # Core fields from QueryObject.to_dict()
     apply_fetch_values_predicate: bool
+    cache_timeout: int | None
     columns: list[Column]
     extras: dict[str, Any]
     filter: list["QueryObjectFilterClause"]
+    force_query: bool
     from_dttm: datetime | None
     granularity: str | None
     inner_from_dttm: datetime | None

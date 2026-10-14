@@ -113,6 +113,7 @@ def test_restore_refuses_snapshot_of_deleted_semantic_view(
     working_id: int = chart.datasource_id
     capture_session.delete(view)
     capture_session.commit()
+    assert chart.uuid is not None
     chart_uuid: UUID = chart.uuid
 
     with (
@@ -144,6 +145,7 @@ def test_restore_refuses_snapshot_with_unknown_datasource_type(
     unknown_version: UUID = latest_version(capture_session, chart)
     _rebind(capture_session, chart, _table(capture_session, "working"))
     working_id: int = chart.datasource_id
+    assert chart.uuid is not None
     chart_uuid: UUID = chart.uuid
 
     with (
@@ -183,6 +185,7 @@ def test_restore_chart_with_query_source_optional_permission_fields(
     capture_session.commit()
     source_version: UUID = latest_version(capture_session, chart)
     _rebind(capture_session, chart, _table(capture_session, "working"))
+    assert chart.uuid is not None
     chart_uuid: UUID = chart.uuid
 
     with patch.object(security_manager, "raise_for_editorship"):
@@ -223,6 +226,7 @@ def test_restore_allows_snapshot_of_soft_deleted_dataset(
     trashed_version: UUID = latest_version(capture_session, chart)
     working: SqlaTable = _table(capture_session, "working")
     _rebind(capture_session, chart, working)
+    assert working.perm is not None
     working_perm: str = working.perm
     assert chart.perm == working_perm
     # Non-null optional fields, so the copy of every field below is checked.
@@ -232,6 +236,7 @@ def test_restore_allows_snapshot_of_soft_deleted_dataset(
     assert trashed.catalog_perm != working.catalog_perm
     trashed.deleted_at = datetime(2026, 1, 1)
     capture_session.commit()
+    assert chart.uuid is not None
     chart_uuid: UUID = chart.uuid
 
     with patch.object(security_manager, "raise_for_editorship"):
@@ -279,6 +284,7 @@ def test_restore_locks_snapshot_datasource_before_chart(
     capture_session.commit()
     semantic_version: UUID = latest_version(capture_session, chart)
     _rebind(capture_session, chart, _table(capture_session, "working"))
+    assert chart.uuid is not None
     chart_uuid: UUID = chart.uuid
 
     locked: list[Any] = []
