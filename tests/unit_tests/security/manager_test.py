@@ -4125,7 +4125,7 @@ def test_raise_for_access_editorship_denied_in_strict_mode(
     app_context: None,
 ) -> None:
     """
-    SC-126545: editorship of a registered dataset for the referenced table
+    Editorship of a registered dataset for the referenced table
     must not authorize a raw query on the strict ``force_dataset_match`` path
     (SQL Lab, MetaDB, MCP execute_sql). Any dataset-creating principal can
     make themselves an editor of a dataset named after an arbitrary table, so

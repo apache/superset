@@ -1935,7 +1935,7 @@ class TestSecurityManager(SupersetTestCase):
         self, mock_can_access, mock_is_editor, mock_query_datasources
     ):
         """
-        Regression test (SC-126545): with force_dataset_match=True, being an
+        Regression test: with force_dataset_match=True, being an
         editor of a registered dataset for the referenced table is NOT
         sufficient. Raw row access on the strict path (SQL Lab, MetaDB, MCP
         execute_sql) must follow live data grants, not editorship — which any
