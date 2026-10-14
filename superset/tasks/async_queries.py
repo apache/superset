@@ -25,6 +25,7 @@ from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from superset_core.tasks.types import TaskOptions, TaskScope
 
+from superset.common.db_query_status import QueryStatus
 from superset.common.query_serialization import (
     load_serialized_query,
     serialize_query,
@@ -328,6 +329,8 @@ def execute_chart_query(
                 payload={"semantic_result_error": error.reason}, immediate=True
             )
             raise
+        if result.payload.get("status") == QueryStatus.FAILED:
+            raise SupersetException(result.payload["error"])
         if cache_key := result.payload.get(CACHE_KEY_PAYLOAD_KEY):
             # Write synchronously: a dependent contribution query reads this
             # cache key via get_dependency_payloads once the DAG gate releases,

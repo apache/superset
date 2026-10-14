@@ -214,6 +214,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
 
     # Track validation, translation and execution time, excluding discovery.
     start_time: float = current_time()
+    # Step 1: Translate the main query followed by any time-offset queries.
     try:
         _validate_query_object(query_object, metadata)
         queries: list[SemanticQuery] = _map_query_object(query_object, metadata)
@@ -963,8 +964,11 @@ def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
 
 
 def _timestamp_target_tz(dtype: pa.DataType) -> tzinfo | None:
-    tz_name = getattr(dtype, "tz", None)
-    return ZoneInfo(tz_name) if tz_name else None
+    tz_name: str | None = getattr(dtype, "tz", None)
+    try:
+        return ZoneInfo(tz_name) if tz_name else None
+    except ValueError as ex:
+        raise RuntimeError("Invalid timezone in semantic dimension metadata") from ex
 
 
 def _align_tz(dt: datetime, target_tz: tzinfo | None) -> datetime:
