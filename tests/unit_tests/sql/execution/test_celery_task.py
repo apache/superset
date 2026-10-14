@@ -1951,3 +1951,108 @@ def test_stop_during_mutation_commit_does_not_mask_committed_work(
         assert query.progress == 100
         assert (query.results_key is not None) is bool(backend_write)
     engine.dispose()
+
+
+@pytest.mark.parametrize("ctas", [False, True], ids=["mutation", "ctas"])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "backend_set_raises",
+        "serialize_raises",
+        "payload_too_large",
+        "backend_write_false",
+        "connection_close_raises",
+    ],
+)
+def test_failure_after_stop_raced_commit_reports_failed_not_stopped(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    ctas: bool,
+    failure: str,
+) -> None:
+    """A post-commit failure after a lost stop race ends FAILED, not STOPPED."""
+    from contextlib import contextmanager
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    from .conftest import create_mock_connection
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'commit.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mock_database.is_oauth2_enabled.return_value = False
+
+    def deliver_stop() -> None:
+        """Commit the stop after the pre-commit check, mid target commit."""
+        with Session(engine) as stop_session:
+            stopped_query = stop_session.get(Query, 123)
+            assert stopped_query is not None
+            stopped_query.status = QueryStatusEnum.STOPPED
+            stopped_query.end_time = 1234.5
+            stop_session.commit()
+
+    conn = create_mock_connection()
+    conn.commit.side_effect = deliver_stop
+
+    @contextmanager
+    def raw_connection(*args: Any, **kwargs: Any) -> Any:
+        yield conn
+        if failure == "connection_close_raises":
+            raise RuntimeError("Connection close failed")
+
+    mock_database.get_raw_connection = raw_connection
+
+    sql = "SELECT 1" if ctas else "INSERT INTO users VALUES (1)"
+    backend = MagicMock()
+    backend.set.return_value = failure != "backend_write_false"
+    if failure == "backend_set_raises":
+        backend.set.side_effect = RuntimeError("Backend unavailable")
+    serialize = mocker.patch.object(celery_task, "_serialize_payload")
+    serialize.return_value = b"x" * (2 * 1024 * 1024)
+    if failure == "serialize_raises":
+        serialize.side_effect = RuntimeError("Cannot serialize")
+    mocker.patch.object(celery_task, "results_backend", backend)
+    mocker.patch.object(celery_task, "security_manager")
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "STATS_LOGGER": MagicMock(),
+            "SQLLAB_PAYLOAD_MAX_MB": 1 if failure == "payload_too_large" else None,
+        },
+    )
+
+    with Session(engine, expire_on_commit=False) as session:
+        query = Query(
+            id=123,
+            client_id="commit-race-failure",
+            database_id=1,
+            sql=sql,
+            select_as_cta=ctas,
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        session.refresh(query)
+        mocker.patch.object(celery_task.db, "session", session)
+        mocker.patch.object(celery_task, "_get_query", return_value=query)
+        mocker.patch.object(
+            celery_task, "execute_sql_with_cursor", return_value=[(sql, None, 1.0, 1)]
+        )
+
+        payload = celery_task.execute_sql_task(123, sql)
+
+        conn.commit.assert_called_once_with()
+        assert payload is not None
+        assert payload["status"] == QueryStatusEnum.FAILED
+        session.refresh(query)
+        assert query.status == QueryStatusEnum.FAILED
+        assert query.error_message
+        assert query.results_key is None
+    engine.dispose()

@@ -79,10 +79,17 @@ def _handle_query_error(
     query: Query,
     payload: dict[str, Any] | None = None,
     prefix_message: str = "",
+    durable: bool = False,
 ) -> dict[str, Any]:
-    """Handle error while processing the SQL query."""
+    """
+    Handle error while processing the SQL query.
+
+    :param durable: the target database already committed the query's effects,
+        so a stop recorded after that commit lost the race and must not mask
+        the failure
+    """
     timed_out = query.status == QueryStatus.TIMED_OUT
-    if _make_check_stopped_fn(query, preserve_pending=True)():
+    if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
         return _stopped_query_payload(query)
 
     with db.session.no_autoflush:
@@ -96,21 +103,14 @@ def _handle_query_error(
         if not query.end_time:
             query.end_time = now_as_float()
 
-        # Extract DB-specific errors
-        if isinstance(ex, SupersetErrorException):
-            errors = [ex.error]
-        elif isinstance(ex, SupersetErrorsException):
-            errors = ex.errors
-        else:
-            errors = query.database.db_engine_spec.extract_errors(
-                str(ex), database_name=query.database.unique_name
-            )
-
+        errors = _extract_errors(ex, query)
         errors_payload = [dataclasses.asdict(error) for error in errors]
         if errors:
             query.set_extra_json_key("errors", errors_payload)
 
-        if not _commit_query_unless_stopped(query):
+        if durable:
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        elif not _commit_query_unless_stopped(query):
             return _stopped_query_payload(query)
         payload.update(
             {"status": query.status.value, "error": msg, "errors": errors_payload}
@@ -121,6 +121,17 @@ def _handle_query_error(
         if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
             payload["link"] = troubleshooting_link
         return payload
+
+
+def _extract_errors(ex: Exception, query: Query) -> list[SupersetError]:
+    """Extract DB-specific errors."""
+    if isinstance(ex, SupersetErrorException):
+        return [ex.error]
+    if isinstance(ex, SupersetErrorsException):
+        return ex.errors
+    return query.database.db_engine_spec.extract_errors(
+        str(ex), database_name=query.database.unique_name
+    )
 
 
 def _serialize_payload(payload: dict[Any, Any]) -> bytes:
@@ -374,6 +385,12 @@ def execute_sql_task(
             override_user(security_manager.find_user(username)),
             db.session.no_autoflush,
         ):
+            committed = False
+
+            def mark_committed() -> None:
+                nonlocal committed
+                committed = True
+
             try:
                 from superset.utils.oauth2 import execute_with_oauth2_retry
 
@@ -384,6 +401,7 @@ def execute_sql_task(
                         query_id,
                         rendered_query,
                         start_time=start_time,
+                        on_commit=mark_committed,
                     ),
                     can_retry=lambda: not query.progress,
                 )
@@ -392,7 +410,9 @@ def execute_sql_task(
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 query = _get_query(query_id=query_id)
-                return _handle_query_error(ex, query)
+                # Failures after the target commit (result serialization, the
+                # results backend, closing the connection) cannot undo it.
+                return _handle_query_error(ex, query, durable=committed)
 
 
 def _commit_query_unless_stopped(query: Query) -> bool:
@@ -479,8 +499,13 @@ def _execute_sql_statements(
     query_id: int,
     rendered_query: str,
     start_time: float | None,
+    on_commit: Callable[[], None] | None = None,
 ) -> dict[str, Any] | None:
-    """Execute SQL statements and store results."""
+    """
+    Execute SQL statements and store results.
+
+    :param on_commit: called once the target database commits a mutation or CTAS
+    """
     if start_time:
         stats_logger = app.config["STATS_LOGGER"]
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
@@ -556,6 +581,8 @@ def _execute_sql_statements(
         if not stopped and (parsed_script.has_mutation() or query.select_as_cta):
             conn.commit()  # pylint: disable=consider-using-transaction
             committed = True
+            if on_commit:
+                on_commit()
 
     # A committed mutation or CTAS is durable, so a stop recorded after the
     # pre-commit check lost the race and must not mask the committed result.
