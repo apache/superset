@@ -52,6 +52,12 @@ must adopt the new core contract to receive actionable validation messages.
 Deploy compatible core/host versions before adapters that import the new exception.
 Discovery and compatibility methods are outside this execution contract.
 
+The host mapper converts invalid selections and filter values rejected during
+its validation and translation steps into `QueryObjectValidationError`, so
+chart-data requests receive HTTP 400 instead of HTTP 500. This conversion does
+not surround provider metadata discovery or query execution. Provider failures
+are not reclassified simply because they raise `ValueError`.
+
 Host-classified client errors (`QueryObjectValidationError` and subclasses) keep
 their status. The shared SDK module also defines `SemanticResultCompletenessError`
 with `incomplete` and `unverified` reasons; the host translates these into its

@@ -211,10 +211,14 @@ def get_results(query_object: QueryObject) -> QueryResult:
         raise ValueError("QueryObject must have a datasource defined.")
     query_object = cast(ValidatedQueryObject, query_object)
     metadata: _ViewMetadata = _validation_metadata(query_object)
-    _validate_query_object(query_object, metadata)
 
-    # Track execution time
-    start_time = current_time()
+    # Track validation, translation and execution time, excluding discovery.
+    start_time: float = current_time()
+    try:
+        _validate_query_object(query_object, metadata)
+        queries: list[SemanticQuery] = _map_query_object(query_object, metadata)
+    except ValueError as ex:
+        raise QueryObjectValidationError(str(ex)) from ex
 
     semantic_view = query_object.datasource.implementation
     dispatcher = (
@@ -222,10 +226,6 @@ def get_results(query_object: QueryObject) -> QueryResult:
         if query_object.is_rowcount
         else semantic_view.get_table
     )
-
-    # Step 1: Convert QueryObject to list of SemanticQuery objects
-    # The first query is the main query, subsequent queries are for time offsets
-    queries: list[SemanticQuery] = _map_query_object(query_object, metadata)
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
@@ -1331,7 +1331,10 @@ def validate_query_object(
 
     validated: ValidatedQueryObject = cast(ValidatedQueryObject, query_object)
     metadata: _ViewMetadata = _validation_metadata(validated)
-    _validate_query_object(validated, metadata)
+    try:
+        _validate_query_object(validated, metadata)
+    except ValueError as ex:
+        raise QueryObjectValidationError(str(ex)) from ex
     return True
 
 

@@ -29,6 +29,8 @@ from superset_core.semantic_layers.types import Dimension, Metric, SemanticResul
 from superset_core.semantic_layers.view import SemanticView as ProviderView
 from werkzeug.test import TestResponse
 
+from superset.common.query_object import QueryObject
+from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.models import SemanticView
 
 
@@ -81,6 +83,64 @@ def date_view(mocker: MockerFixture) -> MagicMock:
         return_value=-1,
     )
     return provider
+
+
+@pytest.mark.parametrize(
+    "selection,message",
+    [
+        (
+            {"series_columns": ["ORDER_DATE"], "series_limit": 5},
+            "Group limit is not supported in this Semantic View.",
+        ),
+        (
+            {"filters": [{"col": "ORDER_DATE", "op": "==", "val": "not-a-date"}]},
+            "Invalid date value",
+        ),
+    ],
+)
+def test_mapper_refusal_returns_400(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    selection: dict[str, Any],
+    message: str,
+) -> None:
+    """Real validation and mapping refusals are client errors before dispatch."""
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"], **selection}
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 400
+    assert message in response.get_data(as_text=True)
+    date_view.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize("method", ["get_metrics", "get_dimensions"])
+def test_mapper_metadata_fault_is_not_converted(
+    app_context: None,
+    date_view: MagicMock,
+    method: str,
+) -> None:
+    """The mapper leaves provider metadata exceptions unchanged."""
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    view.__dict__["implementation"] = date_view
+    query: QueryObject = QueryObject(columns=["ORDER_DATE"], metrics=["ORDER_COUNT"])
+    query.datasource = view
+    error: ValueError = ValueError("metadata fault")
+    getattr(date_view, method).side_effect = error
+    captured: pytest.ExceptionInfo[ValueError]
+    with pytest.raises(ValueError, match="metadata fault") as captured:
+        get_results(query)
+    assert captured.value is error
+    date_view.get_table.assert_not_called()
 
 
 @pytest.mark.parametrize("guest", [False, True])
