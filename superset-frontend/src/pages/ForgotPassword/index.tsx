@@ -89,7 +89,7 @@ export default function ForgotPassword() {
           extra={[
             <Button
               key="login"
-              type="default"
+              buttonStyle="secondary"
               href={ensureAppRoot(RoutePaths.LOGIN)}
               data-test="back-to-login-button"
             >
@@ -149,7 +149,7 @@ export default function ForgotPassword() {
             <Form.Item label={null}>
               <Button
                 block
-                type="primary"
+                buttonStyle="primary"
                 htmlType="submit"
                 loading={loading}
                 data-test="send-reset-link-button"

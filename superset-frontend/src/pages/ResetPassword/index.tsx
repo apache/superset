@@ -147,7 +147,7 @@ export default function ResetPassword() {
           extra={[
             <Button
               key="login"
-              type="primary"
+              buttonStyle="primary"
               href={ensureAppRoot(RoutePaths.LOGIN)}
               data-test="login-button"
             >
@@ -175,7 +175,7 @@ export default function ResetPassword() {
           extra={[
             <Button
               key="request"
-              type="primary"
+              buttonStyle="primary"
               href={ensureAppRoot(RoutePaths.FORGOT_PASSWORD)}
               data-test="request-new-link-button"
             >
@@ -183,7 +183,7 @@ export default function ResetPassword() {
             </Button>,
             <Button
               key="login"
-              type="default"
+              buttonStyle="secondary"
               href={ensureAppRoot(RoutePaths.LOGIN)}
               data-test="back-to-login-button"
             >
@@ -253,7 +253,7 @@ export default function ResetPassword() {
             <Form.Item label={null}>
               <Button
                 block
-                type="primary"
+                buttonStyle="primary"
                 htmlType="submit"
                 loading={loading}
                 data-test="reset-password-button"

@@ -157,6 +157,13 @@ test('shows the invalid link state when the server rejects the token', async () 
     'href',
     '/login/forgot_password/',
   );
+  // The way forward stands out; going back is the secondary action.
+  expect(screen.getByTestId('request-new-link-button')).toHaveClass(
+    'superset-button-primary',
+  );
+  expect(screen.getByTestId('back-to-login-button')).toHaveClass(
+    'superset-button-secondary',
+  );
   expect(screen.queryByTestId('reset-password-form')).not.toBeInTheDocument();
 });
 
