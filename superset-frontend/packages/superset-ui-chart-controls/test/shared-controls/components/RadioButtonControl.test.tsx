@@ -120,9 +120,31 @@ test('calls onChange when clicking the displayed default option if value is unpe
   expect(onChange).toHaveBeenCalledWith('option1');
 });
 
+test('calls onChange when clicking the displayed default option when value is null', () => {
+  const onChange = jest.fn();
+  setup({ value: null, onChange });
+
+  const firstOption = screen.getByText('Option 1');
+  fireEvent.click(firstOption);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith('option1');
+});
+
 test('calls onChange when clicking the displayed default option when initialValue is unpersisted even if value is seeded with default', () => {
   const onChange = jest.fn();
   setup({ value: 'option2', initialValue: undefined, onChange });
+
+  const secondOption = screen.getByText('Option 2');
+  fireEvent.click(secondOption);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith('option2');
+});
+
+test('calls onChange when clicking the displayed default option when initialValue is null even if value is seeded with default', () => {
+  const onChange = jest.fn();
+  setup({ value: 'option2', initialValue: null, onChange });
 
   const secondOption = screen.getByText('Option 2');
   fireEvent.click(secondOption);

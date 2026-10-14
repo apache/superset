@@ -29,6 +29,7 @@ test('commits displayed default when clicking default option without initial val
           name="horizontalAlign"
           controlType="RadioButtonControl"
           label="Text align"
+          description=""
           defaultValue="right"
           debounceDelay={50}
           options={[
@@ -59,6 +60,7 @@ test('commits displayed default when clicking default option without initial val
           name="horizontalAlign"
           controlType="RadioButtonControl"
           label="Text align"
+          description=""
           defaultValue="right"
           debounceDelay={50}
           options={[

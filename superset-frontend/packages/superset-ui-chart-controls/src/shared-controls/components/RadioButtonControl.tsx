@@ -64,8 +64,8 @@ export default function RadioButtonControl(props: RadioButtonControlProps) {
   } = props;
   const hasInitialValueProp = 'initialValue' in props;
   const isUnpersistedDefault = hasInitialValueProp
-    ? props.initialValue === undefined
-    : value === undefined;
+    ? props.initialValue == null
+    : value == null;
   const normalizedOptions = options.map(normalizeOption);
   const currentValue = value ?? normalizedOptions[0]?.value;
 
