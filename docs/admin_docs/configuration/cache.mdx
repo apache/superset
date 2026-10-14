@@ -112,6 +112,11 @@ value defined in `DATA_CACHE_CONFIG`.
 Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
 per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
 
+The datasource column-values and compatibility endpoints also skip cache reads and writes when
+the datasource's effective cache timeout is `-1`. These endpoints use the datasource timeout,
+or `CACHE_DEFAULT_TIMEOUT` when the datasource timeout is unset or zero. This also applies to
+semantic views; existing cached entries are ignored while caching is disabled.
+
 Native filter option queries (the dropdown values for native filters) go through this same
 chart-data cache, but their freshness needs often differ from regular chart queries, especially for
 datasets whose visible values change frequently, including RLS-constrained datasets. Set
