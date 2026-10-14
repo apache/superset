@@ -3831,7 +3831,7 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
         ),
         patch("superset.common.query_context_processor.get_user_id", return_value=42),
     ):
-        context: dict[str, Any] = processor._annotation_cache_context(query)
+        context = processor._annotation_cache_context(query)
     legacy_context: dict[str, Any] = {"user_id": 42, "source_rls": {"7": []}}
     legacy_key: str = query.cache_key(
         datasource="native-1", annotation_context=legacy_context
