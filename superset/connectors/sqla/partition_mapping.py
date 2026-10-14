@@ -334,6 +334,33 @@ NON_DETERMINISTIC_FUNCTIONS = {
     "RANDOM_UUID",
 }
 
+#: The wall-clock names an engine evaluates with no parentheses at all.
+#:
+#: These parse as *column references*, not functions, so the name-based walk
+#: below cannot see them: `datediff(UTC_DATE, :value)` on MySQL and
+#: `:value - SYSDATE` on Oracle both cleared the gate and froze probe time into
+#: a cached mirror.
+#:
+#: A subset of `NON_DETERMINISTIC_FUNCTIONS` rather than the whole of it,
+#: because refusing a bare name costs an owner a column genuinely called that.
+#: Only the names SQL lets you write without ``()`` are listed -- the datetime
+#: keywords -- so `rand`, `uuid` and `newid`, which always need parentheses and
+#: are plausible column names, stay out.
+BARE_WALL_CLOCK_KEYWORDS = frozenset(
+    {
+        "current_date",
+        "current_time",
+        "current_timestamp",
+        "localtime",
+        "localtimestamp",
+        "utc_date",
+        "utc_time",
+        "utc_timestamp",
+        "sysdate",
+        "systimestamp",
+    }
+)
+
 #: Functions that mean "now" only in their zero-argument form. On Hive and
 #: Impala ``unix_timestamp()`` is the current time while ``unix_timestamp(x)``
 #: -- the canonical transform for this feature -- is pure.
@@ -467,6 +494,32 @@ def mirrorable_operators(
     return set(operators)
 
 
+def _native_generic_type(
+    column: "TableColumn",
+) -> utils.GenericDataType | None:
+    """
+    What the engine spec makes of ``column``'s declared type.
+
+    `TableColumn.type_generic` answers ``TEMPORAL`` for every column carrying
+    ``is_dttm``, which is the right answer for a chart's time axis and the
+    wrong one for a comparison: an epoch ``BIGINT`` is a number to the engine
+    however it is labelled here. Falls back to the flag where the spec has no
+    answer, so a type Superset cannot resolve is no worse off than before.
+    """
+    try:
+        column_spec = column.db_engine_spec.get_column_spec(
+            column.type, db_extra=column.db_extra
+        )
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        column_spec = None
+    if column_spec is not None and column_spec.generic_type is not None:
+        return column_spec.generic_type
+    try:
+        return column.type_generic
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        return None
+
+
 #: Declared types whose comparison ignores trailing blanks.
 #:
 #: The fixed-width character types, which the SQL standard has compare as
@@ -539,6 +592,20 @@ def equality_mirrors_safely(
     engine says, and an engine that ignores trailing blanks on its *variable*
     types says so by not declaring the flag at all (see `RedshiftEngineSpec`).
 
+    The type asked for is the engine spec's reading of the column's declared
+    type, not `TableColumn.type_generic`, which answers ``TEMPORAL`` for
+    anything carrying ``is_dttm``. A ``VARCHAR`` flagged temporal is still text
+    to the engine: on MySQL a filter for ``'2026-01-01T00:00:00'`` matches a
+    stored ``'...t00:00:00'``, while the mirror ``p = hex('...T...')`` excludes
+    it -- and asking the semantic flag skipped the check entirely.
+
+    A type the spec cannot classify declines, which is what the paragraph above
+    promises and what only the exception branch used to do. PostgreSQL's
+    ``citext`` matches no type pattern, so it answered ``None`` -- neither
+    string nor not-string -- and was waved through, which is precisely wrong
+    for a type whose whole purpose is case-insensitive comparison. Declining
+    costs the pruning; admitting it costs rows.
+
     What this cannot see is a column that declares its own collation
     (``country COLLATE NOCASE``) on an otherwise byte-exact engine. Neither
     SQLAlchemy's reflection nor the engine specs expose it, so on such a column
@@ -552,13 +619,10 @@ def equality_mirrors_safely(
     # so from the name.
     if _is_padded_character_type(column):
         return False
-    try:
-        is_string = column.type_generic == utils.GenericDataType.STRING
-    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
-        # An unresolvable type is treated as a string: the gate exists to stop
-        # a silent wrong answer, so it fails closed.
+    generic_type = _native_generic_type(column)
+    if generic_type is None:
         return False
-    if not is_string:
+    if generic_type != utils.GenericDataType.STRING:
         return True
     return bool(db_engine_spec.binary_string_comparison)
 
@@ -959,6 +1023,11 @@ def find_non_deterministic_functions(transform: str, engine: str) -> set[str]:
     ``UNIX_TIMESTAMP`` is only reported in its zero-argument form, which means
     "now" on Hive and Impala; the one-argument form is the canonical temporal
     transform and stays allowed.
+
+    Three spellings have to be looked for, because one name reaches the parse
+    three ways: as a function call, as a zero-argument call a dialect resolves
+    itself, and -- for the datetime keywords -- as a bare word that parses as a
+    column reference.
     """
     statement = _parse_skeleton(transform, engine)
     if statement is None:
@@ -968,6 +1037,13 @@ def find_non_deterministic_functions(transform: str, engine: str) -> set[str]:
         name
         for name in NON_DETERMINISTIC_FUNCTIONS
         if statement.check_functions_present({name})
+    }
+    # The parenthesis-free spellings, which parse as columns rather than
+    # functions and so are invisible to the walk above. See
+    # `BARE_WALL_CLOCK_KEYWORDS`.
+    found |= {
+        name.upper()
+        for name in BARE_WALL_CLOCK_KEYWORDS & statement.get_column_names()
     }
     return found | _find_niladic_calls(statement)
 
@@ -2984,32 +3060,6 @@ def _reads_as_temporal(value: str, db_engine_spec: type[BaseEngineSpec]) -> bool
         except ValueError:
             continue
     return False
-
-
-def _native_generic_type(
-    column: "TableColumn",
-) -> utils.GenericDataType | None:
-    """
-    What the engine spec makes of ``column``'s declared type.
-
-    `TableColumn.type_generic` answers ``TEMPORAL`` for every column carrying
-    ``is_dttm``, which is the right answer for a chart's time axis and the
-    wrong one for a comparison: an epoch ``BIGINT`` is a number to the engine
-    however it is labelled here. Falls back to the flag where the spec has no
-    answer, so a type Superset cannot resolve is no worse off than before.
-    """
-    try:
-        column_spec = column.db_engine_spec.get_column_spec(
-            column.type, db_extra=column.db_extra
-        )
-    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
-        column_spec = None
-    if column_spec is not None and column_spec.generic_type is not None:
-        return column_spec.generic_type
-    try:
-        return column.type_generic
-    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
-        return None
 
 
 def probed_value_type_error(

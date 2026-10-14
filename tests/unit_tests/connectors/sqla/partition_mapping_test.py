@@ -47,6 +47,8 @@ from superset.connectors.sqla.partition_mapping import (
     drop_unmapped_value_transforms,
     equality_mirrors_safely,
     evaluate_transform,
+    BARE_WALL_CLOCK_KEYWORDS,
+    NON_DETERMINISTIC_FUNCTIONS,
     find_non_deterministic_functions,
     grain_bucket_width,
     GRAIN_BUCKET_WIDTHS,
@@ -72,6 +74,7 @@ from superset.connectors.sqla.partition_mapping import (
 )
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.oracle import OracleEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.models.core import Database
@@ -343,18 +346,54 @@ def test_redshift_does_not_opt_in_to_byte_exact_comparison() -> None:
     assert RedshiftEngineSpec.binary_string_comparison is False
 
 
+@pytest.mark.parametrize(
+    "type_",
+    [
+        # PostgreSQL's case-insensitive text type matches no type pattern, so
+        # the spec cannot classify it -- and its whole purpose is the
+        # comparison this gate is about.
+        "citext",
+        # A column with no declared type at all.
+        "",
+        "SOME_EXTENSION_TYPE",
+    ],
+)
 def test_equality_mirrors_safely_fails_closed_on_an_unresolvable_type(
-    app: Flask,
+    app: Flask, type_: str
 ) -> None:
     """
     The gate exists to stop a silent wrong answer, so a column whose type it
     cannot read is treated as the risky case rather than waved through.
-    """
-    column = MagicMock()
-    type(column).type_generic = PropertyMock(side_effect=ValueError("no type"))
 
+    `type_generic` answers `None` for these -- neither string nor not-string --
+    and the old reading waved them through, which for `citext` admitted exactly
+    the case-insensitive equality the gate is for. Only the exception branch
+    failed closed, though the docstring claimed otherwise.
+    """
     with app.app_context():
-        assert equality_mirrors_safely(column, BaseEngineSpec) is False
+        assert equality_mirrors_safely(_column(type_), PostgresEngineSpec) is False
+
+
+def test_equality_mirrors_safely_reads_past_the_temporal_flag(app: Flask) -> None:
+    """
+    `TableColumn.type_generic` answers `TEMPORAL` for anything carrying
+    `is_dttm`, so a `VARCHAR` flagged temporal skipped the string check
+    entirely: on MySQL a filter for `'2026-01-01T00:00:00'` matches a stored
+    `'...t00:00:00'` while the mirror `hex('...T...')` excludes it.
+    """
+    with app.app_context():
+        flagged = _column("VARCHAR")
+        flagged.is_dttm = True
+        assert flagged.type_generic == GenericDataType.TEMPORAL
+        # Declines where plain text declines...
+        assert equality_mirrors_safely(flagged, MySQLEngineSpec) is False
+        # ...and is admitted where plain text is admitted.
+        assert equality_mirrors_safely(flagged, PostgresEngineSpec) is True
+
+        # A column that really is temporal is unaffected.
+        real = _column("TIMESTAMP")
+        real.is_dttm = True
+        assert equality_mirrors_safely(real, MySQLEngineSpec) is True
 
 
 def test_no_mapped_column_leaves_the_matrix_alone(app: Flask) -> None:
@@ -808,6 +847,50 @@ def test_every_engine_s_spelling_of_now_is_reported(
     silently drops rows.
     """
     assert expected_name in find_non_deterministic_functions(transform, engine)
+
+
+@pytest.mark.parametrize(
+    ("engine", "transform", "expected_name"),
+    [
+        # MySQL takes these with no parentheses at all...
+        ("mysql", "datediff(UTC_DATE, :value)", "UTC_DATE"),
+        ("mysql", "datediff(utc_timestamp, :value)", "UTC_TIMESTAMP"),
+        ("mysql", "datediff(CURRENT_DATE, :value)", "CURRENT_DATE"),
+        # ...as do Oracle and PostgreSQL for their own spellings.
+        # sqlglot normalizes Oracle's bare `SYSDATE` to `CURRENT_TIMESTAMP`,
+        # so it is caught as a function under that name -- which is a pass:
+        # what matters is that the gate reports it, not what it is called.
+        ("oracle", ":value - SYSDATE", "CURRENT_TIMESTAMP"),
+        ("oracle", ":value - SYSTIMESTAMP", "SYSTIMESTAMP"),
+        ("postgresql", "age(LOCALTIMESTAMP, :value)", "LOCALTIMESTAMP"),
+    ],
+)
+def test_a_bare_wall_clock_keyword_is_reported(
+    engine: str, transform: str, expected_name: str
+) -> None:
+    """
+    Written without parentheses these parse as *column references*, so the
+    function-name walk could not see them and probe time was frozen into a
+    cached mirror.
+    """
+    assert expected_name in find_non_deterministic_functions(transform, engine)
+
+
+def test_the_bare_list_stays_to_names_that_need_no_parentheses() -> None:
+    """
+    Refusing a bare name costs an owner a column genuinely called that, so the
+    list is only the datetime keywords SQL lets you write without `()`.
+    `rand`, `uuid` and `newid` always need them, and are plausible column
+    names.
+    """
+    assert BARE_WALL_CLOCK_KEYWORDS <= {
+        name.lower() for name in NON_DETERMINISTIC_FUNCTIONS
+    }
+    assert not BARE_WALL_CLOCK_KEYWORDS & {"rand", "random", "uuid", "newid"}
+    # A column by one of those names is still an ordinary column.
+    assert find_non_deterministic_functions("lower(:value) || uuid", "postgresql") == (
+        set()
+    )
 
 
 @pytest.mark.parametrize(
