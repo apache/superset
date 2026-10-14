@@ -185,13 +185,15 @@ class SupersetApp(Flask):
         """
         try:
             database_ready: bool = self._is_database_up_to_date()
-            # key_value predates the pending migrations. Initialize deployment
-            # identity even when theme/tag synchronization must wait for head.
+            # key_value predates pending migrations. Enabled installations can
+            # initialize identity before theme/tag synchronization reaches head.
+            from superset.semantic_layers.access import is_semantic_layers_enabled
             from superset.semantic_layers.execution import bootstrap_semantic_namespace
 
             namespace_ready: bool = True
             try:
-                bootstrap_semantic_namespace()
+                if is_semantic_layers_enabled():
+                    bootstrap_semantic_namespace()
             except Exception as ex:
                 namespace_ready = False
                 if database_ready:

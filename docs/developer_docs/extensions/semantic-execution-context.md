@@ -62,7 +62,10 @@ Include `cache_token` in metadata-cache keys before any lookup or eager discover
 never use secrets as cache keys. Views echo the captured token in
 `metadata_cache_token`. The context namespace uses `SEMANTIC_LAYER_CACHE_NAMESPACE`
 when set, otherwise an installation UUID read or created during app initialization
-and held in app memory. If startup precedes database creation (for example, Helm's
+when `SEMANTIC_LAYERS` is enabled, and held in app memory. Disabled startup skips
+namespace database access. If the runtime flag is enabled later, first semantic
+access loads or creates the same persisted identity across web and worker apps.
+If startup precedes database creation (for example, Helm's
 post-install upgrade), semantic access retries initialization once per access until
 it succeeds. Failed attempts remain fail-closed; no temporary identity is used.
 After successful initialization, namespace resolution needs no database access.

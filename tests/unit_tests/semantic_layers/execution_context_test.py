@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, cast
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock, patch, PropertyMock
 from uuid import UUID
 
 import pytest
@@ -452,6 +452,7 @@ def test_refusal_log_includes_method_and_provider_declarations(
 
 
 @pytest.mark.parametrize("theme_fails", [False, True])
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 def test_namespace_bootstrap_failure_has_its_own_boundary(
     mocker: MockerFixture, theme_fails: bool
 ) -> None:
@@ -538,6 +539,15 @@ def test_namespace_rejects_invalid_configuration(
         semantic_namespace()
 
 
+@pytest.fixture
+def enabled_namespace_bootstrap(mocker: MockerFixture) -> None:
+    """Exercise eager initialization with semantic layers enabled at startup."""
+    mocker.patch(
+        "superset.semantic_layers.access.is_semantic_layers_enabled", return_value=True
+    )
+
+
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 @pytest.mark.parametrize("preexisting", [False, True])
 def test_startup_namespace_needs_no_request_pool_checkout(
     tmp_path: Any, mocker: MockerFixture, preexisting: bool
@@ -595,6 +605,7 @@ def test_startup_namespace_needs_no_request_pool_checkout(
         engine.dispose()
 
 
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 def test_startup_namespace_is_shared_across_independent_apps(
     tmp_path: Any, mocker: MockerFixture
 ) -> None:
@@ -846,6 +857,63 @@ def test_configured_namespace_precedes_bootstrap_memory(
     assert semantic_namespace() == (namespace() if callable(namespace) else namespace)
 
 
+def test_disabled_startup_then_runtime_enable_shares_namespace(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    """Off-at-boot apps lazily converge on one persisted deployment identity."""
+    from sqlalchemy import create_engine, select
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.orm import Session
+
+    from superset import feature_flag_manager
+    from superset.app import SupersetApp
+    from superset.key_value.models import KeyValueEntry
+    from superset.semantic_layers.access import is_semantic_layers_enabled
+    from superset.semantic_layers.execution import semantic_namespace
+
+    engine: Engine = create_engine(f"sqlite:///{tmp_path / 'runtime-namespace.db'}")
+    KeyValueEntry.__table__.create(engine)
+    applications: list[SupersetApp] = [SupersetApp("web"), SupersetApp("worker")]
+    enabled: bool = False
+
+    def runtime_flag(feature: str, default: bool) -> bool:
+        """Model a host callback whose decision can change after boot."""
+        return enabled if feature == "SEMANTIC_LAYERS" else default
+
+    mocker.patch.object(feature_flag_manager, "_is_feature_enabled_func", runtime_flag)
+    mocker.patch("superset.tags.core.register_sqla_event_listeners")
+    mocker.patch("superset.commands.theme.seed.SeedSystemThemesCommand.run")
+    namespaces: list[str] = []
+    application: SupersetApp
+    connect: MagicMock
+    try:
+        with Session(engine) as caller:
+            mocker.patch("superset.semantic_layers.execution.db.session", caller)
+            for application in applications:
+                mocker.patch.object(
+                    application, "_is_database_up_to_date", return_value=True
+                )
+                with application.app_context():
+                    with patch.object(
+                        engine,
+                        "connect",
+                        side_effect=AssertionError("namespace DB access while off"),
+                    ) as connect:
+                        application.sync_config_to_db()
+                        connect.assert_not_called()
+                    assert "semantic_execution_namespace" not in application.extensions
+            enabled = True
+            for application in applications:
+                with application.app_context():
+                    assert is_semantic_layers_enabled()
+                    namespaces.append(semantic_namespace())
+            assert namespaces[0] == namespaces[1]
+            assert UUID(namespaces[0])
+            assert len(list(caller.scalars(select(KeyValueEntry)))) == 1
+    finally:
+        engine.dispose()
+
+
 def test_namespace_retry_failure_does_not_publish_identity(
     session: Any,
     mocker: MockerFixture,
@@ -867,6 +935,7 @@ def test_namespace_retry_failure_does_not_publish_identity(
     assert "semantic_execution_namespace" not in app.extensions
 
 
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 def test_namespace_bootstraps_before_migration_head(
     app: Any,
     session: Any,
@@ -940,6 +1009,7 @@ def test_namespace_survives_historic_pickle_migration(
     assert _install_namespace(session.get_bind()) == namespace
 
 
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 def test_namespace_missing_table_defers_without_error_log(
     session: Any,
     mocker: MockerFixture,
@@ -960,6 +1030,7 @@ def test_namespace_missing_table_defers_without_error_log(
     assert "semantic access will retry (OperationalError)" in caplog.text
 
 
+@pytest.mark.usefixtures("enabled_namespace_bootstrap")
 def test_namespace_recovers_after_fresh_install_upgrade(
     session: Any, mocker: MockerFixture
 ) -> None:
