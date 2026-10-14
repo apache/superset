@@ -69,6 +69,7 @@ from superset.utils.core import (
 from superset.utils.decorators import logs_context
 from superset.utils.error_sanitization import (
     is_sanitization_required,
+    redact_sensitive_query_fields,
     sanitize_error_message,
 )
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
@@ -563,18 +564,11 @@ class ChartDataRestApi(ChartRestApi):
                 # their guest token has been granted "can view query on Dashboard",
                 # mirroring the permission the frontend uses to expose the
                 # "View query" action. Stacktraces and driver errors stay redacted
-                # regardless, as those leak details of the deployment itself.
-                can_view_query = security_manager.can_access(
-                    "can_view_query", "Dashboard"
-                )
-                for query in queries:
-                    if not can_view_query:
-                        query.pop("query", None)
-                    query.pop("stacktrace", None)
-                    if query.get("error"):
-                        query["error"] = sanitize_error_message(
-                            query["error"], required=sanitize_required
-                        )
+                # regardless, as those leak details of the deployment itself. The
+                # same helper redacts the ``/datasource/samples`` (Drill to
+                # detail) response so the two guest-facing endpoints cannot
+                # diverge.
+                redact_sensitive_query_fields(queries, required=sanitize_required)
 
             payload: dict[str, Any] = {"result": queries}
             if dashboard_filter_context is not None:

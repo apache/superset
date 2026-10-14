@@ -888,6 +888,36 @@ def test_samples_proceeds_for_supported_datasource_type(
     view.json_response.assert_called_once_with({"result": {"rows": []}})
 
 
+@patch("superset.views.datasource.views.redact_sensitive_query_fields")
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_redacts_query_fields_before_responding(
+    mock_security_manager: MagicMock,
+    mock_get_samples: MagicMock,
+    mock_redact: MagicMock,
+) -> None:
+    """The samples payload is passed through guest redaction before it is
+    returned, so an embedded guest without "can view query on Dashboard" does
+    not receive the generated SQL the chart-data endpoint already withholds
+    (CVE-2025-55673 parity for Drill to detail)."""
+    mock_security_manager.is_guest_user.return_value = False
+    rv = {"query": "SELECT 1", "data": []}
+    mock_get_samples.return_value = rv
+
+    view = _view_self()
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=query&datasource_id=1",
+        method="POST",
+        json={},
+    ):
+        _get_view_func("samples")(view)
+
+    # The result dict is redacted in place, then returned under ``result``.
+    mock_redact.assert_called_once_with([rv])
+    view.json_response.assert_called_once_with({"result": rv})
+
+
 @patch("superset.views.datasource.views._", _identity_gettext)
 @patch("superset.views.datasource.views.get_samples")
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")

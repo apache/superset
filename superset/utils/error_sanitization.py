@@ -168,6 +168,44 @@ def sanitize_error_message(
     return str(GENERIC_ERROR_MESSAGE)
 
 
+def redact_sensitive_query_fields(
+    results: list[dict[str, Any]], required: bool | None = None
+) -> None:
+    """
+    Redact generated SQL, stacktraces and raw errors from query results in place.
+
+    Embedded (guest token) viewers must not receive the generated ``query`` --
+    it exposes the underlying virtual-dataset SQL, table names, joins and
+    applied filter/RLS clauses -- unless the role attached to their guest token
+    carries "can view query on Dashboard", the same permission the frontend uses
+    to expose the "View query" action. ``stacktrace`` and raw driver ``error``
+    text describe the deployment itself and are redacted for guests regardless.
+
+    Shared by ``/api/v1/chart/data`` and ``/datasource/samples`` (Drill to
+    detail) so the two endpoints cannot diverge: the chart-data response has
+    stripped the SQL for guests since CVE-2025-55673, and the samples endpoint
+    must apply the same rule.
+
+    `required` lets a caller that has already resolved the sanitization decision
+    thread it in so the principal is not looked up again (``None`` computes it).
+    """
+    if required is None:
+        required = is_sanitization_required()
+    if not required:
+        return
+
+    # pylint: disable=import-outside-toplevel
+    from superset import security_manager
+
+    can_view_query = security_manager.can_access("can_view_query", "Dashboard")
+    for result in results:
+        if not can_view_query:
+            result.pop("query", None)
+        result.pop("stacktrace", None)
+        if result.get("error"):
+            result["error"] = sanitize_error_message(result["error"], required=required)
+
+
 def sanitize_superset_error(
     error: SupersetError, required: bool | None = None
 ) -> SupersetError:
