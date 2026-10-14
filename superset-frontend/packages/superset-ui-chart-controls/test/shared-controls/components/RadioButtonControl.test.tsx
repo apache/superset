@@ -99,14 +99,15 @@ test('calls onChange when radio button is clicked', () => {
   expect(onChange).toHaveBeenCalledWith('option2');
 });
 
-test('does not call onChange when clicking the already selected option', () => {
+test('calls onChange when clicking the already selected option to allow re-applying or restoring state', () => {
   const onChange = jest.fn();
   setup({ value: 'option1', onChange });
 
   const firstOption = screen.getByText('Option 1');
   fireEvent.click(firstOption);
 
-  expect(onChange).not.toHaveBeenCalled();
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith('option1');
 });
 
 test('calls onChange when clicking the displayed default option if value is unpersisted', () => {
@@ -153,12 +154,30 @@ test('calls onChange when clicking the displayed default option when initialValu
   expect(onChange).toHaveBeenCalledWith('option2');
 });
 
-test('does not call onChange when clicking option if initialValue is already persisted', () => {
+test('calls onChange when clicking option even when initialValue is already persisted', () => {
   const onChange = jest.fn();
   setup({ value: 'option2', initialValue: 'option2', onChange });
 
   const secondOption = screen.getByText('Option 2');
   fireEvent.click(secondOption);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledWith('option2');
+});
+
+test('does not call onChange when clicking a disabled option even if currently selected', () => {
+  const onChange = jest.fn();
+  setup({
+    options: [
+      { value: 'option1', label: 'Option 1', disabled: true },
+      { value: 'option2', label: 'Option 2' },
+    ],
+    value: 'option1',
+    onChange,
+  });
+
+  const firstOption = screen.getByText('Option 1');
+  fireEvent.click(firstOption);
 
   expect(onChange).not.toHaveBeenCalled();
 });

@@ -62,10 +62,6 @@ export default function RadioButtonControl(props: RadioButtonControlProps) {
     initialValue: _initialValue,
     ...headerProps
   } = props;
-  const hasInitialValueProp = 'initialValue' in props;
-  const isUnpersistedDefault = hasInitialValueProp
-    ? props.initialValue == null
-    : value == null;
   const normalizedOptions = options.map(normalizeOption);
   const currentValue = value ?? normalizedOptions[0]?.value;
 
@@ -104,7 +100,7 @@ export default function RadioButtonControl(props: RadioButtonControlProps) {
                   }`}
                   onClick={e => {
                     e.currentTarget?.focus();
-                    if (isUnpersistedDefault && val === currentValue) {
+                    if (!disabled && val === currentValue) {
                       onChange(val);
                     }
                   }}
