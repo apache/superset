@@ -1766,6 +1766,7 @@ test.each([
       <AsyncSelect
         {...defaultProps}
         allowNewOptions
+        caseSensitiveNewOptionMatching={false}
         filterOption={false}
         onChange={onChange}
         options={loadOptions}

@@ -505,28 +505,17 @@ const AsyncSelect = forwardRef(
               // typed when the server returns no match.
               setSelectOptions(prevOptions => {
                 const dataValues = new Set(data.map(opt => opt.value));
-<<<<<<< HEAD
-                const dataLabels = new Set(
-                  data.map(option => normalizeOptionLabel(option.label)),
-                );
+                const dataLabels = caseSensitiveNewOptionMatching
+                  ? undefined
+                  : new Set(
+                      data.map(option => normalizeOptionLabel(option.label)),
+                    );
                 const preservedNew = prevOptions.filter(
                   opt =>
                     opt.isNewOption &&
                     (hasOption(opt.value, selectValueRef.current) ||
                       (!dataValues.has(opt.value) &&
-                        !dataLabels.has(normalizeOptionLabel(opt.label)))),
-=======
-                const preservedNew = prevOptions.filter(
-                  opt =>
-                    opt.isNewOption &&
-                    !dataValues.has(opt.value) &&
-                    (caseSensitiveNewOptionMatching ||
-                      !data.some(
-                        item =>
-                          String(item.label).trim().toLowerCase() ===
-                          String(opt.label).trim().toLowerCase(),
-                      )),
->>>>>>> 174f4cfa12 (fix(AsyncSelect): scope dashboard duplicate matching)
+                        !dataLabels?.has(normalizeOptionLabel(opt.label)))),
                 );
                 return preservedNew
                   .concat(data)
@@ -581,11 +570,8 @@ const AsyncSelect = forwardRef(
 
     const searchStateRef = useRef({
       allowNewOptions,
-<<<<<<< HEAD
-=======
       caseSensitiveNewOptionMatching,
       fullSelectOptions,
->>>>>>> 174f4cfa12 (fix(AsyncSelect): scope dashboard duplicate matching)
       selectValue,
       allValuesLoaded,
       loadingEnabled,
@@ -597,11 +583,8 @@ const AsyncSelect = forwardRef(
     useEffect(() => {
       searchStateRef.current = {
         allowNewOptions,
-<<<<<<< HEAD
-=======
         caseSensitiveNewOptionMatching,
         fullSelectOptions,
->>>>>>> 174f4cfa12 (fix(AsyncSelect): scope dashboard duplicate matching)
         selectValue,
         allValuesLoaded,
         loadingEnabled,
@@ -616,11 +599,8 @@ const AsyncSelect = forwardRef(
         debounce((search: string) => {
           const {
             allowNewOptions,
-<<<<<<< HEAD
-=======
             caseSensitiveNewOptionMatching,
             fullSelectOptions,
->>>>>>> 174f4cfa12 (fix(AsyncSelect): scope dashboard duplicate matching)
             selectValue,
             allValuesLoaded,
             loadingEnabled,
@@ -634,43 +614,16 @@ const AsyncSelect = forwardRef(
           if (allowNewOptions) {
             const unquotedSearch = stripSurroundingQuotes(searchValue);
             setSelectOptions(prevOptions => {
-<<<<<<< HEAD
-              const cleanOptions = prevOptions.filter(
-                option =>
-                  !option.isNewOption || hasOption(option.value, selectValue),
-              );
-              const normalizedSearch = normalizeOptionLabel(unquotedSearch);
-              const hasMatchingLabel = cleanOptions.some(
-                option =>
-                  normalizedSearch !== undefined &&
-                  normalizeOptionLabel(option.label) === normalizedSearch,
-              );
-              if (
-                !unquotedSearch ||
-                hasOption(unquotedSearch, cleanOptions, true) ||
-                hasMatchingLabel
-              ) {
-                return cleanOptions;
-              }
-
-              return [
-                {
-                  label: unquotedSearch,
-                  value: unquotedSearch,
-                  isNewOption: true,
-                },
-                ...cleanOptions,
-              ];
-=======
               const optionsToCheck = caseSensitiveNewOptionMatching
                 ? fullSelectOptions
                 : [...fullSelectOptions, ...prevOptions];
+              const normalizedSearch = normalizeOptionLabel(unquotedSearch);
               const hasMatchingOption = caseSensitiveNewOptionMatching
                 ? hasOption(unquotedSearch, optionsToCheck, true)
                 : optionsToCheck.some(
                     option =>
-                      String(option.label).trim().toLowerCase() ===
-                      unquotedSearch.toLowerCase(),
+                      normalizedSearch !== undefined &&
+                      normalizeOptionLabel(option.label) === normalizedSearch,
                   );
               const newOption =
                 unquotedSearch &&
@@ -686,7 +639,6 @@ const AsyncSelect = forwardRef(
               return newOption
                 ? [newOption, ...cleanSelectOptions]
                 : cleanSelectOptions;
->>>>>>> 174f4cfa12 (fix(AsyncSelect): scope dashboard duplicate matching)
             });
           }
 
