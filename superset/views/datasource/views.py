@@ -457,9 +457,10 @@ class Datasource(BaseSupersetView):
             partition_column=datasource_dict.get("partition_column"),
             partition_mapped_column=datasource_dict.get("partition_mapped_column"),
             main_dttm_col=datasource_dict.get("main_dttm_col"),
-            # So an unchanged echo of stored configuration survives: this
-            # endpoint's own client does GET-then-POST, which is exactly the
-            # shape that looked like a value being parked.
+            # With the flag off, an unchanged echo of stored configuration
+            # survives: this endpoint's own client does GET-then-POST. With it
+            # on nothing is exempt, since no model-level pass runs here to clear
+            # a transform the mapping no longer mirrors.
             stored_by_name=None
             if is_feature_enabled("PARTITION_FILTER_MAPPING")
             else {
