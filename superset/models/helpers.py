@@ -4364,9 +4364,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return or_(*groups)
 
-    def _groupby_clause_exprs(
-        self, groupby_exprs: Iterable[Any], has_aggregates: bool
-    ) -> list[Any]:
+    def _groupby_clause_exprs(self, groupby_exprs: Iterable[Any]) -> list[Any]:
         """
         Return the expressions to emit in the GROUP BY clause.
 
@@ -4376,17 +4374,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         read as a select-list ordinal). Such keys are omitted here; the SELECT
         list still carries them under their label.
 
-        When every key is constant and the query aggregates, GROUP BY is omitted
-        altogether, yielding the single aggregate row. Against an empty input
-        that is one row of NULL aggregates rather than no rows. Without an
-        aggregate the keys are left untouched, since dropping them would turn
-        the query into a per-row select.
+        Constants are only omitted while at least one other key remains. If every
+        key is constant the keys are left untouched: whether GROUP BY can be
+        dropped then depends on the query aggregating, which is not known here.
         """
         keys = list(groupby_exprs)
         non_constant = [key for key in keys if not self._is_constant_groupby_expr(key)]
-        if len(non_constant) == len(keys) or (not non_constant and not has_aggregates):
-            return keys
-        return non_constant
+        return non_constant or keys
 
     def _is_constant_groupby_expr(self, expr: Any) -> bool:
         """
@@ -5367,9 +5361,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 qry = qry.group_by(grouping_sets_clause(gs_levels))
             else:
                 qry = qry.group_by(
-                    *self._groupby_clause_exprs(
-                        groupby_all_columns.values(), bool(metrics_exprs)
-                    )
+                    *self._groupby_clause_exprs(groupby_all_columns.values())
                 )
 
         where_clause_and: list[ColumnElement] = []
@@ -5966,9 +5958,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if _inner_filter is not None:
                         inner_time_filter = [_inner_filter]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
-                subq = subq.group_by(
-                    *self._groupby_clause_exprs(inner_groupby_exprs, True)
-                )
+                subq = subq.group_by(*self._groupby_clause_exprs(inner_groupby_exprs))
 
                 ob = inner_main_metric_expr
                 if series_limit_metric:
@@ -6023,9 +6013,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     qry = sa.select(*select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(
-                            *self._groupby_clause_exprs(
-                                groupby_all_columns.values(), bool(metrics_exprs)
-                            )
+                            *self._groupby_clause_exprs(groupby_all_columns.values())
                         )
 
                     # Re-apply WHERE and HAVING clauses lost during query reconstruction
@@ -6101,9 +6089,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     qry = sa.select(*select_exprs)
                     if groupby_all_columns:
                         qry = qry.group_by(
-                            *self._groupby_clause_exprs(
-                                groupby_all_columns.values(), bool(metrics_exprs)
-                            )
+                            *self._groupby_clause_exprs(groupby_all_columns.values())
                         )
 
                     # Re-apply WHERE and HAVING clauses lost during query reconstruction

@@ -7056,6 +7056,12 @@ def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
         ("1.5", "postgresql", True),
         ("NULL", "postgresql", True),
         ("TRUE", "postgresql", True),
+        ("(FALSE)", "mysql", True),
+        ("TRUE", "sqlite", False),
+        ("(FALSE)", "sqlite", False),
+        ("'Other'", "sqlite", True),
+        ("NULL", "sqlite", True),
+        ("42", "sqlite", True),
         ('"Other"', "mysql", True),
         ('"Other"', "postgresql", False),
         ("region", "postgresql", False),
@@ -7071,7 +7077,8 @@ def test_has_aggregate_fail_closed(expression: str, expected: bool) -> None:
 def test_is_constant_expression(expression: str, engine: str, expected: bool) -> None:
     """
     Only a bare literal or ``NULL`` (optionally parenthesized) is constant; an
-    expression that merely contains one, or can't be parsed, is not.
+    expression that merely contains one, or can't be parsed, is not. ``TRUE`` and
+    ``FALSE`` are identifiers on SQLite, so they are not constant there.
     """
     assert is_constant_expression(expression, engine) is expected
 
