@@ -40,6 +40,7 @@ from superset.commands.semantic_layer.delete import (
     DeleteSemanticViewCommand,
 )
 from superset.commands.semantic_layer.exceptions import (
+    SemanticDeleteDependentsError,
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
     SemanticLayerForbiddenError,
@@ -510,6 +511,34 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: Semantic view has dependent assets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    required: [message, total, dependents, inaccessible_count]
+                    properties:
+                      message:
+                        type: string
+                      total:
+                        type: integer
+                      dependents:
+                        type: array
+                        maxItems: 20
+                        items:
+                          type: object
+                          required: [type, id, name]
+                          properties:
+                            type:
+                              type: string
+                              enum: [chart, dashboard, alert, report]
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                      inaccessible_count:
+                        type: integer
             422:
               $ref: '#/components/responses/422'
         """
@@ -523,6 +552,14 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             return self.response_404()
         except SemanticViewForbiddenError:
             return self.response_403()
+        except SemanticDeleteDependentsError as ex:
+            return self.response(
+                409,
+                message=str(ex),
+                total=ex.total,
+                dependents=ex.dependents,
+                inaccessible_count=ex.inaccessible_count,
+            )
         except SemanticViewDeleteFailedError as ex:
             logger.error(
                 "Error deleting semantic view: %s",
@@ -567,6 +604,34 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: A semantic view has dependent assets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    required: [message, total, dependents, inaccessible_count]
+                    properties:
+                      message:
+                        type: string
+                      total:
+                        type: integer
+                      dependents:
+                        type: array
+                        maxItems: 20
+                        items:
+                          type: object
+                          required: [type, id, name]
+                          properties:
+                            type:
+                              type: string
+                              enum: [chart, dashboard, alert, report]
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                      inaccessible_count:
+                        type: integer
             422:
               $ref: '#/components/responses/422'
         """
@@ -588,6 +653,14 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             return self.response_404()
         except SemanticViewForbiddenError:
             return self.response_403()
+        except SemanticDeleteDependentsError as ex:
+            return self.response(
+                409,
+                message=str(ex),
+                total=ex.total,
+                dependents=ex.dependents,
+                inaccessible_count=ex.inaccessible_count,
+            )
         except SemanticViewDeleteFailedError as ex:
             logger.error(
                 "Error bulk deleting semantic views: %s",
@@ -1050,6 +1123,34 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: Semantic layer has dependent assets
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    required: [message, total, dependents, inaccessible_count]
+                    properties:
+                      message:
+                        type: string
+                      total:
+                        type: integer
+                      dependents:
+                        type: array
+                        maxItems: 20
+                        items:
+                          type: object
+                          required: [type, id, name]
+                          properties:
+                            type:
+                              type: string
+                              enum: [chart, dashboard, alert, report]
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                      inaccessible_count:
+                        type: integer
             422:
               $ref: '#/components/responses/422'
         """
@@ -1060,6 +1161,14 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             return self.response_404()
         except SemanticLayerForbiddenError as ex:
             return self.response(403, message=str(ex))
+        except SemanticDeleteDependentsError as ex:
+            return self.response(
+                409,
+                message=str(ex),
+                total=ex.total,
+                dependents=ex.dependents,
+                inaccessible_count=ex.inaccessible_count,
+            )
         except SemanticLayerDeleteFailedError as ex:
             logger.error(
                 "Error deleting semantic layer: %s",

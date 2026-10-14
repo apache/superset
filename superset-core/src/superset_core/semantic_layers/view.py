@@ -39,11 +39,42 @@ class SemanticViewFeature(enum.Enum):
     ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
     GROUP_LIMIT = "GROUP_LIMIT"
     GROUP_OTHERS = "GROUP_OTHERS"
+    # Non-negative row offsets with a positive finite limit. Providers retain
+    # responsibility for ordering and rejecting unsupported query shapes.
+    ROW_OFFSET = "ROW_OFFSET"
 
 
 class SemanticView(ABC):
     """
     Abstract base class for semantic views.
+
+    Implementations own translation and execution; the rules the host relies on
+    are fixed here so every provider agrees on them:
+
+    - **Member identity.** ``Metric.name`` and ``Dimension.name`` are the stable
+      selection keys; ``verbose_name`` is display only and ``id`` is
+      provider-private. See :class:`~superset_core.semantic_layers.types.Metric`.
+      A provider that changes what ``name`` means declares a new
+      :attr:`selection_identity_version`.
+    - **Grain variants.** Several dimension variants may share one ``name``, at
+      most one per ``(name, grain)``. See
+      :class:`~superset_core.semantic_layers.types.Grains` for the intended
+      preference, which not every host lookup applies yet, and for why grains
+      must not be ordered by name.
+    - **NULL in filters.** ``None`` is never a comparison operand; splitting
+      nullness into ``IS_NULL``/``IS_NOT_NULL`` is the host's responsibility.
+      Mixed positive membership uses grouped OR predicates, which every
+      provider must render; see :class:`~superset_core.semantic_layers.types.Operator`.
+    - **Ordering before limit.** ``order`` is applied to the full result set
+      before ``offset`` and ``limit``. See
+      :class:`~superset_core.semantic_layers.types.SemanticQuery`.
+
+    Uniqueness works at two levels. In the **catalog**, dimensions are unique
+    per ``(name, grain)`` -- so several grain variants of one name are expected
+    -- while metric names are unique on their own and must not collide with a
+    dimension name. These are provider obligations the host does not currently
+    check. In a **query**, at most one variant per name is selected, so a result
+    carries one column per selected member name.
     """
 
     # Defaults to no optional features: providers opt in by overriding, and
@@ -114,12 +145,23 @@ class SemanticView(ABC):
         when the result is incomplete or its completeness cannot be verified;
         never return a partial result instead.
         Do not drop ``filters`` and retry when a filtered request is incomplete.
+
+        ``SemanticQueryRejectedError`` is not part of this method's contract: the
+        host treats a search filter as best-effort and retries without it, so a
+        rejection would not reach the user.
         """
 
     @abstractmethod
     def get_table(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a semantic query and return the results.
+
+        Raise SemanticQueryRejectedError for deliberate input rejection.
+        Leave operational and unexpected failures unclassified.
+
+        Sort by ``query.order`` before applying ``query.offset`` and
+        ``query.limit``; truncating before sorting returns the wrong rows. Name
+        each result column after the member that produced it.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;
@@ -130,6 +172,8 @@ class SemanticView(ABC):
     def get_row_count(self, query: SemanticQuery) -> SemanticResult:
         """
         Execute a query and return the number of rows the result would have.
+
+        Raise SemanticQueryRejectedError for deliberate input rejection.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;

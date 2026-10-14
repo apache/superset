@@ -30,6 +30,7 @@ import dataclasses
 import logging
 from typing import Any
 
+from flask import current_app, has_request_context, request
 from flask_babel import lazy_gettext as _
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -81,15 +82,30 @@ ACCESS_STATUSES = frozenset({401, 403})
 
 def is_sanitization_required() -> bool:
     """
-    Whether the principal of the current request is an embedded guest viewer.
+    Whether the current request's error details should be redacted.
 
-    This runs inside Flask's HTTP error handler, which has no handler of its own:
-    if resolving the principal raises, Flask discards the intended status and
-    returns a bare 500. Some Flask-Login user loaders (e.g. a JWT request loader)
-    raise rather than fall back to an anonymous user when a request carries no
-    valid credential, so the lookup below must never be allowed to propagate. A
-    request whose principal cannot be resolved is by definition not an embedded
-    guest viewer, so there is nothing to redact and ``False`` is the safe answer.
+    Error details are redacted for embedded guest viewers. This runs inside
+    Flask's HTTP error handler, which has no handler of its own: if resolving the
+    principal raises, Flask discards the intended status and returns a bare 500.
+    The lookup can raise in more than one way -- a Flask-Login user loader (e.g.
+    a JWT request loader) may raise rather than fall back to an anonymous user;
+    resolving a *valid* guest token itself does a metadata-DB round trip
+    (``find_role``) and consults the ``EMBEDDED_SUPERSET`` feature hook, either of
+    which can raise on a request whose DB session is already broken -- and a
+    broken session is exactly the state the handler for a ``SQLAlchemyError`` runs
+    in. The lookup below must therefore never be allowed to propagate.
+
+    When it does raise the principal is unknown, so this makes a deliberate
+    availability-over-confidentiality trade-off rather than guessing "not a
+    guest". Inside a request context it falls back to whether the request even
+    carries a guest token: anyone presenting a token, or whose body raises while
+    being read to check for one, is redacted (failing closed for the only
+    principal whose errors are redacted), and a genuinely anonymous request keeps
+    its error so ordinary failures are not over-sanitized. Outside a request
+    context (e.g. a Celery worker, where a guest principal may be active via
+    ``override_user`` and the error is delivered to the embedded viewer) there is
+    no token to read and no handler-of-a-handler concern, so it fails closed and
+    redacts.
     """
     # pylint: disable=import-outside-toplevel
     from superset import security_manager
@@ -100,13 +116,38 @@ def is_sanitization_required() -> bool:
         # Never let identifying the principal break the error handler itself.
         logger.warning(
             "Could not resolve the request principal while deciding whether to "
-            "sanitize an error response; treating it as a non-guest request.",
+            "sanitize an error response; falling back to the presence of a guest "
+            "token.",
             exc_info=True,
         )
-        return False
+        if not has_request_context():
+            # No request to inspect (e.g. a Celery worker running under
+            # ``override_user``). Fail closed: a guest principal may be active
+            # and the redacted payload is delivered to the embedded viewer.
+            return True
+        # ``.get`` on the config keeps the header read from raising even if the
+        # key is somehow absent.
+        header_name = current_app.config.get("GUEST_TOKEN_HEADER_NAME")
+        if header_name and request.headers.get(header_name):
+            return True
+        try:
+            # ``request.form`` parses the body lazily on first access. A body
+            # whose first parse (in the request loader) already failed part-way
+            # is left partially consumed and re-parses as an empty form; no guest
+            # was authenticated on such a request, so it is treated as token-free.
+            return bool(request.form.get("guest_token"))
+        except Exception:  # pylint: disable=broad-except
+            # Reading the body can raise more than werkzeug's ``HTTPException``s
+            # and ``OSError``: the WSGI server's input stream may raise its own
+            # parse errors (e.g. gunicorn's ``ParseException`` subclasses for a
+            # malformed chunked trailer, which subclass ``Exception`` directly).
+            # The body can't be inspected, so fail closed.
+            return True
 
 
-def sanitize_error_message(message: str, status: int | None = None) -> str:
+def sanitize_error_message(
+    message: str, status: int | None = None, required: bool | None = None
+) -> str:
     """
     Replace an error message with a generic one for embedded guest viewers.
 
@@ -114,15 +155,22 @@ def sanitize_error_message(message: str, status: int | None = None) -> str:
     string carries no error type, so there is no way to tell an authorization
     denial from an engine error that happens to be reported as a 404. `status`
     only selects which generic message reads correctly.
+
+    `required` lets a caller that has already resolved the sanitization decision
+    thread it in so the principal is not looked up again (``None`` computes it).
     """
-    if not is_sanitization_required():
+    if required is None:
+        required = is_sanitization_required()
+    if not required:
         return message
     if status in ACCESS_STATUSES:
         return str(GENERIC_ACCESS_MESSAGE)
     return str(GENERIC_ERROR_MESSAGE)
 
 
-def sanitize_superset_error(error: SupersetError) -> SupersetError:
+def sanitize_superset_error(
+    error: SupersetError, required: bool | None = None
+) -> SupersetError:
     """
     Replace a ``SupersetError`` with a generic one for embedded guest viewers.
 
@@ -130,8 +178,13 @@ def sanitize_superset_error(error: SupersetError) -> SupersetError:
     some error types, the offending SQL. An allowlisted error keeps its message
     and type, but its ``extra`` is still filtered to `SAFE_EXTRA_KEYS` -- an
     allowlisted type is not a promise that everything hanging off it is safe.
+
+    `required` lets a caller that has already resolved the sanitization decision
+    thread it in so the principal is not looked up again (``None`` computes it).
     """
-    if not is_sanitization_required():
+    if required is None:
+        required = is_sanitization_required()
+    if not required:
         return error
     if error.error_type in SAFE_ERROR_TYPES:
         if not error.extra:
@@ -152,23 +205,36 @@ def sanitize_superset_error(error: SupersetError) -> SupersetError:
     )
 
 
-def sanitize_superset_errors(errors: list[SupersetError]) -> list[SupersetError]:
+def sanitize_superset_errors(
+    errors: list[SupersetError], required: bool | None = None
+) -> list[SupersetError]:
     """
     Replace each leaky ``SupersetError`` with a generic one for guest viewers.
+
+    The sanitization decision is resolved once and threaded into the per-error
+    calls, so the principal is looked up a single time for the whole list rather
+    than once per error.
     """
-    if not is_sanitization_required():
+    if required is None:
+        required = is_sanitization_required()
+    if not required:
         return errors
-    return [sanitize_superset_error(error) for error in errors]
+    return [sanitize_superset_error(error, required=required) for error in errors]
 
 
-def sanitize_error_dicts(errors: list[Any]) -> list[Any]:
+def sanitize_error_dicts(errors: list[Any], required: bool | None = None) -> list[Any]:
     """
     Same as :func:`sanitize_superset_errors`, for already serialized errors.
 
     Entries that aren't ``SupersetError`` shaped — a bare string, or a dict with
     only a message — are treated as leaky and replaced wholesale.
+
+    The sanitization decision is resolved once and threaded into the per-error
+    calls, so the principal is looked up a single time for the whole list.
     """
-    if not is_sanitization_required():
+    if required is None:
+        required = is_sanitization_required()
+    if not required:
         return errors
 
     sanitized = []
@@ -191,7 +257,8 @@ def sanitize_error_dicts(errors: list[Any]) -> list[Any]:
                         error_type=error_type,
                         level=level,
                         extra=payload.get("extra"),
-                    )
+                    ),
+                    required=required,
                 )
             )
         )
