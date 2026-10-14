@@ -291,12 +291,15 @@ jobs:
   docker-build:
     name: docker-build
     needs: [setup_matrix, changes]
-    # A push build exists to publish images. Without the Docker Hub
-    # credentials (e.g. on a fork or mirror) it can publish nothing, so it
-    # is skipped there; pull_request builds, which only validate that the
-    # images build, run everywhere.
+    # Only master pushes publish images (see scripts/docker-build-plan.sh).
+    # Without the Docker Hub credentials (e.g. on a fork or mirror) they can
+    # publish nothing, so they are skipped there. Version-branch pushes and
+    # pull_request builds only load the image to validate that it builds, so
+    # they run everywhere.
     if: >-
-      (github.event_name != 'push' || needs.setup_matrix.outputs.has-secrets) &&
+      (github.event_name != 'push' ||
+       github.ref != 'refs/heads/master' ||
+       needs.setup_matrix.outputs.has-secrets) &&
       (needs.changes.outputs.python == 'true' ||
        needs.changes.outputs.frontend == 'true' ||
        needs.changes.outputs.docker == 'true')
