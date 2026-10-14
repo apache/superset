@@ -97,13 +97,16 @@ class QueryDAO(BaseDAO[Query]):
         # below in one transaction, closing the window where another
         # request could observe the flag set but the status still RUNNING.
         #
-        # The write is conditional: the worker can commit a terminal status
-        # after the check above, and that result must not be overwritten.
+        # The write is conditional: the worker can commit SUCCESS or TIMED_OUT
+        # after the check above, and that result must not be overwritten. A
+        # FAILED committed in this window is usually caused by the cancel
+        # itself (engines that kill the statement from outside the worker),
+        # so it is still replaced with STOPPED.
         stopped = (
             db.session.query(Query)
             .filter(
                 Query.id == query.id,
-                Query.status.notin_(FINISHED_QUERY_STATUSES),
+                Query.status.notin_((QueryStatus.SUCCESS, QueryStatus.TIMED_OUT)),
             )
             .update(
                 {Query.status: QueryStatus.STOPPED, Query.end_time: now_as_float()},

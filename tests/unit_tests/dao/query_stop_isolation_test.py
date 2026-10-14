@@ -137,6 +137,66 @@ def test_stop_query_keeps_status_committed_after_its_check(
     assert query.end_time == 2.0
 
 
+def test_stop_query_replaces_failure_caused_by_its_cancel(
+    mocker: MockerFixture,
+    app: Any,
+    session: Session,
+    session_engine: Engine,
+    query_id: int,
+) -> None:
+    """
+    A FAILED committed during the cancel still ends STOPPED.
+
+    Engines that kill the statement from outside the worker (Postgres, MySQL,
+    Snowflake, ...) make the worker fail straight away, and its error handler
+    can commit FAILED before stop_query writes STOPPED.
+    """
+    from superset.daos.query import QueryDAO
+
+    def cancel_then_fail(query: Query) -> bool:
+        # The cancel kills the statement, and the worker commits FAILED.
+        _worker_commits(
+            session_engine,
+            query.id,
+            status=QueryStatus.FAILED,
+            error_message="terminating connection due to administrator command",
+            end_time=2.0,
+        )
+        return True
+
+    mocker.patch("superset.sql_lab.cancel_query", side_effect=cancel_then_fail)
+
+    QueryDAO.stop_query(CLIENT_ID)
+
+    query = _committed(session_engine, query_id)
+    assert query.status == QueryStatus.STOPPED
+
+
+@pytest.mark.parametrize("status", [QueryStatus.SUCCESS, QueryStatus.TIMED_OUT])
+def test_stop_query_keeps_outcome_a_stop_cannot_cause(
+    mocker: MockerFixture,
+    app: Any,
+    session: Session,
+    session_engine: Engine,
+    query_id: int,
+    status: QueryStatus,
+) -> None:
+    """SUCCESS or TIMED_OUT committed during the cancel is not overwritten."""
+    from superset.daos.query import QueryDAO
+
+    def cancel_then_finish(query: Query) -> bool:
+        _worker_commits(session_engine, query.id, status=status, end_time=2.0)
+        return True
+
+    mocker.patch("superset.sql_lab.cancel_query", side_effect=cancel_then_finish)
+
+    QueryDAO.stop_query(CLIENT_ID)
+
+    query = _committed(session_engine, query_id)
+    assert query.status == status
+    assert query.end_time == 2.0
+
+
 def test_stop_query_does_not_rewrite_impala_claim(
     mocker: MockerFixture,
     app: Any,
