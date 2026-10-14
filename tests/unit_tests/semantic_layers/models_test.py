@@ -1350,16 +1350,38 @@ def test_semantic_view_implementation(mocker: MockerFixture) -> None:
     from superset.semantic_layers.execution import SemanticBindingMemo
 
     view: SemanticView = SemanticView(
-        name="Test View", configuration='{"key": "value"}'
+        name="Test View", configuration='{"tenant": "A", "key": "value"}'
     )
     view.semantic_layer = SemanticLayer()
+    equivalent: SemanticView = SemanticView(
+        name="Test View",
+        configuration='{"key": "value", "tenant": "A"}',
+        semantic_layer=view.semantic_layer,
+    )
+    different: SemanticView = SemanticView(
+        name="Test View",
+        configuration='{"tenant": "B", "key": "value"}',
+        semantic_layer=view.semantic_layer,
+    )
     provider: MagicMock = MagicMock()
+    first: MagicMock = MagicMock()
+    second: MagicMock = MagicMock()
+    provider.get_semantic_view.side_effect = [first, second]
     memo: SemanticBindingMemo = SemanticBindingMemo()
     mocker.patch.object(SemanticBindingMemo, "for_layer", return_value=memo)
     mocker.patch.object(memo, "bind", return_value=(provider, {}))
-    assert view.implementation is provider.get_semantic_view.return_value
-    assert view.implementation is provider.get_semantic_view.return_value
-    provider.get_semantic_view.assert_called_once_with("Test View", {"key": "value"})
+    assert view.implementation is first
+    assert view.implementation is first
+    assert equivalent.implementation is first
+    provider.get_semantic_view.assert_called_once_with(
+        "Test View", {"tenant": "A", "key": "value"}
+    )
+    assert different.implementation is second
+    assert different.implementation is not first
+    assert provider.get_semantic_view.call_count == 2
+    provider.get_semantic_view.assert_called_with(
+        "Test View", {"tenant": "B", "key": "value"}
+    )
 
 
 def test_semantic_view_get_compatible_metrics(
