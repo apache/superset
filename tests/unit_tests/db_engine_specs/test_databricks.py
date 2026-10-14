@@ -110,7 +110,7 @@ def test_dialect_supports_installed_sqlalchemy(mocker: MockerFixture) -> None:
 
 
 def test_databricks_native_adjust_engine_params() -> None:
-    """Test that DatabricksNativeEngineSpec translates catalog/schema and syncs connect_args."""
+    """Test that adjust_engine_params maps catalog/schema into the URL and args."""
     uri_str = DatabricksNativeEngineSpec.build_sqlalchemy_uri(
         {
             "access_token": "test-token",
@@ -146,6 +146,24 @@ def test_databricks_native_adjust_engine_params() -> None:
     assert "schema" not in url_cat_override.query
     assert args_cat_override["catalog"] == "main"
     assert "schema" not in args_cat_override
+
+    # Test catalog override when URI already contains ?catalog=main&schema=finance
+    url_query_cat_override, args_query_cat_override = (
+        DatabricksNativeEngineSpec.adjust_engine_params(
+            make_url(
+                "databricks+connector://token:test-token@localhost:443/"
+                "?catalog=main&schema=finance&http_path=/sql/1.0/warehouses/test"
+            ),
+            connect_args={},
+            catalog="other",
+        )
+    )
+    assert url_query_cat_override.query["catalog"] == "other"
+    assert "schema" not in url_query_cat_override.query
+    assert url_query_cat_override.query["http_path"] == "/sql/1.0/warehouses/test"
+    assert args_query_cat_override["catalog"] == "other"
+    assert "schema" not in args_query_cat_override
+    assert args_query_cat_override["http_path"] == "/sql/1.0/warehouses/test" 
 
     # Test explicit catalog and schema with http_path in connect_args
     adjusted_url, adjusted_args = DatabricksNativeEngineSpec.adjust_engine_params(

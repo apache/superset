@@ -1046,25 +1046,26 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             or uri.query.get("http_path")
         )
 
-        query_params: dict[str, str] = {}
+        query_dict = dict(uri.query)
         if effective_catalog:
-            query_params["catalog"] = effective_catalog
+            query_dict["catalog"] = effective_catalog
             adjusted_connect_args["catalog"] = effective_catalog
         else:
+            query_dict.pop("catalog", None)
             adjusted_connect_args.pop("catalog", None)
 
         if effective_schema:
-            query_params["schema"] = effective_schema
+            query_dict["schema"] = effective_schema
             adjusted_connect_args["schema"] = effective_schema
         else:
+            query_dict.pop("schema", None)
             adjusted_connect_args.pop("schema", None)
 
         if effective_http_path:
-            query_params["http_path"] = effective_http_path
+            query_dict["http_path"] = effective_http_path
             adjusted_connect_args["http_path"] = effective_http_path
 
-        if query_params:
-            uri = uri.update_query_dict(query_params)
+        uri = uri.set(query=query_dict)
 
         return uri, adjusted_connect_args
 
