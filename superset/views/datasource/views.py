@@ -460,7 +460,9 @@ class Datasource(BaseSupersetView):
             # So an unchanged echo of stored configuration survives: this
             # endpoint's own client does GET-then-POST, which is exactly the
             # shape that looked like a value being parked.
-            stored_by_name={
+            stored_by_name=None
+            if is_feature_enabled("PARTITION_FILTER_MAPPING")
+            else {
                 column.column_name: (
                     column.partition_value_transform,
                     bool(column.partition_transform_is_monotonic),
