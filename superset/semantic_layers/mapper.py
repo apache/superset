@@ -1392,15 +1392,20 @@ def validate_filter_columns(
     dimension_names: Collection[str],
     metric_names: Collection[str],
 ) -> None:
-    """Refuse chart-defined metric predicates; report incompatible extras later."""
+    """Refuse chart-defined predicates on metrics or on columns the view lacks.
+
+    Dashboard (``isExtra``) filters are not refused: incompatible ones are
+    skipped and reported, so a dashboard filter cannot break the chart.
+    """
     for filter_ in filters:
         column: Column = filter_["col"]
         if (
-            isinstance(column, str)
-            and column not in dimension_names
-            and column in metric_names
-            and not filter_.get("isExtra")
+            not isinstance(column, str)
+            or column in dimension_names
+            or filter_.get("isExtra")
         ):
+            continue
+        if column in metric_names:
             raise QueryObjectValidationError(
                 _(
                     "Filter column '%(column)s' is a metric; semantic views only "
@@ -1408,6 +1413,13 @@ def validate_filter_columns(
                     column=column,
                 )
             )
+        raise QueryObjectValidationError(
+            _(
+                "Filter column '%(column)s' is not in this semantic view. Edit the "
+                "chart's filters and reselect a dimension, then save the chart.",
+                column=column,
+            )
+        )
 
 
 def _validate_filters(

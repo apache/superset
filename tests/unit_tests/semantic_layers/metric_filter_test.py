@@ -88,6 +88,14 @@ def metric_view(mocker: MockerFixture) -> tuple[SemanticView, MagicMock]:
     return view, provider
 
 
+METRIC_FILTER_ERROR: str = "is a metric; semantic views only filter on dimensions"
+MISSING_FILTER_ERROR: str = "is not in this semantic view"
+REFUSED_CHART_FILTERS: list[tuple[str, str]] = [
+    ("total_amount", METRIC_FILTER_ERROR),
+    ("missing_column", MISSING_FILTER_ERROR),
+]
+
+
 def _request(filters: list[QueryObjectFilterClause]) -> dict[str, Any]:
     """Build an ordinary synchronous JSON chart-data request."""
     return {
@@ -100,15 +108,17 @@ def _request(filters: list[QueryObjectFilterClause]) -> dict[str, Any]:
     }
 
 
+@pytest.mark.parametrize(("column", "error"), REFUSED_CHART_FILTERS)
 @pytest.mark.parametrize("mixed", [False, True])
 def test_chart_data_rejects_non_dimension_filters(
     client: FlaskClient,
     full_api_access: None,
     metric_view: tuple[SemanticView, MagicMock],
     mixed: bool,
+    column: str,
+    error: str,
 ) -> None:
-    """Chart-defined metric predicates refuse the whole data request with 400."""
-    column: str = "total_amount"
+    """Chart-defined metric or missing-column predicates refuse the request."""
     provider: MagicMock = metric_view[1]
     filters: list[QueryObjectFilterClause] = (
         [
@@ -123,16 +133,19 @@ def test_chart_data_rejects_non_dimension_filters(
 
     assert response.status_code == 400, response.json
     assert column in str(response.json)
-    assert "is a metric; semantic views only filter on dimensions" in str(response.json)
+    assert error in str(response.json)
     provider.get_table.assert_not_called()
     provider.get_row_count.assert_not_called()
 
 
+@pytest.mark.parametrize(("column", "error"), REFUSED_CHART_FILTERS)
 def test_invalid_filter_is_rejected_before_result_cache(
     client: FlaskClient,
     full_api_access: None,
     metric_view: tuple[SemanticView, MagicMock],
     mocker: MockerFixture,
+    column: str,
+    error: str,
 ) -> None:
     """A cached partially filtered result cannot bypass column validation."""
     metric_view[0].cache_timeout = 600
@@ -153,33 +166,35 @@ def test_invalid_filter_is_rejected_before_result_cache(
         json=_request(
             [
                 {"col": "category", "op": "==", "val": "Books"},
-                {"col": "total_amount", "op": ">=", "val": 999999},
+                {"col": column, "op": ">=", "val": 999999},
             ]
         ),
     )
     assert response.status_code == 400, response.json
-    assert "total_amount" in str(response.json)
+    assert error in str(response.json)
     cache_get.assert_not_called()
     backend.get.assert_not_called()
     metric_view[1].get_table.assert_not_called()
 
 
+@pytest.mark.parametrize(("column", "error"), REFUSED_CHART_FILTERS)
 @pytest.mark.parametrize("entry", ["validation", "mapping"])
 def test_direct_semantic_entry_rejects_metric_filter(
-    metric_view: tuple[SemanticView, MagicMock], entry: str
+    metric_view: tuple[SemanticView, MagicMock], entry: str, column: str, error: str
 ) -> None:
     """Direct mapper callers receive the same column-specific validation error."""
     query: ValidatedQueryObject = ValidatedQueryObject(
         datasource=metric_view[0],
         columns=["category"],
         metrics=["total_amount"],
-        filters=[{"col": "total_amount", "op": ">=", "val": 999999}],
+        filters=[{"col": column, "op": ">=", "val": 999999}],
     )
     entry_point: Callable[[ValidatedQueryObject], object] = (
         validate_query_object if entry == "validation" else map_query_object
     )
-    with pytest.raises(QueryObjectValidationError, match="total_amount"):
+    with pytest.raises(QueryObjectValidationError, match=error) as raised:
         entry_point(query)
+    assert column in str(raised.value)
 
 
 @pytest.mark.parametrize("same_named_metric", [False, True])
@@ -219,7 +234,7 @@ def test_dimension_filters_still_reach_provider(
 
 @pytest.mark.parametrize(
     ("column", "external"),
-    [("country", True), ("total_amount", True), ("missing_column", False)],
+    [("country", True), ("total_amount", True), ("missing_column", True)],
 )
 @pytest.mark.parametrize("mixed", [False, True])
 def test_incompatible_filter_is_reported_without_breaking_chart(
@@ -230,7 +245,7 @@ def test_incompatible_filter_is_reported_without_breaking_chart(
     external: bool,
     mixed: bool,
 ) -> None:
-    """Foreign dashboard columns and unknown chart columns match SQL rejection."""
+    """Dashboard filters on columns the view lacks are skipped and reported."""
     filters: list[QueryObjectFilterClause] = [
         {"col": column, "op": "IN", "val": ["US"], "isExtra": external},
     ]
