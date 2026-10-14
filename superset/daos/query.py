@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from typing import Any, Union
 
 from superset import sql_lab
-from superset.common.db_query_status import QueryStatus
+from superset.common.db_query_status import FINISHED_QUERY_STATUSES, QueryStatus
 from superset.daos.base import BaseDAO
 from superset.exceptions import QueryNotFoundException, SupersetCancelQueryException
 from superset.extensions import db
@@ -70,24 +70,25 @@ class QueryDAO(BaseDAO[Query]):
         if not query:
             raise QueryNotFoundException(f"Query with client_id {client_id} not found")
 
-        if query.status in [
-            QueryStatus.FAILED,
-            QueryStatus.SUCCESS,
-            QueryStatus.TIMED_OUT,
-        ]:
+        if query.status in FINISHED_QUERY_STATUSES:
             logger.warning(
                 "Query with client_id could not be stopped: query already complete",
             )
             return
 
-        if not sql_lab.cancel_query(query):
-            raise SupersetCancelQueryException("Could not cancel query")
-
-        if query.status in sql_lab.FINISHED_QUERY_STATUSES:
+        cancelled = sql_lab.cancel_query(query)
+        if query.status in FINISHED_QUERY_STATUSES:
             # Preparing the stop can observe the worker's terminal commit.
             logger.warning(
                 "Query with client_id could not be stopped: query already complete",
             )
+            return
+        if not cancelled:
+            raise SupersetCancelQueryException("Could not cancel query")
+
+        if query.status == QueryStatus.STOPPED:
+            # The engine spec already committed the stop while preparing it
+            # (see ImpalaEngineSpec.prepare_cancel_query).
             return
 
         # cancel_query() may have staged an early-cancel flag on query.extra
@@ -95,8 +96,24 @@ class QueryDAO(BaseDAO[Query]):
         # @transaction decorator commits it together with status=STOPPED
         # below in one transaction, closing the window where another
         # request could observe the flag set but the status still RUNNING.
-        query.status = QueryStatus.STOPPED
-        query.end_time = now_as_float()
+        #
+        # The write is conditional: the worker can commit a terminal status
+        # after the check above, and that result must not be overwritten.
+        stopped = (
+            db.session.query(Query)
+            .filter(
+                Query.id == query.id,
+                Query.status.notin_(FINISHED_QUERY_STATUSES),
+            )
+            .update(
+                {Query.status: QueryStatus.STOPPED, Query.end_time: now_as_float()},
+                synchronize_session="fetch",
+            )
+        )
+        if not stopped:
+            logger.warning(
+                "Query with client_id could not be stopped: query already complete",
+            )
 
 
 class SavedQueryDAO(BaseDAO[SavedQuery]):

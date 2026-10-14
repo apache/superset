@@ -30,10 +30,12 @@ from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import db
+from superset.common.db_query_status import FINISHED_QUERY_STATUSES
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
 from superset.utils.core import QueryStatus
+from superset.utils.dates import now_as_float
 from superset.utils.network import is_safe_host
 
 if TYPE_CHECKING:
@@ -252,32 +254,46 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
         Publish STOPPED with the flag in the same transaction: the worker can
         close the cursor as soon as it observes the flag, and synchronous fetch
-        must recognise the resulting driver error as a stop.
+        must recognise the resulting driver error as a stop. The stop is
+        committed here, so callers must not write STOPPED again.
 
-        A query that already finished keeps its terminal status. The conditional
-        write holds the row lock until commit, so it serialises with the worker's
-        guarded terminal commit instead of overwriting its result.
+        A query that already finished keeps its terminal status: the claim is a
+        conditional write, so it cannot overwrite a terminal status the worker
+        committed first.
+
+        Known gap: the stop only reaches Impala while a worker is polling the
+        operation in ``handle_cursor``. The query is marked stopped, but Impala
+        keeps running it and holds its admission slot until it finishes or
+        Impala closes it on its own, when:
+
+        - the worker has died or restarted;
+        - the stop lands after polling ended, while ``fetch_data`` is reading
+          results;
+        - polling ended early because ``cursor.status()`` raised.
+
+        Hive and Presto stop SQL Lab queries the same way. Chart and MCP
+        cancellation still use the coordinator's HTTP endpoint through
+        ``cancel_query``.
         """
         with db.session.no_autoflush:
             claimed = (
                 db.session.query(Query)
                 .filter(
                     Query.id == query.id,
-                    Query.status.notin_(
-                        [
-                            QueryStatus.SUCCESS,
-                            QueryStatus.FAILED,
-                            QueryStatus.TIMED_OUT,
-                        ]
-                    ),
+                    Query.status.notin_(FINISHED_QUERY_STATUSES),
                 )
-                .update({Query.status: QueryStatus.STOPPED}, synchronize_session=False)
+                .update(
+                    {Query.status: QueryStatus.STOPPED, Query.end_time: now_as_float()},
+                    synchronize_session=False,
+                )
             )
         if not claimed:
             # The UPDATE sees current state, but a plain refresh can still read
             # the earlier RUNNING snapshot under REPEATABLE READ. A locking
             # read keeps callers from cancelling an already finished operation.
             db.session.refresh(query, with_for_update=True)
+            # Release the row lock; nothing is pending at this point.
+            db.session.commit()  # pylint: disable=consider-using-transaction
             return
         query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
         query.status = QueryStatus.STOPPED
