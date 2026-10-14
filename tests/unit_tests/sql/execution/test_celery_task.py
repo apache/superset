@@ -2056,3 +2056,45 @@ def test_failure_after_stop_raced_commit_reports_failed_not_stopped(
         assert query.error_message
         assert query.results_key is None
     engine.dispose()
+
+
+@pytest.mark.parametrize("durable", [False, True], ids=["read", "committed-mutation"])
+@pytest.mark.parametrize(
+    "status",
+    [QueryStatusEnum.RUNNING, QueryStatusEnum.FAILED],
+    ids=["success", "failed"],
+)
+def test_publish_query_result_preserves_failure(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    durable: bool,
+    status: str,
+) -> None:
+    """Publishing preserves backend failures for reads and committed mutations."""
+    from superset.sql.execution import celery_task
+
+    mock_query.status = status
+    payload = {"status": status, "query_id": 123}
+    session = mocker.patch.object(celery_task.db, "session")
+    check_stopped = mocker.patch.object(
+        celery_task, "_make_check_stopped_fn", return_value=lambda: False
+    )
+    conditional_commit = mocker.patch.object(
+        celery_task, "_commit_query_unless_stopped", return_value=True
+    )
+
+    assert celery_task._publish_query_result(mock_query, payload, durable) is payload
+    assert mock_query.status == (
+        QueryStatusEnum.FAILED
+        if status == QueryStatusEnum.FAILED
+        else QueryStatusEnum.SUCCESS
+    )
+    if durable:
+        session.commit.assert_called_once_with()
+        check_stopped.assert_not_called()
+        conditional_commit.assert_not_called()
+    else:
+        session.commit.assert_not_called()
+        check_stopped.assert_called_once_with(mock_query, preserve_pending=True)
+        conditional_commit.assert_called_once_with(mock_query)
