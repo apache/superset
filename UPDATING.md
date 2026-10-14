@@ -24,6 +24,11 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [45087](https://github.com/apache/superset/pull/45186): Adds `msgpack>=1.2.3, <1.3`
+  to `requirements/base.in`, bumps `pyarrow` constraint floor in
+  `superset-core/pyproject.toml` to `>=25.0.1, <26`, and documents advisory-specific
+  container remediation guidance in
+  `docs/admin_docs/security/dependency-vulnerability-remediation.mdx`.
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
@@ -70,7 +75,6 @@ assists people when migrating to a new version.
   time-axis bounds; time-series offsets and separate inner-bound queries replace
   ranges on their selected axis. Retained predicates can narrow results where
   earlier releases discarded them.
-
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
   which every semantic provider must render; previously NULL rows could be
